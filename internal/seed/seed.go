@@ -214,9 +214,11 @@ type RefreshToken struct {
 }
 
 type ClientGrant struct {
-	ClientID string   `yaml:"client_id"`
-	Audience string   `yaml:"audience"`
-	Scopes   []string `yaml:"scopes"`
+	OrganizationUsage    string   `yaml:"organization_usage"`
+	AllowAnyOrganization bool     `yaml:"allow_any_organization"`
+	ClientID             string   `yaml:"client_id"`
+	Audience             string   `yaml:"audience"`
+	Scopes               []string `yaml:"scopes"`
 
 	SubjectType string `yaml:"subject_type"`
 }

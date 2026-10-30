@@ -506,7 +506,7 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 func sortNamedSets(resource string, row object) {
 	fields := map[string][]string{
 		"clientGrants": {"scope", "scopes"}, "clients": {"grant_types"},
-		"organizations": {"connections", "client_grants"}, "roles": {"permissions"}, "resourceServers": {"scopes"}, "connections": {"enabled_clients"}, "databases": {"enabled_clients"},
+		"organizations": {"connections", "client_grants", "clients", "discovery_domains"}, "roles": {"permissions"}, "resourceServers": {"scopes"}, "connections": {"enabled_clients"}, "databases": {"enabled_clients"},
 	}
 	for _, field := range fields[resource] {
 		values, ok := row[field].([]any)

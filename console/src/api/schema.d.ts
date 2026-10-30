@@ -2463,10 +2463,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List an organization's connections (Early Access upstream; same links as enabled_connections) */
+        /**
+         * GET /organizations/{id}/connections
+         * @description Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves
+         */
         get: operations["ListOrganizationAllConnections"];
         put?: never;
-        /** Add a connection to an organization (Early Access upstream) */
+        /**
+         * POST /organizations/{id}/connections
+         * @description Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves
+         */
         post: operations["CreateOrganizationAllConnection"];
         delete?: never;
         options?: never;
@@ -2481,15 +2487,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get an organization connection (Early Access upstream) */
+        /**
+         * GET /organizations/{id}/connections/{connection_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves
+         */
         get: operations["GetOrganizationAllConnection"];
         put?: never;
         post?: never;
-        /** Remove a connection from an organization (Early Access upstream) */
+        /**
+         * DELETE /organizations/{id}/connections/{connection_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves
+         */
         delete: operations["DeleteOrganizationAllConnection"];
         options?: never;
         head?: never;
-        /** Update an organization connection (Early Access upstream) */
+        /**
+         * PATCH /organizations/{id}/connections/{connection_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves
+         */
         patch: operations["UpdateOrganizationAllConnection"];
         trace?: never;
     };
@@ -2500,10 +2515,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List an organization's client grants (always empty until organization grants exist) */
+        /**
+         * GET /organizations/{id}/client-grants
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body
+         */
         get: operations["ListOrganizationClientGrants"];
         put?: never;
-        post?: never;
+        /**
+         * POST /organizations/{id}/client-grants
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body
+         */
+        post: operations["AssociateOrganizationClientGrant"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2607,10 +2629,597 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/organizations/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/search
+         * @description Bounded local SCIM/Lucene organization search. parser absent=lucene; take absent=50; sort absent=created_at with ID tie-break (local); q absent/empty=all (local); next omitted at end; no offset/totals. Cursors authenticate tenant, normalized query, parser and sort under stable server key material. They are not snapshots; concurrent writes can change subsequent pages. Local reads are immediately consistent. See docs/organization-search.md.
+         */
+        get: operations["SearchOrganizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/{id}/invitations
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)
+         */
+        get: operations["ListOrganizationInvitations"];
+        put?: never;
+        /**
+         * POST /organizations/{id}/invitations
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)
+         */
+        post: operations["CreateOrganizationInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/invitations/{invitation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/{id}/invitations/{invitation_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)
+         */
+        get: operations["GetOrganizationInvitation"];
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /organizations/{id}/invitations/{invitation_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)
+         */
+        delete: operations["DeleteOrganizationInvitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/{id}/clients
+         * @description Plan 30 contract; route implementation is tracked separately. documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)
+         */
+        get: operations["ListOrganizationClients"];
+        put?: never;
+        /**
+         * POST /organizations/{id}/clients
+         * @description Plan 30 contract; route implementation is tracked separately. documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)
+         */
+        post: operations["AssociateOrganizationClients"];
+        /**
+         * DELETE /organizations/{id}/clients
+         * @description Plan 30 contract; route implementation is tracked separately. documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)
+         */
+        delete: operations["DeleteOrganizationClients"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/clients/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/{id}/clients/{client_id}
+         * @description Plan 30 contract; route implementation is tracked separately. documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)
+         */
+        get: operations["GetOrganizationClient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /organizations/{id}/clients/{client_id}
+         * @description Plan 30 contract; route implementation is tracked separately. documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)
+         */
+        patch: operations["UpdateOrganizationClient"];
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/client-grants/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /organizations/{id}/client-grants/{grant_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body
+         */
+        delete: operations["DeleteOrganizationClientGrant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/discovery-domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/{id}/discovery-domains
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected
+         */
+        get: operations["ListOrganizationDiscoveryDomains"];
+        put?: never;
+        /**
+         * POST /organizations/{id}/discovery-domains
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected
+         */
+        post: operations["CreateOrganizationDiscoveryDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/discovery-domains/name/{discovery_domain}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/{id}/discovery-domains/name/{discovery_domain}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected
+         */
+        get: operations["GetOrganizationDiscoveryDomainByName"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /organizations/{id}/discovery-domains/{discovery_domain_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected
+         */
+        get: operations["GetOrganizationDiscoveryDomain"];
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /organizations/{id}/discovery-domains/{discovery_domain_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected
+         */
+        delete: operations["DeleteOrganizationDiscoveryDomain"];
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /organizations/{id}/discovery-domains/{discovery_domain_id}
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected
+         */
+        patch: operations["UpdateOrganizationDiscoveryDomain"];
+        trace?: never;
+    };
+    "/api/v2/client-grants/{id}/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /client-grants/{id}/organizations
+         * @description Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body
+         */
+        get: operations["ListClientGrantOrganizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        IISearchParserEnum: "scim" | "lucene";
+        /** @enum {string} */
+        IIOrganizationSortFieldEnum: "name" | "display_name" | "created_at";
+        IISearchOrganizationsPaginatedResponseContent: {
+            organizations: components["schemas"]["IISearchOrganization"][];
+            next?: string;
+        };
+        IISearchOrganization: {
+            id?: string;
+            name?: string;
+            display_name?: string;
+            branding?: components["schemas"]["IIOrganizationBranding"];
+            token_quota?: components["schemas"]["IITokenQuota"];
+            third_party_client_access?: components["schemas"]["IIOrganizationThirdPartyClientAccessEnum"];
+            is_app_entitlement_active?: boolean;
+        } & {
+            [key: string]: unknown;
+        };
+        IIOrganizationBranding: {
+            logo_url?: string;
+            colors?: components["schemas"]["IIOrganizationBrandingColors"];
+        };
+        IIOrganizationBrandingColors: {
+            primary: string;
+            page_background: string;
+        };
+        IITokenQuota: {
+            client_credentials: components["schemas"]["IITokenQuotaClientCredentials"];
+        };
+        IITokenQuotaClientCredentials: {
+            enforce?: boolean;
+            per_day?: number;
+            per_hour?: number;
+        };
+        /** @enum {string} */
+        IIOrganizationThirdPartyClientAccessEnum: "block" | "allow";
+        OrganizationInvitationCreate: {
+            inviter: components["schemas"]["IIOrganizationInvitationInviter"];
+            invitee: components["schemas"]["IIOrganizationInvitationInvitee"];
+            client_id: string;
+            connection_id?: string;
+            app_metadata?: components["schemas"]["IIAppMetadata"];
+            user_metadata?: components["schemas"]["IIUserMetadata"];
+            /** @default 604800 */
+            ttl_sec?: number;
+            roles?: string[];
+            /** @default true */
+            send_invitation_email?: boolean;
+        };
+        IIOrganizationInvitationInviter: {
+            name: string;
+        };
+        IIOrganizationInvitationInvitee: {
+            email: string;
+        };
+        IIAppMetadata: {
+            [key: string]: unknown;
+        };
+        IIUserMetadata: {
+            [key: string]: unknown;
+        };
+        OrganizationInvitation: {
+            id?: string;
+            organization_id?: string;
+            inviter?: components["schemas"]["IIOrganizationInvitationInviter"];
+            invitee?: components["schemas"]["IIOrganizationInvitationInvitee"];
+            invitation_url?: string;
+            created_at?: string;
+            expires_at?: string;
+            client_id?: string;
+            connection_id?: string;
+            app_metadata?: components["schemas"]["IIAppMetadata"];
+            user_metadata?: components["schemas"]["IIUserMetadata"];
+            roles?: string[];
+            ticket_id?: string;
+        };
+        IIListOrganizationInvitationsResponseContent: components["schemas"]["OrganizationInvitation"][] | components["schemas"]["IIListOrganizationInvitationsOffsetPaginatedResponseContent"];
+        IIListOrganizationInvitationsOffsetPaginatedResponseContent: {
+            start?: number;
+            limit?: number;
+            invitations?: components["schemas"]["OrganizationInvitation"][];
+        };
+        IIGetOrganizationInvitationResponseContent: {
+            id?: string;
+            organization_id?: string;
+            inviter?: components["schemas"]["IIOrganizationInvitationInviter"];
+            invitee?: components["schemas"]["IIOrganizationInvitationInvitee"];
+            invitation_url?: string;
+            created_at?: string;
+            expires_at?: string;
+            client_id?: string;
+            connection_id?: string;
+            app_metadata?: components["schemas"]["IIAppMetadata"];
+            user_metadata?: components["schemas"]["IIUserMetadata"];
+            roles?: string[];
+            ticket_id?: string;
+        };
+        IIListOrganizationClientsResponseContent: {
+            clients: components["schemas"]["OrganizationClientAssociation"][];
+            next?: string;
+        };
+        OrganizationClientAssociation: {
+            client_id: string;
+            use_for_member_access: boolean;
+            client: components["schemas"]["IIOrganizationClientMetadata"];
+        };
+        IIOrganizationClientMetadata: {
+            name?: string;
+            app_type?: string;
+            logo_uri?: string | null;
+            is_first_party?: boolean;
+            grant_types?: string[];
+            organization_usage?: components["schemas"]["IIOrganizationClientMetadataOrganizationUsageEnum"];
+        };
+        /** @enum {string} */
+        IIOrganizationClientMetadataOrganizationUsageEnum: "deny" | "allow" | "require";
+        IICreateOrganizationClientsRequestContent: {
+            clients: components["schemas"]["IICreateOrganizationClientRequestItem"][];
+        };
+        IICreateOrganizationClientRequestItem: {
+            client_id: string;
+            use_for_member_access: boolean;
+        };
+        IICreateOrganizationClientsResponseContent: components["schemas"]["OrganizationClientAssociation"][];
+        IIDeleteOrganizationClientsRequestContent: {
+            clients: string[];
+        };
+        IIGetOrganizationClientResponseContent: {
+            client_id: string;
+            use_for_member_access: boolean;
+            client: components["schemas"]["IIOrganizationClientMetadata"];
+        };
+        IIUpdateOrganizationClientRequestContent: {
+            use_for_member_access?: boolean;
+        };
+        IIUpdateOrganizationClientResponseContent: {
+            client_id: string;
+            use_for_member_access: boolean;
+            client?: components["schemas"]["IIOrganizationClientMetadata"];
+        };
+        IIListOrganizationClientGrantsResponseContent: components["schemas"]["IIOrganizationClientGrant"][] | components["schemas"]["IIListOrganizationClientGrantsOffsetPaginatedResponseContent"];
+        IIOrganizationClientGrant: {
+            id?: string;
+            client_id?: string;
+            audience?: string;
+            scope?: string[];
+            organization_usage?: components["schemas"]["IIOrganizationUsageEnum"];
+            allow_any_organization?: boolean;
+        };
+        /** @enum {string} */
+        IIOrganizationUsageEnum: "deny" | "allow" | "require";
+        IIListOrganizationClientGrantsOffsetPaginatedResponseContent: {
+            start?: number;
+            limit?: number;
+            total?: number;
+            client_grants?: components["schemas"]["IIOrganizationClientGrant"][];
+        };
+        IIAssociateOrganizationClientGrantRequestContent: {
+            grant_id: string;
+        };
+        IIAssociateOrganizationClientGrantResponseContent: {
+            id?: string;
+            client_id?: string;
+            audience?: string;
+            scope?: string[];
+            organization_usage?: components["schemas"]["IIOrganizationUsageEnum"];
+            allow_any_organization?: boolean;
+        };
+        IIListOrganizationDiscoveryDomainsResponseContent: {
+            next?: string;
+            domains: components["schemas"]["OrganizationDiscoveryDomain"][];
+        };
+        OrganizationDiscoveryDomain: {
+            id: string;
+            domain: string;
+            status: components["schemas"]["IIOrganizationDiscoveryDomainStatus"];
+            use_for_organization_discovery?: boolean;
+            verification_txt: string;
+            verification_host: string;
+        };
+        /** @enum {string} */
+        IIOrganizationDiscoveryDomainStatus: "pending" | "verified";
+        IICreateOrganizationDiscoveryDomainRequestContent: {
+            domain: string;
+            /**
+             * @default pending
+             * @enum {string}
+             */
+            status?: "pending";
+            /** @default true */
+            use_for_organization_discovery?: boolean;
+        };
+        IIGetOrganizationDiscoveryDomainByNameResponseContent: {
+            id: string;
+            domain: string;
+            status: components["schemas"]["IIOrganizationDiscoveryDomainStatus"];
+            use_for_organization_discovery?: boolean;
+            verification_txt: string;
+            verification_host: string;
+        };
+        IIGetOrganizationDiscoveryDomainResponseContent: {
+            id: string;
+            domain: string;
+            status: components["schemas"]["IIOrganizationDiscoveryDomainStatus"];
+            use_for_organization_discovery?: boolean;
+            verification_txt: string;
+            verification_host: string;
+        };
+        IIUpdateOrganizationDiscoveryDomainRequestContent: {
+            status?: components["schemas"]["IIOrganizationDiscoveryDomainStatus"];
+            use_for_organization_discovery?: boolean;
+        };
+        IIUpdateOrganizationDiscoveryDomainResponseContent: {
+            id: string;
+            domain: string;
+            status: components["schemas"]["IIOrganizationDiscoveryDomainStatus"];
+            use_for_organization_discovery?: boolean;
+            verification_txt: string;
+            verification_host: string;
+        };
+        IIListOrganizationAllConnectionsResponseContent: components["schemas"]["IIOrganizationAllConnectionPost"][] | components["schemas"]["IIListOrganizationAllConnectionsOffsetPaginatedResponseContent"];
+        IIOrganizationAllConnectionPost: {
+            organization_connection_name?: string;
+            assign_membership_on_login?: boolean;
+            show_as_button?: boolean;
+            is_signup_enabled?: boolean;
+            organization_access_level?: components["schemas"]["IIOrganizationAccessLevelEnum"];
+            organization_member_access_level?: components["schemas"]["IIOrganizationMemberAccessLevelEnum"];
+            is_enabled?: boolean;
+            connection_id: string;
+            connection?: components["schemas"]["IIOrganizationConnectionInformation"];
+        };
+        /** @enum {string} */
+        IIOrganizationAccessLevelEnum: "none" | "readonly" | "limited" | "full";
+        /** @enum {string} */
+        IIOrganizationMemberAccessLevelEnum: "none" | "readonly" | "limited" | "full";
+        IIOrganizationConnectionInformation: {
+            name?: string;
+            strategy?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        IIListOrganizationAllConnectionsOffsetPaginatedResponseContent: {
+            start?: number;
+            limit?: number;
+            total?: number;
+            connections?: components["schemas"]["IIOrganizationAllConnectionPost"][];
+        };
+        IICreateOrganizationAllConnectionRequestContent: {
+            /** @description Omitted on create uses underlying connection name; null clears local override (D-0056). */
+            organization_connection_name?: string | null;
+            assign_membership_on_login?: boolean;
+            show_as_button?: boolean;
+            is_signup_enabled?: boolean;
+            /**
+             * @description Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission preserves (D-0055/D-0056).
+             * @enum {string|null}
+             */
+            organization_access_level?: "none" | "readonly" | "limited" | "full" | null;
+            /**
+             * @description Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH omission preserves (D-0055/D-0056).
+             * @enum {string|null}
+             */
+            organization_member_access_level?: "none" | "readonly" | "limited" | "full" | null;
+            /** @description Omitted on create defaults true; null resets true (D-0056). */
+            is_enabled?: boolean | null;
+            connection_id: string;
+        };
+        IICreateOrganizationAllConnectionResponseContent: {
+            organization_connection_name?: string;
+            assign_membership_on_login?: boolean;
+            show_as_button?: boolean;
+            is_signup_enabled?: boolean;
+            organization_access_level?: components["schemas"]["IIOrganizationAccessLevelEnum"];
+            organization_member_access_level?: components["schemas"]["IIOrganizationMemberAccessLevelEnum"];
+            is_enabled?: boolean;
+            connection_id: string;
+            connection?: components["schemas"]["IIOrganizationConnectionInformation"];
+        };
+        IIGetOrganizationAllConnectionResponseContent: {
+            organization_connection_name?: string;
+            assign_membership_on_login?: boolean;
+            show_as_button?: boolean;
+            is_signup_enabled?: boolean;
+            organization_access_level?: components["schemas"]["IIOrganizationAccessLevelEnum"];
+            organization_member_access_level?: components["schemas"]["IIOrganizationMemberAccessLevelEnum"];
+            is_enabled?: boolean;
+            connection_id: string;
+            connection?: components["schemas"]["IIOrganizationConnectionInformation"];
+        };
+        IIUpdateOrganizationAllConnectionRequestContent: {
+            /** @description Omitted on create uses underlying connection name; null clears local override (D-0056). */
+            organization_connection_name?: string | null;
+            assign_membership_on_login?: boolean;
+            show_as_button?: boolean;
+            is_signup_enabled?: boolean;
+            /**
+             * @description Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission preserves (D-0055/D-0056).
+             * @enum {string|null}
+             */
+            organization_access_level?: "none" | "readonly" | "limited" | "full" | null;
+            /**
+             * @description Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH omission preserves (D-0055/D-0056).
+             * @enum {string|null}
+             */
+            organization_member_access_level?: "none" | "readonly" | "limited" | "full" | null;
+            /** @description Omitted on create defaults true; null resets true (D-0056). */
+            is_enabled?: boolean | null;
+        };
+        /** @enum {string|null} */
+        IIOrganizationAccessLevelEnumWithNull: "none" | "readonly" | "limited" | "full" | null;
+        /** @enum {string|null} */
+        IIOrganizationMemberAccessLevelEnumWithNull: "none" | "readonly" | "limited" | "full" | null;
+        IIUpdateOrganizationAllConnectionResponseContent: {
+            organization_connection_name?: string;
+            assign_membership_on_login?: boolean;
+            show_as_button?: boolean;
+            is_signup_enabled?: boolean;
+            organization_access_level?: components["schemas"]["IIOrganizationAccessLevelEnum"];
+            organization_member_access_level?: components["schemas"]["IIOrganizationMemberAccessLevelEnum"];
+            is_enabled?: boolean;
+            connection_id: string;
+            connection?: components["schemas"]["IIOrganizationConnectionInformation"];
+        };
+        IIListClientGrantOrganizationsResponseContent: components["schemas"]["IIOrganization"][] | components["schemas"]["IIListClientGrantOrganizationsOffsetPaginatedResponseContent"] | components["schemas"]["IIListClientGrantOrganizationsPaginatedResponseContent"];
+        IIOrganization: {
+            id?: string;
+            name?: string;
+            display_name?: string;
+            branding?: components["schemas"]["IIOrganizationBranding"];
+            metadata?: components["schemas"]["IIOrganizationMetadata"];
+            token_quota?: components["schemas"]["IITokenQuota"];
+            third_party_client_access?: components["schemas"]["IIOrganizationThirdPartyClientAccessEnum"];
+            is_app_entitlement_active?: boolean;
+            client?: components["schemas"]["IIOrganizationClientAssociation"];
+        } & {
+            [key: string]: unknown;
+        };
+        IIOrganizationMetadata: {
+            [key: string]: string | null;
+        };
+        IIOrganizationClientAssociation: {
+            use_for_member_access?: boolean;
+        };
+        IIListClientGrantOrganizationsOffsetPaginatedResponseContent: {
+            start: number;
+            limit: number;
+            total: number;
+            organizations: components["schemas"]["IIOrganization"][];
+        };
+        IIListClientGrantOrganizationsPaginatedResponseContent: {
+            next?: string;
+            organizations: components["schemas"]["IIOrganization"][];
+        };
         /** @description An organization. `branding` and `metadata` are left out when unset; reads never carry `enabled_connections`. */
         Organization: {
             /** @description `org_` and 16 letters or digits. */
@@ -2621,8 +3230,14 @@ export interface components {
             metadata?: components["schemas"]["OrganizationMetadata"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access: string;
-            /** @description Always false (D-0055). */
+            /**
+             * @description Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
+             * @default false
+             */
             is_app_entitlement_active: boolean;
+            client?: {
+                use_for_member_access?: boolean;
+            };
         };
         /** @description The create response, which alone echoes the enabled connections. */
         OrganizationCreated: {
@@ -2634,7 +3249,10 @@ export interface components {
             metadata?: components["schemas"]["OrganizationMetadata"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access: string;
-            /** @description Always false (D-0055). */
+            /**
+             * @description Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
+             * @default false
+             */
             is_app_entitlement_active: boolean;
             enabled_connections?: components["schemas"]["OrganizationEnabledConnection"][];
         };
@@ -2669,7 +3287,10 @@ export interface components {
             metadata?: components["schemas"]["OrganizationMetadataWrite"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access?: string;
-            /** @description Only false is accepted (D-0055). */
+            /**
+             * @description Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
+             * @default false
+             */
             is_app_entitlement_active?: boolean;
             enabled_connections?: components["schemas"]["OrganizationEnabledConnectionCreate"][];
         };
@@ -2681,7 +3302,10 @@ export interface components {
             metadata?: components["schemas"]["OrganizationMetadataWrite"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access?: string;
-            /** @description Only false is accepted (D-0055). */
+            /**
+             * @description Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
+             * @default false
+             */
             is_app_entitlement_active?: boolean;
         };
         /** @description Organizations with `include_totals=true`. */
@@ -2734,56 +3358,9 @@ export interface components {
             total: number;
             enabled_connections: components["schemas"]["OrganizationEnabledConnection"][];
         };
-        /** @description An organization connection of the Early Access resource; the same link as an enabled connection. */
-        OrganizationConnection: {
-            connection_id: string;
-            /** @description Members are added when they log in through this connection (default false). */
-            assign_membership_on_login: boolean;
-            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
-            is_signup_enabled: boolean;
-            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
-            show_as_button: boolean;
-            connection: components["schemas"]["OrganizationConnectionSummary"];
-            /** @description Always true; disabled organization connections are not supported (D-0055). */
-            is_enabled: boolean;
-            /** @description Always `none`, the observed default; other values are refused (D-0055). */
-            organization_access_level: string;
-            /** @description Always `limited`, the observed default; other values are refused (D-0055). */
-            organization_member_access_level: string;
-        };
-        OrganizationConnectionCreate: {
-            connection_id: string;
-            /** @description Members are added when they log in through this connection (default false). */
-            assign_membership_on_login?: boolean;
-            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
-            is_signup_enabled?: boolean;
-            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
-            show_as_button?: boolean;
-            /** @description Only true is accepted (D-0055). */
-            is_enabled?: boolean;
-            /** @description Only null is accepted (D-0055). */
-            organization_connection_name?: string | null;
-            /** @description Only `none` (or null) is accepted (D-0055). */
-            organization_access_level?: string | null;
-            /** @description Only `limited` (or null) is accepted (D-0055). */
-            organization_member_access_level?: string | null;
-        };
-        OrganizationConnectionUpdate: {
-            /** @description Members are added when they log in through this connection (default false). */
-            assign_membership_on_login?: boolean;
-            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
-            is_signup_enabled?: boolean;
-            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
-            show_as_button?: boolean;
-            /** @description Only true is accepted (D-0055). */
-            is_enabled?: boolean;
-            /** @description Only null is accepted (D-0055). */
-            organization_connection_name?: string | null;
-            /** @description Only `none` (or null) is accepted (D-0055). */
-            organization_access_level?: string | null;
-            /** @description Only `limited` (or null) is accepted (D-0055). */
-            organization_member_access_level?: string | null;
-        };
+        OrganizationConnection: components["schemas"]["IIGetOrganizationAllConnectionResponseContent"];
+        OrganizationConnectionCreate: components["schemas"]["IICreateOrganizationAllConnectionRequestContent"];
+        OrganizationConnectionUpdate: components["schemas"]["IIUpdateOrganizationAllConnectionRequestContent"];
         /** @description Organization connections with `include_totals=true`; `limit` is the number of entries returned. */
         OrganizationConnectionsPage: {
             start: number;
@@ -2800,7 +3377,7 @@ export interface components {
             organization_usage?: string;
             allow_any_organization?: boolean;
         };
-        /** @description Organization client grants with `include_totals=true`; always empty (D-0055). */
+        /** @description Organization client grants with `include_totals=true`; Plan 30 persists associations (D-0056). */
         OrganizationClientGrantsPage: {
             start: number;
             limit: number;
@@ -2880,7 +3457,7 @@ export interface components {
              * @default node22
              * @enum {string}
              */
-            runtime: "node22";
+            runtime?: "node22";
             secrets?: components["schemas"]["ActionSecretInput"][];
             deploy?: boolean;
             modules?: components["schemas"]["ActionModuleRef"][];
@@ -2895,7 +3472,7 @@ export interface components {
              * @default node22
              * @enum {string}
              */
-            runtime: "node22";
+            runtime?: "node22";
             secrets?: components["schemas"]["ActionSecretInput"][];
             modules?: components["schemas"]["ActionModuleRef"][];
         };
@@ -3010,7 +3587,7 @@ export interface components {
         };
         ActionDeployVersion: {
             /** @default false */
-            update_draft: boolean;
+            update_draft?: boolean;
         };
         ActionExecution: {
             id: string;
@@ -3197,9 +3774,9 @@ export interface components {
              * @default count_per_identifier_and_ip
              * @enum {string}
              */
-            mode: "count_per_identifier_and_ip" | "count_per_identifier";
+            mode?: "count_per_identifier_and_ip" | "count_per_identifier";
             /** @default 10 */
-            max_attempts: number;
+            max_attempts?: number;
             /** @enum {string} */
             form_submission_mode?: "auto" | "manual";
         };
@@ -3211,9 +3788,9 @@ export interface components {
              * @default count_per_identifier_and_ip
              * @enum {string}
              */
-            mode: "count_per_identifier_and_ip" | "count_per_identifier";
+            mode?: "count_per_identifier_and_ip" | "count_per_identifier";
             /** @default 10 */
-            max_attempts: number;
+            max_attempts?: number;
             /** @enum {string} */
             form_submission_mode?: "auto" | "manual";
         };
@@ -3224,21 +3801,21 @@ export interface components {
             stage?: {
                 "pre-login"?: {
                     /** @default 100 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 864000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-user-registration"?: {
                     /** @default 50 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 1728000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 8640000 */
-                    rate: number;
+                    rate?: number;
                 };
             };
         };
@@ -3249,34 +3826,34 @@ export interface components {
             stage?: {
                 "pre-login"?: {
                     /** @default 100 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 864000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-user-registration"?: {
                     /** @default 50 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 1728000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 8640000 */
-                    rate: number;
+                    rate?: number;
                 };
             };
         };
         BreachedPasswordDetectionUpdate: {
             /** @default true */
-            enabled: boolean;
+            enabled?: boolean;
             shields?: ("block" | "user_notification" | "admin_notification")[];
             admin_notification_frequency?: ("immediately" | "daily" | "weekly" | "monthly")[];
             /**
              * @default standard
              * @enum {string}
              */
-            method: "standard" | "enhanced";
+            method?: "standard" | "enhanced";
             stage?: {
                 "pre-user-registration"?: {
                     shields?: ("block" | "admin_notification")[];
@@ -3288,14 +3865,14 @@ export interface components {
         };
         BreachedPasswordDetection: {
             /** @default true */
-            enabled: boolean;
+            enabled?: boolean;
             shields?: ("block" | "user_notification" | "admin_notification")[];
             admin_notification_frequency?: ("immediately" | "daily" | "weekly" | "monthly")[];
             /**
              * @default standard
              * @enum {string}
              */
-            method: "standard" | "enhanced";
+            method?: "standard" | "enhanced";
             stage?: {
                 "pre-user-registration"?: {
                     shields?: ("block" | "admin_notification")[];
@@ -3403,9 +3980,9 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             change_password?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @description Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code. */
             device_flow?: {
@@ -3413,32 +3990,32 @@ export interface components {
                  * @default base20
                  * @enum {string}
                  */
-                charset: "base20" | "digits";
+                charset?: "base20" | "digits";
                 /** @default ****-**** */
-                mask: string;
+                mask?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             guardian_mfa_page?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @default  */
-            default_audience: string;
+            default_audience?: string;
             /** @default  */
-            default_directory: string;
+            default_directory?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             error_page?: {
                 /** @default  */
-                html: string;
+                html?: string;
                 /** @default false */
-                show_log_link: boolean;
+                show_log_link?: boolean;
                 /**
                  * Format: absolute-uri-or-empty
                  * @default https://mycompany.org/error
                  */
-                url: string;
+                url?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             default_token_quota?: {
@@ -3464,15 +4041,15 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
-                change_pwd_flow_v1: boolean;
+                change_pwd_flow_v1?: boolean;
                 /** @default false */
-                enable_apis_section: boolean;
+                enable_apis_section?: boolean;
                 /** @default false */
-                readonly disable_impersonation: boolean;
+                readonly disable_impersonation?: boolean;
                 /** @default true */
-                enable_client_connections: boolean;
+                enable_client_connections?: boolean;
                 /** @default true */
-                enable_pipeline2: boolean;
+                enable_pipeline2?: boolean;
                 allow_legacy_delegation_grant_types?: boolean;
                 allow_legacy_ro_grant_types?: boolean;
                 allow_legacy_tokeninfo_endpoint?: boolean;
@@ -3495,57 +4072,57 @@ export interface components {
                 genai_trial?: boolean;
                 local_resource_discovery?: boolean;
                 /** @default false */
-                enable_dynamic_client_registration: boolean;
+                enable_dynamic_client_registration?: boolean;
                 /** @default true */
-                disable_management_api_sms_obfuscation: boolean;
+                disable_management_api_sms_obfuscation?: boolean;
                 /** @default false */
-                trust_azure_adfs_email_verified_connection_property: boolean;
+                trust_azure_adfs_email_verified_connection_property?: boolean;
                 /** @default false */
-                custom_domains_provisioning: boolean;
+                custom_domains_provisioning?: boolean;
             };
             /** @default My Company */
-            friendly_name: string;
+            friendly_name?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/logo.png
              */
-            picture_url: string;
+            picture_url?: string;
             /**
              * Format: email-or-empty
              * @default support@mycompany.org
              */
-            support_email: string;
+            support_email?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/support
              */
-            support_url: string;
+            support_url?: string;
             allowed_logout_urls?: string[];
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 168
              */
-            session_lifetime: number;
+            session_lifetime?: number;
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            idle_session_lifetime: number;
+            idle_session_lifetime?: number;
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            ephemeral_session_lifetime: number;
+            ephemeral_session_lifetime?: number;
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 24
              */
-            idle_ephemeral_session_lifetime: number;
+            idle_ephemeral_session_lifetime?: number;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default 22
              */
-            sandbox_version: string;
+            sandbox_version?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             legacy_sandbox_version?: string;
             /**
@@ -3609,65 +4186,65 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             sessions?: {
                 /** @default true */
-                oidc_logout_prompt_enabled: boolean;
+                oidc_logout_prompt_enabled?: boolean;
                 anonymous?: {
                     /** @default 43200 */
-                    lifetime_in_minutes: number;
+                    lifetime_in_minutes?: number;
                     /** @default true */
-                    activate_cookie: boolean;
+                    activate_cookie?: boolean;
                 } | null;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             oidc_logout?: {
                 /** @default true */
-                rp_logout_end_session_endpoint_discovery: boolean;
+                rp_logout_end_session_endpoint_discovery?: boolean;
             };
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            customize_mfa_in_postlogin_action: boolean | null;
+            customize_mfa_in_postlogin_action?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            allow_organization_name_in_authentication_api: boolean | null;
+            allow_organization_name_in_authentication_api?: boolean | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
                 /** @default false */
-                enable_endpoint_aliases: boolean;
+                enable_endpoint_aliases?: boolean;
             } | null;
             /** @default false */
-            pushed_authorization_requests_supported: boolean;
+            pushed_authorization_requests_supported?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            authorization_response_iss_parameter_supported: boolean | null;
+            authorization_response_iss_parameter_supported?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            dpop_strict_refresh_token_binding: boolean | null;
+            dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default audience
              * @enum {string}
              */
-            resource_parameter_profile: "audience" | "compatibility";
+            resource_parameter_profile?: "audience" | "compatibility";
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_supported: boolean;
+            client_id_metadata_document_supported?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_dynamic_registration_supported: boolean;
+            client_id_metadata_document_dynamic_registration_supported?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             enable_ai_guide?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
@@ -3676,7 +4253,7 @@ export interface components {
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            include_session_metadata_in_tenant_logs: boolean;
+            include_session_metadata_in_tenant_logs?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @enum {string}
@@ -3695,9 +4272,9 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             change_password?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @description Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code. */
             device_flow?: {
@@ -3705,32 +4282,32 @@ export interface components {
                  * @default base20
                  * @enum {string}
                  */
-                charset: "base20" | "digits";
+                charset?: "base20" | "digits";
                 /** @default ****-**** */
-                mask: string;
+                mask?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             guardian_mfa_page?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @default  */
-            default_audience: string;
+            default_audience?: string;
             /** @default  */
-            default_directory: string;
+            default_directory?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             error_page?: {
                 /** @default  */
-                html: string;
+                html?: string;
                 /** @default false */
-                show_log_link: boolean;
+                show_log_link?: boolean;
                 /**
                  * Format: absolute-uri-or-empty
                  * @default https://mycompany.org/error
                  */
-                url: string;
+                url?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             default_token_quota?: {
@@ -3756,15 +4333,15 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
-                change_pwd_flow_v1: boolean;
+                change_pwd_flow_v1?: boolean;
                 /** @default false */
-                enable_apis_section: boolean;
+                enable_apis_section?: boolean;
                 /** @default false */
-                readonly disable_impersonation: boolean;
+                readonly disable_impersonation?: boolean;
                 /** @default true */
-                enable_client_connections: boolean;
+                enable_client_connections?: boolean;
                 /** @default true */
-                enable_pipeline2: boolean;
+                enable_pipeline2?: boolean;
                 allow_legacy_delegation_grant_types?: boolean;
                 allow_legacy_ro_grant_types?: boolean;
                 allow_legacy_tokeninfo_endpoint?: boolean;
@@ -3787,56 +4364,56 @@ export interface components {
                 genai_trial?: boolean;
                 local_resource_discovery?: boolean;
                 /** @default false */
-                enable_dynamic_client_registration: boolean;
+                enable_dynamic_client_registration?: boolean;
                 /** @default true */
-                disable_management_api_sms_obfuscation: boolean;
+                disable_management_api_sms_obfuscation?: boolean;
                 /** @default false */
-                trust_azure_adfs_email_verified_connection_property: boolean;
+                trust_azure_adfs_email_verified_connection_property?: boolean;
                 /** @default false */
-                custom_domains_provisioning: boolean;
+                custom_domains_provisioning?: boolean;
             };
             /** @default My Company */
-            friendly_name: string;
+            friendly_name?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/logo.png
              */
-            picture_url: string;
+            picture_url?: string;
             /**
              * Format: email-or-empty
              * @default support@mycompany.org
              */
-            support_email: string;
+            support_email?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/support
              */
-            support_url: string;
+            support_url?: string;
             allowed_logout_urls?: string[];
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 168
              */
-            session_lifetime: number;
+            session_lifetime?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
             session_lifetime_in_minutes?: number;
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            idle_session_lifetime: number;
+            idle_session_lifetime?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
             idle_session_lifetime_in_minutes?: number;
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            ephemeral_session_lifetime: number;
+            ephemeral_session_lifetime?: number;
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 24
              */
-            idle_ephemeral_session_lifetime: number;
+            idle_ephemeral_session_lifetime?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
             ephemeral_session_lifetime_in_minutes?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
@@ -3845,7 +4422,7 @@ export interface components {
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default 22
              */
-            sandbox_version: string;
+            sandbox_version?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             legacy_sandbox_version?: string;
             /**
@@ -3909,65 +4486,65 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             sessions?: {
                 /** @default true */
-                oidc_logout_prompt_enabled: boolean;
+                oidc_logout_prompt_enabled?: boolean;
                 anonymous?: {
                     /** @default 43200 */
-                    lifetime_in_minutes: number;
+                    lifetime_in_minutes?: number;
                     /** @default true */
-                    activate_cookie: boolean;
+                    activate_cookie?: boolean;
                 } | null;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             oidc_logout?: {
                 /** @default true */
-                rp_logout_end_session_endpoint_discovery: boolean;
+                rp_logout_end_session_endpoint_discovery?: boolean;
             };
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            customize_mfa_in_postlogin_action: boolean | null;
+            customize_mfa_in_postlogin_action?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            allow_organization_name_in_authentication_api: boolean | null;
+            allow_organization_name_in_authentication_api?: boolean | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
                 /** @default false */
-                enable_endpoint_aliases: boolean;
+                enable_endpoint_aliases?: boolean;
             } | null;
             /** @default false */
-            pushed_authorization_requests_supported: boolean | null;
+            pushed_authorization_requests_supported?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            authorization_response_iss_parameter_supported: boolean | null;
+            authorization_response_iss_parameter_supported?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            dpop_strict_refresh_token_binding: boolean | null;
+            dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default audience
              * @enum {string}
              */
-            resource_parameter_profile: "audience" | "compatibility";
+            resource_parameter_profile?: "audience" | "compatibility";
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_supported: boolean;
+            client_id_metadata_document_supported?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_dynamic_registration_supported: boolean;
+            client_id_metadata_document_dynamic_registration_supported?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             enable_ai_guide?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
@@ -3976,7 +4553,7 @@ export interface components {
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            include_session_metadata_in_tenant_logs: boolean;
+            include_session_metadata_in_tenant_logs?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @enum {string}
@@ -4082,8 +4659,11 @@ export interface components {
             custom_login_page_on?: unknown;
             /** @description Accepted and ignored. */
             custom_login_page?: unknown;
-            /** @description Accepted and ignored. */
-            initiate_login_uri?: unknown;
+            /**
+             * Format: uri
+             * @description HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
+             */
+            initiate_login_uri?: string;
             /** @description Accepted and ignored. */
             native_social_login?: unknown;
             /** @description Accepted and ignored. */
@@ -4148,6 +4728,11 @@ export interface components {
         };
         /** @description An application. */
         Client: {
+            /**
+             * Format: uri
+             * @description HTTPS application login route used for organization invitation links.
+             */
+            initiate_login_uri?: string;
             /** @description The tenant's name. */
             tenant: string;
             client_id: string;
@@ -4318,15 +4903,16 @@ export interface components {
              */
             allow_all_scopes?: boolean;
             /**
-             * @description zeroauthy has no organizations; only `deny` (or null) is accepted.
+             * @description Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH; null rejected (D-0056).
+             * @default deny
              * @enum {string}
              */
-            organization_usage?: "deny";
+            organization_usage?: "deny" | "allow" | "require";
             /**
-             * @description zeroauthy has no organizations; only false (or null) is accepted.
-             * @enum {boolean}
+             * @description Client-subject grant only; third-party clients require explicit associations. Omission preserves on PATCH; null rejected (D-0056).
+             * @default false
              */
-            allow_any_organization?: false;
+            allow_any_organization?: boolean;
             /** @description zeroauthy has no rich authorization requests; only an empty list (or null) is accepted. */
             authorization_details_types?: string[];
         };
@@ -4343,7 +4929,7 @@ export interface components {
              * @default client
              * @enum {string}
              */
-            subject_type: "client" | "user";
+            subject_type?: "client" | "user";
         };
         /**
          * @description Fields to change; at least one property is required. Unknown
@@ -4351,10 +4937,7 @@ export interface components {
          *     `subject_type` among them.
          */
         ClientGrantUpdate: components["schemas"]["ClientGrantSettings"];
-        /**
-         * @description An application's access to an API. The organization fields are not
-         *     reported.
-         */
+        /** @description An application's access to an API, including organization policy (D-0056). */
         ClientGrant: {
             /** @description `cgr_` and 16 letters and digits for grants created through the API. */
             id: string;
@@ -4364,6 +4947,13 @@ export interface components {
             scope?: string[];
             /** @description True when set; absent otherwise. */
             allow_all_scopes?: boolean;
+            /**
+             * @default deny
+             * @enum {string}
+             */
+            organization_usage?: "deny" | "allow" | "require";
+            /** @default false */
+            allow_any_organization?: boolean;
             /** @enum {string} */
             subject_type: "client" | "user";
         };
@@ -4780,7 +5370,7 @@ export interface components {
              * @default csv
              * @enum {string}
              */
-            format: "json" | "csv";
+            format?: "json" | "csv";
             /** @description The most users to export; all when absent. */
             limit?: number;
             fields?: {
@@ -4868,6 +5458,8 @@ export interface components {
             connection_id?: string;
             /** @description Stored; the success page does not redirect to it. Not with `client_id`. */
             result_url?: string;
+            /** @description Optional organization ID; null and result_url together are invalid_body. Tenant/org/client/database connection eligibility is rechecked at reset completion; no membership mutation (D-0056). */
+            organization_id?: string;
             client_id?: string;
             /** @description Seconds the ticket is valid; 0 or absent is 432000 (5 days). */
             ttl_sec?: number;
@@ -8266,6 +8858,8 @@ export interface operations {
     getClientGrants: {
         parameters: {
             query?: {
+                /** @description Filter grants by organization allow-any policy. */
+                allow_any_organization?: boolean;
                 /** @description Page index of the results, from 0. */
                 page?: components["parameters"]["page"];
                 /** @description Number of results per page; more than 100 is refused (`invalid_query_string`). */
@@ -11270,6 +11864,8 @@ export interface operations {
     ListOrganizations: {
         parameters: {
             query?: {
+                /** @description Annotate matching association without filtering; no secrets; missing association omitted (D-0056). */
+                include_client_association_for?: string;
                 /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
                 page?: number;
                 /** @description Number of results per page, 1 to 100 (default 50). */
@@ -11612,18 +12208,13 @@ export interface operations {
     ListOrganizationAllConnections: {
         parameters: {
             query?: {
-                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
                 page?: number;
-                /** @description Number of results per page, 1 to 100 (default 50). */
                 per_page?: number;
-                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
                 include_totals?: boolean;
-                /** @description Only enabled (true) or disabled (false) connections; every stored connection is enabled. */
                 is_enabled?: boolean;
             };
             header?: never;
             path: {
-                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
                 id: string;
             };
             cookie?: never;
@@ -11636,14 +12227,63 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationConnection"][] | components["schemas"]["OrganizationConnectionsPage"];
+                    "application/json": components["schemas"]["IIListOrganizationAllConnectionsResponseContent"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            501: components["responses"]["OrganizationsUnavailable"];
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     CreateOrganizationAllConnection: {
@@ -11651,14 +12291,13 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
                 id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrganizationConnectionCreate"];
+                "application/json": components["schemas"]["IICreateOrganizationAllConnectionRequestContent"];
             };
         };
         responses: {
@@ -11668,15 +12307,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationConnection"];
+                    "application/json": components["schemas"]["IICreateOrganizationAllConnectionResponseContent"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-            501: components["responses"]["OrganizationsUnavailable"];
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description duplicate association/domain or failed mutation precondition => conflict (local D-0056) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     GetOrganizationAllConnection: {
@@ -11684,9 +12380,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
                 id: string;
-                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
                 connection_id: string;
             };
             cookie?: never;
@@ -11699,14 +12393,63 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationConnection"];
+                    "application/json": components["schemas"]["IIGetOrganizationAllConnectionResponseContent"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            501: components["responses"]["OrganizationsUnavailable"];
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     DeleteOrganizationAllConnection: {
@@ -11714,9 +12457,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
                 id: string;
-                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
                 connection_id: string;
             };
             cookie?: never;
@@ -11730,11 +12471,60 @@ export interface operations {
                 };
                 content?: never;
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            501: components["responses"]["OrganizationsUnavailable"];
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     UpdateOrganizationAllConnection: {
@@ -11742,16 +12532,14 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
                 id: string;
-                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
                 connection_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrganizationConnectionUpdate"];
+                "application/json": components["schemas"]["IIUpdateOrganizationAllConnectionRequestContent"];
             };
         };
         responses: {
@@ -11761,35 +12549,77 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationConnection"];
+                    "application/json": components["schemas"]["IIUpdateOrganizationAllConnectionResponseContent"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            501: components["responses"]["OrganizationsUnavailable"];
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     ListOrganizationClientGrants: {
         parameters: {
             query?: {
-                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
-                page?: number;
-                /** @description Number of results per page, 1 to 100 (default 50). */
-                per_page?: number;
-                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
-                include_totals?: boolean;
-                /** @description Only grants for this API identifier. */
                 audience?: string;
-                /** @description Only grants of this client. */
                 client_id?: string;
-                /** @description Only these grant IDs (at most 10). */
                 grant_ids?: string[];
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
             };
             header?: never;
             path: {
-                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
                 id: string;
             };
             cookie?: never;
@@ -11802,14 +12632,152 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationClientGrant"][] | components["schemas"]["OrganizationClientGrantsPage"];
+                    "application/json": components["schemas"]["IIListOrganizationClientGrantsResponseContent"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            501: components["responses"]["OrganizationsUnavailable"];
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    AssociateOrganizationClientGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IIAssociateOrganizationClientGrantRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIAssociateOrganizationClientGrantResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description duplicate association/domain or failed mutation precondition => conflict (local D-0056) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     ListOrganizationMembers: {
@@ -12133,6 +13101,1445 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    SearchOrganizations: {
+        parameters: {
+            query?: {
+                q?: string;
+                parser?: components["schemas"]["IISearchParserEnum"];
+                take?: number;
+                from?: string;
+                sort?: components["schemas"]["IIOrganizationSortFieldEnum"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IISearchOrganizationsPaginatedResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Upstream documented error; local error envelope */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    ListOrganizationInvitations: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
+                fields?: string;
+                include_fields?: boolean;
+                sort?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIListOrganizationInvitationsResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateOrganizationInvitation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "auth0-custom-domain"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationInvitationCreate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationInvitation"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetOrganizationInvitation: {
+        parameters: {
+            query?: {
+                fields?: string;
+                include_fields?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIGetOrganizationInvitationResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteOrganizationInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    ListOrganizationClients: {
+        parameters: {
+            query?: {
+                from?: string;
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIListOrganizationClientsResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    AssociateOrganizationClients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IICreateOrganizationClientsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IICreateOrganizationClientsResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description duplicate association/domain or failed mutation precondition => conflict (local D-0056) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteOrganizationClients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IIDeleteOrganizationClientsRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetOrganizationClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIGetOrganizationClientResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateOrganizationClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IIUpdateOrganizationClientRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIUpdateOrganizationClientResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteOrganizationClientGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    ListOrganizationDiscoveryDomains: {
+        parameters: {
+            query?: {
+                from?: string;
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIListOrganizationDiscoveryDomainsResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateOrganizationDiscoveryDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IICreateOrganizationDiscoveryDomainRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationDiscoveryDomain"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description duplicate association/domain or failed mutation precondition => conflict (local D-0056) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetOrganizationDiscoveryDomainByName: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                discovery_domain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIGetOrganizationDiscoveryDomainByNameResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetOrganizationDiscoveryDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                discovery_domain_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIGetOrganizationDiscoveryDomainResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteOrganizationDiscoveryDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                discovery_domain_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateOrganizationDiscoveryDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                discovery_domain_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IIUpdateOrganizationDiscoveryDomainRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIUpdateOrganizationDiscoveryDomainResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    ListClientGrantOrganizations: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
+                from?: string;
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IIListClientGrantOrganizationsResponseContent"];
+                };
+            };
+            /** @description invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/invalid bearer => invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing route scope/operator grant => insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing/cross-tenant parent or item/reference => not_found (local where undocumented) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description rate limit => too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
 }

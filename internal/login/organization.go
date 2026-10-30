@@ -5,11 +5,15 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
 )
@@ -31,13 +35,19 @@ func PickerChoices(ctx context.Context, st store.Store, tid, userID, connectionI
 
 func (h *Handlers) renderOrganization(w http.ResponseWriter, r *http.Request, f *flow, orgs []store.Organization, message string, status int) {
 	screen := "organization-selection"
-	if f.txn.Params[store.TxnParamOrgMode] == string(authz.OrgPickAfter) {
+	if f.txn.Params[store.TxnParamOrgMode] == string(authz.OrgPickAfter) || len(orgs) > 0 {
 		screen = "organization-picker"
 	}
 	if !h.prepareHostedForm(w, r, f, "organizations", screen) {
 		return
 	}
-	ui.RenderOrganization(w, status, f.view, ui.OrganizationData{RedirectURI: f.txn.Params["redirect_uri"], State: f.txn.ID, CSRF: f.txn.CSRFToken, Revision: f.txn.HostedState.Revision, Orgs: orgs, Error: message}, screen)
+	client, err := h.Store.Clients().Get(r.Context(), f.res.Tenant.ID, f.txn.ClientID)
+	if err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+	email, name := discoveryMethods(client)
+	ui.RenderOrganization(w, status, f.view, ui.OrganizationData{Email: email, Name: name, Personal: email && client.OrganizationUsage == store.OrgUsageAllow && f.txn.HostedState.Step == "organization-discovery" && len(orgs) == 0, RedirectURI: f.txn.Params["redirect_uri"], State: f.txn.ID, CSRF: f.txn.CSRFToken, Revision: f.txn.HostedState.Revision, Orgs: orgs, Error: message}, screen)
 }
 
 // bindOrg replaces only a still-pending transaction in a single store tx. The
@@ -48,7 +58,7 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 		if err != nil {
 			return err
 		}
-		if cur.Params[store.TxnParamOrgMode] != f.txn.Params[store.TxnParamOrgMode] || cur.HostedState.Revision != f.txn.HostedState.Revision {
+		if cur.Params[store.TxnParamOrgID] != "" || cur.Params[orglogin.InvitationIDParam] != "" || cur.ClientID != f.txn.ClientID || cur.Params[store.TxnParamOrgMode] != f.txn.Params[store.TxnParamOrgMode] || cur.HostedState.Revision != f.txn.HostedState.Revision {
 			return errTxn
 		}
 		// WithTx alone does not serialize SQL readers. Claim the pending
@@ -64,7 +74,33 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 		if e := authz.CheckOrganizationBinding(r.Context(), tx, f.res.Tenant, client, cur.Params); e != nil {
 			return errTxn
 		}
-		if _, e := authz.ResolveOrganization(r.Context(), tx, f.res, client, org.ID); e != nil {
+		if cur.Params[store.TxnParamOrgMode] == string(authz.OrgPromptBefore) {
+			email, name := discoveryMethods(client)
+			if cur.HostedState.Step == "organization-discovery" {
+				if !email {
+					return errTxn
+				}
+				choices, e := orglogin.Discover(r.Context(), tx, cur.TenantID, cur.ClientID, cur.HostedState.Identifier)
+				if e != nil {
+					return e
+				}
+				choices = discoveryChoices(choices)
+				if org == nil {
+					if client.OrganizationUsage != store.OrgUsageAllow || len(choices) != 0 {
+						return errTxn
+					}
+				} else if !slices.ContainsFunc(choices, func(o store.Organization) bool { return o.ID == org.ID }) {
+					return errTxn
+				}
+			} else if !name || org == nil {
+				return errTxn
+			}
+		}
+		raw := ""
+		if org != nil {
+			raw = org.ID
+		}
+		if _, e := authz.ResolveOrganization(r.Context(), tx, f.res, client, raw); e != nil {
 			return errTxn
 		}
 		if cur.Params[store.TxnParamOrgMode] == string(authz.OrgPickAfter) {
@@ -93,8 +129,14 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 				return e
 			}
 		}
-		cur.Params[store.TxnParamOrgID] = org.ID
-		cur.Params[store.TxnParamOrgMode] = string(authz.OrgFixed)
+		if org != nil {
+			cur.Params[store.TxnParamOrgID] = org.ID
+			cur.Params[store.TxnParamOrgMode] = string(authz.OrgFixed)
+		} else {
+			delete(cur.Params, store.TxnParamOrgID)
+			cur.Params[store.TxnParamOrgMode] = string(authz.OrgPersonal)
+		}
+		cur.HostedState.Step, cur.HostedState.Identifier = "", ""
 		cur.HostedState.Revision++
 		if err = tx.AuthTransactions().Delete(r.Context(), cur.TenantID, cur.ID); err != nil {
 			return err
@@ -116,37 +158,9 @@ func (h *Handlers) organizationStep(w http.ResponseWriter, r *http.Request, f *f
 		return true
 	}
 	if mode == authz.OrgPromptBefore {
-		if r.Method == http.MethodPost {
-			org, err := h.Store.Organizations().GetByName(r.Context(), f.res.Tenant.ID, r.PostForm.Get("organization"))
-			if err == nil {
-				client, e := h.Store.Clients().Get(r.Context(), f.res.Tenant.ID, f.txn.ClientID)
-				if e != nil {
-					h.fail(w, r, e, f)
-					return true
-				}
-				_, denied := authz.ResolveOrganization(r.Context(), h.Store, f.res, client, org.ID)
-				if denied == nil {
-					if err = h.bindOrg(r, f, org); err != nil {
-						h.fail(w, r, errTxn, f)
-						return true
-					}
-					page := "/u/login"
-					if f.txn.Params["screen_hint"] == "signup" {
-						page = "/u/signup"
-					}
-					http.Redirect(w, r, page+"?"+url.Values{"state": {f.txn.ID}}.Encode(), http.StatusSeeOther)
-					return true
-				}
-			} else if !errors.Is(err, store.ErrNotFound) {
-				h.fail(w, r, err, f)
-				return true
-			}
-			h.renderOrganization(w, r, f, nil, f.view.L.T(i18n.KeyOrganizationInvalid), http.StatusBadRequest)
-			return true
-		}
-		h.renderOrganization(w, r, f, nil, "", http.StatusOK)
-		return true
+		return h.organizationDiscoveryStep(w, r, f)
 	}
+
 	sess, err := h.Authz.ActiveSession(r.Context(), r, f.res)
 	if err != nil {
 		h.fail(w, r, err, f)
@@ -207,5 +221,168 @@ func organizationSignupAllowed(f *flow) bool {
 		return f.txn.Params[store.TxnParamOrgMode] != string(authz.OrgPromptBefore)
 	}
 	link, ok := f.org.Connections[f.conn.ID]
-	return ok && link.IsSignupEnabled && link.AssignMembershipOnLogin
+	return ok && (!link.IsEnabledSet || link.IsEnabled) && link.IsSignupEnabled && (link.AssignMembershipOnLogin || f.txn.Params[orglogin.InvitationIDParam] != "")
+}
+
+// Empty methods preserve the original name prompt for existing clients.
+func discoveryMethods(c *store.Client) (email, name bool) {
+	return slices.Contains(c.OrganizationDiscoveryMethods, store.OrgDiscoveryEmail), len(c.OrganizationDiscoveryMethods) == 0 || slices.Contains(c.OrganizationDiscoveryMethods, store.OrgDiscoveryName)
+}
+func discoveryChoices(orgs []store.Organization) []store.Organization {
+	slices.SortFunc(orgs, func(a, b store.Organization) int {
+		if n := strings.Compare(a.DisplayName, b.DisplayName); n != 0 {
+			return n
+		}
+		return strings.Compare(a.ID, b.ID)
+	})
+	return orgs[:min(20, len(orgs))]
+}
+func (h *Handlers) organizationNext(w http.ResponseWriter, r *http.Request, f *flow) {
+	page := "/u/login"
+	if f.txn.Params["screen_hint"] == "signup" {
+		page = "/u/signup"
+	}
+	http.Redirect(w, r, page+"?"+url.Values{"state": {f.txn.ID}}.Encode(), http.StatusSeeOther)
+}
+func (h *Handlers) organizationDiscoveryStep(w http.ResponseWriter, r *http.Request, f *flow) bool {
+	client, err := h.Store.Clients().Get(r.Context(), f.res.Tenant.ID, f.txn.ClientID)
+	if err != nil {
+		h.fail(w, r, err, f)
+		return true
+	}
+	email, name := discoveryMethods(client)
+	pending := f.txn.HostedState.Step == "organization-discovery"
+	var choices []store.Organization
+	if pending && email {
+		choices, err = orglogin.Discover(r.Context(), h.Store, f.txn.TenantID, f.txn.ClientID, f.txn.HostedState.Identifier)
+		if err != nil {
+			h.fail(w, r, err, f)
+			return true
+		}
+		choices = discoveryChoices(choices)
+	}
+	if r.Method != http.MethodPost {
+		h.renderOrganization(w, r, f, choices, "", http.StatusOK)
+		return true
+	}
+	// Discovery uses the shared suspicious-IP budget without user lookup or
+	// password brute-force accounting, since no account is being authenticated.
+	decision, e := h.protectionService().Begin(r.Context(), protection.Attempt{Tenant: f.res.Tenant, Flow: "organization-discovery", IP: httpx.ClientIP(r, h.TrustProxyHeaders)})
+	if e != nil {
+		h.fail(w, r, e, f)
+		return true
+	}
+	if !decision.Allowed {
+		h.renderOrganization(w, r, f, choices, f.view.L.T(i18n.KeyTooManyAttempts), http.StatusTooManyRequests)
+		return true
+	}
+	// Discovery has no authenticated success to refund the request budget.
+	if e = h.protectionService().Finish(r.Context(), decision.Receipt, "failure"); e != nil {
+		h.fail(w, r, e, f)
+		return true
+	}
+	screen := "organization-selection"
+	if f.txn.HostedState.FormScreen == "organization-picker" {
+		screen = "organization-picker"
+	}
+	if !h.guardHostedForm(w, r, f, "organizations", screen, func(status int, message string) { h.renderOrganization(w, r, f, choices, message, status) }) {
+		return true
+	}
+	invalid := func() {
+		h.renderOrganization(w, r, f, choices, f.view.L.T(i18n.KeyOrganizationInvalid), http.StatusBadRequest)
+	}
+	if pending && r.PostForm.Get("email") == "" && r.PostForm.Get("action") != "name" {
+		if !email {
+			invalid()
+			return true
+		}
+		var chosen *store.Organization
+		for i := range choices {
+			if choices[i].ID == r.PostForm.Get("organization") {
+				chosen = &choices[i]
+				break
+			}
+		}
+		personal := r.PostForm.Get("action") == "personal" && client.OrganizationUsage == store.OrgUsageAllow && len(choices) == 0
+		if chosen == nil && !personal {
+			invalid()
+			return true
+		}
+		if err = h.bindOrg(r, f, chosen); err != nil {
+			h.fail(w, r, errTxn, f)
+			return true
+		}
+		h.organizationNext(w, r, f)
+		return true
+	}
+	if r.PostForm.Get("email") != "" {
+		if !email || len(r.PostForm.Get("email")) > 320 {
+			invalid()
+			return true
+		}
+		identifier := strings.TrimSpace(r.PostForm.Get("email"))
+		choices, err = orglogin.Discover(r.Context(), h.Store, f.txn.TenantID, f.txn.ClientID, identifier)
+		if errors.Is(err, store.ErrInvalid) {
+			invalid()
+			return true
+		}
+		if err != nil {
+			h.fail(w, r, err, f)
+			return true
+		}
+		next := f.txn.HostedState.Clone()
+		next.Step = "organization-discovery"
+		next.Identifier = identifier
+		if err = h.transitionHosted(r, f, next); err != nil {
+			h.fail(w, r, errTxn, f)
+			return true
+		}
+		choices = discoveryChoices(choices)
+		if len(choices) == 1 {
+			if err = h.bindOrg(r, f, &choices[0]); err != nil {
+				h.fail(w, r, errTxn, f)
+				return true
+			}
+			h.organizationNext(w, r, f)
+			return true
+		}
+		if len(choices) == 0 {
+			invalid()
+		} else {
+			h.renderOrganization(w, r, f, choices, "", http.StatusOK)
+		}
+		return true
+	}
+	if !name {
+		invalid()
+		return true
+	}
+	// Name entry is a hosted prompt exception to the Authentication API name flag.
+	org, err := h.Store.Organizations().GetByName(r.Context(), f.res.Tenant.ID, r.PostForm.Get("organization"))
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		h.fail(w, r, err, f)
+		return true
+	}
+	if err == nil {
+		// Return from discovery to the configured name flow through a revision CAS.
+		if pending {
+			next := f.txn.HostedState.Clone()
+			next.Step = ""
+			next.Identifier = ""
+			if err = h.transitionHosted(r, f, next); err != nil {
+				h.fail(w, r, errTxn, f)
+				return true
+			}
+		}
+		if _, denied := authz.ResolveOrganization(r.Context(), h.Store, f.res, client, org.ID); denied == nil {
+			if err = h.bindOrg(r, f, org); err != nil {
+				h.fail(w, r, errTxn, f)
+				return true
+			}
+			h.organizationNext(w, r, f)
+			return true
+		}
+	}
+	invalid()
+	return true
 }

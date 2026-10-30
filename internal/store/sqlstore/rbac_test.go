@@ -218,8 +218,11 @@ func TestRBACNestedTransactionCurrentReads(t *testing.T) {
 			api := &store.ResourceServer{TenantID: "nested", ID: "api", Identifier: "https://nested.test", Scopes: []store.Scope{{Value: "read:x"}}}
 			must(s.ResourceServers().Create(ctx, api))
 			must(s.WithTx(ctx, func(tx store.Store) error {
-				// Establish an earlier read view before the independent mutation.
-				if _, err := tx.Users().Get(ctx, "nested", "u"); err != nil {
+				// Establish an earlier read view without entering the policy-lock
+				// boundary. Users.Get is a policy read now: using it would retain
+				// the tenant lock and correctly block the independent writer below.
+				var userID string
+				if err := tx.(*Store).queryRow(ctx, `SELECT user_id FROM users WHERE tenant_id=? AND user_id=?`, "nested", "u").Scan(&userID); err != nil {
 					return err
 				}
 				api.Scopes = nil

@@ -24,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -514,6 +515,9 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		v.RedirectionPolicy = &p
 	}
 	// Unset organization settings are left out (observed).
+	if c.InitiateLoginURI != "" {
+		v.InitiateLoginUri = &c.InitiateLoginURI
+	}
 	if c.OrganizationUsage != "" {
 		u := mgmtapi.ClientOrganizationUsage(c.OrganizationUsage)
 		v.OrganizationUsage = &u
@@ -583,7 +587,7 @@ func decodeObject(r *http.Request) (map[string]json.RawMessage, error) {
 var ignoredClientFields = []string{
 	"description", "logo_uri", "client_metadata", "sso", "sso_disabled",
 	"cross_origin_authentication", "cross_origin_auth", "cross_origin_loc",
-	"custom_login_page_on", "custom_login_page", "initiate_login_uri",
+	"custom_login_page_on", "custom_login_page",
 	"native_social_login", "mobile",
 	"is_token_endpoint_ip_header_trusted", "allowed_clients", "created_at", "updated_at",
 }
@@ -609,6 +613,11 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 		raw := body[k]
 		var err error
 		switch k {
+		case "initiate_login_uri":
+			err = decodeString(raw, &s.InitiateLoginURI)
+			if err == nil {
+				_, err = orglogin.BuildInvitationURL(s.InitiateLoginURI, "validation", "validation", "validation")
+			}
 		case "name":
 			err = decodeString(raw, &s.Name)
 			if err == nil && (s.Name == "" || len(s.Name) > maxNameLength) {

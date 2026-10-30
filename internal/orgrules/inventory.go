@@ -16,22 +16,27 @@ const ObservationSource = "docs/compat/observations/organizations.md"
 // ScopeMatch is "all" or "any". ConditionalScopes are needed only for the
 // optional input the request shape names (for example enabled_connections on
 // create or fields=roles on the member list). Evidence is "documented" or
-// "observed"; Lifecycle is the public release stage ("GA" or "EA").
+// "observed", or "documented+local-decision" for the separately frozen II
+// contracts. ScopeEvidence, NullOmission and ErrorMapping distinguish their
+// documentary basis from explicitly local rules. Lifecycle is "GA" or "EA".
 type OperationContract struct {
-	Method            string   `json:"method"`
-	Path              string   `json:"path"`
-	RequiredScopes    []string `json:"required_scopes"`
-	ScopeMatch        string   `json:"scope_match"`
-	ConditionalScopes []string `json:"conditional_scopes,omitempty"`
-	RequestShape      string   `json:"request_shape"`
-	ResponseShape     string   `json:"response_shape"`
-	Pagination        string   `json:"pagination"`
-	SuccessStatus     int      `json:"success_status"`
-	ErrorStatuses     []int    `json:"error_statuses"`
-	Limits            []string `json:"limits"`
-	SourceURL         string   `json:"source_url"`
-	Evidence          string   `json:"evidence"`
-	Lifecycle         string   `json:"lifecycle"`
+	ScopeEvidence     string            `json:"scope_evidence,omitempty"`
+	NullOmission      string            `json:"null_omission,omitempty"`
+	ErrorMapping      map[string]string `json:"error_mapping,omitempty"`
+	Method            string            `json:"method"`
+	Path              string            `json:"path"`
+	RequiredScopes    []string          `json:"required_scopes"`
+	ScopeMatch        string            `json:"scope_match"`
+	ConditionalScopes []string          `json:"conditional_scopes,omitempty"`
+	RequestShape      string            `json:"request_shape"`
+	ResponseShape     string            `json:"response_shape"`
+	Pagination        string            `json:"pagination"`
+	SuccessStatus     int               `json:"success_status"`
+	ErrorStatuses     []int             `json:"error_statuses"`
+	Limits            []string          `json:"limits"`
+	SourceURL         string            `json:"source_url"`
+	Evidence          string            `json:"evidence"`
+	Lifecycle         string            `json:"lifecycle"`
 }
 
 // DeferredItem is an upstream surface that Plan 29 does not implement.
@@ -104,9 +109,10 @@ type ContractMetadata struct {
 }
 
 type compatibilityInventory struct {
-	Operations []OperationContract `json:"operations"`
-	Deferred   []DeferredItem      `json:"deferred"`
-	Metadata   ContractMetadata    `json:"metadata"`
+	Operations      []OperationContract `json:"operations"`
+	OrganizationsII []OperationContract `json:"organizations_ii_operations"`
+	Deferred        []DeferredItem      `json:"deferred"`
+	Metadata        ContractMetadata    `json:"metadata"`
 }
 
 func readInventory() compatibilityInventory {
@@ -121,3 +127,7 @@ func readInventory() compatibilityInventory {
 func Inventory() []OperationContract      { return readInventory().Operations }
 func Deferred() []DeferredItem            { return readInventory().Deferred }
 func InventoryMetadata() ContractMetadata { return readInventory().Metadata }
+
+// OrganizationsIIInventory returns the Plan 30 contracts separately from the
+// frozen Plan 29 surface. These contracts do not advertise implemented routes.
+func OrganizationsIIInventory() []OperationContract { return readInventory().OrganizationsII }

@@ -11,12 +11,13 @@ import (
 func newClient(tenantID, clientID string) *store.Client {
 	exp := ts(48 * time.Hour)
 	return &store.Client{
-		TenantID:        tenantID,
-		IsFirstParty:    true,
-		ClientID:        clientID,
-		Name:            "App " + clientID,
-		AppType:         store.AppTypeNonInteractive,
-		IDTokenLifetime: 600,
+		TenantID:         tenantID,
+		IsFirstParty:     true,
+		ClientID:         clientID,
+		Name:             "App " + clientID,
+		InitiateLoginURI: "https://app.example/login?keep=yes",
+		AppType:          store.AppTypeNonInteractive,
+		IDTokenLifetime:  600,
 		Secrets: []store.ClientSecret{
 			{Hash: "$argon2id$v=19$m=19456,t=2,p=1$c2FsdA$aGFzaA", CreatedAt: ts(0)},
 			{Hash: "$argon2id$v=19$m=19456,t=2,p=1$c2FsdDI$aGFzaDI", CreatedAt: ts(time.Hour), ExpiresAt: &exp},
@@ -46,6 +47,7 @@ func testClients(t *testing.T, newStore Factory) {
 		mustEqual(t, got, want)
 
 		want.Name = "Renamed"
+		want.InitiateLoginURI = "https://other.example/login"
 		want.Secrets = want.Secrets[:1]
 		want.Origin = store.OriginAPI
 		mustNoErr(t, s.Clients().Update(ctx, want))

@@ -41,6 +41,8 @@ type Store struct {
 	// orgLimits is shared by the pool Store and every transaction Store; nil
 	// (tests building a bare Store) means the frozen limits.
 	orgLimits *atomic.Pointer[store.OrgLimits]
+	// orgIIClock is injectable in storage expiry boundary tests, set before use.
+	orgIIClock func() time.Time
 }
 
 // txState is the state of one transaction shared by its nested calls.
@@ -207,7 +209,7 @@ func (s *Store) atomic(ctx context.Context, opts *sql.TxOptions, fn func(t *Stor
 			_ = tx.Rollback()
 		}
 	}()
-	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}, orgLimits: s.orgLimits}
+	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}, orgLimits: s.orgLimits, orgIIClock: s.orgIIClock}
 	if err := fn(t); err != nil {
 		return err
 	}

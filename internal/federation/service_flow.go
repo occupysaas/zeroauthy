@@ -345,15 +345,45 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 			if err != nil {
 				return err
 			}
-			user, err := s.ResolveIdentity(ctx, tx, conn, res)
+			user, created, err := s.resolveIdentity(ctx, tx, conn, res, func() error {
+				if txn.Params[orglogin.InvitationIDParam] == "" {
+					return nil
+				}
+				// The supported is_signup_enabled contract applies only to database
+				// connections. First-provider invitation provisioning therefore fails
+				// closed; an existing separately provisioned provider user may accept.
+				if conn.Strategy != store.StrategyDatabase || conn.DisableSignup {
+					return ErrConnectionUnusable
+				}
+				link, e := tx.Organizations().GetConnection(ctx, a.TenantID, txn.Params[store.TxnParamOrgID], conn.ID)
+				if e != nil {
+					return e
+				}
+				if !link.IsSignupEnabled {
+					return ErrConnectionUnusable
+				}
+				return nil
+			})
 			if err != nil {
 				return err
+			}
+			if created && txn.Params[orglogin.InvitationIDParam] != "" {
+				txn.Params[orglogin.InvitationSignupParam] = "1"
+				if err := orglogin.SaveInvitationTransaction(ctx, tx, txn, s.now()); err != nil {
+					return err
+				}
 			}
 			oc, e := orglogin.Load(ctx, tx, a.TenantID, txn.Params)
 			if e != nil {
 				return e
 			}
-			if e = orglogin.EnsureMembership(ctx, tx, oc, user.UserID, conn.ID); e != nil && !errors.Is(e, orglogin.ErrNotMember) {
+			if oc.Org != nil {
+				e = orglogin.CheckMemberClient(ctx, tx, a.TenantID, oc.Org.ID, txn.ClientID)
+			}
+			if e == nil && txn.Params[orglogin.InvitationIDParam] == "" {
+				e = orglogin.EnsureMembership(ctx, tx, oc, user.UserID, conn.ID)
+			}
+			if e != nil && !errors.Is(e, orglogin.ErrNotMember) {
 				return e
 			}
 			if err := tx.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash); err != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -25,7 +26,11 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fields := map[string]string{}
-	for _, k := range []string{"client_id", "connection", "email"} {
+	if v, present := body["organization"]; present && (v == nil || v == "") {
+		writeErr(w, http.StatusBadRequest, "invalid_request", "invalid organization")
+		return
+	}
+	for _, k := range []string{"client_id", "connection", "email", "organization"} {
 		if v, present := body[k]; present && v != nil {
 			s, isStr := v.(string)
 			if !isStr {
@@ -63,6 +68,14 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid_request", "the connection is not enabled for this application")
 		return
 	}
+	if _, err := orglogin.PasswordResetContext(ctx, h.Store, tenantID, fields["organization"], fields["client_id"], conn); err != nil {
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, orglogin.ErrNotMember) {
+			writeErr(w, http.StatusBadRequest, "invalid_request", "invalid organization context")
+		} else {
+			h.internal(w, r, "load organization context", err)
+		}
+		return
+	}
 	if h.directChallenge(w, r, res, "reset-send", store.ProtectionReceipt{}) {
 		return
 	}
@@ -74,7 +87,7 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var ue *identity.UnauthorizedError
 	switch {
 	case err == nil:
-		if err := h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language"))); err != nil {
+		if err := h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language")), fields["organization"]); err != nil {
 			h.internal(w, r, "reset admission", err)
 			return
 		}

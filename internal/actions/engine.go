@@ -61,12 +61,13 @@ func (e *ErrFlow) Unwrap() error { return e.Cause }
 
 // Engine runs Action flows.
 type Engine struct {
-	Store   store.Store
-	Runner  *noderunner.Pool
-	Builds  *build.Manager
-	Secrets keys.Wrapper // opens tenant-bound Action and Module secret snapshots
-	Now     func() time.Time
-	Log     *slog.Logger
+	InvitationEmail InvitationEmailDispatcher
+	Store           store.Store
+	Runner          *noderunner.Pool
+	Builds          *build.Manager
+	Secrets         keys.Wrapper // opens tenant-bound Action and Module secret snapshots
+	Now             func() time.Time
+	Log             *slog.Logger
 	// FlowBudget bounds one trigger flow; 0 means Auth0's 20 s.
 	FlowBudget time.Duration
 
@@ -153,6 +154,8 @@ type flow struct {
 	redirectCount, position              int
 	state                                string
 	remaining                            time.Duration
+	// redactor masks delivery credentials supplied only at dispatch time.
+	redactor *customdb.Redactor
 	// outcomes records, per Action run in this attempt, "ok", "error" or
 	// the notification kind the Action itself recorded. dropped is the
 	// first drop. Job runs use both: drop is terminal, and an attempt in
@@ -199,7 +202,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 	}
 	var roles []roleJSON
 	if in.User != nil {
-		if roles, err = e.roleSnapshot(ctx, tenantID, in.User.UserID); err != nil {
+		if roles, err = e.organizationRoleSnapshot(ctx, tenantID, in.User.UserID, in.OrganizationID); err != nil {
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
@@ -461,7 +464,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		}
 		vals[s.Name] = v
 	}
-	red := customdb.NewRedactor(vals)
+	red := customdb.NewRedactor(vals).Union(f.redactor)
 	modules := make([]wireModule, 0, len(u.modules))
 	for _, m := range u.modules {
 		mv := make(map[string]string, len(m.version.Secrets))
@@ -523,6 +526,9 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		if err := f.acc.apply(c); err != nil {
 			return out, &maskedError{msg: red.RedactLine(err.Error()), err: err}
 		}
+	}
+	if f.acc.notification != nil && f.redactor != nil {
+		f.acc.notification.Reason = f.redactor.RedactLine(f.acc.notification.Reason)
 	}
 	// Oversized claims fail at the Action that made them (spec §7).
 	for _, m := range []map[string]any{f.acc.eff.AccessClaims, f.acc.eff.IDClaims} {
@@ -669,3 +675,57 @@ func PurgeExecutions(ctx context.Context, st store.Store, now time.Time) (int, e
 }
 
 func newExecutionID() string { return "exe_" + secrets.RandomString(24) }
+
+// organizationRoleSnapshot adds only the current membership's roles to the
+// existing tenant role snapshot. It never assigns organization roles to a user
+// at tenant scope, and it excludes retained roles after membership removal.
+func (e *Engine) organizationRoleSnapshot(ctx context.Context, tid, uid, oid string) ([]roleJSON, error) {
+	if oid == "" {
+		return e.roleSnapshot(ctx, tid, uid)
+	}
+	var out []roleJSON
+	err := e.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.Organizations().Get(ctx, tid, oid); err != nil {
+			return err
+		}
+		view := &Engine{Store: tx}
+		var err error
+		out, err = view.roleSnapshot(ctx, tid, uid)
+		if err != nil {
+			return err
+		}
+		member, err := tx.Organizations().IsMember(ctx, tid, oid, uid)
+		if err != nil {
+			return err
+		}
+		if !member {
+			return nil
+		}
+		seen := map[string]bool{}
+		for _, r := range out {
+			seen[r.ID] = true
+		}
+		for page := 0; ; page++ {
+			res, err := tx.Organizations().MemberRoles(ctx, tid, oid, uid, store.OrgPage{Page: page, PerPage: 100})
+			if err != nil {
+				return err
+			}
+			for _, id := range res.Items {
+				if seen[id] {
+					continue
+				}
+				r, err := tx.RBAC().GetRole(ctx, tid, id)
+				if err != nil {
+					return err
+				}
+				seen[id] = true
+				out = append(out, roleJSON{ID: r.ID, Name: r.Name, Description: r.Description})
+			}
+			if len(res.Items) < 100 {
+				break
+			}
+		}
+		return nil
+	})
+	return out, err
+}

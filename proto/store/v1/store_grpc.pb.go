@@ -34,6 +34,30 @@ const (
 	StoreService_RBACUserPermissions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACUserPermissions"
 	StoreService_RBACChangeUserPermissions_FullMethodName               = "/zeroauthy.store.v1.StoreService/RBACChangeUserPermissions"
 	StoreService_RBACSnapshot_FullMethodName                            = "/zeroauthy.store.v1.StoreService/RBACSnapshot"
+	StoreService_OrganizationsIICapabilities_FullMethodName             = "/zeroauthy.store.v1.StoreService/OrganizationsIICapabilities"
+	StoreService_OrganizationsIICreateInvitation_FullMethodName         = "/zeroauthy.store.v1.StoreService/OrganizationsIICreateInvitation"
+	StoreService_OrganizationsIIGetInvitation_FullMethodName            = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetInvitation"
+	StoreService_OrganizationsIIFindInvitation_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIFindInvitation"
+	StoreService_OrganizationsIIListInvitations_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsIIListInvitations"
+	StoreService_OrganizationsIIDeleteInvitation_FullMethodName         = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteInvitation"
+	StoreService_OrganizationsIIConsumeInvitation_FullMethodName        = "/zeroauthy.store.v1.StoreService/OrganizationsIIConsumeInvitation"
+	StoreService_OrganizationsIIGetInvitationReceipt_FullMethodName     = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetInvitationReceipt"
+	StoreService_OrganizationsIIPutClients_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutClients"
+	StoreService_OrganizationsIIGetClient_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetClient"
+	StoreService_OrganizationsIIListClients_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsIIListClients"
+	StoreService_OrganizationsIIDeleteClients_FullMethodName            = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteClients"
+	StoreService_OrganizationsIIPutClientGrant_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutClientGrant"
+	StoreService_OrganizationsIIDeleteClientGrant_FullMethodName        = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteClientGrant"
+	StoreService_OrganizationsIIListClientGrants_FullMethodName         = "/zeroauthy.store.v1.StoreService/OrganizationsIIListClientGrants"
+	StoreService_OrganizationsIIGrantOrganizations_FullMethodName       = "/zeroauthy.store.v1.StoreService/OrganizationsIIGrantOrganizations"
+	StoreService_OrganizationsIIHasClientGrant_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIHasClientGrant"
+	StoreService_OrganizationsIIPutDiscoveryDomain_FullMethodName       = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutDiscoveryDomain"
+	StoreService_OrganizationsIIGetDiscoveryDomain_FullMethodName       = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetDiscoveryDomain"
+	StoreService_OrganizationsIIGetDiscoveryDomainByName_FullMethodName = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetDiscoveryDomainByName"
+	StoreService_OrganizationsIIListDiscoveryDomains_FullMethodName     = "/zeroauthy.store.v1.StoreService/OrganizationsIIListDiscoveryDomains"
+	StoreService_OrganizationsIIDeleteDiscoveryDomain_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteDiscoveryDomain"
+	StoreService_OrganizationsIIDiscoverOrganizations_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsIIDiscoverOrganizations"
+	StoreService_OrganizationsIISearch_FullMethodName                   = "/zeroauthy.store.v1.StoreService/OrganizationsIISearch"
 	StoreService_OrganizationsCapabilities_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsCapabilities"
 	StoreService_OrganizationsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsCreate"
 	StoreService_OrganizationsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OrganizationsGet"
@@ -356,8 +380,32 @@ type StoreServiceClient interface {
 	RBACUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
-	// Plan 29 Organizations repository. A plugin lacking
-	// OrganizationsCapabilities (version 1) starts with the feature disabled.
+	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	OrganizationsIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error)
+	OrganizationsIICreateInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIFindInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIListInvitations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIConsumeInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetInvitationReceipt(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIPutClients(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetClient(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIListClients(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteClients(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIPutClientGrant(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteClientGrant(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIListClientGrants(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIGrantOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIHasClientGrant(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIPutDiscoveryDomain(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetDiscoveryDomain(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetDiscoveryDomainByName(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIListDiscoveryDomains(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteDiscoveryDomain(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIIDiscoverOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIISearch(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	// Plan 29 Organizations repository. Missing capability disables this feature.
 	OrganizationsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsCreate(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
 	OrganizationsGet(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
@@ -780,6 +828,246 @@ func (c *storeServiceClient) RBACSnapshot(ctx context.Context, in *RBACRequest, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RBACResponse)
 	err := c.cc.Invoke(ctx, StoreService_RBACSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIICapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIICreateInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIICreateInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIGetInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIGetInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIFindInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIFindInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIListInvitations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIListInvitations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIDeleteInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIDeleteInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIConsumeInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIConsumeInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIGetInvitationReceipt(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIGetInvitationReceipt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIPutClients(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIPutClients_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIGetClient(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIGetClient_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIListClients(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIListClients_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIDeleteClients(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIDeleteClients_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIPutClientGrant(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIPutClientGrant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIDeleteClientGrant(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIDeleteClientGrant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIListClientGrants(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIListClientGrants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIGrantOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIGrantOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIHasClientGrant(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIHasClientGrant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIPutDiscoveryDomain(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIPutDiscoveryDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIGetDiscoveryDomain(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIGetDiscoveryDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIGetDiscoveryDomainByName(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIGetDiscoveryDomainByName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIListDiscoveryDomains(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIListDiscoveryDomains_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIDeleteDiscoveryDomain(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIDeleteDiscoveryDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIIDiscoverOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIDiscoverOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIISearch(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIISearch_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3332,8 +3620,32 @@ type StoreServiceServer interface {
 	RBACUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
-	// Plan 29 Organizations repository. A plugin lacking
-	// OrganizationsCapabilities (version 1) starts with the feature disabled.
+	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	OrganizationsIICapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error)
+	OrganizationsIICreateInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIFindInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIListInvitations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIConsumeInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetInvitationReceipt(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIPutClients(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetClient(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIListClients(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteClients(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIPutClientGrant(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteClientGrant(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIListClientGrants(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIGrantOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIHasClientGrant(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIPutDiscoveryDomain(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetDiscoveryDomain(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIGetDiscoveryDomainByName(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIListDiscoveryDomains(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIDeleteDiscoveryDomain(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIIDiscoverOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIISearch(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	// Plan 29 Organizations repository. Missing capability disables this feature.
 	OrganizationsCapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsCreate(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
 	OrganizationsGet(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
@@ -3656,6 +3968,78 @@ func (UnimplementedStoreServiceServer) RBACChangeUserPermissions(context.Context
 }
 func (UnimplementedStoreServiceServer) RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RBACSnapshot not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIICapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIICapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIICreateInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIICreateInvitation not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIGetInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIGetInvitation not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIFindInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIFindInvitation not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIListInvitations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIListInvitations not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIDeleteInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIDeleteInvitation not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIConsumeInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIConsumeInvitation not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIGetInvitationReceipt(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIGetInvitationReceipt not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIPutClients(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIPutClients not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIGetClient(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIGetClient not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIListClients(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIListClients not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIDeleteClients(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIDeleteClients not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIPutClientGrant(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIPutClientGrant not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIDeleteClientGrant(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIDeleteClientGrant not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIListClientGrants(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIListClientGrants not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIGrantOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIGrantOrganizations not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIHasClientGrant(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIHasClientGrant not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIPutDiscoveryDomain(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIPutDiscoveryDomain not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIGetDiscoveryDomain(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIGetDiscoveryDomain not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIGetDiscoveryDomainByName(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIGetDiscoveryDomainByName not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIListDiscoveryDomains(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIListDiscoveryDomains not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIDeleteDiscoveryDomain(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIDeleteDiscoveryDomain not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIIDiscoverOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIDiscoverOrganizations not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIISearch(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIISearch not implemented")
 }
 func (UnimplementedStoreServiceServer) OrganizationsCapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method OrganizationsCapabilities not implemented")
@@ -4679,6 +5063,438 @@ func _StoreService_RBACSnapshot_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).RBACSnapshot(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIICapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIICapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIICapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIICapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIICreateInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIICreateInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIICreateInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIICreateInvitation(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIGetInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIGetInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIGetInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIGetInvitation(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIFindInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIFindInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIFindInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIFindInvitation(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIListInvitations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIListInvitations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIListInvitations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIListInvitations(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIDeleteInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIDeleteInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteInvitation(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIConsumeInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIConsumeInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIConsumeInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIConsumeInvitation(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIGetInvitationReceipt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIGetInvitationReceipt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIGetInvitationReceipt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIGetInvitationReceipt(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIPutClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIPutClients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIPutClients_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIPutClients(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIGetClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIGetClient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIGetClient_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIGetClient(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIListClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIListClients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIListClients_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIListClients(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIDeleteClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteClients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIDeleteClients_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteClients(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIPutClientGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIPutClientGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIPutClientGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIPutClientGrant(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIDeleteClientGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteClientGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIDeleteClientGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteClientGrant(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIListClientGrants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIListClientGrants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIListClientGrants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIListClientGrants(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIGrantOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIGrantOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIGrantOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIGrantOrganizations(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIHasClientGrant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIHasClientGrant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIHasClientGrant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIHasClientGrant(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIPutDiscoveryDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIPutDiscoveryDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIPutDiscoveryDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIPutDiscoveryDomain(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIGetDiscoveryDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIGetDiscoveryDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIGetDiscoveryDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIGetDiscoveryDomain(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIGetDiscoveryDomainByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIGetDiscoveryDomainByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIGetDiscoveryDomainByName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIGetDiscoveryDomainByName(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIListDiscoveryDomains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIListDiscoveryDomains(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIListDiscoveryDomains_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIListDiscoveryDomains(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIDeleteDiscoveryDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteDiscoveryDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIDeleteDiscoveryDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIDeleteDiscoveryDomain(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIIDiscoverOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIIDiscoverOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIIDiscoverOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIIDiscoverOrganizations(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIISearch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIISearch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIISearch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIISearch(ctx, req.(*OrganizationsIIRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -9134,6 +9950,102 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RBACSnapshot",
 			Handler:    _StoreService_RBACSnapshot_Handler,
+		},
+		{
+			MethodName: "OrganizationsIICapabilities",
+			Handler:    _StoreService_OrganizationsIICapabilities_Handler,
+		},
+		{
+			MethodName: "OrganizationsIICreateInvitation",
+			Handler:    _StoreService_OrganizationsIICreateInvitation_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIGetInvitation",
+			Handler:    _StoreService_OrganizationsIIGetInvitation_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIFindInvitation",
+			Handler:    _StoreService_OrganizationsIIFindInvitation_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIListInvitations",
+			Handler:    _StoreService_OrganizationsIIListInvitations_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIDeleteInvitation",
+			Handler:    _StoreService_OrganizationsIIDeleteInvitation_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIConsumeInvitation",
+			Handler:    _StoreService_OrganizationsIIConsumeInvitation_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIGetInvitationReceipt",
+			Handler:    _StoreService_OrganizationsIIGetInvitationReceipt_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIPutClients",
+			Handler:    _StoreService_OrganizationsIIPutClients_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIGetClient",
+			Handler:    _StoreService_OrganizationsIIGetClient_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIListClients",
+			Handler:    _StoreService_OrganizationsIIListClients_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIDeleteClients",
+			Handler:    _StoreService_OrganizationsIIDeleteClients_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIPutClientGrant",
+			Handler:    _StoreService_OrganizationsIIPutClientGrant_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIDeleteClientGrant",
+			Handler:    _StoreService_OrganizationsIIDeleteClientGrant_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIListClientGrants",
+			Handler:    _StoreService_OrganizationsIIListClientGrants_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIGrantOrganizations",
+			Handler:    _StoreService_OrganizationsIIGrantOrganizations_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIHasClientGrant",
+			Handler:    _StoreService_OrganizationsIIHasClientGrant_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIPutDiscoveryDomain",
+			Handler:    _StoreService_OrganizationsIIPutDiscoveryDomain_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIGetDiscoveryDomain",
+			Handler:    _StoreService_OrganizationsIIGetDiscoveryDomain_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIGetDiscoveryDomainByName",
+			Handler:    _StoreService_OrganizationsIIGetDiscoveryDomainByName_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIListDiscoveryDomains",
+			Handler:    _StoreService_OrganizationsIIListDiscoveryDomains_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIDeleteDiscoveryDomain",
+			Handler:    _StoreService_OrganizationsIIDeleteDiscoveryDomain_Handler,
+		},
+		{
+			MethodName: "OrganizationsIIDiscoverOrganizations",
+			Handler:    _StoreService_OrganizationsIIDiscoverOrganizations_Handler,
+		},
+		{
+			MethodName: "OrganizationsIISearch",
+			Handler:    _StoreService_OrganizationsIISearch_Handler,
 		},
 		{
 			MethodName: "OrganizationsCapabilities",

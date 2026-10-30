@@ -54,6 +54,10 @@ func noCode(message string) *Error {
 // by checkpoint (A9).
 func (h *Handlers) GetClientGrants(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetClientGrantsParams) {
 	q := r.URL.Query()
+	if values, ok := q["allow_any_organization"]; ok && (len(values) != 1 || (values[0] != "true" && values[0] != "false")) {
+		Fail(w, badQuery("allow_any_organization must be boolean"))
+		return
+	}
 	checkpoint := q.Has("take") || q.Has("from")
 	f := store.ClientGrantFilter{ClientID: q.Get("client_id"), Audience: q.Get("audience"), SubjectType: q.Get("subject_type")}
 	if q.Has("client_id") && !validClientIDFilter(f.ClientID) {
@@ -78,7 +82,7 @@ func (h *Handlers) GetClientGrants(w http.ResponseWriter, r *http.Request, _ mgm
 		Fail(w, err)
 		return
 	}
-	got, total, err := h.Store.ClientGrants().List(r.Context(), tn.ID, f, store.Page{Offset: page * perPage, Limit: perPage})
+	got, total, err := h.listClientGrants(r, tn.ID, f, store.Page{Offset: page * perPage, Limit: perPage})
 	if err != nil {
 		Fail(w, internalError(h, r, "list client grants", err))
 		return
@@ -116,7 +120,7 @@ func (h *Handlers) checkpointClientGrants(w http.ResponseWriter, r *http.Request
 		}
 		f.AfterID = id
 	}
-	got, _, err := h.Store.ClientGrants().List(r.Context(), tenantID, f, store.Page{Limit: take + 1})
+	got, _, err := h.listClientGrants(r, tenantID, f, store.Page{Limit: take + 1})
 	if err != nil {
 		Fail(w, internalError(h, r, "list client grants", err))
 		return
@@ -180,12 +184,16 @@ func findClientGrant(r *http.Request, st store.Store, tenantID, id string) (*sto
 
 // grantBody is what a create or update body says.
 type grantBody struct {
-	clientID, audience string
-	subjectType        string
-	scopes             []string
-	scopeSet           bool
-	allowAll           bool
-	allowAllSet        bool
+	clientID, audience   string
+	subjectType          string
+	scopes               []string
+	scopeSet             bool
+	allowAll             bool
+	allowAllSet          bool
+	organizationUsage    string
+	organizationUsageSet bool
+	allowAny             bool
+	allowAnySet          bool
 }
 
 // readClientGrantBody reads body in name order so that the first error
@@ -221,18 +229,18 @@ func readClientGrantBody(body map[string]json.RawMessage, create bool) (grantBod
 		case "allow_all_scopes":
 			err = decodeStrict(raw, &out.allowAll)
 			out.allowAllSet = true
-		// zeroauthy has no organizations or rich authorization requests
-		// (D-0041): only the inert values are accepted, and none is stored.
 		case "organization_usage":
-			var v string
-			if !isNull(raw) && (decodeString(raw, &v) != nil || v != "deny") {
-				err = errors.New("zeroauthy has no organizations; only deny is supported")
+			err = decodeString(raw, &out.organizationUsage)
+			if isNull(raw) || (out.organizationUsage != "deny" && out.organizationUsage != "allow" && out.organizationUsage != "require") {
+				err = errors.New("must be deny, allow or require")
 			}
+			out.organizationUsageSet = true
 		case "allow_any_organization":
-			var v bool
-			if !isNull(raw) && (decodeStrict(raw, &v) != nil || v) {
-				err = errors.New("zeroauthy has no organizations; only false is supported")
+			err = decodeStrict(raw, &out.allowAny)
+			if isNull(raw) {
+				err = errors.New("must be boolean")
 			}
+			out.allowAnySet = true
 		case "authorization_details_types":
 			var v []json.RawMessage
 			if !isNull(raw) && (json.Unmarshal(raw, &v) != nil || len(v) > 0) {
@@ -293,12 +301,17 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 		TenantID: tn.ID, ID: "cgr_" + secrets.RandomString(clientGrantIDLength),
 		ClientID: in.clientID, Audience: in.audience, SubjectType: in.subjectType,
 		CreatedAt: h.now(), Origin: store.OriginAPI,
+		OrganizationUsage: cmp.Or(in.organizationUsage, store.OrgUsageDeny), AllowAnyOrganization: in.allowAny,
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		ctx := r.Context()
-		if _, err := tx.Clients().Get(ctx, tn.ID, in.clientID); errors.Is(err, store.ErrNotFound) {
+		client, err := tx.Clients().Get(ctx, tn.ID, in.clientID)
+		if errors.Is(err, store.ErrNotFound) {
 			return errClientNotFound
 		} else if err != nil {
+			return err
+		}
+		if err := checkGrantOrganization(r, h.Store, g, client); err != nil {
 			return err
 		}
 		rs, err := tx.ResourceServers().GetByIdentifier(ctx, tn.ID, in.audience)
@@ -373,9 +386,7 @@ func checkGrant(g *store.ClientGrant, rs *store.ResourceServer, mgmt bool) error
 	return badBody("%s", strings.Join(msgs, "; "))
 }
 
-// UpdateClientGrant changes a grant's scopes (A10). The scopes are checked
-// against the API as on create; the organization fields are accepted when
-// inert and not stored.
+// UpdateClientGrant changes scopes and organization policy; omission preserves policy.
 func (h *Handlers) UpdateClientGrant(w http.ResponseWriter, r *http.Request, id string) {
 	if !clientGrantID.MatchString(id) {
 		Fail(w, errBadGrantID)
@@ -403,7 +414,7 @@ func (h *Handlers) UpdateClientGrant(w http.ResponseWriter, r *http.Request, id 
 		if err != nil {
 			return err
 		}
-		if !in.scopeSet && !in.allowAllSet {
+		if !in.scopeSet && !in.allowAllSet && !in.organizationUsageSet && !in.allowAnySet {
 			out = g // only inert organization fields: nothing to change
 			return nil
 		}
@@ -415,12 +426,25 @@ func (h *Handlers) UpdateClientGrant(w http.ResponseWriter, r *http.Request, id 
 			return err
 		}
 		next := *g
+		if in.organizationUsageSet {
+			next.OrganizationUsage = in.organizationUsage
+		}
+		if in.allowAnySet {
+			next.AllowAnyOrganization = in.allowAny
+		}
+		client, err := tx.Clients().Get(r.Context(), tn.ID, g.ClientID)
+		if err != nil {
+			return err
+		}
+		if err := checkGrantOrganization(r, h.Store, &next, client); err != nil {
+			return err
+		}
 		switch {
 		case in.allowAll:
 			next.AllowAllScopes, next.Scopes = true, nil
 		case in.scopeSet:
 			next.AllowAllScopes, next.Scopes = false, in.scopes
-		default: // allow_all_scopes false alone
+		case in.allowAllSet: // allow_all_scopes false alone
 			next.AllowAllScopes = false
 		}
 		if err := checkGrant(&next, rs, g.Audience == own); err != nil {
@@ -466,6 +490,9 @@ func clientGrantView(g *store.ClientGrant) mgmtapi.ClientGrant {
 		Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
 		SubjectType: mgmtapi.ClientGrantSubjectType(cmp.Or(g.SubjectType, store.SubjectTypeClient)),
 	}
+	usage := mgmtapi.ClientGrantOrganizationUsage(cmp.Or(g.OrganizationUsage, store.OrgUsageDeny))
+	anyOrg := g.AllowAnyOrganization
+	v.OrganizationUsage, v.AllowAnyOrganization = &usage, &anyOrg
 	if g.AllowAllScopes {
 		t := true
 		v.AllowAllScopes = &t
@@ -485,4 +512,47 @@ func clientGrantViews(gs []*store.ClientGrant) []mgmtapi.ClientGrant {
 		out[i] = clientGrantView(g)
 	}
 	return out
+}
+
+// Active organization policy requires a capable backend and a client-subject grant.
+func checkGrantOrganization(r *http.Request, st store.Store, g *store.ClientGrant, c *store.Client) error {
+	active := g.OrganizationUsage == store.OrgUsageAllow || g.OrganizationUsage == store.OrgUsageRequire || g.AllowAnyOrganization
+	if !active {
+		return nil
+	}
+	if g.SubjectType == store.SubjectTypeUser {
+		return badBody("active organization policy requires subject_type client")
+	}
+	if !c.IsFirstParty && g.AllowAnyOrganization {
+		return badBody("third-party clients require explicit organization associations")
+	}
+	if capability, ok := st.(store.OrganizationsIISupporter); ok {
+		if err := capability.CheckOrganizationsIISupport(r.Context()); err != nil {
+			return errOrganizationsIIUnavailable
+		}
+	}
+	if !store.OrganizationsIISupported(st) {
+		return errOrganizationsIIUnavailable
+	}
+	return nil
+}
+
+// Filter before pagination so totals and checkpoint lookahead describe the same set.
+func (h *Handlers) listClientGrants(r *http.Request, tid string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
+	if !r.URL.Query().Has("allow_any_organization") {
+		return h.Store.ClientGrants().List(r.Context(), tid, f, p)
+	}
+	gs, _, err := h.Store.ClientGrants().List(r.Context(), tid, f, store.Page{})
+	if err != nil {
+		return nil, 0, err
+	}
+	want := r.URL.Query().Get("allow_any_organization") == "true"
+	gs = slices.DeleteFunc(gs, func(g *store.ClientGrant) bool { return g.AllowAnyOrganization != want })
+	total := len(gs)
+	start := min(p.Offset, total)
+	end := total
+	if p.Limit > 0 {
+		end = min(start+p.Limit, total)
+	}
+	return gs[start:end], total, nil
 }

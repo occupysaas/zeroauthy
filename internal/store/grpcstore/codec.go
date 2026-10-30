@@ -131,6 +131,8 @@ func errToPB(err error) *storev1.Error {
 		return &storev1.Error{Kind: storev1.Error_KIND_BUILD_NOT_READY, Message: err.Error()}
 	case errors.Is(err, store.ErrRBACUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_RBAC_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrOrganizationsIIUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_ORGANIZATIONS_II_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrOrganizationsUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_ORGANIZATIONS_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrFederationUnavailable):
@@ -167,6 +169,8 @@ func errFromPB(e *storev1.Error) error {
 		return store.ErrBuildNotReady
 	case storev1.Error_KIND_RBAC_UNAVAILABLE:
 		return store.ErrRBACUnavailable
+	case storev1.Error_KIND_ORGANIZATIONS_II_UNAVAILABLE:
+		return store.ErrOrganizationsIIUnavailable
 	case storev1.Error_KIND_ORGANIZATIONS_UNAVAILABLE:
 		return store.ErrOrganizationsUnavailable
 	case storev1.Error_KIND_FEDERATION_UNAVAILABLE:
@@ -323,6 +327,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		SkipNonVerifiableCallbackUriConfirmationPrompt: cloneBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
 		Origin:                                         c.Origin,
+		InitiateLoginUri:                               c.InitiateLoginURI,
 		OrganizationUsage:                              c.OrganizationUsage,
 		OrganizationRequireBehavior:                    c.OrganizationRequireBehavior,
 		OrganizationDiscoveryMethods:                   stringsToPB(c.OrganizationDiscoveryMethods),
@@ -362,6 +367,7 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: cloneBool(pb.SkipNonVerifiableCallbackUriConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             pb.RequirePushedAuthorizationRequests,
 		Origin:                                         pb.Origin,
+		InitiateLoginURI:                               pb.InitiateLoginUri,
 		OrganizationUsage:                              pb.OrganizationUsage,
 		OrganizationRequireBehavior:                    pb.OrganizationRequireBehavior,
 		OrganizationDiscoveryMethods:                   stringsFromPB(pb.OrganizationDiscoveryMethods),
@@ -442,7 +448,7 @@ func clientGrantToPB(g *store.ClientGrant) (*storev1.ClientGrant, error) {
 	}
 	return &storev1.ClientGrant{
 		TenantId: g.TenantID, Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
-		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType, Origin: g.Origin, AllowAllScopes: g.AllowAllScopes,
+		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType, Origin: g.Origin, AllowAllScopes: g.AllowAllScopes, OrganizationUsage: g.OrganizationUsage, AllowAnyOrganization: g.AllowAnyOrganization,
 	}, nil
 }
 
@@ -460,7 +466,7 @@ func clientGrantFromPB(pb *storev1.ClientGrant) (*store.ClientGrant, error) {
 	}
 	return &store.ClientGrant{
 		TenantID: pb.TenantId, ID: pb.Id, ClientID: pb.ClientId, Audience: pb.Audience,
-		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType, Origin: pb.Origin, AllowAllScopes: pb.AllowAllScopes,
+		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType, Origin: pb.Origin, AllowAllScopes: pb.AllowAllScopes, OrganizationUsage: grantOrgUsage(pb.OrganizationUsage), AllowAnyOrganization: pb.AllowAnyOrganization,
 	}, nil
 }
 
@@ -1061,7 +1067,7 @@ func passwordResetTicketToPB(p *store.PasswordResetTicket) (*storev1.PasswordRes
 		return nil, nil
 	}
 	return &storev1.PasswordResetTicket{
-		Origin:   p.Origin,
+		OrganizationId: p.OrganizationID, Origin: p.Origin,
 		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
@@ -1077,7 +1083,7 @@ func passwordResetTicketFromPB(pb *storev1.PasswordResetTicket) (*store.Password
 		return nil, err
 	}
 	return &store.PasswordResetTicket{
-		Origin:   pb.Origin,
+		OrganizationID: pb.OrganizationId, Origin: pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
@@ -1290,4 +1296,11 @@ func hostedLoginConfigFromPB(pb *storev1.HostedLoginConfig) (*store.HostedLoginC
 	c.TenantID = pb.TenantId
 	c.Revision = pb.Revision
 	return &c, nil
+}
+
+func grantOrgUsage(v string) string {
+	if v == "" {
+		return "deny"
+	}
+	return v
 }

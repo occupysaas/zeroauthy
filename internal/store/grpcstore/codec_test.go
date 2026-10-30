@@ -162,7 +162,7 @@ func TestTenantRoundTrip(t *testing.T) {
 
 func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
-		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb,
+		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
 		Secrets: []store.ClientSecret{
 			{Hash: "h1", CreatedAt: nanoTime},
 			{Hash: "h2", CreatedAt: nanoTime, ExpiresAt: ptr(nanoTime.Add(time.Hour))},
@@ -215,10 +215,10 @@ func TestResourceServerRoundTrip(t *testing.T) {
 func TestClientGrantRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.ClientGrant{
 		TenantID: "ten", ID: "g", ClientID: "cid", Audience: "https://api", Scopes: []string{"a", "b"}, CreatedAt: nanoTime,
-		SubjectType: store.SubjectTypeUser, Origin: store.OriginAPI, AllowAllScopes: true,
+		OrganizationUsage: "require", AllowAnyOrganization: true, SubjectType: store.SubjectTypeUser, Origin: store.OriginAPI, AllowAllScopes: true,
 	}, clientGrantToPB, clientGrantFromPB)
-	roundTrip(t, "empty", &store.ClientGrant{Scopes: []string{}, SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)
-	roundTrip(t, "zero", &store.ClientGrant{SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)
+	roundTrip(t, "empty", &store.ClientGrant{Scopes: []string{}, SubjectType: store.SubjectTypeClient, OrganizationUsage: "deny"}, clientGrantToPB, clientGrantFromPB)
+	roundTrip(t, "zero", &store.ClientGrant{SubjectType: store.SubjectTypeClient, OrganizationUsage: "deny"}, clientGrantToPB, clientGrantFromPB)
 }
 
 func TestUserGrantRoundTrip(t *testing.T) {
@@ -249,7 +249,7 @@ func TestCodecDefaultsForOldPlugins(t *testing.T) {
 		t.Fatalf("resource server: %+v %v", rs, err)
 	}
 	g, err := clientGrantFromPB(&storev1.ClientGrant{TenantId: "t", Id: "g", CreatedAt: tsToPB(time.Unix(0, 0))})
-	if err != nil || g.SubjectType != store.SubjectTypeClient {
+	if err != nil || g.SubjectType != store.SubjectTypeClient || g.OrganizationUsage != "deny" || g.AllowAnyOrganization {
 		t.Fatalf("grant: %+v %v", g, err)
 	}
 }
@@ -396,7 +396,7 @@ func TestRefreshTokenRoundTrip(t *testing.T) {
 
 func TestPasswordResetTicketRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.PasswordResetTicket{
-		Origin:   "https://login.example",
+		OrganizationID: "org_abcdefghijklmnop", Origin: "https://login.example",
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
 		ChallengePassedAt: ptr(nanoTime), ChallengeResultURL: "https://app.test/challenged",
@@ -497,7 +497,7 @@ func TestTimeHelpers(t *testing.T) {
 
 func TestErrorMapping(t *testing.T) {
 	// Every sentinel travels as itself and never matches another.
-	sentinels := []error{store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed, store.ErrPrecondition, store.ErrOrganizationsUnavailable}
+	sentinels := []error{store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed, store.ErrPrecondition, store.ErrOrganizationsUnavailable, store.ErrOrganizationsIIUnavailable}
 	for _, e := range sentinels {
 		for _, in := range []error{e, fmt.Errorf("wrapped: %w", e)} {
 			got := errFromPB(errToPB(in))

@@ -94,7 +94,7 @@ func TestCreateClientGrant(t *testing.T) {
 	out := e.grant(t, "read:orders")
 	id, _ := out["id"].(string)
 	if !grantID.MatchString(id) || out["client_id"] != e.client || out["audience"] != ordersAPI ||
-		out["subject_type"] != "client" || !slices.Equal(strs(out["scope"]), []string{"read:orders"}) || len(out) != 5 {
+		out["subject_type"] != "client" || !slices.Equal(strs(out["scope"]), []string{"read:orders"}) || len(out) != 7 {
 		t.Fatalf("create = %v", out)
 	}
 	g, err := e.st.ClientGrants().Find(context.Background(), e.tn.ID, e.client, ordersAPI, store.SubjectTypeClient)
@@ -176,8 +176,7 @@ func TestCreateClientGrantRefusals(t *testing.T) {
 	}
 }
 
-// D-0041: the organization and rich authorization fields are accepted only
-// with their inert values, and none is stored or reported.
+// Rich authorization fields remain inert; Plan 30 activates organization policy.
 func TestClientGrantInertFields(t *testing.T) {
 	e := newCGEnv(t)
 	base := func(extra map[string]any) map[string]any {
@@ -188,8 +187,8 @@ func TestClientGrantInertFields(t *testing.T) {
 		return b
 	}
 	for _, bad := range []map[string]any{
-		{"organization_usage": "allow"}, {"organization_usage": "require"}, {"organization_usage": "bogus"}, {"organization_usage": 1},
-		{"allow_any_organization": true}, {"allow_any_organization": "yes"},
+		{"organization_usage": "bogus"}, {"organization_usage": 1},
+		{"allow_any_organization": "yes"},
 		{"authorization_details_types": []string{"payment"}}, {"authorization_details_types": "payment"},
 		{"default_for": "third_party_clients"},
 	} {
@@ -197,13 +196,13 @@ func TestClientGrantInertFields(t *testing.T) {
 		wantError(t, rec, 400, "invalid_body")
 	}
 	out := e.mustCreate(t, base(map[string]any{"organization_usage": "deny", "allow_any_organization": false, "authorization_details_types": []string{}, "default_for": nil}))
-	for _, k := range []string{"organization_usage", "allow_any_organization", "authorization_details_types", "default_for"} {
+	for _, k := range []string{"authorization_details_types", "default_for"} {
 		if _, has := out[k]; has {
 			t.Errorf("%s reported: %v", k, out)
 		}
 	}
 	id := out["id"].(string)
-	if rec, _ := e.patch(t, id, map[string]any{"allow_any_organization": true}); rec.Code != 400 {
+	if rec, _ := e.patch(t, id, map[string]any{"allow_any_organization": true}); rec.Code != 200 {
 		t.Errorf("patch allow_any_organization true = %d", rec.Code)
 	}
 	// Only inert organization fields: accepted, nothing changes.

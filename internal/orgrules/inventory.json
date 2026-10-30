@@ -1315,5 +1315,1308 @@
         "exposes": "organizations with name, display_name, branding, metadata, connections, client_grants, token_quota, discovery_domains, clients. Connections go through the EA /organizations/{id}/connections resource and export lists organization client grants unconditionally (both served in Plan 29 by the Task 5 ruling); a 404/501 empties the organizations export. No members or member roles."
       }
     ]
-  }
+  },
+  "organizations_ii_operations": [
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/search",
+      "required_scopes": [
+        "read:organizations",
+        "read:organizations_summary"
+      ],
+      "scope_match": "all",
+      "request_shape": "q<=1000, parser=lucene|scim(default lucene), take=1..100(default50), from?, sort=name|display_name|created_at(ascending); max5 predicates/depth16",
+      "response_shape": "{organizations:Organization[],next?:string}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        429,
+        501,
+        504
+      ],
+      "limits": [
+        "q_max=1000 documented",
+        "predicates_max=5 documented",
+        "take_default=50 documented",
+        "take_max=100 documented",
+        "depth_max=16 local D-0056"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-search",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-search",
+      "null_omission": "parser absent=lucene; take absent=50; sort absent=created_at with ID tie-break (local); q absent/empty=all (local); next omitted at end; no offset/totals",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "504": "documented upstream search timeout; local engine uses existing server error handling"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/invitations",
+      "required_scopes": [
+        "create:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "{inviter:{name},invitee:{email},client_id,connection_id?,app_metadata?,user_metadata?,ttl_sec?:integer0..2592000(default604800,zero=default),roles?:nonempty[],send_invitation_email?:bool(default true)}",
+      "response_shape": "Invitation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-invitations",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/post-invitations",
+      "null_omission": "D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)",
+        "409": "D-0056: failed atomic write precondition => conflict; duplicate invitation allowed"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/invitations",
+      "required_scopes": [
+        "read:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "page>=0,per_page=1..100(default50),include_totals=false,fields?,include_fields=true,sort=created_at:-1(default); no checkpoint",
+      "response_shape": "Invitation[] | {invitations,start,limit}; no total (documented)",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-invitations",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-invitations",
+      "null_omission": "D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/invitations/{invitation_id}",
+      "required_scopes": [
+        "read:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "path invitation_id",
+      "response_shape": "Invitation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-invitations-by-invitation-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-invitations-by-invitation-id",
+      "null_omission": "D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/invitations/{invitation_id}",
+      "required_scopes": [
+        "delete:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "path invitation_id",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-invitations-by-invitation-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/delete-invitations-by-invitation-id",
+      "null_omission": "D-0056: optional connection/metadata absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "D-0056: missing/cross-tenant org=404; absent/expired/consumed invite in existing org=204"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/clients",
+      "required_scopes": [
+        "read:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "from?,take?(default50,max100)",
+      "response_shape": "{clients:ClientAssociation[],next?}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-clients",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-organization-clients",
+      "null_omission": "documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/clients",
+      "required_scopes": [
+        "create:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "{clients:[{client_id,use_for_member_access:bool}]} batch1..10; complete batch atomic",
+      "response_shape": "ClientAssociation[]",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organization-clients",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/post-organization-clients",
+      "null_omission": "documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)",
+        "409": "duplicate association/domain or failed mutation precondition => conflict (local D-0056)"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/clients",
+      "required_scopes": [
+        "delete:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "{clients:string[]} batch1..10",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-organization-clients",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/delete-organization-clients",
+      "null_omission": "documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/clients/{client_id}",
+      "required_scopes": [
+        "read:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "path client_id",
+      "response_shape": "ClientAssociation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-client",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-organization-client",
+      "null_omission": "documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}/clients/{client_id}",
+      "required_scopes": [
+        "update:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "{use_for_member_access?:bool}; omitted preserves",
+      "response_shape": "ClientAssociation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-organization-client",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/patch-organization-client",
+      "null_omission": "documented: POST each client requires client_id and use_for_member_access; PATCH omission preserves; null rejected (local)",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/client-grants",
+      "required_scopes": [
+        "read:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "page?,per_page?,include_totals?",
+      "response_shape": "ClientGrant[] | {client_grants,start,limit,total}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants",
+      "null_omission": "D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/client-grants",
+      "required_scopes": [
+        "create:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "{grant_id:string}",
+      "response_shape": "ClientGrant",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/create-organization-client-grants",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/create-organization-client-grants",
+      "null_omission": "D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)",
+        "409": "duplicate association/domain or failed mutation precondition => conflict (local D-0056)"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/client-grants/{grant_id}",
+      "required_scopes": [
+        "delete:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "path grant_id",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-client-grants-by-grant-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/delete-client-grants-by-grant-id",
+      "null_omission": "D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/discovery-domains",
+      "required_scopes": [
+        "read:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "from?,take?(default50,max100)",
+      "response_shape": "{domains:DiscoveryDomain[],next?:string}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains",
+      "null_omission": "D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/discovery-domains",
+      "required_scopes": [
+        "create:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "{domain:string,status?:pending,use_for_organization_discovery?:bool(default true)}; verified status only via PATCH (local)",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-discovery-domains",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/post-discovery-domains",
+      "null_omission": "D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)",
+        "409": "duplicate association/domain or failed mutation precondition => conflict (local D-0056)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/discovery-domains/name/{discovery_domain}",
+      "required_scopes": [
+        "read:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "path discovery_domain",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-name-by-discovery-domain",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-name-by-discovery-domain",
+      "null_omission": "D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}",
+      "required_scopes": [
+        "read:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "path discovery_domain_id",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains-by-discovery-domain-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains-by-discovery-domain-id",
+      "null_omission": "D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}",
+      "required_scopes": [
+        "update:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "{status?:pending|verified,use_for_organization_discovery?:bool}; omitted preserves; null rejected",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-discovery-domains-by-discovery-domain-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/patch-discovery-domains-by-discovery-domain-id",
+      "null_omission": "D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}",
+      "required_scopes": [
+        "delete:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "path discovery_domain_id",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-discovery-domains-by-discovery-domain-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/delete-discovery-domains-by-discovery-domain-id",
+      "null_omission": "D-0056 local: create status absent=pending; supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves; null rejected",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/connections",
+      "required_scopes": [
+        "read:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "query page/per_page/include_totals/is_enabled",
+      "response_shape": "Connection[] | {connections,start,limit,total}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connections",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-organization-connections",
+      "null_omission": "D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/connections",
+      "required_scopes": [
+        "create:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "{connection_id(required on POST),organization_connection_name?,assign_membership_on_login?,show_as_button?,is_signup_enabled?,is_enabled?,organization_access_level?,organization_member_access_level?}",
+      "response_shape": "Connection",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        501
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organization-connection",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/post-organization-connection",
+      "null_omission": "D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)",
+        "409": "duplicate association/domain or failed mutation precondition => conflict (local D-0056)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/connections/{connection_id}",
+      "required_scopes": [
+        "read:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "Connection",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connection",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/get-organization-connection",
+      "null_omission": "D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}/connections/{connection_id}",
+      "required_scopes": [
+        "update:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "{connection_id(required on POST),organization_connection_name?,assign_membership_on_login?,show_as_button?,is_signup_enabled?,is_enabled?,organization_access_level?,organization_member_access_level?}",
+      "response_shape": "Connection",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429,
+        501
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-organization-connection",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/patch-organization-connection",
+      "null_omission": "D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)",
+        "409": "local conflict for failed policy mutation precondition"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/connections/{connection_id}",
+      "required_scopes": [
+        "delete:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-organization-connection",
+      "evidence": "documented+local-decision",
+      "lifecycle": "EA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/organizations/delete-organization-connection",
+      "null_omission": "D-0055 omission/migration: enabled=true, org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying, both access levels reset none; PATCH omission preserves",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "D-0055 legacy behavior retained: missing org=404; missing association in existing org=204"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/client-grants/{id}/organizations",
+      "required_scopes": [
+        "read:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "page,per_page,include_totals OR from,take; D-0055 limits",
+      "response_shape": "Organization[] | {organizations,start,limit,total} | {organizations,next?}",
+      "pagination": "offset+checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/client-grants/get-client-grant-organizations",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "scope_evidence": "documented: operation security.oAuth2ClientCredentials at https://auth0.com/docs/api/management/v2/client-grants/get-client-grant-organizations",
+      "null_omission": "D-0056 local: unknown keys and null rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept no body",
+      "error_mapping": {
+        "400": "invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)",
+        "401": "missing/invalid bearer => invalid_token",
+        "403": "missing route scope/operator grant => insufficient_scope",
+        "429": "rate limit => too_many_requests",
+        "501": "missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)",
+        "404": "missing/cross-tenant parent or item/reference => not_found (local where undocumented)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations",
+      "required_scopes": [
+        "read:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "query include_client_association_for?, existing D-0055 paging",
+      "response_shape": "Organization list with optional client:{use_for_member_access:boolean}; client omitted for absent association; never client secrets",
+      "pagination": "offset+checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "404": "missing or cross-tenant org/reference => not_found (Management); auth => invalid_request; reset unknown email retains accepted response",
+        "429": "existing rate limit",
+        "501": "organizations_ii_unavailable on active II Management operation; active auth II fails closed (local D-0056)"
+      },
+      "scope_evidence": "documented operation OAuth security at https://auth0.com/docs/api/management/v2/organizations/get-organizations",
+      "null_omission": "D-0055 existing fields unchanged; D-0056 new entitlement absent=false, null rejected; list association annotation omitted if absent; annotation does not filter",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organizations",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations",
+      "required_scopes": [
+        "create:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "OrganizationCreate plus is_app_entitlement_active?:bool",
+      "response_shape": "OrganizationCreated",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "404": "missing or cross-tenant org/reference => not_found (Management); auth => invalid_request; reset unknown email retains accepted response",
+        "429": "existing rate limit",
+        "501": "organizations_ii_unavailable on active II Management operation; active auth II fails closed (local D-0056)"
+      },
+      "scope_evidence": "documented operation OAuth security at https://auth0.com/docs/api/management/v2/organizations/post-organizations",
+      "null_omission": "D-0055 existing fields unchanged; D-0056 new entitlement absent=false, null rejected; list association annotation omitted if absent; annotation does not filter",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organizations",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA",
+      "conditional_scopes": [
+        "create:organization_connections"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}",
+      "required_scopes": [
+        "update:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "OrganizationUpdate plus is_app_entitlement_active?:bool",
+      "response_shape": "Organization",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "404": "missing or cross-tenant org/reference => not_found (Management); auth => invalid_request; reset unknown email retains accepted response",
+        "429": "existing rate limit",
+        "501": "organizations_ii_unavailable on active II Management operation; active auth II fails closed (local D-0056)"
+      },
+      "scope_evidence": "documented operation OAuth security at https://auth0.com/docs/api/management/v2/organizations/patch-organizations-by-id",
+      "null_omission": "D-0055 existing field clears unchanged; D-0056 entitlement omission preserves, null rejected",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-organizations-by-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/client-grants",
+      "required_scopes": [
+        "read:client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "existing paging/filter plus allow_any_organization?",
+      "response_shape": "ClientGrant list includes organization_usage and allow_any_organization",
+      "pagination": "offset+checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "404": "missing or cross-tenant org/reference => not_found (Management); auth => invalid_request; reset unknown email retains accepted response",
+        "429": "existing rate limit",
+        "501": "organizations_ii_unavailable on active II Management operation; active auth II fails closed (local D-0056)"
+      },
+      "scope_evidence": "documented operation OAuth security at https://auth0.com/docs/api/management/v2/client-grants/get-client-grants",
+      "null_omission": "D-0056: organization_usage absent=deny, allow_any_organization absent=false on create; PATCH omission preserves; null rejected; subject_type=user denies active values",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/client-grants/get-client-grants",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/client-grants",
+      "required_scopes": [
+        "create:client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "ClientGrantCreate plus organization_usage?:deny|allow|require and allow_any_organization?:bool",
+      "response_shape": "ClientGrant",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "404": "missing or cross-tenant org/reference => not_found (Management); auth => invalid_request; reset unknown email retains accepted response",
+        "429": "existing rate limit",
+        "501": "organizations_ii_unavailable on active II Management operation; active auth II fails closed (local D-0056)"
+      },
+      "scope_evidence": "documented operation OAuth security at https://auth0.com/docs/api/management/v2/client-grants/post-client-grants",
+      "null_omission": "D-0056: organization_usage absent=deny, allow_any_organization absent=false on create; PATCH omission preserves; null rejected; subject_type=user denies active values",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/client-grants/post-client-grants",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/client-grants/{id}",
+      "required_scopes": [
+        "update:client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "ClientGrantSettings plus organization_usage?:deny|allow|require and allow_any_organization?:bool",
+      "response_shape": "ClientGrant",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "404": "missing or cross-tenant org/reference => not_found (Management); auth => invalid_request; reset unknown email retains accepted response",
+        "429": "existing rate limit",
+        "501": "organizations_ii_unavailable on active II Management operation; active auth II fails closed (local D-0056)"
+      },
+      "scope_evidence": "documented operation OAuth security at https://auth0.com/docs/api/management/v2/client-grants/patch-client-grants-by-id",
+      "null_omission": "D-0056: organization_usage absent=deny, allow_any_organization absent=false on create; PATCH omission preserves; null rejected; subject_type=user denies active values",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/client-grants/patch-client-grants-by-id",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/tickets/password-change",
+      "required_scopes": [
+        "create:user_tickets"
+      ],
+      "scope_match": "all",
+      "request_shape": "PasswordChangeTicketCreate plus organization_id?:string; result_url forbidden with organization_id",
+      "response_shape": "{ticket:string}",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "404": "missing or cross-tenant org/reference => not_found (Management); auth => invalid_request; reset unknown email retains accepted response",
+        "429": "existing rate limit",
+        "501": "organizations_ii_unavailable on active II Management operation; active auth II fails closed (local D-0056)"
+      },
+      "scope_evidence": "documented operation OAuth security at https://auth0.com/docs/api/management/v2/tickets/post-password-change",
+      "null_omission": "D-0056: organization_id absent adds no context, null rejected; organization_id with result_url invalid_body; missing tenant-scoped reference not_found",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/tickets/post-password-change",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/authorize",
+      "required_scopes": [],
+      "scope_match": "all",
+      "request_shape": "invitation?:ticket with required organization; server transaction binds tenant/org/client/primary connection",
+      "response_shape": "302 normal redirect/code/error; 200 form_post/web_message page; prompt=none invitation => interaction_required",
+      "pagination": "none",
+      "success_status": 302,
+      "error_statuses": [
+        400,
+        404,
+        500
+      ],
+      "error_mapping": {
+        "400": "existing pre-redirect invalid client/redirect/malformed request; invitation mismatch invalid_request",
+        "404": "unknown tenant",
+        "500": "store/capability negotiation failure, fail closed; no admission"
+      },
+      "scope_evidence": "public authentication endpoint; existing client authentication applies, no Management scope",
+      "null_omission": "D-0056: organization absent uses ordinary flow unless grant/client requires it; invitation absent adds no acceptance; explicit null rejected for JSON, empty string follows existing endpoint rules; PAR/resume cannot override server binding",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/manage-users/organizations/configure-organizations/invite-members",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth/par",
+      "required_scopes": [],
+      "scope_match": "all",
+      "request_shape": "same invitation+organization binding as authorize; later overrides forbidden (local)",
+      "response_shape": "{request_uri,expires_in}",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        429
+      ],
+      "error_mapping": {
+        "400": "invalid_request (auth) or invalid_body/invalid_uri/invalid_paging (Management); malformed parameters",
+        "401": "invalid_token/client authentication failed",
+        "403": "insufficient_scope (Management); access_denied (OAuth valid but forbidden org)",
+        "429": "existing rate limit"
+      },
+      "scope_evidence": "public authentication endpoint; existing client authentication applies, no Management scope",
+      "null_omission": "D-0056: organization absent uses ordinary flow unless grant/client requires it; invitation absent adds no acceptance; explicit null rejected for JSON, empty string follows existing endpoint rules; PAR/resume cannot override server binding",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/manage-users/organizations/configure-organizations/invite-members",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/oauth/token",
+      "required_scopes": [],
+      "scope_match": "all",
+      "request_shape": "client_credentials organization?:ID or enabled name; invitation never accepted",
+      "response_shape": "org_id in explicit-org access token; org_name only under names policy; no membership/ID/refresh token",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        429
+      ],
+      "error_mapping": {
+        "400": "invalid_request malformed parameter; access_denied valid but forbidden org; invalid_grant revoked code/refresh eligibility (local D-0056)",
+        "401": "invalid_token/client authentication failed",
+        "429": "existing rate limit"
+      },
+      "scope_evidence": "public authentication endpoint; existing client authentication applies, no Management scope",
+      "null_omission": "D-0056: organization absent uses ordinary flow unless grant/client requires it; invitation absent adds no acceptance; explicit null rejected for JSON, empty string follows existing endpoint rules; PAR/resume cannot override server binding",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/get-started/applications/application-access-to-apis-client-grants",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/dbconnections/change_password",
+      "required_scopes": [],
+      "scope_match": "all",
+      "request_shape": "ChangePasswordRequest plus organization?:ID (not name)",
+      "response_shape": "existing anti-enumeration 200 text response",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        404,
+        429
+      ],
+      "error_mapping": {
+        "400": "invalid_request malformed/invalid organization context before identity lookup",
+        "404": "unknown tenant (existing local endpoint); unknown email uses accepted 200",
+        "429": "existing rate limit"
+      },
+      "scope_evidence": "public authentication endpoint; existing client authentication applies, no Management scope",
+      "null_omission": "D-0056: organization absent uses ordinary flow unless grant/client requires it; invitation absent adds no acceptance; explicit null rejected for JSON, empty string follows existing endpoint rules; PAR/resume cannot override server binding",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/api/authentication/change-password/change-password",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/authorize",
+      "required_scopes": [],
+      "scope_match": "all",
+      "request_shape": "invitation?:ticket with required organization; server transaction binds tenant/org/client/primary connection",
+      "response_shape": "302 normal redirect/code/error; 200 form_post/web_message page; prompt=none invitation => interaction_required",
+      "pagination": "none",
+      "success_status": 302,
+      "error_statuses": [
+        400,
+        404,
+        500
+      ],
+      "error_mapping": {
+        "400": "existing pre-redirect invalid client/redirect/malformed request; invitation mismatch invalid_request",
+        "404": "unknown tenant",
+        "500": "store/capability negotiation failure, fail closed; no admission"
+      },
+      "scope_evidence": "public authentication endpoint; existing client authentication applies, no Management scope",
+      "null_omission": "D-0056: organization absent uses ordinary flow unless grant/client requires it; invitation absent adds no acceptance; explicit null rejected for JSON, empty string follows existing endpoint rules; PAR/resume cannot override server binding",
+      "limits": [
+        "D-0055 retained; D-0056 active fields fail closed on old plugins"
+      ],
+      "source_url": "https://auth0.com/docs/manage-users/organizations/configure-organizations/invite-members",
+      "evidence": "documented+local-decision",
+      "lifecycle": "GA"
+    }
+  ]
 }

@@ -56,6 +56,11 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Err
 			if err := dec.Decode(&v); err != nil {
 				return nil, bad
 			}
+			if key == "organization" || key == "invitation" {
+				if _, ok := v.(string); !ok {
+					return nil, invalidRequest(fmt.Sprintf("parameter %q must be a string", key))
+				}
+			}
 			switch x := v.(type) {
 			case string:
 				form.Set(key, x)

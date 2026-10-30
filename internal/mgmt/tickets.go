@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -39,10 +41,10 @@ type ticketIdentity struct{ UserID, Provider string }
 
 // ticketBody is a POST /tickets/* body.
 type ticketBody struct {
-	resultURL, userID, clientID, connectionID, email string
-	ttl                                              int64
-	markVerified, includeEmail                       bool
-	identity                                         *ticketIdentity
+	resultURL, userID, clientID, connectionID, email, organizationID string
+	ttl                                                              int64
+	markVerified, includeEmail                                       bool
+	identity                                                         *ticketIdentity
 }
 
 // readTicketBody reads a ticket body whose properties are among allowed.
@@ -54,7 +56,7 @@ func readTicketBody(body map[string]json.RawMessage, allowed ...string) (*ticket
 	b := userBody{body}
 	in := &ticketBody{}
 	strs := map[string]*string{"result_url": &in.resultURL, "user_id": &in.userID, "client_id": &in.clientID,
-		"connection_id": &in.connectionID, "email": &in.email}
+		"organization_id": &in.organizationID, "connection_id": &in.connectionID, "email": &in.email}
 	bools := map[string]*bool{"mark_email_as_verified": &in.markVerified, "includeEmailInRedirect": &in.includeEmail}
 	for _, k := range slices.Sorted(maps.Keys(body)) {
 		if !slices.Contains(allowed, k) {
@@ -77,6 +79,12 @@ func readTicketBody(body map[string]json.RawMessage, allowed ...string) (*ticket
 		if err != nil {
 			return nil, err
 		}
+	}
+	if _, present := body["organization_id"]; present && !orgrules.ValidID(in.organizationID) {
+		return nil, badBodyRaw("Invalid organization_id.")
+	}
+	if in.organizationID != "" && in.resultURL != "" {
+		return nil, badBodyRaw("result_url cannot be used together with organization_id")
 	}
 	if in.resultURL != "" {
 		if u, err := url.Parse(in.resultURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
@@ -276,19 +284,39 @@ func (h *Handlers) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Req
 		return
 	}
 	in, err := readTicketBody(body, "result_url", "user_id", "client_id", "connection_id", "email", "ttl_sec",
-		"mark_email_as_verified", "includeEmailInRedirect", "identity")
+		"mark_email_as_verified", "includeEmailInRedirect", "identity", "organization_id")
 	if err != nil {
 		Fail(w, err)
 		return
 	}
 	u, connection, err := h.passwordChangeTarget(r, in)
 	if err != nil {
+		if in.organizationID != "" && (errors.Is(err, errUserConnection) || errors.Is(err, errUserNotFound)) {
+			err = &Error{Status: 404, Code: "not_found", Message: "Organization context not found."}
+		}
 		Fail(w, err)
 		return
 	}
 	if err := h.checkTicketClient(r, in.clientID); err != nil {
+		if in.organizationID != "" && errors.Is(err, errClientNotFound) {
+			err = &Error{Status: 404, Code: "not_found", Message: "Organization context not found."}
+		}
 		Fail(w, err)
 		return
+	}
+	if in.organizationID != "" {
+		conn, e := h.Store.Connections().GetByName(r.Context(), resolved(r).ID, connection)
+		if e == nil {
+			_, e = orglogin.PasswordResetContext(r.Context(), h.Store, resolved(r).ID, in.organizationID, in.clientID, conn)
+		}
+		if e != nil {
+			if errors.Is(e, store.ErrNotFound) || errors.Is(e, orglogin.ErrNotMember) {
+				Fail(w, &Error{Status: 404, Code: "not_found", Message: "Organization context not found."})
+			} else {
+				Fail(w, internalError(h, r, "load organization context", e))
+			}
+			return
+		}
 	}
 	host, err := h.notificationHost(r)
 	if err != nil {
@@ -296,7 +324,7 @@ func (h *Handlers) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Req
 		return
 	}
 	raw, err := dbconn.IssueResetTicket(r.Context(), h.Store, store.PasswordResetTicket{
-		Origin: "https://" + host, TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID,
+		OrganizationID: in.organizationID, Origin: "https://" + host, TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID,
 		ResultURL: in.resultURL, IncludeEmailInRedirect: in.includeEmail, MarkEmailVerified: in.markVerified,
 	}, dbconn.TicketTokenLength, h.now(), in.lifetime())
 	if err != nil {

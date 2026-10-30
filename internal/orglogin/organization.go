@@ -47,7 +47,7 @@ func EligibleConnections(conns []*store.Connection, oc Context) []*store.Connect
 	}
 	var out []*store.Connection
 	for _, c := range conns {
-		if _, ok := oc.Connections[c.ID]; ok && c.TenantID == oc.Org.TenantID {
+		if link, ok := oc.Connections[c.ID]; ok && (!link.IsEnabledSet || link.IsEnabled) && c.TenantID == oc.Org.TenantID {
 			out = append(out, c)
 		}
 	}
@@ -67,6 +67,9 @@ func EnsureMembership(ctx context.Context, tx store.Store, oc Context, userID, c
 	}
 	if err != nil {
 		return err
+	}
+	if link.IsEnabledSet && !link.IsEnabled {
+		return ErrNotMember
 	}
 	member, err := tx.Organizations().IsMember(ctx, tid, id, userID)
 	if err != nil {
@@ -101,6 +104,9 @@ func pickerChoices(ctx context.Context, st store.Store, tid, userID, connectionI
 	}
 	var candidates []store.Organization
 	for _, link := range links {
+		if link.IsEnabledSet && !link.IsEnabled {
+			continue
+		}
 		member, e := st.Organizations().IsMember(ctx, tid, link.OrganizationID, userID)
 		if e != nil {
 			return nil, nil, e
@@ -112,8 +118,16 @@ func pickerChoices(ctx context.Context, st store.Store, tid, userID, connectionI
 		if e != nil {
 			return nil, nil, e
 		}
-		if client != nil && !client.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
-			continue
+		if client != nil {
+			if !client.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
+				continue
+			}
+			if e := CheckMemberClient(ctx, st, tid, org.ID, client.ClientID); e != nil {
+				if errors.Is(e, ErrNotMember) {
+					continue
+				}
+				return nil, nil, e
+			}
 		}
 		if member {
 			orgs = append(orgs, *org)

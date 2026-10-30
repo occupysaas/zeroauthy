@@ -119,6 +119,9 @@ type ChangePasswordRequest struct {
 	// Connection Name of the database connection.
 	Connection string `json:"connection"`
 	Email      string `json:"email"`
+
+	// Organization Optional organization ID (not a name); null is invalid. Missing or cross-tenant context is invalid_request before lookup; unknown email retains the ordinary accepted response (local D-0056). Carries branding, never membership.
+	Organization *string `json:"organization,omitempty"`
 }
 
 // DeviceCodeRequest defines model for DeviceCodeRequest.
@@ -341,7 +344,7 @@ type TokenRequest struct {
 	// GrantType Examples: client_credentials
 	GrantType string `json:"grant_type"`
 
-	// Organization Refused with `invalid_request` for grant_type=client_credentials (organization client grants are not available yet). The password, password-realm and device code grants ignore it (D-0055).
+	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The password, password-realm and device code grants ignore it (D-0055).
 	Organization *string `json:"organization,omitempty"`
 
 	// Password The user's password (password grants).
@@ -459,7 +462,7 @@ type AuthorizeParams struct {
 	// Organization An organization ID, or its name while the tenant's `allow_organization_name_in_authentication_api` is on (the ID is matched first). An empty value counts as absent. Refused with `invalid_request` when the application's `organization_usage` is `deny`, when the organization is unknown, or when a name is sent while names are off; a third-party application facing an organization that blocks third-party access gets `access_denied`. An application with `organization_usage` `require` and `no_prompt` must send one. With `request_uri`, only the pushed value counts (D-0055).
 	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
 
-	// Invitation Invitations are not available yet: any value is refused with `invalid_request`.
+	// Invitation An invitation bearer ticket requires organization and binds the original tenant, organization, client and primary connection. Accept only after authentication, verified email ownership and MFA, before Actions; wrong-account attempts retain the ticket (local D-0056). Never accepted at token exchange/refresh. With prompt=none return interaction_required; PAR/resume cannot replace the binding.
 	Invitation *string `form:"invitation,omitempty" json:"invitation,omitempty"`
 }
 

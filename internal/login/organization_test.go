@@ -172,7 +172,7 @@ func TestOrganizationPickerNoChoicesDenied(t *testing.T) {
 }
 func TestOrganizationMembershipFederationAtomic(t *testing.T) {
 	for _, ms := range []bool{false, true} {
-		for _, change := range []string{"member", "auto", "off", "disabled"} {
+		for _, change := range []string{"member", "auto", "off", "disabled", "entitlement"} {
 			t.Run(fmt.Sprintf("microsoft=%v/%s", ms, change), func(t *testing.T) {
 				var s *socialEnv
 				if ms {
@@ -211,9 +211,14 @@ func TestOrganizationMembershipFederationAtomic(t *testing.T) {
 				page := s.authorizeTo(t, b, "spa", "organization", org.ID, "connection", "corp")
 				rec := b.do(t, "GET", page, nil)
 				callback := s.idp.authorize(t, providerURL(t, rec), "Org-1")
-				if change == "off" || change == "disabled" {
+				if change == "off" || change == "disabled" || change == "entitlement" {
 					s.idp.beforeToken = func() {
-						if change == "disabled" {
+						if change == "entitlement" {
+							org.IsAppEntitlementActive = true
+							if err := s.st.Organizations().Update(context.Background(), org); err != nil {
+								t.Error(err)
+							}
+						} else if change == "disabled" {
 							if err := s.st.Organizations().DeleteConnection(context.Background(), org.TenantID, org.ID, "con_corp"); err != nil {
 								t.Error(err)
 							}
@@ -258,16 +263,16 @@ func TestOrganizationPromptSessionAndBypass(t *testing.T) {
 	org, _, _ := organizationFixture(t, e, store.OrgBehaviorPreLoginPrompt, true, false)
 	ctx := context.Background()
 	c, _ := e.st.Clients().Get(ctx, org.TenantID, "spa")
-	c.OrganizationDiscoveryMethods = []string{"email"}
+	c.OrganizationDiscoveryMethods = []string{store.OrgDiscoveryEmail, store.OrgDiscoveryName}
 	c.OrganizationUsage = store.OrgUsageAllow
 	if err := e.st.Clients().Update(ctx, c); err != nil {
 		t.Fatal(err)
 	}
 	b := e.browser("acme.example.test")
-	// The name field stays available even with email-only discovery.
+	// Configuring both discovery methods retains the original name flow.
 	page, state, csrf := b.begin(t)
 	if !strings.Contains(page.Body.String(), `name="organization"`) {
-		t.Fatal("email-only discovery lost name field")
+		t.Fatal("both discovery methods lost name field")
 	}
 	// A direct signup request cannot bypass the unresolved organization prompt.
 	rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"bypass@acme.test"}, "password": {"a good password 1"}})

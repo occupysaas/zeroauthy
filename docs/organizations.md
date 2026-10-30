@@ -9,7 +9,7 @@ The wire inventory is [internal/orgrules/inventory.json](../internal/orgrules/in
 [D-0055](compat/decisions.md#d-0055--plan-29-organizations-i-contracts-2026-10-28)
 and the [observation notes](compat/observations/organizations.md) distinguish
 observed behavior from documented contracts and local decisions. The
-[implementation record](superpowers/2026-10-28-plan-29-implementation-record.md)
+[Organizations II implementation record](superpowers/2026-10-29-plan-30-implementation-record.md)
 records verification and remaining limitations.
 
 ## Resources and limits
@@ -65,10 +65,9 @@ to false and requires auto-membership. Connection creation checks existence
 and strategy-specific flags; it does not add an extra strategy allowlist.
 
 The Early Access `/organizations/{id}/connections` resource also manages
-these same links for pinned Deploy CLI compatibility. Its access-level fields
-are unstored defaults. `GET /organizations/{id}/client-grants` is truthfully
-empty; organization grants are not yet enabled. Responses keep
-`is_app_entitlement_active` false.
+these same links, including disabled links, local connection names and stored
+access-level metadata. These delegation metadata fields grant no self-service
+permissions. Legacy enabled-connections calls preserve them when re-enabling a link.
 
 ## Management routes
 
@@ -86,7 +85,12 @@ operators still require target tenant grants.
 | `/organizations/{id}/roles/{role_id}/members` | GET both `read:organization_members` and `read:roles` |
 | `/organizations/{id}/enabled_connections` (or `/connections`) | GET `read:organization_connections`; POST `create:organization_connections` |
 | `/organizations/{id}/enabled_connections/{connection_id}` (or `/connections/{connection_id}`) | GET/PATCH/DELETE `read/update/delete:organization_connections` respectively |
-| `/organizations/{id}/client-grants` | GET `read:organization_client_grants`, empty until Plan 30 |
+| `/organizations/{id}/invitations` | GET/POST `read/create:organization_invitations`; item GET/DELETE `read/delete:organization_invitations` |
+| `/organizations/{id}/clients` | GET/POST/DELETE `read/create/delete:organization_clients`; item GET/PATCH `read/update:organization_clients` |
+| `/organizations/{id}/client-grants` | GET/POST `read/create:organization_client_grants`; item DELETE `delete:organization_client_grants` |
+| `/client-grants/{id}/organizations` | GET `read:organization_client_grants` |
+| `/organizations/{id}/discovery-domains` | GET/POST `read/create:organization_discovery_domains`; item GET/PATCH/DELETE `read/update/delete:organization_discovery_domains` |
+| `/organizations/search` | GET both `read:organizations` and `read:organizations_summary` |
 | `/users/{id}/organizations` | GET either `read:users` or `read:organizations` |
 
 `fields=roles` on member listing additionally needs
@@ -99,22 +103,23 @@ assignment/removal and deletion return 204. Empty organization PATCH is 400.
 `organization_require_behavior` is `no_prompt` (default), `pre_login_prompt`,
 or `post_login_prompt`. Pre-login behavior is accepted with every usage.
 `organization_discovery_methods` accepts `email` and/or `organization_name`
-only with `pre_login_prompt`. Email discovery is stored and validated;
-the hosted screen always asks for a name until Plan 30. Post-login behavior
+only with `pre_login_prompt`. Email discovery considers verified domains enabled
+for discovery and current application/connection eligibility; routing does not
+verify an email address or enroll a member. Post-login behavior
 requires `oidc_conformant`.
 
 A `require` application cannot hold password, password-realm or device-code
 grants. Creating or changing either side of that combination returns 400.
 Token-time `unauthorized_client` remains a guard for legacy data. Password
 and device flows for other applications never carry organization claims.
-Client credentials refuses the `organization` parameter with `invalid_request`.
+Client credentials accepts an explicit organization subject to grant policy below.
 
 | Authorization request | Result |
 |---|---|
 | Organization supplied to `deny` | `invalid_request` |
 | Valid organization supplied to `allow`/`require` | Bind it to this authorization transaction |
 | Missing organization, `require` + `no_prompt` | `invalid_request` |
-| Missing organization, `allow`/`require` + `pre_login_prompt` | Name screen before authentication |
+| Missing organization, `allow`/`require` + `pre_login_prompt` | Configured name/email screen before authentication |
 | Missing organization, `require` + `post_login_prompt` | Authenticate, then choose an eligible organization |
 | Missing organization, `allow` + `post_login_prompt` | Individual login |
 | Missing organization, `deny` | Individual login |
@@ -222,7 +227,7 @@ tenant-only operators do not count as viable fallback administrators.
 
 ## Storage, seed and deferred work
 
-Apply additive migration 0025 and upgrade storage-plugin writers before using
+Apply additive migrations 0025–0027 and upgrade storage-plugin writers before using
 organizations. Memory, SQLite, PostgreSQL, MySQL and gRPC share the contract.
 An old plugin starts with a warning; organization routes and non-`deny`
 application writes return 501, and an organization authorize parameter is
@@ -236,12 +241,99 @@ references fail startup. Pinned Deploy CLI 9.1.0 round trips organizations and
 connections in YAML/directory with generated or preserved credentials. It does
 not migrate members or member-role assignments.
 
-Plan 30 owns invitations/acceptance and invitation email, organization-grant
-writes/enforcement, discovery domains/email discovery, organization search,
-app entitlement and change-password organization context. The existing EA
-connections routes need parity expansion there; their Plan 29 compatibility
-subset is already active. Plan 35 owns organization token quotas with
-client-credentials organization work. Plan 38 owns groups and inherited roles;
-Plan 37 owns SAML/WS-Fed organization login; Plan 42 owns the My Organization
-API. Classic Login/Lock, per-organization custom domains and unsupported
-organization token flows remain outside this release.
+Organizations II seed fields include `is_app_entitlement_active`,
+`third_party_client_access`, `clients`, `client_grants`, `discovery_domains` and
+connection enabled/access metadata. All organization configuration is create-only
+in either seed mode: reseeding never restores a removed association/domain or
+overwrites API-managed policy. Client references accept an existing ID or unique
+application name. Organization grant references use `client_id` plus `audience`
+and resolve an existing client-subject grant in the same tenant. Connection and
+organization names use the existing seed mapping. An unresolved reference rolls
+back the entire seed transaction, including earlier grant scope changes.
+
+```yaml
+organizations:
+  - name: example
+    is_app_entitlement_active: true
+    third_party_client_access: block
+    clients:
+      - client_id: Browser # existing ID or unique name
+        use_for_member_access: true
+    client_grants:
+      - client_id: Service
+        audience: https://api.example.test
+    connections:
+      - name: Enterprise
+        is_enabled: false
+        organization_connection_name: Enterprise login
+        organization_access_level: none
+        organization_member_access_level: limited
+    discovery_domains:
+      - domain: example.test
+        use_for_organization_discovery: true
+```
+
+Tenant-level `client_grants` accept `organization_usage` and
+`allow_any_organization` only as initial policy. Existing grants keep those
+values across reseeding; API-created grants retain their ownership protections.
+User-subject grants cannot activate organization policy, and third-party
+applications cannot use allow-any. Discovery domains default pending; seed
+rejects verified status, requiring a deliberate Management API attestation.
+Invitations, receipts and bearer ticket fields are rejected by the seed parser.
+See [Deploy CLI limitations](deploy-cli.md) for the pinned tool's smaller
+portable policy subset.
+
+## Invitations and application entitlement
+
+Set an application `initiate_login_uri` before creating invitations. The emailed
+URL opens that application route with `invitation` and `organization`; the
+application forwards both into its normal authorization request. Invitation
+create/get return a bearer URL; avoid logging or sharing it. Sending uses the
+normal durable email engine and `user_invitation` template. Template/provider
+policy controls delivery; creating an invitation does not prove email was sent.
+
+Acceptance requires the invited verified email and original primary connection.
+Signup uses the normal email-verification flow; an invitation alone does not
+verify an existing account. Wrong-account attempts retain the ticket for a new
+login. Acceptance atomically consumes the ticket, adds membership and roles,
+and merges metadata; existing metadata keys win. Actions then see the accepted
+organization. Action denial does not undo membership. A second authorization
+transaction cannot replay the ticket. The platform currently has no MFA engine;
+no MFA completion or enforcement is claimed. First-time federated invitation
+provisioning fails closed; pre-provisioned federated users are supported.
+
+When `is_app_entitlement_active` is true, member access additionally requires
+an organization application association with `use_for_member_access: true`.
+Authorization, invitation acceptance, code exchange and refresh all enforce
+current entitlement and connection policy.
+
+## Machine access, domains and search
+
+Client-subject grants use `organization_usage: deny|allow|require` (default
+`deny`). `require` rejects requests without an explicit organization. An
+organization request needs either `allow_any_organization` or an explicit grant
+association. Third-party clients require an explicit association and organization
+`third_party_client_access: allow`; configuring allow-any for them returns 400.
+Member entitlement and member roles do not authorize machine access. Quotas and
+default organization selection remain outside this release.
+
+Discovery domains start pending. An administrator PATCH to `verified` attests
+that ownership was independently checked; the server does not resolve DNS to
+prove ownership. Only verified, discovery-enabled domains route email discovery.
+The challenge is destination-local and cannot be ported as verified seed data.
+Self-service domain verification is excluded.
+
+Search accepts bounded Lucene or SCIM expressions with ascending `name`,
+`display_name` or `created_at` sorting. Opaque checkpoint cursors bind tenant,
+parser, query and sort; changing them or tampering with a cursor returns 400.
+Search paging is independent of legacy list sort syntax.
+
+OrganizationsII plugin capability is negotiated separately from Organizations I.
+An older plugin retains Plan 29 support but active II operations fail closed;
+upgrade every writer before enabling II configuration. Mixed writers are unsupported.
+
+Plan 35 owns token quotas, Plan 38 groups/inherited roles, Plan 37 SAML/WS-Fed
+organization login, and Plan 42 the My Organization API. Classic Login/Lock,
+per-organization custom domains and unsupported organization token flows remain
+outside this release. Exact tested versions and remaining verification limits
+are recorded in the Organizations II implementation record.

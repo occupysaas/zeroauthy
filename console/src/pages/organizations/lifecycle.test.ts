@@ -22,7 +22,7 @@ async function panel(component: Component, handler: Parameters<typeof fakeServic
 const cases = [
   { component: SettingsTab, response: (name: string) => org(name), selector: '#organization-name', field: true },
   { component: BrandingTab, response: (name: string) => org(name), selector: '#organization-logo', field: true },
-  { component: ConnectionsTab, response: (name: string) => ({ enabled_connections: [{ connection_id: name, connection: { name, strategy: 'auth0' } }], total: 1 }), selector: '', field: false },
+  { component: ConnectionsTab, response: (name: string) => ({ connections: [{ connection_id: name, connection: { name, strategy: 'auth0' } }], total: 1 }), selector: '', field: false },
   { component: MembersTab, response: (name: string) => ({ members: [{ user_id: name, email: name }], total: 1 }), selector: '', field: false },
   { component: MemberRoles, response: (name: string) => ({ roles: [{ id: name, name, description: '' }], total: 1 }), selector: '', field: false },
 ]
@@ -71,4 +71,10 @@ it.each([SettingsTab, BrandingTab])('ignores stale write errors and resets edito
   await wrapper.get(selector).setValue(component === SettingsTab ? 'draft' : 'https://draft.test/logo'); await wrapper.get('form').trigger('submit'); await flushPromises()
   await wrapper.setProps({ organizationId: 'org_new' } as never); await flushPromises(); resolve(apiError(500, 'error', 'obsolete error')); await flushPromises()
   expect(wrapper.text()).not.toContain('obsolete error'); expect((wrapper.get(selector).element as HTMLInputElement).value).toContain('fresh'); wrapper.unmount()
+})
+it('clears metadata with an empty replacement', async () => {
+ const { wrapper, calls } = await panel(SettingsTab, () => ({ status: 200, body: { ...org('fresh'), metadata: { team: 'old' } } })); await wrapper.get('#organization-metadata').setValue('{}'); await wrapper.get('form').trigger('submit'); await flushPromises(); expect(calls.find(c => c.method === 'PATCH')!.body).toMatchObject({ metadata: {} }); wrapper.unmount()
+})
+it('clears branding with an empty replacement', async () => {
+ const { wrapper, calls } = await panel(BrandingTab, () => ({ status: 200, body: org('fresh') })); await wrapper.get('#organization-logo').setValue(''); await wrapper.get('form').trigger('submit'); await flushPromises(); expect(calls.find(c => c.method === 'PATCH')!.body).toEqual({ branding: {} }); wrapper.unmount()
 })

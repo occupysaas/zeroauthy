@@ -106,6 +106,7 @@ func (r organizations) Create(_ context.Context, o *store.Organization, conns []
 	s.orgs[key{n.TenantID, n.ID}] = cloneOrg(&n)
 	for _, c := range conns {
 		c.TenantID, c.OrganizationID = n.TenantID, n.ID
+		c = s.normalizeOrgConnection(c, nil)
 		s.orgConns[orgConnKey{c.TenantID, c.OrganizationID, c.ConnectionID}] = &c
 	}
 	*o = *cloneOrg(&n)
@@ -155,7 +156,17 @@ func (r organizations) List(_ context.Context, tid string, p store.OrgPage) (sto
 			orgs = append(orgs, o)
 		}
 	}
-	return pageOrgs(orgs, p, orgScope("orgs", tid))
+	out, err := pageOrgs(orgs, p, orgScope("orgs", tid))
+	if p.IncludeClientAssociationFor != "" {
+		for i := range out.Items {
+			out.Items[i].ClientAssociationLoaded = true
+			if link, ok := r.s.orgClients[orgIIKey{tid, out.Items[i].ID, p.IncludeClientAssociationFor}]; ok {
+				v := *link
+				out.Items[i].ClientAssociation = &v
+			}
+		}
+	}
+	return out, err
 }
 
 func (r organizations) Update(_ context.Context, o *store.Organization) error {
@@ -196,6 +207,7 @@ func (r organizations) Delete(_ context.Context, tid, id string) error {
 // deleteOrg removes an organization with its connections, members and member
 // roles. The caller holds the lock.
 func (s *Store) deleteOrg(tid, id string) {
+	s.cleanupOrgII(tid, orgIICleanup{org: id})
 	delete(s.orgs, key{tid, id})
 	for k := range s.orgConns {
 		if k.tenant == tid && k.org == id {
@@ -217,6 +229,7 @@ func (s *Store) deleteOrg(tid, id string) {
 // cleanupOrgUser removes a deleted user's memberships and member roles. The
 // caller holds the lock.
 func (s *Store) cleanupOrgUser(tid, uid string) {
+	s.cleanupOrgII(tid, orgIICleanup{user: uid})
 	for k := range s.orgMembers {
 		if k.tenant == tid && k.user == uid {
 			delete(s.orgMembers, k)
@@ -232,6 +245,11 @@ func (s *Store) cleanupOrgUser(tid, uid string) {
 // cleanupOrgConnection removes a deleted connection's enablements. The caller
 // holds the lock.
 func (s *Store) cleanupOrgConnection(tid, connID string) {
+	for k, v := range s.orgInvitations {
+		if k.tenant == tid && v.ConnectionID == connID {
+			delete(s.orgInvitations, k)
+		}
+	}
 	for k := range s.orgConns {
 		if k.tenant == tid && k.conn == connID {
 			delete(s.orgConns, k)
@@ -242,6 +260,7 @@ func (s *Store) cleanupOrgConnection(tid, connID string) {
 // cleanupOrgRole removes a deleted role's member assignments. The caller
 // holds the lock.
 func (s *Store) cleanupOrgRole(tid, roleID string) {
+	s.cleanupOrgII(tid, orgIICleanup{role: roleID})
 	for k := range s.orgMemberRoles {
 		if k.tenant == tid && k.role == roleID {
 			delete(s.orgMemberRoles, k)
@@ -252,6 +271,7 @@ func (s *Store) cleanupOrgRole(tid, roleID string) {
 // deleteOrgTenant removes every organization row of a tenant. The caller
 // holds the lock.
 func (s *Store) deleteOrgTenant(tid string) {
+	s.cleanupOrgII(tid, orgIICleanup{all: true})
 	for k := range s.orgs {
 		if k.tenant == tid {
 			delete(s.orgs, k)
@@ -287,7 +307,14 @@ func (r organizations) Connections(_ context.Context, tid, orgID string, p store
 		}
 	}
 	orgrules.OrderEntries(es, false)
-	return orgrules.PageEntries(es, p, orgScope("conns", tid, orgID), false)
+	out, err := orgrules.PageEntries(es, p, orgScope("conns", tid, orgID), false)
+	for i := range out.Items {
+		if c := r.s.connections[key{tid, out.Items[i].ConnectionID}]; c != nil {
+			out.Items[i].SummaryName = c.Name
+			out.Items[i].SummaryStrategy = c.Strategy
+		}
+	}
+	return out, err
 }
 
 func (r organizations) GetConnection(_ context.Context, tid, orgID, connID string) (*store.OrganizationConnection, error) {
@@ -330,6 +357,7 @@ func (r organizations) PutConnection(_ context.Context, c store.OrganizationConn
 			return store.ErrPrecondition
 		}
 	}
+	c = s.normalizeOrgConnection(c, s.orgConns[k])
 	s.orgConns[k] = &c
 	return nil
 }
@@ -517,4 +545,38 @@ func (r organizations) RoleMembers(_ context.Context, tid, orgID, roleID string,
 		}
 	}
 	return orgrules.PageIDs(ids, p, orgScope("role-members", tid, orgID, roleID))
+}
+
+// normalizeOrgConnection preserves omitted legacy Go fields and distinguishes
+// intentional false by its presence marker. API null clears map to explicit values.
+func (s *Store) normalizeOrgConnection(c store.OrganizationConnection, old *store.OrganizationConnection) store.OrganizationConnection {
+	c.SummaryName, c.SummaryStrategy = "", ""
+	if !c.IsEnabledSet {
+		if old != nil {
+			c.IsEnabled = old.IsEnabled
+		} else {
+			c.IsEnabled = true
+		}
+	}
+	c.IsEnabledSet = true
+	if c.ConnectionName == "" {
+		if old != nil {
+			c.ConnectionName = old.ConnectionName
+		} else if v := s.connections[key{c.TenantID, c.ConnectionID}]; v != nil {
+			c.ConnectionName = v.Name
+		}
+	}
+	if c.OrganizationAccessLevel == "" {
+		c.OrganizationAccessLevel = "none"
+		if old != nil {
+			c.OrganizationAccessLevel = old.OrganizationAccessLevel
+		}
+	}
+	if c.OrganizationMemberAccessLevel == "" {
+		c.OrganizationMemberAccessLevel = "limited"
+		if old != nil {
+			c.OrganizationMemberAccessLevel = old.OrganizationMemberAccessLevel
+		}
+	}
+	return c
 }

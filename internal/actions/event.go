@@ -66,13 +66,14 @@ type PostChangePasswordInput struct {
 
 // ResetChallengeInput carries a valid, unspent reset ticket and its profile.
 type ResetChallengeInput struct {
-	Tenant      tenant.Resolved
-	Client      *store.Client
-	User        *store.User
-	Connection  *store.Connection
-	Ticket      *store.PasswordResetTicket
-	Request     RequestInfo
-	CanRedirect bool
+	Organization *store.Organization
+	Tenant       tenant.Resolved
+	Client       *store.Client
+	User         *store.User
+	Connection   *store.Connection
+	Ticket       *store.PasswordResetTicket
+	Request      RequestInfo
+	CanRedirect  bool
 	// PageCookie is the reset page's cookie value; a redirect binds its
 	// continuation to it. It is never sealed.
 	PageCookie string `json:"-"`
@@ -87,13 +88,16 @@ type EmailMessage struct{ From, To, Subject, HTML, Text, Locale, Type string }
 // EmailInput snapshots a custom provider hand-off. Tenant is its ID;
 // TenantInfo supplies the tenant profile, loaded by the caller.
 type EmailInput struct {
-	Tenant     string
-	TenantInfo *store.Tenant
-	User       *store.User
-	Client     *store.Client
-	Connection *store.Connection
-	Message    EmailMessage
-	Request    RequestInfo
+	Organization *store.Organization
+	// SensitiveValues are masking-only and never enter the public Action event.
+	SensitiveValues []string `json:"-"`
+	Tenant          string
+	TenantInfo      *store.Tenant
+	User            *store.User
+	Client          *store.Client
+	Connection      *store.Connection
+	Message         EmailMessage
+	Request         RequestInfo
 }
 
 // PostLoginInput is everything a post-login flow sees.
@@ -126,6 +130,8 @@ type PostLoginInput struct {
 
 // CredentialsInput is everything a credentials-exchange flow sees.
 type CredentialsInput struct {
+	// Organization is the trusted snapshot frozen before credentials Actions execute.
+	Organization    *store.Organization
 	Tenant          tenant.Resolved
 	Client          *store.Client
 	ResourceServer  *store.ResourceServer
@@ -329,6 +335,9 @@ func credentialsEvent(in *CredentialsInput, a *accum) map[string]any {
 	if rs := resourceServerEvent(in.ResourceServer); rs != nil {
 		ev["resource_server"] = rs
 	}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
+	}
 	return ev
 }
 
@@ -458,6 +467,9 @@ func resetChallengeEvent(in *ResetChallengeInput, a *accum) map[string]any {
 	if in.Connection != nil {
 		ev["connection"] = connectionEvent(in.Connection)
 	}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
+	}
 	return ev
 }
 
@@ -474,6 +486,9 @@ func emailEvent(in *EmailInput, a *accum) map[string]any {
 	ev := map[string]any{"user": userEvent(in.User, &a.eff), "client": clientEvent(in.Client), "tenant": ten, "request": signupRequest(in.Request, host, false), "notification": map[string]any{"from": m.From, "to": m.To, "subject": m.Subject, "html": m.HTML, "text": m.Text, "locale": m.Locale, "message_type": m.Type}}
 	if in.Connection != nil {
 		ev["connection"] = connectionEvent(in.Connection)
+	}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
 	}
 	return ev
 }

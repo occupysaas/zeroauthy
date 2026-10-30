@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -84,7 +85,7 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	var ue *identity.UnauthorizedError
 	switch {
 	case err == nil:
-		if err := h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang()); err != nil {
+		if err := h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang(), f.txn.Params[store.TxnParamOrgID]); err != nil {
 			h.fail(w, r, err, f)
 			return
 		}
@@ -139,6 +140,20 @@ func (h *Handlers) resetTicket(r *http.Request, res tenant.Resolved, raw string)
 		return nil, view, resetUsed, nil
 	case !h.now().Before(tk.ExpiresAt):
 		return nil, view, resetExpired, nil
+	}
+	if tk.OrganizationID != "" {
+		conn, e := h.Store.Connections().GetByName(r.Context(), res.Tenant.ID, tk.Connection)
+		var org *store.Organization
+		if e == nil {
+			org, e = orglogin.PasswordResetContext(r.Context(), h.Store, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn)
+		}
+		if errors.Is(e, store.ErrNotFound) || errors.Is(e, orglogin.ErrNotMember) {
+			return nil, view, resetInvalid, nil
+		}
+		if e != nil {
+			return nil, view, resetInvalid, e
+		}
+		view = ui.WithOrganization(view, org)
 	}
 	return tk, view, 0, nil
 }
@@ -249,6 +264,12 @@ func (h *Handlers) resetChallenge(w http.ResponseWriter, r *http.Request, res te
 				return err
 			}
 			in.User, in.Connection = user, conn
+			if tk.OrganizationID != "" {
+				in.Organization, err = orglogin.PasswordResetContext(ctx, h.Store, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn)
+				if err != nil {
+					return errResetUnusable
+				}
+			}
 			if tk.ClientID != "" {
 				client, err := h.Store.Clients().Get(ctx, res.Tenant.ID, tk.ClientID)
 				if err != nil && !errors.Is(err, store.ErrNotFound) {
@@ -509,12 +530,22 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	// that then refuses or fails has spent the link; the form shows why,
 	// and the user asks for a new link.
 	now := h.now()
-	tk, err = h.Store.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
+	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, e := orglogin.PasswordResetContext(ctx, tx, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn); e != nil {
+			if errors.Is(e, store.ErrNotFound) || errors.Is(e, orglogin.ErrNotMember) {
+				return errResetUnusable
+			}
+			return e
+		}
+		var e error
+		tk, e = tx.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
+		return e
+	})
 	switch {
 	case errors.Is(err, store.ErrAlreadyUsed):
 		h.renderResetError(w, view, resetUsed)
 		return
-	case errors.Is(err, store.ErrNotFound):
+	case errors.Is(err, store.ErrNotFound), errors.Is(err, errResetUnusable):
 		h.renderResetError(w, view, resetInvalid)
 		return
 	case err != nil:
@@ -552,7 +583,10 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	// rolls this step back, but the link is already spent (and on a legacy
 	// connection the password has changed); the user should reset again.
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
-		// The first statement locks the user, so a grant minting for the
+		if _, e := orglogin.PasswordResetContext(ctx, tx, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn); e != nil {
+			return e
+		}
+		// The first user statement locks the user, so a grant minting for the
 		// user runs wholly before this transaction (its tokens are revoked
 		// below) or after it (its version check refuses it). A legacy
 		// reset writes no local password, so it bumps the Version itself.
@@ -591,7 +625,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return actions.PasswordChanged(ctx, tx, h.Actions, res, changed, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
 			Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")})
 	})
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, orglogin.ErrNotMember) {
 		h.renderResetError(w, view, resetInvalid)
 		return
 	} else if err != nil {

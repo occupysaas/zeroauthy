@@ -73,6 +73,10 @@ func (h *Handlers) EndTxn(w http.ResponseWriter, r *http.Request, res tenant.Res
 	if err := h.Store.AuthTransactions().Delete(ctx, res.Tenant.ID, txn.ID); err != nil {
 		h.log().WarnContext(ctx, "delete login transaction", "tenant", res.Tenant.ID, "err", err)
 	}
+	h.clearTxnCookie(w, txn)
+}
+
+func (h *Handlers) clearTxnCookie(w http.ResponseWriter, txn *store.AuthTransaction) {
 	path := txn.Params[cookiePathKey]
 	if path == "" {
 		path = "/u"

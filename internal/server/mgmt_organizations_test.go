@@ -11,9 +11,11 @@ import (
 )
 
 var orgMgmtScopes = []string{
-	"read:organizations", "create:organizations", "update:organizations", "delete:organizations",
+	"read:organizations", "read:organizations_summary", "create:organizations", "update:organizations", "delete:organizations",
 	"read:organization_connections", "create:organization_connections", "update:organization_connections", "delete:organization_connections",
-	"read:organization_client_grants",
+	"read:organization_client_grants", "create:organization_client_grants", "delete:organization_client_grants",
+	"read:organization_discovery_domains", "create:organization_discovery_domains", "update:organization_discovery_domains", "delete:organization_discovery_domains",
+	"read:organization_clients", "create:organization_clients", "update:organization_clients", "delete:organization_clients",
 	"read:organization_members", "create:organization_members", "delete:organization_members",
 	"read:organization_member_roles", "create:organization_member_roles", "delete:organization_member_roles",
 	"read:organization_member_effective_roles", "read:users", "create:users", "read:roles", "create:roles",
@@ -121,9 +123,9 @@ func TestOrganizationsRoutes(t *testing.T) {
 		{"GET", "/organizations/" + id + "/connections?include_totals=true&is_enabled=true", nil, 200},
 		{"GET", "/organizations/" + id + "/connections/" + dbID, nil, 200},
 		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"is_enabled": true, "organization_access_level": "none"}, 200},
-		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"organization_access_level": "full"}, 400},
+		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"organization_access_level": "full"}, 200},
 		{"GET", "/organizations/" + id + "/client-grants", nil, 200},
-		{"GET", "/organizations/" + id + "/client-grants?include_totals=true&grant_ids=a&grant_ids=b", nil, 200},
+		{"GET", "/organizations/" + id + "/client-grants?include_totals=true", nil, 200},
 		{"DELETE", "/organizations/" + id + "/connections/" + dbID, nil, 204},
 		{"POST", "/organizations/" + id + "/connections", map[string]any{"connection_id": dbID, "is_enabled": true}, 201},
 		{"DELETE", "/organizations/" + id + "/enabled_connections/" + dbID, nil, 204},
@@ -339,5 +341,23 @@ func TestClientOrganizationFieldsRoutes(t *testing.T) {
 	}
 	if code, c, raw := a.call("GET", "/clients/"+id, a.admin, nil); code != 200 || c["organization_usage"] != nil {
 		t.Fatalf("get=%d %s", code, raw)
+	}
+}
+
+func TestOrganizationSearchRoutesAndScopes(t *testing.T) {
+	a := newOrgManagement(t)
+	if code, _, raw := a.call("POST", "/organizations", a.admin, map[string]any{"name": "search-route"}); code != 201 {
+		t.Fatalf("create: %d %s", code, raw)
+	}
+	if code, out, raw := a.call("GET", "/organizations/search", a.admin, nil); code != 200 || len(out["organizations"].([]any)) != 1 {
+		t.Fatalf("search: %d %s", code, raw)
+	}
+	for _, scopes := range [][]string{{"read:organizations"}, {"read:organizations_summary"}} {
+		if code, _, raw := a.call("GET", "/organizations/search", a.token(scopes), nil); code != 403 {
+			t.Fatalf("scope %v: %d %s", scopes, code, raw)
+		}
+	}
+	if code, _, raw := a.call("GET", "/organizations/search", "", nil); code != 401 {
+		t.Fatalf("anonymous: %d %s", code, raw)
 	}
 }

@@ -229,7 +229,12 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   }
   const orgDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/organizations.json'),'utf8'));
   const orgConnections=await api(sourceConfig,'GET','connections');
-  for(const {connections,...declaration} of orgDeclarations){const org=await api(sourceConfig,'POST','organizations',declaration);for(const {name,...flags} of connections){const connection=orgConnections.find(c=>c.name===name);assert.ok(connection);await api(sourceConfig,'POST',`organizations/${org.id}/enabled_connections`,{connection_id:connection.id,...flags});}}
+  const orgApps=await api(sourceConfig,'GET','clients');
+  for(const {connections,clients=[],...declaration} of orgDeclarations){
+    const org=await api(sourceConfig,'POST','organizations',declaration);
+    for(const {name,...flags} of connections){const connection=orgConnections.find(c=>c.name===name);assert.ok(connection);await api(sourceConfig,'POST',`organizations/${org.id}/connections`,{connection_id:connection.id,...flags});}
+    if(clients.length) await api(sourceConfig,'POST',`organizations/${org.id}/clients`,{clients:clients.map(({client_id,...flags})=>{const app=orgApps.find(c=>c.name===client_id);assert.ok(app);return {client_id:app.client_id,...flags};})});
+  }
   const rbacAPI=(await api(sourceConfig,'GET','resource-servers')).find(r=>r.identifier==='https://fixture.cli.e2e.test');
   await api(sourceConfig,'PATCH',`resource-servers/${rbacAPI.id}`,{enforce_policies:true,token_dialect:'rfc9068_profile_authz',skip_consent_for_verifiable_first_party_clients:true});
   const roleDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/roles.json'),'utf8'));
@@ -295,6 +300,13 @@ let targetPath = await exportTo('target', 'target-first');
 const firstReport=checkedCompare(sourcePath,targetPath);assert.equal(firstReport.equivalent,true,`first round trip differs: ${JSON.stringify(firstReport)}`);
 const migratedOrganizations=await api(targetConfig,'GET','organizations');assert.equal(migratedOrganizations.length,2,'both organizations must migrate');
 for(const org of migratedOrganizations){const links=await api(targetConfig,'GET',`organizations/${org.id}/enabled_connections`);assert.ok(links.length>0,'organization enabled connections were dropped');}
+const migratedAlpha=migratedOrganizations.find(o=>o.name==='deploy-alpha');
+assert.equal(migratedAlpha.is_app_entitlement_active,true);assert.equal(migratedAlpha.third_party_client_access,'allow');assert.equal(migratedAlpha.metadata.department,'engineering');
+const migratedLinks=await api(targetConfig,'GET',`organizations/${migratedAlpha.id}/connections`);
+assert.equal(migratedLinks.length,2);assert.equal(migratedLinks.find(c=>c.organization_connection_name==='Disabled Google').is_enabled,false);assert.equal(migratedLinks.find(c=>c.organization_connection_name==='Local OIDC').is_enabled,true);
+const {clients:migratedApps}=await api(targetConfig,'GET',`organizations/${migratedAlpha.id}/clients`);
+assert.equal(migratedApps.length,2);assert.equal(migratedApps.filter(c=>c.use_for_member_access).length,1);
+
 const migratedOrgBrowser=(await api(targetConfig,'GET','clients')).find(c=>c.name==='E2E deploy fixture');
 assert.equal(migratedOrgBrowser.organization_usage,'allow');assert.equal(migratedOrgBrowser.organization_require_behavior,'pre_login_prompt');assert.deepEqual(migratedOrgBrowser.organization_discovery_methods,['organization_name']);
 const imported = (await exportClients(targetConfig))[0];
@@ -418,4 +430,4 @@ for(const header of ['x-azure-clientip','']) {
 console.log('Plan 23 deploy: staged DNS/API proof, canonical reset and template body round trips passed; x-azure-clientip/empty header tool-unavailable (actual CLI rejection); ACUL excluded.');
 process.stdout.write(`Plan 20 deploy-cli: version=9.1.0 format=${format} mode=${mode} lane=local import=passed repeat=passed credentials=passed update=passed targetOnly=passed negative=detected runtime=passed counts=${JSON.stringify(report.counts)}\n`);
 
-console.log('Plan29 deploy: organizations + enabled connections + client organization fields preserved; organization members/member roles unavailable in pinned Deploy CLI 9.1.0');
+console.log('Plan30 deploy: organization metadata, entitlement, third-party policy, application associations and enabled/disabled connections preserved; members, invitations and receipts are not portable; nondefault member access and active grant policy fail offline preflight');

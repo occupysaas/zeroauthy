@@ -1,4 +1,61 @@
 [
- {"name":"deploy-alpha","display_name":"Deploy Alpha","branding":{"colors":{"primary":"#123456","page_background":"#eeeeee"}},"metadata":{"department":"engineering"},"connections":[{"name":"deploy-oidc","assign_membership_on_login":true,"show_as_button":false}]},
- {"name":"deploy-beta","display_name":"Deploy Beta","metadata":{"department":"support"},"connections":[{"name":"microsoft-directory","assign_membership_on_login":false,"show_as_button":true}]}
+  {
+    "name": "deploy-alpha",
+    "display_name": "Deploy Alpha",
+    "branding": {
+      "colors": {
+        "primary": "#123456",
+        "page_background": "#eeeeee"
+      }
+    },
+    "metadata": {
+      "department": "engineering"
+    },
+    "connections": [
+      {
+        "name": "deploy-oidc",
+        "assign_membership_on_login": true,
+        "show_as_button": false,
+        "is_enabled": true,
+        "organization_connection_name": "Local OIDC",
+        "organization_access_level": "none"
+      },
+      {
+        "name": "google-oauth2",
+        "is_enabled": false,
+        "organization_connection_name": "Disabled Google",
+        "organization_access_level": "none",
+        "assign_membership_on_login": false,
+        "show_as_button": true
+      }
+    ],
+    "is_app_entitlement_active": true,
+    "third_party_client_access": "allow",
+    "clients": [
+      {
+        "client_id": "E2E deploy fixture",
+        "use_for_member_access": true
+      },
+      {
+        "client_id": "E2E deploy browser",
+        "use_for_member_access": false
+      }
+    ]
+  },
+  {
+    "name": "deploy-beta",
+    "display_name": "Deploy Beta",
+    "metadata": {
+      "department": "support"
+    },
+    "connections": [
+      {
+        "name": "microsoft-directory",
+        "assign_membership_on_login": false,
+        "show_as_button": true
+      }
+    ],
+    "is_app_entitlement_active": false,
+    "third_party_client_access": "block"
+  }
 ]

@@ -58,6 +58,7 @@ func (r clientGrants) Delete(_ context.Context, tenantID, id string) error {
 	if _, ok := r.s.clientGrants[k]; !ok {
 		return store.ErrNotFound
 	}
+	r.s.cleanupOrgII(tenantID, orgIICleanup{grant: id})
 	delete(r.s.clientGrants, k)
 	return nil
 }

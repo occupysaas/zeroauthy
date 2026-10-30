@@ -10,14 +10,14 @@ export function tab(name: string) {
   trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); trigger.focus()
 }
 afterEach(() => { document.body.innerHTML = '' })
-it('lists and filters a page locally, and paginates', async () => {
-  const { wrapper, calls } = await mountAt(List, '/t/acme/organizations', c => ({ status: 200, body: { organizations: [{ ...org, name: new URL(c.url).searchParams.get('page') === '1' ? 'other' : 'acme' }], total: 21 } }))
+it('searches organizations through the server and paginates by cursor', async () => {
+  const { wrapper, calls } = await mountAt(List, '/t/acme/organizations', c => ({ status: 200, body: { organizations: new URL(c.url).searchParams.get('q') === 'name:absent' ? [] : [org], next: 'next-page' } }))
   expect(wrapper.text()).toContain('acme')
-  await wrapper.get('#organization-filter').setValue('absent')
+  await wrapper.get('#organization-filter').setValue('name:absent'); await flushPromises()
   expect(wrapper.text()).not.toContain('Acme')
-  await wrapper.get('#organization-filter').setValue('')
+  await wrapper.get('#organization-filter').setValue(''); await flushPromises()
   await wrapper.findAll('button').find(b => b.text() === 'Next')!.trigger('click'); await flushPromises()
-  expect(calls.at(-1)!.url).toContain('page=1'); wrapper.unmount()
+  expect(calls.at(-1)!.url).toContain('from=next-page'); wrapper.unmount()
 })
 it('creates an organization and associates a conflict with its name', async () => {
   let fail = true

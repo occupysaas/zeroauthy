@@ -8,9 +8,14 @@ import (
 )
 
 // mgmtAPI adapts mgmt.Handlers to the generated ServerInterface, adding
-// each operation's scope check. The var _ assertion fails to compile when
-// api/management.yaml gains an operation that has no method here.
-type mgmtAPI struct{ h *mgmt.Handlers }
+// each operational route's scope check. The embedded generated Unimplemented
+// temporarily returns 501 for future-task routes; each must gain a scoped
+// override before it is considered operational. The assertion verifies the
+// resulting adapter satisfies the generated interface.
+type mgmtAPI struct {
+	mgmtapi.Unimplemented
+	h *mgmt.Handlers
+}
 
 var _ mgmtapi.ServerInterface = mgmtAPI{}
 
@@ -779,4 +784,71 @@ func (a mgmtAPI) ListOrganizationRoleMembers(w http.ResponseWriter, r *http.Requ
 }
 func (a mgmtAPI) ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListUserOrganizationsParams) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:users", "read:organizations")
+}
+
+func (a mgmtAPI) CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.CreateOrganizationInvitationParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateOrganizationInvitation(w, r, id) }, "create:organization_invitations")
+}
+func (a mgmtAPI) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationInvitationsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationInvitations(w, r, id) }, "read:organization_invitations")
+}
+func (a mgmtAPI) GetOrganizationInvitation(w http.ResponseWriter, r *http.Request, id, invitationID string, _ mgmtapi.GetOrganizationInvitationParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationInvitation(w, r, id, invitationID) }, "read:organization_invitations")
+}
+func (a mgmtAPI) DeleteOrganizationInvitation(w http.ResponseWriter, r *http.Request, id, invitationID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationInvitation(w, r, id, invitationID) }, "delete:organization_invitations")
+}
+
+func (a mgmtAPI) ListOrganizationClients(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationClientsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationClients(w, r, id) }, "read:organization_clients")
+}
+func (a mgmtAPI) AssociateOrganizationClients(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AssociateOrganizationClients(w, r, id) }, "create:organization_clients")
+}
+func (a mgmtAPI) DeleteOrganizationClients(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationClients(w, r, id) }, "delete:organization_clients")
+}
+func (a mgmtAPI) GetOrganizationClient(w http.ResponseWriter, r *http.Request, id, clientID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationClient(w, r, id, clientID) }, "read:organization_clients")
+}
+func (a mgmtAPI) UpdateOrganizationClient(w http.ResponseWriter, r *http.Request, id, clientID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateOrganizationClient(w, r, id, clientID) }, "update:organization_clients")
+}
+
+func (a mgmtAPI) AssociateOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AssociateOrganizationClientGrant(w, r, id) }, "create:organization_client_grants")
+}
+func (a mgmtAPI) DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id, grantID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationClientGrant(w, r, id, grantID) }, "delete:organization_client_grants")
+}
+func (a mgmtAPI) ListClientGrantOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListClientGrantOrganizationsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListClientGrantOrganizations(w, r, id) }, "read:organization_client_grants")
+}
+
+func (a mgmtAPI) ListOrganizationDiscoveryDomains(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationDiscoveryDomainsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationDiscoveryDomains(w, r, id) }, "read:organization_discovery_domains")
+}
+
+func (a mgmtAPI) CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateOrganizationDiscoveryDomain(w, r, id) }, "create:organization_discovery_domains")
+}
+
+func (a mgmtAPI) GetOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationDiscoveryDomain(w, r, id, key) }, "read:organization_discovery_domains")
+}
+
+func (a mgmtAPI) GetOrganizationDiscoveryDomainByName(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationDiscoveryDomainByName(w, r, id, key) }, "read:organization_discovery_domains")
+}
+
+func (a mgmtAPI) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateOrganizationDiscoveryDomain(w, r, id, key) }, "update:organization_discovery_domains")
+}
+
+func (a mgmtAPI) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationDiscoveryDomain(w, r, id, key) }, "delete:organization_discovery_domains")
+}
+
+func (a mgmtAPI) SearchOrganizations(w http.ResponseWriter, r *http.Request, _ mgmtapi.SearchOrganizationsParams) {
+	scopedAll(w, r, a.h.SearchOrganizations, "read:organizations", "read:organizations_summary")
 }

@@ -46,6 +46,8 @@ func (h *Handlers) orgError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.As(err, &typed):
 		Fail(w, typed)
+	case errors.Is(err, store.ErrOrganizationsIIUnavailable):
+		Fail(w, errOrganizationsIIUnavailable)
 	case errors.Is(err, store.ErrOrganizationsUnavailable):
 		Fail(w, errOrganizationsUnavailable)
 	case errors.Is(err, store.ErrNotFound):
@@ -78,7 +80,7 @@ func orgView(o store.Organization) map[string]any {
 	out := map[string]any{
 		"id": o.ID, "name": o.Name, "display_name": o.DisplayName,
 		"third_party_client_access": o.ThirdPartyClientAccess,
-		"is_app_entitlement_active": false,
+		"is_app_entitlement_active": o.IsAppEntitlementActive,
 	}
 	if b := o.Branding; b != nil {
 		branding := map[string]any{}
@@ -176,11 +178,21 @@ func (h *Handlers) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p, checkpoint, err := orgQuery(r, "page", "per_page", "include_totals", "from", "take", "sort")
+	p, checkpoint, err := orgQuery(r, "page", "per_page", "include_totals", "from", "take", "sort", "include_client_association_for")
 	if err != nil {
 		Fail(w, err)
 		return
 	}
+	if r.URL.Query().Has("include_client_association_for") {
+		if r.URL.Query().Get("include_client_association_for") == "" {
+			Fail(w, badQuery("include_client_association_for must be non-empty"))
+			return
+		}
+		if !h.orgIIAvailable(w, r) {
+			return
+		}
+	}
+	p.IncludeClientAssociationFor = r.URL.Query().Get("include_client_association_for")
 	res, err := orgs.List(r.Context(), resolved(r).ID, p)
 	if errors.Is(err, store.ErrInvalid) {
 		Fail(w, &Error{Status: http.StatusBadRequest, Message: "The from parameter is not a valid checkpoint"})
@@ -192,7 +204,21 @@ func (h *Handlers) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 	}
 	items := make([]map[string]any, 0, len(res.Items))
 	for _, o := range res.Items {
-		items = append(items, orgView(o))
+		view := orgView(o)
+		// Older plugins ignore additive page-summary fields. Preserve their
+		// existing annotation behavior while modern stores batch the reads.
+		if p.IncludeClientAssociationFor != "" && !o.ClientAssociationLoaded {
+			link, e := h.Store.OrganizationsII().GetClient(r.Context(), resolved(r).ID, o.ID, p.IncludeClientAssociationFor)
+			if e != nil && !errors.Is(e, store.ErrNotFound) {
+				h.orgIIError(w, r, e)
+				return
+			}
+			o.ClientAssociation = link
+		}
+		if link := o.ClientAssociation; link != nil {
+			view["client"] = map[string]any{"use_for_member_access": link.UseForMemberAccess}
+		}
+		items = append(items, view)
 	}
 	writeOrgList(w, "organizations", items, res.Total, res.Next, p, checkpoint, false)
 }
@@ -230,9 +256,8 @@ func readOrgBody(r *http.Request, o *store.Organization, create bool) ([]store.O
 				return nil, false, badBody("third_party_client_access must be block or allow")
 			}
 		case "is_app_entitlement_active":
-			var v bool
-			if decodeStrict(raw, &v) != nil || v {
-				return nil, false, badBody("is_app_entitlement_active can only be false (D-0055)")
+			if isNull(raw) || decodeStrict(raw, &o.IsAppEntitlementActive) != nil {
+				return nil, false, badBody("is_app_entitlement_active must be a boolean")
 			}
 		case "branding":
 			b, err := decodeOrgBranding(raw)
@@ -350,6 +375,9 @@ func (h *Handlers) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
+	if o.IsAppEntitlementActive && !h.orgIIAvailable(w, r) {
+		return
+	}
 	if hasConns {
 		if c, _ := CallerFrom(r.Context()); !c.Has("create:organization_connections") {
 			WriteError(w, http.StatusForbidden, "insufficient_scope", "Insufficient scope, expected all of: create:organizations,create:organization_connections")
@@ -432,6 +460,16 @@ func (h *Handlers) UpdateOrganization(w http.ResponseWriter, r *http.Request, id
 		if _, _, err := readOrgBody(r, o, false); err != nil {
 			return err
 		}
+		if o.IsAppEntitlementActive {
+			if c, ok := h.Store.(store.OrganizationsIISupporter); ok {
+				if err := c.CheckOrganizationsIISupport(r.Context()); err != nil {
+					return err
+				}
+			}
+			if !store.OrganizationsIISupported(h.Store) {
+				return store.ErrOrganizationsIIUnavailable
+			}
+		}
 		if err := tx.Organizations().Update(r.Context(), o); err != nil {
 			return err
 		}
@@ -461,27 +499,4 @@ func (h *Handlers) DeleteOrganization(w http.ResponseWriter, r *http.Request, id
 	}
 	h.audit(r, "delete organization", "id", id)
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// ListOrganizationClientGrants answers the read-only organization client
-// grant list. Associating grants with organizations is Plan 30, so the list
-// is always empty (D-0055); the organization must exist.
-func (h *Handlers) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string) {
-	orgs, ok := h.orgs(w)
-	if !ok {
-		return
-	}
-	p, _, err := orgQuery(r, "page", "per_page", "include_totals", "audience", "client_id", "grant_ids")
-	if err == nil && len(r.URL.Query()["grant_ids"]) > orgrules.Limit("batch_ids_max") {
-		err = badQuery("Query validation error: grant_ids can be given at most %d times", orgrules.Limit("batch_ids_max"))
-	}
-	if err != nil {
-		Fail(w, err)
-		return
-	}
-	if _, err := loadOrg(r, orgs, id); err != nil {
-		h.orgError(w, r, err)
-		return
-	}
-	writeOrgList(w, "client_grants", []map[string]any{}, 0, "", p, false, true)
 }

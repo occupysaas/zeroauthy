@@ -222,7 +222,7 @@ func TestOrganizationsContract(t *testing.T) {
 		"http logo":                {"name": "x4", "branding": map[string]any{"logo_url": "http://cdn.example.test/l.png"}},
 		"unknown branding":         {"name": "x4", "branding": map[string]any{"font": "x"}},
 		"third party value":        {"name": "x5", "third_party_client_access": "maybe"},
-		"app entitlement":          {"name": "x5", "is_app_entitlement_active": true},
+		"null app entitlement":     {"name": "x5", "is_app_entitlement_active": nil},
 		"token_quota":              {"name": "x5", "token_quota": map[string]any{}},
 		"11 connections":           {"name": "x6", "enabled_connections": tooMany},
 		"camelCase connection":     {"name": "x6", "enabled_connections": []any{map[string]any{"connection_id": orgDB, "assignMembershipOnLogin": true}}},
@@ -306,7 +306,7 @@ func TestOrganizationsContract(t *testing.T) {
 	for q, code := range map[string]string{
 		"per_page=101": "invalid_query_string", "take=0": "invalid_query_string", "take=101": "invalid_query_string",
 		"sort=id:1": "invalid_query_string", "sort=name": "invalid_query_string", "page=1001": "invalid_paging",
-		"from=garbage": "", "q=x": "invalid_query_string", "include_client_association_for=x": "invalid_query_string",
+		"from=garbage": "", "q=x": "invalid_query_string", "include_client_association_for=": "invalid_query_string",
 	} {
 		e.fail("GET", "/organizations?"+q, nil, e.h.ListOrganizations, 400, code)
 	}
@@ -352,7 +352,7 @@ func TestOrganizationsContract(t *testing.T) {
 	for _, body := range []map[string]any{
 		{"name": "Bad"}, {"display_name": ""}, {"display_name": strings.Repeat("d", 256)},
 		{"branding": map[string]any{"colors": map[string]any{"primary": "#000"}}}, {"enabled_connections": []any{}}, {"id": fullID},
-		{"is_app_entitlement_active": true}, {"metadata": meta(26)},
+		{"is_app_entitlement_active": nil}, {"metadata": meta(26)},
 	} {
 		e.fail("PATCH", "/organizations/"+fullID, body, e.patch(fullID), 400, "invalid_body")
 	}
@@ -469,7 +469,7 @@ func TestOrganizationsAllConnections(t *testing.T) {
 	id := e.create(map[string]any{"name": "deploy"}, 201)["id"].(string)
 	base := "/organizations/" + id + "/connections"
 	created := e.obj("POST", base, map[string]any{"connection_id": orgDB, "assign_membership_on_login": true, "is_enabled": true, "organization_access_level": "none", "organization_member_access_level": "limited", "organization_connection_name": nil}, e.addConn(id, true), 201)
-	want := []string{"assign_membership_on_login", "connection", "connection_id", "is_enabled", "is_signup_enabled", "organization_access_level", "organization_member_access_level", "show_as_button"}
+	want := []string{"assign_membership_on_login", "connection", "connection_id", "is_enabled", "is_signup_enabled", "organization_access_level", "organization_connection_name", "organization_member_access_level", "show_as_button"}
 	if got := keysOf(created); !slices.Equal(got, want) || created["is_enabled"] != true || created["organization_access_level"] != "none" || created["organization_member_access_level"] != "limited" {
 		t.Fatalf("created=%v", created)
 	}
@@ -489,10 +489,6 @@ func TestOrganizationsAllConnections(t *testing.T) {
 		t.Fatalf("disabled=%v", none)
 	}
 	for _, body := range []map[string]any{
-		{"connection_id": orgDB2, "is_enabled": false},
-		{"connection_id": orgDB2, "organization_access_level": "full"},
-		{"connection_id": orgDB2, "organization_member_access_level": "none"},
-		{"connection_id": orgDB2, "organization_connection_name": "alias"},
 		{"connection_id": orgDB2, "show_as_button": false},
 		{"connection_id": orgDB2, "unknown": true},
 	} {
@@ -509,7 +505,7 @@ func TestOrganizationsAllConnections(t *testing.T) {
 	if ec := e.obj("GET", "/organizations/"+id+"/enabled_connections/"+orgDB, nil, e.conn("GET", id, orgDB, false), 200); ec["is_signup_enabled"] != true || ec["is_enabled"] != nil {
 		t.Fatalf("shared patch=%v", ec)
 	}
-	e.fail("PATCH", base+"/"+orgDB, map[string]any{"organization_access_level": "readonly"}, e.conn("PATCH", id, orgDB, true), 400, "invalid_body")
+	e.fail("PATCH", base+"/"+orgDB, map[string]any{"organization_access_level": "admin"}, e.conn("PATCH", id, orgDB, true), 400, "invalid_body")
 	e.fail("PATCH", base+"/"+orgDB2, map[string]any{}, e.conn("PATCH", id, orgDB2, true), 404, "inexistent_connection")
 	e.do(e.tn, "DELETE", base+"/"+orgDB, nil, e.conn("DELETE", id, orgDB, true), 204)
 	e.fail("GET", "/organizations/"+id+"/enabled_connections/"+orgDB, nil, e.conn("GET", id, orgDB, false), 404, "")
@@ -517,8 +513,7 @@ func TestOrganizationsAllConnections(t *testing.T) {
 	e.fail("GET", "/organizations/org_0000000000000000/connections", nil, e.conns("org_0000000000000000", true), 404, "")
 }
 
-// TestOrganizationsClientGrants: the read-only list is always empty until
-// Plan 30 lets grants be associated with organizations.
+// Empty association lists retain their documented offset shape.
 func TestOrganizationsClientGrants(t *testing.T) {
 	e := newOrgEnv(t)
 	id := e.create(map[string]any{"name": "grants"}, 201)["id"].(string)
@@ -528,13 +523,13 @@ func TestOrganizationsClientGrants(t *testing.T) {
 	if l := e.list("/organizations/"+id+"/client-grants", list(id)); len(l) != 0 {
 		t.Fatalf("list=%v", l)
 	}
-	page := e.obj("GET", "/organizations/"+id+"/client-grants?include_totals=true&page=0&per_page=50&audience=https://api.test&client_id=c&grant_ids=a&grant_ids=b", nil, list(id), 200)
-	if fmt.Sprint(page) != "map[client_grants:[] limit:0 start:0 total:0]" {
+	page := e.obj("GET", "/organizations/"+id+"/client-grants?include_totals=true&page=0&per_page=50", nil, list(id), 200)
+	if fmt.Sprint(page) != "map[client_grants:[] limit:50 start:0 total:0]" {
 		t.Fatalf("page=%v", page)
 	}
 	e.fail("GET", "/organizations/"+id+"/client-grants?per_page=101", nil, list(id), 400, "invalid_query_string")
 	e.fail("GET", "/organizations/"+id+"/client-grants?take=1", nil, list(id), 400, "invalid_query_string")
-	e.fail("GET", "/organizations/org_0000000000000000/client-grants", nil, list("org_0000000000000000"), 404, "")
+	e.fail("GET", "/organizations/org_0000000000000000/client-grants", nil, list("org_0000000000000000"), 404, "not_found")
 	e.fail("GET", "/organizations/bad/client-grants", nil, list("bad"), 400, "invalid_uri")
 }
 

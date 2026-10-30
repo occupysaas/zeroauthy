@@ -38,6 +38,7 @@ var (
 type Store interface {
 	RBAC() RBAC
 	Organizations() Organizations
+	OrganizationsII() OrganizationsII
 	Actions() Actions
 	CustomDomains() CustomDomains
 	TLSAssets() TLSAssets

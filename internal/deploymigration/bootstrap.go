@@ -70,6 +70,9 @@ type exportedRefreshToken struct {
 // PrepareBootstrap combines a destination's local create-only bootstrap with
 // source application identity/auth data and credentials from a protected file.
 func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[string]string, opts BootstrapOptions) (*seed.File, error) {
+	if err := ValidateOrganizations(source); err != nil {
+		return nil, err
+	}
 	if bootstrap == nil || len(bootstrap.Tenants) != 1 || bootstrap.Tenants[0].Name == "" || len(bootstrap.Tenants[0].Domains) == 0 {
 		return nil, errors.New("deploymigration: bootstrap seed must describe exactly one tenant with local domains")
 	}

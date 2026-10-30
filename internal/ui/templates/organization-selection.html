@@ -2,13 +2,33 @@
 {{define "description"}}{{t .Tenant.L "organizations.organization-selection.description"}}{{end}}
 {{define "logoalt"}}{{t .Tenant.L "organizations.organization-selection.logoAltText"}}{{end}}
 {{define "content"}}
-{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
-<form method="post" action="/u/login">
+{{if .Data.Error}}<p id="organization-error" class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+{{if .Data.Name}}<form method="post" action="/u/login">
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
 <input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
 <label for="organization">{{t .Tenant.L "organizations.organization-selection.organizationName"}}</label>
-<input id="organization" name="organization" type="text" autocomplete="organization" autocapitalize="none" required autofocus maxlength="50">
+<input id="organization" name="organization" type="text" autocomplete="organization" autocapitalize="none" required autofocus maxlength="50" {{if .Data.Error}}aria-invalid="true" aria-describedby="organization-error"{{end}}>
+<button type="submit">{{t .Tenant.L "organizations.organization-selection.buttonText"}}</button>
+<input type="hidden" name="action" value="name">
+</form>
+{{end}}
+{{if .Data.Email}}
+<form method="post" action="/u/login">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
+<label for="organization-email">{{t .Tenant.L "organizations.organization-selection.email"}}</label>
+<input id="organization-email" name="email" type="email" autocomplete="email" autocapitalize="none" required maxlength="320" {{if .Data.Error}}aria-invalid="true" aria-describedby="organization-error"{{end}}>
 <button type="submit">{{t .Tenant.L "organizations.organization-selection.buttonText"}}</button>
 </form>
+{{end}}
+{{if .Data.Personal}}
+<form method="post" action="/u/login">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
+<button type="submit" name="action" value="personal">{{t .Tenant.L "organizations.organization-selection.personal"}}</button>
+</form>
+{{end}}
 {{end}}

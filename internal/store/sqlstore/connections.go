@@ -29,6 +29,9 @@ func (r connections) Create(ctx context.Context, c *store.Connection) error {
 }
 
 func (r connections) Get(ctx context.Context, tenantID, id string) (*store.Connection, error) {
+	if err := r.s.policyRead(ctx, tenantID); err != nil {
+		return nil, err
+	}
 	c, err := scanConnection(r.s.queryRow(ctx, `SELECT `+connectionCols+` FROM connections WHERE tenant_id = ? AND id = ?`, tenantID, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
@@ -49,15 +52,17 @@ func (r connections) Update(ctx context.Context, c *store.Connection) error {
 	if err != nil {
 		return err
 	}
-	res, err := r.s.write(ctx, nil, `UPDATE connections SET name=?, strategy=?, enabled_clients=?, disable_signup=?, requires_username=?,
+	return r.s.policyWrite(ctx, c.TenantID, func(tx *Store) error {
+		res, err := tx.exec(ctx, `UPDATE connections SET name=?, strategy=?, enabled_clients=?, disable_signup=?, requires_username=?,
  password_options=?, created_at=?,
  enabled_database_customization=?, import_mode=?, custom_scripts=?, configuration_sealed=?, set_user_root_attributes=?, is_domain_connection=?,
  brute_force_protection=?, username_min=?, username_max=?, origin=?, extra=?, federation_revision=?, federation_secrets_sealed=?
  WHERE tenant_id=? AND id=?`, append(slices.Clone(args[2:]), c.TenantID, c.ID)...)
-	if err != nil {
-		return r.s.conflict(err)
-	}
-	return expectRow(res)
+		if err != nil {
+			return tx.conflict(err)
+		}
+		return expectRow(res)
+	})
 }
 
 func (r connections) List(ctx context.Context, tenantID string, f store.ConnectionFilter, p store.Page) ([]*store.Connection, int, error) {

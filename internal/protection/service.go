@@ -50,16 +50,20 @@ func (s *Service) now() time.Time {
 // Begin reads current policy, resolves persisted login aliases and reserves all
 // blocking budgets atomically, before any password hashing or external call.
 func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
-	if a.Tenant == nil || a.Connection == nil {
+	discovery := a.Flow == "organization-discovery"
+	if a.Tenant == nil || (a.Connection == nil && !discovery) {
 		return Decision{}, store.ErrInvalid
 	}
 	tenant, err := s.Store.Tenants().Get(ctx, a.Tenant.ID)
 	if err != nil {
 		return Decision{}, err
 	}
-	conn, err := s.Store.Connections().Get(ctx, tenant.ID, a.Connection.ID)
-	if err != nil {
-		return Decision{}, err
+	conn := &store.Connection{}
+	if !discovery {
+		conn, err = s.Store.Connections().Get(ctx, tenant.ID, a.Connection.ID)
+		if err != nil {
+			return Decision{}, err
+		}
 	}
 	p := tenant.ProtectionSettings
 	if !tenant.ProtectionSettingsInitialized {
@@ -95,7 +99,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	// Social flows (Plan 24) use the suspicious-IP budgets only: no email
 	// lookup and no password brute-force reservation.
 	social := a.Flow == "social-login" || a.Flow == "social-signup"
-	if (a.Flow == "login" || a.Flow == "signup" || social) && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
+	if (a.Flow == "login" || a.Flow == "signup" || social || discovery) && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
 		if slices.Contains(p.SuspiciousIP.Shields, "block") {
 			kind, rate := store.ProtectionSuspiciousIPLogin, p.SuspiciousIP.Stage.PreLogin
 			if a.Flow == "signup" || a.Flow == "social-signup" {
@@ -115,7 +119,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	}
 	if a.Flow == "reset-send" {
 		limits = append(limits, store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tenant.ID, Kind: store.ProtectionResetMail, ConnectionID: conn.ID, Identifier: identifier}, Algorithm: "fixed-window", Capacity: 3, Window: time.Hour})
-	} else if a.Flow != "login" && a.Flow != "signup" && !social {
+	} else if a.Flow != "login" && a.Flow != "signup" && !social && !discovery {
 		return Decision{}, store.ErrInvalid
 	}
 	now := s.now()

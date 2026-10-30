@@ -19,14 +19,14 @@ export function usePanel<T>(key: WatchSource, read: () => Promise<T>, apply: (va
     finally { if (mine === epoch && request === seq) loading.value = false }
   }
   async function change(write: () => Promise<unknown>, done: () => void | Promise<void> = load) {
-    if (busy.value || reloadRequired.value) return
+    if (busy.value || reloadRequired.value || loading.value || error.value) return
     const mine = epoch
     ++seq; busy.value = true; error.value = ''; status.value = ''
     try { await write(); if (mine === epoch) await done() }
     catch (e) { if (mine === epoch) { error.value = errorMessage(e); reloadRequired.value = true } }
     finally { if (mine === epoch) busy.value = false }
   }
-  watch(() => JSON.stringify(toValue(key)), () => { ++epoch; ++seq; busy.value = false; error.value = ''; status.value = ''; reloadRequired.value = false; reset(); void load() }, { immediate: true })
+  watch(() => JSON.stringify(toValue(key)), () => { ++epoch; ++seq; busy.value = false; error.value = ''; status.value = ''; reloadRequired.value = false; reset(); void load() }, { immediate: true, flush: 'sync' })
   onBeforeUnmount(() => { ++epoch; ++seq })
   return { loading, busy, error, status, reloadRequired, load, change, capture, current }
 }

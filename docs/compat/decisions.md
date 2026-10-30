@@ -1629,3 +1629,219 @@ organization client grants stay deferred to Plan 30.
 These are local zeroauthy behaviors, without Auth0 API counterparts. The public
 [dashboard operator guide](https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users)
 provides context only, not these wire contracts.
+
+### D-0056 — Organizations II wire contract and supported policy subset
+
+Date: 2026-10-29. Status: accepted local implementation contract for Plan 30;
+not a statement that these endpoints are operational. D-0055 remains authoritative
+for its observed surface. No live Auth0 request or hosted-page capture informed
+this decision. The per-operation public sources, scopes, request/response shapes,
+null/omission policy, paging and errors are frozen separately in
+`internal/orgrules/inventory.json` (`organizations_ii_operations`); Plan 29's
+inventory and historical deferral entries are retained unchanged.
+
+Evidence audit: the public documentation's `.md` representation embeds the
+operation's OpenAPI contract, including OAuth security scopes (unlike the
+rendered bearer-only authorization display). Each operation was checked
+individually. Client associations use organization_clients scopes; domains use
+organization_discovery_domains scopes; reverse grant organizations uses
+read:organization_client_grants, not read:client_grants. Search's OAuth scope
+array contains both read:organizations and read:organizations_summary. We require
+both as listed; choosing an any-scope summary projection would need separate
+proof and is outside this supported contract. This conservative interpretation
+may reject a summary-only caller upstream accepts; it grants no extra access.
+
+Documented corrections to the initial draft: invitation creation is 200; TTL
+omitted/zero=604800 and max=2592000. Invitation list supports fields/include_fields
+and sort (default created_at:-1); include_totals has start/limit/invitations,
+**no total**. Client association POST is 201 with an array and requires explicit
+use_for_member_access for every item. Domain list is `{domains,next?}`. Organization list annotation is `client:{use_for_member_access}`, omitted without an association; it is not a client summary or filter. Correct
+public source paths are post-organization-connection,
+delete-client-grants-by-grant-id, get-name-by-discovery-domain and
+get-client-grant-organizations. Public domain POST permits status; this subset
+accepts pending, defaults pending, and requires PATCH to attest verified (local).
+Public source links are attached to every operation in the API YAML and inventory.
+
+Omission/null rules: new org entitlement defaults false; grant organization_usage
+and allow_any_organization default deny/false. PATCH omission preserves values;
+explicit null is rejected for these policy fields. Client-subject grants alone
+may activate organization policy; user-subject grants retain deny/false. Omitted
+EA connection values preserve observed D-0055 defaults: enabled true, organization
+access none, member access limited. This also governs migration, preserving the
+observed member default rather than spec draft's proposed none. Explicit null
+resets enabled to true, local connection name to the underlying name and either
+access level to none (local). PATCH omission preserves. Access levels are stored
+metadata only; delegated execution belongs to Plan 42 and never grants scopes
+or login rights. Disabling retains the association; legacy enabled_connections
+lists enabled associations only; legacy add can re-enable, delete removes it.
+
+Internal Task 2 representation ruling (not an observed wire behavior): retain
+`OrganizationConnection.IsEnabled bool` and add `IsEnabledSet bool`. A bare old
+Go literal omits both; creation defaults enabled, while replacement omission
+preserves the stored value. Explicit disable requires the marker true; persisted
+reads and future SQL/plugin decoders restore it true. This marker never appears
+in public DTOs. Empty access strings default none/limited on creation and preserve
+stored values on replacement. API null clears are explicit none/underlying-name/
+enabled-true values before storage. The alternative of interpreting every bare
+false as disable would silently break existing Go callers.
+
+Local validation/error rulings: reject unknown body keys, explicit null except
+the EA clears above, and unsupported query combinations. IDs/references are
+scoped to tenant; missing/cross-tenant parent or item returns 404 not_found for
+Management. Malformed URI/body/paging returns 400 invalid_uri/invalid_body/
+invalid_paging; token absence/invalidity is 401 invalid_token; insufficient route
+scope or live operator grant is 403 insufficient_scope. Duplicate associations
+or domains and failed write preconditions are 409 conflict; store ErrInvalid,
+ErrNotFound, ErrConflict and ErrPrecondition map to 400/404/409/409 respectively.
+These mappings are local where the public operation omits them (for example
+some connection operations omit a 404). They do not claim observed upstream
+messages. Invitation DELETE is 204 for missing/expired/consumed invite inside an
+existing org; missing org is 404. Expired/consumed invitation GET is 404. Empty
+roles are omitted in invitation output; optional absent metadata/connection is
+omitted. Metadata objects use existing user metadata limits. Invitation roles
+are deduplicated under the existing per-member cap. Duplicate invites remain
+independent; wrong-account attempts retain their ticket. Acceptance is durable
+before Actions; same transaction receipt replay is idempotent, other replay fails.
+
+Local policy rulings: M2M malformed parameters yield OAuth invalid_request;
+valid but forbidden organization yields access_denied (including absent required
+org, missing org, or revoked association). Revoked code/refresh eligibility uses
+normal invalid_grant. No live observation claims these exact error choices.
+Explicit M2M org issuance moves from Plan 35 to Plan 30; quota controls/headers
+stay in Plan 35, no default-M2M-org inference. Third-party clients cannot use
+allow-any and require explicit grant association plus the existing org opt-in.
+Member app entitlement never grants M2M permissions. Invitations bind original
+tenant/org/client/primary connection across PAR/resume and cannot be accepted
+at token exchange/refresh. prompt=none returns interaction_required.
+
+Search documents q<=1000, max five predicates, take default50/max100 and
+checkpoint-only paging. Local depth<=16, created_at then ID default ordering,
+case-sensitive name/display/metadata comparison, >=3-character contains/suffix
+literals and authenticated tenant/query/parser/sort cursor binding bound the
+supported parser. Empty q matches all; next is omitted at end. Reads are locally
+immediately consistent rather than upstream's eventual consistency. Unsupported
+changelog-only boolean filters remain excluded.
+
+Password change uses Authentication `organization`, Management ticket
+`organization_id`, both IDs only. Omission adds no org context; null is invalid.
+Tickets reject result_url together with organization_id as documented. Invalid
+context is invalid_request in Authentication, 404 not_found for a missing
+Management reference, 400 invalid_body for malformed input (local). Resolve
+context before email lookup, preserve unknown-email anti-enumeration, carry the
+bound ID through reset/email/branding, recheck org/connection at completion;
+never add membership or silently fall back. Existing redirect restrictions apply.
+
+Old plugins keep Organizations v1 and Plan 29 defaults/read behavior. Independently
+negotiate OrganizationsII v1; new II Management reads/writes without it return
+501 organizations_ii_unavailable (ErrOrganizationsIIUnavailable). Active II
+authentication policy fails closed, never silently drops fields; transient
+negotiation failures must be retried, not cached permanently. Public docs do
+not define our plugin protocol, invitation URL validation, receipt semantics,
+DNS attestation, metadata merge or failure ordering: the spec explicitly owns
+these local choices. Domain verified status is administrative attestation, not
+an assertion that DNS was queried. Quotas, groups, SAML, My Organization API and
+self-service connection execution remain excluded.
+
+
+D-0056 Task 5 prerequisite clarification (2026-10-29): application login URI is
+required for application-first invitation URL construction. `initiate_login_uri`
+now persists on Client through memory, SQL migration 0027 and additive protobuf
+field 24; Management create/PATCH accept a validated HTTPS URI (local 2048-byte
+bound), PATCH omission preserves and null rejects. This narrowly supersedes the
+historical D-0039 ignored-field entry. The tenant `default_redirection_uri` is
+used only when the application setting is absent. URI query values are preserved
+except invitation/organization/organization_name, which are replaced. No live
+Auth0 observation informed this prerequisite.
+
+
+D-0056 Task 7 acceptance rulings (2026-10-29): the existing AuthTransaction.Params
+is the sole invitation binding authority (invitation/org/client/forced connection),
+with no additional InvitationID model field. External authorize/PAR parameters
+cannot supply the reserved binding keys. Raw invitation bearers are replaced by
+internal invitation IDs before transaction/PAR persistence and are absent from
+Actions request query snapshots.
+
+Acceptance checks the server-bound, persisted authenticated session, normalized
+invited email and stored verified ownership. The current platform has no enforced
+MFA subsystem (connection MFA remains stored-only under D-0041); Task 7 uses the
+strongest established authentication completion point and introduces no client
+MFA/verification assertion. Future enforced MFA must complete before this point.
+Existing verification tickets/scripts remain authoritative; verification failure
+retains the invitation and pending transaction for a verified retry.
+
+Same-transaction receipt idempotence applies only to a live, pending transaction,
+with its authenticated user/session binding. The normal completed hosted
+transaction is claimed/deleted before Actions, preventing repeated Actions or
+code issuance from completed POST replay. Actions denial or later issuance
+failure leaves membership/receipt durable, but a denied completed flow needs a
+new authorization request. A new transaction cannot reuse the consumed ticket.
+Actions role snapshots now union tenant roles and the active organization's
+member roles, deduplicated by role ID; other organizations and removed membership
+contribute no roles. This is additive to the existing tenant role event/API
+contract and does not assign organization roles at tenant scope. API permission
+snapshot semantics remain the Plan 29 union.
+
+
+D-0056 Task 7 review correction (2026-10-29): `is_signup_enabled` retains its
+existing database-only applicability and auto-assignment validation; this task
+does not broaden that contract. A first-time federated identity cannot provision
+an account as part of invitation login (local conservative restriction), even
+without a signup screen hint. Provision it separately through normal federation,
+then accept the invitation as an existing account. Identity resolution reports
+trusted creation provenance inside its transaction and executes invitation signup
+policy before provisioning; a refusal creates neither user, membership nor receipt.
+Any future supported created-account acceptance must persist that provenance in
+the same transaction and recheck current signup flags at acceptance.
+
+Invitation Params mutations preserve the CAS-generated `expectedRevision + 1`
+when replacing a transaction. Session and signup provenance writes share this
+monotonic implementation; stale readers cannot overwrite newer authentication
+bindings under READ COMMITTED. SQLite stale-reader regressions cover the same
+compare-and-swap contract; PostgreSQL/MySQL need configured service validation.
+
+D-0056 Task 9 activation clarification (2026-10-29): the OrganizationsII grant
+operations frozen by Task 1 supersede Plan 29's empty grant-list placeholder.
+Organization grant GET accepts only page/per_page/include_totals, uses configured
+per_page for totals.limit (including an empty list), and missing parents/references
+return not_found. Historical Plan 29 inventory remains unchanged. POST requires
+exactly grant_id; DELETE and reads accept no body. Reverse grant organizations
+retains its independently documented offset/checkpoint variants and
+read:organization_client_grants scope. Grant listing filters allow_any_organization
+before pagination; both organization policy fields are always returned with their
+deny/false defaults, including allow_all_scopes responses.
+
+M2M's final eligibility transaction is the issuance authorization boundary.
+Current client/API/grant and organization association/third-party policy are read
+under the policy writer boundary; current API and grant scopes cap the approved
+scope snapshot. Signing uses the existing key manager after commit, because that
+manager uses the outer store and would deadlock inside an exclusive memory or
+SQLite transaction. A revocation committed before the eligibility read prevents
+issuance. Later revocations do not cancel an already approved issuance or revoke
+an existing JWT. Organization claims and the credentials-exchange event retain
+the trusted context frozen before external Actions; no organization roles,
+member application entitlements, inferred organization or membership writes
+participate. JSON organization/invitation values must be strings, including
+rejecting explicit null; an empty organization string follows absent semantics.
+
+
+D-0056 Task 16 provisioning ruling (2026-10-30): organization seed configuration
+is create-only in both seed modes, including entitlement, application/grant links,
+EA connection policy and discovery domains. Domains default pending and seed
+rejects verified attestation. Tenant-level grant organization policy applies only
+on creation; API-owned grants retain their ownership protection. Reference errors
+roll back the entire seed transaction, including earlier tenant/grant writes.
+
+Pinned-tool audit: auth0/auth0-deploy-cli v9.1.0,
+`src/tools/auth0/handlers/organizations.ts`,
+`src/tools/auth0/handlers/clientGrants.ts`, and the YAML/directory organization
+handlers inform only the test client's resource mapping. API semantics remain
+those already documented in the operation inventory and D-0056. The organization
+schema declares entitlement, third-party access, clients, grant associations,
+discovery domains, enabled state and organization access metadata. It omits
+organization_member_access_level from its schema/update mapping; the client-grant
+schema omits organization_usage/allow_any_organization. Offline preflight rejects
+nondefault member access and active grant policy rather than promising preservation.
+Default limited and deny/false remain compatible. Verified domain import requires
+explicit destination attestation and is rejected. Invitations, receipts, ticket
+material and member/member-role export are not promised. No upstream tenant was
+observed and no new API behavior was inferred from tool code.

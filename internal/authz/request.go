@@ -30,6 +30,7 @@ type Request struct {
 	ScreenHint          string
 	Organization        string
 	Invitation          string
+	invitationBinding   map[string]string
 	UILocales           string
 	// OrgID and OrgMode bind the resolved organization (spec §5.1). They
 	// are stored under store.TxnParamOrgID and store.TxnParamOrgMode;
@@ -169,6 +170,14 @@ func (r Request) Params() map[string]string {
 	if r.OrgMode != OrgNone {
 		out[store.TxnParamOrgMode] = string(r.OrgMode)
 	}
+	for _, k := range []string{"za_invitation_id", "za_invitation_client", "za_invitation_connection"} {
+		if v := r.invitationBinding[k]; v != "" {
+			out[k] = v
+		}
+	}
+	if out["za_invitation_id"] != "" {
+		delete(out, "invitation")
+	}
 	return out
 }
 
@@ -184,6 +193,14 @@ func RequestFromParams(p map[string]string) Request {
 				r.Ext = map[string]string{}
 			}
 			r.Ext[k] = v
+		}
+	}
+	for _, k := range []string{"za_invitation_id", "za_invitation_client", "za_invitation_connection"} {
+		if p[k] != "" {
+			if r.invitationBinding == nil {
+				r.invitationBinding = map[string]string{}
+			}
+			r.invitationBinding[k] = p[k]
 		}
 	}
 	r.Pushed = p[pushedKey] == "1"

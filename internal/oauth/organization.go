@@ -3,7 +3,11 @@ package oauth
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/orgrules"
+	"net/url"
+	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -37,7 +41,17 @@ func tokenOrganization(ctx context.Context, st store.Store, tid, uid, orgID, con
 	if (c.OrganizationUsage != store.OrgUsageAllow && c.OrganizationUsage != store.OrgUsageRequire) || connectionID == "" {
 		return nil, errOrganizationGrant
 	}
-	if _, err := st.Organizations().GetConnection(ctx, tid, orgID, connectionID); err != nil {
+	link, err := st.Organizations().GetConnection(ctx, tid, orgID, connectionID)
+	if err != nil {
+		return nil, err
+	}
+	if link.IsEnabledSet && !link.IsEnabled {
+		return nil, errOrganizationGrant
+	}
+	if err := orglogin.CheckMemberClient(ctx, st, tid, orgID, c.ClientID); err != nil {
+		if errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, store.ErrOrganizationsIIUnavailable) {
+			return nil, errOrganizationGrant
+		}
 		return nil, err
 	}
 	org, err := st.Organizations().Get(ctx, tid, orgID)
@@ -83,4 +97,49 @@ func checkTokenOrganization(ctx context.Context, tx store.Store, tid, uid, orgID
 		return errOrganizationGrant
 	}
 	return err
+}
+
+// machineOrganization resolves explicit context without the member-login gate.
+// Names are enabled only by the tenant switch; IDs always take precedence.
+func (h *Handlers) machineOrganization(ctx context.Context, res tenant.Resolved, form url.Values) (*store.Organization, *Error) {
+	values := form["organization"]
+	if len(values) > 1 {
+		return nil, invalidRequest("organization must occur once")
+	}
+	raw := form.Get("organization")
+	if raw == "" {
+		return nil, nil
+	}
+	names, _ := res.Tenant.SettingsExtra["allow_organization_name_in_authentication_api"].(bool)
+	if !orgrules.ValidID(raw) && !names {
+		return nil, invalidRequest("organization must be an organization ID")
+	}
+	if len(raw) > 255 || strings.TrimSpace(raw) != raw {
+		return nil, invalidRequest("organization is malformed")
+	}
+	var org *store.Organization
+	var err error
+	if orgrules.ValidID(raw) {
+		org, err = h.Store.Organizations().Get(ctx, res.Tenant.ID, raw)
+		if err == nil {
+			return org, nil
+		}
+		if !errors.Is(err, store.ErrNotFound) {
+			return nil, serverError()
+		}
+		if !names {
+			return nil, accessDenied("the organization does not exist")
+		}
+	}
+	if _, err := orgrules.NormalizeOrganization(store.Organization{Name: raw}); err != nil {
+		return nil, invalidRequest("organization is malformed")
+	}
+	org, err = h.Store.Organizations().GetByName(ctx, res.Tenant.ID, raw)
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrOrganizationsIIUnavailable) {
+		return nil, accessDenied("the organization does not exist")
+	}
+	if err != nil {
+		return nil, serverError()
+	}
+	return org, nil
 }

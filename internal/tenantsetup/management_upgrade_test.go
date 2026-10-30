@@ -101,7 +101,7 @@ func TestRBACManagementUpgrade(t *testing.T) {
 	if got.TokenLifetime != 321 || got.Scopes[0].Description != "retained" || len(got.Scopes) != len(ManagementAPIScopes) {
 		t.Fatalf("upgrade changed settings or duplicated scopes: %+v", got)
 	}
-	for _, required := range []string{"read:roles", "create:roles", "update:roles", "delete:roles", "read:role_members", "create:role_members", "delete:role_members"} {
+	for _, required := range []string{"read:organization_invitations", "create:organization_invitations", "delete:organization_invitations", "read:roles", "create:roles", "update:roles", "delete:roles", "read:role_members", "create:role_members", "delete:role_members"} {
 		found := false
 		for _, s := range got.Scopes {
 			if s.Value == required {

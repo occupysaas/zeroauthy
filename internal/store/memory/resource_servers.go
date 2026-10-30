@@ -74,6 +74,7 @@ func (r resourceServers) Delete(_ context.Context, tenantID, id string) error {
 	}
 	for gk, g := range r.s.clientGrants {
 		if gk.tenant == tenantID && g.Audience == rs.Identifier {
+			r.s.cleanupOrgII(tenantID, orgIICleanup{grant: g.ID})
 			delete(r.s.clientGrants, gk)
 		}
 	}

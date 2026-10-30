@@ -361,6 +361,24 @@ func sealedSecretMatches(w keys.Wrapper, c *store.Client, plaintext string) bool
 }
 
 func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in ClientGrant, now time.Time, createOnly bool) error {
+	if in.OrganizationUsage != "" && in.OrganizationUsage != "deny" || in.AllowAnyOrganization {
+		if c, ok := st.(store.OrganizationsIISupporter); ok {
+			if e := c.CheckOrganizationsIISupport(ctx); e != nil {
+				return e
+			}
+		}
+		if !store.OrganizationsIISupported(st) {
+			return store.ErrOrganizationsIIUnavailable
+		}
+		c, e := st.Clients().Get(ctx, tenantID, in.ClientID)
+		if e != nil {
+			return e
+		}
+		if !c.IsFirstParty && in.AllowAnyOrganization {
+			return store.ErrInvalid
+		}
+	}
+
 	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience, in.SubjectType)
 	switch {
 	case err == nil && (createOnly || g.Origin == store.OriginAPI):
@@ -372,7 +390,7 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 		return st.ClientGrants().Create(ctx, &store.ClientGrant{
 			TenantID: tenantID, ID: "cgr_" + secrets.RandomString(16),
 			ClientID: in.ClientID, Audience: in.Audience, Scopes: slices.Clone(in.Scopes),
-			SubjectType: in.SubjectType, CreatedAt: now,
+			SubjectType: in.SubjectType, CreatedAt: now, OrganizationUsage: in.OrganizationUsage, AllowAnyOrganization: in.AllowAnyOrganization,
 		})
 	case err != nil:
 		return err

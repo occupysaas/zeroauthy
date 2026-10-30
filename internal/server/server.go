@@ -141,6 +141,9 @@ func New(d Deps) http.Handler {
 		renderer, _ := email.NewRenderer()
 		d.EmailService = &email.Service{Store: d.Store, Wrapper: d.Wrapper, Renderer: renderer, Providers: &providers.Factory{}, Fallback: d.Mailer, DefaultFrom: "zeroauthy@localhost"}
 	}
+	if d.Actions != nil {
+		d.Actions.InvitationEmail = d.EmailService
+	}
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 
@@ -279,7 +282,7 @@ func New(d Deps) http.Handler {
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}
 	}
-	mgmtapi.HandlerWithOptions(mgmtAPI{mh}, mgmtapi.ChiServerOptions{
+	mgmtapi.HandlerWithOptions(mgmtAPI{h: mh}, mgmtapi.ChiServerOptions{
 		BaseRouter: mr,
 		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			mgmt.WriteError(w, http.StatusBadRequest, "invalid_query_string", "Query validation error: "+err.Error())

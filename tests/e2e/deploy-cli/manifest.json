@@ -214,8 +214,8 @@
     {
       "name": "organizations",
       "status": "included",
-      "owner": "Plan 29",
-      "reason": "Organizations, branding, metadata and enabled connections migrate by name; pinned 9.1.0 has no members or member-role export",
+      "owner": "Plan 30",
+      "reason": "Organizations, metadata, entitlement, third-party policy, application associations and enabled/disabled connections migrate by name. Invitations/receipts and members/member roles are not exported; nondefault connection member access, active grant policy and verified domain attestation require explicit offline rejection.",
       "fixture": "fixtures/organizations.json"
     },
     {

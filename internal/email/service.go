@@ -23,8 +23,8 @@ var ErrProviderConfiguration = errors.New("email: tenant provider configuration 
 var ErrServiceUnavailable = errors.New("email: delivery service is unavailable")
 
 type Event struct {
-	TenantID, UserID, ClientID, Template, Language, URL string
-	Variables                                           map[string]any
+	TenantID, UserID, ClientID, Template, Language, URL, OrganizationID string
+	Variables                                                           map[string]any
 }
 type Policy struct {
 	Enabled                bool
@@ -153,6 +153,13 @@ func (s *Service) deliver(ctx context.Context, tenantID string, msg Message, p *
 			return ErrProviderConfiguration
 		}
 		in := emailInput(tenantID, msg)
+		if msg.OrganizationID != "" {
+			var err error
+			in.Organization, err = s.Store.Organizations().Get(ctx, tenantID, msg.OrganizationID)
+			if err != nil {
+				return err
+			}
+		}
 		if err := s.Store.WithTx(ctx, func(tx store.Store) error {
 			if msg.UserID != "" {
 				var err error
@@ -258,11 +265,18 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 	}
 	if extra, ok := additional.(map[string]any); ok {
 		for k, v := range extra {
-			if k == "tenant" || k == "user" || k == "application" || k == "language" || k == "url" {
+			if k == "tenant" || k == "user" || k == "application" || k == "language" || k == "url" || k == "organization" {
 				continue
 			}
 			vars[k] = v
 		}
+	}
+	if event.OrganizationID != "" {
+		org, e := s.Store.Organizations().Get(ctx, event.TenantID, event.OrganizationID)
+		if e != nil {
+			return e
+		}
+		vars["organization"] = OrganizationRenderContext(org)
 	}
 	fields := map[string]string{}
 	for _, key := range []string{"from", "subject", "resultUrl"} {
@@ -289,7 +303,7 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 	if from == "" {
 		from = "zeroauthy@localhost"
 	}
-	msg := Message{Type: event.Template, Locale: event.Language, UserID: event.UserID, ClientID: event.ClientID, From: from, To: user.Email, Subject: rendered.Subject, HTML: rendered.HTML, Text: htmlToText(rendered.HTML)}
+	msg := Message{OrganizationID: event.OrganizationID, Type: event.Template, Locale: event.Language, UserID: event.UserID, ClientID: event.ClientID, From: from, To: user.Email, Subject: rendered.Subject, HTML: rendered.HTML, Text: htmlToText(rendered.HTML)}
 	if err = validateMessage(from, msg); err != nil {
 		return err
 	}

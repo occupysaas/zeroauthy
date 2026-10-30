@@ -2824,6 +2824,10 @@ paths:
       x-source:
         - https://auth0.com/docs/api/management/v2/client-grants/get-client-grants
       parameters:
+        - name: allow_any_organization
+          in: query
+          schema: {type: boolean}
+          description: Filter grants by organization allow-any policy.
         - $ref: "#/components/parameters/page"
         - $ref: "#/components/parameters/per_page"
         - $ref: "#/components/parameters/include_totals"
@@ -5731,6 +5735,10 @@ paths:
         - read:organizations
       - operatorToken: []
       parameters:
+      - name: include_client_association_for
+        in: query
+        description: "Annotate matching association without filtering; no secrets; missing association omitted (D-0056)."
+        schema: {type: string}
       - name: page
         in: query
         description: 'Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).'
@@ -6169,12 +6177,15 @@ paths:
   /api/v2/organizations/{id}/connections:
     get:
       operationId: ListOrganizationAllConnections
-      summary: List an organization's connections (Early Access upstream; same links as enabled_connections)
+      summary: GET /organizations/{id}/connections
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true,
+        org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying,
+        both access levels reset none; PATCH omission preserves'
       tags:
       - organizations
-      x-release-lifecycle: EA
       x-source:
       - https://auth0.com/docs/api/management/v2/organizations/get-organization-connections
+      x-contract-decision: D-0056
       security:
       - managementToken:
         - read:organization_connections
@@ -6183,53 +6194,82 @@ paths:
       - name: id
         in: path
         required: true
-        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
-        schema: {type: string}
+        schema:
+          type: string
+          maxLength: 50
       - name: page
         in: query
-        description: 'Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).'
-        schema: {type: integer}
+        schema:
+          type: integer
+          minimum: 0
       - name: per_page
         in: query
-        description: 'Number of results per page, 1 to 100 (default 50).'
-        schema: {type: integer}
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
       - name: include_totals
         in: query
-        description: 'Return an object with the list and `start`, `limit` and `total` instead of a bare array.'
-        schema: {type: boolean}
+        schema:
+          type: boolean
       - name: is_enabled
         in: query
-        description: 'Only enabled (true) or disabled (false) connections; every stored connection is enabled.'
-        schema: {type: boolean}
+        schema:
+          type: boolean
       responses:
         '200':
           description: Operation completed
           content:
             application/json:
               schema:
-                oneOf:
-                - type: array
-                  items:
-                    $ref: '#/components/schemas/OrganizationConnection'
-                - $ref: '#/components/schemas/OrganizationConnectionsPage'
+                $ref: '#/components/schemas/IIListOrganizationAllConnectionsResponseContent'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '501':
-          $ref: '#/components/responses/OrganizationsUnavailable'
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
     post:
       operationId: CreateOrganizationAllConnection
-      summary: Add a connection to an organization (Early Access upstream)
+      summary: POST /organizations/{id}/connections
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true,
+        org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying,
+        both access levels reset none; PATCH omission preserves'
       tags:
       - organizations
-      x-release-lifecycle: EA
       x-source:
       - https://auth0.com/docs/api/management/v2/organizations/post-organization-connection
+      x-contract-decision: D-0056
       security:
       - managementToken:
         - create:organization_connections
@@ -6238,42 +6278,76 @@ paths:
       - name: id
         in: path
         required: true
-        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
-        schema: {type: string}
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrganizationConnectionCreate'
+        schema:
+          type: string
+          maxLength: 50
       responses:
         '201':
           description: Operation completed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationConnection'
+                $ref: '#/components/schemas/IICreateOrganizationAllConnectionResponseContent'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '409':
-          $ref: '#/components/responses/Conflict'
+          description: duplicate association/domain or failed mutation precondition => conflict (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '501':
-          $ref: '#/components/responses/OrganizationsUnavailable'
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IICreateOrganizationAllConnectionRequestContent'
   /api/v2/organizations/{id}/connections/{connection_id}:
     get:
       operationId: GetOrganizationAllConnection
-      summary: Get an organization connection (Early Access upstream)
+      summary: GET /organizations/{id}/connections/{connection_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true,
+        org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying,
+        both access levels reset none; PATCH omission preserves'
       tags:
       - organizations
-      x-release-lifecycle: EA
       x-source:
       - https://auth0.com/docs/api/management/v2/organizations/get-organization-connection
+      x-contract-decision: D-0056
       security:
       - managementToken:
         - read:organization_connections
@@ -6282,38 +6356,70 @@ paths:
       - name: id
         in: path
         required: true
-        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
-        schema: {type: string}
+        schema:
+          type: string
+          maxLength: 50
       - name: connection_id
         in: path
         required: true
-        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
-        schema: {type: string}
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
       responses:
         '200':
           description: Operation completed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationConnection'
+                $ref: '#/components/schemas/IIGetOrganizationAllConnectionResponseContent'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '501':
-          $ref: '#/components/responses/OrganizationsUnavailable'
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
     patch:
       operationId: UpdateOrganizationAllConnection
-      summary: Update an organization connection (Early Access upstream)
+      summary: PATCH /organizations/{id}/connections/{connection_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true,
+        org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying,
+        both access levels reset none; PATCH omission preserves'
       tags:
       - organizations
-      x-release-lifecycle: EA
       x-source:
       - https://auth0.com/docs/api/management/v2/organizations/patch-organization-connection
+      x-contract-decision: D-0056
       security:
       - managementToken:
         - update:organization_connections
@@ -6322,44 +6428,76 @@ paths:
       - name: id
         in: path
         required: true
-        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
-        schema: {type: string}
+        schema:
+          type: string
+          maxLength: 50
       - name: connection_id
         in: path
         required: true
-        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
-        schema: {type: string}
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrganizationConnectionUpdate'
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
       responses:
         '200':
           description: Operation completed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationConnection'
+                $ref: '#/components/schemas/IIUpdateOrganizationAllConnectionResponseContent'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '501':
-          $ref: '#/components/responses/OrganizationsUnavailable'
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IIUpdateOrganizationAllConnectionRequestContent'
     delete:
       operationId: DeleteOrganizationAllConnection
-      summary: Remove a connection from an organization (Early Access upstream)
+      summary: DELETE /organizations/{id}/connections/{connection_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0055 omission/migration: enabled=true,
+        org access=none, member access=limited; D-0056 explicit null: enabled resets true, name clears to underlying,
+        both access levels reset none; PATCH omission preserves'
       tags:
       - organizations
-      x-release-lifecycle: EA
       x-source:
       - https://auth0.com/docs/api/management/v2/organizations/delete-organization-connection
+      x-contract-decision: D-0056
       security:
       - managementToken:
         - delete:organization_connections
@@ -6368,34 +6506,67 @@ paths:
       - name: id
         in: path
         required: true
-        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
-        schema: {type: string}
+        schema:
+          type: string
+          maxLength: 50
       - name: connection_id
         in: path
         required: true
-        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
-        schema: {type: string}
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
       responses:
         '204':
           description: Operation completed
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '501':
-          $ref: '#/components/responses/OrganizationsUnavailable'
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
   /api/v2/organizations/{id}/client-grants:
     get:
       operationId: ListOrganizationClientGrants
-      summary: List an organization's client grants (always empty until organization grants exist)
+      summary: GET /organizations/{id}/client-grants
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null
+        rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept
+        no body'
       tags:
       - organizations
       x-source:
       - https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants
+      x-contract-decision: D-0056
       security:
       - managementToken:
         - read:organization_client_grants
@@ -6404,55 +6575,161 @@ paths:
       - name: id
         in: path
         required: true
-        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
-        schema: {type: string}
-      - name: page
-        in: query
-        description: 'Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).'
-        schema: {type: integer}
-      - name: per_page
-        in: query
-        description: 'Number of results per page, 1 to 100 (default 50).'
-        schema: {type: integer}
-      - name: include_totals
-        in: query
-        description: 'Return an object with the list and `start`, `limit` and `total` instead of a bare array.'
-        schema: {type: boolean}
+        schema:
+          type: string
+          maxLength: 50
       - name: audience
         in: query
-        description: 'Only grants for this API identifier.'
-        schema: {type: string}
+        schema:
+          type: string
+          maxLength: 600
       - name: client_id
         in: query
-        description: 'Only grants of this client.'
-        schema: {type: string}
+        schema:
+          type: string
       - name: grant_ids
         in: query
-        description: 'Only these grant IDs (at most 10).'
+        style: form
+        explode: true
         schema:
           type: array
-          items: {type: string}
+          items:
+            type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
       responses:
         '200':
           description: Operation completed
           content:
             application/json:
               schema:
-                oneOf:
-                - type: array
-                  items:
-                    $ref: '#/components/schemas/OrganizationClientGrant'
-                - $ref: '#/components/schemas/OrganizationClientGrantsPage'
+                $ref: '#/components/schemas/IIListOrganizationClientGrantsResponseContent'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
         '501':
-          $ref: '#/components/responses/OrganizationsUnavailable'
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    post:
+      operationId: AssociateOrganizationClientGrant
+      summary: POST /organizations/{id}/client-grants
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null
+        rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept
+        no body'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/create-organization-client-grants
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - create:organization_client_grants
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIAssociateOrganizationClientGrantResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: duplicate association/domain or failed mutation precondition => conflict (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IIAssociateOrganizationClientGrantRequestContent'
   /api/v2/organizations/{id}/members:
     get:
       operationId: ListOrganizationMembers
@@ -6870,6 +7147,1356 @@ paths:
           $ref: '#/components/responses/NotFound'
         '501':
           $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/search:
+    get:
+      operationId: SearchOrganizations
+      summary: GET /organizations/search
+      description: Bounded local SCIM/Lucene organization search. parser absent=lucene; take absent=50;
+        sort absent=created_at with ID tie-break (local); q absent/empty=all (local); next omitted at end; no offset/totals.
+        Cursors authenticate tenant, normalized query, parser and sort under stable server key material. They are not snapshots;
+        concurrent writes can change subsequent pages. Local reads are immediately consistent. See docs/organization-search.md.
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-search
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organizations
+        - read:organizations_summary
+      - operatorToken: []
+      parameters:
+      - name: q
+        in: query
+        schema:
+          type: string
+          maxLength: 1000
+      - name: parser
+        in: query
+        schema:
+          $ref: '#/components/schemas/IISearchParserEnum'
+      - name: take
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: from
+        in: query
+        schema:
+          type: string
+          maxLength: 1000
+      - name: sort
+        in: query
+        schema:
+          $ref: '#/components/schemas/IIOrganizationSortFieldEnum'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IISearchOrganizationsPaginatedResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '504':
+          description: Upstream documented error; local error envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/organizations/{id}/invitations:
+    post:
+      operationId: CreateOrganizationInvitation
+      summary: POST /organizations/{id}/invitations
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata
+        absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null
+        rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/post-invitations
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - create:organization_invitations
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+      - name: auth0-custom-domain
+        in: header
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 255
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationInvitation'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationInvitationCreate'
+    get:
+      operationId: ListOrganizationInvitations
+      summary: GET /organizations/{id}/invitations
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata
+        absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null
+        rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-invitations
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_invitations
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+      - name: fields
+        in: query
+        schema:
+          type: string
+      - name: include_fields
+        in: query
+        schema:
+          type: boolean
+      - name: sort
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIListOrganizationInvitationsResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/organizations/{id}/invitations/{invitation_id}:
+    get:
+      operationId: GetOrganizationInvitation
+      summary: GET /organizations/{id}/invitations/{invitation_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata
+        absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null
+        rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-invitations-by-invitation-id
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_invitations
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+      - name: invitation_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: fields
+        in: query
+        schema:
+          type: string
+      - name: include_fields
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIGetOrganizationInvitationResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    delete:
+      operationId: DeleteOrganizationInvitation
+      summary: DELETE /organizations/{id}/invitations/{invitation_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056: optional connection/metadata
+        absent=unset, roles absent=none (response omits empty roles), email absent=true, ttl absent/0=604800; null
+        rejected; expired/consumed reads=404; delete missing invite=204 in existing org (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-invitations-by-invitation-id
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - delete:organization_invitations
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+      - name: invitation_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/organizations/{id}/clients:
+    get:
+      operationId: ListOrganizationClients
+      summary: GET /organizations/{id}/clients
+      description: 'Plan 30 contract; route implementation is tracked separately. documented: POST each client requires
+        client_id and use_for_member_access; PATCH omission preserves; null rejected (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-clients
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_clients
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+      - name: take
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIListOrganizationClientsResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    post:
+      operationId: AssociateOrganizationClients
+      summary: POST /organizations/{id}/clients
+      description: 'Plan 30 contract; route implementation is tracked separately. documented: POST each client requires
+        client_id and use_for_member_access; PATCH omission preserves; null rejected (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/post-organization-clients
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - create:organization_clients
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IICreateOrganizationClientsResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: duplicate association/domain or failed mutation precondition => conflict (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IICreateOrganizationClientsRequestContent'
+    delete:
+      operationId: DeleteOrganizationClients
+      summary: DELETE /organizations/{id}/clients
+      description: 'Plan 30 contract; route implementation is tracked separately. documented: POST each client requires
+        client_id and use_for_member_access; PATCH omission preserves; null rejected (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-organization-clients
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - delete:organization_clients
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IIDeleteOrganizationClientsRequestContent'
+  /api/v2/organizations/{id}/clients/{client_id}:
+    get:
+      operationId: GetOrganizationClient
+      summary: GET /organizations/{id}/clients/{client_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. documented: POST each client requires
+        client_id and use_for_member_access; PATCH omission preserves; null rejected (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-client
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_clients
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: client_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIGetOrganizationClientResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateOrganizationClient
+      summary: PATCH /organizations/{id}/clients/{client_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. documented: POST each client requires
+        client_id and use_for_member_access; PATCH omission preserves; null rejected (local)'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/patch-organization-client
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - update:organization_clients
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: client_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIUpdateOrganizationClientResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IIUpdateOrganizationClientRequestContent'
+  /api/v2/organizations/{id}/client-grants/{grant_id}:
+    delete:
+      operationId: DeleteOrganizationClientGrant
+      summary: DELETE /organizations/{id}/client-grants/{grant_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null
+        rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept
+        no body'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-client-grants-by-grant-id
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - delete:organization_client_grants
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+      - name: grant_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/organizations/{id}/discovery-domains:
+    get:
+      operationId: ListOrganizationDiscoveryDomains
+      summary: GET /organizations/{id}/discovery-domains
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending;
+        supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves;
+        null rejected'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_discovery_domains
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+      - name: take
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIListOrganizationDiscoveryDomainsResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    post:
+      operationId: CreateOrganizationDiscoveryDomain
+      summary: POST /organizations/{id}/discovery-domains
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending;
+        supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves;
+        null rejected'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/post-discovery-domains
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - create:organization_discovery_domains
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationDiscoveryDomain'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: duplicate association/domain or failed mutation precondition => conflict (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IICreateOrganizationDiscoveryDomainRequestContent'
+  /api/v2/organizations/{id}/discovery-domains/name/{discovery_domain}:
+    get:
+      operationId: GetOrganizationDiscoveryDomainByName
+      summary: GET /organizations/{id}/discovery-domains/name/{discovery_domain}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending;
+        supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves;
+        null rejected'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-name-by-discovery-domain
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_discovery_domains
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: discovery_domain
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 255
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIGetOrganizationDiscoveryDomainByNameResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}:
+    get:
+      operationId: GetOrganizationDiscoveryDomain
+      summary: GET /organizations/{id}/discovery-domains/{discovery_domain_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending;
+        supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves;
+        null rejected'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains-by-discovery-domain-id
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_discovery_domains
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: discovery_domain_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIGetOrganizationDiscoveryDomainResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateOrganizationDiscoveryDomain
+      summary: PATCH /organizations/{id}/discovery-domains/{discovery_domain_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending;
+        supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves;
+        null rejected'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/patch-discovery-domains-by-discovery-domain-id
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - update:organization_discovery_domains
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: discovery_domain_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIUpdateOrganizationDiscoveryDomainResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IIUpdateOrganizationDiscoveryDomainRequestContent'
+    delete:
+      operationId: DeleteOrganizationDiscoveryDomain
+      summary: DELETE /organizations/{id}/discovery-domains/{discovery_domain_id}
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: create status absent=pending;
+        supplied pending accepted, verified rejected (verify with PATCH); use flag absent=true; PATCH omission preserves;
+        null rejected'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-discovery-domains-by-discovery-domain-id
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - delete:organization_discovery_domains
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: discovery_domain_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/client-grants/{id}/organizations:
+    get:
+      operationId: ListClientGrantOrganizations
+      summary: GET /client-grants/{id}/organizations
+      description: 'Plan 30 contract; route implementation is tracked separately. D-0056 local: unknown keys and null
+        rejected; absent optional fields use schema defaults; PATCH omission preserves; no-body operations accept
+        no body'
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/client-grants/get-client-grant-organizations
+      x-contract-decision: D-0056
+      security:
+      - managementToken:
+        - read:organization_client_grants
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+      - name: from
+        in: query
+        schema:
+          type: string
+      - name: take
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IIListClientGrantOrganizationsResponseContent'
+        '400':
+          description: invalid body/query/URI/reference type => invalid_body|invalid_paging|invalid_uri (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: missing/invalid bearer => invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: missing route scope/operator grant => insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: missing/cross-tenant parent or item/reference => not_found (local where undocumented)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: rate limit => too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: missing OrganizationsII capability => organizations_ii_unavailable (local D-0056)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
 components:
   securitySchemes:
     managementToken:
@@ -6926,6 +8553,908 @@ components:
       description: The member's user ID.
       schema: {type: string}
   schemas:
+    IISearchParserEnum:
+      type: string
+      enum:
+      - scim
+      - lucene
+    IIOrganizationSortFieldEnum:
+      type: string
+      enum:
+      - name
+      - display_name
+      - created_at
+    IISearchOrganizationsPaginatedResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - organizations
+      properties:
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/IISearchOrganization'
+        next:
+          type: string
+    IISearchOrganization:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          maxLength: 50
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        branding:
+          $ref: '#/components/schemas/IIOrganizationBranding'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
+        third_party_client_access:
+          $ref: '#/components/schemas/IIOrganizationThirdPartyClientAccessEnum'
+        is_app_entitlement_active:
+          type: boolean
+    IIOrganizationBranding:
+      type: object
+      additionalProperties: false
+      properties:
+        logo_url:
+          type: string
+        colors:
+          $ref: '#/components/schemas/IIOrganizationBrandingColors'
+    IIOrganizationBrandingColors:
+      type: object
+      additionalProperties: false
+      required:
+      - primary
+      - page_background
+      properties:
+        primary:
+          type: string
+        page_background:
+          type: string
+    IITokenQuota:
+      type: object
+      additionalProperties: false
+      required:
+      - client_credentials
+      properties:
+        client_credentials:
+          $ref: '#/components/schemas/IITokenQuotaClientCredentials'
+    IITokenQuotaClientCredentials:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        enforce:
+          type: boolean
+        per_day:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        per_hour:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+    IIOrganizationThirdPartyClientAccessEnum:
+      type: string
+      enum:
+      - block
+      - allow
+    OrganizationInvitationCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - inviter
+      - invitee
+      - client_id
+      properties:
+        inviter:
+          $ref: '#/components/schemas/IIOrganizationInvitationInviter'
+        invitee:
+          $ref: '#/components/schemas/IIOrganizationInvitationInvitee'
+        client_id:
+          type: string
+        connection_id:
+          type: string
+        app_metadata:
+          $ref: '#/components/schemas/IIAppMetadata'
+        user_metadata:
+          $ref: '#/components/schemas/IIUserMetadata'
+        ttl_sec:
+          type: integer
+          minimum: 0
+          maximum: 2592000
+          default: 604800
+        roles:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        send_invitation_email:
+          type: boolean
+          default: true
+    IIOrganizationInvitationInviter:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+    IIOrganizationInvitationInvitee:
+      type: object
+      additionalProperties: false
+      required:
+      - email
+      properties:
+        email:
+          type: string
+    IIAppMetadata:
+      type: object
+      additionalProperties: true
+      properties: {}
+    IIUserMetadata:
+      type: object
+      additionalProperties: true
+    OrganizationInvitation:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        organization_id:
+          type: string
+          maxLength: 50
+        inviter:
+          $ref: '#/components/schemas/IIOrganizationInvitationInviter'
+        invitee:
+          $ref: '#/components/schemas/IIOrganizationInvitationInvitee'
+        invitation_url:
+          type: string
+        created_at:
+          type: string
+        expires_at:
+          type: string
+        client_id:
+          type: string
+        connection_id:
+          type: string
+        app_metadata:
+          $ref: '#/components/schemas/IIAppMetadata'
+        user_metadata:
+          $ref: '#/components/schemas/IIUserMetadata'
+        roles:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        ticket_id:
+          type: string
+    IIListOrganizationInvitationsResponseContent:
+      oneOf:
+      - type: array
+        items:
+          $ref: '#/components/schemas/OrganizationInvitation'
+      - $ref: '#/components/schemas/IIListOrganizationInvitationsOffsetPaginatedResponseContent'
+    IIListOrganizationInvitationsOffsetPaginatedResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: number
+        limit:
+          type: number
+        invitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationInvitation'
+    IIGetOrganizationInvitationResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        organization_id:
+          type: string
+          maxLength: 50
+        inviter:
+          $ref: '#/components/schemas/IIOrganizationInvitationInviter'
+        invitee:
+          $ref: '#/components/schemas/IIOrganizationInvitationInvitee'
+        invitation_url:
+          type: string
+        created_at:
+          type: string
+        expires_at:
+          type: string
+        client_id:
+          type: string
+        connection_id:
+          type: string
+        app_metadata:
+          $ref: '#/components/schemas/IIAppMetadata'
+        user_metadata:
+          $ref: '#/components/schemas/IIUserMetadata'
+        roles:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        ticket_id:
+          type: string
+    IIListOrganizationClientsResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - clients
+      properties:
+        clients:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationClientAssociation'
+        next:
+          type: string
+    OrganizationClientAssociation:
+      type: object
+      additionalProperties: false
+      required:
+      - client_id
+      - use_for_member_access
+      - client
+      properties:
+        client_id:
+          type: string
+        use_for_member_access:
+          type: boolean
+        client:
+          $ref: '#/components/schemas/IIOrganizationClientMetadata'
+    IIOrganizationClientMetadata:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        app_type:
+          type: string
+        logo_uri:
+          type: string
+          nullable: true
+        is_first_party:
+          type: boolean
+        grant_types:
+          type: array
+          items:
+            type: string
+        organization_usage:
+          $ref: '#/components/schemas/IIOrganizationClientMetadataOrganizationUsageEnum'
+    IIOrganizationClientMetadataOrganizationUsageEnum:
+      type: string
+      enum:
+      - deny
+      - allow
+      - require
+    IICreateOrganizationClientsRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - clients
+      properties:
+        clients:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/IICreateOrganizationClientRequestItem'
+    IICreateOrganizationClientRequestItem:
+      type: object
+      additionalProperties: false
+      required:
+      - client_id
+      - use_for_member_access
+      properties:
+        client_id:
+          type: string
+        use_for_member_access:
+          type: boolean
+    IICreateOrganizationClientsResponseContent:
+      type: array
+      items:
+        $ref: '#/components/schemas/OrganizationClientAssociation'
+    IIDeleteOrganizationClientsRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - clients
+      properties:
+        clients:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+    IIGetOrganizationClientResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - client_id
+      - use_for_member_access
+      - client
+      properties:
+        client_id:
+          type: string
+        use_for_member_access:
+          type: boolean
+        client:
+          $ref: '#/components/schemas/IIOrganizationClientMetadata'
+    IIUpdateOrganizationClientRequestContent:
+      type: object
+      additionalProperties: false
+      properties:
+        use_for_member_access:
+          type: boolean
+    IIUpdateOrganizationClientResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - client_id
+      - use_for_member_access
+      properties:
+        client_id:
+          type: string
+        use_for_member_access:
+          type: boolean
+        client:
+          $ref: '#/components/schemas/IIOrganizationClientMetadata'
+    IIListOrganizationClientGrantsResponseContent:
+      oneOf:
+      - type: array
+        items:
+          $ref: '#/components/schemas/IIOrganizationClientGrant'
+      - $ref: '#/components/schemas/IIListOrganizationClientGrantsOffsetPaginatedResponseContent'
+    IIOrganizationClientGrant:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        client_id:
+          type: string
+        audience:
+          type: string
+          minLength: 1
+        scope:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        organization_usage:
+          $ref: '#/components/schemas/IIOrganizationUsageEnum'
+        allow_any_organization:
+          type: boolean
+    IIOrganizationUsageEnum:
+      type: string
+      enum:
+      - deny
+      - allow
+      - require
+    IIListOrganizationClientGrantsOffsetPaginatedResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+        client_grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/IIOrganizationClientGrant'
+    IIAssociateOrganizationClientGrantRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - grant_id
+      properties:
+        grant_id:
+          type: string
+    IIAssociateOrganizationClientGrantResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        client_id:
+          type: string
+        audience:
+          type: string
+          minLength: 1
+        scope:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        organization_usage:
+          $ref: '#/components/schemas/IIOrganizationUsageEnum'
+        allow_any_organization:
+          type: boolean
+    IIListOrganizationDiscoveryDomainsResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - domains
+      properties:
+        next:
+          type: string
+        domains:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationDiscoveryDomain'
+    OrganizationDiscoveryDomain:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - domain
+      - status
+      - verification_txt
+      - verification_host
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+          minLength: 3
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/IIOrganizationDiscoveryDomainStatus'
+        use_for_organization_discovery:
+          type: boolean
+        verification_txt:
+          type: string
+        verification_host:
+          type: string
+    IIOrganizationDiscoveryDomainStatus:
+      type: string
+      enum:
+      - pending
+      - verified
+    IICreateOrganizationDiscoveryDomainRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - domain
+      properties:
+        domain:
+          type: string
+          minLength: 3
+          maxLength: 255
+        status:
+          type: string
+          enum:
+          - pending
+          default: pending
+        use_for_organization_discovery:
+          type: boolean
+          default: true
+    IIGetOrganizationDiscoveryDomainByNameResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - domain
+      - status
+      - verification_txt
+      - verification_host
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+          minLength: 3
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/IIOrganizationDiscoveryDomainStatus'
+        use_for_organization_discovery:
+          type: boolean
+        verification_txt:
+          type: string
+        verification_host:
+          type: string
+    IIGetOrganizationDiscoveryDomainResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - domain
+      - status
+      - verification_txt
+      - verification_host
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+          minLength: 3
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/IIOrganizationDiscoveryDomainStatus'
+        use_for_organization_discovery:
+          type: boolean
+        verification_txt:
+          type: string
+        verification_host:
+          type: string
+    IIUpdateOrganizationDiscoveryDomainRequestContent:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          $ref: '#/components/schemas/IIOrganizationDiscoveryDomainStatus'
+        use_for_organization_discovery:
+          type: boolean
+    IIUpdateOrganizationDiscoveryDomainResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - domain
+      - status
+      - verification_host
+      - verification_txt
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+          minLength: 3
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/IIOrganizationDiscoveryDomainStatus'
+        use_for_organization_discovery:
+          type: boolean
+        verification_txt:
+          type: string
+        verification_host:
+          type: string
+    IIListOrganizationAllConnectionsResponseContent:
+      oneOf:
+      - type: array
+        items:
+          $ref: '#/components/schemas/IIOrganizationAllConnectionPost'
+      - $ref: '#/components/schemas/IIListOrganizationAllConnectionsOffsetPaginatedResponseContent'
+    IIOrganizationAllConnectionPost:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      properties:
+        organization_connection_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        assign_membership_on_login:
+          type: boolean
+        show_as_button:
+          type: boolean
+        is_signup_enabled:
+          type: boolean
+        organization_access_level:
+          $ref: '#/components/schemas/IIOrganizationAccessLevelEnum'
+        organization_member_access_level:
+          $ref: '#/components/schemas/IIOrganizationMemberAccessLevelEnum'
+        is_enabled:
+          type: boolean
+        connection_id:
+          type: string
+          minLength: 1
+          maxLength: 50
+        connection:
+          $ref: '#/components/schemas/IIOrganizationConnectionInformation'
+    IIOrganizationAccessLevelEnum:
+      type: string
+      enum:
+      - none
+      - readonly
+      - limited
+      - full
+    IIOrganizationMemberAccessLevelEnum:
+      type: string
+      enum:
+      - none
+      - readonly
+      - limited
+      - full
+    IIOrganizationConnectionInformation:
+      type: object
+      additionalProperties: true
+      properties:
+        name:
+          type: string
+        strategy:
+          type: string
+    IIListOrganizationAllConnectionsOffsetPaginatedResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+        connections:
+          type: array
+          items:
+            $ref: '#/components/schemas/IIOrganizationAllConnectionPost'
+    IICreateOrganizationAllConnectionRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      properties:
+        organization_connection_name:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 50
+          description: Omitted on create uses underlying connection name; null clears local override (D-0056).
+        assign_membership_on_login:
+          type: boolean
+        show_as_button:
+          type: boolean
+        is_signup_enabled:
+          type: boolean
+        organization_access_level:
+          type: string
+          nullable: true
+          enum:
+          - none
+          - readonly
+          - limited
+          - full
+          description: Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission
+            preserves (D-0055/D-0056).
+        organization_member_access_level:
+          type: string
+          nullable: true
+          enum:
+          - none
+          - readonly
+          - limited
+          - full
+          description: Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH
+            omission preserves (D-0055/D-0056).
+        is_enabled:
+          type: boolean
+          nullable: true
+          description: Omitted on create defaults true; null resets true (D-0056).
+        connection_id:
+          type: string
+          minLength: 1
+          maxLength: 50
+    IICreateOrganizationAllConnectionResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      properties:
+        organization_connection_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        assign_membership_on_login:
+          type: boolean
+        show_as_button:
+          type: boolean
+        is_signup_enabled:
+          type: boolean
+        organization_access_level:
+          $ref: '#/components/schemas/IIOrganizationAccessLevelEnum'
+        organization_member_access_level:
+          $ref: '#/components/schemas/IIOrganizationMemberAccessLevelEnum'
+        is_enabled:
+          type: boolean
+        connection_id:
+          type: string
+          minLength: 1
+          maxLength: 50
+        connection:
+          $ref: '#/components/schemas/IIOrganizationConnectionInformation'
+    IIGetOrganizationAllConnectionResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      properties:
+        organization_connection_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        assign_membership_on_login:
+          type: boolean
+        show_as_button:
+          type: boolean
+        is_signup_enabled:
+          type: boolean
+        organization_access_level:
+          $ref: '#/components/schemas/IIOrganizationAccessLevelEnum'
+        organization_member_access_level:
+          $ref: '#/components/schemas/IIOrganizationMemberAccessLevelEnum'
+        is_enabled:
+          type: boolean
+        connection_id:
+          type: string
+          minLength: 1
+          maxLength: 50
+        connection:
+          $ref: '#/components/schemas/IIOrganizationConnectionInformation'
+    IIUpdateOrganizationAllConnectionRequestContent:
+      type: object
+      additionalProperties: false
+      properties:
+        organization_connection_name:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 50
+          description: Omitted on create uses underlying connection name; null clears local override (D-0056).
+        assign_membership_on_login:
+          type: boolean
+        show_as_button:
+          type: boolean
+        is_signup_enabled:
+          type: boolean
+        organization_access_level:
+          type: string
+          nullable: true
+          enum:
+          - none
+          - readonly
+          - limited
+          - full
+          description: Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission
+            preserves (D-0055/D-0056).
+        organization_member_access_level:
+          type: string
+          nullable: true
+          enum:
+          - none
+          - readonly
+          - limited
+          - full
+          description: Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH
+            omission preserves (D-0055/D-0056).
+        is_enabled:
+          type: boolean
+          nullable: true
+          description: Omitted on create defaults true; null resets true (D-0056).
+    IIOrganizationAccessLevelEnumWithNull:
+      type: string
+      nullable: true
+      enum:
+      - none
+      - readonly
+      - limited
+      - full
+    IIOrganizationMemberAccessLevelEnumWithNull:
+      type: string
+      nullable: true
+      enum:
+      - none
+      - readonly
+      - limited
+      - full
+    IIUpdateOrganizationAllConnectionResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - connection_id
+      properties:
+        organization_connection_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        assign_membership_on_login:
+          type: boolean
+        show_as_button:
+          type: boolean
+        is_signup_enabled:
+          type: boolean
+        organization_access_level:
+          $ref: '#/components/schemas/IIOrganizationAccessLevelEnum'
+        organization_member_access_level:
+          $ref: '#/components/schemas/IIOrganizationMemberAccessLevelEnum'
+        is_enabled:
+          type: boolean
+        connection_id:
+          type: string
+          minLength: 1
+          maxLength: 50
+        connection:
+          $ref: '#/components/schemas/IIOrganizationConnectionInformation'
+    IIListClientGrantOrganizationsResponseContent:
+      oneOf:
+      - type: array
+        items:
+          $ref: '#/components/schemas/IIOrganization'
+      - $ref: '#/components/schemas/IIListClientGrantOrganizationsOffsetPaginatedResponseContent'
+      - $ref: '#/components/schemas/IIListClientGrantOrganizationsPaginatedResponseContent'
+    IIOrganization:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          maxLength: 50
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        branding:
+          $ref: '#/components/schemas/IIOrganizationBranding'
+        metadata:
+          $ref: '#/components/schemas/IIOrganizationMetadata'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
+        third_party_client_access:
+          $ref: '#/components/schemas/IIOrganizationThirdPartyClientAccessEnum'
+        is_app_entitlement_active:
+          type: boolean
+        client:
+          $ref: '#/components/schemas/IIOrganizationClientAssociation'
+    IIOrganizationMetadata:
+      type: object
+      additionalProperties:
+        type: string
+        nullable: true
+        maxLength: 255
+      maxProperties: 25
+    IIOrganizationClientAssociation:
+      type: object
+      additionalProperties: false
+      properties:
+        use_for_member_access:
+          type: boolean
+    IIListClientGrantOrganizationsOffsetPaginatedResponseContent:
+      type: object
+      required: [start, limit, total, organizations]
+      additionalProperties: false
+      properties:
+        start:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/IIOrganization'
+    IIListClientGrantOrganizationsPaginatedResponseContent:
+      type: object
+      required: [organizations]
+      additionalProperties: false
+      properties:
+        next:
+          type: string
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/IIOrganization'
     Organization:
       type: object
       additionalProperties: false
@@ -6947,8 +9476,20 @@ components:
           description: '`block` (default) or `allow`.'
         is_app_entitlement_active:
           type: boolean
-          description: Always false (D-0055).
-      required: [id, name, display_name, third_party_client_access, is_app_entitlement_active]
+          default: false
+          description: Enforce member application associations; absent create defaults false; PATCH omission preserves;
+            null rejected (D-0056).
+        client:
+          type: object
+          additionalProperties: false
+          properties:
+            use_for_member_access: {type: boolean}
+      required:
+      - id
+      - name
+      - display_name
+      - third_party_client_access
+      - is_app_entitlement_active
     OrganizationCreated:
       type: object
       additionalProperties: false
@@ -6970,12 +9511,19 @@ components:
           description: '`block` (default) or `allow`.'
         is_app_entitlement_active:
           type: boolean
-          description: Always false (D-0055).
+          default: false
+          description: Enforce member application associations; absent create defaults false; PATCH omission preserves;
+            null rejected (D-0056).
         enabled_connections:
           type: array
           items:
             $ref: '#/components/schemas/OrganizationEnabledConnection'
-      required: [id, name, display_name, third_party_client_access, is_app_entitlement_active]
+      required:
+      - id
+      - name
+      - display_name
+      - third_party_client_access
+      - is_app_entitlement_active
     OrganizationBranding:
       type: object
       additionalProperties: false
@@ -7026,7 +9574,7 @@ components:
           type: string
           minLength: 1
           maxLength: 50
-          pattern: '^[a-z0-9][a-z0-9_-]*$'
+          pattern: ^[a-z0-9][a-z0-9_-]*$
         display_name:
           type: string
           minLength: 1
@@ -7041,13 +9589,16 @@ components:
           description: '`block` (default) or `allow`.'
         is_app_entitlement_active:
           type: boolean
-          description: Only false is accepted (D-0055).
+          default: false
+          description: Enforce member application associations; absent create defaults false; PATCH omission preserves;
+            null rejected (D-0056).
         enabled_connections:
           type: array
           maxItems: 10
           items:
             $ref: '#/components/schemas/OrganizationEnabledConnectionCreate'
-      required: [name]
+      required:
+      - name
     OrganizationUpdate:
       type: object
       additionalProperties: false
@@ -7057,7 +9608,7 @@ components:
           type: string
           minLength: 1
           maxLength: 50
-          pattern: '^[a-z0-9][a-z0-9_-]*$'
+          pattern: ^[a-z0-9][a-z0-9_-]*$
         display_name:
           type: string
           minLength: 1
@@ -7072,7 +9623,9 @@ components:
           description: '`block` (default) or `allow`.'
         is_app_entitlement_active:
           type: boolean
-          description: Only false is accepted (D-0055).
+          default: false
+          description: Enforce member application associations; absent create defaults false; PATCH omission preserves;
+            null rejected (D-0056).
     OrganizationsPage:
       type: object
       additionalProperties: false
@@ -7163,90 +9716,11 @@ components:
             $ref: '#/components/schemas/OrganizationEnabledConnection'
       required: [start, limit, total, enabled_connections]
     OrganizationConnection:
-      type: object
-      additionalProperties: false
-      description: An organization connection of the Early Access resource; the same link as an enabled connection.
-      properties:
-        connection_id: {type: string}
-        assign_membership_on_login:
-          type: boolean
-          description: Members are added when they log in through this connection (default false).
-        is_signup_enabled:
-          type: boolean
-          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
-        show_as_button:
-          type: boolean
-          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
-        connection:
-          $ref: '#/components/schemas/OrganizationConnectionSummary'
-        is_enabled:
-          type: boolean
-          description: Always true; disabled organization connections are not supported (D-0055).
-        organization_access_level:
-          type: string
-          description: Always `none`, the observed default; other values are refused (D-0055).
-        organization_member_access_level:
-          type: string
-          description: Always `limited`, the observed default; other values are refused (D-0055).
-      required: [connection_id, assign_membership_on_login, is_signup_enabled, show_as_button, connection, is_enabled, organization_access_level, organization_member_access_level]
+      $ref: '#/components/schemas/IIGetOrganizationAllConnectionResponseContent'
     OrganizationConnectionCreate:
-      type: object
-      additionalProperties: false
-      properties:
-        connection_id: {type: string}
-        assign_membership_on_login:
-          type: boolean
-          description: Members are added when they log in through this connection (default false).
-        is_signup_enabled:
-          type: boolean
-          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
-        show_as_button:
-          type: boolean
-          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
-        is_enabled:
-          type: boolean
-          description: Only true is accepted (D-0055).
-        organization_connection_name:
-          type: string
-          nullable: true
-          description: Only null is accepted (D-0055).
-        organization_access_level:
-          type: string
-          nullable: true
-          description: Only `none` (or null) is accepted (D-0055).
-        organization_member_access_level:
-          type: string
-          nullable: true
-          description: Only `limited` (or null) is accepted (D-0055).
-      required: [connection_id]
+      $ref: '#/components/schemas/IICreateOrganizationAllConnectionRequestContent'
     OrganizationConnectionUpdate:
-      type: object
-      additionalProperties: false
-      properties:
-        assign_membership_on_login:
-          type: boolean
-          description: Members are added when they log in through this connection (default false).
-        is_signup_enabled:
-          type: boolean
-          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
-        show_as_button:
-          type: boolean
-          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
-        is_enabled:
-          type: boolean
-          description: Only true is accepted (D-0055).
-        organization_connection_name:
-          type: string
-          nullable: true
-          description: Only null is accepted (D-0055).
-        organization_access_level:
-          type: string
-          nullable: true
-          description: Only `none` (or null) is accepted (D-0055).
-        organization_member_access_level:
-          type: string
-          nullable: true
-          description: Only `limited` (or null) is accepted (D-0055).
+      $ref: '#/components/schemas/IIUpdateOrganizationAllConnectionRequestContent'
     OrganizationConnectionsPage:
       type: object
       additionalProperties: false
@@ -7277,7 +9751,7 @@ components:
     OrganizationClientGrantsPage:
       type: object
       additionalProperties: false
-      description: Organization client grants with `include_totals=true`; always empty (D-0055).
+      description: Organization client grants with `include_totals=true`; Plan 30 persists associations (D-0056).
       properties:
         start: {type: integer}
         limit: {type: integer}
@@ -10142,7 +12616,10 @@ components:
         cross_origin_loc: {description: Accepted and ignored.}
         custom_login_page_on: {description: Accepted and ignored.}
         custom_login_page: {description: Accepted and ignored.}
-        initiate_login_uri: {description: Accepted and ignored.}
+        initiate_login_uri:
+          type: string
+          format: uri
+          description: HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
         native_social_login: {description: Accepted and ignored.}
         mobile: {description: Accepted and ignored.}
         organization_usage:
@@ -10209,6 +12686,10 @@ components:
       description: An application.
       required: [tenant, client_id, name, app_type, is_first_party, oidc_conformant, callbacks, allowed_logout_urls, web_origins, allowed_origins, grant_types, token_endpoint_auth_method, jwt_configuration, refresh_token, global, callback_url_template, require_pushed_authorization_requests]
       properties:
+        initiate_login_uri:
+          type: string
+          format: uri
+          description: HTTPS application login route used for organization invitation links.
         tenant: {type: string, description: The tenant's name.}
         client_id: {type: string}
         client_secret:
@@ -10374,27 +12855,41 @@ components:
       properties:
         scope:
           type: array
-          items: {type: string, minLength: 1, maxLength: 280}
+          items:
+            type: string
+            minLength: 1
+            maxLength: 280
           description: The scopes granted; each must be one the API defines. `[]` is valid.
         allow_all_scopes:
           type: boolean
-          description: |
-            Grant every scope the API defines, at the time a token is issued,
+          description: 'Grant every scope the API defines, at the time a token is issued,
+
             so scopes added later are covered. Stored without a `scope`;
-            for the tenant's Management API it means every Management API
+
+            for the tenant''s Management API it means every Management API
+
             scope. Not together with a non-empty `scope`.
+
+            '
         organization_usage:
           type: string
-          enum: [deny]
-          description: zeroauthy has no organizations; only `deny` (or null) is accepted.
+          enum:
+          - deny
+          - allow
+          - require
+          default: deny
+          description: Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH;
+            null rejected (D-0056).
         allow_any_organization:
           type: boolean
-          enum: [false]
-          description: zeroauthy has no organizations; only false (or null) is accepted.
+          default: false
+          description: Client-subject grant only; third-party clients require explicit associations. Omission preserves
+            on PATCH; null rejected (D-0056).
         authorization_details_types:
           type: array
           maxItems: 0
-          items: {type: string}
+          items:
+            type: string
           description: zeroauthy has no rich authorization requests; only an empty list (or null) is accepted.
     ClientGrantCreate:
       description: |
@@ -10419,8 +12914,7 @@ components:
     ClientGrant:
       type: object
       description: |
-        An application's access to an API. The organization fields are not
-        reported.
+        An application's access to an API, including organization policy (D-0056).
       required: [id, client_id, audience, subject_type]
       properties:
         id: {type: string, description: "`cgr_` and 16 letters and digits for grants created through the API."}
@@ -10431,6 +12925,8 @@ components:
           items: {type: string}
           description: Absent when the grant has `allow_all_scopes`.
         allow_all_scopes: {type: boolean, description: "True when set; absent otherwise."}
+        organization_usage: {type: string, enum: [deny, allow, require], default: deny}
+        allow_any_organization: {type: boolean, default: false}
         subject_type: {type: string, enum: [client, user]}
     ClientGrantPage:
       description: A page of client grants with `include_totals=true`.
@@ -10988,6 +13484,7 @@ components:
         provider: {type: string}
     PasswordChangeTicketCreate:
       type: object
+      additionalProperties: false
       description: |
         `user_id`, or `email` with `connection_id`. Unknown properties are
         `400 invalid_body`.
@@ -10996,6 +13493,7 @@ components:
         email: {type: string}
         connection_id: {type: string, description: "The database connection's ID, with `email`."}
         result_url: {type: string, description: "Stored; the success page does not redirect to it. Not with `client_id`."}
+        organization_id: {type: string, description: "Optional organization ID; null and result_url together are invalid_body. Tenant/org/client/database connection eligibility is rechecked at reset completion; no membership mutation (D-0056)."}
         client_id: {type: string}
         ttl_sec: {type: integer, minimum: 0, description: "Seconds the ticket is valid; 0 or absent is 432000 (5 days)."}
         mark_email_as_verified: {type: boolean}

@@ -229,3 +229,13 @@ func cloneJSONValue(v any) any {
 		return x
 	}
 }
+
+func cloneValue[T any](v *T) *T { c := *v; return &c }
+func cloneOrgInvitation(in *store.OrganizationInvitation) *store.OrganizationInvitation {
+	out := *in
+	out.Roles = slices.Clone(in.Roles)
+	out.WrappedTicket = bytes.Clone(in.WrappedTicket)
+	out.UserMetadata = cloneJSON(in.UserMetadata)
+	out.AppMetadata = cloneJSON(in.AppMetadata)
+	return &out
+}

@@ -228,3 +228,23 @@ func TestFederatedIdentityLifecycle(t *testing.T) {
 		}
 	})
 }
+
+func TestInvitationIdentityProvisioningProvenance(t *testing.T) {
+	e := newIdentityEnv(t, "")
+	called := 0
+	for _, wantCreated := range []bool{true, false} {
+		err := e.st.WithTx(e.ctx, func(tx store.Store) error {
+			_, created, err := e.svc.resolveIdentity(e.ctx, tx, e.conn, result("Invited", nil), func() error { called++; return nil })
+			if err == nil && created != wantCreated {
+				t.Fatalf("created=%v want=%v", created, wantCreated)
+			}
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if called != 1 {
+		t.Fatalf("beforeProvision calls=%d", called)
+	}
+}

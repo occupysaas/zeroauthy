@@ -80,7 +80,7 @@ Use Go 1.26.7 and Node >=22.13; retain repository dependency pins.
 ## 3. Invitations and delivery
 
 Routes under `/api/v2/organizations/{id}/invitations`: POST and GET collection,
-GET and DELETE `/{invitation_id}`. An invitation has an opaque `uinv_` ID,
+GET and DELETE `/{invitation_id}`. List accepts fields/include_fields and sort (default created_at:-1); include_totals returns `{invitations,start,limit}` without total, as documented. An invitation has an opaque `uinv_` ID,
 tenant/org/client IDs, inviter name, invitee email, optional forced connection,
 optional role IDs and user/app metadata, timestamps, ticket ID and invitation URL.
 The bearer ticket is independent of the resource ID and contains at least 256
@@ -153,10 +153,20 @@ fails the whole transaction; no partial acceptance.
 Acceptance is the durable business event. An Action denial, failed token
 exchange or abandoned redirect afterward does not undo membership/consumption.
 Actions see the accepted organization and effective roles. A resumed *same*
-authorization transaction can continue using its acceptance receipt; a second
-transaction cannot replay the ticket. Concurrent accept/delete/expiry races
+live, pending authorization transaction can continue using its acceptance receipt; a second
+transaction cannot replay the ticket. Once hosted authentication completes, the
+normal transaction is ended before Actions; a denial requires a new authorization
+request and cannot rewind completed login or rerun Actions. Concurrent accept/delete/expiry races
 have one serialized outcome. Recheck all active authorization policy at code
 exchange and refresh as Plan 29 does; no re-enrollment at those stages.
+
+Local conservative restriction: organization `is_signup_enabled` remains a
+supported database-only flag. First-time federated provisioning during an
+invitation login is refused before creating a user, regardless of screen hint.
+An account provisioned separately through normal federation may subsequently
+accept an invitation. Existing federated users are not subject to signup checks.
+Trusted identity-resolution provenance and invitation Params writes are committed
+atomically and advance the hosted transaction revision monotonically.
 
 Invitation signup may bypass the requirement for *existing membership*, but
 must still respect client connection enablement, blocked users, database signup
@@ -168,7 +178,7 @@ is not a bypass of those controls. Explain that restriction in the console.
 ### Application associations
 
 Implement documented collection list/associate/remove and item get/update at
-`/organizations/{id}/clients`. Store `use_for_member_access` with each association.
+`/organizations/{id}/clients`. Store `use_for_member_access` with each association. POST requires an explicit boolean on every item; there is no omitted-true default. PATCH omission preserves the stored value; null is rejected.
 `is_app_entitlement_active` defaults false on existing and new organizations
 (local default). False preserves Plan 29 interactive behavior. True requires an
 association with `use_for_member_access=true` for interactive organization login.
@@ -179,7 +189,7 @@ Bulk operations validate the complete batch and commit all or none.
 Apply this condition before auto-selecting or truncating picker choices, at
 explicit organization login, invitation acceptance, code exchange and refresh.
 A later revocation blocks new issuance; it does not revoke already signed JWTs.
-`include_client_association_for` annotates list results with the matching client
+`include_client_association_for` annotates list results with `client:{use_for_member_access}` for the matching client
 association; absent associations omit the annotation. It does not filter rows
 or grant access. Do not return client secrets in embedded client summaries.
 
@@ -189,7 +199,7 @@ Persist `ClientGrant.OrganizationUsage` (`deny`, `allow`, `require`, default
 `deny`) and `AllowAnyOrganization` (default false). For `subject_type=user`,
 retain inert deny/false and reject active values (local supported subset).
 Implement list/associate/delete at `/organizations/{id}/client-grants`, plus
-reverse grant organization lookup where the documented tool contract requires it.
+GET `/client-grants/{id}/organizations` with read:organization_client_grants and documented offset/checkpoint variants. DELETE uses `/{grant_id}`.
 Associations reference an existing client-subject grant; they never copy scopes.
 Deleting the grant/client/API/org cascades its associations.
 
@@ -220,17 +230,27 @@ retained disabled association. Existing records migrate to enabled=true.
 
 Persist optional organization-local connection name and the documented
 `organization_access_level` / `organization_member_access_level` enums:
-none, readonly, limited, full. Null clears to the local default none; optional
+none, readonly, limited, full. Omission on create and migration preserves D-0055: organization access none, member access limited. Explicit null clears either access level to the local default none; optional
 name null clears to the underlying connection name. These access-level fields
 are stored management/delegation metadata, **not** user login permission or
 Management API scope grants; delegated execution belongs to Plan 42. The
 console labels them accordingly. `is_enabled` null resets true (local rule).
 Enablement, signup and auto-membership flags remain live in login and refresh.
 
+Internal storage representation (Task 2 local ruling): keep `IsEnabled bool`
+and add `IsEnabledSet bool` as a Go presence marker. Existing Go literals omit
+both fields; creation normalizes them to enabled. Explicit disabled callers set
+the marker true. All persisted/read records carry the marker true; SQL/plugin
+codecs store actual enablement and restore presence, with no API marker field.
+Replacement literals omitting the marker or access strings preserve the current
+II values. Access omission on creation normalizes to none/limited; API null
+clears are translated to explicit none, underlying name or enabled true before
+storage. This preserves old callers without treating zero-value false as disable.
+
 ## 6. Discovery domains and email prompt
 
-Implement documented discovery-domain collection create/list, item get/update/
-delete, and `/name/{discovery_domain}` lookup. Creation returns pending status,
+Implement documented discovery-domain collection create/list (`{domains,next?}`), item get/update/
+delete, and `/name/{discovery_domain}` lookup. Creation accepts omitted/pending status (verified requires PATCH locally), returns pending status,
 verification TXT challenge/host, and use-for-discovery (default true). PATCH
 supports pending/verified and the use flag. Only a caller with the resource's
 Management write scope may assert verified status. This is an administrative
@@ -259,7 +279,7 @@ CSRF and rate protections, accessible error labels and localization.
 
 ## 7. Search and paging
 
-Add `/api/v2/organizations/search` ahead of the parameterized ID route.
+Require both read:organizations and read:organizations_summary, following the public operation OAuth security scope array (the narrower summary-only alternative is not implemented locally). Add `/api/v2/organizations/search` ahead of the parameterized ID route.
 Use `q`, parser lucene (default) or scim, take 1–100 (default 50), opaque from
 cursor, and ascending sort name/display_name/created_at (default created_at).
 Return organizations plus next only when another page exists. No list totals
@@ -296,8 +316,7 @@ resolved ID through ticket, email rendering and hosted reset branding. It never
 adds membership, changes roles or selects an arbitrary user's identity. Reset
 completion rechecks extant organization and connection policy; invalid context
 must not fall back to a different org. Keep existing anti-enumeration responses,
-redirect allowlists and one-use reset rules. Exact parameter spelling and error
-mapping are pinned in Task 1 from public authentication/tickets documentation.
+redirect allowlists and one-use reset rules. The Authentication request field is `organization`; Management reset tickets use `organization_id`. Both accept IDs only, reject null and preserve anti-enumeration for unknown emails. Tickets reject result_url with organization_id. Missing or cross-tenant org/client/connection is invalid_request for Authentication and 404 not_found for Management (local D-0056). Omission carries no organization; reset completion rechecks the bound context.
 
 Use migration `0026_organizations_ii.sql` in SQLite/PostgreSQL/MySQL (renumber
 only if another migration lands first). Add invitations, app associations,

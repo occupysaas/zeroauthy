@@ -1047,6 +1047,27 @@ func (e ClientCreateThirdPartySecurityMode) Valid() bool {
 	}
 }
 
+// Defines values for ClientGrantOrganizationUsage.
+const (
+	ClientGrantOrganizationUsageAllow   ClientGrantOrganizationUsage = "allow"
+	ClientGrantOrganizationUsageDeny    ClientGrantOrganizationUsage = "deny"
+	ClientGrantOrganizationUsageRequire ClientGrantOrganizationUsage = "require"
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantOrganizationUsage enum.
+func (e ClientGrantOrganizationUsage) Valid() bool {
+	switch e {
+	case ClientGrantOrganizationUsageAllow:
+		return true
+	case ClientGrantOrganizationUsageDeny:
+		return true
+	case ClientGrantOrganizationUsageRequire:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientGrantSubjectType.
 const (
 	ClientGrantSubjectTypeClient ClientGrantSubjectType = "client"
@@ -1065,30 +1086,21 @@ func (e ClientGrantSubjectType) Valid() bool {
 	}
 }
 
-// Defines values for ClientGrantCreateAllowAnyOrganization.
-const (
-	ClientGrantCreateAllowAnyOrganizationFalse ClientGrantCreateAllowAnyOrganization = false
-)
-
-// Valid indicates whether the value is a known member of the ClientGrantCreateAllowAnyOrganization enum.
-func (e ClientGrantCreateAllowAnyOrganization) Valid() bool {
-	switch e {
-	case ClientGrantCreateAllowAnyOrganizationFalse:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for ClientGrantCreateOrganizationUsage.
 const (
-	ClientGrantCreateOrganizationUsageDeny ClientGrantCreateOrganizationUsage = "deny"
+	ClientGrantCreateOrganizationUsageAllow   ClientGrantCreateOrganizationUsage = "allow"
+	ClientGrantCreateOrganizationUsageDeny    ClientGrantCreateOrganizationUsage = "deny"
+	ClientGrantCreateOrganizationUsageRequire ClientGrantCreateOrganizationUsage = "require"
 )
 
 // Valid indicates whether the value is a known member of the ClientGrantCreateOrganizationUsage enum.
 func (e ClientGrantCreateOrganizationUsage) Valid() bool {
 	switch e {
+	case ClientGrantCreateOrganizationUsageAllow:
+		return true
 	case ClientGrantCreateOrganizationUsageDeny:
+		return true
+	case ClientGrantCreateOrganizationUsageRequire:
 		return true
 	default:
 		return false
@@ -1113,30 +1125,21 @@ func (e ClientGrantCreateSubjectType) Valid() bool {
 	}
 }
 
-// Defines values for ClientGrantSettingsAllowAnyOrganization.
-const (
-	ClientGrantSettingsAllowAnyOrganizationFalse ClientGrantSettingsAllowAnyOrganization = false
-)
-
-// Valid indicates whether the value is a known member of the ClientGrantSettingsAllowAnyOrganization enum.
-func (e ClientGrantSettingsAllowAnyOrganization) Valid() bool {
-	switch e {
-	case ClientGrantSettingsAllowAnyOrganizationFalse:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for ClientGrantSettingsOrganizationUsage.
 const (
-	ClientGrantSettingsOrganizationUsageDeny ClientGrantSettingsOrganizationUsage = "deny"
+	ClientGrantSettingsOrganizationUsageAllow   ClientGrantSettingsOrganizationUsage = "allow"
+	ClientGrantSettingsOrganizationUsageDeny    ClientGrantSettingsOrganizationUsage = "deny"
+	ClientGrantSettingsOrganizationUsageRequire ClientGrantSettingsOrganizationUsage = "require"
 )
 
 // Valid indicates whether the value is a known member of the ClientGrantSettingsOrganizationUsage enum.
 func (e ClientGrantSettingsOrganizationUsage) Valid() bool {
 	switch e {
+	case ClientGrantSettingsOrganizationUsageAllow:
+		return true
 	case ClientGrantSettingsOrganizationUsageDeny:
+		return true
+	case ClientGrantSettingsOrganizationUsageRequire:
 		return true
 	default:
 		return false
@@ -1692,6 +1695,330 @@ const (
 func (e EmailTemplatePatchSyntax) Valid() bool {
 	switch e {
 	case EmailTemplatePatchSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel.
+const (
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited  IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "limited"
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "none"
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel enum.
+func (e IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel) Valid() bool {
+	switch e {
+	case IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull:
+		return true
+	case IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited:
+		return true
+	case IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone:
+		return true
+	case IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel.
+const (
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull     IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "full"
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited  IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "limited"
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone     IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "none"
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel enum.
+func (e IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel) Valid() bool {
+	switch e {
+	case IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull:
+		return true
+	case IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited:
+		return true
+	case IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone:
+		return true
+	case IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IICreateOrganizationDiscoveryDomainRequestContentStatus.
+const (
+	IICreateOrganizationDiscoveryDomainRequestContentStatusPending IICreateOrganizationDiscoveryDomainRequestContentStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the IICreateOrganizationDiscoveryDomainRequestContentStatus enum.
+func (e IICreateOrganizationDiscoveryDomainRequestContentStatus) Valid() bool {
+	switch e {
+	case IICreateOrganizationDiscoveryDomainRequestContentStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationAccessLevelEnum.
+const (
+	IIOrganizationAccessLevelEnumFull     IIOrganizationAccessLevelEnum = "full"
+	IIOrganizationAccessLevelEnumLimited  IIOrganizationAccessLevelEnum = "limited"
+	IIOrganizationAccessLevelEnumNone     IIOrganizationAccessLevelEnum = "none"
+	IIOrganizationAccessLevelEnumReadonly IIOrganizationAccessLevelEnum = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationAccessLevelEnum enum.
+func (e IIOrganizationAccessLevelEnum) Valid() bool {
+	switch e {
+	case IIOrganizationAccessLevelEnumFull:
+		return true
+	case IIOrganizationAccessLevelEnumLimited:
+		return true
+	case IIOrganizationAccessLevelEnumNone:
+		return true
+	case IIOrganizationAccessLevelEnumReadonly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationAccessLevelEnumWithNull.
+const (
+	IIOrganizationAccessLevelEnumWithNullFull     IIOrganizationAccessLevelEnumWithNull = "full"
+	IIOrganizationAccessLevelEnumWithNullLimited  IIOrganizationAccessLevelEnumWithNull = "limited"
+	IIOrganizationAccessLevelEnumWithNullNone     IIOrganizationAccessLevelEnumWithNull = "none"
+	IIOrganizationAccessLevelEnumWithNullReadonly IIOrganizationAccessLevelEnumWithNull = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationAccessLevelEnumWithNull enum.
+func (e IIOrganizationAccessLevelEnumWithNull) Valid() bool {
+	switch e {
+	case IIOrganizationAccessLevelEnumWithNullFull:
+		return true
+	case IIOrganizationAccessLevelEnumWithNullLimited:
+		return true
+	case IIOrganizationAccessLevelEnumWithNullNone:
+		return true
+	case IIOrganizationAccessLevelEnumWithNullReadonly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationClientMetadataOrganizationUsageEnum.
+const (
+	IIOrganizationClientMetadataOrganizationUsageEnumAllow   IIOrganizationClientMetadataOrganizationUsageEnum = "allow"
+	IIOrganizationClientMetadataOrganizationUsageEnumDeny    IIOrganizationClientMetadataOrganizationUsageEnum = "deny"
+	IIOrganizationClientMetadataOrganizationUsageEnumRequire IIOrganizationClientMetadataOrganizationUsageEnum = "require"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationClientMetadataOrganizationUsageEnum enum.
+func (e IIOrganizationClientMetadataOrganizationUsageEnum) Valid() bool {
+	switch e {
+	case IIOrganizationClientMetadataOrganizationUsageEnumAllow:
+		return true
+	case IIOrganizationClientMetadataOrganizationUsageEnumDeny:
+		return true
+	case IIOrganizationClientMetadataOrganizationUsageEnumRequire:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationDiscoveryDomainStatus.
+const (
+	IIOrganizationDiscoveryDomainStatusPending  IIOrganizationDiscoveryDomainStatus = "pending"
+	IIOrganizationDiscoveryDomainStatusVerified IIOrganizationDiscoveryDomainStatus = "verified"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationDiscoveryDomainStatus enum.
+func (e IIOrganizationDiscoveryDomainStatus) Valid() bool {
+	switch e {
+	case IIOrganizationDiscoveryDomainStatusPending:
+		return true
+	case IIOrganizationDiscoveryDomainStatusVerified:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationMemberAccessLevelEnum.
+const (
+	IIOrganizationMemberAccessLevelEnumFull     IIOrganizationMemberAccessLevelEnum = "full"
+	IIOrganizationMemberAccessLevelEnumLimited  IIOrganizationMemberAccessLevelEnum = "limited"
+	IIOrganizationMemberAccessLevelEnumNone     IIOrganizationMemberAccessLevelEnum = "none"
+	IIOrganizationMemberAccessLevelEnumReadonly IIOrganizationMemberAccessLevelEnum = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationMemberAccessLevelEnum enum.
+func (e IIOrganizationMemberAccessLevelEnum) Valid() bool {
+	switch e {
+	case IIOrganizationMemberAccessLevelEnumFull:
+		return true
+	case IIOrganizationMemberAccessLevelEnumLimited:
+		return true
+	case IIOrganizationMemberAccessLevelEnumNone:
+		return true
+	case IIOrganizationMemberAccessLevelEnumReadonly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationMemberAccessLevelEnumWithNull.
+const (
+	IIOrganizationMemberAccessLevelEnumWithNullFull     IIOrganizationMemberAccessLevelEnumWithNull = "full"
+	IIOrganizationMemberAccessLevelEnumWithNullLimited  IIOrganizationMemberAccessLevelEnumWithNull = "limited"
+	IIOrganizationMemberAccessLevelEnumWithNullNone     IIOrganizationMemberAccessLevelEnumWithNull = "none"
+	IIOrganizationMemberAccessLevelEnumWithNullReadonly IIOrganizationMemberAccessLevelEnumWithNull = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationMemberAccessLevelEnumWithNull enum.
+func (e IIOrganizationMemberAccessLevelEnumWithNull) Valid() bool {
+	switch e {
+	case IIOrganizationMemberAccessLevelEnumWithNullFull:
+		return true
+	case IIOrganizationMemberAccessLevelEnumWithNullLimited:
+		return true
+	case IIOrganizationMemberAccessLevelEnumWithNullNone:
+		return true
+	case IIOrganizationMemberAccessLevelEnumWithNullReadonly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationSortFieldEnum.
+const (
+	CreatedAt   IIOrganizationSortFieldEnum = "created_at"
+	DisplayName IIOrganizationSortFieldEnum = "display_name"
+	Name        IIOrganizationSortFieldEnum = "name"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationSortFieldEnum enum.
+func (e IIOrganizationSortFieldEnum) Valid() bool {
+	switch e {
+	case CreatedAt:
+		return true
+	case DisplayName:
+		return true
+	case Name:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationThirdPartyClientAccessEnum.
+const (
+	IIOrganizationThirdPartyClientAccessEnumAllow IIOrganizationThirdPartyClientAccessEnum = "allow"
+	IIOrganizationThirdPartyClientAccessEnumBlock IIOrganizationThirdPartyClientAccessEnum = "block"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationThirdPartyClientAccessEnum enum.
+func (e IIOrganizationThirdPartyClientAccessEnum) Valid() bool {
+	switch e {
+	case IIOrganizationThirdPartyClientAccessEnumAllow:
+		return true
+	case IIOrganizationThirdPartyClientAccessEnumBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIOrganizationUsageEnum.
+const (
+	IIOrganizationUsageEnumAllow   IIOrganizationUsageEnum = "allow"
+	IIOrganizationUsageEnumDeny    IIOrganizationUsageEnum = "deny"
+	IIOrganizationUsageEnumRequire IIOrganizationUsageEnum = "require"
+)
+
+// Valid indicates whether the value is a known member of the IIOrganizationUsageEnum enum.
+func (e IIOrganizationUsageEnum) Valid() bool {
+	switch e {
+	case IIOrganizationUsageEnumAllow:
+		return true
+	case IIOrganizationUsageEnumDeny:
+		return true
+	case IIOrganizationUsageEnumRequire:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IISearchParserEnum.
+const (
+	Lucene IISearchParserEnum = "lucene"
+	Scim   IISearchParserEnum = "scim"
+)
+
+// Valid indicates whether the value is a known member of the IISearchParserEnum enum.
+func (e IISearchParserEnum) Valid() bool {
+	switch e {
+	case Lucene:
+		return true
+	case Scim:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel.
+const (
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull     IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited  IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "limited"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone     IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "none"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel enum.
+func (e IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel) Valid() bool {
+	switch e {
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull:
+		return true
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited:
+		return true
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone:
+		return true
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel.
+const (
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull     IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "full"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited  IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "limited"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone     IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "none"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "readonly"
+)
+
+// Valid indicates whether the value is a known member of the IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel enum.
+func (e IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel) Valid() bool {
+	switch e {
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull:
+		return true
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited:
+		return true
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone:
+		return true
+	case IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly:
 		return true
 	default:
 		return false
@@ -2831,19 +3158,19 @@ func (e TenantSettingsPatchSessionCookieMode) Valid() bool {
 
 // Defines values for TokenEndpointAuthMethod.
 const (
-	ClientSecretBasic TokenEndpointAuthMethod = "client_secret_basic"
-	ClientSecretPost  TokenEndpointAuthMethod = "client_secret_post"
-	None              TokenEndpointAuthMethod = "none"
+	TokenEndpointAuthMethodClientSecretBasic TokenEndpointAuthMethod = "client_secret_basic"
+	TokenEndpointAuthMethodClientSecretPost  TokenEndpointAuthMethod = "client_secret_post"
+	TokenEndpointAuthMethodNone              TokenEndpointAuthMethod = "none"
 )
 
 // Valid indicates whether the value is a known member of the TokenEndpointAuthMethod enum.
 func (e TokenEndpointAuthMethod) Valid() bool {
 	switch e {
-	case ClientSecretBasic:
+	case TokenEndpointAuthMethodClientSecretBasic:
 		return true
-	case ClientSecretPost:
+	case TokenEndpointAuthMethodClientSecretPost:
 		return true
-	case None:
+	case TokenEndpointAuthMethodNone:
 		return true
 	default:
 		return false
@@ -3490,7 +3817,10 @@ type Client struct {
 	CreatedAt    *time.Time   `json:"created_at,omitempty"`
 	Global       ClientGlobal `json:"global"`
 	GrantTypes   []string     `json:"grant_types"`
-	IsFirstParty bool         `json:"is_first_party"`
+
+	// InitiateLoginUri HTTPS application login route used for organization invitation links.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
+	IsFirstParty     bool    `json:"is_first_party"`
 
 	// JwtConfiguration ID token settings.
 	JwtConfiguration JwtConfiguration     `json:"jwt_configuration"`
@@ -3599,8 +3929,8 @@ type ClientCreate struct {
 	// stored but not served.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
-	// InitiateLoginUri Accepted and ignored.
-	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
+	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
 
 	// IsFirstParty First-party (true) or third-party application.
 	IsFirstParty *bool `json:"is_first_party,omitempty"`
@@ -3693,21 +4023,25 @@ type ClientCreateRedirectionPolicy string
 // ClientCreateThirdPartySecurityMode Third-party applications only; `strict` by default.
 type ClientCreateThirdPartySecurityMode string
 
-// ClientGrant An application's access to an API. The organization fields are not
-// reported.
+// ClientGrant An application's access to an API, including organization policy (D-0056).
 type ClientGrant struct {
 	// AllowAllScopes True when set; absent otherwise.
-	AllowAllScopes *bool  `json:"allow_all_scopes,omitempty"`
-	Audience       string `json:"audience"`
-	ClientId       string `json:"client_id"`
+	AllowAllScopes       *bool  `json:"allow_all_scopes,omitempty"`
+	AllowAnyOrganization *bool  `json:"allow_any_organization,omitempty"`
+	Audience             string `json:"audience"`
+	ClientId             string `json:"client_id"`
 
 	// Id `cgr_` and 16 letters and digits for grants created through the API.
-	Id string `json:"id"`
+	Id                string                        `json:"id"`
+	OrganizationUsage *ClientGrantOrganizationUsage `json:"organization_usage,omitempty"`
 
 	// Scope Absent when the grant has `allow_all_scopes`.
 	Scope       *[]string              `json:"scope,omitempty"`
 	SubjectType ClientGrantSubjectType `json:"subject_type"`
 }
+
+// ClientGrantOrganizationUsage defines model for ClientGrant.OrganizationUsage.
+type ClientGrantOrganizationUsage string
 
 // ClientGrantSubjectType defines model for ClientGrant.SubjectType.
 type ClientGrantSubjectType string
@@ -3730,8 +4064,8 @@ type ClientGrantCreate struct {
 	// scope. Not together with a non-empty `scope`.
 	AllowAllScopes *bool `json:"allow_all_scopes,omitempty"`
 
-	// AllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
-	AllowAnyOrganization *ClientGrantCreateAllowAnyOrganization `json:"allow_any_organization,omitempty"`
+	// AllowAnyOrganization Client-subject grant only; third-party clients require explicit associations. Omission preserves on PATCH; null rejected (D-0056).
+	AllowAnyOrganization *bool `json:"allow_any_organization,omitempty"`
 
 	// Audience The API's identifier.
 	Audience string `json:"audience"`
@@ -3740,7 +4074,7 @@ type ClientGrantCreate struct {
 	AuthorizationDetailsTypes *[]string `json:"authorization_details_types,omitempty"`
 	ClientId                  string    `json:"client_id"`
 
-	// OrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+	// OrganizationUsage Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH; null rejected (D-0056).
 	OrganizationUsage *ClientGrantCreateOrganizationUsage `json:"organization_usage,omitempty"`
 
 	// Scope The scopes granted; each must be one the API defines. `[]` is valid.
@@ -3748,10 +4082,7 @@ type ClientGrantCreate struct {
 	SubjectType *ClientGrantCreateSubjectType `json:"subject_type,omitempty"`
 }
 
-// ClientGrantCreateAllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
-type ClientGrantCreateAllowAnyOrganization bool
-
-// ClientGrantCreateOrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+// ClientGrantCreateOrganizationUsage Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH; null rejected (D-0056).
 type ClientGrantCreateOrganizationUsage string
 
 // ClientGrantCreateSubjectType defines model for ClientGrantCreate.SubjectType.
@@ -3779,23 +4110,20 @@ type ClientGrantSettings struct {
 	// scope. Not together with a non-empty `scope`.
 	AllowAllScopes *bool `json:"allow_all_scopes,omitempty"`
 
-	// AllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
-	AllowAnyOrganization *ClientGrantSettingsAllowAnyOrganization `json:"allow_any_organization,omitempty"`
+	// AllowAnyOrganization Client-subject grant only; third-party clients require explicit associations. Omission preserves on PATCH; null rejected (D-0056).
+	AllowAnyOrganization *bool `json:"allow_any_organization,omitempty"`
 
 	// AuthorizationDetailsTypes zeroauthy has no rich authorization requests; only an empty list (or null) is accepted.
 	AuthorizationDetailsTypes *[]string `json:"authorization_details_types,omitempty"`
 
-	// OrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+	// OrganizationUsage Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH; null rejected (D-0056).
 	OrganizationUsage *ClientGrantSettingsOrganizationUsage `json:"organization_usage,omitempty"`
 
 	// Scope The scopes granted; each must be one the API defines. `[]` is valid.
 	Scope *[]string `json:"scope,omitempty"`
 }
 
-// ClientGrantSettingsAllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
-type ClientGrantSettingsAllowAnyOrganization bool
-
-// ClientGrantSettingsOrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+// ClientGrantSettingsOrganizationUsage Client-subject M2M policy; user-subject grants accept only deny. Omission preserves on PATCH; null rejected (D-0056).
 type ClientGrantSettingsOrganizationUsage string
 
 // ClientGrantUpdate Fields to change; at least one property is required. Unknown
@@ -3865,8 +4193,8 @@ type ClientSettings struct {
 	// stored but not served.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
-	// InitiateLoginUri Accepted and ignored.
-	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
+	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
 
 	// IsTokenEndpointIpHeaderTrusted Accepted and ignored.
 	IsTokenEndpointIpHeaderTrusted interface{} `json:"is_token_endpoint_ip_header_trusted,omitempty"`
@@ -4001,9 +4329,9 @@ type ClientUpdate struct {
 	// stored but not served.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
-	// InitiateLoginUri Accepted and ignored.
-	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
-	IsFirstParty     *bool       `json:"is_first_party,omitempty"`
+	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
+	IsFirstParty     *bool   `json:"is_first_party,omitempty"`
 
 	// IsTokenEndpointIpHeaderTrusted Accepted and ignored.
 	IsTokenEndpointIpHeaderTrusted interface{} `json:"is_token_endpoint_ip_header_trusted,omitempty"`
@@ -4459,6 +4787,443 @@ type EmailVerificationTicketCreate struct {
 	UserId string `json:"user_id"`
 }
 
+// IIAppMetadata defines model for IIAppMetadata.
+type IIAppMetadata map[string]interface{}
+
+// IIAssociateOrganizationClientGrantRequestContent defines model for IIAssociateOrganizationClientGrantRequestContent.
+type IIAssociateOrganizationClientGrantRequestContent struct {
+	GrantId string `json:"grant_id"`
+}
+
+// IIAssociateOrganizationClientGrantResponseContent defines model for IIAssociateOrganizationClientGrantResponseContent.
+type IIAssociateOrganizationClientGrantResponseContent struct {
+	AllowAnyOrganization *bool                    `json:"allow_any_organization,omitempty"`
+	Audience             *string                  `json:"audience,omitempty"`
+	ClientId             *string                  `json:"client_id,omitempty"`
+	Id                   *string                  `json:"id,omitempty"`
+	OrganizationUsage    *IIOrganizationUsageEnum `json:"organization_usage,omitempty"`
+	Scope                *[]string                `json:"scope,omitempty"`
+}
+
+// IICreateOrganizationAllConnectionRequestContent defines model for IICreateOrganizationAllConnectionRequestContent.
+type IICreateOrganizationAllConnectionRequestContent struct {
+	AssignMembershipOnLogin *bool  `json:"assign_membership_on_login,omitempty"`
+	ConnectionId            string `json:"connection_id"`
+
+	// IsEnabled Omitted on create defaults true; null resets true (D-0056).
+	IsEnabled       *bool `json:"is_enabled,omitempty"`
+	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
+
+	// OrganizationAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission preserves (D-0055/D-0056).
+	OrganizationAccessLevel *IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel `json:"organization_access_level,omitempty"`
+
+	// OrganizationConnectionName Omitted on create uses underlying connection name; null clears local override (D-0056).
+	OrganizationConnectionName *string `json:"organization_connection_name,omitempty"`
+
+	// OrganizationMemberAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH omission preserves (D-0055/D-0056).
+	OrganizationMemberAccessLevel *IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel `json:"organization_member_access_level,omitempty"`
+	ShowAsButton                  *bool                                                                         `json:"show_as_button,omitempty"`
+}
+
+// IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission preserves (D-0055/D-0056).
+type IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel string
+
+// IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH omission preserves (D-0055/D-0056).
+type IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel string
+
+// IICreateOrganizationAllConnectionResponseContent defines model for IICreateOrganizationAllConnectionResponseContent.
+type IICreateOrganizationAllConnectionResponseContent struct {
+	AssignMembershipOnLogin       *bool                                `json:"assign_membership_on_login,omitempty"`
+	Connection                    *IIOrganizationConnectionInformation `json:"connection,omitempty"`
+	ConnectionId                  string                               `json:"connection_id"`
+	IsEnabled                     *bool                                `json:"is_enabled,omitempty"`
+	IsSignupEnabled               *bool                                `json:"is_signup_enabled,omitempty"`
+	OrganizationAccessLevel       *IIOrganizationAccessLevelEnum       `json:"organization_access_level,omitempty"`
+	OrganizationConnectionName    *string                              `json:"organization_connection_name,omitempty"`
+	OrganizationMemberAccessLevel *IIOrganizationMemberAccessLevelEnum `json:"organization_member_access_level,omitempty"`
+	ShowAsButton                  *bool                                `json:"show_as_button,omitempty"`
+}
+
+// IICreateOrganizationClientRequestItem defines model for IICreateOrganizationClientRequestItem.
+type IICreateOrganizationClientRequestItem struct {
+	ClientId           string `json:"client_id"`
+	UseForMemberAccess bool   `json:"use_for_member_access"`
+}
+
+// IICreateOrganizationClientsRequestContent defines model for IICreateOrganizationClientsRequestContent.
+type IICreateOrganizationClientsRequestContent struct {
+	Clients []IICreateOrganizationClientRequestItem `json:"clients"`
+}
+
+// IICreateOrganizationClientsResponseContent defines model for IICreateOrganizationClientsResponseContent.
+type IICreateOrganizationClientsResponseContent = []OrganizationClientAssociation
+
+// IICreateOrganizationDiscoveryDomainRequestContent defines model for IICreateOrganizationDiscoveryDomainRequestContent.
+type IICreateOrganizationDiscoveryDomainRequestContent struct {
+	Domain                      string                                                   `json:"domain"`
+	Status                      *IICreateOrganizationDiscoveryDomainRequestContentStatus `json:"status,omitempty"`
+	UseForOrganizationDiscovery *bool                                                    `json:"use_for_organization_discovery,omitempty"`
+}
+
+// IICreateOrganizationDiscoveryDomainRequestContentStatus defines model for IICreateOrganizationDiscoveryDomainRequestContent.Status.
+type IICreateOrganizationDiscoveryDomainRequestContentStatus string
+
+// IIDeleteOrganizationClientsRequestContent defines model for IIDeleteOrganizationClientsRequestContent.
+type IIDeleteOrganizationClientsRequestContent struct {
+	Clients []string `json:"clients"`
+}
+
+// IIGetOrganizationAllConnectionResponseContent defines model for IIGetOrganizationAllConnectionResponseContent.
+type IIGetOrganizationAllConnectionResponseContent struct {
+	AssignMembershipOnLogin       *bool                                `json:"assign_membership_on_login,omitempty"`
+	Connection                    *IIOrganizationConnectionInformation `json:"connection,omitempty"`
+	ConnectionId                  string                               `json:"connection_id"`
+	IsEnabled                     *bool                                `json:"is_enabled,omitempty"`
+	IsSignupEnabled               *bool                                `json:"is_signup_enabled,omitempty"`
+	OrganizationAccessLevel       *IIOrganizationAccessLevelEnum       `json:"organization_access_level,omitempty"`
+	OrganizationConnectionName    *string                              `json:"organization_connection_name,omitempty"`
+	OrganizationMemberAccessLevel *IIOrganizationMemberAccessLevelEnum `json:"organization_member_access_level,omitempty"`
+	ShowAsButton                  *bool                                `json:"show_as_button,omitempty"`
+}
+
+// IIGetOrganizationClientResponseContent defines model for IIGetOrganizationClientResponseContent.
+type IIGetOrganizationClientResponseContent struct {
+	Client             IIOrganizationClientMetadata `json:"client"`
+	ClientId           string                       `json:"client_id"`
+	UseForMemberAccess bool                         `json:"use_for_member_access"`
+}
+
+// IIGetOrganizationDiscoveryDomainByNameResponseContent defines model for IIGetOrganizationDiscoveryDomainByNameResponseContent.
+type IIGetOrganizationDiscoveryDomainByNameResponseContent struct {
+	Domain                      string                              `json:"domain"`
+	Id                          string                              `json:"id"`
+	Status                      IIOrganizationDiscoveryDomainStatus `json:"status"`
+	UseForOrganizationDiscovery *bool                               `json:"use_for_organization_discovery,omitempty"`
+	VerificationHost            string                              `json:"verification_host"`
+	VerificationTxt             string                              `json:"verification_txt"`
+}
+
+// IIGetOrganizationDiscoveryDomainResponseContent defines model for IIGetOrganizationDiscoveryDomainResponseContent.
+type IIGetOrganizationDiscoveryDomainResponseContent struct {
+	Domain                      string                              `json:"domain"`
+	Id                          string                              `json:"id"`
+	Status                      IIOrganizationDiscoveryDomainStatus `json:"status"`
+	UseForOrganizationDiscovery *bool                               `json:"use_for_organization_discovery,omitempty"`
+	VerificationHost            string                              `json:"verification_host"`
+	VerificationTxt             string                              `json:"verification_txt"`
+}
+
+// IIGetOrganizationInvitationResponseContent defines model for IIGetOrganizationInvitationResponseContent.
+type IIGetOrganizationInvitationResponseContent struct {
+	AppMetadata    *IIAppMetadata                   `json:"app_metadata,omitempty"`
+	ClientId       *string                          `json:"client_id,omitempty"`
+	ConnectionId   *string                          `json:"connection_id,omitempty"`
+	CreatedAt      *string                          `json:"created_at,omitempty"`
+	ExpiresAt      *string                          `json:"expires_at,omitempty"`
+	Id             *string                          `json:"id,omitempty"`
+	InvitationUrl  *string                          `json:"invitation_url,omitempty"`
+	Invitee        *IIOrganizationInvitationInvitee `json:"invitee,omitempty"`
+	Inviter        *IIOrganizationInvitationInviter `json:"inviter,omitempty"`
+	OrganizationId *string                          `json:"organization_id,omitempty"`
+	Roles          *[]string                        `json:"roles,omitempty"`
+	TicketId       *string                          `json:"ticket_id,omitempty"`
+	UserMetadata   *IIUserMetadata                  `json:"user_metadata,omitempty"`
+}
+
+// IIListClientGrantOrganizationsOffsetPaginatedResponseContent defines model for IIListClientGrantOrganizationsOffsetPaginatedResponseContent.
+type IIListClientGrantOrganizationsOffsetPaginatedResponseContent struct {
+	Limit         float32          `json:"limit"`
+	Organizations []IIOrganization `json:"organizations"`
+	Start         float32          `json:"start"`
+	Total         float32          `json:"total"`
+}
+
+// IIListClientGrantOrganizationsPaginatedResponseContent defines model for IIListClientGrantOrganizationsPaginatedResponseContent.
+type IIListClientGrantOrganizationsPaginatedResponseContent struct {
+	Next          *string          `json:"next,omitempty"`
+	Organizations []IIOrganization `json:"organizations"`
+}
+
+// IIListClientGrantOrganizationsResponseContent defines model for IIListClientGrantOrganizationsResponseContent.
+type IIListClientGrantOrganizationsResponseContent struct {
+	union json.RawMessage
+}
+
+// IIListClientGrantOrganizationsResponseContent0 defines model for IIListClientGrantOrganizationsResponseContent.0.
+type IIListClientGrantOrganizationsResponseContent0 = []IIOrganization
+
+// IIListOrganizationAllConnectionsOffsetPaginatedResponseContent defines model for IIListOrganizationAllConnectionsOffsetPaginatedResponseContent.
+type IIListOrganizationAllConnectionsOffsetPaginatedResponseContent struct {
+	Connections *[]IIOrganizationAllConnectionPost `json:"connections,omitempty"`
+	Limit       *float32                           `json:"limit,omitempty"`
+	Start       *float32                           `json:"start,omitempty"`
+	Total       *float32                           `json:"total,omitempty"`
+}
+
+// IIListOrganizationAllConnectionsResponseContent defines model for IIListOrganizationAllConnectionsResponseContent.
+type IIListOrganizationAllConnectionsResponseContent struct {
+	union json.RawMessage
+}
+
+// IIListOrganizationAllConnectionsResponseContent0 defines model for IIListOrganizationAllConnectionsResponseContent.0.
+type IIListOrganizationAllConnectionsResponseContent0 = []IIOrganizationAllConnectionPost
+
+// IIListOrganizationClientGrantsOffsetPaginatedResponseContent defines model for IIListOrganizationClientGrantsOffsetPaginatedResponseContent.
+type IIListOrganizationClientGrantsOffsetPaginatedResponseContent struct {
+	ClientGrants *[]IIOrganizationClientGrant `json:"client_grants,omitempty"`
+	Limit        *float32                     `json:"limit,omitempty"`
+	Start        *float32                     `json:"start,omitempty"`
+	Total        *float32                     `json:"total,omitempty"`
+}
+
+// IIListOrganizationClientGrantsResponseContent defines model for IIListOrganizationClientGrantsResponseContent.
+type IIListOrganizationClientGrantsResponseContent struct {
+	union json.RawMessage
+}
+
+// IIListOrganizationClientGrantsResponseContent0 defines model for IIListOrganizationClientGrantsResponseContent.0.
+type IIListOrganizationClientGrantsResponseContent0 = []IIOrganizationClientGrant
+
+// IIListOrganizationClientsResponseContent defines model for IIListOrganizationClientsResponseContent.
+type IIListOrganizationClientsResponseContent struct {
+	Clients []OrganizationClientAssociation `json:"clients"`
+	Next    *string                         `json:"next,omitempty"`
+}
+
+// IIListOrganizationDiscoveryDomainsResponseContent defines model for IIListOrganizationDiscoveryDomainsResponseContent.
+type IIListOrganizationDiscoveryDomainsResponseContent struct {
+	Domains []OrganizationDiscoveryDomain `json:"domains"`
+	Next    *string                       `json:"next,omitempty"`
+}
+
+// IIListOrganizationInvitationsOffsetPaginatedResponseContent defines model for IIListOrganizationInvitationsOffsetPaginatedResponseContent.
+type IIListOrganizationInvitationsOffsetPaginatedResponseContent struct {
+	Invitations *[]OrganizationInvitation `json:"invitations,omitempty"`
+	Limit       *float32                  `json:"limit,omitempty"`
+	Start       *float32                  `json:"start,omitempty"`
+}
+
+// IIListOrganizationInvitationsResponseContent defines model for IIListOrganizationInvitationsResponseContent.
+type IIListOrganizationInvitationsResponseContent struct {
+	union json.RawMessage
+}
+
+// IIListOrganizationInvitationsResponseContent0 defines model for IIListOrganizationInvitationsResponseContent.0.
+type IIListOrganizationInvitationsResponseContent0 = []OrganizationInvitation
+
+// IIOrganization defines model for IIOrganization.
+type IIOrganization struct {
+	Branding               *IIOrganizationBranding                   `json:"branding,omitempty"`
+	Client                 *IIOrganizationClientAssociation          `json:"client,omitempty"`
+	DisplayName            *string                                   `json:"display_name,omitempty"`
+	Id                     *string                                   `json:"id,omitempty"`
+	IsAppEntitlementActive *bool                                     `json:"is_app_entitlement_active,omitempty"`
+	Metadata               *IIOrganizationMetadata                   `json:"metadata,omitempty"`
+	Name                   *string                                   `json:"name,omitempty"`
+	ThirdPartyClientAccess *IIOrganizationThirdPartyClientAccessEnum `json:"third_party_client_access,omitempty"`
+	TokenQuota             *IITokenQuota                             `json:"token_quota,omitempty"`
+	AdditionalProperties   map[string]interface{}                    `json:"-"`
+}
+
+// IIOrganizationAccessLevelEnum defines model for IIOrganizationAccessLevelEnum.
+type IIOrganizationAccessLevelEnum string
+
+// IIOrganizationAccessLevelEnumWithNull defines model for IIOrganizationAccessLevelEnumWithNull.
+type IIOrganizationAccessLevelEnumWithNull string
+
+// IIOrganizationAllConnectionPost defines model for IIOrganizationAllConnectionPost.
+type IIOrganizationAllConnectionPost struct {
+	AssignMembershipOnLogin       *bool                                `json:"assign_membership_on_login,omitempty"`
+	Connection                    *IIOrganizationConnectionInformation `json:"connection,omitempty"`
+	ConnectionId                  string                               `json:"connection_id"`
+	IsEnabled                     *bool                                `json:"is_enabled,omitempty"`
+	IsSignupEnabled               *bool                                `json:"is_signup_enabled,omitempty"`
+	OrganizationAccessLevel       *IIOrganizationAccessLevelEnum       `json:"organization_access_level,omitempty"`
+	OrganizationConnectionName    *string                              `json:"organization_connection_name,omitempty"`
+	OrganizationMemberAccessLevel *IIOrganizationMemberAccessLevelEnum `json:"organization_member_access_level,omitempty"`
+	ShowAsButton                  *bool                                `json:"show_as_button,omitempty"`
+}
+
+// IIOrganizationBranding defines model for IIOrganizationBranding.
+type IIOrganizationBranding struct {
+	Colors  *IIOrganizationBrandingColors `json:"colors,omitempty"`
+	LogoUrl *string                       `json:"logo_url,omitempty"`
+}
+
+// IIOrganizationBrandingColors defines model for IIOrganizationBrandingColors.
+type IIOrganizationBrandingColors struct {
+	PageBackground string `json:"page_background"`
+	Primary        string `json:"primary"`
+}
+
+// IIOrganizationClientAssociation defines model for IIOrganizationClientAssociation.
+type IIOrganizationClientAssociation struct {
+	UseForMemberAccess *bool `json:"use_for_member_access,omitempty"`
+}
+
+// IIOrganizationClientGrant defines model for IIOrganizationClientGrant.
+type IIOrganizationClientGrant struct {
+	AllowAnyOrganization *bool                    `json:"allow_any_organization,omitempty"`
+	Audience             *string                  `json:"audience,omitempty"`
+	ClientId             *string                  `json:"client_id,omitempty"`
+	Id                   *string                  `json:"id,omitempty"`
+	OrganizationUsage    *IIOrganizationUsageEnum `json:"organization_usage,omitempty"`
+	Scope                *[]string                `json:"scope,omitempty"`
+}
+
+// IIOrganizationClientMetadata defines model for IIOrganizationClientMetadata.
+type IIOrganizationClientMetadata struct {
+	AppType           *string                                            `json:"app_type,omitempty"`
+	GrantTypes        *[]string                                          `json:"grant_types,omitempty"`
+	IsFirstParty      *bool                                              `json:"is_first_party,omitempty"`
+	LogoUri           *string                                            `json:"logo_uri,omitempty"`
+	Name              *string                                            `json:"name,omitempty"`
+	OrganizationUsage *IIOrganizationClientMetadataOrganizationUsageEnum `json:"organization_usage,omitempty"`
+}
+
+// IIOrganizationClientMetadataOrganizationUsageEnum defines model for IIOrganizationClientMetadataOrganizationUsageEnum.
+type IIOrganizationClientMetadataOrganizationUsageEnum string
+
+// IIOrganizationConnectionInformation defines model for IIOrganizationConnectionInformation.
+type IIOrganizationConnectionInformation struct {
+	Name                 *string                `json:"name,omitempty"`
+	Strategy             *string                `json:"strategy,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// IIOrganizationDiscoveryDomainStatus defines model for IIOrganizationDiscoveryDomainStatus.
+type IIOrganizationDiscoveryDomainStatus string
+
+// IIOrganizationInvitationInvitee defines model for IIOrganizationInvitationInvitee.
+type IIOrganizationInvitationInvitee struct {
+	Email string `json:"email"`
+}
+
+// IIOrganizationInvitationInviter defines model for IIOrganizationInvitationInviter.
+type IIOrganizationInvitationInviter struct {
+	Name string `json:"name"`
+}
+
+// IIOrganizationMemberAccessLevelEnum defines model for IIOrganizationMemberAccessLevelEnum.
+type IIOrganizationMemberAccessLevelEnum string
+
+// IIOrganizationMemberAccessLevelEnumWithNull defines model for IIOrganizationMemberAccessLevelEnumWithNull.
+type IIOrganizationMemberAccessLevelEnumWithNull string
+
+// IIOrganizationMetadata defines model for IIOrganizationMetadata.
+type IIOrganizationMetadata map[string]string
+
+// IIOrganizationSortFieldEnum defines model for IIOrganizationSortFieldEnum.
+type IIOrganizationSortFieldEnum string
+
+// IIOrganizationThirdPartyClientAccessEnum defines model for IIOrganizationThirdPartyClientAccessEnum.
+type IIOrganizationThirdPartyClientAccessEnum string
+
+// IIOrganizationUsageEnum defines model for IIOrganizationUsageEnum.
+type IIOrganizationUsageEnum string
+
+// IISearchOrganization defines model for IISearchOrganization.
+type IISearchOrganization struct {
+	Branding               *IIOrganizationBranding                   `json:"branding,omitempty"`
+	DisplayName            *string                                   `json:"display_name,omitempty"`
+	Id                     *string                                   `json:"id,omitempty"`
+	IsAppEntitlementActive *bool                                     `json:"is_app_entitlement_active,omitempty"`
+	Name                   *string                                   `json:"name,omitempty"`
+	ThirdPartyClientAccess *IIOrganizationThirdPartyClientAccessEnum `json:"third_party_client_access,omitempty"`
+	TokenQuota             *IITokenQuota                             `json:"token_quota,omitempty"`
+	AdditionalProperties   map[string]interface{}                    `json:"-"`
+}
+
+// IISearchOrganizationsPaginatedResponseContent defines model for IISearchOrganizationsPaginatedResponseContent.
+type IISearchOrganizationsPaginatedResponseContent struct {
+	Next          *string                `json:"next,omitempty"`
+	Organizations []IISearchOrganization `json:"organizations"`
+}
+
+// IISearchParserEnum defines model for IISearchParserEnum.
+type IISearchParserEnum string
+
+// IITokenQuota defines model for IITokenQuota.
+type IITokenQuota struct {
+	ClientCredentials IITokenQuotaClientCredentials `json:"client_credentials"`
+}
+
+// IITokenQuotaClientCredentials defines model for IITokenQuotaClientCredentials.
+type IITokenQuotaClientCredentials struct {
+	Enforce *bool `json:"enforce,omitempty"`
+	PerDay  *int  `json:"per_day,omitempty"`
+	PerHour *int  `json:"per_hour,omitempty"`
+}
+
+// IIUpdateOrganizationAllConnectionRequestContent defines model for IIUpdateOrganizationAllConnectionRequestContent.
+type IIUpdateOrganizationAllConnectionRequestContent struct {
+	AssignMembershipOnLogin *bool `json:"assign_membership_on_login,omitempty"`
+
+	// IsEnabled Omitted on create defaults true; null resets true (D-0056).
+	IsEnabled       *bool `json:"is_enabled,omitempty"`
+	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
+
+	// OrganizationAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission preserves (D-0055/D-0056).
+	OrganizationAccessLevel *IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel `json:"organization_access_level,omitempty"`
+
+	// OrganizationConnectionName Omitted on create uses underlying connection name; null clears local override (D-0056).
+	OrganizationConnectionName *string `json:"organization_connection_name,omitempty"`
+
+	// OrganizationMemberAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH omission preserves (D-0055/D-0056).
+	OrganizationMemberAccessLevel *IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel `json:"organization_member_access_level,omitempty"`
+	ShowAsButton                  *bool                                                                         `json:"show_as_button,omitempty"`
+}
+
+// IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission preserves (D-0055/D-0056).
+type IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel string
+
+// IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH omission preserves (D-0055/D-0056).
+type IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel string
+
+// IIUpdateOrganizationAllConnectionResponseContent defines model for IIUpdateOrganizationAllConnectionResponseContent.
+type IIUpdateOrganizationAllConnectionResponseContent struct {
+	AssignMembershipOnLogin       *bool                                `json:"assign_membership_on_login,omitempty"`
+	Connection                    *IIOrganizationConnectionInformation `json:"connection,omitempty"`
+	ConnectionId                  string                               `json:"connection_id"`
+	IsEnabled                     *bool                                `json:"is_enabled,omitempty"`
+	IsSignupEnabled               *bool                                `json:"is_signup_enabled,omitempty"`
+	OrganizationAccessLevel       *IIOrganizationAccessLevelEnum       `json:"organization_access_level,omitempty"`
+	OrganizationConnectionName    *string                              `json:"organization_connection_name,omitempty"`
+	OrganizationMemberAccessLevel *IIOrganizationMemberAccessLevelEnum `json:"organization_member_access_level,omitempty"`
+	ShowAsButton                  *bool                                `json:"show_as_button,omitempty"`
+}
+
+// IIUpdateOrganizationClientRequestContent defines model for IIUpdateOrganizationClientRequestContent.
+type IIUpdateOrganizationClientRequestContent struct {
+	UseForMemberAccess *bool `json:"use_for_member_access,omitempty"`
+}
+
+// IIUpdateOrganizationClientResponseContent defines model for IIUpdateOrganizationClientResponseContent.
+type IIUpdateOrganizationClientResponseContent struct {
+	Client             *IIOrganizationClientMetadata `json:"client,omitempty"`
+	ClientId           string                        `json:"client_id"`
+	UseForMemberAccess bool                          `json:"use_for_member_access"`
+}
+
+// IIUpdateOrganizationDiscoveryDomainRequestContent defines model for IIUpdateOrganizationDiscoveryDomainRequestContent.
+type IIUpdateOrganizationDiscoveryDomainRequestContent struct {
+	Status                      *IIOrganizationDiscoveryDomainStatus `json:"status,omitempty"`
+	UseForOrganizationDiscovery *bool                                `json:"use_for_organization_discovery,omitempty"`
+}
+
+// IIUpdateOrganizationDiscoveryDomainResponseContent defines model for IIUpdateOrganizationDiscoveryDomainResponseContent.
+type IIUpdateOrganizationDiscoveryDomainResponseContent struct {
+	Domain                      string                              `json:"domain"`
+	Id                          string                              `json:"id"`
+	Status                      IIOrganizationDiscoveryDomainStatus `json:"status"`
+	UseForOrganizationDiscovery *bool                               `json:"use_for_organization_discovery,omitempty"`
+	VerificationHost            string                              `json:"verification_host"`
+	VerificationTxt             string                              `json:"verification_txt"`
+}
+
+// IIUserMetadata defines model for IIUserMetadata.
+type IIUserMetadata map[string]interface{}
+
 // Job A job in Auth0's shape. `status` is `pending`, `completed` or `failed`
 // (a running job reads `pending`). `status_details` appears only on a
 // failed job, `summary` only on a completed import and `location` only
@@ -4614,13 +5379,16 @@ type OperatorUpdate struct {
 
 // Organization An organization. `branding` and `metadata` are left out when unset; reads never carry `enabled_connections`.
 type Organization struct {
-	Branding    *OrganizationBranding `json:"branding,omitempty"`
-	DisplayName string                `json:"display_name"`
+	Branding *OrganizationBranding `json:"branding,omitempty"`
+	Client   *struct {
+		UseForMemberAccess *bool `json:"use_for_member_access,omitempty"`
+	} `json:"client,omitempty"`
+	DisplayName string `json:"display_name"`
 
 	// Id `org_` and 16 letters or digits.
 	Id string `json:"id"`
 
-	// IsAppEntitlementActive Always false (D-0055).
+	// IsAppEntitlementActive Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
 	IsAppEntitlementActive bool                  `json:"is_app_entitlement_active"`
 	Metadata               *OrganizationMetadata `json:"metadata,omitempty"`
 	Name                   string                `json:"name"`
@@ -4643,6 +5411,13 @@ type OrganizationBrandingWrite struct {
 	LogoUrl *string `json:"logo_url,omitempty"`
 }
 
+// OrganizationClientAssociation defines model for OrganizationClientAssociation.
+type OrganizationClientAssociation struct {
+	Client             IIOrganizationClientMetadata `json:"client"`
+	ClientId           string                       `json:"client_id"`
+	UseForMemberAccess bool                         `json:"use_for_member_access"`
+}
+
 // OrganizationClientGrant defines model for OrganizationClientGrant.
 type OrganizationClientGrant struct {
 	AllowAnyOrganization *bool   `json:"allow_any_organization,omitempty"`
@@ -4655,7 +5430,7 @@ type OrganizationClientGrant struct {
 	Scope             *[]string `json:"scope,omitempty"`
 }
 
-// OrganizationClientGrantsPage Organization client grants with `include_totals=true`; always empty (D-0055).
+// OrganizationClientGrantsPage Organization client grants with `include_totals=true`; Plan 30 persists associations (D-0056).
 type OrganizationClientGrantsPage struct {
 	ClientGrants []OrganizationClientGrant `json:"client_grants"`
 	Limit        int                       `json:"limit"`
@@ -4672,53 +5447,11 @@ type OrganizationColors struct {
 	Primary string `json:"primary"`
 }
 
-// OrganizationConnection An organization connection of the Early Access resource; the same link as an enabled connection.
-type OrganizationConnection struct {
-	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
-	AssignMembershipOnLogin bool                          `json:"assign_membership_on_login"`
-	Connection              OrganizationConnectionSummary `json:"connection"`
-	ConnectionId            string                        `json:"connection_id"`
-
-	// IsEnabled Always true; disabled organization connections are not supported (D-0055).
-	IsEnabled bool `json:"is_enabled"`
-
-	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
-	IsSignupEnabled bool `json:"is_signup_enabled"`
-
-	// OrganizationAccessLevel Always `none`, the observed default; other values are refused (D-0055).
-	OrganizationAccessLevel string `json:"organization_access_level"`
-
-	// OrganizationMemberAccessLevel Always `limited`, the observed default; other values are refused (D-0055).
-	OrganizationMemberAccessLevel string `json:"organization_member_access_level"`
-
-	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
-	ShowAsButton bool `json:"show_as_button"`
-}
+// OrganizationConnection defines model for OrganizationConnection.
+type OrganizationConnection = IIGetOrganizationAllConnectionResponseContent
 
 // OrganizationConnectionCreate defines model for OrganizationConnectionCreate.
-type OrganizationConnectionCreate struct {
-	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
-	AssignMembershipOnLogin *bool  `json:"assign_membership_on_login,omitempty"`
-	ConnectionId            string `json:"connection_id"`
-
-	// IsEnabled Only true is accepted (D-0055).
-	IsEnabled *bool `json:"is_enabled,omitempty"`
-
-	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
-	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
-
-	// OrganizationAccessLevel Only `none` (or null) is accepted (D-0055).
-	OrganizationAccessLevel *string `json:"organization_access_level,omitempty"`
-
-	// OrganizationConnectionName Only null is accepted (D-0055).
-	OrganizationConnectionName *string `json:"organization_connection_name,omitempty"`
-
-	// OrganizationMemberAccessLevel Only `limited` (or null) is accepted (D-0055).
-	OrganizationMemberAccessLevel *string `json:"organization_member_access_level,omitempty"`
-
-	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
-	ShowAsButton *bool `json:"show_as_button,omitempty"`
-}
+type OrganizationConnectionCreate = IICreateOrganizationAllConnectionRequestContent
 
 // OrganizationConnectionSummary defines model for OrganizationConnectionSummary.
 type OrganizationConnectionSummary struct {
@@ -4727,28 +5460,7 @@ type OrganizationConnectionSummary struct {
 }
 
 // OrganizationConnectionUpdate defines model for OrganizationConnectionUpdate.
-type OrganizationConnectionUpdate struct {
-	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
-	AssignMembershipOnLogin *bool `json:"assign_membership_on_login,omitempty"`
-
-	// IsEnabled Only true is accepted (D-0055).
-	IsEnabled *bool `json:"is_enabled,omitempty"`
-
-	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
-	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
-
-	// OrganizationAccessLevel Only `none` (or null) is accepted (D-0055).
-	OrganizationAccessLevel *string `json:"organization_access_level,omitempty"`
-
-	// OrganizationConnectionName Only null is accepted (D-0055).
-	OrganizationConnectionName *string `json:"organization_connection_name,omitempty"`
-
-	// OrganizationMemberAccessLevel Only `limited` (or null) is accepted (D-0055).
-	OrganizationMemberAccessLevel *string `json:"organization_member_access_level,omitempty"`
-
-	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
-	ShowAsButton *bool `json:"show_as_button,omitempty"`
-}
+type OrganizationConnectionUpdate = IIUpdateOrganizationAllConnectionRequestContent
 
 // OrganizationConnectionsPage Organization connections with `include_totals=true`; `limit` is the number of entries returned.
 type OrganizationConnectionsPage struct {
@@ -4767,7 +5479,7 @@ type OrganizationCreate struct {
 	DisplayName        *string                                `json:"display_name,omitempty"`
 	EnabledConnections *[]OrganizationEnabledConnectionCreate `json:"enabled_connections,omitempty"`
 
-	// IsAppEntitlementActive Only false is accepted (D-0055).
+	// IsAppEntitlementActive Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
 	IsAppEntitlementActive *bool `json:"is_app_entitlement_active,omitempty"`
 
 	// Metadata Replaced whole on PATCH; null or {} clears it. Keys 1-50 characters matching `^[a-zA-Z0-9]\w*$`; values non-empty strings of at most 255 characters.
@@ -4787,13 +5499,23 @@ type OrganizationCreated struct {
 	// Id `org_` and 16 letters or digits.
 	Id string `json:"id"`
 
-	// IsAppEntitlementActive Always false (D-0055).
+	// IsAppEntitlementActive Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
 	IsAppEntitlementActive bool                  `json:"is_app_entitlement_active"`
 	Metadata               *OrganizationMetadata `json:"metadata,omitempty"`
 	Name                   string                `json:"name"`
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess string `json:"third_party_client_access"`
+}
+
+// OrganizationDiscoveryDomain defines model for OrganizationDiscoveryDomain.
+type OrganizationDiscoveryDomain struct {
+	Domain                      string                              `json:"domain"`
+	Id                          string                              `json:"id"`
+	Status                      IIOrganizationDiscoveryDomainStatus `json:"status"`
+	UseForOrganizationDiscovery *bool                               `json:"use_for_organization_discovery,omitempty"`
+	VerificationHost            string                              `json:"verification_host"`
+	VerificationTxt             string                              `json:"verification_txt"`
 }
 
 // OrganizationEffectiveRole defines model for OrganizationEffectiveRole.
@@ -4862,6 +5584,36 @@ type OrganizationEnabledConnectionsPage struct {
 	Total              int                             `json:"total"`
 }
 
+// OrganizationInvitation defines model for OrganizationInvitation.
+type OrganizationInvitation struct {
+	AppMetadata    *IIAppMetadata                   `json:"app_metadata,omitempty"`
+	ClientId       *string                          `json:"client_id,omitempty"`
+	ConnectionId   *string                          `json:"connection_id,omitempty"`
+	CreatedAt      *string                          `json:"created_at,omitempty"`
+	ExpiresAt      *string                          `json:"expires_at,omitempty"`
+	Id             *string                          `json:"id,omitempty"`
+	InvitationUrl  *string                          `json:"invitation_url,omitempty"`
+	Invitee        *IIOrganizationInvitationInvitee `json:"invitee,omitempty"`
+	Inviter        *IIOrganizationInvitationInviter `json:"inviter,omitempty"`
+	OrganizationId *string                          `json:"organization_id,omitempty"`
+	Roles          *[]string                        `json:"roles,omitempty"`
+	TicketId       *string                          `json:"ticket_id,omitempty"`
+	UserMetadata   *IIUserMetadata                  `json:"user_metadata,omitempty"`
+}
+
+// OrganizationInvitationCreate defines model for OrganizationInvitationCreate.
+type OrganizationInvitationCreate struct {
+	AppMetadata         *IIAppMetadata                  `json:"app_metadata,omitempty"`
+	ClientId            string                          `json:"client_id"`
+	ConnectionId        *string                         `json:"connection_id,omitempty"`
+	Invitee             IIOrganizationInvitationInvitee `json:"invitee"`
+	Inviter             IIOrganizationInvitationInviter `json:"inviter"`
+	Roles               *[]string                       `json:"roles,omitempty"`
+	SendInvitationEmail *bool                           `json:"send_invitation_email,omitempty"`
+	TtlSec              *int                            `json:"ttl_sec,omitempty"`
+	UserMetadata        *IIUserMetadata                 `json:"user_metadata,omitempty"`
+}
+
 // OrganizationMember A member; `fields` may leave properties out. `roles` appears only when `fields` lists it.
 type OrganizationMember struct {
 	Email   *string                   `json:"email,omitempty"`
@@ -4917,7 +5669,7 @@ type OrganizationUpdate struct {
 	// DisplayName Defaults to `name` on create.
 	DisplayName *string `json:"display_name,omitempty"`
 
-	// IsAppEntitlementActive Only false is accepted (D-0055).
+	// IsAppEntitlementActive Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
 	IsAppEntitlementActive *bool `json:"is_app_entitlement_active,omitempty"`
 
 	// Metadata Replaced whole on PATCH; null or {} clears it. Keys 1-50 characters matching `^[a-zA-Z0-9]\w*$`; values non-empty strings of at most 255 characters.
@@ -4955,6 +5707,9 @@ type PasswordChangeTicketCreate struct {
 	Identity               *TicketIdentity `json:"identity,omitempty"`
 	IncludeEmailInRedirect *bool           `json:"includeEmailInRedirect,omitempty"`
 	MarkEmailAsVerified    *bool           `json:"mark_email_as_verified,omitempty"`
+
+	// OrganizationId Optional organization ID; null and result_url together are invalid_body. Tenant/org/client/database connection eligibility is rechecked at reset completion; no membership mutation (D-0056).
+	OrganizationId *string `json:"organization_id,omitempty"`
 
 	// ResultUrl Stored; the success page does not redirect to it. Not with `client_id`.
 	ResultUrl *string `json:"result_url,omitempty"`
@@ -6420,6 +7175,9 @@ type UpdateBrandingThemeJSONBody map[string]interface{}
 
 // GetClientGrantsParams defines parameters for GetClientGrants.
 type GetClientGrantsParams struct {
+	// AllowAnyOrganization Filter grants by organization allow-any policy.
+	AllowAnyOrganization *bool `form:"allow_any_organization,omitempty" json:"allow_any_organization,omitempty"`
+
 	// Page Page index of the results, from 0.
 	Page *Page `form:"page,omitempty" json:"page,omitempty"`
 
@@ -6451,6 +7209,15 @@ type GetClientGrants200JSONResponseBody0 = []ClientGrant
 // GetClientGrants200JSONResponseBody defines parameters for GetClientGrants.
 type GetClientGrants200JSONResponseBody struct {
 	union json.RawMessage
+}
+
+// ListClientGrantOrganizationsParams defines parameters for ListClientGrantOrganizations.
+type ListClientGrantOrganizationsParams struct {
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+	From          *string `form:"from,omitempty" json:"from,omitempty"`
+	Take          *int    `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // GetClientsParams defines parameters for GetClients.
@@ -6633,6 +7400,9 @@ type GetJobErrors200JSONResponseBody struct {
 
 // ListOrganizationsParams defines parameters for ListOrganizations.
 type ListOrganizationsParams struct {
+	// IncludeClientAssociationFor Annotate matching association without filtering; no secrets; missing association omitted (D-0056).
+	IncludeClientAssociationFor *string `form:"include_client_association_for,omitempty" json:"include_client_association_for,omitempty"`
+
 	// Page Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
 
@@ -6660,56 +7430,43 @@ type ListOrganizations200JSONResponseBody struct {
 	union json.RawMessage
 }
 
-// ListOrganizationClientGrantsParams defines parameters for ListOrganizationClientGrants.
-type ListOrganizationClientGrantsParams struct {
-	// Page Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).
-	Page *int `form:"page,omitempty" json:"page,omitempty"`
-
-	// PerPage Number of results per page, 1 to 100 (default 50).
-	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
-
-	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
-	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
-
-	// Audience Only grants for this API identifier.
-	Audience *string `form:"audience,omitempty" json:"audience,omitempty"`
-
-	// ClientId Only grants of this client.
-	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
-
-	// GrantIds Only these grant IDs (at most 10).
-	GrantIds *[]string `form:"grant_ids,omitempty" json:"grant_ids,omitempty"`
+// SearchOrganizationsParams defines parameters for SearchOrganizations.
+type SearchOrganizationsParams struct {
+	Q      *string                      `form:"q,omitempty" json:"q,omitempty"`
+	Parser *IISearchParserEnum          `form:"parser,omitempty" json:"parser,omitempty"`
+	Take   *int                         `form:"take,omitempty" json:"take,omitempty"`
+	From   *string                      `form:"from,omitempty" json:"from,omitempty"`
+	Sort   *IIOrganizationSortFieldEnum `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
-// ListOrganizationClientGrants200JSONResponseBody0 defines parameters for ListOrganizationClientGrants.
-type ListOrganizationClientGrants200JSONResponseBody0 = []OrganizationClientGrant
+// ListOrganizationClientGrantsParams defines parameters for ListOrganizationClientGrants.
+type ListOrganizationClientGrantsParams struct {
+	Audience      *string   `form:"audience,omitempty" json:"audience,omitempty"`
+	ClientId      *string   `form:"client_id,omitempty" json:"client_id,omitempty"`
+	GrantIds      *[]string `form:"grant_ids,omitempty" json:"grant_ids,omitempty"`
+	Page          *int      `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int      `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool     `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
 
-// ListOrganizationClientGrants200JSONResponseBody defines parameters for ListOrganizationClientGrants.
-type ListOrganizationClientGrants200JSONResponseBody struct {
-	union json.RawMessage
+// ListOrganizationClientsParams defines parameters for ListOrganizationClients.
+type ListOrganizationClientsParams struct {
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+	Take *int    `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // ListOrganizationAllConnectionsParams defines parameters for ListOrganizationAllConnections.
 type ListOrganizationAllConnectionsParams struct {
-	// Page Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).
-	Page *int `form:"page,omitempty" json:"page,omitempty"`
-
-	// PerPage Number of results per page, 1 to 100 (default 50).
-	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
-
-	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int  `form:"per_page,omitempty" json:"per_page,omitempty"`
 	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
-
-	// IsEnabled Only enabled (true) or disabled (false) connections; every stored connection is enabled.
-	IsEnabled *bool `form:"is_enabled,omitempty" json:"is_enabled,omitempty"`
+	IsEnabled     *bool `form:"is_enabled,omitempty" json:"is_enabled,omitempty"`
 }
 
-// ListOrganizationAllConnections200JSONResponseBody0 defines parameters for ListOrganizationAllConnections.
-type ListOrganizationAllConnections200JSONResponseBody0 = []OrganizationConnection
-
-// ListOrganizationAllConnections200JSONResponseBody defines parameters for ListOrganizationAllConnections.
-type ListOrganizationAllConnections200JSONResponseBody struct {
-	union json.RawMessage
+// ListOrganizationDiscoveryDomainsParams defines parameters for ListOrganizationDiscoveryDomains.
+type ListOrganizationDiscoveryDomainsParams struct {
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+	Take *int    `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // ListOrganizationConnectionsParams defines parameters for ListOrganizationConnections.
@@ -6730,6 +7487,27 @@ type ListOrganizationConnections200JSONResponseBody0 = []OrganizationEnabledConn
 // ListOrganizationConnections200JSONResponseBody defines parameters for ListOrganizationConnections.
 type ListOrganizationConnections200JSONResponseBody struct {
 	union json.RawMessage
+}
+
+// ListOrganizationInvitationsParams defines parameters for ListOrganizationInvitations.
+type ListOrganizationInvitationsParams struct {
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+	Sort          *string `form:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// CreateOrganizationInvitationParams defines parameters for CreateOrganizationInvitation.
+type CreateOrganizationInvitationParams struct {
+	Auth0CustomDomain *string `json:"auth0-custom-domain,omitempty"`
+}
+
+// GetOrganizationInvitationParams defines parameters for GetOrganizationInvitation.
+type GetOrganizationInvitationParams struct {
+	Fields        *string `form:"fields,omitempty" json:"fields,omitempty"`
+	IncludeFields *bool   `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
 // ListOrganizationMembersParams defines parameters for ListOrganizationMembers.
@@ -7229,17 +8007,38 @@ type CreateOrganizationJSONRequestBody = OrganizationCreate
 // UpdateOrganizationJSONRequestBody defines body for UpdateOrganization for application/json ContentType.
 type UpdateOrganizationJSONRequestBody = OrganizationUpdate
 
+// AssociateOrganizationClientGrantJSONRequestBody defines body for AssociateOrganizationClientGrant for application/json ContentType.
+type AssociateOrganizationClientGrantJSONRequestBody = IIAssociateOrganizationClientGrantRequestContent
+
+// DeleteOrganizationClientsJSONRequestBody defines body for DeleteOrganizationClients for application/json ContentType.
+type DeleteOrganizationClientsJSONRequestBody = IIDeleteOrganizationClientsRequestContent
+
+// AssociateOrganizationClientsJSONRequestBody defines body for AssociateOrganizationClients for application/json ContentType.
+type AssociateOrganizationClientsJSONRequestBody = IICreateOrganizationClientsRequestContent
+
+// UpdateOrganizationClientJSONRequestBody defines body for UpdateOrganizationClient for application/json ContentType.
+type UpdateOrganizationClientJSONRequestBody = IIUpdateOrganizationClientRequestContent
+
 // CreateOrganizationAllConnectionJSONRequestBody defines body for CreateOrganizationAllConnection for application/json ContentType.
-type CreateOrganizationAllConnectionJSONRequestBody = OrganizationConnectionCreate
+type CreateOrganizationAllConnectionJSONRequestBody = IICreateOrganizationAllConnectionRequestContent
 
 // UpdateOrganizationAllConnectionJSONRequestBody defines body for UpdateOrganizationAllConnection for application/json ContentType.
-type UpdateOrganizationAllConnectionJSONRequestBody = OrganizationConnectionUpdate
+type UpdateOrganizationAllConnectionJSONRequestBody = IIUpdateOrganizationAllConnectionRequestContent
+
+// CreateOrganizationDiscoveryDomainJSONRequestBody defines body for CreateOrganizationDiscoveryDomain for application/json ContentType.
+type CreateOrganizationDiscoveryDomainJSONRequestBody = IICreateOrganizationDiscoveryDomainRequestContent
+
+// UpdateOrganizationDiscoveryDomainJSONRequestBody defines body for UpdateOrganizationDiscoveryDomain for application/json ContentType.
+type UpdateOrganizationDiscoveryDomainJSONRequestBody = IIUpdateOrganizationDiscoveryDomainRequestContent
 
 // CreateOrganizationConnectionJSONRequestBody defines body for CreateOrganizationConnection for application/json ContentType.
 type CreateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnectionCreate
 
 // UpdateOrganizationConnectionJSONRequestBody defines body for UpdateOrganizationConnection for application/json ContentType.
 type UpdateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnectionUpdate
+
+// CreateOrganizationInvitationJSONRequestBody defines body for CreateOrganizationInvitation for application/json ContentType.
+type CreateOrganizationInvitationJSONRequestBody = OrganizationInvitationCreate
 
 // RemoveOrganizationMembersJSONRequestBody defines body for RemoveOrganizationMembers for application/json ContentType.
 type RemoveOrganizationMembersJSONRequestBody = OrganizationMemberBatch
@@ -7312,6 +8111,435 @@ type DeleteUserRolesJSONRequestBody = UserRoleBatch
 
 // PostUserRolesJSONRequestBody defines body for PostUserRoles for application/json ContentType.
 type PostUserRolesJSONRequestBody = UserRoleBatch
+
+// Getter for additional properties for IIOrganization. Returns the specified
+// element and whether it was found
+func (a IIOrganization) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for IIOrganization
+func (a *IIOrganization) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for IIOrganization to handle AdditionalProperties
+func (a *IIOrganization) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["branding"]; found {
+		err = json.Unmarshal(raw, &a.Branding)
+		if err != nil {
+			return fmt.Errorf("error reading 'branding': %w", err)
+		}
+		delete(object, "branding")
+	}
+
+	if raw, found := object["client"]; found {
+		err = json.Unmarshal(raw, &a.Client)
+		if err != nil {
+			return fmt.Errorf("error reading 'client': %w", err)
+		}
+		delete(object, "client")
+	}
+
+	if raw, found := object["display_name"]; found {
+		err = json.Unmarshal(raw, &a.DisplayName)
+		if err != nil {
+			return fmt.Errorf("error reading 'display_name': %w", err)
+		}
+		delete(object, "display_name")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["is_app_entitlement_active"]; found {
+		err = json.Unmarshal(raw, &a.IsAppEntitlementActive)
+		if err != nil {
+			return fmt.Errorf("error reading 'is_app_entitlement_active': %w", err)
+		}
+		delete(object, "is_app_entitlement_active")
+	}
+
+	if raw, found := object["metadata"]; found {
+		err = json.Unmarshal(raw, &a.Metadata)
+		if err != nil {
+			return fmt.Errorf("error reading 'metadata': %w", err)
+		}
+		delete(object, "metadata")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["third_party_client_access"]; found {
+		err = json.Unmarshal(raw, &a.ThirdPartyClientAccess)
+		if err != nil {
+			return fmt.Errorf("error reading 'third_party_client_access': %w", err)
+		}
+		delete(object, "third_party_client_access")
+	}
+
+	if raw, found := object["token_quota"]; found {
+		err = json.Unmarshal(raw, &a.TokenQuota)
+		if err != nil {
+			return fmt.Errorf("error reading 'token_quota': %w", err)
+		}
+		delete(object, "token_quota")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for IIOrganization to handle AdditionalProperties
+func (a IIOrganization) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Branding != nil {
+		object["branding"], err = json.Marshal(a.Branding)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'branding': %w", err)
+		}
+	}
+
+	if a.Client != nil {
+		object["client"], err = json.Marshal(a.Client)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client': %w", err)
+		}
+	}
+
+	if a.DisplayName != nil {
+		object["display_name"], err = json.Marshal(a.DisplayName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'display_name': %w", err)
+		}
+	}
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.IsAppEntitlementActive != nil {
+		object["is_app_entitlement_active"], err = json.Marshal(a.IsAppEntitlementActive)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'is_app_entitlement_active': %w", err)
+		}
+	}
+
+	if a.Metadata != nil {
+		object["metadata"], err = json.Marshal(a.Metadata)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'metadata': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.ThirdPartyClientAccess != nil {
+		object["third_party_client_access"], err = json.Marshal(a.ThirdPartyClientAccess)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'third_party_client_access': %w", err)
+		}
+	}
+
+	if a.TokenQuota != nil {
+		object["token_quota"], err = json.Marshal(a.TokenQuota)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'token_quota': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for IIOrganizationConnectionInformation. Returns the specified
+// element and whether it was found
+func (a IIOrganizationConnectionInformation) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for IIOrganizationConnectionInformation
+func (a *IIOrganizationConnectionInformation) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for IIOrganizationConnectionInformation to handle AdditionalProperties
+func (a *IIOrganizationConnectionInformation) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["strategy"]; found {
+		err = json.Unmarshal(raw, &a.Strategy)
+		if err != nil {
+			return fmt.Errorf("error reading 'strategy': %w", err)
+		}
+		delete(object, "strategy")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for IIOrganizationConnectionInformation to handle AdditionalProperties
+func (a IIOrganizationConnectionInformation) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.Strategy != nil {
+		object["strategy"], err = json.Marshal(a.Strategy)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'strategy': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for IISearchOrganization. Returns the specified
+// element and whether it was found
+func (a IISearchOrganization) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for IISearchOrganization
+func (a *IISearchOrganization) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for IISearchOrganization to handle AdditionalProperties
+func (a *IISearchOrganization) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["branding"]; found {
+		err = json.Unmarshal(raw, &a.Branding)
+		if err != nil {
+			return fmt.Errorf("error reading 'branding': %w", err)
+		}
+		delete(object, "branding")
+	}
+
+	if raw, found := object["display_name"]; found {
+		err = json.Unmarshal(raw, &a.DisplayName)
+		if err != nil {
+			return fmt.Errorf("error reading 'display_name': %w", err)
+		}
+		delete(object, "display_name")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["is_app_entitlement_active"]; found {
+		err = json.Unmarshal(raw, &a.IsAppEntitlementActive)
+		if err != nil {
+			return fmt.Errorf("error reading 'is_app_entitlement_active': %w", err)
+		}
+		delete(object, "is_app_entitlement_active")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["third_party_client_access"]; found {
+		err = json.Unmarshal(raw, &a.ThirdPartyClientAccess)
+		if err != nil {
+			return fmt.Errorf("error reading 'third_party_client_access': %w", err)
+		}
+		delete(object, "third_party_client_access")
+	}
+
+	if raw, found := object["token_quota"]; found {
+		err = json.Unmarshal(raw, &a.TokenQuota)
+		if err != nil {
+			return fmt.Errorf("error reading 'token_quota': %w", err)
+		}
+		delete(object, "token_quota")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for IISearchOrganization to handle AdditionalProperties
+func (a IISearchOrganization) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Branding != nil {
+		object["branding"], err = json.Marshal(a.Branding)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'branding': %w", err)
+		}
+	}
+
+	if a.DisplayName != nil {
+		object["display_name"], err = json.Marshal(a.DisplayName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'display_name': %w", err)
+		}
+	}
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.IsAppEntitlementActive != nil {
+		object["is_app_entitlement_active"], err = json.Marshal(a.IsAppEntitlementActive)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'is_app_entitlement_active': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.ThirdPartyClientAccess != nil {
+		object["third_party_client_access"], err = json.Marshal(a.ThirdPartyClientAccess)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'third_party_client_access': %w", err)
+		}
+	}
+
+	if a.TokenQuota != nil {
+		object["token_quota"], err = json.Marshal(a.TokenQuota)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'token_quota': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for Job. Returns the specified
 // element and whether it was found
@@ -8185,6 +9413,280 @@ func (a User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// AsIIListClientGrantOrganizationsResponseContent0 returns the union data inside the IIListClientGrantOrganizationsResponseContent as a IIListClientGrantOrganizationsResponseContent0
+func (t IIListClientGrantOrganizationsResponseContent) AsIIListClientGrantOrganizationsResponseContent0() (IIListClientGrantOrganizationsResponseContent0, error) {
+	var body IIListClientGrantOrganizationsResponseContent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListClientGrantOrganizationsResponseContent0 overwrites any union data inside the IIListClientGrantOrganizationsResponseContent as the provided IIListClientGrantOrganizationsResponseContent0
+func (t *IIListClientGrantOrganizationsResponseContent) FromIIListClientGrantOrganizationsResponseContent0(v IIListClientGrantOrganizationsResponseContent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListClientGrantOrganizationsResponseContent0 performs a merge with any union data inside the IIListClientGrantOrganizationsResponseContent, using the provided IIListClientGrantOrganizationsResponseContent0
+func (t *IIListClientGrantOrganizationsResponseContent) MergeIIListClientGrantOrganizationsResponseContent0(v IIListClientGrantOrganizationsResponseContent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsIIListClientGrantOrganizationsOffsetPaginatedResponseContent returns the union data inside the IIListClientGrantOrganizationsResponseContent as a IIListClientGrantOrganizationsOffsetPaginatedResponseContent
+func (t IIListClientGrantOrganizationsResponseContent) AsIIListClientGrantOrganizationsOffsetPaginatedResponseContent() (IIListClientGrantOrganizationsOffsetPaginatedResponseContent, error) {
+	var body IIListClientGrantOrganizationsOffsetPaginatedResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListClientGrantOrganizationsOffsetPaginatedResponseContent overwrites any union data inside the IIListClientGrantOrganizationsResponseContent as the provided IIListClientGrantOrganizationsOffsetPaginatedResponseContent
+func (t *IIListClientGrantOrganizationsResponseContent) FromIIListClientGrantOrganizationsOffsetPaginatedResponseContent(v IIListClientGrantOrganizationsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListClientGrantOrganizationsOffsetPaginatedResponseContent performs a merge with any union data inside the IIListClientGrantOrganizationsResponseContent, using the provided IIListClientGrantOrganizationsOffsetPaginatedResponseContent
+func (t *IIListClientGrantOrganizationsResponseContent) MergeIIListClientGrantOrganizationsOffsetPaginatedResponseContent(v IIListClientGrantOrganizationsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsIIListClientGrantOrganizationsPaginatedResponseContent returns the union data inside the IIListClientGrantOrganizationsResponseContent as a IIListClientGrantOrganizationsPaginatedResponseContent
+func (t IIListClientGrantOrganizationsResponseContent) AsIIListClientGrantOrganizationsPaginatedResponseContent() (IIListClientGrantOrganizationsPaginatedResponseContent, error) {
+	var body IIListClientGrantOrganizationsPaginatedResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListClientGrantOrganizationsPaginatedResponseContent overwrites any union data inside the IIListClientGrantOrganizationsResponseContent as the provided IIListClientGrantOrganizationsPaginatedResponseContent
+func (t *IIListClientGrantOrganizationsResponseContent) FromIIListClientGrantOrganizationsPaginatedResponseContent(v IIListClientGrantOrganizationsPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListClientGrantOrganizationsPaginatedResponseContent performs a merge with any union data inside the IIListClientGrantOrganizationsResponseContent, using the provided IIListClientGrantOrganizationsPaginatedResponseContent
+func (t *IIListClientGrantOrganizationsResponseContent) MergeIIListClientGrantOrganizationsPaginatedResponseContent(v IIListClientGrantOrganizationsPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t IIListClientGrantOrganizationsResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *IIListClientGrantOrganizationsResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsIIListOrganizationAllConnectionsResponseContent0 returns the union data inside the IIListOrganizationAllConnectionsResponseContent as a IIListOrganizationAllConnectionsResponseContent0
+func (t IIListOrganizationAllConnectionsResponseContent) AsIIListOrganizationAllConnectionsResponseContent0() (IIListOrganizationAllConnectionsResponseContent0, error) {
+	var body IIListOrganizationAllConnectionsResponseContent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListOrganizationAllConnectionsResponseContent0 overwrites any union data inside the IIListOrganizationAllConnectionsResponseContent as the provided IIListOrganizationAllConnectionsResponseContent0
+func (t *IIListOrganizationAllConnectionsResponseContent) FromIIListOrganizationAllConnectionsResponseContent0(v IIListOrganizationAllConnectionsResponseContent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListOrganizationAllConnectionsResponseContent0 performs a merge with any union data inside the IIListOrganizationAllConnectionsResponseContent, using the provided IIListOrganizationAllConnectionsResponseContent0
+func (t *IIListOrganizationAllConnectionsResponseContent) MergeIIListOrganizationAllConnectionsResponseContent0(v IIListOrganizationAllConnectionsResponseContent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsIIListOrganizationAllConnectionsOffsetPaginatedResponseContent returns the union data inside the IIListOrganizationAllConnectionsResponseContent as a IIListOrganizationAllConnectionsOffsetPaginatedResponseContent
+func (t IIListOrganizationAllConnectionsResponseContent) AsIIListOrganizationAllConnectionsOffsetPaginatedResponseContent() (IIListOrganizationAllConnectionsOffsetPaginatedResponseContent, error) {
+	var body IIListOrganizationAllConnectionsOffsetPaginatedResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListOrganizationAllConnectionsOffsetPaginatedResponseContent overwrites any union data inside the IIListOrganizationAllConnectionsResponseContent as the provided IIListOrganizationAllConnectionsOffsetPaginatedResponseContent
+func (t *IIListOrganizationAllConnectionsResponseContent) FromIIListOrganizationAllConnectionsOffsetPaginatedResponseContent(v IIListOrganizationAllConnectionsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListOrganizationAllConnectionsOffsetPaginatedResponseContent performs a merge with any union data inside the IIListOrganizationAllConnectionsResponseContent, using the provided IIListOrganizationAllConnectionsOffsetPaginatedResponseContent
+func (t *IIListOrganizationAllConnectionsResponseContent) MergeIIListOrganizationAllConnectionsOffsetPaginatedResponseContent(v IIListOrganizationAllConnectionsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t IIListOrganizationAllConnectionsResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *IIListOrganizationAllConnectionsResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsIIListOrganizationClientGrantsResponseContent0 returns the union data inside the IIListOrganizationClientGrantsResponseContent as a IIListOrganizationClientGrantsResponseContent0
+func (t IIListOrganizationClientGrantsResponseContent) AsIIListOrganizationClientGrantsResponseContent0() (IIListOrganizationClientGrantsResponseContent0, error) {
+	var body IIListOrganizationClientGrantsResponseContent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListOrganizationClientGrantsResponseContent0 overwrites any union data inside the IIListOrganizationClientGrantsResponseContent as the provided IIListOrganizationClientGrantsResponseContent0
+func (t *IIListOrganizationClientGrantsResponseContent) FromIIListOrganizationClientGrantsResponseContent0(v IIListOrganizationClientGrantsResponseContent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListOrganizationClientGrantsResponseContent0 performs a merge with any union data inside the IIListOrganizationClientGrantsResponseContent, using the provided IIListOrganizationClientGrantsResponseContent0
+func (t *IIListOrganizationClientGrantsResponseContent) MergeIIListOrganizationClientGrantsResponseContent0(v IIListOrganizationClientGrantsResponseContent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsIIListOrganizationClientGrantsOffsetPaginatedResponseContent returns the union data inside the IIListOrganizationClientGrantsResponseContent as a IIListOrganizationClientGrantsOffsetPaginatedResponseContent
+func (t IIListOrganizationClientGrantsResponseContent) AsIIListOrganizationClientGrantsOffsetPaginatedResponseContent() (IIListOrganizationClientGrantsOffsetPaginatedResponseContent, error) {
+	var body IIListOrganizationClientGrantsOffsetPaginatedResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListOrganizationClientGrantsOffsetPaginatedResponseContent overwrites any union data inside the IIListOrganizationClientGrantsResponseContent as the provided IIListOrganizationClientGrantsOffsetPaginatedResponseContent
+func (t *IIListOrganizationClientGrantsResponseContent) FromIIListOrganizationClientGrantsOffsetPaginatedResponseContent(v IIListOrganizationClientGrantsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListOrganizationClientGrantsOffsetPaginatedResponseContent performs a merge with any union data inside the IIListOrganizationClientGrantsResponseContent, using the provided IIListOrganizationClientGrantsOffsetPaginatedResponseContent
+func (t *IIListOrganizationClientGrantsResponseContent) MergeIIListOrganizationClientGrantsOffsetPaginatedResponseContent(v IIListOrganizationClientGrantsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t IIListOrganizationClientGrantsResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *IIListOrganizationClientGrantsResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsIIListOrganizationInvitationsResponseContent0 returns the union data inside the IIListOrganizationInvitationsResponseContent as a IIListOrganizationInvitationsResponseContent0
+func (t IIListOrganizationInvitationsResponseContent) AsIIListOrganizationInvitationsResponseContent0() (IIListOrganizationInvitationsResponseContent0, error) {
+	var body IIListOrganizationInvitationsResponseContent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListOrganizationInvitationsResponseContent0 overwrites any union data inside the IIListOrganizationInvitationsResponseContent as the provided IIListOrganizationInvitationsResponseContent0
+func (t *IIListOrganizationInvitationsResponseContent) FromIIListOrganizationInvitationsResponseContent0(v IIListOrganizationInvitationsResponseContent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListOrganizationInvitationsResponseContent0 performs a merge with any union data inside the IIListOrganizationInvitationsResponseContent, using the provided IIListOrganizationInvitationsResponseContent0
+func (t *IIListOrganizationInvitationsResponseContent) MergeIIListOrganizationInvitationsResponseContent0(v IIListOrganizationInvitationsResponseContent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsIIListOrganizationInvitationsOffsetPaginatedResponseContent returns the union data inside the IIListOrganizationInvitationsResponseContent as a IIListOrganizationInvitationsOffsetPaginatedResponseContent
+func (t IIListOrganizationInvitationsResponseContent) AsIIListOrganizationInvitationsOffsetPaginatedResponseContent() (IIListOrganizationInvitationsOffsetPaginatedResponseContent, error) {
+	var body IIListOrganizationInvitationsOffsetPaginatedResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromIIListOrganizationInvitationsOffsetPaginatedResponseContent overwrites any union data inside the IIListOrganizationInvitationsResponseContent as the provided IIListOrganizationInvitationsOffsetPaginatedResponseContent
+func (t *IIListOrganizationInvitationsResponseContent) FromIIListOrganizationInvitationsOffsetPaginatedResponseContent(v IIListOrganizationInvitationsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeIIListOrganizationInvitationsOffsetPaginatedResponseContent performs a merge with any union data inside the IIListOrganizationInvitationsResponseContent, using the provided IIListOrganizationInvitationsOffsetPaginatedResponseContent
+func (t *IIListOrganizationInvitationsResponseContent) MergeIIListOrganizationInvitationsOffsetPaginatedResponseContent(v IIListOrganizationInvitationsOffsetPaginatedResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t IIListOrganizationInvitationsResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *IIListOrganizationInvitationsResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsUserIdentityLinkUserId0 returns the union data inside the UserIdentityLink_UserId as a UserIdentityLinkUserId0
 func (t UserIdentityLink_UserId) AsUserIdentityLinkUserId0() (UserIdentityLinkUserId0, error) {
 	var body UserIdentityLinkUserId0
@@ -8755,130 +10257,6 @@ func (t ListOrganizations200JSONResponseBody) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ListOrganizations200JSONResponseBody) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}
-
-// AsListOrganizationClientGrants200JSONResponseBody0 returns the union data inside the ListOrganizationClientGrants200JSONResponseBody as a ListOrganizationClientGrants200JSONResponseBody0
-func (t ListOrganizationClientGrants200JSONResponseBody) AsListOrganizationClientGrants200JSONResponseBody0() (ListOrganizationClientGrants200JSONResponseBody0, error) {
-	var body ListOrganizationClientGrants200JSONResponseBody0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromListOrganizationClientGrants200JSONResponseBody0 overwrites any union data inside the ListOrganizationClientGrants200JSONResponseBody as the provided ListOrganizationClientGrants200JSONResponseBody0
-func (t *ListOrganizationClientGrants200JSONResponseBody) FromListOrganizationClientGrants200JSONResponseBody0(v ListOrganizationClientGrants200JSONResponseBody0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeListOrganizationClientGrants200JSONResponseBody0 performs a merge with any union data inside the ListOrganizationClientGrants200JSONResponseBody, using the provided ListOrganizationClientGrants200JSONResponseBody0
-func (t *ListOrganizationClientGrants200JSONResponseBody) MergeListOrganizationClientGrants200JSONResponseBody0(v ListOrganizationClientGrants200JSONResponseBody0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsOrganizationClientGrantsPage returns the union data inside the ListOrganizationClientGrants200JSONResponseBody as a OrganizationClientGrantsPage
-func (t ListOrganizationClientGrants200JSONResponseBody) AsOrganizationClientGrantsPage() (OrganizationClientGrantsPage, error) {
-	var body OrganizationClientGrantsPage
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromOrganizationClientGrantsPage overwrites any union data inside the ListOrganizationClientGrants200JSONResponseBody as the provided OrganizationClientGrantsPage
-func (t *ListOrganizationClientGrants200JSONResponseBody) FromOrganizationClientGrantsPage(v OrganizationClientGrantsPage) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeOrganizationClientGrantsPage performs a merge with any union data inside the ListOrganizationClientGrants200JSONResponseBody, using the provided OrganizationClientGrantsPage
-func (t *ListOrganizationClientGrants200JSONResponseBody) MergeOrganizationClientGrantsPage(v OrganizationClientGrantsPage) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t ListOrganizationClientGrants200JSONResponseBody) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *ListOrganizationClientGrants200JSONResponseBody) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}
-
-// AsListOrganizationAllConnections200JSONResponseBody0 returns the union data inside the ListOrganizationAllConnections200JSONResponseBody as a ListOrganizationAllConnections200JSONResponseBody0
-func (t ListOrganizationAllConnections200JSONResponseBody) AsListOrganizationAllConnections200JSONResponseBody0() (ListOrganizationAllConnections200JSONResponseBody0, error) {
-	var body ListOrganizationAllConnections200JSONResponseBody0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromListOrganizationAllConnections200JSONResponseBody0 overwrites any union data inside the ListOrganizationAllConnections200JSONResponseBody as the provided ListOrganizationAllConnections200JSONResponseBody0
-func (t *ListOrganizationAllConnections200JSONResponseBody) FromListOrganizationAllConnections200JSONResponseBody0(v ListOrganizationAllConnections200JSONResponseBody0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeListOrganizationAllConnections200JSONResponseBody0 performs a merge with any union data inside the ListOrganizationAllConnections200JSONResponseBody, using the provided ListOrganizationAllConnections200JSONResponseBody0
-func (t *ListOrganizationAllConnections200JSONResponseBody) MergeListOrganizationAllConnections200JSONResponseBody0(v ListOrganizationAllConnections200JSONResponseBody0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsOrganizationConnectionsPage returns the union data inside the ListOrganizationAllConnections200JSONResponseBody as a OrganizationConnectionsPage
-func (t ListOrganizationAllConnections200JSONResponseBody) AsOrganizationConnectionsPage() (OrganizationConnectionsPage, error) {
-	var body OrganizationConnectionsPage
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromOrganizationConnectionsPage overwrites any union data inside the ListOrganizationAllConnections200JSONResponseBody as the provided OrganizationConnectionsPage
-func (t *ListOrganizationAllConnections200JSONResponseBody) FromOrganizationConnectionsPage(v OrganizationConnectionsPage) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeOrganizationConnectionsPage performs a merge with any union data inside the ListOrganizationAllConnections200JSONResponseBody, using the provided OrganizationConnectionsPage
-func (t *ListOrganizationAllConnections200JSONResponseBody) MergeOrganizationConnectionsPage(v OrganizationConnectionsPage) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t ListOrganizationAllConnections200JSONResponseBody) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *ListOrganizationAllConnections200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -9843,6 +11221,9 @@ type ServerInterface interface {
 	// UpdateClientGrant Update a client grant
 	// (PATCH /api/v2/client-grants/{id})
 	UpdateClientGrant(w http.ResponseWriter, r *http.Request, id string)
+	// ListClientGrantOrganizations GET /client-grants/{id}/organizations
+	// (GET /api/v2/client-grants/{id}/organizations)
+	ListClientGrantOrganizations(w http.ResponseWriter, r *http.Request, id string, params ListClientGrantOrganizationsParams)
 	// GetClients List applications
 	// (GET /api/v2/clients)
 	GetClients(w http.ResponseWriter, r *http.Request, params GetClientsParams)
@@ -9990,6 +11371,9 @@ type ServerInterface interface {
 	// GetOrganizationByName Get an organization by name
 	// (GET /api/v2/organizations/name/{name})
 	GetOrganizationByName(w http.ResponseWriter, r *http.Request, name string)
+	// SearchOrganizations GET /organizations/search
+	// (GET /api/v2/organizations/search)
+	SearchOrganizations(w http.ResponseWriter, r *http.Request, params SearchOrganizationsParams)
 	// DeleteOrganization Delete an organization with its connections, members and member roles
 	// (DELETE /api/v2/organizations/{id})
 	DeleteOrganization(w http.ResponseWriter, r *http.Request, id string)
@@ -9999,24 +11383,63 @@ type ServerInterface interface {
 	// UpdateOrganization Update an organization; `branding` and `metadata` are replaced whole
 	// (PATCH /api/v2/organizations/{id})
 	UpdateOrganization(w http.ResponseWriter, r *http.Request, id string)
-	// ListOrganizationClientGrants List an organization's client grants (always empty until organization grants exist)
+	// ListOrganizationClientGrants GET /organizations/{id}/client-grants
 	// (GET /api/v2/organizations/{id}/client-grants)
 	ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationClientGrantsParams)
-	// ListOrganizationAllConnections List an organization's connections (Early Access upstream; same links as enabled_connections)
+	// AssociateOrganizationClientGrant POST /organizations/{id}/client-grants
+	// (POST /api/v2/organizations/{id}/client-grants)
+	AssociateOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteOrganizationClientGrant DELETE /organizations/{id}/client-grants/{grant_id}
+	// (DELETE /api/v2/organizations/{id}/client-grants/{grant_id})
+	DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id string, grantId string)
+	// DeleteOrganizationClients DELETE /organizations/{id}/clients
+	// (DELETE /api/v2/organizations/{id}/clients)
+	DeleteOrganizationClients(w http.ResponseWriter, r *http.Request, id string)
+	// ListOrganizationClients GET /organizations/{id}/clients
+	// (GET /api/v2/organizations/{id}/clients)
+	ListOrganizationClients(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationClientsParams)
+	// AssociateOrganizationClients POST /organizations/{id}/clients
+	// (POST /api/v2/organizations/{id}/clients)
+	AssociateOrganizationClients(w http.ResponseWriter, r *http.Request, id string)
+	// GetOrganizationClient GET /organizations/{id}/clients/{client_id}
+	// (GET /api/v2/organizations/{id}/clients/{client_id})
+	GetOrganizationClient(w http.ResponseWriter, r *http.Request, id string, clientId string)
+	// UpdateOrganizationClient PATCH /organizations/{id}/clients/{client_id}
+	// (PATCH /api/v2/organizations/{id}/clients/{client_id})
+	UpdateOrganizationClient(w http.ResponseWriter, r *http.Request, id string, clientId string)
+	// ListOrganizationAllConnections GET /organizations/{id}/connections
 	// (GET /api/v2/organizations/{id}/connections)
 	ListOrganizationAllConnections(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationAllConnectionsParams)
-	// CreateOrganizationAllConnection Add a connection to an organization (Early Access upstream)
+	// CreateOrganizationAllConnection POST /organizations/{id}/connections
 	// (POST /api/v2/organizations/{id}/connections)
 	CreateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string)
-	// DeleteOrganizationAllConnection Remove a connection from an organization (Early Access upstream)
+	// DeleteOrganizationAllConnection DELETE /organizations/{id}/connections/{connection_id}
 	// (DELETE /api/v2/organizations/{id}/connections/{connection_id})
 	DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
-	// GetOrganizationAllConnection Get an organization connection (Early Access upstream)
+	// GetOrganizationAllConnection GET /organizations/{id}/connections/{connection_id}
 	// (GET /api/v2/organizations/{id}/connections/{connection_id})
 	GetOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
-	// UpdateOrganizationAllConnection Update an organization connection (Early Access upstream)
+	// UpdateOrganizationAllConnection PATCH /organizations/{id}/connections/{connection_id}
 	// (PATCH /api/v2/organizations/{id}/connections/{connection_id})
 	UpdateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// ListOrganizationDiscoveryDomains GET /organizations/{id}/discovery-domains
+	// (GET /api/v2/organizations/{id}/discovery-domains)
+	ListOrganizationDiscoveryDomains(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationDiscoveryDomainsParams)
+	// CreateOrganizationDiscoveryDomain POST /organizations/{id}/discovery-domains
+	// (POST /api/v2/organizations/{id}/discovery-domains)
+	CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string)
+	// GetOrganizationDiscoveryDomainByName GET /organizations/{id}/discovery-domains/name/{discovery_domain}
+	// (GET /api/v2/organizations/{id}/discovery-domains/name/{discovery_domain})
+	GetOrganizationDiscoveryDomainByName(w http.ResponseWriter, r *http.Request, id string, discoveryDomain string)
+	// DeleteOrganizationDiscoveryDomain DELETE /organizations/{id}/discovery-domains/{discovery_domain_id}
+	// (DELETE /api/v2/organizations/{id}/discovery-domains/{discovery_domain_id})
+	DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string, discoveryDomainId string)
+	// GetOrganizationDiscoveryDomain GET /organizations/{id}/discovery-domains/{discovery_domain_id}
+	// (GET /api/v2/organizations/{id}/discovery-domains/{discovery_domain_id})
+	GetOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string, discoveryDomainId string)
+	// UpdateOrganizationDiscoveryDomain PATCH /organizations/{id}/discovery-domains/{discovery_domain_id}
+	// (PATCH /api/v2/organizations/{id}/discovery-domains/{discovery_domain_id})
+	UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string, discoveryDomainId string)
 	// ListOrganizationConnections List an organization's enabled connections
 	// (GET /api/v2/organizations/{id}/enabled_connections)
 	ListOrganizationConnections(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationConnectionsParams)
@@ -10032,6 +11455,18 @@ type ServerInterface interface {
 	// UpdateOrganizationConnection Change an enabled connection's flags
 	// (PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id})
 	UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// ListOrganizationInvitations GET /organizations/{id}/invitations
+	// (GET /api/v2/organizations/{id}/invitations)
+	ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationInvitationsParams)
+	// CreateOrganizationInvitation POST /organizations/{id}/invitations
+	// (POST /api/v2/organizations/{id}/invitations)
+	CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, params CreateOrganizationInvitationParams)
+	// DeleteOrganizationInvitation DELETE /organizations/{id}/invitations/{invitation_id}
+	// (DELETE /api/v2/organizations/{id}/invitations/{invitation_id})
+	DeleteOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, invitationId string)
+	// GetOrganizationInvitation GET /organizations/{id}/invitations/{invitation_id}
+	// (GET /api/v2/organizations/{id}/invitations/{invitation_id})
+	GetOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, invitationId string, params GetOrganizationInvitationParams)
 	// RemoveOrganizationMembers Remove members from an organization; non-members are ignored and role assignments are kept
 	// (DELETE /api/v2/organizations/{id}/members)
 	RemoveOrganizationMembers(w http.ResponseWriter, r *http.Request, id OrganizationId)
@@ -10620,6 +12055,12 @@ func (_ Unimplemented) UpdateClientGrant(w http.ResponseWriter, r *http.Request,
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListClientGrantOrganizations GET /client-grants/{id}/organizations
+// (GET /api/v2/client-grants/{id}/organizations)
+func (_ Unimplemented) ListClientGrantOrganizations(w http.ResponseWriter, r *http.Request, id string, params ListClientGrantOrganizationsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetClients List applications
 // (GET /api/v2/clients)
 func (_ Unimplemented) GetClients(w http.ResponseWriter, r *http.Request, params GetClientsParams) {
@@ -10914,6 +12355,12 @@ func (_ Unimplemented) GetOrganizationByName(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SearchOrganizations GET /organizations/search
+// (GET /api/v2/organizations/search)
+func (_ Unimplemented) SearchOrganizations(w http.ResponseWriter, r *http.Request, params SearchOrganizationsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteOrganization Delete an organization with its connections, members and member roles
 // (DELETE /api/v2/organizations/{id})
 func (_ Unimplemented) DeleteOrganization(w http.ResponseWriter, r *http.Request, id string) {
@@ -10932,39 +12379,117 @@ func (_ Unimplemented) UpdateOrganization(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// ListOrganizationClientGrants List an organization's client grants (always empty until organization grants exist)
+// ListOrganizationClientGrants GET /organizations/{id}/client-grants
 // (GET /api/v2/organizations/{id}/client-grants)
 func (_ Unimplemented) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationClientGrantsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// ListOrganizationAllConnections List an organization's connections (Early Access upstream; same links as enabled_connections)
+// AssociateOrganizationClientGrant POST /organizations/{id}/client-grants
+// (POST /api/v2/organizations/{id}/client-grants)
+func (_ Unimplemented) AssociateOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOrganizationClientGrant DELETE /organizations/{id}/client-grants/{grant_id}
+// (DELETE /api/v2/organizations/{id}/client-grants/{grant_id})
+func (_ Unimplemented) DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id string, grantId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOrganizationClients DELETE /organizations/{id}/clients
+// (DELETE /api/v2/organizations/{id}/clients)
+func (_ Unimplemented) DeleteOrganizationClients(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationClients GET /organizations/{id}/clients
+// (GET /api/v2/organizations/{id}/clients)
+func (_ Unimplemented) ListOrganizationClients(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationClientsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AssociateOrganizationClients POST /organizations/{id}/clients
+// (POST /api/v2/organizations/{id}/clients)
+func (_ Unimplemented) AssociateOrganizationClients(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganizationClient GET /organizations/{id}/clients/{client_id}
+// (GET /api/v2/organizations/{id}/clients/{client_id})
+func (_ Unimplemented) GetOrganizationClient(w http.ResponseWriter, r *http.Request, id string, clientId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateOrganizationClient PATCH /organizations/{id}/clients/{client_id}
+// (PATCH /api/v2/organizations/{id}/clients/{client_id})
+func (_ Unimplemented) UpdateOrganizationClient(w http.ResponseWriter, r *http.Request, id string, clientId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationAllConnections GET /organizations/{id}/connections
 // (GET /api/v2/organizations/{id}/connections)
 func (_ Unimplemented) ListOrganizationAllConnections(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationAllConnectionsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// CreateOrganizationAllConnection Add a connection to an organization (Early Access upstream)
+// CreateOrganizationAllConnection POST /organizations/{id}/connections
 // (POST /api/v2/organizations/{id}/connections)
 func (_ Unimplemented) CreateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// DeleteOrganizationAllConnection Remove a connection from an organization (Early Access upstream)
+// DeleteOrganizationAllConnection DELETE /organizations/{id}/connections/{connection_id}
 // (DELETE /api/v2/organizations/{id}/connections/{connection_id})
 func (_ Unimplemented) DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// GetOrganizationAllConnection Get an organization connection (Early Access upstream)
+// GetOrganizationAllConnection GET /organizations/{id}/connections/{connection_id}
 // (GET /api/v2/organizations/{id}/connections/{connection_id})
 func (_ Unimplemented) GetOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// UpdateOrganizationAllConnection Update an organization connection (Early Access upstream)
+// UpdateOrganizationAllConnection PATCH /organizations/{id}/connections/{connection_id}
 // (PATCH /api/v2/organizations/{id}/connections/{connection_id})
 func (_ Unimplemented) UpdateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationDiscoveryDomains GET /organizations/{id}/discovery-domains
+// (GET /api/v2/organizations/{id}/discovery-domains)
+func (_ Unimplemented) ListOrganizationDiscoveryDomains(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationDiscoveryDomainsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateOrganizationDiscoveryDomain POST /organizations/{id}/discovery-domains
+// (POST /api/v2/organizations/{id}/discovery-domains)
+func (_ Unimplemented) CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganizationDiscoveryDomainByName GET /organizations/{id}/discovery-domains/name/{discovery_domain}
+// (GET /api/v2/organizations/{id}/discovery-domains/name/{discovery_domain})
+func (_ Unimplemented) GetOrganizationDiscoveryDomainByName(w http.ResponseWriter, r *http.Request, id string, discoveryDomain string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOrganizationDiscoveryDomain DELETE /organizations/{id}/discovery-domains/{discovery_domain_id}
+// (DELETE /api/v2/organizations/{id}/discovery-domains/{discovery_domain_id})
+func (_ Unimplemented) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string, discoveryDomainId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganizationDiscoveryDomain GET /organizations/{id}/discovery-domains/{discovery_domain_id}
+// (GET /api/v2/organizations/{id}/discovery-domains/{discovery_domain_id})
+func (_ Unimplemented) GetOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string, discoveryDomainId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateOrganizationDiscoveryDomain PATCH /organizations/{id}/discovery-domains/{discovery_domain_id}
+// (PATCH /api/v2/organizations/{id}/discovery-domains/{discovery_domain_id})
+func (_ Unimplemented) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string, discoveryDomainId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10995,6 +12520,30 @@ func (_ Unimplemented) GetOrganizationConnection(w http.ResponseWriter, r *http.
 // UpdateOrganizationConnection Change an enabled connection's flags
 // (PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id})
 func (_ Unimplemented) UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationInvitations GET /organizations/{id}/invitations
+// (GET /api/v2/organizations/{id}/invitations)
+func (_ Unimplemented) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationInvitationsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateOrganizationInvitation POST /organizations/{id}/invitations
+// (POST /api/v2/organizations/{id}/invitations)
+func (_ Unimplemented) CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, params CreateOrganizationInvitationParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOrganizationInvitation DELETE /organizations/{id}/invitations/{invitation_id}
+// (DELETE /api/v2/organizations/{id}/invitations/{invitation_id})
+func (_ Unimplemented) DeleteOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, invitationId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganizationInvitation GET /organizations/{id}/invitations/{invitation_id}
+// (GET /api/v2/organizations/{id}/invitations/{invitation_id})
+func (_ Unimplemented) GetOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, invitationId string, params GetOrganizationInvitationParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -13010,6 +14559,19 @@ func (siw *ServerInterfaceWrapper) GetClientGrants(w http.ResponseWriter, r *htt
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetClientGrantsParams
 
+	// ------------- Optional query parameter "allow_any_organization" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "allow_any_organization", r.URL.Query(), &params.AllowAnyOrganization, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "allow_any_organization"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "allow_any_organization", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "page" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
@@ -13208,6 +14770,100 @@ func (siw *ServerInterfaceWrapper) UpdateClientGrant(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateClientGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListClientGrantOrganizations operation middleware
+func (siw *ServerInterfaceWrapper) ListClientGrantOrganizations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListClientGrantOrganizationsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListClientGrantOrganizations(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14699,6 +16355,19 @@ func (siw *ServerInterfaceWrapper) ListOrganizations(w http.ResponseWriter, r *h
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListOrganizationsParams
 
+	// ------------- Optional query parameter "include_client_association_for" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_client_association_for", r.URL.Query(), &params.IncludeClientAssociationFor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_client_association_for"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_client_association_for", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "page" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
@@ -14828,6 +16497,91 @@ func (siw *ServerInterfaceWrapper) GetOrganizationByName(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// SearchOrganizations operation middleware
+func (siw *ServerInterfaceWrapper) SearchOrganizations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchOrganizationsParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "parser" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "parser", r.URL.Query(), &params.Parser, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "parser"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "parser", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchOrganizations(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteOrganization operation middleware
 func (siw *ServerInterfaceWrapper) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
 
@@ -14924,45 +16678,6 @@ func (siw *ServerInterfaceWrapper) ListOrganizationClientGrants(w http.ResponseW
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListOrganizationClientGrantsParams
 
-	// ------------- Optional query parameter "page" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
-		}
-		return
-	}
-
-	// ------------- Optional query parameter "per_page" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
-		}
-		return
-	}
-
-	// ------------- Optional query parameter "include_totals" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
-		}
-		return
-	}
-
 	// ------------- Optional query parameter "audience" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "audience", r.URL.Query(), &params.Audience, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
@@ -15002,8 +16717,285 @@ func (siw *ServerInterfaceWrapper) ListOrganizationClientGrants(w http.ResponseW
 		return
 	}
 
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListOrganizationClientGrants(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssociateOrganizationClientGrant operation middleware
+func (siw *ServerInterfaceWrapper) AssociateOrganizationClientGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssociateOrganizationClientGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOrganizationClientGrant operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "grant_id" -------------
+	var grantId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "grant_id", chi.URLParam(r, "grant_id"), &grantId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "grant_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOrganizationClientGrant(w, r, id, grantId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOrganizationClients operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOrganizationClients(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOrganizationClients(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationClients operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationClients(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationClientsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationClients(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AssociateOrganizationClients operation middleware
+func (siw *ServerInterfaceWrapper) AssociateOrganizationClients(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AssociateOrganizationClients(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationClient operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationClient(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationClient(w, r, id, clientId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOrganizationClient operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOrganizationClient(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "client_id" -------------
+	var clientId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "client_id", chi.URLParam(r, "client_id"), &clientId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOrganizationClient(w, r, id, clientId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15225,6 +17217,227 @@ func (siw *ServerInterfaceWrapper) UpdateOrganizationAllConnection(w http.Respon
 	handler.ServeHTTP(w, r)
 }
 
+// ListOrganizationDiscoveryDomains operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationDiscoveryDomains(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationDiscoveryDomainsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationDiscoveryDomains(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateOrganizationDiscoveryDomain operation middleware
+func (siw *ServerInterfaceWrapper) CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOrganizationDiscoveryDomain(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationDiscoveryDomainByName operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationDiscoveryDomainByName(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "discovery_domain" -------------
+	var discoveryDomain string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "discovery_domain", chi.URLParam(r, "discovery_domain"), &discoveryDomain, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "discovery_domain", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationDiscoveryDomainByName(w, r, id, discoveryDomain)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOrganizationDiscoveryDomain operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "discovery_domain_id" -------------
+	var discoveryDomainId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "discovery_domain_id", chi.URLParam(r, "discovery_domain_id"), &discoveryDomainId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "discovery_domain_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOrganizationDiscoveryDomain(w, r, id, discoveryDomainId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationDiscoveryDomain operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "discovery_domain_id" -------------
+	var discoveryDomainId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "discovery_domain_id", chi.URLParam(r, "discovery_domain_id"), &discoveryDomainId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "discovery_domain_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationDiscoveryDomain(w, r, id, discoveryDomainId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOrganizationDiscoveryDomain operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "discovery_domain_id" -------------
+	var discoveryDomainId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "discovery_domain_id", chi.URLParam(r, "discovery_domain_id"), &discoveryDomainId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "discovery_domain_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOrganizationDiscoveryDomain(w, r, id, discoveryDomainId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrganizationConnections operation middleware
 func (siw *ServerInterfaceWrapper) ListOrganizationConnections(w http.ResponseWriter, r *http.Request) {
 
@@ -15415,6 +17628,262 @@ func (siw *ServerInterfaceWrapper) UpdateOrganizationConnection(w http.ResponseW
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateOrganizationConnection(w, r, id, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationInvitations operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationInvitationsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationInvitations(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateOrganizationInvitation operation middleware
+func (siw *ServerInterfaceWrapper) CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateOrganizationInvitationParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "auth0-custom-domain" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("auth0-custom-domain")]; found {
+		var Auth0CustomDomain string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "auth0-custom-domain", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "auth0-custom-domain", valueList[0], &Auth0CustomDomain, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "auth0-custom-domain", Err: err})
+			return
+		}
+
+		params.Auth0CustomDomain = &Auth0CustomDomain
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOrganizationInvitation(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOrganizationInvitation operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOrganizationInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "invitation_id" -------------
+	var invitationId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invitation_id", chi.URLParam(r, "invitation_id"), &invitationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invitation_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOrganizationInvitation(w, r, id, invitationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationInvitation operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "invitation_id" -------------
+	var invitationId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "invitation_id", chi.URLParam(r, "invitation_id"), &invitationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invitation_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetOrganizationInvitationParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationInvitation(w, r, id, invitationId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18716,6 +21185,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/organizations/{id}/client-grants", wrapper.ListOrganizationClientGrants)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/client-grants", wrapper.AssociateOrganizationClientGrant)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/members", wrapper.RemoveOrganizationMembers)
 	})
 	r.Group(func(r chi.Router) {
@@ -18741,6 +21213,60 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/users/{id}/organizations", wrapper.ListUserOrganizations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/search", wrapper.SearchOrganizations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/invitations", wrapper.ListOrganizationInvitations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/invitations", wrapper.CreateOrganizationInvitation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/invitations/{invitation_id}", wrapper.DeleteOrganizationInvitation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/invitations/{invitation_id}", wrapper.GetOrganizationInvitation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/clients", wrapper.DeleteOrganizationClients)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/clients", wrapper.ListOrganizationClients)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/clients", wrapper.AssociateOrganizationClients)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/clients/{client_id}", wrapper.GetOrganizationClient)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/organizations/{id}/clients/{client_id}", wrapper.UpdateOrganizationClient)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/client-grants/{grant_id}", wrapper.DeleteOrganizationClientGrant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/discovery-domains", wrapper.ListOrganizationDiscoveryDomains)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/discovery-domains", wrapper.CreateOrganizationDiscoveryDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/discovery-domains/name/{discovery_domain}", wrapper.GetOrganizationDiscoveryDomainByName)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}", wrapper.DeleteOrganizationDiscoveryDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}", wrapper.GetOrganizationDiscoveryDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}", wrapper.UpdateOrganizationDiscoveryDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/client-grants/{id}/organizations", wrapper.ListClientGrantOrganizations)
 	})
 
 	return r

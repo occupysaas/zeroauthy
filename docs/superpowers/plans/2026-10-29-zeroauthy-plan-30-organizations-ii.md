@@ -106,7 +106,18 @@ organization, invitation, transaction and user IDs plus accepted time.
 `OrganizationDiscoveryDomain` contains tenant/org/id/domain, status, verification
 TXT/host strings and `UseForOrganizationDiscovery bool`. Extend `Organization`
 with `IsAppEntitlementActive bool`; `OrganizationConnection` with `IsEnabled bool`,
-local name and both access levels; `ClientGrant` with the two §5 policy fields.
+`ConnectionName`, `OrganizationAccessLevel`, `OrganizationMemberAccessLevel`;
+`ClientGrant` with the two §5 policy fields. Internal Go connection values also
+carry `IsEnabledSet bool`: false means the old caller omitted the new field;
+true means `IsEnabled` is intentional, including false. Normalize omitted values
+to enabled on creation, preserve stored enablement on replacement, and return
+all persisted/read values with the marker true. SQL/plugin codecs persist the
+actual bool and restore the marker; never expose it in API DTOs. Empty access
+strings default to none/limited on creation and preserve stored values on
+replacement. HTTP explicit-null clears become explicit none (or underlying
+connection name / enabled true). New internal callers disabling a connection
+must set the marker. This is the smallest additive representation preserving
+existing bool-based construction; a bare false cannot encode both meanings.
 
 `ConsumeInvitation` is a conditional state transition, called only on a WithTx
 view after current policy validation. It creates the receipt and hides the invite
@@ -114,7 +125,17 @@ from active reads. Same transaction/user receipt is idempotent; another transact
 gets `ErrPrecondition`. The caller adds membership/roles/metadata within that same
 transaction. Use existing `ErrInvalid`, `ErrNotFound`, `ErrConflict`,
 `ErrPrecondition` and new `ErrOrganizationsIIUnavailable`; define HTTP mapping
-in Task 1. The repository clock is injectable for active-read expiry tests.
+in Task 1. The repository clock is injectable for active-read expiry tests. `PutClients`
+is a validated batch upsert; HTTP POST duplicate checks and PATCH existence checks
+must run in the caller's WithTx. `PutClientGrant` is idempotent, so HTTP duplicate
+association checks also use `HasClientGrant` in that transaction. The sealed invitation bundle carries recoverable
+ticket_id and invitation_url; no plaintext bearer field is added to the model.
+Invitation lists default to created_at descending with ID ties; storage also
+supports ascending and scoped checkpoints (HTTP still exposes offset only).
+Role/forced-connection/client deletion revokes dependent invites. Deleting an
+accepting user removes its receipt and retained consumed invite together, so
+receipt cleanup cannot reactivate a ticket. Grant/client/API/org deletion removes
+grant associations, including before ID reuse.
 
 Policy entry points in `internal/orglogin` (all accept context.Context):
 
@@ -190,7 +211,7 @@ The memory driver is the semantic reference, including copies of metadata/slices
   expect FAIL for missing repository behavior (wire new cases into the suite).
 - [ ] Implement models/memory transaction views, clone boundaries and cascades.
   Preserve existing client-grant origin behavior. Default old grants deny/false,
-  org entitlement false, connections enabled=true and access-levels none.
+  org entitlement false, connections enabled=true, organization access none and member access limited (D-0055 observed omission/migration defaults). Explicit null resets either access level to none (D-0056). Client association POST requires use_for_member_access; PATCH omission preserves it, null is invalid.
   Keep existing literal construction safe by normalizing defaults at creation;
   don't interpret an omitted Go bool as an intentional disable on old callers.
 - [ ] Rerun focused tests and `go test ./internal/store/... -run '^$'`; expect
@@ -216,7 +237,9 @@ Plan 29 tenant-policy lock before dependent rows.
 - [ ] Run `go test ./internal/store/sqlstore -run OrganizationsII -count=1`;
   expect FAIL until SQLite persistence/migration is implemented.
 - [ ] Implement parameterized queries, composite ownership constraints, cleanup
-  and indexes. Carry receipt/binding fields through authorization/reset codecs.
+  and indexes. Keep the validated invitation binding in existing AuthTransaction.Params (no
+  duplicate authority); carry PasswordResetTicket.OrganizationID through SQL
+  reset codecs and the later plugin protocol.
   Apply policy lock ordering consistently to pre-existing deletion/update paths.
 - [ ] Run focused SQLite tests, then
   `./scripts/test-sql.sh -run OrganizationsII -count=1 ./internal/store/sqlstore/...`;
@@ -313,7 +336,11 @@ serialization, `internal/login/{organization,login,verify,social}.go`, and
 `internal/oauth/organization.go`; add focused invitation tests in those packages.
 
 **Interfaces:** implements `AcceptInvitation` and `AcceptanceInput` above;
-produces the durable receipt used only by the same authorization transaction.
+produces the durable receipt used only by the same live, pending authorization transaction.
+Completed hosted transactions end before Actions and cannot be replayed.
+Local supported limitation: new federated account provisioning during invitation
+login fails closed; accounts provisioned separately may accept. Existing federated
+users remain eligible. The documented database-only signup flag is not extended.
 Consume Task 8 `CheckMemberClient`; Task 8 must be complete before this task.
 Do not introduce an interim entitlement bypass.
 

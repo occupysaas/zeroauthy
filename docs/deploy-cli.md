@@ -171,14 +171,37 @@ that the organization links exist. Application `organization_usage`,
 `organization_require_behavior` and `organization_discovery_methods` also
 survive import, including the offline credential-preserving bootstrap.
 
-Pinned Deploy CLI 9.1.0 uses `/organizations/{id}/connections` for these links
-and reads `/organizations/{id}/client-grants` even when none exist. Plan 29
-serves the former from the enabled-connection links and the latter as an empty
-read-only collection (D-0055). Organization grants, discovery domains and
-organization clients remain deferred. The pinned tool exports **no members or
-member roles**: their migration is unavailable in this matrix, not a passing
-migration test. Use the Management API or create-only seed references for
-those resources.
+Plan 30 extends the fixtures to disabled and enabled associations, local
+connection names, entitlement state, third-party policy and application
+associations (`use_for_member_access` true and false). These fields use the
+pinned tool's organization handler; no new tool resource family is invented.
+The comparator treats connections, application associations, grant associations
+and domain declarations as sets while comparing every policy field.
+
+Offline `LoadExport` and credential bootstrap preflight reject unsupported
+organization keys, token quotas, invitation material, nondefault
+`organization_member_access_level`, active grant `organization_usage` and
+`allow_any_organization`. The 9.1.0 organization schema/update mapping does not
+carry member access policy; the observed default `limited` remains compatible.
+Its client-grant schema does not declare the two active grant policy fields.
+Default deny/false from API reads is inert and accepted. Direct use of upstream
+`a0deploy` bypasses our offline validation; use the preflight/credential staging
+path before importing policy-bearing exports.
+
+Discovery-domain configuration is supported by create-only seed. Domains start
+pending and require an explicit destination Management API PATCH to attest
+verified; importing verified status fails offline preflight. Domain proof fields
+are destination-local and are not portable attestation. This matrix does not
+claim discovery-domain or grant-association round trips. The upstream tool maps
+organization grant associations using application name alone, which cannot
+represent multiple audiences unambiguously. Use explicit seed client/audience
+references for those associations.
+
+The pinned tool exports **no members or member roles**, invitations, acceptance
+receipts, ticket URLs or ticket secrets. Their migration is unavailable in this
+matrix, not a passing migration test. Use the Management API or create-only
+seed references for members and member roles. Create new invitations at the
+destination; bearer tickets and acceptance receipts are never portable.
 
 `make e2e-organizations` independently exercises the pinned Management SDK,
 CLI, SPA SDK, hosted organization pages and console against local zeroauthy.

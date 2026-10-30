@@ -24,6 +24,9 @@ type OrgMode string
 const (
 	// OrgNone is an individual login; nothing is bound.
 	OrgNone OrgMode = ""
+	// OrgPersonal records an explicit personal continuation from discovery.
+	// It is server-held only, so resume cannot prompt for an organization again.
+	OrgPersonal OrgMode = "personal"
 	// OrgFixed is a login through the organization in OrgDecision.OrgID.
 	OrgFixed OrgMode = "fixed"
 	// OrgPromptBefore asks for the organization before login
@@ -84,6 +87,9 @@ func ResolveOrganization(ctx context.Context, st store.Store, t tenant.Resolved,
 	if !c.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
 		return OrgDecision{}, errAccessDenied("the organization does not admit third-party applications")
 	}
+	if err := orglogin.CheckMemberClient(ctx, st, t.Tenant.ID, org.ID, c.ClientID); err != nil {
+		return OrgDecision{}, errAccessDenied("the organization does not admit this application")
+	}
 	return OrgDecision{OrgID: org.ID, Mode: OrgFixed}, nil
 }
 
@@ -131,6 +137,11 @@ func bindOrganization(ctx context.Context, st store.Store, t *store.Tenant, c *s
 		}
 		req.OrgID, req.OrgMode = d.OrgID, d.Mode
 		return nil
+	case OrgPersonal:
+		if c.OrganizationUsage != store.OrgUsageAllow || req.OrgID != "" || req.Organization != "" || req.Invitation != "" {
+			return errInvalidRequest("personal login is no longer available")
+		}
+		return nil
 	case OrgFixed:
 		if req.OrgID == "" {
 			return errInvalidRequest("the organization binding is not valid")
@@ -166,7 +177,7 @@ func bindOrganization(ctx context.Context, st store.Store, t *store.Tenant, c *s
 // result means the picker/name prompt needs a hosted screen. It never trusts
 // an organization or connection from the current HTTP request.
 func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, res tenant.Resolved, c *store.Client, fr *flowReq, sess *store.LoginSession) (bool, *Error) {
-	if fr.OrgMode == OrgNone {
+	if fr.OrgMode == OrgNone || fr.OrgMode == OrgPersonal {
 		return false, nil
 	}
 	silent := slices.Contains(fr.Prompts(), "none")

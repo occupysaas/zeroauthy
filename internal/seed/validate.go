@@ -234,6 +234,12 @@ func (t *Tenant) validate() []error {
 		if g.SubjectType == "" {
 			g.SubjectType = store.SubjectTypeClient // O1e
 		}
+		if g.OrganizationUsage != "" && g.OrganizationUsage != "deny" && g.OrganizationUsage != "allow" && g.OrganizationUsage != "require" {
+			fail("invalid grant organization_usage")
+		}
+		if g.SubjectType != store.SubjectTypeClient && (g.OrganizationUsage != "" && g.OrganizationUsage != "deny" || g.AllowAnyOrganization) {
+			fail("user grant cannot activate organization policy")
+		}
 		if !clients[g.ClientID] {
 			fail("client grant references unknown client %q", g.ClientID)
 		}

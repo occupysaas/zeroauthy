@@ -403,13 +403,18 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 	}
 
 	var commit func(context.Context, store.Store, *store.User) error
-	if f.org.Org != nil {
+	if f.org.Org != nil && f.txn.Params[orglogin.InvitationIDParam] == "" {
 		commit = func(ctx context.Context, tx store.Store, u *store.User) error {
 			oc, e := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
 			if e != nil {
 				return e
 			}
-			e = EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+			if oc.Org != nil {
+				e = orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID)
+			}
+			if e == nil {
+				e = EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+			}
 			// Authentication succeeds independently of membership: keep the
 			// identity/session and let authorization redirect the policy refusal.
 			if errors.Is(e, ErrNotMember) {
@@ -480,6 +485,9 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 		// kept the script from answering does not (D-0023).
 		h.fail(w, r, err, f)
 		return
+	}
+	if f.txn.Params[orglogin.InvitationIDParam] != "" {
+		h.sendSignupVerification(f, user)
 	}
 	h.complete(w, r, f, user)
 }
@@ -619,9 +627,22 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			if e != nil {
 				return e
 			}
-			if !link.IsSignupEnabled || !link.AssignMembershipOnLogin {
+			if (link.IsEnabledSet && !link.IsEnabled) || !link.IsSignupEnabled || (!link.AssignMembershipOnLogin && f.txn.Params[orglogin.InvitationIDParam] == "") {
 				return identity.ErrSignupDisabled
 			}
+		}
+		if oc.Org != nil {
+			if err := orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID); err != nil {
+				return err
+			}
+		}
+		if f.txn.Params[orglogin.InvitationIDParam] != "" {
+			cur, err := tx.AuthTransactions().Get(ctx, f.res.Tenant.ID, f.txn.ID)
+			if err != nil {
+				return err
+			}
+			cur.Params[orglogin.InvitationSignupParam] = "1"
+			return orglogin.SaveInvitationTransaction(ctx, tx, cur, h.now())
 		}
 		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
 	}

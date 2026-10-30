@@ -101,14 +101,18 @@ func TestOrganizationBinding(t *testing.T) {
 		}
 	})
 
-	t.Run("client credentials refuses organization", func(t *testing.T) {
+	t.Run("client credentials grant denies organization", func(t *testing.T) {
 		f := newFixture(t)
 		org := f.addOrg(t, "acme-corp")
 		for _, usage := range []string{"", "allow", "require"} {
 			f.setOrgUsage(t, "m2m", usage, "")
 			for _, raw := range []string{org.ID, "org_0000000000000000", "acme-corp"} {
 				rec, body := f.call(t, false, tokenCall{host: acmeHost, form: cc("m2m", "m2m-secret", "audience", "https://api.acme.test", "organization", raw)})
-				if rec.Code != http.StatusBadRequest || body["error"] != "invalid_request" {
+				wantStatus, wantCode := http.StatusForbidden, "access_denied"
+				if raw == "acme-corp" {
+					wantStatus, wantCode = http.StatusBadRequest, "invalid_request"
+				}
+				if rec.Code != wantStatus || body["error"] != wantCode {
 					t.Fatalf("%q/%s: %d %v", usage, raw, rec.Code, body)
 				}
 			}

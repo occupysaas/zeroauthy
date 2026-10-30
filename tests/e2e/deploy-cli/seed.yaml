@@ -46,6 +46,14 @@ tenants:
           - create:organization_connections
           - update:organization_connections
           - delete:organization_connections
+          - read:organization_clients
+          - create:organization_clients
+          - update:organization_clients
+          - delete:organization_clients
+          - read:organization_discovery_domains
+          - create:organization_discovery_domains
+          - update:organization_discovery_domains
+          - delete:organization_discovery_domains
           - read:organization_client_grants
           - read:roles
           - create:roles
@@ -131,6 +139,14 @@ tenants:
           - create:organization_connections
           - update:organization_connections
           - delete:organization_connections
+          - read:organization_clients
+          - create:organization_clients
+          - update:organization_clients
+          - delete:organization_clients
+          - read:organization_discovery_domains
+          - create:organization_discovery_domains
+          - update:organization_discovery_domains
+          - delete:organization_discovery_domains
           - read:organization_client_grants
           - read:roles
           - create:roles

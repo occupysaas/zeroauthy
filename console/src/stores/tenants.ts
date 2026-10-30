@@ -8,17 +8,22 @@ export const useTenantsStore = defineStore('tenants', {
     list: [] as SystemTenant[],
     loaded: false,
     error: '',
+    revision: 0,
   }),
   actions: {
     async load(api: Api): Promise<void> {
+      const revision = ++this.revision
       try {
-        this.list = await api.listTenants()
+        const list = await api.listTenants()
+        if (revision !== this.revision) return
+        this.list = list
         this.error = ''
       } catch (e) {
+        if (revision !== this.revision) return
         this.list = []
         this.error = e instanceof Error ? e.message : String(e)
       } finally {
-        this.loaded = true
+        if (revision === this.revision) this.loaded = true
       }
     },
 

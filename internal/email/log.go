@@ -23,6 +23,10 @@ func (l *logMailer) Send(ctx context.Context, m Message) error {
 	if _, err := build(l.from, m, time.Now()); err != nil {
 		return err
 	}
+	if m.Type == "user_invitation" {
+		l.log.InfoContext(ctx, "email (log driver)", "type", m.Type)
+		return nil
+	}
 	text := m.Text
 	if !l.showLinks {
 		text = ticketValue.ReplaceAllString(text, "ticket=REDACTED")
