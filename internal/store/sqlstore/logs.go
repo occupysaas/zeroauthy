@@ -15,8 +15,9 @@ import (
 
 type logs struct{ s *Store }
 
-func (s *Store) Logs() store.Logs                    { return logs{s} }
-func (s *Store) LogsSupported(context.Context) error { return nil }
+func (s *Store) Logs() store.Logs                       { return logs{s} }
+func (s *Store) CheckLogsSupport(context.Context) error { return nil }
+func (s *Store) LogsSupported() bool                    { return true }
 func (s *Store) logNow() time.Time {
 	if s.logsClock != nil {
 		return s.logsClock().UTC()

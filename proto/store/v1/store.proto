@@ -58,6 +58,25 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 service StoreService {
+  // Logs v1 is independent of every earlier storage capability.
+  rpc LogsCapabilities(PingRequest) returns (LogsCapabilitiesResult);
+  rpc AppendLogs(LogsRequest) returns (LogsResponse);
+  rpc GetLog(LogsRequest) returns (LogsResponse);
+  rpc SearchLogs(LogsRequest) returns (LogsResponse);
+  rpc LogsAfter(LogsRequest) returns (LogsResponse);
+  rpc LatestLogs(LogsRequest) returns (LogsResponse);
+  rpc PurgeLogs(LogsRequest) returns (LogsResponse);
+  rpc DeleteTenantLogs(LogsRequest) returns (LogsResponse);
+  rpc CreateLogStream(LogsRequest) returns (LogsResponse);
+  rpc GetLogStream(LogsRequest) returns (LogsResponse);
+  rpc ListLogStreams(LogsRequest) returns (LogsResponse);
+  rpc UpdateLogStream(LogsRequest) returns (LogsResponse);
+  rpc DeleteLogStream(LogsRequest) returns (LogsResponse);
+  rpc LeaseLogStream(LogsRequest) returns (LogsResponse);
+  rpc RecordDelivery(LogsRequest) returns (LogsResponse);
+  rpc DailyStats(LogsRequest) returns (LogsResponse);
+  rpc ActiveUsers(LogsRequest) returns (LogsResponse);
+
   rpc RBACCapabilities(PingRequest) returns (RBACCapabilitiesResult);
   rpc RBACCreateRole(RBACRequest) returns (RBACResponse);
   rpc RBACGetRole(RBACRequest) returns (RBACResponse);
@@ -410,6 +429,7 @@ message Error {
     KIND_PRECONDITION = 11; // store.ErrPrecondition
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
     KIND_ORGANIZATIONS_II_UNAVAILABLE = 13; // store.ErrOrganizationsIIUnavailable
+    KIND_LOGS_UNAVAILABLE = 14; // store.ErrLogsUnavailable
     KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
   }
   Kind kind = 1;
@@ -1304,3 +1324,53 @@ message OrganizationQueryMsg {
  OrganizationQueryMsg left=7; OrganizationQueryMsg right=8;
 }
 message OrganizationSearchPageMsg { int64 take=1; string sort=2; string last_value=3; string last_id=4; }
+
+// Logs timestamps use canonical UTC text with nine fractional digits (including
+// year0000), preserving the store range and Go zero separately from Unix epoch.
+// Sink JSON numbers MUST be decoded losslessly, never through float64.
+message LogsCapabilitiesResult { uint32 version = 1; Error error = 2; }
+message LogEventMsg {
+ string tenant_id = 1; string id = 2; int64 seq = 3; string date = 4;
+ string type = 5; string user_id = 6; string client_id = 7;
+ string connection_id = 8; string organization_id = 9; string ip = 10;
+ optional bytes body = 11;
+}
+message LogQueryMsg {
+ string op = 1; string field = 2; string value = 3; string upper = 4;
+ LogQueryMsg left = 5; LogQueryMsg right = 6;
+ bool lower_exclusive = 7; bool upper_exclusive = 8;
+}
+message LogPageMsg { int64 page = 1; int64 per_page = 2; bool ascending = 3; bool include_totals = 4; }
+message LogStreamFilterMsg { string type = 1; string name = 2; }
+message LogStreamFiltersMsg { repeated LogStreamFilterMsg values = 1; }
+message LogStreamPIIMsg { StringList log_fields = 1; string method = 2; string algorithm = 3; }
+message LogStreamMsg {
+ string tenant_id = 1; string id = 2; string name = 3; string type = 4; string status = 5;
+ bytes sink_json = 6; optional bytes sealed_secrets = 7;
+ LogStreamFiltersMsg filters = 8; bool is_priority = 9; LogStreamPIIMsg pii = 10;
+ string start_from = 11; int64 checkpoint = 12; string lease_owner = 13;
+ string lease_until = 14; string next_at = 15; string failing_since = 16;
+ string last_success_at = 17; int64 failures = 18; string last_error_class = 19;
+ int64 version = 20; string created_at = 21; string updated_at = 22;
+}
+message LogStreamDeliveryMsg {
+ int64 checkpoint = 1; string status = 2; string next_at = 3;
+ string failing_since = 4; string last_success_at = 5;
+ int64 failures = 6; string last_error_class = 7;
+}
+message DailyStatDeltaMsg { string tenant_id = 1; string day = 2; int64 logins = 3; int64 signups = 4; int64 leaked_passwords = 5; }
+message DailyStatMsg { string day = 1; int64 logins = 2; int64 signups = 3; int64 leaked_passwords = 4; string created_at = 5; string updated_at = 6; }
+message LogsRequest {
+ string tx_id = 1; string tenant_id = 2; string id = 3;
+ repeated LogEventMsg events = 4; repeated DailyStatDeltaMsg deltas = 5;
+ LogQueryMsg query = 6; LogPageMsg page = 7; int64 after_seq = 8;
+ int64 take = 9; string settled = 10; string before = 11; int64 limit = 12;
+ LogStreamMsg stream = 13; int64 version = 14; string owner = 15;
+ string now = 16; string until = 17; LogStreamDeliveryMsg delivery = 18;
+ string from = 19; string to = 20; string since = 21;
+}
+message LogsResponse {
+ Error error = 1; LogEventMsg event = 2; repeated LogEventMsg events = 3;
+ int64 total = 4; int64 count = 5; LogStreamMsg stream = 6;
+ repeated LogStreamMsg streams = 7; repeated DailyStatMsg stats = 8;
+}

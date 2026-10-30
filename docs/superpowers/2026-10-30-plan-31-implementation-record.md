@@ -567,3 +567,75 @@ No external evidence or live Auth0 tenant used; no subagents/reviewers spawned.
 Controller supplies review. Full report and per-command logs:
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-4-report.md`.
 Task4 implementation commit subject: `feat: persist logs, streams and stats in SQL`.
+
+## Task 5 — Logs v1 plugin capability
+
+Implemented all sixteen `store.Logs` operations as additive typed RPCs, with an
+independent version1 `LogsCapabilities` negotiation and error kind14. Existing
+protobuf field numbers and capabilities remain unchanged; generated bindings
+came only from `GOTOOLCHAIN=go1.26.7 make generate`. Transaction clients share
+only their Logs capability state and send their held transaction token on every
+repository operation; the server consistently dispatches through `Server.with`.
+Memory, SQL and gRPC now expose the required `LogsSupporter` shape:
+`CheckLogsSupport(context.Context) error; LogsSupported() bool`. The existing
+public `pkg/store.LogsSupporter` alias follows that contract automatically.
+
+Only definitive unsupported answers (version0, unknown method or the unavailable
+sentinel) are cached by `LogsSupported`. Active operations negotiate once per
+call, so transport failures remain retryable and plugin downgrade/upgrade can be
+observed without rebuilding the client. The capability RPC does not acquire a
+repository lock, avoiding deadlock during a held memory transaction. A backend
+that explicitly returns UnimplementedLogs advertises version0.
+
+Ruling: Logs protocol timestamps use `store.LogTimeLayout` UTC text with nine
+fractional digits rather than protobuf Timestamp — the established store range
+includes year0000, which protobuf Timestamp cannot represent — this costs text
+parsing and slightly larger payloads, and is documented in the protocol for
+non-Go plugin authors. Year0000, ordinary Go zero, epoch, year9999 and nanos all
+survive independently; invalid ranges return ErrInvalid. Optional bytes preserve
+nil versus empty event bodies and sealed secrets. Wrapper messages preserve
+nil/empty filters and PII fields. Sink JSON decodes with UseNumber, retaining
+nested integers and decimals beyond float64 precision.
+
+Actual verification (Go toolchain1.26.7 throughout):
+
+- Initial RED `go test ./internal/store/grpcstore -run Logs -count=1`: exit1,
+  missing capability probe and unavailable Logs stub, including real memory and
+  SQLite Logs conformance. `task-5-red.log`.
+- Initial GREEN same focused command: exit0,0.777s. Expanded named
+  `TestLogsCapabilities` matrix (v0/preLogs/v1/transient) and every unavailable
+  operation then passed,0.796s. `task-5-green.log`.
+- Named capability mutation RED: `go test -overlay=<scratch>/task-5-transient-
+  cache-overlay.json ./internal/store/grpcstore -run
+  '^TestLogsCapabilities/transient$' -count=1`: exit1, `LogsSupported=false want
+  true` when all transient errors were deliberately cached. Actual source was
+  unchanged by the overlay. `task-5-capabilities-mutant-red.log`.
+- `go test ./internal/store/grpcstore -count=1 -v`: exit0,108.970s. Full
+  `TestConformance` (memory,5.77s) and `TestConformanceSQLite` (25.25s) passed,
+  including Logs and all preexisting repositories. Existing reflection test
+  consumed its normal60s idle-transaction timeout and passed. One actual skip:
+  `TestOrganizationsPluginRoundTrip/Organizations/Limits`, whose wrapper cannot
+  override Organizations limits. It is not reported as passing; the main
+  conformance wrappers do supply that limit setter. `task-5-grpcstore.log`.
+- `go test -race ./internal/store/grpcstore -run Logs -count=1 -v`: exit0,
+  28.576s, memory+SQLite Logs conformance, capability matrix, full stream state,
+  nil/empty bodies/secrets/Sinks/filters/PII, AST and numeric precision passed;
+  no skips or race warnings. `task-5-race.log`.
+- Final focused `go test ./internal/store/grpcstore -run Logs -count=1 -v`:
+  exit0,0.828s; no skips. `task-5-focused-final.log`.
+- `go test ./... -run '^$'`: exit0, compilation only, no runtime-test claim.
+  `task-5-compile.log`.
+- `make generate`: exit0, repeated with generated-file checksum equality:
+  both proto Go files OK. `task-5-generate{,-final}.log`.
+- `git diff --check`: exit0.
+
+Self-review checked all actual Logs methods/fields, proto number preservation,
+independent negotiation/cache transitions, non-Logs compatibility, transaction
+routing and rollback, byte and JSON ownership, full timestamp range, AST bounds,
+filters/PII, unavailable sentinels and generated-only bindings. No external
+source, live tenant, subagent or reviewer was used. Controller supplies review.
+No PostgreSQL/MySQL gRPC lane is defined by this package; those drivers were not
+run again in Task5. Whole-project runtime/E2E regression remains Task16.
+No later task is claimed complete. Full evidence/report is in
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-5-report.md`.
+Task5 implementation commit subject: `feat: add Logs storage plugin capability`.

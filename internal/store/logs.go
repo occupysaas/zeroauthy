@@ -13,7 +13,10 @@ import (
 var ErrLogsUnavailable = errors.New("store: logs repository unavailable")
 
 // LogsSupporter is an optional read-only probe for the Logs v1 capability.
-type LogsSupporter interface{ LogsSupported(context.Context) error }
+type LogsSupporter interface {
+	CheckLogsSupport(context.Context) error
+	LogsSupported() bool
+}
 
 // FormatLogID formats a store-assigned positive sequence as a sortable ID.
 func FormatLogID(seq int64) string { return fmt.Sprintf("%056d", seq) }

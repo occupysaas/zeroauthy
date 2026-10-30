@@ -40,8 +40,9 @@ func (r *logRing) each(fn func(storedLog)) {
 
 type logs struct{ s *Store }
 
-func (s *Store) Logs() store.Logs                    { return logs{s} }
-func (s *Store) LogsSupported(context.Context) error { return nil }
+func (s *Store) Logs() store.Logs                       { return logs{s} }
+func (s *Store) CheckLogsSupport(context.Context) error { return nil }
+func (s *Store) LogsSupported() bool                    { return true }
 
 func (r logs) AppendLogs(ctx context.Context, events []store.LogEvent, deltas []store.DailyStatDelta) error {
 	for _, e := range events {
