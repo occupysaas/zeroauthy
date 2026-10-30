@@ -167,6 +167,10 @@ func ScrubValue(v any) any                             // same, for map/slice va
 func SensitiveKey(name string) bool
 func WithValues(ctx context.Context, values ...string) context.Context
 func MaskText(ctx context.Context, s string) string    // masks registered values in free text
+// Context-aware sink entry points scrub original secret keys, then mask dynamic
+// keys and values, including embedded JSON. Masked-key collisions become Marker.
+func ScrubContext(ctx context.Context, doc []byte) ([]byte, error)
+func ScrubValueContext(ctx context.Context, v any) any
 func Handler(next slog.Handler) slog.Handler           // scrubs slog attrs by key name and masks registered values
 ```
 

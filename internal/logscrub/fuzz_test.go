@@ -1,12 +1,82 @@
 package logscrub_test
 
 import (
+	"context"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 )
+
+func FuzzScrubContext(f *testing.F) {
+	f.Add([]byte{0, 1, 2}, []byte("hunter2!!"))
+	f.Add([]byte{2, 2, 2, 0}, []byte{0, 255, 34})
+	f.Fuzz(func(t *testing.T, shape, seed []byte) {
+		shape = shape[:min(len(shape), 12)]
+		seed = seed[:min(len(seed), 16)]
+		secret := "value-" + hex.EncodeToString(seed)
+		other := "other-" + secret
+		ctx := logscrub.WithValues(context.Background(), secret, other)
+		var doc any = map[string]any{secret: "one", other: "two", "public": "keep", "password": "hidden"}
+		for _, b := range shape {
+			switch b % 3 {
+			case 0:
+				doc = map[string]any{secret: "keep", "nested": doc}
+			case 1:
+				doc = []any{doc, map[string]any{secret: secret}}
+			case 2:
+				encoded, err := json.Marshal(doc)
+				if err != nil {
+					t.Fatal(err)
+				}
+				doc = map[string]any{"body": string(encoded)}
+			}
+		}
+		input, err := json.Marshal(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		output, err := logscrub.ScrubContext(ctx, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got any
+		if err := json.Unmarshal(output, &got); err != nil {
+			t.Fatal(err)
+		}
+		assertNoDynamicSecret(t, got, secret)
+	})
+}
+
+func assertNoDynamicSecret(t *testing.T, v any, secret string) {
+	t.Helper()
+	switch v := v.(type) {
+	case map[string]any:
+		for key, value := range v {
+			if strings.Contains(key, secret) {
+				t.Fatalf("registered value survived in dynamic key %q", key)
+			}
+			if key == "password" && value != "[REDACTED]" {
+				t.Fatalf("original sensitive key retained %#v", value)
+			}
+			assertNoDynamicSecret(t, value, secret)
+		}
+	case []any:
+		for _, value := range v {
+			assertNoDynamicSecret(t, value, secret)
+		}
+	case string:
+		if strings.Contains(v, secret) || strings.Contains(v, "hidden") {
+			t.Fatalf("registered value survived in text %q", v)
+		}
+		var nested any
+		if json.Unmarshal([]byte(v), &nested) == nil {
+			assertNoDynamicSecret(t, nested, secret)
+		}
+	}
+}
 
 func FuzzScrub(f *testing.F) {
 	f.Add([]byte{0, 1, 2, 3}, "hunter2!!")

@@ -246,3 +246,67 @@ masks and derived loggers, overlaps, JSON escaping, precision, group paths,
 LogValuers, error strings, typed JSON and unsupported/cyclic graphs. No agents
 or reviewers were spawned by the implementer. Commit subject:
 `feat: scrub secrets and passwords before any log sink`.
+
+## Task 2 review correction — dynamic key text
+
+Review of `c24dd35` found an Important privacy escape: a registered password
+could appear as a dynamic JSON key, slog attribute name or WithGroup name.
+The current Handle context now masks these names, including names in bound
+attributes/groups and JSON objects encoded inside strings. SensitiveKey still
+checks the original name before masking. Fixed built-in sink field names are
+unaffected. The separate Minor marker-in-prose finding is unchanged as directed.
+
+Added reusable public entry points, also documented in the shared plan contract:
+
+```go
+func ScrubContext(ctx context.Context, doc []byte) ([]byte, error)
+func ScrubValueContext(ctx context.Context, v any) any
+```
+
+These apply the original key-name policy and current request's immutable value
+mask to keys and values. The JSON entry point retains strict single-document
+UseNumber decoding; both handle encoded object/array strings. Later recorders,
+console capture, API and stream code should use them where a context is available.
+The existing context-free interfaces remain key-name scrubbers.
+
+Ruling: when different original keys mask to one name, replace their values with
+one marker member — selecting a winner loses provenance and depends on map order
+— hides colliding diagnostic values while preserving public siblings. Slog detects
+collisions across bound/record attrs and treats empty-key inline groups as sharing
+their parent's namespace; pre-existing duplicate attrs with the same original
+name retain their ordinary slog behavior.
+
+Actual verification, all with `GOTOOLCHAIN=go1.26.7`:
+
+- RED `go test ./internal/logscrub -run 'TestSlogMasks' -count=1`: exit 1,
+  direct/bound attribute keys, direct/bound group names, Any map keys and encoded
+  JSON keys leaked registered text. Corrected the escaped-key fixture to avoid
+  accidentally naming the password itself with the sensitive substring secret.
+- Public API RED: context tests failed to compile because ScrubContext and
+  ScrubValueContext were missing. Implemented the shared helpers and key masking;
+  focused package GREEN passed.
+- Collision RED: TestSlogDynamicKeyCollisionsFailClosed caught separate inline
+  group/attribute collision values surviving. Expanded inline groups before the
+  collision pass; GREEN. Self-review RED TestSlogInlineNormalizationResolvesValueOnce
+  caught double evaluation introduced by that expansion; retained the resolved
+  value so the original diagnostic value remains unchanged; GREEN.
+- The first context-fuzz seed run failed because its generator repeatedly encoded
+  scalar strings, outside the embedded object/array contract, then asserted that
+  the inner secret-key policy applied. Fixed the generator to wrap encoded objects
+  in a body object on each level. No production behavior was changed for this
+  fixture correction. The interim package/race commands also reported that seed
+  failure; final runs below are after correcting the fixture.
+- Final `go test ./internal/logscrub ./internal/app -count=1`: exit 0;
+  logscrub 0.005 s, app 8.427 s.
+- Final `go test -race ./internal/logscrub -count=1`: exit 0, 1.033 s.
+- Final `go test ./internal/logscrub -run '^$' -fuzz '^FuzzScrubContext$' -fuzztime=30s -parallel=4`:
+  exit 0, 30.094 s, 492,313 executions, two newly interesting inputs. This final
+  run follows the last production change. An earlier context-fuzz run passed
+  448,512 executions before the single-evaluation correction.
+- `git diff --check`: exit 0.
+
+Self-review covered original sensitivity before key masking, escaped JSON names,
+immutable caller maps and request contexts, deterministic collisions including
+literal marker-name collisions, direct/bound/nested/inline group namespaces, and
+public data preservation. No new dependencies, app restructuring or extra agents.
+Fix commit subject: `fix: mask registered secrets in dynamic log keys`.

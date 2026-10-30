@@ -4,6 +4,7 @@ package logscrub
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -39,6 +40,25 @@ func Scrub(doc []byte) ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(ScrubValue(v))
+}
+
+// ScrubContext applies both the secret-key policy and the current request's
+// registered value masks to exactly one JSON document, including dynamic object
+// keys and JSON objects/arrays encoded in strings. Sinks with a request context
+// should use this instead of Scrub. Colliding masked keys retain one Marker value.
+func ScrubContext(ctx context.Context, doc []byte) ([]byte, error) {
+	v, err := decode(doc)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(ScrubValueContext(ctx, v))
+}
+
+// ScrubValueContext is the context-aware, immutable counterpart of ScrubValue.
+// SensitiveKey is evaluated against original names before dynamic keys are
+// masked. If different names mask to the same key, their values become Marker.
+func ScrubValueContext(ctx context.Context, v any) any {
+	return maskValue(ctx, ScrubValue(v))
 }
 
 func decode(doc []byte) (any, error) {
