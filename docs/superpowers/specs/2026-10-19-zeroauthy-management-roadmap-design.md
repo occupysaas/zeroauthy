@@ -301,6 +301,8 @@ My Organization API/self-service organization administration Plan 42.
 
 ### Plan 31 — Logs, log streams, stats (full design)
 
+**Design (2026-10-30):** [spec](2026-10-30-zeroauthy-logs-streams-stats-design.md) and [implementation plan](../plans/2026-10-30-zeroauthy-plan-31-logs-streams-stats.md). Follows Auth0 throughout (maintainer ruling); Actions troubleshooting is the first acceptance journey; secret- and password-named properties are scrubbed at every sink. Not started.
+
 **Endpoints:** `GET /api/v2/logs` (Lucene `q`, paging, checkpoint `from`/`take`), `GET /api/v2/logs/{id}`, `GET /api/v2/users/{id}/logs`; `/api/v2/log-streams` (CRUD) for types `http`, `datadog`, `splunk`, `sumo`, `segment`, `mixpanel`, `eventbridge`, `eventgrid` (the two cloud-account types stored, not enforced, unless the design finds a clean way); `GET /api/v2/stats/active-users`, `GET /api/v2/stats/daily`.
 
 **Runtime:** every Authentication API, hosted-page and Management API event writes an Auth0-typed log event (`s`, `f`, `fp`, `fu`, `ss`, `fs`, `scp`, `sapi`, `seccft`, `limit_wc`, … per Auth0's documented event-type codes), replacing "Management writes go to the server log" (management design §6); tenant retention as configured; streams deliver with retries and filters; stats aggregate from logs.
