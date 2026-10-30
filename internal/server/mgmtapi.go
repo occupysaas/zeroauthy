@@ -798,3 +798,19 @@ func (a mgmtAPI) GetOrganizationInvitation(w http.ResponseWriter, r *http.Reques
 func (a mgmtAPI) DeleteOrganizationInvitation(w http.ResponseWriter, r *http.Request, id, invitationID string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationInvitation(w, r, id, invitationID) }, "delete:organization_invitations")
 }
+
+func (a mgmtAPI) ListOrganizationClients(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationClientsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationClients(w, r, id) }, "read:organization_clients")
+}
+func (a mgmtAPI) AssociateOrganizationClients(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AssociateOrganizationClients(w, r, id) }, "create:organization_clients")
+}
+func (a mgmtAPI) DeleteOrganizationClients(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationClients(w, r, id) }, "delete:organization_clients")
+}
+func (a mgmtAPI) GetOrganizationClient(w http.ResponseWriter, r *http.Request, id, clientID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationClient(w, r, id, clientID) }, "read:organization_clients")
+}
+func (a mgmtAPI) UpdateOrganizationClient(w http.ResponseWriter, r *http.Request, id, clientID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateOrganizationClient(w, r, id, clientID) }, "update:organization_clients")
+}

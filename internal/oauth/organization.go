@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -37,7 +38,17 @@ func tokenOrganization(ctx context.Context, st store.Store, tid, uid, orgID, con
 	if (c.OrganizationUsage != store.OrgUsageAllow && c.OrganizationUsage != store.OrgUsageRequire) || connectionID == "" {
 		return nil, errOrganizationGrant
 	}
-	if _, err := st.Organizations().GetConnection(ctx, tid, orgID, connectionID); err != nil {
+	link, err := st.Organizations().GetConnection(ctx, tid, orgID, connectionID)
+	if err != nil {
+		return nil, err
+	}
+	if link.IsEnabledSet && !link.IsEnabled {
+		return nil, errOrganizationGrant
+	}
+	if err := orglogin.CheckMemberClient(ctx, st, tid, orgID, c.ClientID); err != nil {
+		if errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, store.ErrOrganizationsIIUnavailable) {
+			return nil, errOrganizationGrant
+		}
 		return nil, err
 	}
 	org, err := st.Organizations().Get(ctx, tid, orgID)

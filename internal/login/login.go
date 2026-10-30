@@ -409,7 +409,12 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 			if e != nil {
 				return e
 			}
-			e = EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+			if oc.Org != nil {
+				e = orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID)
+			}
+			if e == nil {
+				e = EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+			}
 			// Authentication succeeds independently of membership: keep the
 			// identity/session and let authorization redirect the policy refusal.
 			if errors.Is(e, ErrNotMember) {
@@ -621,6 +626,11 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			}
 			if !link.IsSignupEnabled || !link.AssignMembershipOnLogin {
 				return identity.ErrSignupDisabled
+			}
+		}
+		if oc.Org != nil {
+			if err := orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID); err != nil {
+				return err
 			}
 		}
 		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)

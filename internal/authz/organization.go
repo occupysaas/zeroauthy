@@ -84,6 +84,9 @@ func ResolveOrganization(ctx context.Context, st store.Store, t tenant.Resolved,
 	if !c.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
 		return OrgDecision{}, errAccessDenied("the organization does not admit third-party applications")
 	}
+	if err := orglogin.CheckMemberClient(ctx, st, t.Tenant.ID, org.ID, c.ClientID); err != nil {
+		return OrgDecision{}, errAccessDenied("the organization does not admit this application")
+	}
 	return OrgDecision{OrgID: org.ID, Mode: OrgFixed}, nil
 }
 

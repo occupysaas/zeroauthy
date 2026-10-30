@@ -12,7 +12,9 @@ Task 2 is complete and controller-reviewed at `2caddb4`. Task 3 is complete
 and controller-reviewed at `e8f48a8`, with the race-test scheduling and tenant
 serialization limitations recorded below. Task 4 is complete and controller-reviewed at `60c0d29`; the minor reconnect
 coverage limitation (actual backend replacement remains unverified) is retained.
-Task 5 is implemented and submitted for controller review; Tasks 6–17 remain. The inventory
+Task 5 is complete and controller-reviewed. Task 6 is complete and controller-reviewed,
+including sender fix `b13ad41`. Task 8 is submitted for controller review; Task 7
+and Tasks 9–17 remain. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -538,3 +540,65 @@ the temporary generated 501 fallback and required scoped future overrides.
   was performed in this fix round. The earlier vue-demi install-script warning
   remains explicitly recorded as dependency-install noise, not a clean-output
   claim or a runtime test result.
+
+
+## Task 8 — Application associations and member entitlements
+
+Task 6 controller review is complete, including provider-default-sender fix
+`b13ad41`. Task 8 implements collection GET/POST/DELETE and item GET/PATCH
+application associations, with the frozen organization_clients scopes also added
+to the Management API scope registry. POST requires an explicit boolean and
+returns a 201 array; list returns clients/optional next. Dedicated summaries
+contain no credentials. Validation rejects unknown/repeated query keys, null
+booleans and malformed batches; reference/duplicate/existence checks and writes
+share a transaction, preserving all-or-none mutation.
+
+Organization CRUD persists is_app_entitlement_active, defaults false and preserves
+PATCH omission. The list association option adds only
+client:{use_for_member_access}, omits absent associations and never filters rows.
+The shared CheckMemberClient helper preserves default-false behavior on old
+plugins and refuses active policy when II is unavailable. It is available for
+Task 7; invitation acceptance is deliberately not implemented here.
+
+Current policy is checked for explicit authorization, picker selection before
+its 20-row bound, database login/signup, federation completion, code exchange and
+refresh. Existing membership, connection enablement, third-party and client
+organization checks remain required. SQL final transaction reads use the Task 3
+policy lock, shared with organization and association mutations. Already signed
+JWTs are unchanged. No new upstream observation or wire ruling was introduced;
+these implement D-0056. A resumed database login whose bound organization policy
+has been revoked follows the existing invalid-transaction hosted 400 path before
+credential processing; federation completion denies authorization without adding
+membership. Code/refresh revocation returns invalid_grant.
+
+Verification from the finishing worker:
+
+- Previous worker reported initial missing-handler/helper RED and subsequent
+  focused GREEN; the finishing worker did not witness that initial RED and does
+  not claim independent evidence for it. Earlier organization runs had an old
+  annotation-rejection assertion, corrected to the now-invalid empty option.
+- Observed `GOTOOLCHAIN=go1.26.7 go test ./internal/mgmt ./internal/orglogin
+  ./internal/authz ./internal/login ./internal/oauth ./internal/federation
+  ./internal/server -run Organization -race -count=1` FAIL: all runtime packages
+  passed, server organization fixtures failed because organization_clients
+  scopes were absent from the Management API scope registry. Added those four
+  scopes; no route scope was weakened. Log: /tmp/plan30-task8-finish-race.log.
+- Added database-login removal/disable/activation revocation tests and extended
+  both federation-provider tests with activation after provider authorization.
+  First login test expected an OAuth redirect and failed on the existing hosted
+  400 invalid-transaction response. Corrected that expectation after tracing
+  loadTxn/CheckOrganizationBinding; no production error mapping changed.
+  The targeted route test passed after the scope fix.
+- Final `GOTOOLCHAIN=go1.26.7 go test ./internal/mgmt ./internal/orglogin
+  ./internal/authz ./internal/login ./internal/oauth ./internal/federation
+  ./internal/server ./internal/tenantsetup -run Organization -race -count=1`
+  PASS: mgmt 9.225s, orglogin 1.178s, authz 4.735s, login 14.258s,
+  oauth 26.623s, server 12.920s. Federation and tenantsetup selected no tests;
+  federation completion coverage runs in login's two-provider fixture.
+  This includes existing organization tests and login's SQLite organization
+  test selected by that name. Log: /tmp/plan30-task8-final-race.log.
+- `GOTOOLCHAIN=go1.26.7 go test ./internal/tenantsetup -count=1` PASS (0.007s).
+- `GOTOOLCHAIN=go1.26.7 go test ./internal/server ./cmd/zeroauthy -run '^$'`
+  PASS (compile only). Log: /tmp/plan30-task8-final-compile.log.
+- `git diff --check` PASS. No broad SQL driver, full Go, external plugin,
+  console or browser suite was run for Task 8. Controller owns review/ledger.

@@ -353,7 +353,13 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 			if e != nil {
 				return e
 			}
-			if e = orglogin.EnsureMembership(ctx, tx, oc, user.UserID, conn.ID); e != nil && !errors.Is(e, orglogin.ErrNotMember) {
+			if oc.Org != nil {
+				e = orglogin.CheckMemberClient(ctx, tx, a.TenantID, oc.Org.ID, txn.ClientID)
+			}
+			if e == nil {
+				e = orglogin.EnsureMembership(ctx, tx, oc, user.UserID, conn.ID)
+			}
+			if e != nil && !errors.Is(e, orglogin.ErrNotMember) {
 				return e
 			}
 			if err := tx.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash); err != nil {

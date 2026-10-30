@@ -172,7 +172,7 @@ func TestOrganizationPickerNoChoicesDenied(t *testing.T) {
 }
 func TestOrganizationMembershipFederationAtomic(t *testing.T) {
 	for _, ms := range []bool{false, true} {
-		for _, change := range []string{"member", "auto", "off", "disabled"} {
+		for _, change := range []string{"member", "auto", "off", "disabled", "entitlement"} {
 			t.Run(fmt.Sprintf("microsoft=%v/%s", ms, change), func(t *testing.T) {
 				var s *socialEnv
 				if ms {
@@ -211,9 +211,14 @@ func TestOrganizationMembershipFederationAtomic(t *testing.T) {
 				page := s.authorizeTo(t, b, "spa", "organization", org.ID, "connection", "corp")
 				rec := b.do(t, "GET", page, nil)
 				callback := s.idp.authorize(t, providerURL(t, rec), "Org-1")
-				if change == "off" || change == "disabled" {
+				if change == "off" || change == "disabled" || change == "entitlement" {
 					s.idp.beforeToken = func() {
-						if change == "disabled" {
+						if change == "entitlement" {
+							org.IsAppEntitlementActive = true
+							if err := s.st.Organizations().Update(context.Background(), org); err != nil {
+								t.Error(err)
+							}
+						} else if change == "disabled" {
 							if err := s.st.Organizations().DeleteConnection(context.Background(), org.TenantID, org.ID, "con_corp"); err != nil {
 								t.Error(err)
 							}

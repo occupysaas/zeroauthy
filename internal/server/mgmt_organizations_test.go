@@ -14,6 +14,7 @@ var orgMgmtScopes = []string{
 	"read:organizations", "create:organizations", "update:organizations", "delete:organizations",
 	"read:organization_connections", "create:organization_connections", "update:organization_connections", "delete:organization_connections",
 	"read:organization_client_grants",
+	"read:organization_clients", "create:organization_clients", "update:organization_clients", "delete:organization_clients",
 	"read:organization_members", "create:organization_members", "delete:organization_members",
 	"read:organization_member_roles", "create:organization_member_roles", "delete:organization_member_roles",
 	"read:organization_member_effective_roles", "read:users", "create:users", "read:roles", "create:roles",

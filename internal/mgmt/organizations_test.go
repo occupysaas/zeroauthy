@@ -222,7 +222,7 @@ func TestOrganizationsContract(t *testing.T) {
 		"http logo":                {"name": "x4", "branding": map[string]any{"logo_url": "http://cdn.example.test/l.png"}},
 		"unknown branding":         {"name": "x4", "branding": map[string]any{"font": "x"}},
 		"third party value":        {"name": "x5", "third_party_client_access": "maybe"},
-		"app entitlement":          {"name": "x5", "is_app_entitlement_active": true},
+		"null app entitlement":     {"name": "x5", "is_app_entitlement_active": nil},
 		"token_quota":              {"name": "x5", "token_quota": map[string]any{}},
 		"11 connections":           {"name": "x6", "enabled_connections": tooMany},
 		"camelCase connection":     {"name": "x6", "enabled_connections": []any{map[string]any{"connection_id": orgDB, "assignMembershipOnLogin": true}}},
@@ -306,7 +306,7 @@ func TestOrganizationsContract(t *testing.T) {
 	for q, code := range map[string]string{
 		"per_page=101": "invalid_query_string", "take=0": "invalid_query_string", "take=101": "invalid_query_string",
 		"sort=id:1": "invalid_query_string", "sort=name": "invalid_query_string", "page=1001": "invalid_paging",
-		"from=garbage": "", "q=x": "invalid_query_string", "include_client_association_for=x": "invalid_query_string",
+		"from=garbage": "", "q=x": "invalid_query_string", "include_client_association_for=": "invalid_query_string",
 	} {
 		e.fail("GET", "/organizations?"+q, nil, e.h.ListOrganizations, 400, code)
 	}
@@ -352,7 +352,7 @@ func TestOrganizationsContract(t *testing.T) {
 	for _, body := range []map[string]any{
 		{"name": "Bad"}, {"display_name": ""}, {"display_name": strings.Repeat("d", 256)},
 		{"branding": map[string]any{"colors": map[string]any{"primary": "#000"}}}, {"enabled_connections": []any{}}, {"id": fullID},
-		{"is_app_entitlement_active": true}, {"metadata": meta(26)},
+		{"is_app_entitlement_active": nil}, {"metadata": meta(26)},
 	} {
 		e.fail("PATCH", "/organizations/"+fullID, body, e.patch(fullID), 400, "invalid_body")
 	}
