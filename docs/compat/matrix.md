@@ -136,3 +136,22 @@ Organization grants persist their original connection across session expiry
 and refresh rotation; current membership, connection and client policy are
 re-checked before new tokens. Local operator discovery is
 `/api/console/tenants`; system mutation stays under `/api/system/operators`.
+
+## Plan 31 contract freeze (2026-10-30)
+
+Contract-only; runtime implementation remains in subsequent Plan 31 tasks.
+See [D-0057](decisions.md#d-0057--tenant-logs-streams-and-statistics-contract-2026-10-30),
+[the inventory](../../internal/logrules/inventory.json) and the
+[implementation record](../superpowers/2026-10-30-plan-31-implementation-record.md).
+
+| Surface | Frozen boundary / local difference |
+|---|---|
+| Event inventory and privacy | 180 codes including 171 current catalog, eight legacy filter-only codes and spec-required local `fapi`; original summaries, exact emission targets and deferred plan owners. Source bodies use deny-by-default resource allowlists; `[REDACTED]`, recursive secret-name scrubbing and request-value masks are local privacy rules. No generic notification-success code is invented. |
+| Logs API | Ten explicit logs/streams/stats operations documented with sources, scopes, limits, envelopes and errors. Checkpoint ignores q/projection/totals/page per public prose; take-only is local recent mode. Local 56-digit IDs, 100-item requests, 1,000-result page bound, bounded Lucene subset, two-second settlement plus store commit serialization. Page totals capped at 1,000 locally; upstream scope-list/search-v3 ambiguity retained. |
+| Storage and recorder | Deployment retention 30 days/minimum one, memory ring 10,000, asynchronous at-most-once enqueue that never fails requests. Daily counters survive retention. Logs v1 plugin capability missing => 501 logs_unavailable. No runtime implementation is claimed yet. |
+| Event shape | location_info omitted; no GeoIP database. Optional security_context only for trusted available signals; no invented environment_name or is_mobile alias. Canonical deletion/unblock are sdu/ublkdu; scpn is phone change and deferred. |
+| Stream configuration | Eight strict sink schemas with secret annotations; secrets sealed and read as marker, omitted PATCH preserves. startFrom is a create-only RFC3339 timestamp; internal StartFrom survives storage and filters Date/Seq skew. eventbridge/eventgrid stored permanently suspended without delivery. |
+| Delivery | Six vendor adapters planned; exact mappings explicitly local. HTTPS and dial-time public-address checks; opt-in insecure/private networking, no redirects, TLS verification retained. Batches <=100, ten-second timeout, retries 1s–5m, suspend after 24h, ordered at-least-once with checkpoint retention. PII applies to outgoing copies only. |
+| Actions troubleshooting | Console-only scrubbed lines capped at 64 KiB/result and ten-day retention; Management execution response unchanged. Single Management audit middleware replaces per-handler emission. |
+| Stats | read:stats; daily default seven inclusive UTC days, local max 366 with zero-filled dates; active users within 30 days from existing last_login. Login counters use one matching s/ssa/sepft event per flow. |
+| Evidence | Public primary documentation only; no live Auth0/vendor tenant, UI capture, credentials or copied proprietary source. Unknown upstream marker/error/default/adapter behavior is labeled local. Per-code runtime, SQL, plugin, delivery, console and browser acceptance remains deferred. |

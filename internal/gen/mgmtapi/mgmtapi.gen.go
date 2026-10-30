@@ -2082,6 +2082,1584 @@ func (e JwtConfigurationAlg) Valid() bool {
 	}
 }
 
+// Defines values for LogStreamDatadogStatus.
+const (
+	LogStreamDatadogStatusActive    LogStreamDatadogStatus = "active"
+	LogStreamDatadogStatusPaused    LogStreamDatadogStatus = "paused"
+	LogStreamDatadogStatusSuspended LogStreamDatadogStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamDatadogStatus enum.
+func (e LogStreamDatadogStatus) Valid() bool {
+	switch e {
+	case LogStreamDatadogStatusActive:
+		return true
+	case LogStreamDatadogStatusPaused:
+		return true
+	case LogStreamDatadogStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamDatadogType.
+const (
+	LogStreamDatadogTypeDatadog LogStreamDatadogType = "datadog"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamDatadogType enum.
+func (e LogStreamDatadogType) Valid() bool {
+	switch e {
+	case LogStreamDatadogTypeDatadog:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamDatadogCreateType.
+const (
+	LogStreamDatadogCreateTypeDatadog LogStreamDatadogCreateType = "datadog"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamDatadogCreateType enum.
+func (e LogStreamDatadogCreateType) Valid() bool {
+	switch e {
+	case LogStreamDatadogCreateTypeDatadog:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamDatadogSinkDatadogRegion.
+const (
+	LogStreamDatadogSinkDatadogRegionEu  LogStreamDatadogSinkDatadogRegion = "eu"
+	LogStreamDatadogSinkDatadogRegionUs  LogStreamDatadogSinkDatadogRegion = "us"
+	LogStreamDatadogSinkDatadogRegionUs3 LogStreamDatadogSinkDatadogRegion = "us3"
+	LogStreamDatadogSinkDatadogRegionUs5 LogStreamDatadogSinkDatadogRegion = "us5"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamDatadogSinkDatadogRegion enum.
+func (e LogStreamDatadogSinkDatadogRegion) Valid() bool {
+	switch e {
+	case LogStreamDatadogSinkDatadogRegionEu:
+		return true
+	case LogStreamDatadogSinkDatadogRegionUs:
+		return true
+	case LogStreamDatadogSinkDatadogRegionUs3:
+		return true
+	case LogStreamDatadogSinkDatadogRegionUs5:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamDatadogSinkViewDatadogApiKey.
+const (
+	LogStreamDatadogSinkViewDatadogApiKeyREDACTED LogStreamDatadogSinkViewDatadogApiKey = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamDatadogSinkViewDatadogApiKey enum.
+func (e LogStreamDatadogSinkViewDatadogApiKey) Valid() bool {
+	switch e {
+	case LogStreamDatadogSinkViewDatadogApiKeyREDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamDatadogSinkViewDatadogRegion.
+const (
+	LogStreamDatadogSinkViewDatadogRegionEu  LogStreamDatadogSinkViewDatadogRegion = "eu"
+	LogStreamDatadogSinkViewDatadogRegionUs  LogStreamDatadogSinkViewDatadogRegion = "us"
+	LogStreamDatadogSinkViewDatadogRegionUs3 LogStreamDatadogSinkViewDatadogRegion = "us3"
+	LogStreamDatadogSinkViewDatadogRegionUs5 LogStreamDatadogSinkViewDatadogRegion = "us5"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamDatadogSinkViewDatadogRegion enum.
+func (e LogStreamDatadogSinkViewDatadogRegion) Valid() bool {
+	switch e {
+	case LogStreamDatadogSinkViewDatadogRegionEu:
+		return true
+	case LogStreamDatadogSinkViewDatadogRegionUs:
+		return true
+	case LogStreamDatadogSinkViewDatadogRegionUs3:
+		return true
+	case LogStreamDatadogSinkViewDatadogRegionUs5:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventBridgeStatus.
+const (
+	LogStreamEventBridgeStatusSuspended LogStreamEventBridgeStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventBridgeStatus enum.
+func (e LogStreamEventBridgeStatus) Valid() bool {
+	switch e {
+	case LogStreamEventBridgeStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventBridgeType.
+const (
+	LogStreamEventBridgeTypeEventbridge LogStreamEventBridgeType = "eventbridge"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventBridgeType enum.
+func (e LogStreamEventBridgeType) Valid() bool {
+	switch e {
+	case LogStreamEventBridgeTypeEventbridge:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventBridgeCreateType.
+const (
+	LogStreamEventBridgeCreateTypeEventbridge LogStreamEventBridgeCreateType = "eventbridge"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventBridgeCreateType enum.
+func (e LogStreamEventBridgeCreateType) Valid() bool {
+	switch e {
+	case LogStreamEventBridgeCreateTypeEventbridge:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventBridgeSinkAwsRegion.
+const (
+	LogStreamEventBridgeSinkAwsRegionAfSouth1     LogStreamEventBridgeSinkAwsRegion = "af-south-1"
+	LogStreamEventBridgeSinkAwsRegionApEast1      LogStreamEventBridgeSinkAwsRegion = "ap-east-1"
+	LogStreamEventBridgeSinkAwsRegionApEast2      LogStreamEventBridgeSinkAwsRegion = "ap-east-2"
+	LogStreamEventBridgeSinkAwsRegionApNortheast1 LogStreamEventBridgeSinkAwsRegion = "ap-northeast-1"
+	LogStreamEventBridgeSinkAwsRegionApNortheast2 LogStreamEventBridgeSinkAwsRegion = "ap-northeast-2"
+	LogStreamEventBridgeSinkAwsRegionApNortheast3 LogStreamEventBridgeSinkAwsRegion = "ap-northeast-3"
+	LogStreamEventBridgeSinkAwsRegionApSouth1     LogStreamEventBridgeSinkAwsRegion = "ap-south-1"
+	LogStreamEventBridgeSinkAwsRegionApSouth2     LogStreamEventBridgeSinkAwsRegion = "ap-south-2"
+	LogStreamEventBridgeSinkAwsRegionApSoutheast1 LogStreamEventBridgeSinkAwsRegion = "ap-southeast-1"
+	LogStreamEventBridgeSinkAwsRegionApSoutheast2 LogStreamEventBridgeSinkAwsRegion = "ap-southeast-2"
+	LogStreamEventBridgeSinkAwsRegionApSoutheast3 LogStreamEventBridgeSinkAwsRegion = "ap-southeast-3"
+	LogStreamEventBridgeSinkAwsRegionApSoutheast4 LogStreamEventBridgeSinkAwsRegion = "ap-southeast-4"
+	LogStreamEventBridgeSinkAwsRegionApSoutheast5 LogStreamEventBridgeSinkAwsRegion = "ap-southeast-5"
+	LogStreamEventBridgeSinkAwsRegionApSoutheast6 LogStreamEventBridgeSinkAwsRegion = "ap-southeast-6"
+	LogStreamEventBridgeSinkAwsRegionApSoutheast7 LogStreamEventBridgeSinkAwsRegion = "ap-southeast-7"
+	LogStreamEventBridgeSinkAwsRegionCaCentral1   LogStreamEventBridgeSinkAwsRegion = "ca-central-1"
+	LogStreamEventBridgeSinkAwsRegionCaWest1      LogStreamEventBridgeSinkAwsRegion = "ca-west-1"
+	LogStreamEventBridgeSinkAwsRegionEuCentral1   LogStreamEventBridgeSinkAwsRegion = "eu-central-1"
+	LogStreamEventBridgeSinkAwsRegionEuCentral2   LogStreamEventBridgeSinkAwsRegion = "eu-central-2"
+	LogStreamEventBridgeSinkAwsRegionEuNorth1     LogStreamEventBridgeSinkAwsRegion = "eu-north-1"
+	LogStreamEventBridgeSinkAwsRegionEuSouth1     LogStreamEventBridgeSinkAwsRegion = "eu-south-1"
+	LogStreamEventBridgeSinkAwsRegionEuSouth2     LogStreamEventBridgeSinkAwsRegion = "eu-south-2"
+	LogStreamEventBridgeSinkAwsRegionEuWest1      LogStreamEventBridgeSinkAwsRegion = "eu-west-1"
+	LogStreamEventBridgeSinkAwsRegionEuWest2      LogStreamEventBridgeSinkAwsRegion = "eu-west-2"
+	LogStreamEventBridgeSinkAwsRegionEuWest3      LogStreamEventBridgeSinkAwsRegion = "eu-west-3"
+	LogStreamEventBridgeSinkAwsRegionIlCentral1   LogStreamEventBridgeSinkAwsRegion = "il-central-1"
+	LogStreamEventBridgeSinkAwsRegionMeCentral1   LogStreamEventBridgeSinkAwsRegion = "me-central-1"
+	LogStreamEventBridgeSinkAwsRegionMeSouth1     LogStreamEventBridgeSinkAwsRegion = "me-south-1"
+	LogStreamEventBridgeSinkAwsRegionMxCentral1   LogStreamEventBridgeSinkAwsRegion = "mx-central-1"
+	LogStreamEventBridgeSinkAwsRegionSaEast1      LogStreamEventBridgeSinkAwsRegion = "sa-east-1"
+	LogStreamEventBridgeSinkAwsRegionUsEast1      LogStreamEventBridgeSinkAwsRegion = "us-east-1"
+	LogStreamEventBridgeSinkAwsRegionUsEast2      LogStreamEventBridgeSinkAwsRegion = "us-east-2"
+	LogStreamEventBridgeSinkAwsRegionUsGovEast1   LogStreamEventBridgeSinkAwsRegion = "us-gov-east-1"
+	LogStreamEventBridgeSinkAwsRegionUsGovWest1   LogStreamEventBridgeSinkAwsRegion = "us-gov-west-1"
+	LogStreamEventBridgeSinkAwsRegionUsWest1      LogStreamEventBridgeSinkAwsRegion = "us-west-1"
+	LogStreamEventBridgeSinkAwsRegionUsWest2      LogStreamEventBridgeSinkAwsRegion = "us-west-2"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventBridgeSinkAwsRegion enum.
+func (e LogStreamEventBridgeSinkAwsRegion) Valid() bool {
+	switch e {
+	case LogStreamEventBridgeSinkAwsRegionAfSouth1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApEast1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApEast2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApNortheast1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApNortheast2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApNortheast3:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSouth1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSouth2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSoutheast1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSoutheast2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSoutheast3:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSoutheast4:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSoutheast5:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSoutheast6:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionApSoutheast7:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionCaCentral1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionCaWest1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuCentral1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuCentral2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuNorth1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuSouth1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuSouth2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuWest1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuWest2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionEuWest3:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionIlCentral1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionMeCentral1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionMeSouth1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionMxCentral1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionSaEast1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionUsEast1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionUsEast2:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionUsGovEast1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionUsGovWest1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionUsWest1:
+		return true
+	case LogStreamEventBridgeSinkAwsRegionUsWest2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventBridgeSinkViewAwsRegion.
+const (
+	LogStreamEventBridgeSinkViewAwsRegionAfSouth1     LogStreamEventBridgeSinkViewAwsRegion = "af-south-1"
+	LogStreamEventBridgeSinkViewAwsRegionApEast1      LogStreamEventBridgeSinkViewAwsRegion = "ap-east-1"
+	LogStreamEventBridgeSinkViewAwsRegionApEast2      LogStreamEventBridgeSinkViewAwsRegion = "ap-east-2"
+	LogStreamEventBridgeSinkViewAwsRegionApNortheast1 LogStreamEventBridgeSinkViewAwsRegion = "ap-northeast-1"
+	LogStreamEventBridgeSinkViewAwsRegionApNortheast2 LogStreamEventBridgeSinkViewAwsRegion = "ap-northeast-2"
+	LogStreamEventBridgeSinkViewAwsRegionApNortheast3 LogStreamEventBridgeSinkViewAwsRegion = "ap-northeast-3"
+	LogStreamEventBridgeSinkViewAwsRegionApSouth1     LogStreamEventBridgeSinkViewAwsRegion = "ap-south-1"
+	LogStreamEventBridgeSinkViewAwsRegionApSouth2     LogStreamEventBridgeSinkViewAwsRegion = "ap-south-2"
+	LogStreamEventBridgeSinkViewAwsRegionApSoutheast1 LogStreamEventBridgeSinkViewAwsRegion = "ap-southeast-1"
+	LogStreamEventBridgeSinkViewAwsRegionApSoutheast2 LogStreamEventBridgeSinkViewAwsRegion = "ap-southeast-2"
+	LogStreamEventBridgeSinkViewAwsRegionApSoutheast3 LogStreamEventBridgeSinkViewAwsRegion = "ap-southeast-3"
+	LogStreamEventBridgeSinkViewAwsRegionApSoutheast4 LogStreamEventBridgeSinkViewAwsRegion = "ap-southeast-4"
+	LogStreamEventBridgeSinkViewAwsRegionApSoutheast5 LogStreamEventBridgeSinkViewAwsRegion = "ap-southeast-5"
+	LogStreamEventBridgeSinkViewAwsRegionApSoutheast6 LogStreamEventBridgeSinkViewAwsRegion = "ap-southeast-6"
+	LogStreamEventBridgeSinkViewAwsRegionApSoutheast7 LogStreamEventBridgeSinkViewAwsRegion = "ap-southeast-7"
+	LogStreamEventBridgeSinkViewAwsRegionCaCentral1   LogStreamEventBridgeSinkViewAwsRegion = "ca-central-1"
+	LogStreamEventBridgeSinkViewAwsRegionCaWest1      LogStreamEventBridgeSinkViewAwsRegion = "ca-west-1"
+	LogStreamEventBridgeSinkViewAwsRegionEuCentral1   LogStreamEventBridgeSinkViewAwsRegion = "eu-central-1"
+	LogStreamEventBridgeSinkViewAwsRegionEuCentral2   LogStreamEventBridgeSinkViewAwsRegion = "eu-central-2"
+	LogStreamEventBridgeSinkViewAwsRegionEuNorth1     LogStreamEventBridgeSinkViewAwsRegion = "eu-north-1"
+	LogStreamEventBridgeSinkViewAwsRegionEuSouth1     LogStreamEventBridgeSinkViewAwsRegion = "eu-south-1"
+	LogStreamEventBridgeSinkViewAwsRegionEuSouth2     LogStreamEventBridgeSinkViewAwsRegion = "eu-south-2"
+	LogStreamEventBridgeSinkViewAwsRegionEuWest1      LogStreamEventBridgeSinkViewAwsRegion = "eu-west-1"
+	LogStreamEventBridgeSinkViewAwsRegionEuWest2      LogStreamEventBridgeSinkViewAwsRegion = "eu-west-2"
+	LogStreamEventBridgeSinkViewAwsRegionEuWest3      LogStreamEventBridgeSinkViewAwsRegion = "eu-west-3"
+	LogStreamEventBridgeSinkViewAwsRegionIlCentral1   LogStreamEventBridgeSinkViewAwsRegion = "il-central-1"
+	LogStreamEventBridgeSinkViewAwsRegionMeCentral1   LogStreamEventBridgeSinkViewAwsRegion = "me-central-1"
+	LogStreamEventBridgeSinkViewAwsRegionMeSouth1     LogStreamEventBridgeSinkViewAwsRegion = "me-south-1"
+	LogStreamEventBridgeSinkViewAwsRegionMxCentral1   LogStreamEventBridgeSinkViewAwsRegion = "mx-central-1"
+	LogStreamEventBridgeSinkViewAwsRegionSaEast1      LogStreamEventBridgeSinkViewAwsRegion = "sa-east-1"
+	LogStreamEventBridgeSinkViewAwsRegionUsEast1      LogStreamEventBridgeSinkViewAwsRegion = "us-east-1"
+	LogStreamEventBridgeSinkViewAwsRegionUsEast2      LogStreamEventBridgeSinkViewAwsRegion = "us-east-2"
+	LogStreamEventBridgeSinkViewAwsRegionUsGovEast1   LogStreamEventBridgeSinkViewAwsRegion = "us-gov-east-1"
+	LogStreamEventBridgeSinkViewAwsRegionUsGovWest1   LogStreamEventBridgeSinkViewAwsRegion = "us-gov-west-1"
+	LogStreamEventBridgeSinkViewAwsRegionUsWest1      LogStreamEventBridgeSinkViewAwsRegion = "us-west-1"
+	LogStreamEventBridgeSinkViewAwsRegionUsWest2      LogStreamEventBridgeSinkViewAwsRegion = "us-west-2"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventBridgeSinkViewAwsRegion enum.
+func (e LogStreamEventBridgeSinkViewAwsRegion) Valid() bool {
+	switch e {
+	case LogStreamEventBridgeSinkViewAwsRegionAfSouth1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApEast1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApEast2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApNortheast1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApNortheast2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApNortheast3:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSouth1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSouth2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSoutheast1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSoutheast2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSoutheast3:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSoutheast4:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSoutheast5:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSoutheast6:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionApSoutheast7:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionCaCentral1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionCaWest1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuCentral1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuCentral2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuNorth1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuSouth1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuSouth2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuWest1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuWest2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionEuWest3:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionIlCentral1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionMeCentral1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionMeSouth1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionMxCentral1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionSaEast1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionUsEast1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionUsEast2:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionUsGovEast1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionUsGovWest1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionUsWest1:
+		return true
+	case LogStreamEventBridgeSinkViewAwsRegionUsWest2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventGridStatus.
+const (
+	LogStreamEventGridStatusSuspended LogStreamEventGridStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventGridStatus enum.
+func (e LogStreamEventGridStatus) Valid() bool {
+	switch e {
+	case LogStreamEventGridStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventGridType.
+const (
+	LogStreamEventGridTypeEventgrid LogStreamEventGridType = "eventgrid"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventGridType enum.
+func (e LogStreamEventGridType) Valid() bool {
+	switch e {
+	case LogStreamEventGridTypeEventgrid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventGridCreateType.
+const (
+	LogStreamEventGridCreateTypeEventgrid LogStreamEventGridCreateType = "eventgrid"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventGridCreateType enum.
+func (e LogStreamEventGridCreateType) Valid() bool {
+	switch e {
+	case LogStreamEventGridCreateTypeEventgrid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventGridSinkAzureRegion.
+const (
+	LogStreamEventGridSinkAzureRegionAustraliacentral   LogStreamEventGridSinkAzureRegion = "australiacentral"
+	LogStreamEventGridSinkAzureRegionAustraliaeast      LogStreamEventGridSinkAzureRegion = "australiaeast"
+	LogStreamEventGridSinkAzureRegionAustraliasoutheast LogStreamEventGridSinkAzureRegion = "australiasoutheast"
+	LogStreamEventGridSinkAzureRegionBrazilsouth        LogStreamEventGridSinkAzureRegion = "brazilsouth"
+	LogStreamEventGridSinkAzureRegionCanadacentral      LogStreamEventGridSinkAzureRegion = "canadacentral"
+	LogStreamEventGridSinkAzureRegionCanadaeast         LogStreamEventGridSinkAzureRegion = "canadaeast"
+	LogStreamEventGridSinkAzureRegionCentralindia       LogStreamEventGridSinkAzureRegion = "centralindia"
+	LogStreamEventGridSinkAzureRegionCentralus          LogStreamEventGridSinkAzureRegion = "centralus"
+	LogStreamEventGridSinkAzureRegionEastasia           LogStreamEventGridSinkAzureRegion = "eastasia"
+	LogStreamEventGridSinkAzureRegionEastus             LogStreamEventGridSinkAzureRegion = "eastus"
+	LogStreamEventGridSinkAzureRegionEastus2            LogStreamEventGridSinkAzureRegion = "eastus2"
+	LogStreamEventGridSinkAzureRegionFrancecentral      LogStreamEventGridSinkAzureRegion = "francecentral"
+	LogStreamEventGridSinkAzureRegionGermanywestcentral LogStreamEventGridSinkAzureRegion = "germanywestcentral"
+	LogStreamEventGridSinkAzureRegionJapaneast          LogStreamEventGridSinkAzureRegion = "japaneast"
+	LogStreamEventGridSinkAzureRegionJapanwest          LogStreamEventGridSinkAzureRegion = "japanwest"
+	LogStreamEventGridSinkAzureRegionKoreacentral       LogStreamEventGridSinkAzureRegion = "koreacentral"
+	LogStreamEventGridSinkAzureRegionKoreasouth         LogStreamEventGridSinkAzureRegion = "koreasouth"
+	LogStreamEventGridSinkAzureRegionNorthcentralus     LogStreamEventGridSinkAzureRegion = "northcentralus"
+	LogStreamEventGridSinkAzureRegionNortheurope        LogStreamEventGridSinkAzureRegion = "northeurope"
+	LogStreamEventGridSinkAzureRegionNorwayeast         LogStreamEventGridSinkAzureRegion = "norwayeast"
+	LogStreamEventGridSinkAzureRegionSouthafricanorth   LogStreamEventGridSinkAzureRegion = "southafricanorth"
+	LogStreamEventGridSinkAzureRegionSouthcentralus     LogStreamEventGridSinkAzureRegion = "southcentralus"
+	LogStreamEventGridSinkAzureRegionSoutheastasia      LogStreamEventGridSinkAzureRegion = "southeastasia"
+	LogStreamEventGridSinkAzureRegionSouthindia         LogStreamEventGridSinkAzureRegion = "southindia"
+	LogStreamEventGridSinkAzureRegionSwedencentral      LogStreamEventGridSinkAzureRegion = "swedencentral"
+	LogStreamEventGridSinkAzureRegionSwitzerlandnorth   LogStreamEventGridSinkAzureRegion = "switzerlandnorth"
+	LogStreamEventGridSinkAzureRegionUaenorth           LogStreamEventGridSinkAzureRegion = "uaenorth"
+	LogStreamEventGridSinkAzureRegionUksouth            LogStreamEventGridSinkAzureRegion = "uksouth"
+	LogStreamEventGridSinkAzureRegionUkwest             LogStreamEventGridSinkAzureRegion = "ukwest"
+	LogStreamEventGridSinkAzureRegionWestcentralus      LogStreamEventGridSinkAzureRegion = "westcentralus"
+	LogStreamEventGridSinkAzureRegionWesteurope         LogStreamEventGridSinkAzureRegion = "westeurope"
+	LogStreamEventGridSinkAzureRegionWestindia          LogStreamEventGridSinkAzureRegion = "westindia"
+	LogStreamEventGridSinkAzureRegionWestus             LogStreamEventGridSinkAzureRegion = "westus"
+	LogStreamEventGridSinkAzureRegionWestus2            LogStreamEventGridSinkAzureRegion = "westus2"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventGridSinkAzureRegion enum.
+func (e LogStreamEventGridSinkAzureRegion) Valid() bool {
+	switch e {
+	case LogStreamEventGridSinkAzureRegionAustraliacentral:
+		return true
+	case LogStreamEventGridSinkAzureRegionAustraliaeast:
+		return true
+	case LogStreamEventGridSinkAzureRegionAustraliasoutheast:
+		return true
+	case LogStreamEventGridSinkAzureRegionBrazilsouth:
+		return true
+	case LogStreamEventGridSinkAzureRegionCanadacentral:
+		return true
+	case LogStreamEventGridSinkAzureRegionCanadaeast:
+		return true
+	case LogStreamEventGridSinkAzureRegionCentralindia:
+		return true
+	case LogStreamEventGridSinkAzureRegionCentralus:
+		return true
+	case LogStreamEventGridSinkAzureRegionEastasia:
+		return true
+	case LogStreamEventGridSinkAzureRegionEastus:
+		return true
+	case LogStreamEventGridSinkAzureRegionEastus2:
+		return true
+	case LogStreamEventGridSinkAzureRegionFrancecentral:
+		return true
+	case LogStreamEventGridSinkAzureRegionGermanywestcentral:
+		return true
+	case LogStreamEventGridSinkAzureRegionJapaneast:
+		return true
+	case LogStreamEventGridSinkAzureRegionJapanwest:
+		return true
+	case LogStreamEventGridSinkAzureRegionKoreacentral:
+		return true
+	case LogStreamEventGridSinkAzureRegionKoreasouth:
+		return true
+	case LogStreamEventGridSinkAzureRegionNorthcentralus:
+		return true
+	case LogStreamEventGridSinkAzureRegionNortheurope:
+		return true
+	case LogStreamEventGridSinkAzureRegionNorwayeast:
+		return true
+	case LogStreamEventGridSinkAzureRegionSouthafricanorth:
+		return true
+	case LogStreamEventGridSinkAzureRegionSouthcentralus:
+		return true
+	case LogStreamEventGridSinkAzureRegionSoutheastasia:
+		return true
+	case LogStreamEventGridSinkAzureRegionSouthindia:
+		return true
+	case LogStreamEventGridSinkAzureRegionSwedencentral:
+		return true
+	case LogStreamEventGridSinkAzureRegionSwitzerlandnorth:
+		return true
+	case LogStreamEventGridSinkAzureRegionUaenorth:
+		return true
+	case LogStreamEventGridSinkAzureRegionUksouth:
+		return true
+	case LogStreamEventGridSinkAzureRegionUkwest:
+		return true
+	case LogStreamEventGridSinkAzureRegionWestcentralus:
+		return true
+	case LogStreamEventGridSinkAzureRegionWesteurope:
+		return true
+	case LogStreamEventGridSinkAzureRegionWestindia:
+		return true
+	case LogStreamEventGridSinkAzureRegionWestus:
+		return true
+	case LogStreamEventGridSinkAzureRegionWestus2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamEventGridSinkViewAzureRegion.
+const (
+	LogStreamEventGridSinkViewAzureRegionAustraliacentral   LogStreamEventGridSinkViewAzureRegion = "australiacentral"
+	LogStreamEventGridSinkViewAzureRegionAustraliaeast      LogStreamEventGridSinkViewAzureRegion = "australiaeast"
+	LogStreamEventGridSinkViewAzureRegionAustraliasoutheast LogStreamEventGridSinkViewAzureRegion = "australiasoutheast"
+	LogStreamEventGridSinkViewAzureRegionBrazilsouth        LogStreamEventGridSinkViewAzureRegion = "brazilsouth"
+	LogStreamEventGridSinkViewAzureRegionCanadacentral      LogStreamEventGridSinkViewAzureRegion = "canadacentral"
+	LogStreamEventGridSinkViewAzureRegionCanadaeast         LogStreamEventGridSinkViewAzureRegion = "canadaeast"
+	LogStreamEventGridSinkViewAzureRegionCentralindia       LogStreamEventGridSinkViewAzureRegion = "centralindia"
+	LogStreamEventGridSinkViewAzureRegionCentralus          LogStreamEventGridSinkViewAzureRegion = "centralus"
+	LogStreamEventGridSinkViewAzureRegionEastasia           LogStreamEventGridSinkViewAzureRegion = "eastasia"
+	LogStreamEventGridSinkViewAzureRegionEastus             LogStreamEventGridSinkViewAzureRegion = "eastus"
+	LogStreamEventGridSinkViewAzureRegionEastus2            LogStreamEventGridSinkViewAzureRegion = "eastus2"
+	LogStreamEventGridSinkViewAzureRegionFrancecentral      LogStreamEventGridSinkViewAzureRegion = "francecentral"
+	LogStreamEventGridSinkViewAzureRegionGermanywestcentral LogStreamEventGridSinkViewAzureRegion = "germanywestcentral"
+	LogStreamEventGridSinkViewAzureRegionJapaneast          LogStreamEventGridSinkViewAzureRegion = "japaneast"
+	LogStreamEventGridSinkViewAzureRegionJapanwest          LogStreamEventGridSinkViewAzureRegion = "japanwest"
+	LogStreamEventGridSinkViewAzureRegionKoreacentral       LogStreamEventGridSinkViewAzureRegion = "koreacentral"
+	LogStreamEventGridSinkViewAzureRegionKoreasouth         LogStreamEventGridSinkViewAzureRegion = "koreasouth"
+	LogStreamEventGridSinkViewAzureRegionNorthcentralus     LogStreamEventGridSinkViewAzureRegion = "northcentralus"
+	LogStreamEventGridSinkViewAzureRegionNortheurope        LogStreamEventGridSinkViewAzureRegion = "northeurope"
+	LogStreamEventGridSinkViewAzureRegionNorwayeast         LogStreamEventGridSinkViewAzureRegion = "norwayeast"
+	LogStreamEventGridSinkViewAzureRegionSouthafricanorth   LogStreamEventGridSinkViewAzureRegion = "southafricanorth"
+	LogStreamEventGridSinkViewAzureRegionSouthcentralus     LogStreamEventGridSinkViewAzureRegion = "southcentralus"
+	LogStreamEventGridSinkViewAzureRegionSoutheastasia      LogStreamEventGridSinkViewAzureRegion = "southeastasia"
+	LogStreamEventGridSinkViewAzureRegionSouthindia         LogStreamEventGridSinkViewAzureRegion = "southindia"
+	LogStreamEventGridSinkViewAzureRegionSwedencentral      LogStreamEventGridSinkViewAzureRegion = "swedencentral"
+	LogStreamEventGridSinkViewAzureRegionSwitzerlandnorth   LogStreamEventGridSinkViewAzureRegion = "switzerlandnorth"
+	LogStreamEventGridSinkViewAzureRegionUaenorth           LogStreamEventGridSinkViewAzureRegion = "uaenorth"
+	LogStreamEventGridSinkViewAzureRegionUksouth            LogStreamEventGridSinkViewAzureRegion = "uksouth"
+	LogStreamEventGridSinkViewAzureRegionUkwest             LogStreamEventGridSinkViewAzureRegion = "ukwest"
+	LogStreamEventGridSinkViewAzureRegionWestcentralus      LogStreamEventGridSinkViewAzureRegion = "westcentralus"
+	LogStreamEventGridSinkViewAzureRegionWesteurope         LogStreamEventGridSinkViewAzureRegion = "westeurope"
+	LogStreamEventGridSinkViewAzureRegionWestindia          LogStreamEventGridSinkViewAzureRegion = "westindia"
+	LogStreamEventGridSinkViewAzureRegionWestus             LogStreamEventGridSinkViewAzureRegion = "westus"
+	LogStreamEventGridSinkViewAzureRegionWestus2            LogStreamEventGridSinkViewAzureRegion = "westus2"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamEventGridSinkViewAzureRegion enum.
+func (e LogStreamEventGridSinkViewAzureRegion) Valid() bool {
+	switch e {
+	case LogStreamEventGridSinkViewAzureRegionAustraliacentral:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionAustraliaeast:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionAustraliasoutheast:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionBrazilsouth:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionCanadacentral:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionCanadaeast:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionCentralindia:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionCentralus:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionEastasia:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionEastus:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionEastus2:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionFrancecentral:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionGermanywestcentral:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionJapaneast:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionJapanwest:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionKoreacentral:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionKoreasouth:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionNorthcentralus:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionNortheurope:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionNorwayeast:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionSouthafricanorth:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionSouthcentralus:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionSoutheastasia:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionSouthindia:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionSwedencentral:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionSwitzerlandnorth:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionUaenorth:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionUksouth:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionUkwest:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionWestcentralus:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionWesteurope:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionWestindia:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionWestus:
+		return true
+	case LogStreamEventGridSinkViewAzureRegionWestus2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamFilterName.
+const (
+	LogStreamFilterNameActions                  LogStreamFilterName = "actions"
+	LogStreamFilterNameAuthLoginFail            LogStreamFilterName = "auth.login.fail"
+	LogStreamFilterNameAuthLoginNotification    LogStreamFilterName = "auth.login.notification"
+	LogStreamFilterNameAuthLoginSuccess         LogStreamFilterName = "auth.login.success"
+	LogStreamFilterNameAuthLogoutFail           LogStreamFilterName = "auth.logout.fail"
+	LogStreamFilterNameAuthLogoutSuccess        LogStreamFilterName = "auth.logout.success"
+	LogStreamFilterNameAuthSignupFail           LogStreamFilterName = "auth.signup.fail"
+	LogStreamFilterNameAuthSignupSuccess        LogStreamFilterName = "auth.signup.success"
+	LogStreamFilterNameAuthSilentAuthFail       LogStreamFilterName = "auth.silent_auth.fail"
+	LogStreamFilterNameAuthSilentAuthSuccess    LogStreamFilterName = "auth.silent_auth.success"
+	LogStreamFilterNameAuthTokenExchangeFail    LogStreamFilterName = "auth.token_exchange.fail"
+	LogStreamFilterNameAuthTokenExchangeSuccess LogStreamFilterName = "auth.token_exchange.success"
+	LogStreamFilterNameManagementFail           LogStreamFilterName = "management.fail"
+	LogStreamFilterNameManagementSuccess        LogStreamFilterName = "management.success"
+	LogStreamFilterNameOther                    LogStreamFilterName = "other"
+	LogStreamFilterNameScimEvent                LogStreamFilterName = "scim.event"
+	LogStreamFilterNameSystemNotification       LogStreamFilterName = "system.notification"
+	LogStreamFilterNameUserFail                 LogStreamFilterName = "user.fail"
+	LogStreamFilterNameUserNotification         LogStreamFilterName = "user.notification"
+	LogStreamFilterNameUserSuccess              LogStreamFilterName = "user.success"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamFilterName enum.
+func (e LogStreamFilterName) Valid() bool {
+	switch e {
+	case LogStreamFilterNameActions:
+		return true
+	case LogStreamFilterNameAuthLoginFail:
+		return true
+	case LogStreamFilterNameAuthLoginNotification:
+		return true
+	case LogStreamFilterNameAuthLoginSuccess:
+		return true
+	case LogStreamFilterNameAuthLogoutFail:
+		return true
+	case LogStreamFilterNameAuthLogoutSuccess:
+		return true
+	case LogStreamFilterNameAuthSignupFail:
+		return true
+	case LogStreamFilterNameAuthSignupSuccess:
+		return true
+	case LogStreamFilterNameAuthSilentAuthFail:
+		return true
+	case LogStreamFilterNameAuthSilentAuthSuccess:
+		return true
+	case LogStreamFilterNameAuthTokenExchangeFail:
+		return true
+	case LogStreamFilterNameAuthTokenExchangeSuccess:
+		return true
+	case LogStreamFilterNameManagementFail:
+		return true
+	case LogStreamFilterNameManagementSuccess:
+		return true
+	case LogStreamFilterNameOther:
+		return true
+	case LogStreamFilterNameScimEvent:
+		return true
+	case LogStreamFilterNameSystemNotification:
+		return true
+	case LogStreamFilterNameUserFail:
+		return true
+	case LogStreamFilterNameUserNotification:
+		return true
+	case LogStreamFilterNameUserSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamFilterType.
+const (
+	Category LogStreamFilterType = "category"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamFilterType enum.
+func (e LogStreamFilterType) Valid() bool {
+	switch e {
+	case Category:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamHTTPStatus.
+const (
+	LogStreamHTTPStatusActive    LogStreamHTTPStatus = "active"
+	LogStreamHTTPStatusPaused    LogStreamHTTPStatus = "paused"
+	LogStreamHTTPStatusSuspended LogStreamHTTPStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamHTTPStatus enum.
+func (e LogStreamHTTPStatus) Valid() bool {
+	switch e {
+	case LogStreamHTTPStatusActive:
+		return true
+	case LogStreamHTTPStatusPaused:
+		return true
+	case LogStreamHTTPStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamHTTPType.
+const (
+	LogStreamHTTPTypeHttp LogStreamHTTPType = "http"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamHTTPType enum.
+func (e LogStreamHTTPType) Valid() bool {
+	switch e {
+	case LogStreamHTTPTypeHttp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamHTTPCreateType.
+const (
+	LogStreamHTTPCreateTypeHttp LogStreamHTTPCreateType = "http"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamHTTPCreateType enum.
+func (e LogStreamHTTPCreateType) Valid() bool {
+	switch e {
+	case LogStreamHTTPCreateTypeHttp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamHTTPSinkHttpContentFormat.
+const (
+	LogStreamHTTPSinkHttpContentFormatJSONARRAY  LogStreamHTTPSinkHttpContentFormat = "JSONARRAY"
+	LogStreamHTTPSinkHttpContentFormatJSONLINES  LogStreamHTTPSinkHttpContentFormat = "JSONLINES"
+	LogStreamHTTPSinkHttpContentFormatJSONOBJECT LogStreamHTTPSinkHttpContentFormat = "JSONOBJECT"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamHTTPSinkHttpContentFormat enum.
+func (e LogStreamHTTPSinkHttpContentFormat) Valid() bool {
+	switch e {
+	case LogStreamHTTPSinkHttpContentFormatJSONARRAY:
+		return true
+	case LogStreamHTTPSinkHttpContentFormatJSONLINES:
+		return true
+	case LogStreamHTTPSinkHttpContentFormatJSONOBJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamHTTPSinkViewHttpAuthorization.
+const (
+	LogStreamHTTPSinkViewHttpAuthorizationREDACTED LogStreamHTTPSinkViewHttpAuthorization = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamHTTPSinkViewHttpAuthorization enum.
+func (e LogStreamHTTPSinkViewHttpAuthorization) Valid() bool {
+	switch e {
+	case LogStreamHTTPSinkViewHttpAuthorizationREDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamHTTPSinkViewHttpContentFormat.
+const (
+	LogStreamHTTPSinkViewHttpContentFormatJSONARRAY  LogStreamHTTPSinkViewHttpContentFormat = "JSONARRAY"
+	LogStreamHTTPSinkViewHttpContentFormatJSONLINES  LogStreamHTTPSinkViewHttpContentFormat = "JSONLINES"
+	LogStreamHTTPSinkViewHttpContentFormatJSONOBJECT LogStreamHTTPSinkViewHttpContentFormat = "JSONOBJECT"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamHTTPSinkViewHttpContentFormat enum.
+func (e LogStreamHTTPSinkViewHttpContentFormat) Valid() bool {
+	switch e {
+	case LogStreamHTTPSinkViewHttpContentFormatJSONARRAY:
+		return true
+	case LogStreamHTTPSinkViewHttpContentFormatJSONLINES:
+		return true
+	case LogStreamHTTPSinkViewHttpContentFormatJSONOBJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamHTTPSinkViewHttpCustomHeaders.
+const (
+	LogStreamHTTPSinkViewHttpCustomHeadersREDACTED LogStreamHTTPSinkViewHttpCustomHeaders = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamHTTPSinkViewHttpCustomHeaders enum.
+func (e LogStreamHTTPSinkViewHttpCustomHeaders) Valid() bool {
+	switch e {
+	case LogStreamHTTPSinkViewHttpCustomHeadersREDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamMixpanelStatus.
+const (
+	LogStreamMixpanelStatusActive    LogStreamMixpanelStatus = "active"
+	LogStreamMixpanelStatusPaused    LogStreamMixpanelStatus = "paused"
+	LogStreamMixpanelStatusSuspended LogStreamMixpanelStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamMixpanelStatus enum.
+func (e LogStreamMixpanelStatus) Valid() bool {
+	switch e {
+	case LogStreamMixpanelStatusActive:
+		return true
+	case LogStreamMixpanelStatusPaused:
+		return true
+	case LogStreamMixpanelStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamMixpanelType.
+const (
+	LogStreamMixpanelTypeMixpanel LogStreamMixpanelType = "mixpanel"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamMixpanelType enum.
+func (e LogStreamMixpanelType) Valid() bool {
+	switch e {
+	case LogStreamMixpanelTypeMixpanel:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamMixpanelCreateType.
+const (
+	LogStreamMixpanelCreateTypeMixpanel LogStreamMixpanelCreateType = "mixpanel"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamMixpanelCreateType enum.
+func (e LogStreamMixpanelCreateType) Valid() bool {
+	switch e {
+	case LogStreamMixpanelCreateTypeMixpanel:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamMixpanelSinkMixpanelRegion.
+const (
+	LogStreamMixpanelSinkMixpanelRegionEu LogStreamMixpanelSinkMixpanelRegion = "eu"
+	LogStreamMixpanelSinkMixpanelRegionUs LogStreamMixpanelSinkMixpanelRegion = "us"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamMixpanelSinkMixpanelRegion enum.
+func (e LogStreamMixpanelSinkMixpanelRegion) Valid() bool {
+	switch e {
+	case LogStreamMixpanelSinkMixpanelRegionEu:
+		return true
+	case LogStreamMixpanelSinkMixpanelRegionUs:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamMixpanelSinkViewMixpanelRegion.
+const (
+	LogStreamMixpanelSinkViewMixpanelRegionEu LogStreamMixpanelSinkViewMixpanelRegion = "eu"
+	LogStreamMixpanelSinkViewMixpanelRegionUs LogStreamMixpanelSinkViewMixpanelRegion = "us"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamMixpanelSinkViewMixpanelRegion enum.
+func (e LogStreamMixpanelSinkViewMixpanelRegion) Valid() bool {
+	switch e {
+	case LogStreamMixpanelSinkViewMixpanelRegionEu:
+		return true
+	case LogStreamMixpanelSinkViewMixpanelRegionUs:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamMixpanelSinkViewMixpanelServiceAccountPassword.
+const (
+	LogStreamMixpanelSinkViewMixpanelServiceAccountPasswordREDACTED LogStreamMixpanelSinkViewMixpanelServiceAccountPassword = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamMixpanelSinkViewMixpanelServiceAccountPassword enum.
+func (e LogStreamMixpanelSinkViewMixpanelServiceAccountPassword) Valid() bool {
+	switch e {
+	case LogStreamMixpanelSinkViewMixpanelServiceAccountPasswordREDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamPIIAlgorithm.
+const (
+	Xxhash LogStreamPIIAlgorithm = "xxhash"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamPIIAlgorithm enum.
+func (e LogStreamPIIAlgorithm) Valid() bool {
+	switch e {
+	case Xxhash:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamPIILogFields.
+const (
+	LogStreamPIILogFieldsAddress   LogStreamPIILogFields = "address"
+	LogStreamPIILogFieldsEmail     LogStreamPIILogFields = "email"
+	LogStreamPIILogFieldsFirstName LogStreamPIILogFields = "first_name"
+	LogStreamPIILogFieldsLastName  LogStreamPIILogFields = "last_name"
+	LogStreamPIILogFieldsPhone     LogStreamPIILogFields = "phone"
+	LogStreamPIILogFieldsUsername  LogStreamPIILogFields = "username"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamPIILogFields enum.
+func (e LogStreamPIILogFields) Valid() bool {
+	switch e {
+	case LogStreamPIILogFieldsAddress:
+		return true
+	case LogStreamPIILogFieldsEmail:
+		return true
+	case LogStreamPIILogFieldsFirstName:
+		return true
+	case LogStreamPIILogFieldsLastName:
+		return true
+	case LogStreamPIILogFieldsPhone:
+		return true
+	case LogStreamPIILogFieldsUsername:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamPIIMethod.
+const (
+	Hash LogStreamPIIMethod = "hash"
+	Mask LogStreamPIIMethod = "mask"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamPIIMethod enum.
+func (e LogStreamPIIMethod) Valid() bool {
+	switch e {
+	case Hash:
+		return true
+	case Mask:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamPatchStatus.
+const (
+	LogStreamPatchStatusActive    LogStreamPatchStatus = "active"
+	LogStreamPatchStatusPaused    LogStreamPatchStatus = "paused"
+	LogStreamPatchStatusSuspended LogStreamPatchStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamPatchStatus enum.
+func (e LogStreamPatchStatus) Valid() bool {
+	switch e {
+	case LogStreamPatchStatusActive:
+		return true
+	case LogStreamPatchStatusPaused:
+		return true
+	case LogStreamPatchStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSegmentStatus.
+const (
+	LogStreamSegmentStatusActive    LogStreamSegmentStatus = "active"
+	LogStreamSegmentStatusPaused    LogStreamSegmentStatus = "paused"
+	LogStreamSegmentStatusSuspended LogStreamSegmentStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSegmentStatus enum.
+func (e LogStreamSegmentStatus) Valid() bool {
+	switch e {
+	case LogStreamSegmentStatusActive:
+		return true
+	case LogStreamSegmentStatusPaused:
+		return true
+	case LogStreamSegmentStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSegmentType.
+const (
+	LogStreamSegmentTypeSegment LogStreamSegmentType = "segment"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSegmentType enum.
+func (e LogStreamSegmentType) Valid() bool {
+	switch e {
+	case LogStreamSegmentTypeSegment:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSegmentCreateType.
+const (
+	LogStreamSegmentCreateTypeSegment LogStreamSegmentCreateType = "segment"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSegmentCreateType enum.
+func (e LogStreamSegmentCreateType) Valid() bool {
+	switch e {
+	case LogStreamSegmentCreateTypeSegment:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSegmentSinkViewSegmentWriteKey.
+const (
+	LogStreamSegmentSinkViewSegmentWriteKeyREDACTED LogStreamSegmentSinkViewSegmentWriteKey = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSegmentSinkViewSegmentWriteKey enum.
+func (e LogStreamSegmentSinkViewSegmentWriteKey) Valid() bool {
+	switch e {
+	case LogStreamSegmentSinkViewSegmentWriteKeyREDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSinkPatchAwsRegion.
+const (
+	LogStreamSinkPatchAwsRegionAfSouth1     LogStreamSinkPatchAwsRegion = "af-south-1"
+	LogStreamSinkPatchAwsRegionApEast1      LogStreamSinkPatchAwsRegion = "ap-east-1"
+	LogStreamSinkPatchAwsRegionApEast2      LogStreamSinkPatchAwsRegion = "ap-east-2"
+	LogStreamSinkPatchAwsRegionApNortheast1 LogStreamSinkPatchAwsRegion = "ap-northeast-1"
+	LogStreamSinkPatchAwsRegionApNortheast2 LogStreamSinkPatchAwsRegion = "ap-northeast-2"
+	LogStreamSinkPatchAwsRegionApNortheast3 LogStreamSinkPatchAwsRegion = "ap-northeast-3"
+	LogStreamSinkPatchAwsRegionApSouth1     LogStreamSinkPatchAwsRegion = "ap-south-1"
+	LogStreamSinkPatchAwsRegionApSouth2     LogStreamSinkPatchAwsRegion = "ap-south-2"
+	LogStreamSinkPatchAwsRegionApSoutheast1 LogStreamSinkPatchAwsRegion = "ap-southeast-1"
+	LogStreamSinkPatchAwsRegionApSoutheast2 LogStreamSinkPatchAwsRegion = "ap-southeast-2"
+	LogStreamSinkPatchAwsRegionApSoutheast3 LogStreamSinkPatchAwsRegion = "ap-southeast-3"
+	LogStreamSinkPatchAwsRegionApSoutheast4 LogStreamSinkPatchAwsRegion = "ap-southeast-4"
+	LogStreamSinkPatchAwsRegionApSoutheast5 LogStreamSinkPatchAwsRegion = "ap-southeast-5"
+	LogStreamSinkPatchAwsRegionApSoutheast6 LogStreamSinkPatchAwsRegion = "ap-southeast-6"
+	LogStreamSinkPatchAwsRegionApSoutheast7 LogStreamSinkPatchAwsRegion = "ap-southeast-7"
+	LogStreamSinkPatchAwsRegionCaCentral1   LogStreamSinkPatchAwsRegion = "ca-central-1"
+	LogStreamSinkPatchAwsRegionCaWest1      LogStreamSinkPatchAwsRegion = "ca-west-1"
+	LogStreamSinkPatchAwsRegionEuCentral1   LogStreamSinkPatchAwsRegion = "eu-central-1"
+	LogStreamSinkPatchAwsRegionEuCentral2   LogStreamSinkPatchAwsRegion = "eu-central-2"
+	LogStreamSinkPatchAwsRegionEuNorth1     LogStreamSinkPatchAwsRegion = "eu-north-1"
+	LogStreamSinkPatchAwsRegionEuSouth1     LogStreamSinkPatchAwsRegion = "eu-south-1"
+	LogStreamSinkPatchAwsRegionEuSouth2     LogStreamSinkPatchAwsRegion = "eu-south-2"
+	LogStreamSinkPatchAwsRegionEuWest1      LogStreamSinkPatchAwsRegion = "eu-west-1"
+	LogStreamSinkPatchAwsRegionEuWest2      LogStreamSinkPatchAwsRegion = "eu-west-2"
+	LogStreamSinkPatchAwsRegionEuWest3      LogStreamSinkPatchAwsRegion = "eu-west-3"
+	LogStreamSinkPatchAwsRegionIlCentral1   LogStreamSinkPatchAwsRegion = "il-central-1"
+	LogStreamSinkPatchAwsRegionMeCentral1   LogStreamSinkPatchAwsRegion = "me-central-1"
+	LogStreamSinkPatchAwsRegionMeSouth1     LogStreamSinkPatchAwsRegion = "me-south-1"
+	LogStreamSinkPatchAwsRegionMxCentral1   LogStreamSinkPatchAwsRegion = "mx-central-1"
+	LogStreamSinkPatchAwsRegionSaEast1      LogStreamSinkPatchAwsRegion = "sa-east-1"
+	LogStreamSinkPatchAwsRegionUsEast1      LogStreamSinkPatchAwsRegion = "us-east-1"
+	LogStreamSinkPatchAwsRegionUsEast2      LogStreamSinkPatchAwsRegion = "us-east-2"
+	LogStreamSinkPatchAwsRegionUsGovEast1   LogStreamSinkPatchAwsRegion = "us-gov-east-1"
+	LogStreamSinkPatchAwsRegionUsGovWest1   LogStreamSinkPatchAwsRegion = "us-gov-west-1"
+	LogStreamSinkPatchAwsRegionUsWest1      LogStreamSinkPatchAwsRegion = "us-west-1"
+	LogStreamSinkPatchAwsRegionUsWest2      LogStreamSinkPatchAwsRegion = "us-west-2"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSinkPatchAwsRegion enum.
+func (e LogStreamSinkPatchAwsRegion) Valid() bool {
+	switch e {
+	case LogStreamSinkPatchAwsRegionAfSouth1:
+		return true
+	case LogStreamSinkPatchAwsRegionApEast1:
+		return true
+	case LogStreamSinkPatchAwsRegionApEast2:
+		return true
+	case LogStreamSinkPatchAwsRegionApNortheast1:
+		return true
+	case LogStreamSinkPatchAwsRegionApNortheast2:
+		return true
+	case LogStreamSinkPatchAwsRegionApNortheast3:
+		return true
+	case LogStreamSinkPatchAwsRegionApSouth1:
+		return true
+	case LogStreamSinkPatchAwsRegionApSouth2:
+		return true
+	case LogStreamSinkPatchAwsRegionApSoutheast1:
+		return true
+	case LogStreamSinkPatchAwsRegionApSoutheast2:
+		return true
+	case LogStreamSinkPatchAwsRegionApSoutheast3:
+		return true
+	case LogStreamSinkPatchAwsRegionApSoutheast4:
+		return true
+	case LogStreamSinkPatchAwsRegionApSoutheast5:
+		return true
+	case LogStreamSinkPatchAwsRegionApSoutheast6:
+		return true
+	case LogStreamSinkPatchAwsRegionApSoutheast7:
+		return true
+	case LogStreamSinkPatchAwsRegionCaCentral1:
+		return true
+	case LogStreamSinkPatchAwsRegionCaWest1:
+		return true
+	case LogStreamSinkPatchAwsRegionEuCentral1:
+		return true
+	case LogStreamSinkPatchAwsRegionEuCentral2:
+		return true
+	case LogStreamSinkPatchAwsRegionEuNorth1:
+		return true
+	case LogStreamSinkPatchAwsRegionEuSouth1:
+		return true
+	case LogStreamSinkPatchAwsRegionEuSouth2:
+		return true
+	case LogStreamSinkPatchAwsRegionEuWest1:
+		return true
+	case LogStreamSinkPatchAwsRegionEuWest2:
+		return true
+	case LogStreamSinkPatchAwsRegionEuWest3:
+		return true
+	case LogStreamSinkPatchAwsRegionIlCentral1:
+		return true
+	case LogStreamSinkPatchAwsRegionMeCentral1:
+		return true
+	case LogStreamSinkPatchAwsRegionMeSouth1:
+		return true
+	case LogStreamSinkPatchAwsRegionMxCentral1:
+		return true
+	case LogStreamSinkPatchAwsRegionSaEast1:
+		return true
+	case LogStreamSinkPatchAwsRegionUsEast1:
+		return true
+	case LogStreamSinkPatchAwsRegionUsEast2:
+		return true
+	case LogStreamSinkPatchAwsRegionUsGovEast1:
+		return true
+	case LogStreamSinkPatchAwsRegionUsGovWest1:
+		return true
+	case LogStreamSinkPatchAwsRegionUsWest1:
+		return true
+	case LogStreamSinkPatchAwsRegionUsWest2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSinkPatchAzureRegion.
+const (
+	LogStreamSinkPatchAzureRegionAustraliacentral   LogStreamSinkPatchAzureRegion = "australiacentral"
+	LogStreamSinkPatchAzureRegionAustraliaeast      LogStreamSinkPatchAzureRegion = "australiaeast"
+	LogStreamSinkPatchAzureRegionAustraliasoutheast LogStreamSinkPatchAzureRegion = "australiasoutheast"
+	LogStreamSinkPatchAzureRegionBrazilsouth        LogStreamSinkPatchAzureRegion = "brazilsouth"
+	LogStreamSinkPatchAzureRegionCanadacentral      LogStreamSinkPatchAzureRegion = "canadacentral"
+	LogStreamSinkPatchAzureRegionCanadaeast         LogStreamSinkPatchAzureRegion = "canadaeast"
+	LogStreamSinkPatchAzureRegionCentralindia       LogStreamSinkPatchAzureRegion = "centralindia"
+	LogStreamSinkPatchAzureRegionCentralus          LogStreamSinkPatchAzureRegion = "centralus"
+	LogStreamSinkPatchAzureRegionEastasia           LogStreamSinkPatchAzureRegion = "eastasia"
+	LogStreamSinkPatchAzureRegionEastus             LogStreamSinkPatchAzureRegion = "eastus"
+	LogStreamSinkPatchAzureRegionEastus2            LogStreamSinkPatchAzureRegion = "eastus2"
+	LogStreamSinkPatchAzureRegionFrancecentral      LogStreamSinkPatchAzureRegion = "francecentral"
+	LogStreamSinkPatchAzureRegionGermanywestcentral LogStreamSinkPatchAzureRegion = "germanywestcentral"
+	LogStreamSinkPatchAzureRegionJapaneast          LogStreamSinkPatchAzureRegion = "japaneast"
+	LogStreamSinkPatchAzureRegionJapanwest          LogStreamSinkPatchAzureRegion = "japanwest"
+	LogStreamSinkPatchAzureRegionKoreacentral       LogStreamSinkPatchAzureRegion = "koreacentral"
+	LogStreamSinkPatchAzureRegionKoreasouth         LogStreamSinkPatchAzureRegion = "koreasouth"
+	LogStreamSinkPatchAzureRegionNorthcentralus     LogStreamSinkPatchAzureRegion = "northcentralus"
+	LogStreamSinkPatchAzureRegionNortheurope        LogStreamSinkPatchAzureRegion = "northeurope"
+	LogStreamSinkPatchAzureRegionNorwayeast         LogStreamSinkPatchAzureRegion = "norwayeast"
+	LogStreamSinkPatchAzureRegionSouthafricanorth   LogStreamSinkPatchAzureRegion = "southafricanorth"
+	LogStreamSinkPatchAzureRegionSouthcentralus     LogStreamSinkPatchAzureRegion = "southcentralus"
+	LogStreamSinkPatchAzureRegionSoutheastasia      LogStreamSinkPatchAzureRegion = "southeastasia"
+	LogStreamSinkPatchAzureRegionSouthindia         LogStreamSinkPatchAzureRegion = "southindia"
+	LogStreamSinkPatchAzureRegionSwedencentral      LogStreamSinkPatchAzureRegion = "swedencentral"
+	LogStreamSinkPatchAzureRegionSwitzerlandnorth   LogStreamSinkPatchAzureRegion = "switzerlandnorth"
+	LogStreamSinkPatchAzureRegionUaenorth           LogStreamSinkPatchAzureRegion = "uaenorth"
+	LogStreamSinkPatchAzureRegionUksouth            LogStreamSinkPatchAzureRegion = "uksouth"
+	LogStreamSinkPatchAzureRegionUkwest             LogStreamSinkPatchAzureRegion = "ukwest"
+	LogStreamSinkPatchAzureRegionWestcentralus      LogStreamSinkPatchAzureRegion = "westcentralus"
+	LogStreamSinkPatchAzureRegionWesteurope         LogStreamSinkPatchAzureRegion = "westeurope"
+	LogStreamSinkPatchAzureRegionWestindia          LogStreamSinkPatchAzureRegion = "westindia"
+	LogStreamSinkPatchAzureRegionWestus             LogStreamSinkPatchAzureRegion = "westus"
+	LogStreamSinkPatchAzureRegionWestus2            LogStreamSinkPatchAzureRegion = "westus2"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSinkPatchAzureRegion enum.
+func (e LogStreamSinkPatchAzureRegion) Valid() bool {
+	switch e {
+	case LogStreamSinkPatchAzureRegionAustraliacentral:
+		return true
+	case LogStreamSinkPatchAzureRegionAustraliaeast:
+		return true
+	case LogStreamSinkPatchAzureRegionAustraliasoutheast:
+		return true
+	case LogStreamSinkPatchAzureRegionBrazilsouth:
+		return true
+	case LogStreamSinkPatchAzureRegionCanadacentral:
+		return true
+	case LogStreamSinkPatchAzureRegionCanadaeast:
+		return true
+	case LogStreamSinkPatchAzureRegionCentralindia:
+		return true
+	case LogStreamSinkPatchAzureRegionCentralus:
+		return true
+	case LogStreamSinkPatchAzureRegionEastasia:
+		return true
+	case LogStreamSinkPatchAzureRegionEastus:
+		return true
+	case LogStreamSinkPatchAzureRegionEastus2:
+		return true
+	case LogStreamSinkPatchAzureRegionFrancecentral:
+		return true
+	case LogStreamSinkPatchAzureRegionGermanywestcentral:
+		return true
+	case LogStreamSinkPatchAzureRegionJapaneast:
+		return true
+	case LogStreamSinkPatchAzureRegionJapanwest:
+		return true
+	case LogStreamSinkPatchAzureRegionKoreacentral:
+		return true
+	case LogStreamSinkPatchAzureRegionKoreasouth:
+		return true
+	case LogStreamSinkPatchAzureRegionNorthcentralus:
+		return true
+	case LogStreamSinkPatchAzureRegionNortheurope:
+		return true
+	case LogStreamSinkPatchAzureRegionNorwayeast:
+		return true
+	case LogStreamSinkPatchAzureRegionSouthafricanorth:
+		return true
+	case LogStreamSinkPatchAzureRegionSouthcentralus:
+		return true
+	case LogStreamSinkPatchAzureRegionSoutheastasia:
+		return true
+	case LogStreamSinkPatchAzureRegionSouthindia:
+		return true
+	case LogStreamSinkPatchAzureRegionSwedencentral:
+		return true
+	case LogStreamSinkPatchAzureRegionSwitzerlandnorth:
+		return true
+	case LogStreamSinkPatchAzureRegionUaenorth:
+		return true
+	case LogStreamSinkPatchAzureRegionUksouth:
+		return true
+	case LogStreamSinkPatchAzureRegionUkwest:
+		return true
+	case LogStreamSinkPatchAzureRegionWestcentralus:
+		return true
+	case LogStreamSinkPatchAzureRegionWesteurope:
+		return true
+	case LogStreamSinkPatchAzureRegionWestindia:
+		return true
+	case LogStreamSinkPatchAzureRegionWestus:
+		return true
+	case LogStreamSinkPatchAzureRegionWestus2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSinkPatchDatadogRegion.
+const (
+	LogStreamSinkPatchDatadogRegionEu  LogStreamSinkPatchDatadogRegion = "eu"
+	LogStreamSinkPatchDatadogRegionUs  LogStreamSinkPatchDatadogRegion = "us"
+	LogStreamSinkPatchDatadogRegionUs3 LogStreamSinkPatchDatadogRegion = "us3"
+	LogStreamSinkPatchDatadogRegionUs5 LogStreamSinkPatchDatadogRegion = "us5"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSinkPatchDatadogRegion enum.
+func (e LogStreamSinkPatchDatadogRegion) Valid() bool {
+	switch e {
+	case LogStreamSinkPatchDatadogRegionEu:
+		return true
+	case LogStreamSinkPatchDatadogRegionUs:
+		return true
+	case LogStreamSinkPatchDatadogRegionUs3:
+		return true
+	case LogStreamSinkPatchDatadogRegionUs5:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSinkPatchHttpContentFormat.
+const (
+	LogStreamSinkPatchHttpContentFormatJSONARRAY  LogStreamSinkPatchHttpContentFormat = "JSONARRAY"
+	LogStreamSinkPatchHttpContentFormatJSONLINES  LogStreamSinkPatchHttpContentFormat = "JSONLINES"
+	LogStreamSinkPatchHttpContentFormatJSONOBJECT LogStreamSinkPatchHttpContentFormat = "JSONOBJECT"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSinkPatchHttpContentFormat enum.
+func (e LogStreamSinkPatchHttpContentFormat) Valid() bool {
+	switch e {
+	case LogStreamSinkPatchHttpContentFormatJSONARRAY:
+		return true
+	case LogStreamSinkPatchHttpContentFormatJSONLINES:
+		return true
+	case LogStreamSinkPatchHttpContentFormatJSONOBJECT:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSinkPatchHttpCustomHeaders1.
+const (
+	LogStreamSinkPatchHttpCustomHeaders1REDACTED LogStreamSinkPatchHttpCustomHeaders1 = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSinkPatchHttpCustomHeaders1 enum.
+func (e LogStreamSinkPatchHttpCustomHeaders1) Valid() bool {
+	switch e {
+	case LogStreamSinkPatchHttpCustomHeaders1REDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSinkPatchMixpanelRegion.
+const (
+	LogStreamSinkPatchMixpanelRegionEu LogStreamSinkPatchMixpanelRegion = "eu"
+	LogStreamSinkPatchMixpanelRegionUs LogStreamSinkPatchMixpanelRegion = "us"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSinkPatchMixpanelRegion enum.
+func (e LogStreamSinkPatchMixpanelRegion) Valid() bool {
+	switch e {
+	case LogStreamSinkPatchMixpanelRegionEu:
+		return true
+	case LogStreamSinkPatchMixpanelRegionUs:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSplunkStatus.
+const (
+	LogStreamSplunkStatusActive    LogStreamSplunkStatus = "active"
+	LogStreamSplunkStatusPaused    LogStreamSplunkStatus = "paused"
+	LogStreamSplunkStatusSuspended LogStreamSplunkStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSplunkStatus enum.
+func (e LogStreamSplunkStatus) Valid() bool {
+	switch e {
+	case LogStreamSplunkStatusActive:
+		return true
+	case LogStreamSplunkStatusPaused:
+		return true
+	case LogStreamSplunkStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSplunkType.
+const (
+	LogStreamSplunkTypeSplunk LogStreamSplunkType = "splunk"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSplunkType enum.
+func (e LogStreamSplunkType) Valid() bool {
+	switch e {
+	case LogStreamSplunkTypeSplunk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSplunkCreateType.
+const (
+	LogStreamSplunkCreateTypeSplunk LogStreamSplunkCreateType = "splunk"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSplunkCreateType enum.
+func (e LogStreamSplunkCreateType) Valid() bool {
+	switch e {
+	case LogStreamSplunkCreateTypeSplunk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSplunkSinkViewSplunkToken.
+const (
+	LogStreamSplunkSinkViewSplunkTokenREDACTED LogStreamSplunkSinkViewSplunkToken = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSplunkSinkViewSplunkToken enum.
+func (e LogStreamSplunkSinkViewSplunkToken) Valid() bool {
+	switch e {
+	case LogStreamSplunkSinkViewSplunkTokenREDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSumoStatus.
+const (
+	LogStreamSumoStatusActive    LogStreamSumoStatus = "active"
+	LogStreamSumoStatusPaused    LogStreamSumoStatus = "paused"
+	LogStreamSumoStatusSuspended LogStreamSumoStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSumoStatus enum.
+func (e LogStreamSumoStatus) Valid() bool {
+	switch e {
+	case LogStreamSumoStatusActive:
+		return true
+	case LogStreamSumoStatusPaused:
+		return true
+	case LogStreamSumoStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSumoType.
+const (
+	LogStreamSumoTypeSumo LogStreamSumoType = "sumo"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSumoType enum.
+func (e LogStreamSumoType) Valid() bool {
+	switch e {
+	case LogStreamSumoTypeSumo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSumoCreateType.
+const (
+	LogStreamSumoCreateTypeSumo LogStreamSumoCreateType = "sumo"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSumoCreateType enum.
+func (e LogStreamSumoCreateType) Valid() bool {
+	switch e {
+	case LogStreamSumoCreateTypeSumo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogStreamSumoSinkViewSumoSourceAddress.
+const (
+	LogStreamSumoSinkViewSumoSourceAddressREDACTED LogStreamSumoSinkViewSumoSourceAddress = "[REDACTED]"
+)
+
+// Valid indicates whether the value is a known member of the LogStreamSumoSinkViewSumoSourceAddress enum.
+func (e LogStreamSumoSinkViewSumoSourceAddress) Valid() bool {
+	switch e {
+	case LogStreamSumoSinkViewSumoSourceAddressREDACTED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrganizationEffectiveRoleSources.
 const (
 	Direct OrganizationEffectiveRoleSources = "direct"
@@ -3255,6 +4833,42 @@ func (e GetHooksParamsTriggerId) Valid() bool {
 	case GetHooksParamsTriggerIdPreUserRegistration:
 		return true
 	case GetHooksParamsTriggerIdSendPhoneMessage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetLogsParamsSort.
+const (
+	GetLogsParamsSortDate1  GetLogsParamsSort = "date:1"
+	GetLogsParamsSortDate11 GetLogsParamsSort = "date:-1"
+)
+
+// Valid indicates whether the value is a known member of the GetLogsParamsSort enum.
+func (e GetLogsParamsSort) Valid() bool {
+	switch e {
+	case GetLogsParamsSortDate1:
+		return true
+	case GetLogsParamsSortDate11:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetUserLogsParamsSort.
+const (
+	GetUserLogsParamsSortDate1  GetUserLogsParamsSort = "date:1"
+	GetUserLogsParamsSortDate11 GetUserLogsParamsSort = "date:-1"
+)
+
+// Valid indicates whether the value is a known member of the GetUserLogsParamsSort enum.
+func (e GetUserLogsParamsSort) Valid() bool {
+	switch e {
+	case GetUserLogsParamsSortDate1:
+		return true
+	case GetUserLogsParamsSortDate11:
 		return true
 	default:
 		return false
@@ -5306,6 +6920,660 @@ type ListTotals struct {
 	// Total The number of results on all pages.
 	Total int `json:"total"`
 }
+
+// LogDailyStat defines model for LogDailyStat.
+type LogDailyStat struct {
+	CreatedAt       time.Time          `json:"created_at"`
+	Date            openapi_types.Date `json:"date"`
+	LeakedPasswords int                `json:"leaked_passwords"`
+	Logins          int                `json:"logins"`
+	Signups         int                `json:"signups"`
+	UpdatedAt       time.Time          `json:"updated_at"`
+}
+
+// LogEvent Tenant event; absent fields omitted. location_info is unavailable locally. All responses are scrubbed (D-0057).
+type LogEvent struct {
+	// EventSchema Optional event schema metadata, omitted when unavailable.
+	EventSchema  *map[string]interface{} `json:"$event_schema,omitempty"`
+	Audience     *string                 `json:"audience,omitempty"`
+	ClientId     *string                 `json:"client_id,omitempty"`
+	ClientName   *string                 `json:"client_name,omitempty"`
+	Connection   *string                 `json:"connection,omitempty"`
+	ConnectionId *string                 `json:"connection_id,omitempty"`
+	Date         time.Time               `json:"date"`
+	Description  *string                 `json:"description,omitempty"`
+
+	// Details Scrubbed event detail; Actions execution IDs appear at actions.executions.
+	Details          *map[string]interface{} `json:"details,omitempty"`
+	Hostname         *string                 `json:"hostname,omitempty"`
+	Ip               *string                 `json:"ip,omitempty"`
+	IsMobile         *bool                   `json:"isMobile,omitempty"`
+	LogId            string                  `json:"log_id"`
+	OrganizationId   *string                 `json:"organization_id,omitempty"`
+	OrganizationName *string                 `json:"organization_name,omitempty"`
+	Scope            *string                 `json:"scope,omitempty"`
+
+	// SecurityContext Only trustworthy available security signals are included.
+	SecurityContext *map[string]interface{} `json:"security_context,omitempty"`
+	Strategy        *string                 `json:"strategy,omitempty"`
+	StrategyType    *string                 `json:"strategy_type,omitempty"`
+	TenantName      *string                 `json:"tenant_name,omitempty"`
+	Type            string                  `json:"type"`
+	UserAgent       *string                 `json:"user_agent,omitempty"`
+	UserId          *string                 `json:"user_id,omitempty"`
+	UserName        *string                 `json:"user_name,omitempty"`
+}
+
+// LogEventsPage defines model for LogEventsPage.
+type LogEventsPage struct {
+	Length int        `json:"length"`
+	Limit  int        `json:"limit"`
+	Logs   []LogEvent `json:"logs"`
+	Start  int        `json:"start"`
+	Total  int        `json:"total"`
+}
+
+// LogEventsResponse defines model for LogEventsResponse.
+type LogEventsResponse struct {
+	union json.RawMessage
+}
+
+// LogEventsResponse0 defines model for LogEventsResponse.0.
+type LogEventsResponse0 = []LogEvent
+
+// LogStream defines model for LogStream.
+type LogStream struct {
+	union json.RawMessage
+}
+
+// LogStreamCreate defines model for LogStreamCreate.
+type LogStreamCreate struct {
+	union json.RawMessage
+}
+
+// LogStreamCustomHeader defines model for LogStreamCustomHeader.
+type LogStreamCustomHeader struct {
+	Header string `json:"header"`
+	Value  string `json:"value"`
+}
+
+// LogStreamDatadog Stream configuration with all sink credentials redacted on read.
+type LogStreamDatadog struct {
+	Filters    *[]LogStreamFilter       `json:"filters,omitempty"`
+	Id         string                   `json:"id"`
+	IsPriority *bool                    `json:"isPriority,omitempty"`
+	Name       *string                  `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII            `json:"pii_config,omitempty"`
+	Sink       LogStreamDatadogSinkView `json:"sink"`
+	Status     LogStreamDatadogStatus   `json:"status"`
+	Type       LogStreamDatadogType     `json:"type"`
+}
+
+// LogStreamDatadogStatus defines model for LogStreamDatadog.Status.
+type LogStreamDatadogStatus string
+
+// LogStreamDatadogType defines model for LogStreamDatadog.Type.
+type LogStreamDatadogType string
+
+// LogStreamDatadogCreate defines model for LogStreamDatadogCreate.
+type LogStreamDatadogCreate struct {
+	Filters    *[]LogStreamFilter   `json:"filters,omitempty"`
+	IsPriority *bool                `json:"isPriority,omitempty"`
+	Name       *string              `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII        `json:"pii_config,omitempty"`
+	Sink       LogStreamDatadogSink `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time                 `json:"startFrom,omitempty"`
+	Type      LogStreamDatadogCreateType `json:"type"`
+}
+
+// LogStreamDatadogCreateType defines model for LogStreamDatadogCreate.Type.
+type LogStreamDatadogCreateType string
+
+// LogStreamDatadogSink defines model for LogStreamDatadogSink.
+type LogStreamDatadogSink struct {
+	// DatadogApiKey Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	DatadogApiKey string                            `json:"datadogApiKey"`
+	DatadogRegion LogStreamDatadogSinkDatadogRegion `json:"datadogRegion"`
+}
+
+// LogStreamDatadogSinkDatadogRegion defines model for LogStreamDatadogSink.DatadogRegion.
+type LogStreamDatadogSinkDatadogRegion string
+
+// LogStreamDatadogSinkView defines model for LogStreamDatadogSinkView.
+type LogStreamDatadogSinkView struct {
+	// DatadogApiKey Opaque credential replacement; raw configured values are never returned.
+	DatadogApiKey LogStreamDatadogSinkViewDatadogApiKey `json:"datadogApiKey"`
+	DatadogRegion LogStreamDatadogSinkViewDatadogRegion `json:"datadogRegion"`
+}
+
+// LogStreamDatadogSinkViewDatadogApiKey Opaque credential replacement; raw configured values are never returned.
+type LogStreamDatadogSinkViewDatadogApiKey string
+
+// LogStreamDatadogSinkViewDatadogRegion defines model for LogStreamDatadogSinkView.DatadogRegion.
+type LogStreamDatadogSinkViewDatadogRegion string
+
+// LogStreamEventBridge Stored only and permanently suspended locally.
+type LogStreamEventBridge struct {
+	Filters    *[]LogStreamFilter           `json:"filters,omitempty"`
+	Id         string                       `json:"id"`
+	IsPriority *bool                        `json:"isPriority,omitempty"`
+	Name       *string                      `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII                `json:"pii_config,omitempty"`
+	Sink       LogStreamEventBridgeSinkView `json:"sink"`
+	Status     LogStreamEventBridgeStatus   `json:"status"`
+	Type       LogStreamEventBridgeType     `json:"type"`
+}
+
+// LogStreamEventBridgeStatus defines model for LogStreamEventBridge.Status.
+type LogStreamEventBridgeStatus string
+
+// LogStreamEventBridgeType defines model for LogStreamEventBridge.Type.
+type LogStreamEventBridgeType string
+
+// LogStreamEventBridgeCreate defines model for LogStreamEventBridgeCreate.
+type LogStreamEventBridgeCreate struct {
+	Filters    *[]LogStreamFilter       `json:"filters,omitempty"`
+	IsPriority *bool                    `json:"isPriority,omitempty"`
+	Name       *string                  `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII            `json:"pii_config,omitempty"`
+	Sink       LogStreamEventBridgeSink `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time                     `json:"startFrom,omitempty"`
+	Type      LogStreamEventBridgeCreateType `json:"type"`
+}
+
+// LogStreamEventBridgeCreateType defines model for LogStreamEventBridgeCreate.Type.
+type LogStreamEventBridgeCreateType string
+
+// LogStreamEventBridgeSink defines model for LogStreamEventBridgeSink.
+type LogStreamEventBridgeSink struct {
+	AwsAccountId          string                            `json:"awsAccountId"`
+	AwsPartnerEventSource *string                           `json:"awsPartnerEventSource,omitempty"`
+	AwsRegion             LogStreamEventBridgeSinkAwsRegion `json:"awsRegion"`
+}
+
+// LogStreamEventBridgeSinkAwsRegion defines model for LogStreamEventBridgeSink.AwsRegion.
+type LogStreamEventBridgeSinkAwsRegion string
+
+// LogStreamEventBridgeSinkView defines model for LogStreamEventBridgeSinkView.
+type LogStreamEventBridgeSinkView struct {
+	AwsAccountId          string                                `json:"awsAccountId"`
+	AwsPartnerEventSource *string                               `json:"awsPartnerEventSource,omitempty"`
+	AwsRegion             LogStreamEventBridgeSinkViewAwsRegion `json:"awsRegion"`
+}
+
+// LogStreamEventBridgeSinkViewAwsRegion defines model for LogStreamEventBridgeSinkView.AwsRegion.
+type LogStreamEventBridgeSinkViewAwsRegion string
+
+// LogStreamEventGrid Stored only and permanently suspended locally.
+type LogStreamEventGrid struct {
+	Filters    *[]LogStreamFilter         `json:"filters,omitempty"`
+	Id         string                     `json:"id"`
+	IsPriority *bool                      `json:"isPriority,omitempty"`
+	Name       *string                    `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII              `json:"pii_config,omitempty"`
+	Sink       LogStreamEventGridSinkView `json:"sink"`
+	Status     LogStreamEventGridStatus   `json:"status"`
+	Type       LogStreamEventGridType     `json:"type"`
+}
+
+// LogStreamEventGridStatus defines model for LogStreamEventGrid.Status.
+type LogStreamEventGridStatus string
+
+// LogStreamEventGridType defines model for LogStreamEventGrid.Type.
+type LogStreamEventGridType string
+
+// LogStreamEventGridCreate defines model for LogStreamEventGridCreate.
+type LogStreamEventGridCreate struct {
+	Filters    *[]LogStreamFilter     `json:"filters,omitempty"`
+	IsPriority *bool                  `json:"isPriority,omitempty"`
+	Name       *string                `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII          `json:"pii_config,omitempty"`
+	Sink       LogStreamEventGridSink `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time                   `json:"startFrom,omitempty"`
+	Type      LogStreamEventGridCreateType `json:"type"`
+}
+
+// LogStreamEventGridCreateType defines model for LogStreamEventGridCreate.Type.
+type LogStreamEventGridCreateType string
+
+// LogStreamEventGridSink defines model for LogStreamEventGridSink.
+type LogStreamEventGridSink struct {
+	AzurePartnerTopic   *string                           `json:"azurePartnerTopic,omitempty"`
+	AzureRegion         LogStreamEventGridSinkAzureRegion `json:"azureRegion"`
+	AzureResourceGroup  string                            `json:"azureResourceGroup"`
+	AzureSubscriptionId string                            `json:"azureSubscriptionId"`
+}
+
+// LogStreamEventGridSinkAzureRegion defines model for LogStreamEventGridSink.AzureRegion.
+type LogStreamEventGridSinkAzureRegion string
+
+// LogStreamEventGridSinkView defines model for LogStreamEventGridSinkView.
+type LogStreamEventGridSinkView struct {
+	AzurePartnerTopic   *string                               `json:"azurePartnerTopic,omitempty"`
+	AzureRegion         LogStreamEventGridSinkViewAzureRegion `json:"azureRegion"`
+	AzureResourceGroup  string                                `json:"azureResourceGroup"`
+	AzureSubscriptionId string                                `json:"azureSubscriptionId"`
+}
+
+// LogStreamEventGridSinkViewAzureRegion defines model for LogStreamEventGridSinkView.AzureRegion.
+type LogStreamEventGridSinkViewAzureRegion string
+
+// LogStreamFilter defines model for LogStreamFilter.
+type LogStreamFilter struct {
+	Name LogStreamFilterName `json:"name"`
+	Type LogStreamFilterType `json:"type"`
+}
+
+// LogStreamFilterName defines model for LogStreamFilter.Name.
+type LogStreamFilterName string
+
+// LogStreamFilterType defines model for LogStreamFilter.Type.
+type LogStreamFilterType string
+
+// LogStreamHTTP Stream configuration with all sink credentials redacted on read.
+type LogStreamHTTP struct {
+	Filters    *[]LogStreamFilter    `json:"filters,omitempty"`
+	Id         string                `json:"id"`
+	IsPriority *bool                 `json:"isPriority,omitempty"`
+	Name       *string               `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII         `json:"pii_config,omitempty"`
+	Sink       LogStreamHTTPSinkView `json:"sink"`
+	Status     LogStreamHTTPStatus   `json:"status"`
+	Type       LogStreamHTTPType     `json:"type"`
+}
+
+// LogStreamHTTPStatus defines model for LogStreamHTTP.Status.
+type LogStreamHTTPStatus string
+
+// LogStreamHTTPType defines model for LogStreamHTTP.Type.
+type LogStreamHTTPType string
+
+// LogStreamHTTPCreate defines model for LogStreamHTTPCreate.
+type LogStreamHTTPCreate struct {
+	Filters    *[]LogStreamFilter `json:"filters,omitempty"`
+	IsPriority *bool              `json:"isPriority,omitempty"`
+	Name       *string            `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII      `json:"pii_config,omitempty"`
+	Sink       LogStreamHTTPSink  `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time              `json:"startFrom,omitempty"`
+	Type      LogStreamHTTPCreateType `json:"type"`
+}
+
+// LogStreamHTTPCreateType defines model for LogStreamHTTPCreate.Type.
+type LogStreamHTTPCreateType string
+
+// LogStreamHTTPSink defines model for LogStreamHTTPSink.
+type LogStreamHTTPSink struct {
+	// HttpAuthorization Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	HttpAuthorization *string                             `json:"httpAuthorization,omitempty"`
+	HttpContentFormat *LogStreamHTTPSinkHttpContentFormat `json:"httpContentFormat,omitempty"`
+	HttpContentType   *string                             `json:"httpContentType,omitempty"`
+
+	// HttpCustomHeaders Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	HttpCustomHeaders *[]LogStreamCustomHeader `json:"httpCustomHeaders,omitempty"`
+
+	// HttpEndpoint HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057).
+	HttpEndpoint string `json:"httpEndpoint"`
+}
+
+// LogStreamHTTPSinkHttpContentFormat defines model for LogStreamHTTPSink.HttpContentFormat.
+type LogStreamHTTPSinkHttpContentFormat string
+
+// LogStreamHTTPSinkView defines model for LogStreamHTTPSinkView.
+type LogStreamHTTPSinkView struct {
+	// HttpAuthorization Opaque credential replacement; raw configured values are never returned.
+	HttpAuthorization *LogStreamHTTPSinkViewHttpAuthorization `json:"httpAuthorization,omitempty"`
+	HttpContentFormat *LogStreamHTTPSinkViewHttpContentFormat `json:"httpContentFormat,omitempty"`
+	HttpContentType   *string                                 `json:"httpContentType,omitempty"`
+
+	// HttpCustomHeaders Opaque credential replacement; raw configured values are never returned.
+	HttpCustomHeaders *LogStreamHTTPSinkViewHttpCustomHeaders `json:"httpCustomHeaders,omitempty"`
+
+	// HttpEndpoint HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057).
+	HttpEndpoint string `json:"httpEndpoint"`
+}
+
+// LogStreamHTTPSinkViewHttpAuthorization Opaque credential replacement; raw configured values are never returned.
+type LogStreamHTTPSinkViewHttpAuthorization string
+
+// LogStreamHTTPSinkViewHttpContentFormat defines model for LogStreamHTTPSinkView.HttpContentFormat.
+type LogStreamHTTPSinkViewHttpContentFormat string
+
+// LogStreamHTTPSinkViewHttpCustomHeaders Opaque credential replacement; raw configured values are never returned.
+type LogStreamHTTPSinkViewHttpCustomHeaders string
+
+// LogStreamMixpanel Stream configuration with all sink credentials redacted on read.
+type LogStreamMixpanel struct {
+	Filters    *[]LogStreamFilter        `json:"filters,omitempty"`
+	Id         string                    `json:"id"`
+	IsPriority *bool                     `json:"isPriority,omitempty"`
+	Name       *string                   `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII             `json:"pii_config,omitempty"`
+	Sink       LogStreamMixpanelSinkView `json:"sink"`
+	Status     LogStreamMixpanelStatus   `json:"status"`
+	Type       LogStreamMixpanelType     `json:"type"`
+}
+
+// LogStreamMixpanelStatus defines model for LogStreamMixpanel.Status.
+type LogStreamMixpanelStatus string
+
+// LogStreamMixpanelType defines model for LogStreamMixpanel.Type.
+type LogStreamMixpanelType string
+
+// LogStreamMixpanelCreate defines model for LogStreamMixpanelCreate.
+type LogStreamMixpanelCreate struct {
+	Filters    *[]LogStreamFilter    `json:"filters,omitempty"`
+	IsPriority *bool                 `json:"isPriority,omitempty"`
+	Name       *string               `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII         `json:"pii_config,omitempty"`
+	Sink       LogStreamMixpanelSink `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time                  `json:"startFrom,omitempty"`
+	Type      LogStreamMixpanelCreateType `json:"type"`
+}
+
+// LogStreamMixpanelCreateType defines model for LogStreamMixpanelCreate.Type.
+type LogStreamMixpanelCreateType string
+
+// LogStreamMixpanelSink defines model for LogStreamMixpanelSink.
+type LogStreamMixpanelSink struct {
+	MixpanelProjectId string                              `json:"mixpanelProjectId"`
+	MixpanelRegion    LogStreamMixpanelSinkMixpanelRegion `json:"mixpanelRegion"`
+
+	// MixpanelServiceAccountPassword Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	MixpanelServiceAccountPassword string `json:"mixpanelServiceAccountPassword"`
+	MixpanelServiceAccountUsername string `json:"mixpanelServiceAccountUsername"`
+}
+
+// LogStreamMixpanelSinkMixpanelRegion defines model for LogStreamMixpanelSink.MixpanelRegion.
+type LogStreamMixpanelSinkMixpanelRegion string
+
+// LogStreamMixpanelSinkView defines model for LogStreamMixpanelSinkView.
+type LogStreamMixpanelSinkView struct {
+	MixpanelProjectId string                                  `json:"mixpanelProjectId"`
+	MixpanelRegion    LogStreamMixpanelSinkViewMixpanelRegion `json:"mixpanelRegion"`
+
+	// MixpanelServiceAccountPassword Opaque credential replacement; raw configured values are never returned.
+	MixpanelServiceAccountPassword LogStreamMixpanelSinkViewMixpanelServiceAccountPassword `json:"mixpanelServiceAccountPassword"`
+	MixpanelServiceAccountUsername string                                                  `json:"mixpanelServiceAccountUsername"`
+}
+
+// LogStreamMixpanelSinkViewMixpanelRegion defines model for LogStreamMixpanelSinkView.MixpanelRegion.
+type LogStreamMixpanelSinkViewMixpanelRegion string
+
+// LogStreamMixpanelSinkViewMixpanelServiceAccountPassword Opaque credential replacement; raw configured values are never returned.
+type LogStreamMixpanelSinkViewMixpanelServiceAccountPassword string
+
+// LogStreamPII defines model for LogStreamPII.
+type LogStreamPII struct {
+	Algorithm *LogStreamPIIAlgorithm  `json:"algorithm,omitempty"`
+	LogFields []LogStreamPIILogFields `json:"log_fields"`
+	Method    *LogStreamPIIMethod     `json:"method,omitempty"`
+}
+
+// LogStreamPIIAlgorithm defines model for LogStreamPII.Algorithm.
+type LogStreamPIIAlgorithm string
+
+// LogStreamPIILogFields defines model for LogStreamPII.LogFields.
+type LogStreamPIILogFields string
+
+// LogStreamPIIMethod defines model for LogStreamPII.Method.
+type LogStreamPIIMethod string
+
+// LogStreamPatch type and startFrom are immutable; unknown properties rejected. Active transition for cloud-only stream types is invalid_operation.
+type LogStreamPatch struct {
+	Filters    *[]LogStreamFilter `json:"filters,omitempty"`
+	IsPriority *bool              `json:"isPriority,omitempty"`
+	Name       *string            `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII      `json:"pii_config,omitempty"`
+
+	// Sink Partial sink; runtime validates fields against the immutable stored stream type. Type-mismatched fields are rejected.
+	Sink   *LogStreamSinkPatch   `json:"sink,omitempty"`
+	Status *LogStreamPatchStatus `json:"status,omitempty"`
+}
+
+// LogStreamPatchStatus defines model for LogStreamPatch.Status.
+type LogStreamPatchStatus string
+
+// LogStreamSegment Stream configuration with all sink credentials redacted on read.
+type LogStreamSegment struct {
+	Filters    *[]LogStreamFilter       `json:"filters,omitempty"`
+	Id         string                   `json:"id"`
+	IsPriority *bool                    `json:"isPriority,omitempty"`
+	Name       *string                  `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII            `json:"pii_config,omitempty"`
+	Sink       LogStreamSegmentSinkView `json:"sink"`
+	Status     LogStreamSegmentStatus   `json:"status"`
+	Type       LogStreamSegmentType     `json:"type"`
+}
+
+// LogStreamSegmentStatus defines model for LogStreamSegment.Status.
+type LogStreamSegmentStatus string
+
+// LogStreamSegmentType defines model for LogStreamSegment.Type.
+type LogStreamSegmentType string
+
+// LogStreamSegmentCreate defines model for LogStreamSegmentCreate.
+type LogStreamSegmentCreate struct {
+	Filters    *[]LogStreamFilter   `json:"filters,omitempty"`
+	IsPriority *bool                `json:"isPriority,omitempty"`
+	Name       *string              `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII        `json:"pii_config,omitempty"`
+	Sink       LogStreamSegmentSink `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time                 `json:"startFrom,omitempty"`
+	Type      LogStreamSegmentCreateType `json:"type"`
+}
+
+// LogStreamSegmentCreateType defines model for LogStreamSegmentCreate.Type.
+type LogStreamSegmentCreateType string
+
+// LogStreamSegmentSink defines model for LogStreamSegmentSink.
+type LogStreamSegmentSink struct {
+	// SegmentWriteKey Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	SegmentWriteKey string `json:"segmentWriteKey"`
+}
+
+// LogStreamSegmentSinkView defines model for LogStreamSegmentSinkView.
+type LogStreamSegmentSinkView struct {
+	// SegmentWriteKey Opaque credential replacement; raw configured values are never returned.
+	SegmentWriteKey LogStreamSegmentSinkViewSegmentWriteKey `json:"segmentWriteKey"`
+}
+
+// LogStreamSegmentSinkViewSegmentWriteKey Opaque credential replacement; raw configured values are never returned.
+type LogStreamSegmentSinkViewSegmentWriteKey string
+
+// LogStreamSinkPatch Partial sink; runtime validates fields against the immutable stored stream type. Type-mismatched fields are rejected.
+type LogStreamSinkPatch struct {
+	AwsAccountId          *string                        `json:"awsAccountId,omitempty"`
+	AwsPartnerEventSource *string                        `json:"awsPartnerEventSource,omitempty"`
+	AwsRegion             *LogStreamSinkPatchAwsRegion   `json:"awsRegion,omitempty"`
+	AzurePartnerTopic     *string                        `json:"azurePartnerTopic,omitempty"`
+	AzureRegion           *LogStreamSinkPatchAzureRegion `json:"azureRegion,omitempty"`
+	AzureResourceGroup    *string                        `json:"azureResourceGroup,omitempty"`
+	AzureSubscriptionId   *string                        `json:"azureSubscriptionId,omitempty"`
+
+	// DatadogApiKey Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	DatadogApiKey *string                          `json:"datadogApiKey,omitempty"`
+	DatadogRegion *LogStreamSinkPatchDatadogRegion `json:"datadogRegion,omitempty"`
+
+	// HttpAuthorization Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	HttpAuthorization *string                              `json:"httpAuthorization,omitempty"`
+	HttpContentFormat *LogStreamSinkPatchHttpContentFormat `json:"httpContentFormat,omitempty"`
+	HttpContentType   *string                              `json:"httpContentType,omitempty"`
+
+	// HttpCustomHeaders Full header replacement, or marker to preserve existing sealed headers.
+	HttpCustomHeaders *LogStreamSinkPatch_HttpCustomHeaders `json:"httpCustomHeaders,omitempty"`
+
+	// HttpEndpoint HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057).
+	HttpEndpoint      *string                           `json:"httpEndpoint,omitempty"`
+	MixpanelProjectId *string                           `json:"mixpanelProjectId,omitempty"`
+	MixpanelRegion    *LogStreamSinkPatchMixpanelRegion `json:"mixpanelRegion,omitempty"`
+
+	// MixpanelServiceAccountPassword Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	MixpanelServiceAccountPassword *string `json:"mixpanelServiceAccountPassword,omitempty"`
+	MixpanelServiceAccountUsername *string `json:"mixpanelServiceAccountUsername,omitempty"`
+
+	// SegmentWriteKey Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	SegmentWriteKey *string `json:"segmentWriteKey,omitempty"`
+	SplunkDomain    *string `json:"splunkDomain,omitempty"`
+	SplunkPort      *string `json:"splunkPort,omitempty"`
+
+	// SplunkSecure Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment opt-in (D-0057).
+	SplunkSecure *bool `json:"splunkSecure,omitempty"`
+
+	// SplunkToken Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	SplunkToken *string `json:"splunkToken,omitempty"`
+
+	// SumoSourceAddress Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	SumoSourceAddress *string `json:"sumoSourceAddress,omitempty"`
+}
+
+// LogStreamSinkPatchAwsRegion defines model for LogStreamSinkPatch.AwsRegion.
+type LogStreamSinkPatchAwsRegion string
+
+// LogStreamSinkPatchAzureRegion defines model for LogStreamSinkPatch.AzureRegion.
+type LogStreamSinkPatchAzureRegion string
+
+// LogStreamSinkPatchDatadogRegion defines model for LogStreamSinkPatch.DatadogRegion.
+type LogStreamSinkPatchDatadogRegion string
+
+// LogStreamSinkPatchHttpContentFormat defines model for LogStreamSinkPatch.HttpContentFormat.
+type LogStreamSinkPatchHttpContentFormat string
+
+// LogStreamSinkPatchHttpCustomHeaders0 defines model for LogStreamSinkPatch.HttpCustomHeaders.0.
+type LogStreamSinkPatchHttpCustomHeaders0 = []LogStreamCustomHeader
+
+// LogStreamSinkPatchHttpCustomHeaders1 defines model for LogStreamSinkPatch.HttpCustomHeaders.1.
+type LogStreamSinkPatchHttpCustomHeaders1 string
+
+// LogStreamSinkPatch_HttpCustomHeaders Full header replacement, or marker to preserve existing sealed headers.
+type LogStreamSinkPatch_HttpCustomHeaders struct {
+	union json.RawMessage
+}
+
+// LogStreamSinkPatchMixpanelRegion defines model for LogStreamSinkPatch.MixpanelRegion.
+type LogStreamSinkPatchMixpanelRegion string
+
+// LogStreamSplunk Stream configuration with all sink credentials redacted on read.
+type LogStreamSplunk struct {
+	Filters    *[]LogStreamFilter      `json:"filters,omitempty"`
+	Id         string                  `json:"id"`
+	IsPriority *bool                   `json:"isPriority,omitempty"`
+	Name       *string                 `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII           `json:"pii_config,omitempty"`
+	Sink       LogStreamSplunkSinkView `json:"sink"`
+	Status     LogStreamSplunkStatus   `json:"status"`
+	Type       LogStreamSplunkType     `json:"type"`
+}
+
+// LogStreamSplunkStatus defines model for LogStreamSplunk.Status.
+type LogStreamSplunkStatus string
+
+// LogStreamSplunkType defines model for LogStreamSplunk.Type.
+type LogStreamSplunkType string
+
+// LogStreamSplunkCreate defines model for LogStreamSplunkCreate.
+type LogStreamSplunkCreate struct {
+	Filters    *[]LogStreamFilter  `json:"filters,omitempty"`
+	IsPriority *bool               `json:"isPriority,omitempty"`
+	Name       *string             `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII       `json:"pii_config,omitempty"`
+	Sink       LogStreamSplunkSink `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time                `json:"startFrom,omitempty"`
+	Type      LogStreamSplunkCreateType `json:"type"`
+}
+
+// LogStreamSplunkCreateType defines model for LogStreamSplunkCreate.Type.
+type LogStreamSplunkCreateType string
+
+// LogStreamSplunkSink defines model for LogStreamSplunkSink.
+type LogStreamSplunkSink struct {
+	SplunkDomain string `json:"splunkDomain"`
+	SplunkPort   string `json:"splunkPort"`
+
+	// SplunkSecure Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment opt-in (D-0057).
+	SplunkSecure bool `json:"splunkSecure"`
+
+	// SplunkToken Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	SplunkToken string `json:"splunkToken"`
+}
+
+// LogStreamSplunkSinkView defines model for LogStreamSplunkSinkView.
+type LogStreamSplunkSinkView struct {
+	SplunkDomain string `json:"splunkDomain"`
+	SplunkPort   string `json:"splunkPort"`
+
+	// SplunkSecure Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment opt-in (D-0057).
+	SplunkSecure bool `json:"splunkSecure"`
+
+	// SplunkToken Opaque credential replacement; raw configured values are never returned.
+	SplunkToken LogStreamSplunkSinkViewSplunkToken `json:"splunkToken"`
+}
+
+// LogStreamSplunkSinkViewSplunkToken Opaque credential replacement; raw configured values are never returned.
+type LogStreamSplunkSinkViewSplunkToken string
+
+// LogStreamSumo Stream configuration with all sink credentials redacted on read.
+type LogStreamSumo struct {
+	Filters    *[]LogStreamFilter    `json:"filters,omitempty"`
+	Id         string                `json:"id"`
+	IsPriority *bool                 `json:"isPriority,omitempty"`
+	Name       *string               `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII         `json:"pii_config,omitempty"`
+	Sink       LogStreamSumoSinkView `json:"sink"`
+	Status     LogStreamSumoStatus   `json:"status"`
+	Type       LogStreamSumoType     `json:"type"`
+}
+
+// LogStreamSumoStatus defines model for LogStreamSumo.Status.
+type LogStreamSumoStatus string
+
+// LogStreamSumoType defines model for LogStreamSumo.Type.
+type LogStreamSumoType string
+
+// LogStreamSumoCreate defines model for LogStreamSumoCreate.
+type LogStreamSumoCreate struct {
+	Filters    *[]LogStreamFilter `json:"filters,omitempty"`
+	IsPriority *bool              `json:"isPriority,omitempty"`
+	Name       *string            `json:"name,omitempty"`
+	PiiConfig  *LogStreamPII      `json:"pii_config,omitempty"`
+	Sink       LogStreamSumoSink  `json:"sink"`
+
+	// StartFrom Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+	StartFrom *time.Time              `json:"startFrom,omitempty"`
+	Type      LogStreamSumoCreateType `json:"type"`
+}
+
+// LogStreamSumoCreateType defines model for LogStreamSumoCreate.Type.
+type LogStreamSumoCreateType string
+
+// LogStreamSumoSink defines model for LogStreamSumoSink.
+type LogStreamSumoSink struct {
+	// SumoSourceAddress Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057).
+	SumoSourceAddress string `json:"sumoSourceAddress"`
+}
+
+// LogStreamSumoSinkView defines model for LogStreamSumoSinkView.
+type LogStreamSumoSinkView struct {
+	// SumoSourceAddress Opaque credential replacement; raw configured values are never returned.
+	SumoSourceAddress LogStreamSumoSinkViewSumoSourceAddress `json:"sumoSourceAddress"`
+}
+
+// LogStreamSumoSinkViewSumoSourceAddress Opaque credential replacement; raw configured values are never returned.
+type LogStreamSumoSinkViewSumoSourceAddress string
 
 // ManagedSigningKey defines model for ManagedSigningKey.
 type ManagedSigningKey struct {
@@ -7398,6 +9666,39 @@ type GetJobErrors200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// GetLogsParams defines parameters for GetLogs.
+type GetLogsParams struct {
+	// Page 0-based; default 0; nonnegative; (page+1)*per_page <= 1000
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage 1..100; default 50 (local consistent lower bound)
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// Sort date:1 or date:-1; default date:-1
+	Sort *GetLogsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Fields Comma-separated log object fields; empty means all; unknown fields rejected locally
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields default true; fields projection applies in page mode
+	IncludeFields *bool `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+
+	// IncludeTotals default false; true returns {logs,start,limit,length,total}; total is matching count capped at 1000 locally
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// Q Lucene subset; max 4000 bytes/1000 runes, depth 16, 5 terms; ignored in checkpoint mode
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// From 56 decimal digits; checkpoint is exclusive, ascending sequence; malformed=400; valid absent ID still an opaque cursor
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take 1..100; default 50; from or presence of take selects checkpoint mode; take alone returns latest settled events ascending
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// GetLogsParamsSort defines parameters for GetLogs.
+type GetLogsParamsSort string
+
 // ListOrganizationsParams defines parameters for ListOrganizations.
 type ListOrganizationsParams struct {
 	// IncludeClientAssociationFor Annotate matching association without filtering; no secrets; missing association omitted (D-0056).
@@ -7711,6 +10012,15 @@ type GetRulesParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetDailyStatsParams defines parameters for GetDailyStats.
+type GetDailyStatsParams struct {
+	// From YYYYMMDD inclusive UTC day; default today minus 6 days; max inclusive range 366 days (local)
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters (local)
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // GetTenantSettingsParams defines parameters for GetTenantSettings.
 type GetTenantSettingsParams struct {
 	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
@@ -7794,6 +10104,24 @@ type GetUserParams struct {
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
+
+// GetUserLogsParams defines parameters for GetUserLogs.
+type GetUserLogsParams struct {
+	// Page 0-based; default 0; nonnegative; (page+1)*per_page <= 1000
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage 1..100; default 50 (local consistent lower bound)
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// Sort date:1 or date:-1; default date:-1
+	Sort *GetUserLogsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// IncludeTotals default false; true returns {logs,start,limit,length,total}; total is matching count capped at 1000 locally
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// GetUserLogsParamsSort defines parameters for GetUserLogs.
+type GetUserLogsParamsSort string
 
 // ListUserOrganizationsParams defines parameters for ListUserOrganizations.
 type ListUserOrganizationsParams struct {
@@ -8000,6 +10328,12 @@ type CreateVerificationEmailJobJSONRequestBody = VerificationEmailJobCreate
 
 // PutCustomSigningKeysJSONRequestBody defines body for PutCustomSigningKeys for application/json ContentType.
 type PutCustomSigningKeysJSONRequestBody = CustomSigningJWKS
+
+// CreateLogStreamJSONRequestBody defines body for CreateLogStream for application/json ContentType.
+type CreateLogStreamJSONRequestBody = LogStreamCreate
+
+// UpdateLogStreamJSONRequestBody defines body for UpdateLogStream for application/json ContentType.
+type UpdateLogStreamJSONRequestBody = LogStreamPatch
 
 // CreateOrganizationJSONRequestBody defines body for CreateOrganization for application/json ContentType.
 type CreateOrganizationJSONRequestBody = OrganizationCreate
@@ -9687,6 +12021,566 @@ func (t *IIListOrganizationInvitationsResponseContent) UnmarshalJSON(b []byte) e
 	return err
 }
 
+// AsLogEventsResponse0 returns the union data inside the LogEventsResponse as a LogEventsResponse0
+func (t LogEventsResponse) AsLogEventsResponse0() (LogEventsResponse0, error) {
+	var body LogEventsResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogEventsResponse0 overwrites any union data inside the LogEventsResponse as the provided LogEventsResponse0
+func (t *LogEventsResponse) FromLogEventsResponse0(v LogEventsResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogEventsResponse0 performs a merge with any union data inside the LogEventsResponse, using the provided LogEventsResponse0
+func (t *LogEventsResponse) MergeLogEventsResponse0(v LogEventsResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogEventsPage returns the union data inside the LogEventsResponse as a LogEventsPage
+func (t LogEventsResponse) AsLogEventsPage() (LogEventsPage, error) {
+	var body LogEventsPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogEventsPage overwrites any union data inside the LogEventsResponse as the provided LogEventsPage
+func (t *LogEventsResponse) FromLogEventsPage(v LogEventsPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogEventsPage performs a merge with any union data inside the LogEventsResponse, using the provided LogEventsPage
+func (t *LogEventsResponse) MergeLogEventsPage(v LogEventsPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LogEventsResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *LogEventsResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsLogStreamHTTP returns the union data inside the LogStream as a LogStreamHTTP
+func (t LogStream) AsLogStreamHTTP() (LogStreamHTTP, error) {
+	var body LogStreamHTTP
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamHTTP overwrites any union data inside the LogStream as the provided LogStreamHTTP
+func (t *LogStream) FromLogStreamHTTP(v LogStreamHTTP) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamHTTP performs a merge with any union data inside the LogStream, using the provided LogStreamHTTP
+func (t *LogStream) MergeLogStreamHTTP(v LogStreamHTTP) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamEventBridge returns the union data inside the LogStream as a LogStreamEventBridge
+func (t LogStream) AsLogStreamEventBridge() (LogStreamEventBridge, error) {
+	var body LogStreamEventBridge
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamEventBridge overwrites any union data inside the LogStream as the provided LogStreamEventBridge
+func (t *LogStream) FromLogStreamEventBridge(v LogStreamEventBridge) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamEventBridge performs a merge with any union data inside the LogStream, using the provided LogStreamEventBridge
+func (t *LogStream) MergeLogStreamEventBridge(v LogStreamEventBridge) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamEventGrid returns the union data inside the LogStream as a LogStreamEventGrid
+func (t LogStream) AsLogStreamEventGrid() (LogStreamEventGrid, error) {
+	var body LogStreamEventGrid
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamEventGrid overwrites any union data inside the LogStream as the provided LogStreamEventGrid
+func (t *LogStream) FromLogStreamEventGrid(v LogStreamEventGrid) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamEventGrid performs a merge with any union data inside the LogStream, using the provided LogStreamEventGrid
+func (t *LogStream) MergeLogStreamEventGrid(v LogStreamEventGrid) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamDatadog returns the union data inside the LogStream as a LogStreamDatadog
+func (t LogStream) AsLogStreamDatadog() (LogStreamDatadog, error) {
+	var body LogStreamDatadog
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamDatadog overwrites any union data inside the LogStream as the provided LogStreamDatadog
+func (t *LogStream) FromLogStreamDatadog(v LogStreamDatadog) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamDatadog performs a merge with any union data inside the LogStream, using the provided LogStreamDatadog
+func (t *LogStream) MergeLogStreamDatadog(v LogStreamDatadog) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamSplunk returns the union data inside the LogStream as a LogStreamSplunk
+func (t LogStream) AsLogStreamSplunk() (LogStreamSplunk, error) {
+	var body LogStreamSplunk
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSplunk overwrites any union data inside the LogStream as the provided LogStreamSplunk
+func (t *LogStream) FromLogStreamSplunk(v LogStreamSplunk) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSplunk performs a merge with any union data inside the LogStream, using the provided LogStreamSplunk
+func (t *LogStream) MergeLogStreamSplunk(v LogStreamSplunk) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamSumo returns the union data inside the LogStream as a LogStreamSumo
+func (t LogStream) AsLogStreamSumo() (LogStreamSumo, error) {
+	var body LogStreamSumo
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSumo overwrites any union data inside the LogStream as the provided LogStreamSumo
+func (t *LogStream) FromLogStreamSumo(v LogStreamSumo) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSumo performs a merge with any union data inside the LogStream, using the provided LogStreamSumo
+func (t *LogStream) MergeLogStreamSumo(v LogStreamSumo) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamSegment returns the union data inside the LogStream as a LogStreamSegment
+func (t LogStream) AsLogStreamSegment() (LogStreamSegment, error) {
+	var body LogStreamSegment
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSegment overwrites any union data inside the LogStream as the provided LogStreamSegment
+func (t *LogStream) FromLogStreamSegment(v LogStreamSegment) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSegment performs a merge with any union data inside the LogStream, using the provided LogStreamSegment
+func (t *LogStream) MergeLogStreamSegment(v LogStreamSegment) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamMixpanel returns the union data inside the LogStream as a LogStreamMixpanel
+func (t LogStream) AsLogStreamMixpanel() (LogStreamMixpanel, error) {
+	var body LogStreamMixpanel
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamMixpanel overwrites any union data inside the LogStream as the provided LogStreamMixpanel
+func (t *LogStream) FromLogStreamMixpanel(v LogStreamMixpanel) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamMixpanel performs a merge with any union data inside the LogStream, using the provided LogStreamMixpanel
+func (t *LogStream) MergeLogStreamMixpanel(v LogStreamMixpanel) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LogStream) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *LogStream) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsLogStreamHTTPCreate returns the union data inside the LogStreamCreate as a LogStreamHTTPCreate
+func (t LogStreamCreate) AsLogStreamHTTPCreate() (LogStreamHTTPCreate, error) {
+	var body LogStreamHTTPCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamHTTPCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamHTTPCreate
+func (t *LogStreamCreate) FromLogStreamHTTPCreate(v LogStreamHTTPCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamHTTPCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamHTTPCreate
+func (t *LogStreamCreate) MergeLogStreamHTTPCreate(v LogStreamHTTPCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamEventBridgeCreate returns the union data inside the LogStreamCreate as a LogStreamEventBridgeCreate
+func (t LogStreamCreate) AsLogStreamEventBridgeCreate() (LogStreamEventBridgeCreate, error) {
+	var body LogStreamEventBridgeCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamEventBridgeCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamEventBridgeCreate
+func (t *LogStreamCreate) FromLogStreamEventBridgeCreate(v LogStreamEventBridgeCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamEventBridgeCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamEventBridgeCreate
+func (t *LogStreamCreate) MergeLogStreamEventBridgeCreate(v LogStreamEventBridgeCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamEventGridCreate returns the union data inside the LogStreamCreate as a LogStreamEventGridCreate
+func (t LogStreamCreate) AsLogStreamEventGridCreate() (LogStreamEventGridCreate, error) {
+	var body LogStreamEventGridCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamEventGridCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamEventGridCreate
+func (t *LogStreamCreate) FromLogStreamEventGridCreate(v LogStreamEventGridCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamEventGridCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamEventGridCreate
+func (t *LogStreamCreate) MergeLogStreamEventGridCreate(v LogStreamEventGridCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamDatadogCreate returns the union data inside the LogStreamCreate as a LogStreamDatadogCreate
+func (t LogStreamCreate) AsLogStreamDatadogCreate() (LogStreamDatadogCreate, error) {
+	var body LogStreamDatadogCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamDatadogCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamDatadogCreate
+func (t *LogStreamCreate) FromLogStreamDatadogCreate(v LogStreamDatadogCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamDatadogCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamDatadogCreate
+func (t *LogStreamCreate) MergeLogStreamDatadogCreate(v LogStreamDatadogCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamSplunkCreate returns the union data inside the LogStreamCreate as a LogStreamSplunkCreate
+func (t LogStreamCreate) AsLogStreamSplunkCreate() (LogStreamSplunkCreate, error) {
+	var body LogStreamSplunkCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSplunkCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamSplunkCreate
+func (t *LogStreamCreate) FromLogStreamSplunkCreate(v LogStreamSplunkCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSplunkCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamSplunkCreate
+func (t *LogStreamCreate) MergeLogStreamSplunkCreate(v LogStreamSplunkCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamSumoCreate returns the union data inside the LogStreamCreate as a LogStreamSumoCreate
+func (t LogStreamCreate) AsLogStreamSumoCreate() (LogStreamSumoCreate, error) {
+	var body LogStreamSumoCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSumoCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamSumoCreate
+func (t *LogStreamCreate) FromLogStreamSumoCreate(v LogStreamSumoCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSumoCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamSumoCreate
+func (t *LogStreamCreate) MergeLogStreamSumoCreate(v LogStreamSumoCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamSegmentCreate returns the union data inside the LogStreamCreate as a LogStreamSegmentCreate
+func (t LogStreamCreate) AsLogStreamSegmentCreate() (LogStreamSegmentCreate, error) {
+	var body LogStreamSegmentCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSegmentCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamSegmentCreate
+func (t *LogStreamCreate) FromLogStreamSegmentCreate(v LogStreamSegmentCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSegmentCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamSegmentCreate
+func (t *LogStreamCreate) MergeLogStreamSegmentCreate(v LogStreamSegmentCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamMixpanelCreate returns the union data inside the LogStreamCreate as a LogStreamMixpanelCreate
+func (t LogStreamCreate) AsLogStreamMixpanelCreate() (LogStreamMixpanelCreate, error) {
+	var body LogStreamMixpanelCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamMixpanelCreate overwrites any union data inside the LogStreamCreate as the provided LogStreamMixpanelCreate
+func (t *LogStreamCreate) FromLogStreamMixpanelCreate(v LogStreamMixpanelCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamMixpanelCreate performs a merge with any union data inside the LogStreamCreate, using the provided LogStreamMixpanelCreate
+func (t *LogStreamCreate) MergeLogStreamMixpanelCreate(v LogStreamMixpanelCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LogStreamCreate) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *LogStreamCreate) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsLogStreamSinkPatchHttpCustomHeaders0 returns the union data inside the LogStreamSinkPatch_HttpCustomHeaders as a LogStreamSinkPatchHttpCustomHeaders0
+func (t LogStreamSinkPatch_HttpCustomHeaders) AsLogStreamSinkPatchHttpCustomHeaders0() (LogStreamSinkPatchHttpCustomHeaders0, error) {
+	var body LogStreamSinkPatchHttpCustomHeaders0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSinkPatchHttpCustomHeaders0 overwrites any union data inside the LogStreamSinkPatch_HttpCustomHeaders as the provided LogStreamSinkPatchHttpCustomHeaders0
+func (t *LogStreamSinkPatch_HttpCustomHeaders) FromLogStreamSinkPatchHttpCustomHeaders0(v LogStreamSinkPatchHttpCustomHeaders0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSinkPatchHttpCustomHeaders0 performs a merge with any union data inside the LogStreamSinkPatch_HttpCustomHeaders, using the provided LogStreamSinkPatchHttpCustomHeaders0
+func (t *LogStreamSinkPatch_HttpCustomHeaders) MergeLogStreamSinkPatchHttpCustomHeaders0(v LogStreamSinkPatchHttpCustomHeaders0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLogStreamSinkPatchHttpCustomHeaders1 returns the union data inside the LogStreamSinkPatch_HttpCustomHeaders as a LogStreamSinkPatchHttpCustomHeaders1
+func (t LogStreamSinkPatch_HttpCustomHeaders) AsLogStreamSinkPatchHttpCustomHeaders1() (LogStreamSinkPatchHttpCustomHeaders1, error) {
+	var body LogStreamSinkPatchHttpCustomHeaders1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLogStreamSinkPatchHttpCustomHeaders1 overwrites any union data inside the LogStreamSinkPatch_HttpCustomHeaders as the provided LogStreamSinkPatchHttpCustomHeaders1
+func (t *LogStreamSinkPatch_HttpCustomHeaders) FromLogStreamSinkPatchHttpCustomHeaders1(v LogStreamSinkPatchHttpCustomHeaders1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLogStreamSinkPatchHttpCustomHeaders1 performs a merge with any union data inside the LogStreamSinkPatch_HttpCustomHeaders, using the provided LogStreamSinkPatchHttpCustomHeaders1
+func (t *LogStreamSinkPatch_HttpCustomHeaders) MergeLogStreamSinkPatchHttpCustomHeaders1(v LogStreamSinkPatchHttpCustomHeaders1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LogStreamSinkPatch_HttpCustomHeaders) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *LogStreamSinkPatch_HttpCustomHeaders) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsUserIdentityLinkUserId0 returns the union data inside the UserIdentityLink_UserId as a UserIdentityLinkUserId0
 func (t UserIdentityLink_UserId) AsUserIdentityLinkUserId0() (UserIdentityLinkUserId0, error) {
 	var body UserIdentityLinkUserId0
@@ -11362,6 +14256,27 @@ type ServerInterface interface {
 	// RevokeSigningKey Revoke an eligible previous signing key.
 	// (PUT /api/v2/keys/signing/{kid}/revoke)
 	RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string)
+	// GetLogStreams List log stream configurations
+	// (GET /api/v2/log-streams)
+	GetLogStreams(w http.ResponseWriter, r *http.Request)
+	// CreateLogStream Create a log stream
+	// (POST /api/v2/log-streams)
+	CreateLogStream(w http.ResponseWriter, r *http.Request)
+	// DeleteLogStream Delete a log stream
+	// (DELETE /api/v2/log-streams/{id})
+	DeleteLogStream(w http.ResponseWriter, r *http.Request, id string)
+	// GetLogStream Read a log stream
+	// (GET /api/v2/log-streams/{id})
+	GetLogStream(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateLogStream Update a log stream
+	// (PATCH /api/v2/log-streams/{id})
+	UpdateLogStream(w http.ResponseWriter, r *http.Request, id string)
+	// GetLogs Search tenant log events
+	// (GET /api/v2/logs)
+	GetLogs(w http.ResponseWriter, r *http.Request, params GetLogsParams)
+	// GetLog Read one tenant log event
+	// (GET /api/v2/logs/{id})
+	GetLog(w http.ResponseWriter, r *http.Request, id string)
 	// ListOrganizations List the tenant's organizations
 	// (GET /api/v2/organizations)
 	ListOrganizations(w http.ResponseWriter, r *http.Request, params ListOrganizationsParams)
@@ -11572,6 +14487,12 @@ type ServerInterface interface {
 	// GetSession Get a session
 	// (GET /api/v2/sessions/{id})
 	GetSession(w http.ResponseWriter, r *http.Request, id string)
+	// GetActiveUsers Count users active within thirty days
+	// (GET /api/v2/stats/active-users)
+	GetActiveUsers(w http.ResponseWriter, r *http.Request)
+	// GetDailyStats Read UTC daily authentication counters
+	// (GET /api/v2/stats/daily)
+	GetDailyStats(w http.ResponseWriter, r *http.Request, params GetDailyStatsParams)
 	// GetTenantSettings Read tenant settings
 	// (GET /api/v2/tenants/settings)
 	GetTenantSettings(w http.ResponseWriter, r *http.Request, params GetTenantSettingsParams)
@@ -11620,6 +14541,9 @@ type ServerInterface interface {
 	// UnlinkUserIdentity Unlink an identity from a user
 	// (DELETE /api/v2/users/{id}/identities/{provider}/{user_id})
 	UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id string, provider string, userId string)
+	// GetUserLogs Read one user’s log events
+	// (GET /api/v2/users/{id}/logs)
+	GetUserLogs(w http.ResponseWriter, r *http.Request, id string, params GetUserLogsParams)
 	// ListUserOrganizations List the organizations a user is a member of
 	// (GET /api/v2/users/{id}/organizations)
 	ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, params ListUserOrganizationsParams)
@@ -12337,6 +15261,48 @@ func (_ Unimplemented) RevokeSigningKey(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetLogStreams List log stream configurations
+// (GET /api/v2/log-streams)
+func (_ Unimplemented) GetLogStreams(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateLogStream Create a log stream
+// (POST /api/v2/log-streams)
+func (_ Unimplemented) CreateLogStream(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteLogStream Delete a log stream
+// (DELETE /api/v2/log-streams/{id})
+func (_ Unimplemented) DeleteLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetLogStream Read a log stream
+// (GET /api/v2/log-streams/{id})
+func (_ Unimplemented) GetLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateLogStream Update a log stream
+// (PATCH /api/v2/log-streams/{id})
+func (_ Unimplemented) UpdateLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetLogs Search tenant log events
+// (GET /api/v2/logs)
+func (_ Unimplemented) GetLogs(w http.ResponseWriter, r *http.Request, params GetLogsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetLog Read one tenant log event
+// (GET /api/v2/logs/{id})
+func (_ Unimplemented) GetLog(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListOrganizations List the tenant's organizations
 // (GET /api/v2/organizations)
 func (_ Unimplemented) ListOrganizations(w http.ResponseWriter, r *http.Request, params ListOrganizationsParams) {
@@ -12757,6 +15723,18 @@ func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request, id str
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetActiveUsers Count users active within thirty days
+// (GET /api/v2/stats/active-users)
+func (_ Unimplemented) GetActiveUsers(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDailyStats Read UTC daily authentication counters
+// (GET /api/v2/stats/daily)
+func (_ Unimplemented) GetDailyStats(w http.ResponseWriter, r *http.Request, params GetDailyStatsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetTenantSettings Read tenant settings
 // (GET /api/v2/tenants/settings)
 func (_ Unimplemented) GetTenantSettings(w http.ResponseWriter, r *http.Request, params GetTenantSettingsParams) {
@@ -12850,6 +15828,12 @@ func (_ Unimplemented) LinkUserIdentity(w http.ResponseWriter, r *http.Request, 
 // UnlinkUserIdentity Unlink an identity from a user
 // (DELETE /api/v2/users/{id}/identities/{provider}/{user_id})
 func (_ Unimplemented) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id string, provider string, userId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserLogs Read one user’s log events
+// (GET /api/v2/users/{id}/logs)
+func (_ Unimplemented) GetUserLogs(w http.ResponseWriter, r *http.Request, id string, params GetUserLogsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -16346,6 +19330,275 @@ func (siw *ServerInterfaceWrapper) RevokeSigningKey(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// GetLogStreams operation middleware
+func (siw *ServerInterfaceWrapper) GetLogStreams(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLogStreams(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateLogStream operation middleware
+func (siw *ServerInterfaceWrapper) CreateLogStream(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLogStream(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteLogStream operation middleware
+func (siw *ServerInterfaceWrapper) DeleteLogStream(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteLogStream(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLogStream operation middleware
+func (siw *ServerInterfaceWrapper) GetLogStream(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLogStream(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateLogStream operation middleware
+func (siw *ServerInterfaceWrapper) UpdateLogStream(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateLogStream(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLogs operation middleware
+func (siw *ServerInterfaceWrapper) GetLogs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetLogsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLogs(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLog operation middleware
+func (siw *ServerInterfaceWrapper) GetLog(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLog(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListOrganizations operation middleware
 func (siw *ServerInterfaceWrapper) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 
@@ -19407,6 +22660,66 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// GetActiveUsers operation middleware
+func (siw *ServerInterfaceWrapper) GetActiveUsers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActiveUsers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDailyStats operation middleware
+func (siw *ServerInterfaceWrapper) GetDailyStats(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetDailyStatsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDailyStats(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetTenantSettings operation middleware
 func (siw *ServerInterfaceWrapper) GetTenantSettings(w http.ResponseWriter, r *http.Request) {
 
@@ -20020,6 +23333,87 @@ func (siw *ServerInterfaceWrapper) UnlinkUserIdentity(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UnlinkUserIdentity(w, r, id, provider, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserLogs operation middleware
+func (siw *ServerInterfaceWrapper) GetUserLogs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserLogsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserLogs(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -21267,6 +24661,36 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/client-grants/{id}/organizations", wrapper.ListClientGrantOrganizations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/logs", wrapper.GetLogs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/logs/{id}", wrapper.GetLog)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/logs", wrapper.GetUserLogs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/log-streams", wrapper.GetLogStreams)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/log-streams", wrapper.CreateLogStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/log-streams/{id}", wrapper.DeleteLogStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/log-streams/{id}", wrapper.GetLogStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/log-streams/{id}", wrapper.UpdateLogStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/stats/daily", wrapper.GetDailyStats)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/stats/active-users", wrapper.GetActiveUsers)
 	})
 
 	return r
