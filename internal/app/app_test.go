@@ -17,11 +17,28 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/pkg/storeplugin"
 )
 
 // testServer gives the system tenant a host (server.system_host).
 var testServer = config.Server{SystemHost: "system.localhost"}
+
+func TestNewScrubsServerLogger(t *testing.T) {
+	var output strings.Builder
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	a, err := New(context.Background(), cfg, slog.New(slog.NewJSONHandler(&output, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	output.Reset()
+	ctx := logscrub.WithValues(context.Background(), "hunter2!!")
+	a.log.With("note", "hunter2!!").InfoContext(ctx, "failed hunter2!!", "password", "hidden", "public", "keep")
+	if strings.Contains(output.String(), "hunter2!!") || strings.Contains(output.String(), "hidden") || !strings.Contains(output.String(), `"public":"keep"`) {
+		t.Fatalf("app server logger did not scrub: %s", output.String())
+	}
+}
 
 func TestNewSeedsAndServes(t *testing.T) {
 	dir := t.TempDir()

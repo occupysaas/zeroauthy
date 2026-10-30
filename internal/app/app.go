@@ -29,6 +29,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -80,6 +81,7 @@ func WithFederationProviders(f func() *federation.Providers) Option {
 }
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger, opts ...Option) (*App, error) {
+	log = slog.New(logscrub.Handler(log.Handler()))
 	// The master key is checked before the store is opened, so a missing key
 	// never leaves a created or migrated database behind.
 	masterKey, err := MasterKey(cfg, log)

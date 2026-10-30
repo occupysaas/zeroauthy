@@ -165,3 +165,84 @@ lookup still rejects each incomplete projection and accepts a complete event.
 The new schema retains field types, ID/date constraints and strict unknown-field
 behavior. Only the Important finding was changed; runtime acceptance remains
 with later tasks. Fix commit subject: `fix: allow projected log list responses`.
+
+## Task 2 — scrubber and request value masks
+
+Implemented `internal/logscrub` and wrapped the logger at the start of
+`app.New`, before startup logging and before passing it to server components.
+The scrubber uses the frozen `logrules.Marker`, normalizes sensitive key names
+and matches the complete specified substring list. It clones map/slice values,
+walks arbitrary nesting (including JSON objects/arrays encoded inside strings),
+uses `json.Decoder.UseNumber`, and accepts exactly one JSON document.
+
+Request value masks inherit immutably, ignore values shorter than four runes,
+and merge overlapping matches in the original text. The slog wrapper resolves
+LogValuers, scrubs record/bound/group attributes and messages, and applies the
+current Handle context even to values bound before the request. JSON-string
+values are decoded before masking so escaped passwords cannot evade matching.
+Typed maps/slices/structs and RawMessage pass through JSON normalization before
+scrubbing. Unsupported values and cyclic subtrees become the marker.
+
+### Task 2 rulings and boundaries
+
+- Ruling: retain bound attributes and group operations inside the wrapper until
+  Handle — a background-context scrub during WithAttrs misses request values —
+  costs repeated per-record sanitizing instead of eager formatting.
+- Ruling: redact the union of overlapping exact-value occurrences and match
+  only the original text — avoids suffix exposure and remasking replacement
+  text — costs a small match-span collection when values occur.
+- Ruling: normalize typed JSON-shaped values, redact unsupported values and
+  cyclic subtrees, and preserve shared noncyclic children — handing opaque
+  Any values directly to a JSON sink bypasses key policy — may hide unsupported
+  diagnostic types and changes typed objects to their JSON-compatible shape.
+- Ruling: mask decoded JSON string values while preserving numeric values and
+  the frozen marker — replacing the encoded JSON text can corrupt numbers or
+  repeatedly wrap markers — numeric values are not treated as free text.
+- Strict single-document validation applies to Scrub and to recognizing embedded
+  object/array strings. Non-JSON strings remain free text for exact-value masking.
+- Install Handler before binding values: the slog interface cannot inspect
+  attributes already hidden inside a supplied downstream handler. The production
+  serve constructor supplies a fresh unbound text/JSON handler.
+- Plan 19's hold does not apply to Plan 31. The app package's existing SQLite
+  and plugin tests were run as requested. No new Go dependency was introduced.
+- Focused package checks replace another broad suite run under the controller's
+  explicit verification scope; the baseline short suite is already green and
+  full Plan 31 regression belongs to Task 16. Runtime registration at emitters,
+  recorder/store/streams/API integration and E2E acceptance remain later tasks.
+
+### Task 2 commands and actual results
+
+Every Go command used `GOTOOLCHAIN=go1.26.7`.
+
+- Required RED `go test ./internal/logscrub -count=1`: exit 1, no non-test Go
+  files in the new package, before production implementation was written.
+- Additional RED: TestSlogEmbeddedJSONMasksDecodedValues failed for message,
+  direct string, bound string and Any-nested string values with JSON escapes;
+  TestNewScrubsServerLogger failed because the unwrapped app logger leaked
+  message, bound note and password values. Both passed after their changes.
+- Cycle RED: TestScrubValueCyclesFailClosed first failed with a stack overflow
+  from recursive native-map traversal; path identity tracking fixed the cause.
+  Expanded RED caught invalid json.Number escaping the fail-closed policy;
+  scalar JSON validation now also redacts nonfinite floats.
+- Additional RED: TestSlogEncodedJSONPreservesNumbersAndMarkers caught encoded
+  numeric JSON corruption and repeated marker masking; decoded value masking
+  fixed it. TestSlogTypedAndUnsupportedValues caught JSON in error text bypassing
+  key scrubbing; error strings now follow the ordinary string scrub path.
+- GREEN `go test ./internal/logscrub -count=1`: exit 0 after implementation and
+  again after the final scalar handling changes.
+- Final `go test ./internal/logscrub ./internal/app -count=1`: exit 0; scrubber
+  passed in 0.006 s and app in 9.045 s.
+- Final `go test -race ./internal/logscrub -count=1`: exit 0, 1.040 s.
+- Final `go test ./internal/logscrub -run '^$' -fuzz FuzzScrub -fuzztime=30s -parallel=4`:
+  exit 0, 31.050 s, 517,491 executions, 26 newly interesting inputs. An earlier
+  pre-scalar-hardening run also passed (183,098 executions); the final run above
+  verifies the finished implementation. Fuzz generation bounds its own shape
+  to avoid exponential repeated JSON-string encoding; the scrubber has no local
+  depth cutoff and a separate 128-level nested-object/array test passes.
+- `git diff --check`: exit 0.
+
+Self-review checked secret-key types and normalization, immutable parent/child
+masks and derived loggers, overlaps, JSON escaping, precision, group paths,
+LogValuers, error strings, typed JSON and unsupported/cyclic graphs. No agents
+or reviewers were spawned by the implementer. Commit subject:
+`feat: scrub secrets and passwords before any log sink`.
