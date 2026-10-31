@@ -31,7 +31,7 @@ func TestHostedLoginOutcomeEvents(t *testing.T) {
 		{name: "no bindings", engine: true, password: "alice password 1", want: []string{"s", "s", "ssa"}},
 		{name: "action success", engine: true, action: `exports.onExecutePostLogin=()=>{};`, password: "alice password 1", want: []string{"s", "s", "ssa"}},
 		{name: "action deny", engine: true, action: `exports.onExecutePostLogin=(e,a)=>a.access.deny('refused');`, password: "alice password 1", want: []string{"f"}},
-		{name: "action throw", engine: true, action: `exports.onExecutePostLogin=()=>{throw Error('private failure')};`, password: "alice password 1", want: []string{"f"}},
+		{name: "action throw", engine: true, action: `exports.onExecutePostLogin=()=>{throw Error('private failure')};`, password: "alice password 1", want: []string{"actions_execution_failed", "f"}},
 		{name: "short credential", password: "s", want: []string{"s", "s", "ssa"}},
 		{name: "signup", signup: true, password: "new password 1", want: []string{"s", "ss"}},
 		{name: "signup denied after creation", signup: true, engine: true, action: `exports.onExecutePostLogin=(e,a)=>a.access.deny('refused');`, password: "new password 1", want: []string{"f", "ss"}},

@@ -322,16 +322,22 @@ func TestActionExecutionLinksOnSignupEvents(t *testing.T) {
 			_, state, csrf := b.begin(t, "screen_hint", "signup")
 			b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"new@acme.test"}, "password": {"new password 1"}})
 			wantCount := 1
-			if tc.code == "ss" {
+			if tc.code == "ss" || tc.name == "throw" {
 				wantCount = 2
 			}
 			if len(capture.events) != wantCount {
 				t.Fatalf("events=%+v", capture.events)
 			}
-			if wantCount == 2 {
+			if tc.code == "ss" {
 				login := capture.events[0]
 				if login.Type != "s" || len(login.ExecutionIDs) != 1 || login.ExecutionIDs[0] != capture.events[1].ExecutionIDs[0] {
 					t.Fatalf("signup authorization=%+v", capture.events)
+				}
+			}
+			if tc.name == "throw" {
+				failure := capture.events[0]
+				if failure.Type != "actions_execution_failed" || len(failure.ExecutionIDs) != 1 || failure.ExecutionIDs[0] != capture.events[1].ExecutionIDs[0] {
+					t.Fatalf("signup failure=%+v", capture.events)
 				}
 			}
 			got := capture.events[len(capture.events)-1]
@@ -403,7 +409,7 @@ func TestSocialCallbackFailureEventAttribution(t *testing.T) {
 	}
 }
 
-func loginActionEvent(t *testing.T, script string) logs.Event {
+func loginActionEvent(t *testing.T, script string, wantCodes ...string) logs.Event {
 	t.Helper()
 	e := newEnv(t)
 	capture := &eventRecorder{}
@@ -417,10 +423,20 @@ func loginActionEvent(t *testing.T, script string) logs.Event {
 	b := e.browser("acme.example.test")
 	_, state, csrf := b.begin(t)
 	b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"alice password 1"}})
-	if len(capture.events) != 1 {
+	if len(capture.events) != len(wantCodes) {
 		t.Fatalf("events=%+v", capture.events)
 	}
-	event := capture.events[0]
+	for i, code := range wantCodes {
+		if capture.events[i].Type != code {
+			t.Fatalf("codes=%+v", capture.events)
+		}
+	}
+	event := capture.events[len(capture.events)-1]
+	for _, entry := range capture.events {
+		if len(entry.ExecutionIDs) != 1 || entry.ExecutionIDs[0] != event.ExecutionIDs[0] {
+			t.Fatalf("execution attribution=%+v", capture.events)
+		}
+	}
 	if len(event.ExecutionIDs) != 1 {
 		t.Fatalf("execution links=%+v", event)
 	}
@@ -431,7 +447,7 @@ func loginActionEvent(t *testing.T, script string) logs.Event {
 		t.Fatal(err)
 	}
 	stored, _, err := e.st.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 10})
-	if err != nil || len(stored) != 1 {
+	if err != nil || len(stored) != len(wantCodes) {
 		t.Fatalf("stored events=%+v %v", stored, err)
 	}
 	var doc struct {
@@ -450,17 +466,17 @@ func loginActionEvent(t *testing.T, script string) logs.Event {
 	return event
 }
 func TestLoginLogCarriesExecutionIDs(t *testing.T) {
-	if e := loginActionEvent(t, ""); e.Type != "s" {
+	if e := loginActionEvent(t, "", "s"); e.Type != "s" {
 		t.Fatalf("event=%+v", e)
 	}
 }
 func TestActionDenyLogged(t *testing.T) {
-	if e := loginActionEvent(t, `api.access.deny('nope');`); e.Type != "f" || e.Description != "nope" {
+	if e := loginActionEvent(t, `api.access.deny('nope');`, "f"); e.Type != "f" || e.Description != "nope" {
 		t.Fatalf("event=%+v", e)
 	}
 }
 func TestActionThrowLogged(t *testing.T) {
-	if e := loginActionEvent(t, `throw Error('private failure');`); e.Type != "f" || strings.Contains(e.Description, "private") {
+	if e := loginActionEvent(t, `throw Error('private failure');`, "actions_execution_failed", "f"); e.Type != "f" || strings.Contains(e.Description, "private") {
 		t.Fatalf("event=%+v", e)
 	}
 }

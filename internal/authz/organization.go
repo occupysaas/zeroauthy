@@ -85,11 +85,23 @@ func ResolveOrganization(ctx context.Context, st store.Store, t tenant.Resolved,
 	if e != nil {
 		return OrgDecision{}, e
 	}
+	recordDenial := func() {
+		logs.RecordEvent(ctx, logs.RecorderFromContext(ctx), logs.Event{TenantID: t.Tenant.ID, Type: "organization_access_denied", ClientID: c.ClientID, ClientName: c.Name, OrganizationID: org.ID, OrganizationName: org.Name, Hostname: t.Host})
+	}
 	if !c.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
+		recordDenial()
 		return OrgDecision{}, errAccessDenied("the organization does not admit third-party applications")
 	}
 	if err := orglogin.CheckMemberClient(ctx, st, t.Tenant.ID, org.ID, c.ClientID); err != nil {
-		return OrgDecision{}, errAccessDenied("the organization does not admit this application")
+		switch {
+		case errors.Is(err, orglogin.ErrNotMember):
+			recordDenial()
+			return OrgDecision{}, errAccessDenied("the organization does not admit this application")
+		case errors.Is(err, store.ErrNotFound):
+			return OrgDecision{}, errInvalidRequest("the organization does not exist")
+		default:
+			return OrgDecision{}, errServer()
+		}
 	}
 	return OrgDecision{OrgID: org.ID, Mode: OrgFixed}, nil
 }

@@ -2256,3 +2256,54 @@ hands off six additional gaps and all prior carry-forward minors.
 
 Full report and logs: `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-16a-report.md`.
 Commit subject: `fix: record completed logins and abandoned import outcomes`.
+
+## Task 16a2 — six confirmed source emitter gaps (2026-10-31)
+
+Implemented fsa, slo/flo, fn, organization_access_denied and synchronous
+Actions execution failure after their actual decision/write boundaries.
+Task16 remains **incomplete**. Full source→event-test audit for all60 emitted
+codes is [task16a2 audit](2026-10-31-plan-31-task-16a2-audit.md); complete
+RED/GREEN, changed files, rulings/costs and self-review are in the committed
+[task16a2 report](2026-10-31-plan-31-task-16a2-report.md). Scratch logs share
+.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/.
+
+Source boundaries: silent observer follows real request/PAR validation and
+marks success only at completed issuance; shared logout completion uses
+Sessions.End's returned session; common email dispatch serves stored and
+legacy delivery without duplicate verification/synthetic/success events;
+resolved organization policy refusal excludes backend/missing failures;
+synchronous Engine.run failure adds its actual execution link, suppressing
+all durable async attempts in favor of existing terminal FinishJob logging.
+Default context/Nop and app-injected background email recorders preserve
+best-effort recording. Cookies/hints/opened credentials register masks before
+free-text metadata reaches a sink. No added logging-only DB reads.
+
+Actual checks, all GOTOOLCHAIN=go1.26.7:
+
+| Command/evidence | Actual result |
+| --- | --- |
+| Named real behavior tests per gap (logout/email/actions/org/silent) | Each observed missing-event RED before implementation, then focused GREEN; cookie/hint collision RED→GREEN also retained. See report/log filenames. |
+| First `go test -race ./internal/authz ./internal/login ./internal/actions ./internal/email ./internal/oidc ./internal/server ./internal/app -count=1` | authz25.017s/email5.892s/oidc32.124s/app20.480s PASS. login74.533s FAIL: TestActionExecutionLinksOnSignupEvents/throw and TestActionThrowLogged still expected only flow outcomes. actions FAIL at TestTriggerAPIs/post-login (step mask destination nil outside run). server102.016s FAIL at TestActionsManagementResponseSchemas (same synthetic step panic/500). |
+| Focused race on failures, synchronous matrix and mounted new cases | PASS actions3.420s/login2.610s/server5.975s after destination initialization and explicit Action+flow exact assertions. |
+| Final `go test -race ./internal/authz ./internal/oidc ./internal/actions ./internal/login ./internal/server -count=1` | PASS authz25.497s/oidc34.262s/actions167.006s/login79.897s/server115.036s. |
+| Stronger native email credential fixture race | PASS1.227s. |
+| Prestart no-execution negative + stronger signup link assertions race | PASS actions1.222s/login2.174s. |
+| Short Action/context masks, fixed schema/date/generated execution links race | PASS actions2.590s. |
+| 60-row audit static cross-check and `git diff --check` | PASS60 emitted types/60 rows,54 named test functions exist, explicit paths exist; manual boundary/test-body review and self-review. No runtime PASS inferred from static coverage. |
+
+Local rulings: no-session validated logout is an idempotent slo; pending RP
+confirmation and invalid targets produce neither slo nor flo. fn covers the
+shared actual dispatch boundary, excluding template/render preparation and
+without guessing another fn for sealed async terminal Action failures.
+Post-validation silent refusals emit one fsa; malformed/unresolved requests
+and early entitlement policy validation retain their own outcomes. Silent
+throw is actions_execution_failed,f,fsa; explicit deny f,fsa; prohibited
+redirect command actions_execution_failed,fsa; successful silent auth only
+ssa. Hosted throw and pre-registration throw add the distinct Action event
+before f/fs. The two Task16a repairs remain intact.
+
+No store/SQL/protobuf/schema/dependency/generated changes, so no redundant
+SQL-driver/full-gRPC run or make generate. No full-branch regression,
+browser/CLI/console acceptance, docs completion or whole-branch review is
+claimed. Task16b and all prior carry-forward minors remain explicitly open.
+Focused commit subject: `fix: record silent auth logout notification and Action failures`.

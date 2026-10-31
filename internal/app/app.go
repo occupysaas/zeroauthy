@@ -275,7 +275,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		},
 	}
 	recorder := logs.NewRecorder(st, logsConfig, log)
-	tenantEmail := &email.Service{Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
+	tenantEmail := &email.Service{Recorder: recorder, Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
 	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
 	}

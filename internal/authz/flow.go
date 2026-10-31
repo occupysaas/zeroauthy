@@ -174,6 +174,10 @@ func (h *Handlers) decideDevice(w http.ResponseWriter, r *http.Request, res tena
 // policy, consent and final organization checks. Signup's ss describes the
 // separate user-creation outcome; this event counts its completed login once.
 func (h *Handlers) loginSucceeded(r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession) {
+	if outcome, ok := r.Context().Value(silentAuthorizationKey{}).(*silentAuthorizationOutcome); ok {
+		outcome.completed = true
+	}
+
 	e := logs.FromRequest(r)
 	e.TenantID, e.ClientID, e.ClientName = res.Tenant.ID, client.ClientID, client.Name
 	e.UserID, e.Connection, e.OrganizationID = sess.UserID, sess.Connection, fr.OrgID

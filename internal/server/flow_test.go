@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -337,7 +338,11 @@ func (e *flowEnv) codeFlowAs(t *testing.T, c *http.Client, username, password st
 }
 
 func TestEndToEndRefreshAndLogout(t *testing.T) {
-	e := newFlowEnv(t)
+	var recorder *logs.AsyncRecorder
+	e := newFlowEnvSeed(t, flowSeed, func(d *Deps) {
+		recorder = logs.NewRecorder(d.Store, logs.Config{}, slog.New(slog.DiscardHandler))
+		d.Recorder = recorder
+	})
 	c := e.client(t)
 	refresh := func(token string) (*http.Response, map[string]any) {
 		return e.postForm(t, c, "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {token}})
@@ -382,6 +387,27 @@ func TestEndToEndRefreshAndLogout(t *testing.T) {
 	resp, page := fetch(t, c, authorizeURL(e.base, "prompt", "none", "response_mode", "web_message"))
 	if resp.StatusCode != 200 || !strings.Contains(page, "login_required") {
 		t.Fatalf("silent auth after logout = %d %s", resp.StatusCode, page)
+	}
+	if err := recorder.Flush(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := e.st.Tenants().GetByName(context.Background(), "flow")
+	events, _, err := e.st.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 100, Ascending: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcomes := []string{}
+	for _, event := range events {
+		switch event.Type {
+		case "slo", "flo", "fsa", "ssa":
+			outcomes = append(outcomes, event.Type)
+			if event.ClientID != "spa" || (event.Type == "slo" && event.UserID == "") || (event.Type == "fsa" && event.UserID != "") {
+				t.Fatalf("logout attribution=%s", event.Body)
+			}
+		}
+	}
+	if strings.Join(outcomes, ",") != "slo,fsa" {
+		t.Fatalf("logout events=%v", outcomes)
 	}
 	// 7. Discovery advertises the new endpoints.
 	_, doc := fetch(t, c, e.base+"/.well-known/openid-configuration")

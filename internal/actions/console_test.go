@@ -80,6 +80,13 @@ func TestAsyncJobFailureLogged(t *testing.T) {
 			case <-time.After(5 * time.Second):
 				t.Fatal("no terminal failure event")
 			}
+			cancel()
+			<-done
+			select {
+			case extra := <-capture.events:
+				t.Fatalf("duplicate terminal event=%+v", extra)
+			default:
+			}
 		})
 	}
 }

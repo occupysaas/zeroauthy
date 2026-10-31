@@ -144,6 +144,7 @@ type unit struct {
 
 // flow is one trigger execution in progress.
 type flow struct {
+	logCtx                               context.Context
 	jobID                                string
 	jobAttempt                           int
 	tenantID, trigger, handler, hostname string
@@ -310,6 +311,7 @@ func errorID(err error) string {
 // run executes f's Actions in order, then commits metadata and writes the
 // execution record. Any failure fails the whole flow closed.
 func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, error) {
+	f.logCtx = ctx
 	execID := newExecutionID()
 	logs.AddExecution(ctx, execID)
 	budget := f.remaining
@@ -414,8 +416,19 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		e.log().Warn("actions: recording a failed execution", "tenant", f.tenantID, "execution_id", execID, "error", recordErr)
 	}
 	if failure != nil {
-		e.log().Warn("actions flow failed", "tenant", f.tenantID, "trigger", f.trigger, "action", failed,
-			"execution_id", execID, "error", failure.Error())
+		// Durable jobs emit once, only after their terminal FinishJob write. A
+		// synchronous invocation owns this completed execution failure instead.
+		if f.jobID == "" {
+			event := executionFailureEvent(f)
+			event.Date, event.ExecutionIDs = e.now(), []string{execID}
+			recorder := e.Recorder
+			if recorder == nil {
+				recorder = logs.RecorderFromContext(ctx)
+			}
+			logs.RecordEvent(f.logCtx, recorder, event)
+		}
+		e.log().WarnContext(f.logCtx, "actions flow failed", "tenant", f.tenantID, "trigger", f.trigger, "action", failed,
+			"execution_id", execID, "error", errorID(failure))
 		return nil, &ErrFlow{ExecutionID: execID, Cause: failure, Continuation: continuationOf(f)}
 	}
 	if d := f.acc.denied; d != nil {
@@ -453,6 +466,15 @@ func (e *Engine) commitMetadata(ctx context.Context, tx store.Store, tenantID st
 // step runs one Action and applies its commands to f.acc. Its errors are
 // masked with the Action's and its pinned Modules' secrets.
 func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any) (*stepOut, error) {
+	// Carry only the masks from already opened secrets back to the outcome
+	// boundary, including timeout/error returns; never reopen secrets to log.
+	defer func() {
+		if f.logCtx == nil {
+			f.logCtx = ctx
+		}
+		f.logCtx = logscrub.CopyMasks(f.logCtx, ctx)
+	}()
+
 	remaining := time.Until(f.deadline)
 	if remaining <= 0 {
 		return nil, ErrTimeout
@@ -800,4 +822,25 @@ func capConsole(lines []string) []string {
 		total += size
 	}
 	return append([]string(nil), lines...)
+}
+
+// Project only fixed metadata keys from the engine-built canonical event.
+// No Action output, exception, request body, or provider payload is retained.
+func executionFailureEvent(f *flow) logs.Event {
+	source := f.event()
+	field := func(object, key string) string {
+		objectValue, _ := source[object].(map[string]any)
+		value, _ := objectValue[key].(string)
+		return value
+	}
+	event := logs.Event{TenantID: f.tenantID, Type: "actions_execution_failed", Hostname: f.hostname,
+		ClientID: field("client", "client_id"), ClientName: field("client", "name"),
+		ConnectionID: field("connection", "id"), Connection: field("connection", "name"), Strategy: field("connection", "strategy"),
+		OrganizationID: field("organization", "id"), OrganizationName: field("organization", "name"),
+		Details: map[string]any{"trigger": f.trigger}}
+	event.StrategyType = logs.StrategyType(event.Strategy)
+	if f.trigger != TriggerPreUserRegistration {
+		event.UserID = field("user", "user_id")
+	}
+	return event
 }

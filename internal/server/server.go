@@ -147,7 +147,10 @@ func New(d Deps) http.Handler {
 	}
 	if d.EmailService == nil {
 		renderer, _ := email.NewRenderer()
-		d.EmailService = &email.Service{Store: d.Store, Wrapper: d.Wrapper, Renderer: renderer, Providers: &providers.Factory{}, Fallback: d.Mailer, DefaultFrom: "zeroauthy@localhost"}
+		d.EmailService = &email.Service{Recorder: d.Recorder, Store: d.Store, Wrapper: d.Wrapper, Renderer: renderer, Providers: &providers.Factory{}, Fallback: d.Mailer, DefaultFrom: "zeroauthy@localhost"}
+	}
+	if d.EmailService.Recorder == nil {
+		d.EmailService.Recorder = d.Recorder
 	}
 	if d.Actions != nil {
 		d.Actions.InvitationEmail = d.EmailService
