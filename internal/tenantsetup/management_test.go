@@ -36,7 +36,7 @@ func TestManagementAPI(t *testing.T) {
 		}
 	}
 	for _, want := range []string{"read:clients", "create:clients", "update:clients", "delete:clients",
-		"read:client_keys", "create:client_keys", "update:client_keys", "delete:client_keys", "read:logs", "read:logs_users"} {
+		"read:client_keys", "create:client_keys", "update:client_keys", "delete:client_keys", "read:logs", "read:logs_users", "read:log_streams", "create:log_streams", "update:log_streams", "delete:log_streams"} {
 		if !slices.Contains(values, want) {
 			t.Errorf("scope %q missing from %v", want, values)
 		}

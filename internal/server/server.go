@@ -38,6 +38,9 @@ import (
 )
 
 type Deps struct {
+	// LogsConfig carries the secure stream defaults and deployment opt-ins.
+	LogsConfig logs.Config
+
 	Recorder   logs.Recorder
 	Protection *protection.Service
 
@@ -283,9 +286,10 @@ func New(d Deps) http.Handler {
 	}
 	mr := chi.NewRouter()
 	mh := &mgmt.Handlers{
-		Actions:  d.Actions,
-		Recorder: d.Recorder,
-		Store:    d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
+		LogsConfig: d.LogsConfig,
+		Actions:    d.Actions,
+		Recorder:   d.Recorder,
+		Store:      d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify, EmailService: d.EmailService,
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,

@@ -869,3 +869,19 @@ func (a mgmtAPI) GetTenantActionExecutions(w http.ResponseWriter, r *http.Reques
 func (a mgmtAPI) GetTenantActionExecution(w http.ResponseWriter, r *http.Request, tenant, id string) {
 	a.h.GetTenantActionExecution(w, r, tenant, id)
 }
+
+func (a mgmtAPI) GetLogStreams(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.ListLogStreams, "read:log_streams")
+}
+func (a mgmtAPI) CreateLogStream(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.CreateLogStream, "create:log_streams")
+}
+func (a mgmtAPI) GetLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetLogStream(w, r, id) }, "read:log_streams")
+}
+func (a mgmtAPI) UpdateLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateLogStream(w, r, id) }, "update:log_streams")
+}
+func (a mgmtAPI) DeleteLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteLogStream(w, r, id) }, "delete:log_streams")
+}

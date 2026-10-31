@@ -1952,7 +1952,10 @@ Further frozen contracts and evidence gaps:
   that instant, or the latest committed sequence if no event matches. The
   worker additionally skips events older than StartFrom while advancing the
   checkpoint. This preserves the timestamp boundary when Date and Seq differ.
-  Omission begins after the latest committed sequence.
+  Omission begins after the latest committed sequence. The exact Go zero
+  instant (`0001-01-01T00:00:00Z`, including equivalent offsets) is rejected
+  with 400 because storage reserves it for omission; other representable
+  RFC3339 instants, including year 0000, remain supported (local boundary).
 - Create requires type/sink and does not accept status. PATCH permits name,
   status, sink, filters, isPriority and pii_config; type/startFrom are immutable.
   Unknown fields, null for nonnullable values and sink fields for another type

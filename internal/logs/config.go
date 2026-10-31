@@ -5,9 +5,11 @@ import "time"
 const DefaultRetention = 30 * 24 * time.Hour
 const DefaultQueueSize = 10000
 
-// Config controls the process-local queue and deployment-wide retention.
+// Config controls the process-local queue, deployment-wide retention and stream policy.
 // Now is an optional clock for deterministic scheduling and overflow warnings.
 type Config struct {
+	Streams StreamsConfig
+
 	Retention time.Duration
 	QueueSize int
 	Now       func() time.Time
@@ -24,4 +26,11 @@ func (c Config) defaults() Config {
 		c.Now = time.Now
 	}
 	return c
+}
+
+// StreamsConfig controls deployment opt-ins for outbound log delivery.
+// Secure transport and public addresses are the defaults.
+type StreamsConfig struct {
+	AllowInsecureHTTP    bool
+	AllowPrivateNetworks bool
 }

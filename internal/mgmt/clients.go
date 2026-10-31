@@ -47,6 +47,9 @@ const (
 
 // Handlers serves the Management API and the system API.
 type Handlers struct {
+	// LogsConfig carries deployment-wide stream transport policy.
+	LogsConfig logs.Config
+
 	Recorder logs.Recorder
 	// Actions runs draft tests and queues and recovers dependency builds.
 	Actions    *actions.Engine

@@ -1555,3 +1555,94 @@ historical evidence. Task16 no-engine/no-binding authz emission and import sweep
 abandonment outcomes remain open and assigned to the controller. No later task
 is claimed complete. Detailed decisions/commands/report:
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-10-privacy-report.md`.
+
+## Task 11 — Log streams Management API (2026-10-31)
+
+Implemented the five tenant-scoped Management operations and their generated
+router adapters, with `read/create/update/delete:log_streams` scopes provisioned
+on the Management resource server. Old Logs plugins return 501
+`logs_unavailable` through the existing capability probe. Mounted-server tests
+exercise real token authentication, insufficient scopes, CRUD and capability
+errors, as well as the deployment HTTP opt-in.
+
+The API reads the eight frozen `logrules.SinkSchema` contracts for field types,
+required fields, patterns and region/format enums. Unknown top-level or nested
+fields, nulls, type/startFrom PATCHes, invalid filters and PII configuration,
+malformed endpoint URLs, endpoint userinfo/fragments and invalid header fields
+are 400. HTTPS remains the default; HTTP needs deployment opt-in. Cloud streams
+are stored suspended and cannot leave that status. PATCH validates the complete
+merged candidate before writing and retries version conflicts at most three
+times, rebuilding from the latest snapshot; the store owns checkpoints, resume
+failure reset and lease invalidation.
+
+Only private sink values are sealed. Shared `internal/logstream/secrets.go`
+provides `SealSecrets`/`OpenSecrets` for the API and Task 12 worker, using the
+existing `keys.SealBound`/`OpenBound` envelope, label `log-stream/v1`, and
+length-prefixed AAD fields tenant ID, stream ID and immutable sink type. All
+secret reads return the frozen marker, including the entire custom-header array
+and Sumo URL. Omitted PATCH secrets and a marker preserve configured values;
+creates and markers without a configured secret are rejected. Task 9 middleware
+receives metadata hints only, and actual `sapi` tests show markers without the
+sentinel credentials. No source read exists solely to populate a log event.
+
+`startFrom` is create-only RFC3339, never a log ID. The store resolves the initial
+checkpoint from event Date and retained Seq without the delivery settle delay.
+Strict syntax rejects Go parser leniencies (offset +24:00/+00:60 and comma
+fractions). The controller approved rejecting the exact Go zero instant with
+400, because zero already means omission in the store contract; year 0000 and
+other representable instants remain valid. D-0057 records this boundary. Cost if
+this exception must later disappear: add explicit presence through all store,
+SQL and plugin models instead of overloading zero.
+
+`logs.Config.Streams` now carries `AllowInsecureHTTP` and
+`AllowPrivateNetworks`; app configuration passes these through
+`server.Deps.LogsConfig` to `mgmt.Handlers.LogsConfig`. The actual DNS/dial guard,
+private-address enforcement, delivery defaults, older-Date skip/advance behavior
+and worker lifecycle remain Task 12. No stream delivery request was sent.
+
+Actual TDD evidence (all Go/make commands used GOTOOLCHAIN=go1.26.7):
+
+- `go test ./internal/mgmt -run 'LogStream|CloudStreams' -count=1`:
+  **RED**, named cases failed with missing Management handlers
+  (`task-11-red.log`).
+- `go test ./internal/server -run 'LogStream' -count=1`: **RED**,
+  unimplemented routes returned 501 before scope checks and seed validation
+  rejected all four unprovisioned stream scopes (`task-11-routes-red.log`).
+- `go test ./internal/mgmt -run '^TestLogStreamStartFromZeroRejected$'
+  -count=1`: **RED**, accepted the explicit zero instant as 201;
+  fixed to 400 (`task-11-zero-red.log`).
+- `go test ./internal/mgmt -run '^TestLogStreamStartFromStrictRFC3339$'
+  -count=1`: **RED**, accepted +24:00 as 201; strict syntax fixed it
+  (`task-11-rfc3339-red.log`).
+- Intermediate test-only corrections: removed an unused import and corrected
+  the tenant repository List signature before obtaining runtime RED. Replaced
+  a test value that actually matched the no-colon pattern with a colon.
+  Capability fixtures now implement both methods of `store.LogsSupporter`.
+  Supplementary defensive cases and helper tests were added after initial
+  GREEN; no independent RED is claimed for each of those rows.
+
+Final-source verification:
+
+- `go test ./internal/mgmt ./internal/server ./internal/tenantsetup
+  ./internal/logrules ./internal/logstream -run
+  'LogStream|CloudStreams|ManagementAPI|LogsInventory|LogsOpenAPIContract|StreamSecrets'
+  -count=1`: **PASS**, mgmt5.151s/server1.467s/tenantsetup0.015s/
+  logrules0.151s/logstream0.007s (`task-11-focused-final.log`).
+- `go test -race ./internal/mgmt ./internal/server ./internal/logstream
+  -run 'LogStream|CloudStreams|StreamSecrets' -count=1`: **PASS**,
+  mgmt12.463s/server2.222s/logstream1.011s (`task-11-race-final.log`).
+- `go test ./internal/app -run '^$'`: **PASS**, compile only, no tests
+  selected (`task-11-build.log`).
+- `make check-sources`: **PASS** (`task-11-sources.log`).
+  `git diff --check`: **PASS**.
+
+Self-review checked all eight schemas against frozen inventory; tenant-scoped
+CRUD; no ciphertext in responses; cross-tenant/resource/type AAD rejection;
+secret replacement/omission/marker cases; invalid-PATCH atomicity, bounded
+conflicts and concurrent-state refresh; cloud restrictions; checkpoint timestamp
+semantics and resume reset/fencing. No generated files or dependencies changed.
+No SQL/gRPC/database suites, repository-wide suites, console builds, E2E or
+Task 12 network/worker tests were run or claimed passing for this task. Existing
+storage implementation was reused without mutation; final broad regression
+remains Task 16. Commit subject: `feat: manage log streams`. Detailed report:
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-11-report.md`.

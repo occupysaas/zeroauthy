@@ -371,6 +371,13 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		logPurge:   logs.NewPurger(st, logs.Config{Retention: cfg.Logs.Retention}, log),
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
+			LogsConfig: logs.Config{
+				Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize,
+				Streams: logs.StreamsConfig{
+					AllowInsecureHTTP:    cfg.Logs.Streams.AllowInsecureHTTP,
+					AllowPrivateNetworks: cfg.Logs.Streams.AllowPrivateNetworks,
+				},
+			},
 			Recorder:     recorder,
 			Store:        st,
 			Keys:         km,
