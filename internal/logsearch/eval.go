@@ -2,7 +2,6 @@
 package logsearch
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -117,8 +116,7 @@ func Match(q *store.LogQuery, e store.LogEvent) bool {
 			}
 			return v == q.Value
 		}
-		var body map[string]any
-		_ = json.Unmarshal(e.Body, &body)
+		body := BodyFields(e.Body)
 		value := func(field string) string {
 			switch field {
 			case "log_id":
@@ -136,8 +134,7 @@ func Match(q *store.LogQuery, e store.LogEvent) bool {
 			case "ip":
 				return e.IP
 			}
-			v, _ := body[field].(string)
-			return v
+			return body[field]
 		}
 		for _, f := range logrules.Fields() {
 			if f.Name == q.Field || q.Field == "" && f.Bare {

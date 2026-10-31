@@ -1,8 +1,10 @@
 package sqlstore
 
 import (
+	"bytes"
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -78,8 +80,134 @@ func TestLogSearchParity(t *testing.T) {
 	}
 }
 
+func TestLogSearchAcceptedJSON(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := mk(t)
+			ctx := context.Background()
+			m := memory.New()
+			for _, st := range []store.Store{s, m} {
+				if err := st.Tenants().Create(ctx, &store.Tenant{ID: "json", Name: "json"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			bodies := []string{`{"client_name":"My App","details":{"value":"\u0000"}}`, `{"client_name":"My App","details":{"value":"\ud800"}}`, `{"client_name":"My App","details":{"value":1e1000000}}`, `{"client_name":"My\u0000App"}`, `{"client_name":"My\ud800App"}`, `{"client_name":1e1000000}`, `{"client_name":"My App","details":{"value":` + strings.Repeat("9", 150000) + `}}`}
+			for _, body := range bodies {
+				before, _, err := s.Logs().SearchLogs(ctx, "json", nil, store.LogPage{PerPage: 100})
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, st := range []store.Store{s, m} {
+					if err := st.Logs().AppendLogs(ctx, []store.LogEvent{{TenantID: "json", Date: time.Now(), Type: "s", Body: []byte(body)}}, nil); err != nil {
+						t.Fatal(err)
+					}
+				}
+				after, _, err := s.Logs().SearchLogs(ctx, "json", nil, store.LogPage{PerPage: 100})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(after) != len(before)+1 || !bytes.Equal(after[0].Body, []byte(body)) {
+					t.Fatal("append mutated body")
+				}
+			}
+			ids := func(es []store.LogEvent) []string {
+				out := []string{}
+				for _, e := range es {
+					out = append(out, e.ID)
+				}
+				return out
+			}
+			for _, tc := range []struct {
+				raw   string
+				total int
+			}{{`client_name:My*`, 6}, {`client_name:"My App"`, 4}, {`NOT client_name:My*`, 1}, {`NOT hostname:any`, 7}, {`My*`, 6}, {`client_name:"My�App"`, 1}, {`client_name:"1e1000000"`, 0}} {
+				t.Run(tc.raw, func(t *testing.T) {
+					q, err := logsearch.Parse(tc.raw)
+					if err != nil {
+						t.Fatal(err)
+					}
+					p := store.LogPage{PerPage: 100, Ascending: true, IncludeTotals: true}
+					got, total, err := s.Logs().SearchLogs(ctx, "json", q, p)
+					if err != nil {
+						t.Fatal(err)
+					}
+					want, wt, err := m.Logs().SearchLogs(ctx, "json", q, p)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if total != tc.total || total != wt || !reflect.DeepEqual(ids(got), ids(want)) {
+						t.Fatalf("got%v/%d want%v/%d", ids(got), total, ids(want), wt)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestLogSearchBodyValidation(t *testing.T) {
 	for name, fresh := range dialectsUnderTest(t) {
 		t.Run(name, func(t *testing.T) { storetest.LogBodyValidation(t, func(t *testing.T) store.Store { return fresh(t) }) })
+	}
+}
+
+func TestLogSearchMigration29(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			s := openAtVersion(t, mk(t), 28)
+			if err := s.Tenants().Create(ctx, &store.Tenant{ID: "backfill", Name: "backfill"}); err != nil {
+				t.Fatal(err)
+			}
+			at := logTime(time.Now())
+			body := []byte(`{"client_name":"My App","details":{"v":"\u0000","n":1e1000000}}`)
+			for i := range 103 {
+				b := body
+				if i == 102 {
+					b = []byte(`{"client_name":"My\u0000App"}`)
+				}
+				if _, err := s.exec(ctx, `INSERT INTO tenant_logs (tenant_id,log_id,date,committed_at,type,user_id,client_id,connection_id,organization_id,ip,body) VALUES (?,?,?,?,?,?,?,?,?,?,?)`, "backfill", store.FormatLogID(int64(i+1)), at, at, "s", "", "", "", "", "", b); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if name == "mysql" {
+				// Simulate a process stopping after MySQL's implicit-commit DDL.
+				ddl, err := migrationFiles.ReadFile("migrations/mysql/0029_log_search.sql")
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, stmt := range splitStatements(string(ddl)) {
+					if _, err := s.exec(ctx, stmt); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			v, err := s.SchemaVersion(ctx)
+			if err != nil || v != 29 {
+				t.Fatalf("version=%d err=%v", v, err)
+			}
+			for _, tc := range []struct {
+				raw   string
+				total int
+			}{{`client_name:My*`, 103}, {`client_name:"My App"`, 102}, {`NOT client_name:My*`, 0}} {
+				q, err := logsearch.Parse(tc.raw)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rows, total, err := s.Logs().SearchLogs(ctx, "backfill", q, store.LogPage{PerPage: 100, IncludeTotals: true})
+				if err != nil || total != tc.total || len(rows) != min(tc.total, 100) {
+					t.Fatalf("%s total%d rows%d err%v", tc.raw, total, len(rows), err)
+				}
+			}
+			row, err := s.Logs().GetLog(ctx, "backfill", store.FormatLogID(1))
+			if err != nil || !bytes.Equal(row.Body, body) {
+				t.Fatalf("backfill changed bytes err%v", err)
+			}
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }

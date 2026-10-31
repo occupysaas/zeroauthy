@@ -1,6 +1,7 @@
 package logsearch
 
 import (
+	"encoding/hex"
 	"strings"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 )
 
 // SQL compiles validated inventory fields and binds every query value.
+// JSON fields use the SQL store's ASCII-hex projection, avoiding dialect JSON
+// Unicode/numeric restrictions while preserving Go string equality and prefixes.
 // Predicates are two-valued so NOT also includes missing JSON fields.
 func SQL(q *store.LogQuery, dialect string) (string, []any, error) {
 	if Validate(q) != nil || dialect != "sqlite" && dialect != "postgres" && dialect != "mysql" {
@@ -19,17 +22,14 @@ func SQL(q *store.LogQuery, dialect string) (string, []any, error) {
 	expr := func(f logrules.Field) string {
 		v := f.Column
 		if f.Storage == "json-string" {
-			key := strings.TrimPrefix(f.Column, "body.")
+			key := f.Name
 			switch dialect {
 			case "postgres":
-				doc := "COALESCE(NULLIF(convert_from(body,'UTF8'),''),'{}')::jsonb"
-				v = "(CASE WHEN jsonb_typeof(" + doc + " -> '" + key + "')='string' THEN " + doc + " ->> '" + key + "' END)"
+				v = "(searchable_body::jsonb ->> '" + key + "')"
 			case "mysql":
-				doc := "COALESCE(NULLIF(CONVERT(body USING utf8mb4),''),'{}')"
-				v = "(CASE WHEN json_type(json_extract(" + doc + ",'$." + key + "'))='STRING' THEN json_unquote(json_extract(" + doc + ",'$." + key + "')) END)"
+				v = "json_unquote(json_extract(searchable_body,'$." + key + "'))"
 			default:
-				doc := "COALESCE(NULLIF(CAST(body AS TEXT),''),'{}')"
-				v = "(CASE WHEN json_type(" + doc + ",'$." + key + "')='text' THEN json_extract(" + doc + ",'$." + key + "') END)"
+				v = "json_extract(searchable_body,'$." + key + "')"
 			}
 			v = "COALESCE(" + v + ",'')"
 		}
@@ -87,14 +87,18 @@ func SQL(q *store.LogQuery, dialect string) (string, []any, error) {
 				continue
 			}
 			v := expr(f)
+			value := n.Value
+			if f.Storage == "json-string" {
+				value = hex.EncodeToString([]byte(value))
+			}
 			if n.Op == "eq" {
-				terms = append(terms, v+"="+bind(n.Value))
+				terms = append(terms, v+"="+bind(value))
 				continue
 			}
-			pattern := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(n.Value) + "%"
+			pattern := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(value) + "%"
 			term := v + " LIKE " + bind(pattern) + " ESCAPE '!'"
 			if dialect == "sqlite" {
-				term = "(" + term + " AND substr(" + v + ",1,length(" + bind(n.Value) + "))=" + bind(n.Value) + ")"
+				term = "(" + term + " AND substr(" + v + ",1,length(" + bind(value) + "))=" + bind(value) + ")"
 			}
 			terms = append(terms, term)
 		}

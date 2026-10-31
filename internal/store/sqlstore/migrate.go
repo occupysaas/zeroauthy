@@ -211,8 +211,8 @@ func (s *Store) migrateTo(ctx context.Context, version int64) error {
 // applyMigration runs one migration in a transaction. MySQL commits DDL
 // implicitly, so there the version check is what keeps a re-run safe.
 func (s *Store) applyMigration(ctx context.Context, m migration) error {
-	if s.d.name == "mysql" && (m.version == 20 || m.version == 21) {
-		return s.applyCustomDomainsMySQL(ctx, m)
+	if s.d.name == "mysql" && (m.version == 20 || m.version == 21 || m.version == 29) {
+		return s.applyResumableMySQL(ctx, m)
 	}
 	return s.atomic(ctx, nil, func(t *Store) error {
 		var n int
@@ -242,15 +242,18 @@ func (s *Store) backfill(ctx context.Context, version int64) error {
 		return s.migrateLegacyHostClaims(ctx)
 	case 21:
 		return backfillFederatedIdentities(ctx, s)
+	case 29:
+		return s.backfillLogSearch(ctx)
 	}
 	return nil
 }
 
-// MySQL commits DDL implicitly. Make migrations 0020 and 0021 resumable,
-// then start a new transaction for all backfilled claims and the version marker.
-// A process death during DDL leaves version 19; retry skips existing objects.
-// Failure during backfill rolls back every claim, never recording version 20.
-func (s *Store) applyCustomDomainsMySQL(ctx context.Context, m migration) error {
+// MySQL commits DDL implicitly. Make migrations with Go backfills resumable,
+// then start a new transaction for the backfilled data and version marker.
+// A process death during DDL leaves the previous version; retry skips objects
+// already created before rerunning the atomic backfill.
+// Failure during backfill rolls back data and leaves the version unchanged.
+func (s *Store) applyResumableMySQL(ctx context.Context, m migration) error {
 	var applied int
 	if err := s.queryRow(ctx, `SELECT COUNT(*) FROM schema_migrations WHERE version=?`, m.version).Scan(&applied); err != nil {
 		return err
@@ -286,7 +289,7 @@ func (s *Store) applyCustomDomainsMySQL(ctx context.Context, m migration) error 
 				args = []any{parts[4], parts[2]}
 			}
 		default:
-			return fmt.Errorf("unsupported resumable custom-domain DDL: %s", stmt)
+			return fmt.Errorf("unsupported resumable DDL: %s", stmt)
 		}
 		var exists int
 		if q != "" {

@@ -868,3 +868,71 @@ Unrun: broad suites, full SQL store conformance, gRPC/plugin regression, browser
 SDK and CLI end-to-end checks; those are reserved for Task16. None is claimed
 passing. Task7 report and complete local command output are in the plan scratch
 workspace (`task-7-report.md`, `task-7-*.log`).
+
+### Task 7 review fix — accepted JSON search parity
+
+Review of `1aef951` found that valid object JSON accepted by AppendLogs could
+poison body-field SQL searches: PostgreSQL jsonb rejects escaped NUL, unpaired
+surrogates and numbers outside its numeric range, even in unrelated details;
+MySQL rejects lone surrogate escapes; SQLite disagreed with Go's replacement
+character semantics. `json.Valid` is deliberately broader than these database
+JSON domains. Rejecting these bodies would narrow the valid JSON contract, and
+changing jsonb to json would still fail searched-field Unicode extraction.
+
+Controller approved a materialized, ASCII-only search projection. New shared
+`logsearch.BodyFields` uses Go JSON decoding with UseNumber and the frozen
+inventory to extract supported string fields; Match uses the same helper.
+SQL Append stores these values as UTF-8 hex strings in a separate searchable_body
+JSON document. SQL extracts only that safe projection and hex-encodes parameters
+for body fields; hex preserves byte equality and prefix behavior, including NUL
+and Go's replacement character for lone-surrogate escapes. Missing/non-string
+values are omitted; empty strings are retained. Physical indexed columns keep
+their original predicates. Original Body bytes, timestamps, cursors and public/
+gRPC interfaces are unchanged, and read queries remain bounded in SQL.
+
+Added migration0029 rather than altering already-applied0028. Each dialect adds
+one searchable_body column (TEXT, MySQL LONGTEXT). The Go migration hook backfills
+100 rows per batch ordered by seq, respecting gaps and preserving original
+bytes. PostgreSQL/SQLite include DDL, backfill and version marker in one
+transaction. MySQL uses the existing resumable DDL mechanism, generalized from
+custom-domain migrations: its column DDL may already exist, then backfill and
+version marker commit atomically. Upgrade tests cross the batch boundary with
+103 rows and simulate a MySQL process stop after implicit-commit DDL.
+
+Ruling/cost: projection storage adds roughly twice the UTF-8 size of the selected
+string values plus JSON syntax, and Append/migration decode those selected values
+in Go. This avoids database Unicode/numeric restrictions without rejecting valid
+object JSON, mutating original bodies, raising the PostgreSQL14 minimum, or
+hydrating a tenant on reads. Migration numbering now ends at29; all migration
+sets and LatestVersion tests agree. No generated files or dependency pins changed.
+
+Actual verification, all under GOTOOLCHAIN=go1.26.7:
+
+- RED `ZEROAUTHY_TEST_PG_PORT=56437 ZEROAUTHY_TEST_MYSQL_PORT=54317 ./scripts/test-sql.sh -v -run 'LogSearchAcceptedJSON' -count=1 ./internal/store/sqlstore/...`:
+  FAIL3.636s. PostgreSQL raised22P05, MySQL3141, and SQLite returned the wrong
+  lone-surrogate result. Fixtures include escaped NUL/lone surrogate in unrelated
+  details and searched strings, huge exponent and a150000-digit number, and a
+  non-string searched number. Bodies were accepted and byte preservation checked.
+  Output: task-7-review-red.log.
+- RED `go test ./internal/store/sqlstore -run LogSearchMigration29 -count=1`:
+  FAIL0.084s, version remained28 before adding the migration/backfill.
+  Output: task-7-review-migration-red.log.
+- GREEN `ZEROAUTHY_TEST_PG_PORT=56437 ZEROAUTHY_TEST_MYSQL_PORT=54317 ./scripts/test-sql.sh -v -run 'LogSearch|TestLogsMigrationFrom27|LatestVersion|MigrationSetsMatch' -count=1 ./internal/store/sqlstore/...`:
+  PASS22.320s with race detection, all three drivers and no skipped driver.
+  Existing parity PASS3.60s; accepted JSON parity PASS3.84s; body validation
+  PASS3.39s; 28→29 migration/backfill/resume PASS3.62s; 27→29 upgrade PASS6.81s;
+  migration set/version checks PASS. Output: task-7-review-sql-green.log.
+- GREEN `go test ./internal/logsearch ./internal/mgmt ./internal/store/memory ./internal/server -run 'LogSearch|MatchLog|LogsAPI|UserLogs|LogsCross|LogsUnavail|^TestLogs$' -count=1`:
+  PASS logsearch0.009s/mgmt0.927s/memory0.015s/server0.263s. Includes memory Logs
+  conformance and the previously implemented API/parser/scope regressions.
+  Output: task-7-review-green.log.
+- Self-review checked all projection fields against inventory, parameter encoding
+  for mixed bare/indexed/body queries, exact bytes/prefixes, safe database input,
+  bounded backfill queries, row cursor closure before updates, migration version
+  consistency and MySQL resumability. `git diff --check`: PASS.
+
+Parser fuzz was not repeated: parser code is unchanged, the earlier actual30s
+run remains recorded, and controller explicitly limited the review verification
+to focused regressions and all-driver parity. Broad/final regression, full SQL
+conformance and gRPC/browser/SDK/CLI suites remain Task16 work and are unrun here.
+Review fix commit subject: `fix: preserve accepted JSON log search parity`.

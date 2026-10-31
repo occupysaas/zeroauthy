@@ -76,8 +76,8 @@ func (r logs) AppendLogs(ctx context.Context, events []store.LogEvent, stats []s
 			if body == nil {
 				body = []byte{}
 			}
-			args := []any{e.TenantID, logTime(e.Date), committed[e.TenantID], e.Type, e.UserID, e.ClientID, e.ConnectionID, e.OrganizationID, e.IP, body}
-			q := `INSERT INTO tenant_logs (tenant_id,date,committed_at,type,user_id,client_id,connection_id,organization_id,ip,body) VALUES (?,?,?,?,?,?,?,?,?,?)`
+			args := []any{e.TenantID, logTime(e.Date), committed[e.TenantID], e.Type, e.UserID, e.ClientID, e.ConnectionID, e.OrganizationID, e.IP, body, logSearchBody(body)}
+			q := `INSERT INTO tenant_logs (tenant_id,date,committed_at,type,user_id,client_id,connection_id,organization_id,ip,body,searchable_body) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
 			var seq int64
 			if t.d.name == "postgres" {
 				if err := t.queryRow(ctx, q+` RETURNING seq`, args...).Scan(&seq); err != nil {
