@@ -326,6 +326,8 @@ func resourceName(path string) string {
 		// auth0-deploy-cli 9.1.0 stores client grants under grants/ in
 		// directory exports, although the Management API family is clientGrants.
 		return "clientGrants"
+	case "logstreams", "log-streams", "log_streams":
+		return "logStreams"
 	case "customdomains", "custom-domains", "custom_domains":
 		return "customDomains"
 	case "connections", "connection":

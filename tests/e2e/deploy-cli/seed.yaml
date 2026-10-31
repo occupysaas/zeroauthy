@@ -34,6 +34,10 @@ tenants:
       - client_id: e2e-cli-admin
         audience: "https://cli.e2e.test/api/v2/"
         scopes:
+          - read:log_streams
+          - create:log_streams
+          - update:log_streams
+          - delete:log_streams
           - read:actions
           - create:actions
           - update:actions
@@ -125,6 +129,10 @@ tenants:
       - client_id: e2e-cli-target-admin
         audience: "https://target.cli.e2e.test/api/v2/"
         scopes:
+          - read:log_streams
+          - create:log_streams
+          - update:log_streams
+          - delete:log_streams
           - read:client_keys
           - read:users
           - read:actions

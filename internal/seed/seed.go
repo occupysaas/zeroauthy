@@ -48,6 +48,7 @@ type File struct {
 }
 
 type Tenant struct {
+	LogStreams       []map[string]any          `yaml:"log_streams"`
 	Modules          []ActionModule            `yaml:"modules"`
 	Actions          []Action                  `yaml:"actions"`
 	Triggers         map[string]Trigger        `yaml:"triggers"`

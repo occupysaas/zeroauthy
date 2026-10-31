@@ -1,0 +1,24 @@
+[
+  {
+    "name": "E2E Audit HTTP",
+    "type": "http",
+    "status": "paused",
+    "sink": {
+      "httpEndpoint": "https://logs.example.invalid/intake",
+      "httpContentType": "application/json",
+      "httpContentFormat": "JSONARRAY"
+    },
+    "filters": [{"type": "category", "name": "auth.login.success"}],
+    "pii_config": {"log_fields": ["email", "username"], "method": "hash", "algorithm": "xxhash"},
+    "isPriority": true
+  },
+  {
+    "name": "E2E Audit Datadog",
+    "type": "datadog",
+    "status": "paused",
+    "sink": {"datadogRegion": "eu"},
+    "filters": [{"type": "category", "name": "auth.signup.success"}],
+    "pii_config": {"log_fields": ["phone"], "method": "mask", "algorithm": "xxhash"},
+    "isPriority": false
+  }
+]

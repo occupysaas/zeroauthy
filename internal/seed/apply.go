@@ -218,6 +218,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			return fmt.Errorf("user %q: %w", u.Email, err)
 		}
 	}
+	if err := applyLogStreams(ctx, st, tn.ID, in.LogStreams, now, w); err != nil {
+		return err
+	}
 	for _, org := range in.Organizations {
 		if err := applyOrganization(ctx, st, tn.ID, org, now); err != nil {
 			return fmt.Errorf("organization %q: %w", org.Name, err)

@@ -206,3 +206,78 @@ destination; bearer tickets and acceptance receipts are never portable.
 `make e2e-organizations` independently exercises the pinned Management SDK,
 CLI, SPA SDK, hosted organization pages and console against local zeroauthy.
 No Auth0 tenant requests are made by either local lane.
+
+## Log streams (Plan 31)
+
+Seed tenants may declare `log_streams` using the Management API's public
+configuration fields, plus optional `id` and initial `status`:
+
+```yaml
+tenants:
+  - name: example
+    log_streams:
+      - id: lst_audit
+        name: Audit delivery
+        type: http
+        status: paused
+        sink:
+          httpEndpoint: https://logs.example.test/intake
+          httpContentFormat: JSONARRAY
+          httpAuthorization: ${AUDIT_AUTHORIZATION}
+          httpCustomHeaders:
+            - header: X-Audit-Key
+              value: ${AUDIT_HEADER_KEY}
+        filters:
+          - {type: category, name: auth.login.success}
+        pii_config:
+          log_fields: [email]
+          method: hash
+          algorithm: xxhash
+```
+
+Streams are **create-only in both seed modes**. An explicit ID identifies an
+existing stream even after a console rename. Without an ID, the name must
+uniquely identify a stream within that tenant. Names and explicit IDs must be
+unique in each seed tenant; ambiguous existing names or an explicit new ID
+colliding with an existing name fail. Reapplying never overwrites configuration,
+rotates credentials, resets checkpoints or resumes paused/suspended streams.
+Existing streams are skipped before reading environment variables, so their
+credentials need not remain in the seed environment after creation.
+
+Every secret string is a whole `${ENV_NAME}` reference. Custom header names
+remain literal; each header value is an environment reference. Missing or empty
+variables fail a new creation atomically. Literal credentials and partial
+interpolation are rejected. Public fields are not expanded. Secrets are sealed
+under the master key and bound to the tenant, stream ID and immutable sink type.
+Seed uses the secure HTTPS default; the API's explicit deployment override is
+needed to configure development HTTP endpoints. `eventbridge` and `eventgrid`
+are stored suspended and are never delivered locally.
+
+The [documented Deploy CLI](https://auth0.com/docs/deploy-monitor/deploy-cli-tool)
+supports log stream configuration and keyword replacement. Our pinned **9.1.0**
+handler is enabled in the local four-cell matrix (generated/preserved client
+credentials × YAML/directory). HTTP and Datadog fixtures preserve name, type,
+paused status, filters, PII configuration, priority and every public sink field.
+The directory resource is `log-streams/*.json`; YAML uses `logStreams`.
+The comparator matches streams by unique name and ignores only generated IDs.
+Field-loss negatives exercise each configuration field.
+
+Default tool exports replace `httpAuthorization` and `datadogApiKey` with
+`##LOGSTREAMS_HTTP_SECRET##` and `##LOGSTREAMS_DATADOG_SECRET##`. These placeholders
+carry no credentials. Supply fresh private values separately through
+`AUTH0_KEYWORD_REPLACE_MAPPINGS`; the matrix checks the resulting encrypted
+secrets directly in its isolated database. The API returns redaction markers
+and cannot recover credentials, even if the tool requests secret export.
+The tool strips initial `status` on create, so paused status is applied by a
+subsequent update. It omits suspended status from exports; the matrix therefore
+uses paused fixtures. Custom header values and secret-bearing Sumo URLs are
+redacted by the server, but 9.1.0 does not generate keyword placeholders for
+those fields; stage their credentials explicitly instead of importing markers.
+Logs and daily statistics are never Deploy CLI resources.
+
+Tool evidence: `auth0/auth0-deploy-cli` v9.1.0,
+`lib/tools/auth0/handlers/logStreams.js`,
+`lib/context/{yaml,directory}/handlers/logStreams.js`,
+`lib/context/defaults.js` and `lib/tools/utils.js` (MIT). Public API fields follow
+[Create a log stream](https://auth0.com/docs/api/management/v2/log-streams/post-log-streams).
+No Auth0 tenant observation is used by these tests.

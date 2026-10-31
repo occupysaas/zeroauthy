@@ -15,6 +15,11 @@ const mode = process.env.E2E_M20_MODE;
 assert.ok(['yaml', 'directory'].includes(format));
 assert.ok(['generated', 'preserved'].includes(mode));
 const secrets = ['e2e-cli-admin-secret-not-for-production', 'e2e-cli-target-admin-secret-not-for-production', 'e2e-cli-fixture-secret-not-for-production'];
+const streamHTTPSecret = process.env.E2E_M31_STREAM_HTTP_SECRET;
+const streamDatadogSecret = process.env.E2E_M31_STREAM_DATADOG_SECRET;
+assert.ok(streamHTTPSecret && streamDatadogSecret);
+secrets.push(streamHTTPSecret, streamDatadogSecret);
+const logStreams = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures/log-streams.json'), 'utf8'));
 const actionSecret = 'm27-private-deploy-action-value';
 secrets.push(actionSecret);
 const emailSecret = 'm21-deploy-private-provider-secret';
@@ -26,7 +31,7 @@ const federation = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures
 const federationCredentials = path.join(work, 'federation-credentials.json');
 await writeFile(federationCredentials, JSON.stringify(Object.fromEntries(federation.map(c => [c.name, upstreamSecret]))), { mode: 0o600 });
 const sourceConfig = { ...JSON.parse(await readFile(process.env.E2E_M20_CONFIG, 'utf8')), AUTH0_CLIENT_SECRET: secrets[0], AUTH0_EXPORT_IDENTIFIERS: false };
-const targetConfig = { ...sourceConfig, AUTH0_KEYWORD_REPLACE_MAPPINGS:{ACTION_SECRET:actionSecret}, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
+const targetConfig = { ...sourceConfig, AUTH0_KEYWORD_REPLACE_MAPPINGS:{ACTION_SECRET:actionSecret,LOGSTREAMS_HTTP_SECRET:streamHTTPSecret,LOGSTREAMS_DATADOG_SECRET:streamDatadogSecret}, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
 const bin = path.join(e2e, 'node_modules/.bin/a0deploy');
 const comparator = args => spawnSync('go', ['run', './tests/e2e/deploy-cli', ...args], { cwd: root, encoding: 'utf8' });
 function checkedCompare(source, target) {
@@ -70,6 +75,7 @@ async function exportTo(config, name) {
   deploy('export', config, folder);
   const exportPath = format === 'yaml' ? path.join(folder, 'tenant.yaml') : folder;
   await assertNoEmailSecrets(exportPath);
+  await assertLogStreamExport(exportPath);
   return exportPath;
 }
 async function assertNoEmailSecrets(exportPath) {
@@ -77,10 +83,51 @@ async function assertNoEmailSecrets(exportPath) {
   const files=await Promise.all((await readdir(folder,{recursive:true})).map(name=>readFile(path.join(folder,name),'utf8').catch(()=>'')));
   const joined = files.join('\n');
   for (const secret of proxySecrets) assert.equal(joined.includes(secret), false, 'deploy export contains a proxy secret');
+  for (const secret of [streamHTTPSecret,streamDatadogSecret]) assert.equal(joined.includes(secret), false, 'public deploy export contains a log stream credential');
+  assert.equal(joined.includes('[REDACTED]'), false, 'public deploy export contains server credential marker');
   assert.equal(joined.includes(actionSecret),false,'public deploy export contains Action secret');
   assert.equal(joined.includes(emailSecret), false, 'public deploy export contains provider credential');
   assert.equal(joined.includes(upstreamSecret), false, 'public deploy export contains a federation provider credential');
   assert.equal(joined.includes('********'), false, 'public deploy export contains a credential mask');
+}
+async function readExportLogStreams(exportPath) {
+  if (format === 'yaml') return parseYaml(await readFile(exportPath, 'utf8')).logStreams;
+  const folder = path.join(exportPath, 'log-streams');
+  return Promise.all((await readdir(folder)).filter(f => f.endsWith('.json')).map(async f => JSON.parse(await readFile(path.join(folder,f),'utf8'))));
+}
+async function assertLogStreamExport(exportPath) {
+  const rows = await readExportLogStreams(exportPath);
+  assert.equal(rows?.length,2,'both log stream types must export');
+  for (const fixture of logStreams) {
+    const row = rows.find(s => s.name === fixture.name);
+    assert.ok(row,'log stream name lost');
+    assert.equal(row.type,fixture.type);
+    const secretKey = row.type === 'http' ? 'httpAuthorization' : 'datadogApiKey';
+    assert.equal(row.sink[secretKey],`##LOGSTREAMS_${row.type.toUpperCase()}_SECRET##`,'pinned tool must replace secret marker with its keyword placeholder');
+    const { [secretKey]: ignored, ...publicSink } = row.sink;
+    assert.deepEqual(publicSink,fixture.sink,'public sink fields changed');
+    assert.deepEqual(row.filters,fixture.filters,'filters lost');
+    assert.deepEqual(row.pii_config,fixture.pii_config,'PII configuration lost');
+    assert.equal(row.isPriority,fixture.isPriority,'priority changed');
+    assert.equal(row.status,fixture.status,'status lost');
+  }
+}
+async function assertPrivateLogStreamSecrets() {
+  const result=spawnSync('go',['test','./tests/e2e/deploy-cli','-run','^TestE2EPrivateLogStreamSecretsAfterImport$','-count=1'],{cwd:root,encoding:'utf8'});
+  assert.equal(result.status,0,'private log stream credentials lost through import');
+}
+async function logStreamNegatives(input) {
+  for (const field of ['name','type','status','sink','filters','pii_config','isPriority']) {
+    const folder=path.join(work,`missing-log-stream-${field}`);
+    await cp(format==='yaml'?path.dirname(input):input,folder,{recursive:true});
+    const exportPath=format==='yaml'?path.join(folder,'tenant.yaml'):folder;
+    if(format==='yaml') {
+      const data=parseYaml(await readFile(exportPath,'utf8'));delete data.logStreams[0][field];await writeFile(exportPath,dumpYaml(data));
+    } else {
+      const dir=path.join(folder,'log-streams');const file=(await readdir(dir)).find(f=>f.endsWith('.json'));const p=path.join(dir,file);const data=JSON.parse(await readFile(p,'utf8'));delete data[field];await writeFile(p,JSON.stringify(data));
+    }
+    assert.equal(checkedCompare(input,exportPath).equivalent,false,`lost log stream ${field} escaped comparator`);
+  }
 }
 function request(config, method, route, body, token) {
   return new Promise((resolve, reject) => {
@@ -247,6 +294,7 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
   await actionNegatives(sourcePublicExport);
+  await logStreamNegatives(sourcePublicExport);
   assert.equal((await api(sourceConfig,'GET','branding/templates/universal-login')).body,templateBody);
   const exportConfig = format === 'yaml' ? parseYaml(await readFile(sourcePublicExport,'utf8')).branding : JSON.parse(await readFile(path.join(sourcePublicExport,'branding/templates/universal_login.json'),'utf8'));
   if(format==='yaml') assert.ok(exportConfig.templates?.length,'nonempty Universal Login template must export');
@@ -297,6 +345,7 @@ function assertPrivateEmailCredential() {
 }
 assertPrivateEmailCredential();
 let targetPath = await exportTo('target', 'target-first');
+await assertPrivateLogStreamSecrets();
 const firstReport=checkedCompare(sourcePath,targetPath);assert.equal(firstReport.equivalent,true,`first round trip differs: ${JSON.stringify(firstReport)}`);
 const migratedOrganizations=await api(targetConfig,'GET','organizations');assert.equal(migratedOrganizations.length,2,'both organizations must migrate');
 for(const org of migratedOrganizations){const links=await api(targetConfig,'GET',`organizations/${org.id}/enabled_connections`);assert.ok(links.length>0,'organization enabled connections were dropped');}
@@ -354,6 +403,8 @@ const repeated = (await exportClients(targetConfig))[0];
 assert.equal(repeated.client_id, imported.client_id); assert.ok(repeated.client_secret === imported.client_secret, 'repeat import changed credential');
 targetPath = await exportTo('target', 'target-repeat');
 assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'repeat import differs');
+await assertPrivateLogStreamSecrets();
+console.log('Plan 31 deploy: HTTP and Datadog name/type/status/filters/PII/priority/public sink, private keyword reinjection, repeat secret retention and field-loss negatives passed');
 await api(sourceConfig,'PATCH','branding',{colors:{primary:'#654321'}});
 const changedBranding=await exportTo('source','source-branding-changed');
 assert.equal(checkedCompare(changedBranding,targetPath).equivalent,false,'negative branding change escaped comparator');

@@ -2031,3 +2031,117 @@ in the original Task 14 report.
 No additional backend, SQL, browser or E2E runs for this scheduling-only fix;
 prior Task 14 evidence remains recorded above. Correction commit subject:
 `fix: preserve pending Actions logs reads across Live toggles`.
+
+## Task 15 — Seed and Deploy CLI
+
+Implemented tenant `log_streams` seed declarations, always create-only in both
+seed modes. Existing explicit IDs are authoritative; otherwise a unique name
+within the tenant identifies the stream. Existing entries are skipped before
+environment lookup and retain their ciphertext, configuration and delivery
+state. Required secret strings use whole `${ENV_NAME}` references; custom
+header values resolve individually. New missing/empty credentials fail the seed
+transaction atomically. Private fields use the shared tenant/ID/type-bound
+`logstream.SealSecrets`; all eight inventory sink schemas are supported, with
+cloud types stored suspended.
+
+The existing Management validation moved into reusable `logstream.Configure`;
+Management retains merged-secret validation, marker behavior, deployment flags,
+optimistic version retries and normal API errors. No API schema/generated assets
+changed. Deploy directory parsing now recognizes `log-streams`; the pinned
+9.1.0 manifest includes `logStreams`, removing it from the actual exclusions.
+The strict comparator matches by stream name and ignores generated IDs only.
+HTTP/Datadog fixtures assert name/type/status/filters/PII/priority/every public
+sink field in both formats, with field-loss negatives. Actual exports must
+contain only the pinned tool's credential keyword placeholders, no plaintext
+or server redaction marker. Target keyword config privately reinjects only
+credentials; isolated SQL checks decrypt actual target secrets after initial
+and repeated imports. Existing migration assertions remain intact.
+
+Evidence (all Go/make commands use `GOTOOLCHAIN=go1.26.7`):
+
+- RED `go test ./internal/seed ./internal/deploymigration -run LogStream -count=1`:
+  FAIL, named seed tests rejected unknown `log_streams`, directory loader missed
+  logStreams (`task-15-red.log`).
+- RED `go test ./tests/e2e/deploy-cli -run LogStream -count=1`: FAIL, missing
+  natural identity and excluded manifest entry (`task-15-fixture-red.log`).
+- GREEN `go test ./internal/seed ./internal/deploymigration ./tests/e2e/deploy-cli
+  -run LogStream -count=1`: all three PASS (`task-15-green.log`).
+- `go test ./internal/seed ./internal/deploymigration ./internal/logstream
+  ./tests/e2e/deploy-cli ./internal/mgmt -run 'LogStream|Stream' -count=1`:
+  all five PASS (`task-15-focused.log`).
+- Final full affected package suites `go test ./internal/seed
+  ./internal/deploymigration ./internal/logstream ./tests/e2e/deploy-cli -count=1`:
+  all four PASS, 2.487s/0.020s/0.039s/0.024s
+  (`task-15-package-suites-final.log`). E2E-only private SQL helpers skip outside
+  the isolated lane and are actually invoked by its complete environment.
+- Final `go test ./internal/mgmt -run LogStream -count=1`: PASS, 5.318s
+  (`task-15-mgmt-final.log`), preserving strict sink/schema/secret/CAS/privacy
+  behavior from Task 11.
+- Shell/Node syntax checks and `git diff --check`: PASS.
+
+Rulings and costs:
+
+- Explicit ID wins; name is a unique tenant-scoped fallback. Ambiguity fails
+  rather than choosing a row. Cost if wrong: operators need stable IDs or must
+  disambiguate names.
+- Parse validates env-reference syntax and public schema without reading env;
+  apply resolves secrets only for a new stream. Cost if wrong: missing new
+  credentials are discovered at apply rather than parse.
+- Seed uses secure HTTPS defaults because Apply has no deployment stream
+  config argument; development HTTP can be configured through the API's
+  explicit override. Cost if wrong: an extra seed option would be required.
+- The pinned tool strips status on create and omits suspended status on
+  export, so the matrix uses paused fixtures and subsequent imports apply that
+  status. Source seed is paused; reserved HTTPS HTTP endpoints and filters
+  avoid real sink delivery during transient active creates. Cost if wrong:
+  a one-shot paused migration needs a separate destination pause operation.
+- 9.1.0 does not generate placeholders for secret custom-header values or
+  Sumo URLs. Docs require explicit private staging for those cases; no secret
+  recovery API or unsupported migration claim is added. Cost if wrong:
+  further sink-specific fixture/staging coverage is needed.
+
+Public evidence checked: [Deploy CLI](https://auth0.com/docs/deploy-monitor/deploy-cli-tool)
+(log stream resources and keyword replacement),
+[Create log stream](https://auth0.com/docs/api/management/v2/log-streams/post-log-streams)
+(public/sink fields). Tool leads: auth0/auth0-deploy-cli v9.1.0,
+`lib/tools/auth0/handlers/logStreams.js`,
+`lib/context/{yaml,directory}/handlers/logStreams.js`,
+`lib/context/defaults.js` and `lib/tools/utils.js` (MIT). No upstream tenant
+requests or observations. Self-review confirmed the extraction retains
+Management policy, parsed seed maps stay immutable, secrets are absent from
+public Sink, repeated seed/import behavior is checked and prior fixture
+assertions were not weakened. Full backend/gRPC/console/three-driver SQL
+regression remains Task 16; none claimed here. The identical pinned E2E
+dependency directory is reused read-only through a temporary worktree symlink,
+removed before staging.
+
+
+Task 15 final verification:
+
+- Exact brief command `GOTOOLCHAIN=go1.26.7 go test ./internal/seed
+  ./internal/deploymigration -run LogStream -count=1`: **PASS**, 0.129s/0.011s
+  (`task-15-named-final.log`).
+- `GOTOOLCHAIN=go1.26.7 E2E_KEEP_WORK=1 make e2e-deploy`: **PASS**, exit 0,
+  complete serial four-cell matrix (~16 min), `task-15-e2e-deploy.log`.
+  Artifacts retained: `/tmp/tmp.88rfhRNyxt`.
+
+| Credential mode | Format | Actual result | Log streams source / target |
+| --- | --- | --- | --- |
+| generated | YAML | PASS | 2 / 2 |
+| generated | directory | PASS | 2 / 2 |
+| preserved | YAML | PASS | 2 / 2 |
+| preserved | directory | PASS | 2 / 2 |
+
+Every cell reports import, repeat, credentials, update, target-only protection
+and runtime PASS, with negative differences detected. Every cell executes the
+Plan 31 public-field and secret-placeholder assertions, seven field-loss
+negatives, and actual SQL decryption checks after initial and repeat imports.
+All earlier provider/Actions/module/RBAC/organization/domain assertions remain
+and passed. Existing exclusions are reported honestly: database-connection
+migration excluded, attackProtection tool-unavailable, selected custom-domain
+header values rejected by the pinned tool; upstream lane unavailable, **no
+upstream call made**. The dependency symlink was removed after the run; source
+dependencies were never modified. Full report:
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-15-report.md`.
+Self-review and final `git diff --check` passed. Commit subject:
+`feat: provision log streams`.
