@@ -143,7 +143,7 @@ func (p *proc) scrubLocked(line string) string {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return logscrub.ScrubTruncatedText(ctx, p.red.RedactLine(line), cutMin)
+	return p.red.RedactLineContext(ctx, line)
 }
 
 func (p *proc) capture(lines []string) []string {

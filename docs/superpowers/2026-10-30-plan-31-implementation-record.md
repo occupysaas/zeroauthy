@@ -1098,3 +1098,43 @@ Verification used `GOTOOLCHAIN=go1.26.7` throughout:
   suite was run for this correction. No new behavior test is deferred.
 
 Full focused report: `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-8-bounded-report.md`.
+
+### Task 8 review privacy correction — overlapping console masks
+
+Review found that configuration replacement preceded credential matching in
+customdb process output and Client.Try capture: configuration `middle` could turn
+password `prefix-middle-suffix` into `prefix-■■■■■■■■-suffix`, defeating the full
+credential match and exposing fragments. This pass addresses only that console
+privacy finding; other review groups are separate.
+
+Console masking now collects full and potentially truncated-prefix matches for
+both groups from original text, then replaces their merged spans. A configuration
+match that covers the entire span retains the configuration marker; an extending
+credential masks the full union with logscrub.Marker. Identical configured/masked
+values retain the configuration marker. Decoded JSON dynamic keys/values use the
+same policy, with existing original secret-key and key-collision protection.
+Process stderr/capture and independent Client.Try OnLogs share this helper.
+Business result/profile and error behavior, and all 256-value / 64-KiB /
+60-second retention/muting/timer rules, remain unchanged. There is no raw fallback.
+
+All commands used `GOTOOLCHAIN=go1.26.7`:
+
+- RED: `go test ./internal/customdb -run 'CredentialConfigurationOverlap'
+  -count=1` failed with leaked credential prefixes/suffixes in process capture,
+  real Node output, Client.Try capture, truncation and escaped dynamic JSON;
+  task-8-composition-red.log.
+- The initial full focused normal/race runs also found the existing
+  TestTryMasksConfigurationValues marker-compatibility expectation failing.
+  Preserving a covering configuration span's marker fixed it; no existing test
+  assertion was weakened or changed.
+- `go test ./internal/customdb ./internal/logscrub -count=1`: PASS, exit 0;
+  task-8-composition-green.log. Final `go test -race ./internal/customdb
+  ./internal/logscrub -count=1`: PASS, exit 0; task-8-composition-race.log.
+- Tests cover contained/partial overlaps, one-rune values, truncation, escaped
+  JSON keys/values, unknown/unstructured stderr, real Node captured/late30ms
+  console, and preserved business output. Existing bounded-state, quiet expiry,
+  retirement, cancellation, blocked-handler and configuration-rotation tests pass.
+- `git diff --check`: PASS. No focused test was skipped. No broad/internal-short,
+  SQL, E2E, Actions or noderunner repeat was run in this scoped privacy pass.
+
+Full evidence and ruling are appended to the scratch `task-8-bounded-report.md`.

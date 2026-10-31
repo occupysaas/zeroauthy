@@ -2,10 +2,13 @@ package customdb
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"sort"
 	"strings"
+
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 )
 
 // Mask replaces a configuration value in script output, whatever its length
@@ -114,6 +117,16 @@ func (d *Redactor) RedactLine(s string) string {
 		s = s[:len(s)-best] + Mask
 	}
 	return s
+}
+
+// RedactLineContext finds configuration and credential spans before replacing
+// either group, so an inner match cannot expose the rest of a credential.
+func (d *Redactor) RedactLineContext(ctx context.Context, line string) string {
+	var values []string
+	if d != nil {
+		values = d.vals
+	}
+	return logscrub.ScrubTruncatedTextWithMask(ctx, line, cutMin, values, Mask)
 }
 
 // Redact returns s with every configuration value masked.

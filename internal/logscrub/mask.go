@@ -79,6 +79,10 @@ func MaskText(ctx context.Context, s string) string {
 
 // maskValue only receives the independent JSON-compatible tree from ScrubValue.
 func maskValue(ctx context.Context, v any) any {
+	return maskValueWith(v, func(s string) string { return MaskText(ctx, s) })
+}
+
+func maskValueWith(v any, mask func(string) string) any {
 	switch v := v.(type) {
 	case string:
 		if v == Marker {
@@ -89,32 +93,32 @@ func maskValue(ctx context.Context, v any) any {
 			if decoded, err := decode([]byte(trimmed)); err == nil {
 				// Decode keys and values before masking: JSON escaping must not
 				// conceal a submitted password from its exact-value mask.
-				encoded, err := json.Marshal(maskValue(ctx, decoded))
+				encoded, err := json.Marshal(maskValueWith(decoded, mask))
 				if err != nil {
 					return Marker
 				}
 				return string(encoded)
 			}
 		}
-		return MaskText(ctx, v)
+		return mask(v)
 	case map[string]any:
 		if v == nil {
 			return v
 		}
 		out := make(map[string]any, len(v))
 		for key, value := range v {
-			key = MaskText(ctx, key)
+			key = mask(key)
 			if _, exists := out[key]; exists {
 				// Never pick a collision winner based on map iteration order.
 				out[key] = Marker
 			} else {
-				out[key] = maskValue(ctx, value)
+				out[key] = maskValueWith(value, mask)
 			}
 		}
 		return out
 	case []any:
 		for i, value := range v {
-			v[i] = maskValue(ctx, value)
+			v[i] = maskValueWith(value, mask)
 		}
 	}
 	return v

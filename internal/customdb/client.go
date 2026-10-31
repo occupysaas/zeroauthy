@@ -99,7 +99,7 @@ func (c *Client) Try(ctx context.Context, conn *store.Connection, script string,
 		req.OnLogs = func(lines []string) {
 			safe := make([]string, len(lines))
 			for i, line := range lines {
-				safe[i] = logscrub.ScrubTruncatedText(ctx, red.RedactLine(line), cutMin)
+				safe[i] = red.RedactLineContext(ctx, line)
 			}
 			onLogs(safe)
 		}
