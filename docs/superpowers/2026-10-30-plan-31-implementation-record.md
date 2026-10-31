@@ -936,3 +936,100 @@ run remains recorded, and controller explicitly limited the review verification
 to focused regressions and all-driver parity. Broad/final regression, full SQL
 conformance and gRPC/browser/SDK/CLI suites remain Task16 work and are unrun here.
 Review fix commit subject: `fix: preserve accepted JSON log search parity`.
+
+## Task 8 — authentication and hosted-page events
+
+Implementation: `48fac15` (`feat: log authentication events`), based on `de1f267`.
+The task report and complete code-to-test matrix are in
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-8-report.md`.
+All 47 inventory trigger/code pairs in Task 8 (36 distinct codes) are mapped.
+Session, hostedlogin, devicecode, federation and customdb have no direct emitted
+inventory targets; federation/customdb privacy paths are tested without inventing
+codes. Actual app/server recorder injection, login/signup/reset/verification,
+OAuth grants/device/PAR/revocation, protection and organization outcomes are wired.
+Recording remains separate from business writes and queue overflow preserves login.
+
+Privacy integration registers passwords, effective passwords, OTPs and tickets
+before scripts/Actions. Real custom-database script tests verify stored events,
+slog output, encoded JSON/dynamic keys, late output and password prefixes cut by
+the runner. Short credentials cannot rename protocol fields or corrupt generated
+Action links. Dynamic Details are scrubbed before explicit server ExecutionIDs are
+attached; canonical-looking input credentials remain masked. Strategy types reuse
+the existing federation classification, and unavailable attribution stays omitted.
+
+Rulings and costs:
+
+- Retain generic WithValues' four-rune minimum and add WithCredentials for every
+  nonempty submitted credential. Preserve fixed event schema names, generated
+  timestamps/catalog types and provenance-proven generated execution links;
+  mask input-derived names/values. Cost: explicit schema/source trust boundaries
+  must remain intact when future fields or emitters are added.
+- Stage membership additions until the outer authentication/user transaction
+  commits. Existing SQL GetConnection already takes the tenant policy lock before
+  the membership precheck; memory transactions serialize too. Cost: callers of
+  EnsureMembership must use the staging boundary to emit success after commit.
+- Reject logging-only denial Blocks reads. Return optional DeniedKinds from the
+  existing atomic admission, with additive protobuf field 8. Unknown old-plugin
+  attribution omits uncertain blocking events without changing authentication.
+- Reject the proposed invitation IsMember read solely for logging. Optional
+  OrganizationMembershipWriter.AddMembersResult reports actual INSERT rows from
+  the existing write, through native stores and an additive gRPC report_inserted
+  request flag; public aliases/forwarder are exported. SQL INSERT SELECT WHERE NOT
+  EXISTS works with MySQL ClientFoundRows=true. Old repositories/plugins retain
+  writes but omit uncertain member-added events until upgraded.
+- Return confirmed breach hit separately from admission error, retaining existing
+  wrappers. Notify-only hits produce the inventoried leak event; clean passwords
+  and unavailable checkers do not fabricate hits. The deferred admin warning is
+  replaced by actual outcome events, not a new notification code.
+- Carry only already-resolved attribution and available synchronous Action IDs
+  in request contexts. The trace is bounded to 128 IDs. Federation's OnResolved
+  observer receives immutable event fields, no transaction/profile/config objects
+  or new reads. Full Actions jobs/console capture remain Task 10.
+- Customdb retains detached masks for its existing process lifetime to protect
+  late output, mirroring configuration-rotation masking. Cost: conservative
+  over-redaction and mask state growth with distinct submitted credentials until
+  the runner process retires; no request cancellation/context values are retained.
+
+Verification (all Go/make commands used `GOTOOLCHAIN=go1.26.7`):
+
+- Required ten-package `go test ... -run 'Event|Masked|RecorderFull' -count=1`
+  initially failed on missing recorder interfaces. Dedicated behavior REDs also
+  demonstrated missing reset/verification events, malformed short-mask schemas,
+  lost callback attribution, upstream credential-prefix disclosure, unwanted
+  attribution reads, missing atomic membership reports, generated-ID corruption
+  and untrusted Details provenance. Each has a focused GREEN log in task scratch.
+  One early test-literal typo and one overlapping outcomes log were corrected;
+  clean dedicated RED logs are the report's authoritative evidence.
+- Final exact focused command (login/oauth/dbconn/session/hostedlogin/devicecode/
+  protection/orglogin/federation/customdb): PASS, exit 0,
+  `task-8-accepted-focused.log`. Session/hostedlogin/devicecode correctly report
+  no selected tests because there are no direct targets there.
+- `make generate`: PASS; `task-8-generate-final.log`. Store protobuf was generated,
+  never hand-edited. Focused native/SQLite/memory-gRPC/SQLite-gRPC membership,
+  admission, privacy, schema and execution provenance tests: PASS.
+- `ZEROAUTHY_TEST_PG_PORT=55631 ZEROAUTHY_TEST_MYSQL_PORT=53531
+  GOTOOLCHAIN=go1.26.7 ./scripts/test-sql.sh ./internal/store/sqlstore
+  -run '^TestMembershipWriteResult$' -v`: PASS under race detector on actual
+  PostgreSQL, MySQL and SQLite; `task-8-membership-sql-three-drivers.log`.
+  MySQL's driver sets ClientFoundRows=true, so the exact no-op report is covered.
+  Ports and database environments were scoped to this command.
+- Initial required internal short suite failed only TestRecorderStats and
+  TestAdminNotificationStillDeferred: obsolete expectations for masking static
+  catalog codes and retaining the deferred warning. Tests were updated to the
+  approved contracts; a full short run then passed 70 packages.
+- Final self-review caught enterprise strategies labeled social, an invented
+  discovery strategy and fv's omitted known identity strategy. Dedicated tests
+  failed first, then passed using existing classification and identity data.
+- Final `go test ./internal/... -count=1 -short`: PASS, exit 0, 70 tested packages,
+  after those corrections; `task-8-accepted-internal-short.log`.
+- `go test ./pkg/store -count=1`: PASS; final `git diff --check`: PASS.
+- Existing skip reproduced explicitly: grpcstore
+  TestOrganizationsPluginRoundTrip/Organizations/Limits skips because the raw
+  plugin client cannot override Organizations limits; `task-8-known-skip.log`.
+  No Task 8 behavior test was deliberately deferred; real Node v26.8.1 scripts ran.
+
+No full browser/E2E, stream delivery or final Actions troubleshooting regression
+is claimed here; those remain later plan tasks/Task 16. Broader PostgreSQL/MySQL
+suites were not run in Task 8 beyond the new membership write contract. The full
+internal short suite exercised native/SQLite-backed paths. Controller review is
+pending; implementation self-review found no remaining task-level blocker.
