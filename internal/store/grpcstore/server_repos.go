@@ -1202,7 +1202,28 @@ func (s *Server) JobsReadFile(r *storev1.ScopedKey, stream grpc.ServerStreamingS
 }
 
 func (s *Server) JobsDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
-	return count(s, r.TxId, func(st store.Store) (int, error) { return st.Jobs().DeleteExpired(ctx, tsFromPB(r.Before)) }), nil
+	result := &storev1.CountResult{}
+	result.Error = errToPB(s.with(r.TxId, func(st store.Store) error {
+		if r.JobOutcomeLimit > 0 {
+			if writer, ok := st.Jobs().(store.JobsOutcomeWriter); ok {
+				n, outcomes, more, err := writer.DeleteExpiredResult(ctx, tsFromPB(r.Before), int(r.JobOutcomeLimit))
+				if err != nil {
+					return err
+				}
+				result.Count, result.MoreJobOutcomes = int64(n), more
+				for _, outcome := range outcomes {
+					result.JobOutcomes = append(result.JobOutcomes, &storev1.JobOutcome{TenantId: outcome.TenantID, Id: outcome.ID, Type: string(outcome.Type), Status: string(outcome.Status), UpdatedAt: tsToPB(outcome.UpdatedAt)})
+				}
+				return nil
+			}
+		}
+		// An older backing repository still cleans up once, with no guessed
+		// outcomes and no response-triggered replay of the business mutation.
+		n, err := st.Jobs().DeleteExpired(ctx, tsFromPB(r.Before))
+		result.Count = int64(n)
+		return err
+	}))
+	return result, nil
 }
 
 func (s *Server) EmailProvidersGet(ctx context.Context, r *storev1.TenantScope) (*storev1.EmailProviderResult, error) {

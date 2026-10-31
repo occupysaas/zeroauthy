@@ -1225,6 +1225,27 @@ func (a clientJobs) DeleteExpired(ctx context.Context, before time.Time) (int, e
 	return counted("JobsDeleteExpired", r, err)
 }
 
+func (a clientJobs) DeleteExpiredResult(ctx context.Context, before time.Time, limit int) (int, []store.JobOutcome, bool, error) {
+	if limit < 1 || limit > store.JobSweepBatch {
+		return 0, nil, false, store.ErrInvalid
+	}
+	// Use the existing RPC once. An old response has neither outcomes nor
+	// more; do not negotiate/replay a write after learning it lacks reports.
+	r, err := a.c.rpc.JobsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before), JobOutcomeLimit: int32(limit)})
+	if status.Code(err) == codes.Unimplemented {
+		return 0, nil, false, nil
+	}
+	n, err := counted("JobsDeleteExpired", r, err)
+	if err != nil {
+		return 0, nil, false, err
+	}
+	outcomes := make([]store.JobOutcome, 0, len(r.GetJobOutcomes()))
+	for _, outcome := range r.GetJobOutcomes() {
+		outcomes = append(outcomes, store.JobOutcome{TenantID: outcome.GetTenantId(), ID: outcome.GetId(), Type: store.JobType(outcome.GetType()), Status: store.JobStatus(outcome.GetStatus()), UpdatedAt: tsFromPB(outcome.GetUpdatedAt())})
+	}
+	return n, outcomes, r.GetMoreJobOutcomes(), nil
+}
+
 func (c *Client) requireTenantSettings(ctx context.Context) error {
 	r, err := c.rpc.TenantSettingsSupported(ctx, &storev1.PingRequest{})
 	if status.Code(err) == codes.Unimplemented {

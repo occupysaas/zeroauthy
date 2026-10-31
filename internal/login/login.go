@@ -729,6 +729,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 
 // complete starts the session and hands back to /authorize processing.
 func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, user *store.User) {
+	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: user.UserID, UserName: user.Name}))
 	ctx := r.Context()
 	now := h.now()
 	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now)

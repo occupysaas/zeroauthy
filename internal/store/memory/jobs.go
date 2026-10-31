@@ -264,18 +264,43 @@ func (r jobs) ReadFile(_ context.Context, tenantID, id string, fn func(chunk []b
 	return nil
 }
 
-func (r jobs) DeleteExpired(_ context.Context, before time.Time) (int, error) {
+func (r jobs) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	total := 0
+	for {
+		n, _, more, err := r.DeleteExpiredResult(ctx, before, store.JobSweepBatch)
+		total += n
+		if err != nil || !more {
+			return total, err
+		}
+	}
+}
+
+func (r jobs) DeleteExpiredResult(_ context.Context, before time.Time, limit int) (int, []store.JobOutcome, bool, error) {
+	if limit < 1 || limit > store.JobSweepBatch {
+		return 0, nil, false, store.ErrInvalid
+	}
 	r.s.lock()
 	defer r.s.unlock()
+	outcomes := make([]store.JobOutcome, 0, limit)
 	n := 0
 	for k, j := range r.s.jobs {
+		detail := ""
 		if j.Status == store.JobProcessing {
 			switch {
 			case !j.FirstClaimedAt.IsZero() && j.FirstClaimedAt.Add(store.JobMaxRuntime).Before(before):
-				endJob(j, store.JobFailed, store.JobDetailTimedOut, before)
+				detail = store.JobDetailTimedOut
 			case j.Attempts >= store.JobMaxAttempts && j.LeaseUntil.Before(before):
-				endJob(j, store.JobFailed, store.JobDetailWorkerLost, before)
+				detail = store.JobDetailWorkerLost
 			}
+		}
+		if detail != "" {
+			// Leave eligible jobs for the next batch, including expired ones: their
+			// terminal transition must be reported before cleanup removes them.
+			if len(outcomes) == limit {
+				continue
+			}
+			endJob(j, store.JobFailed, detail, before)
+			outcomes = append(outcomes, store.JobOutcome{TenantID: j.TenantID, ID: j.ID, Type: j.Type, Status: j.Status, UpdatedAt: j.UpdatedAt})
 		}
 		if j.ExpiresAt.Before(before) {
 			delete(r.s.jobs, k)
@@ -284,5 +309,5 @@ func (r jobs) DeleteExpired(_ context.Context, before time.Time) (int, error) {
 			n++
 		}
 	}
-	return n, nil
+	return n, outcomes, len(outcomes) == limit, nil
 }

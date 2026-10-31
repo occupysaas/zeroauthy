@@ -122,10 +122,6 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 		redirect(w, r, result.Redirect.URL)
 		return nil, false
 	}
-	event.Type = "s"
-	if result.ExecutionID != "" {
-		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
-	}
 	return &result.Effects, true
 }
 

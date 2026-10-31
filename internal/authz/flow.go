@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -163,5 +164,23 @@ func (h *Handlers) decideDevice(w http.ResponseWriter, r *http.Request, res tena
 		h.flowError(w, r, res, fr, errServer())
 		return
 	}
+	if dec.Status == store.DeviceCodeApproved {
+		h.loginSucceeded(r, res, &store.Client{ClientID: fr.ClientID}, fr, &store.LoginSession{UserID: dec.UserID})
+	}
 	redirect(w, r, page)
+}
+
+// loginSucceeded records only a committed authorization, after Actions, access
+// policy, consent and final organization checks. Signup's ss describes the
+// separate user-creation outcome; this event counts its completed login once.
+func (h *Handlers) loginSucceeded(r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession) {
+	e := logs.FromRequest(r)
+	e.TenantID, e.ClientID, e.ClientName = res.Tenant.ID, client.ClientID, client.Name
+	e.UserID, e.Connection, e.OrganizationID = sess.UserID, sess.Connection, fr.OrgID
+	e.Audience, e.Scope = fr.Audience, fr.Scope
+	e.Type = "s"
+	if slices.Contains(fr.Prompts(), "none") {
+		e.Type = "ssa"
+	}
+	logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), e)
 }

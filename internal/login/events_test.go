@@ -208,15 +208,19 @@ func TestCustomDBPrintedPasswordMasked(t *testing.T) {
 				t.Fatal(err)
 			}
 			events, _, err := e.st.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 100})
-			if err != nil || len(events) != 1 {
+			if err != nil || len(events) != 2 {
 				t.Fatal(events, err)
 			}
-			var body map[string]any
-			if err = json.Unmarshal(events[0].Body, &body); err != nil {
-				t.Fatal(err)
-			}
-			if body["user_name"] != logscrub.Marker || body["type"] != "ss" {
-				t.Fatalf("stored=%s", events[0].Body)
+			// Creation and the resulting authorization are separate outcomes.
+			// Verify privacy for both exact events, including short passwords.
+			for i, code := range []string{"ss", "s"} {
+				var body map[string]any
+				if err = json.Unmarshal(events[i].Body, &body); err != nil {
+					t.Fatal(err)
+				}
+				if body["user_name"] != logscrub.Marker || body["type"] != code {
+					t.Fatalf("stored=%s", events[i].Body)
+				}
 			}
 			deadline := time.Now().Add(time.Second)
 			for !strings.Contains(sink.String(), "login-marker") && time.Now().Before(deadline) {
@@ -317,10 +321,20 @@ func TestActionExecutionLinksOnSignupEvents(t *testing.T) {
 			b := e.browser("acme.example.test")
 			_, state, csrf := b.begin(t, "screen_hint", "signup")
 			b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"new@acme.test"}, "password": {"new password 1"}})
-			if len(capture.events) != 1 {
+			wantCount := 1
+			if tc.code == "ss" {
+				wantCount = 2
+			}
+			if len(capture.events) != wantCount {
 				t.Fatalf("events=%+v", capture.events)
 			}
-			got := capture.events[0]
+			if wantCount == 2 {
+				login := capture.events[0]
+				if login.Type != "s" || len(login.ExecutionIDs) != 1 || login.ExecutionIDs[0] != capture.events[1].ExecutionIDs[0] {
+					t.Fatalf("signup authorization=%+v", capture.events)
+				}
+			}
+			got := capture.events[len(capture.events)-1]
 			if got.Type != tc.code || len(got.ExecutionIDs) != 1 {
 				t.Fatalf("event=%+v", got)
 			}
@@ -358,8 +372,11 @@ func TestBreachMonitoringEvents(t *testing.T) {
 			b := e.browser("acme.example.test")
 			_, state, csrf := b.begin(t)
 			r := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"alice password 1"}})
-			if r.Code != 302 || len(capture.events) != tc.count {
+			if r.Code != 302 || len(capture.events) != tc.count+1 {
 				t.Fatalf("status=%d events=%+v", r.Code, capture.events)
+			}
+			if capture.events[tc.count].Type != "s" {
+				t.Fatalf("completed login=%+v", capture.events)
 			}
 			if tc.count > 0 && capture.events[0].Type != "pwd_leak" {
 				t.Fatalf("events=%+v", capture.events)

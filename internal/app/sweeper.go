@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/jobs"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -39,7 +41,9 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{func(ctx context.Context, before time.Time) (int, error) {
 			return st.EmailNotifications().Sweep(ctx, before, 100)
 		}, now},
-		{st.Jobs().DeleteExpired, now},
+		{func(ctx context.Context, before time.Time) (int, error) {
+			return jobs.SweepExpired(ctx, st.Jobs(), before)
+		}, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return actions.PurgeJobs(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			return actions.PurgeExecutions(ctx, st, before)
@@ -73,7 +77,7 @@ func (a *App) sweepLoop(ctx context.Context, every time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			n, err := sweep(ctx, a.store, time.Now().UTC())
+			n, err := sweep(logs.WithRecorder(ctx, a.logs), a.store, time.Now().UTC())
 			if err != nil {
 				a.log.Error("purge expired records", "err", err)
 			}

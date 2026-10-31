@@ -2145,3 +2145,114 @@ dependencies were never modified. Full report:
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-15-report.md`.
 Self-review and final `git diff --check` passed. Commit subject:
 `feat: provision log streams`.
+
+## Task 16a — two confirmed acceptance gaps (2026-10-31)
+
+**Task16 remains incomplete.** This focused repair closes the missing generic
+hosted authorization success and abandoned-import sweep failure events. It
+also audits all 60 emitted inventory codes; five absent emitters and one
+partial emitter remain assigned to a fresh Task16a2 repair before Task16b
+acceptance fixtures and final regression/review. Base: `0797754`.
+
+`authz` now emits `s` only after code issuance (including session client write)
+or successful device approval, after Actions, policy, consent and final
+organization checks. `prompt=none` emits `ssa` alone. No-engine/no-bindings
+paths receive the same event; Action denial/throw never emits success.
+Already-resolved request/user/connection metadata is carried without new
+logging reads, and execution IDs survive the consent boundary. The real
+mounted TLS browser/server regression checks exact codes, generated links,
+attribution, canonical metadata, one-character credentials and daily counters.
+
+Ruling: `ss` is successful user creation; `s` is completed authorization from
+that created user's session. A successful hosted signup therefore emits one
+of each, counting one signup and one login. Post-login denial after creation
+emits `ss` and `f`, without a login count. Three existing exact-count tests
+were explicitly updated (not weakened): custom DB privacy now checks both
+`ss`/`s`; registration Action links check `s`/`ss` with the same generated
+execution ID; breach monitoring checks `pwd_leak`/`s` or `s` alone. Short-secret
+privacy assertions remain intact and expand to the added outcome.
+
+`store.JobsOutcomeWriter.DeleteExpiredResult` is optional and reports only
+actual atomic writes, bounded to 100 metadata-only outcomes per batch. The
+DTO contains tenant/job ID, type, status and update time; it excludes inputs,
+params, connection configuration, raw status/error text and imported hashes.
+SQL selects only keys/type and fences updates by the eligibility condition;
+reports reset on transaction retry and disappear on error. Memory mirrors the
+bounded write semantics. Expired eligible jobs remain until their batch can
+report the terminal transition, then cascade cleanup proceeds. The existing
+`DeleteExpired` API drains batches and preserves its deletion count and
+cleanup semantics. The app sweeper and runner start/periodic sweep use the
+reporting path and emit `fui` only after successful writes.
+
+The existing JobsDeleteExpired RPC gains additive request/result fields;
+there is no new capability negotiation or fallback replay. Old plugins ignore
+the report limit, perform their existing cleanup once and return no outcomes.
+We deliberately omit uncertain events on old-plugin or lost-response paths;
+a transport failure after commit can lose the corresponding event, as with
+other best-effort logging. Tests prove no duplicate business mutation.
+
+Actual commands/results (all Go/make commands use `GOTOOLCHAIN=go1.26.7`):
+
+- RED `go test ./internal/server -run '^TestHostedLoginOutcomeEvents$'
+  -count=1`: no-engine/no-bindings returned no events; signup lacked `s`.
+  Initial fixture also exposed minimum seed password length; short-password
+  coverage now installs an existing credential hash rather than violating
+  creation policy. GREEN same command: **PASS**, 1.500s.
+- RED `go test ./internal/store/memory ./internal/store/sqlstore
+  ./internal/store/grpcstore -run '^TestJobSweepOutcomes$' -count=1`:
+  **expected FAIL**, missing optional writer in every native/RPC case.
+  After implementation, corrected the fixture from exactly the 2h runtime
+  boundary to a genuinely timed-out 3h job (runtime contract is strict).
+- RED `go test ./internal/app -run
+  '^TestSweepRecordsAbandonedImportsAfterWrite$' -count=1`: **expected FAIL**,
+  zero outcomes. GREEN native/RPC/app tests: **PASS**, memory0.012s,
+  SQLite0.126s, gRPC0.128s, app0.025s. Covers timeout, exhausted lease,
+  cross-tenant batches, cascade, no-op, rollback and two racing sweeps.
+- `go test ./internal/jobs ./internal/store/grpcstore -run
+  'JobSweep|SweepExpired|RunnerSweep' -count=1`: **PASS**, 0.009s/0.124s;
+  includes legacy repository/plugin, missing RPC and lost-after-commit
+  response behavior, no guessed events or mutation replay.
+- `make generate`: **PASS**, regenerated protobuf with pinned tooling;
+  no generated artifact edited manually. No dependencies added.
+- `ZEROAUTHY_TEST_PG_PORT=56791 ZEROAUTHY_TEST_MYSQL_PORT=56792
+  ./scripts/test-sql.sh ./internal/store/sqlstore -run
+  'TestJobSweepOutcomes|TestConformance/.*/Jobs' -v`: **PASS**, 80.951s.
+  Actual SQLite, PostgreSQL17 and MySQL8.4 new outcome and existing Jobs
+  conformance tests all ran under race; ports scoped only to that command.
+- `go test -race ./internal/authz ./internal/login ./internal/jobs
+  ./internal/app ./internal/server -count=1`: authz **PASS**22.238s,
+  jobs **PASS**27.033s, app **PASS**21.618s, server **PASS**102.774s.
+  Login initially **FAIL**75.125s only at the three obsolete event-count
+  groups named above. After explicit exact-sequence updates,
+  `go test -race ./internal/login -count=1`: **PASS**, 68.878s.
+- `go test -race ./internal/store/memory ./internal/store/grpcstore -run
+  'TestJobSweep|TestConformance.*/Jobs' -count=1`: **PASS**1.087s/51.478s,
+  new outcome/compatibility tests and existing gRPC memory/SQLite Jobs suite.
+- Self-review and `git diff --check`: **PASS**. No full 20-minute gRPC race,
+  whole-branch regression, console build, browser/CLI acceptance fixture or
+  broad E2E command was run/claimed for this repair.
+
+The 60-row emitted-code→production-site→named-test evidence table is saved in
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-16a-inventory-audit.md`.
+It is an audit, not a blanket passing claim for every named test. Five codes
+are wholly absent (`fsa`, `flo`, `fn`, `organization_access_denied`, `slo`);
+`actions_execution_failed` has only async coverage/emission, missing its
+frozen synchronous execution-error trigger. The fresh
+`task-16a2-brief.md` records exact functions, safe outcome conditions, required
+negative tests, privacy limits and duplicate-avoidance concerns for those six.
+Their repair is required; no scope waiver was inferred. Other entries have
+real source sites and event assertions, with branch-specific acceptance debt
+recorded separately. No claim that every trigger path is covered.
+
+Costs/rulings: bounded writes add a metadata-key select and per-row fenced
+updates; this trades the previous two unreported bulk writes for auditable
+actual outcomes without hydrating import files. A full 100-row batch may make
+one extra empty call to detect completion. Legacy cleanup may log no event;
+replaying writes to recover uncertain reports is intentionally forbidden.
+The broader affected-package run caught real assertion drift and was retained
+verbatim, followed by the corrected full login package race run. Development
+and test effort remained within these two gaps; the source audit explicitly
+hands off six additional gaps and all prior carry-forward minors.
+
+Full report and logs: `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-16a-report.md`.
+Commit subject: `fix: record completed logins and abandoned import outcomes`.

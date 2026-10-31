@@ -121,6 +121,7 @@ type Sweep struct {
 }
 
 func (r *Runner) sweep(ctx context.Context, s Sweep) {
+	ctx = logs.WithRecorder(ctx, r.Recorder)
 	every := s.Every
 	if every <= 0 {
 		every = time.Hour

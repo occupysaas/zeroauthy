@@ -438,7 +438,20 @@ message Error {
 }
 
 message Result { Error error = 1; }            // absent error = success
-message CountResult { Error error = 1; int64 count = 2; }
+message CountResult {
+ Error error = 1;
+ int64 count = 2;
+ // JobsDeleteExpired only: additive bounded atomic business-write reports.
+ repeated JobOutcome job_outcomes = 3;
+ bool more_job_outcomes = 4;
+}
+message JobOutcome {
+ string tenant_id = 1;
+ string id = 2;
+ string type = 3;
+ string status = 4;
+ google.protobuf.Timestamp updated_at = 5;
+}
 
 // ---- transactions ----
 
@@ -459,7 +472,13 @@ message TouchRequest {
   // SessionsTouch only (a plugin that predates them drops them silently):
   google.protobuf.Timestamp at = 5; string ip = 6; string user_agent = 7;
 }
-message DeleteExpiredRequest { string tx_id = 1; google.protobuf.Timestamp before = 2; }
+message DeleteExpiredRequest {
+ string tx_id = 1;
+ google.protobuf.Timestamp before = 2;
+ // JobsDeleteExpired only: zero preserves legacy complete-cleanup behavior.
+ // Older plugins ignore this field, run once, and report no outcomes/more.
+ int32 job_outcome_limit = 3;
+}
 message ConsumeRequest {
   string tx_id = 1; string tenant_id = 2; string hash = 3;
   google.protobuf.Timestamp at = 4;
