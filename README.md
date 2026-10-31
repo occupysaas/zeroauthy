@@ -1,6 +1,7 @@
 # zeroauthy
 
 [![Listed on Remade](docs/pics/listed-on-remade.svg)](https://remade.wiki/)
+[![OpenID Certified](https://img.shields.io/badge/OpenID-Certified-F78C40?logo=openid&logoColor=white)](https://openid.net/certification/certified-openid-providers-profiles/)
 
 An open-source, self-hostable identity server that speaks the Auth0
 Authentication API. Point an existing Auth0 SDK at a zeroauthy tenant
@@ -9,6 +10,11 @@ domain and it works with no code changes.
 zeroauthy is a clean-room implementation built from public documentation
 and open standards. It is not affiliated with Auth0 or Okta. See
 [CLEAN_ROOM.md](CLEAN_ROOM.md).
+
+**OpenID Certified.** zeroauthy is
+[certified by the OpenID Foundation](https://openid.net/certification/certified-openid-providers-profiles/)
+as an OpenID Connect Provider for the Basic OP, Config OP and Form Post OP
+profiles (commit `38b4229`, October 2026). See [docs/conformance.md](docs/conformance.md).
 
 > **Status:** early. Multi-tenant discovery, JWKS, the `client_credentials`
 > grant, login with the hosted page, the authorization code + PKCE flow,
@@ -46,7 +52,8 @@ each with its console screens; the full breakdown is in the
 - Storage: memory, SQLite, PostgreSQL, MySQL, gRPC storage plugins
 - Custom database connections (Auth0 scripts, import mode)
 - Consent and third-party applications, PAR, device flow
-- OpenID conformance in CI (Basic, Config, Form Post, RP-Initiated Logout)
+- OpenID Certified (Basic, Config, Form Post OP); conformance suite in CI
+  (those plus RP-Initiated Logout)
 - Management API and console: applications, APIs, client grants, database
   connections, users (with search, identity linking, sessions, refresh tokens,
   grants and tickets), user import/export jobs and verification email
@@ -311,7 +318,7 @@ make conformance    # OpenID conformance suite against zeroauthy (podman or dock
 
 ## OpenID conformance
 
-zeroauthy is tested against the OpenID Foundation conformance suite for the Basic OP, Config OP, Form Post OP and RP-Initiated Logout OP profiles. `make conformance` runs all four locally in containers (Linux, podman or docker). Local results pass, with a few accepted warnings and skips; formal certification is pending. See [docs/conformance.md](docs/conformance.md).
+zeroauthy is [OpenID Certified](https://openid.net/certification/certified-openid-providers-profiles/) for the Basic OP, Config OP and Form Post OP profiles (commit `38b4229`, approved 2026-10-30). It is also tested against the RP-Initiated Logout OP profile, which OIDF certifies only alongside a session, front-channel or back-channel logout profile; back-channel logout is planned (Plan 41). `make conformance` runs all four plans locally in containers (Linux, podman or docker). Local results pass, with a few accepted warnings and skips. See [docs/conformance.md](docs/conformance.md).
 
 ## License
 

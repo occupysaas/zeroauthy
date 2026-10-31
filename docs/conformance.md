@@ -71,6 +71,8 @@ No such switch exists today.
 
 ## Certification
 
+zeroauthy commit `38b4229` is OpenID Certified for the **Basic OP**, **Config OP** and **Form Post OP** profiles (approved 2026-10-30; [listing](https://openid.net/certification/certified-openid-providers-profiles/)). The record is at the end of this section. The steps below are how it was done.
+
 Steps 2 to 6 need the maintainer's hands (deploying, holding the OIDF account, signing, emailing). Claude prepares the files and checks each step from outside. Nothing secret is committed.
 
 | Fact | Value |
@@ -225,7 +227,7 @@ On https://www.certification.openid.net/ (logged in as the maintainer), for each
 4. **REVIEW modules.** The config's `override` steps upload the page as the module's screenshot (the redirect URI error pages, the second login page of `oidcc-prompt-login` and `oidcc-max-age-1`, and the logout error and logged-out pages). Open each REVIEW module and check that its image is attached and shows the expected page; for any placeholder still empty, take a screenshot of the page in the log and upload it there.
 5. Done when every module is FINISHED with no FAILED or INTERRUPTED result. A failure goes back through triage locally (expected-failures process above) before the plan is rerun.
 
-Plan IDs: Basic TBD, Config TBD, Form Post TBD, RP-Initiated TBD. Run date: TBD.
+Plan IDs: Basic `qOIxf7A1s2NsR`, Config `aVNusyRINHKQW`, Form Post `Edr4xUPgxMYtq`. RP-Initiated was run but not submitted (see below). Run date: 2026-10-18.
 
 ### 5. Packages and submission
 
@@ -235,7 +237,7 @@ Plan IDs: Basic TBD, Config TBD, Form Post TBD, RP-Initiated TBD. Run date: TBD.
 4. **Waiver.** The maintainer emails certification@oidf.org (draft by Claude) with the project URL and licence, the open-source policy URL (https://openid.net/certification/open-source-project-certification-policy/), the statement that zeroauthy's primary maintainers are not paid by an employer for the project, and the four profiles with their results.
 5. Submit per https://openid.net/certification/instructions/ once OIDF answers.
 
-Package status: TBD. Waiver email date: TBD. Submission date: TBD.
+Packages: signed 2026-10-29 for Basic, Config and Form Post. OIDF certifies RP-Initiated Logout only together with Session Management, Front-Channel or Back-Channel Logout (https://openid.net/certification/connect_op_logout_testing/), none of which zeroauthy had at the certified commit, so it was not submitted; back-channel logout is scoped in Plan 41. Approved and listed 2026-10-30.
 
 ### 6. Teardown
 
@@ -244,4 +246,4 @@ Package status: TBD. Waiver email date: TBD. Submission date: TBD.
 3. Delete the local kit (`rm -rf ~/zeroauthy-cert-kit`). Reuse nothing from it.
 4. Record below the date, the suite version and the zeroauthy commit that was certified.
 
-Certified: date TBD, suite `release-v5.3.3`, zeroauthy commit TBD. Teardown date: TBD.
+Certified: 2026-10-30 (listed with test date 18-Oct-2026), suite `release-v5.3.3`, zeroauthy commit `38b4229`, profiles Basic OP, Config OP and Form Post OP. Listing: https://openid.net/certification/certified-openid-providers-profiles/. Teardown date: TBD.
