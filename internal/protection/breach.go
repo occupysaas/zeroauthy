@@ -145,12 +145,19 @@ func (s *Service) CheckPassword(ctx context.Context, tenant *store.Tenant, stage
 // CheckPasswordForUser adds a canonical subject only for the post credential
 // verification login path. Other callers retain the original interface.
 func (s *Service) CheckPasswordForUser(ctx context.Context, tenant *store.Tenant, stage, password, userID string) error {
+	_, err := s.CheckPasswordForUserResult(ctx, tenant, stage, password, userID)
+	return err
+}
+
+// CheckPasswordForUserResult additionally reports a confirmed corpus hit, even
+// when the configured shield only notifies. It does not change admission.
+func (s *Service) CheckPasswordForUserResult(ctx context.Context, tenant *store.Tenant, stage, password, userID string) (bool, error) {
 	if tenant == nil {
-		return ErrBreachUnavailable
+		return false, ErrBreachUnavailable
 	}
 	current, err := s.Store.Tenants().Get(ctx, tenant.ID)
 	if err != nil {
-		return ErrBreachUnavailable
+		return false, ErrBreachUnavailable
 	}
 	p := current.ProtectionSettings
 	if !current.ProtectionSettingsInitialized {
@@ -166,10 +173,10 @@ func (s *Service) CheckPasswordForUser(ctx context.Context, tenant *store.Tenant
 	case "pre-change-password":
 		shields = policy.Stage.PreChangePassword.Shields
 	default:
-		return ErrBreachUnavailable
+		return false, ErrBreachUnavailable
 	}
 	if !policy.Enabled {
-		return nil
+		return false, nil
 	}
 	hit := false
 	err = ErrBreachUnavailable
@@ -179,22 +186,22 @@ func (s *Service) CheckPasswordForUser(ctx context.Context, tenant *store.Tenant
 	if err != nil {
 		s.Event(ctx, tenant.ID, "breached-password", "unavailable", "")
 		if slices.Contains(shields, "block") {
-			return ErrBreachUnavailable
+			return false, ErrBreachUnavailable
 		}
-		return nil
+		return false, nil
 	}
 	if !hit {
-		return nil
+		return false, nil
 	}
 	s.Event(ctx, tenant.ID, "breached-password", "detected", "")
-	s.adminNotifications(ctx, tenant.ID, "breached-password", shields)
+
 	if stage == "login" && userID != "" && slices.Contains(shields, "user_notification") {
 		s.notify(ctx, tenant.ID, userID, "stolen_credentials")
 	}
 	if slices.Contains(shields, "block") {
 		// User notices are valid only for an identified account during login.
 		// Other stages do not carry a verified subject identity.
-		return ErrPasswordLeaked
+		return true, ErrPasswordLeaked
 	}
-	return nil
+	return true, nil
 }

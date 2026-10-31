@@ -10,6 +10,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/signupactions"
@@ -29,6 +31,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	ctx = r.Context()
 	str := func(k string) (string, bool) {
 		v, present := body[k]
 		if !present || v == nil {
@@ -75,6 +78,13 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "load connection", err)
 		return
 	}
+	ctx = logs.WithRecorder(ctx, h.Recorder)
+	ctx = logs.WithEvent(ctx, logs.Event{TenantID: res.Tenant.ID, ClientID: client.ClientID, ClientName: client.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "database"})
+	ctx = logscrub.WithCredentials(ctx, identity.EffectivePassword(conn, fields["password"]))
+	*r = *r.WithContext(ctx)
+	code := "fs"
+	var eventUser *store.User
+	defer func() { h.event(r, code, fields["client_id"], conn, eventUser) }()
 	svc := h.protectionService()
 	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: res.Tenant, Connection: conn, Identifier: fields["email"], IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "signup"})
 	if err != nil {
@@ -93,7 +103,11 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "protection completion", err)
 		return
 	}
-	if err := svc.CheckPassword(ctx, res.Tenant, "pre-user-registration", identity.EffectivePassword(conn, fields["password"])); err != nil {
+	hit, checkErr := svc.CheckPasswordForUserResult(ctx, res.Tenant, "pre-user-registration", identity.EffectivePassword(conn, fields["password"]), "")
+	if hit {
+		h.event(r, "signup_pwd_leak", fields["client_id"], conn, nil)
+	}
+	if err := checkErr; err != nil {
 		if riskErr := h.recordFailure(r, res, "signup", attemptID, err); riskErr != nil {
 			h.internal(w, r, "record risk", riskErr)
 			return
@@ -111,6 +125,10 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		Nickname: fields["nickname"], Picture: fields["picture"], UserMetadata: meta,
 		Actions: signupactions.Callbacks(h.Store, h.Actions, signupactions.Input(r, res, client, conn, body, h.TrustProxyHeaders)),
 	})
+	if err == nil {
+		code = "ss"
+		eventUser = user
+	}
 	if riskErr := h.recordFailure(r, res, "signup", attemptID, err); riskErr != nil {
 		h.internal(w, r, "record risk", riskErr)
 		return

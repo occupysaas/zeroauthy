@@ -91,18 +91,7 @@ func (r *AsyncRecorder) Record(ctx context.Context, e Event) {
 	}
 
 	details := maps.Clone(e.Details)
-	if len(e.ExecutionIDs) > 0 {
-		if details == nil {
-			details = map[string]any{}
-		}
-		existing, _ := details["actions"].(map[string]any)
-		actions := maps.Clone(existing)
-		if actions == nil {
-			actions = map[string]any{}
-		}
-		actions["executions"] = e.ExecutionIDs
-		details["actions"] = actions
-	}
+
 	if len(details) > 0 {
 		doc["details"] = details
 	}
@@ -110,7 +99,10 @@ func (r *AsyncRecorder) Record(ctx context.Context, e Event) {
 	// context-aware scrub masks dynamic names and encoded JSON. Only detached
 	// immutable mask metadata accompanies the independent body; no request context
 	// or caller-owned mutable value survives in the queue.
-	safe := logscrub.ScrubValueContext(ctx, doc).(map[string]any)
+	safe := ScrubEvent(ctx, doc)
+	if len(e.ExecutionIDs) > 0 {
+		attachExecutionIDs(ctx, safe, e.ExecutionIDs)
+	}
 	body, err := json.Marshal(safe)
 	if err != nil {
 		r.drop(1)

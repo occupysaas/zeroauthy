@@ -2,12 +2,14 @@ package mgmt_test
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -181,5 +183,39 @@ func TestLogsAPIGetScrubs(t *testing.T) {
 	})
 	if r.Code != 200 || o.(map[string]any)["log_id"] != id || strings.Contains(r.Body.String(), "dynamic-secret") || strings.Contains(r.Body.String(), "never show") || !strings.Contains(r.Body.String(), "9007199254740993") {
 		t.Fatal(r.Code, r.Body)
+	}
+}
+
+func TestShortCredentialEventGETPreservesSchema(t *testing.T) {
+	e := newClientsEnv(t)
+	ctx := logscrub.WithCredentials(context.Background(), "a")
+	recorder := logs.NewRecorder(e.st, logs.Config{}, slog.New(slog.DiscardHandler))
+	logs.RecordEvent(ctx, recorder, logs.Event{TenantID: e.tn.ID, Type: "ss", UserName: "a", Details: map[string]any{"a": "a"}, ExecutionIDs: []string{"exe_aaaaaaaaaaaaaaaaaaaaaaaa"}})
+	if err := recorder.Flush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	rows, _, err := e.st.Logs().SearchLogs(ctx, e.tn.ID, nil, store.LogPage{PerPage: 1})
+	if err != nil || len(rows) != 1 {
+		t.Fatal(rows, err)
+	}
+	id := rows[0].ID
+	r, obj := e.call(t, e.tn, m2mCaller("read:logs"), "GET", "/api/v2/logs/"+id, nil, func(w http.ResponseWriter, r *http.Request) {
+		e.h.GetLog(w, r.WithContext(logscrub.WithCredentials(r.Context(), "a")), id)
+	})
+	if r.Code != 200 {
+		t.Fatal(r.Body)
+	}
+	body := obj.(map[string]any)
+	if body["type"] != "ss" || body["log_id"] != id || body["user_name"] != logscrub.Marker {
+		t.Fatal(body)
+	}
+	if _, err := time.Parse(time.RFC3339Nano, body["date"].(string)); err != nil {
+		t.Fatal(err)
+	}
+	if body["details"].(map[string]any)["actions"].(map[string]any)["executions"].([]any)[0] != "exe_aaaaaaaaaaaaaaaaaaaaaaaa" {
+		t.Fatal(body)
+	}
+	if body["details"].(map[string]any)[logscrub.Marker] != logscrub.Marker {
+		t.Fatal(body)
 	}
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -78,6 +79,13 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 		}
 	}
 	result, err := h.Actions.PostLogin(ctx, in)
+	if result != nil {
+		logs.AddExecution(ctx, result.ExecutionID)
+	}
+	var executionFailure *actions.ErrFlow
+	if errors.As(err, &executionFailure) {
+		logs.AddExecution(ctx, executionFailure.ExecutionID)
+	}
 	if err != nil {
 		var fe *actions.ErrFlow
 		if !errors.As(err, &fe) {

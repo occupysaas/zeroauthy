@@ -118,3 +118,45 @@ func maskValue(ctx context.Context, v any) any {
 	}
 	return v
 }
+
+// WithCredentials masks every nonempty credential, including short OTPs and
+// passwords. WithValues retains its conservative general free-text contract.
+func WithCredentials(ctx context.Context, values ...string) context.Context {
+	registered, _ := ctx.Value(valuesKey{}).([]string)
+	merged := slices.Clone(registered)
+	for _, value := range values {
+		if value != "" && !slices.Contains(merged, value) {
+			merged = append(merged, value)
+		}
+	}
+	return context.WithValue(ctx, valuesKey{}, merged)
+}
+
+// CopyMasks copies only registered masks to an independent destination context.
+// Background script output may outlive a request and must not retain it.
+func CopyMasks(dst, src context.Context) context.Context {
+	values, _ := src.Value(valuesKey{}).([]string)
+	return WithCredentials(dst, values...)
+}
+
+// ScrubTruncatedText protects console lines that an upstream runner may have
+// truncated. At or above the runner's minimum cut length, a credential prefix
+// at the cut is hidden too. Over-hiding a coincidental suffix is intentional.
+func ScrubTruncatedText(ctx context.Context, text string, minimumCut int) string {
+	if len(text) >= minimumCut {
+		values, _ := ctx.Value(valuesKey{}).([]string)
+		cut := len(text)
+		for _, value := range values {
+			for size := min(len(value)-1, len(text)); size > 0; size-- {
+				if strings.HasSuffix(text, value[:size]) {
+					cut = min(cut, len(text)-size)
+					break
+				}
+			}
+		}
+		if cut < len(text) {
+			text = text[:cut] + Marker
+		}
+	}
+	return ScrubValueContext(ctx, text).(string)
+}

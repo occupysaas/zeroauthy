@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -19,7 +20,19 @@ import (
 
 // refreshToken implements RFC 6749 §6 with rotation and reuse detection
 // (RFC 9700 §4.14, D-0012).
-func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
+func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
+	var eventConn *store.Connection
+	var eventUserID string
+	defer func() {
+		if failure != nil && (failure.Code == "authorization_pending" || failure.Code == "slow_down") {
+			return
+		}
+		code := "sertft"
+		if failure != nil {
+			code = "fertft"
+		}
+		h.event(ctx, res, c, code, eventConn, eventUserID)
+	}()
 	raw := form.Get("refresh_token")
 	if raw == "" {
 		return nil, invalidRequest("refresh_token is required")
@@ -83,10 +96,13 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		scopes = requested
 	}
 
+	eventUserID = rt.UserID
 	user, oerr := h.activeUserBlocked(ctx, tenantID, rt.UserID, "user is blocked")
 	if oerr != nil {
 		return nil, oerr
 	}
+	eventConn = eventConnection(user, rt.OrganizationConnectionID)
+	ctx = logs.WithEvent(ctx, logs.Event{OrganizationID: rt.OrganizationID, UserID: user.UserID, UserName: user.Name, Connection: eventConn.Name, ConnectionID: eventConn.ID, Strategy: eventConn.Strategy})
 	org, oerr := h.organizationForToken(ctx, tenantID, user.UserID, rt.OrganizationID, rt.OrganizationConnectionID, c)
 	if oerr != nil {
 		return nil, oerr
@@ -193,10 +209,14 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if rt.Rotating && keep {
 		resp.RefreshToken = &nextRaw
 	}
+	if user != nil {
+		eventUserID = user.UserID
+	}
 	return resp, nil
 }
 
 func (h *Handlers) logRefreshReuse(ctx context.Context, tenantID, clientID string, rt *store.RefreshToken) {
+	logs.RecordEvent(ctx, h.Recorder, logs.Event{TenantID: tenantID, Type: "ferrt", ClientID: clientID, UserID: rt.UserID, OrganizationID: rt.OrganizationID})
 	h.log().WarnContext(ctx, "refresh token reuse detected; family revoked",
 		"tenant", tenantID, "client_id", clientID, "user_id", rt.UserID, "family", rt.FamilyID)
 }

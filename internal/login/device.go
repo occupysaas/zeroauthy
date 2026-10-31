@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -181,7 +183,14 @@ func (h *Handlers) DeviceConfirmSubmit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+	w = ww
 	action := r.PostForm.Get("action")
+	defer func() {
+		if ww.Status() >= 400 || (action == "confirm" && strings.HasPrefix(ww.Header().Get("Location"), "/device/denied")) {
+			h.event(r, f, "fdeac", nil)
+		}
+	}()
 	if action != "confirm" && action != "cancel" {
 		h.fail(w, r, errTxn, f)
 		return
@@ -210,6 +219,7 @@ func (h *Handlers) DeviceConfirmSubmit(w http.ResponseWriter, r *http.Request) {
 		h.Authz.ContinueDevice(w, r, f.res, dc, uiLocales)
 		return
 	}
+	h.event(r, f, "fdecc", nil)
 	h.Authz.DenyDevice(w, r, f.res, dc, uiLocales)
 }
 

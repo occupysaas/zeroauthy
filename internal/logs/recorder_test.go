@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -184,7 +185,7 @@ func TestRecorderStats(t *testing.T) {
 	r := NewRecorder(st, Config{}, quiet())
 	date := time.Date(2026, 10, 30, 23, 0, 0, 0, time.FixedZone("west", -3*3600))
 	for _, typ := range []string{"s", "ss", "pwd_leak", "f"} {
-		r.Record(logscrub.WithValues(bg, "leak"), Event{TenantID: "t", Type: typ, Date: date})
+		r.Record(logscrub.WithValues(bg, "leak"), Event{TenantID: "t", Type: typ, Date: date, Description: "input leak"})
 	}
 	if err := r.Flush(bg); err != nil {
 		t.Fatal(err)
@@ -193,17 +194,24 @@ func TestRecorderStats(t *testing.T) {
 	if err != nil || len(rows) != 4 {
 		t.Fatalf("stats events %d err %v", len(rows), err)
 	}
-	maskedType := false
+	foundType := false
 	for _, row := range rows {
-		if strings.Contains(string(row.Body), "leak") || strings.Contains(row.Type, "leak") {
-			t.Fatalf("stats event leaked mask: %s (%s)", row.Body, row.Type)
+		if !slices.Contains([]string{"s", "ss", "pwd_leak", "f"}, row.Type) {
+			t.Fatalf("catalog type was changed: %s", row.Type)
 		}
-		if row.Type == "pwd_"+logscrub.Marker {
-			maskedType = true
+		var body map[string]any
+		if err := json.Unmarshal(row.Body, &body); err != nil {
+			t.Fatal(err)
+		}
+		if body["description"] != "input "+logscrub.Marker {
+			t.Fatalf("input-derived description was not masked: %s", row.Body)
+		}
+		if row.Type == "pwd_leak" {
+			foundType = true
 		}
 	}
-	if !maskedType {
-		t.Fatal("leaked-password display type was not masked")
+	if !foundType {
+		t.Fatal("catalog breach type missing")
 	}
 	day := time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC)
 	stats, err := st.Logs().DailyStats(bg, "t", day, day)
@@ -472,7 +480,7 @@ func TestRecorderScrubsExecutionEnrichment(t *testing.T) {
 	if err != nil || len(rows) != 1 {
 		t.Fatalf("rows %v err %v", rows, err)
 	}
-	if body := string(rows[0].Body); strings.Contains(body, "actions") || strings.Contains(body, "executionsecret") {
+	if body := string(rows[0].Body); !strings.Contains(body, `"actions"`) || !strings.Contains(body, `"executions"`) || strings.Contains(body, "executionsecret") {
 		t.Fatalf("execution enrichment bypassed masks: %s", body)
 	}
 	if _, ok := details["actions"].(map[string]any)["executions"]; ok {

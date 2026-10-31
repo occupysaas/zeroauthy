@@ -1055,6 +1055,7 @@ message ProtectionResult {
  Error error = 1; bool allowed = 2; string tenant_id = 3; string receipt_id = 4;
  google.protobuf.Timestamp retry_at = 5; repeated ProtectionBlock blocks = 6;
  int64 count = 7;
+ repeated string denied_kinds = 8;
 }
 
 // ---- private custom-domain and encrypted TLS persistence (Plan 23) ----
@@ -1157,6 +1158,7 @@ message OrganizationsRequest {
   OrganizationConnectionMsg connection=7; bool flag=8; // create (PutConnection) / add (ChangeMemberRoles)
   string connection_id=9; string user_id=10; string role_id=11; repeated string ids=12;
   OrganizationPageMsg page=13;
+  bool report_inserted=14; // AddMembers: return actual inserted user IDs in response.ids
 }
 message OrganizationsResponse {
   Error error=1; OrganizationMsg organization=2; repeated OrganizationMsg organizations=3;

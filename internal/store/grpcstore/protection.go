@@ -2,10 +2,11 @@ package grpcstore
 
 import (
 	"context"
+	"time"
+
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"time"
 )
 
 type clientProtection struct{ c *Client }
@@ -38,7 +39,7 @@ func (a clientProtection) Reserve(ctx context.Context, ls []store.ProtectionLimi
 	if e = protectionRPCError("ProtectionReserve", r, e); e != nil {
 		return store.ProtectionAdmission{}, e
 	}
-	return store.ProtectionAdmission{Allowed: r.Allowed, Receipt: store.ProtectionReceipt{TenantID: r.TenantId, ID: r.ReceiptId}, RetryAt: tsFromPB(r.RetryAt)}, nil
+	return store.ProtectionAdmission{DeniedKinds: r.DeniedKinds, Allowed: r.Allowed, Receipt: store.ProtectionReceipt{TenantID: r.TenantId, ID: r.ReceiptId}, RetryAt: tsFromPB(r.RetryAt)}, nil
 }
 func (a clientProtection) Complete(ctx context.Context, receipt store.ProtectionReceipt, outcome string, now time.Time) error {
 	r, e := a.c.rpc.ProtectionComplete(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, TenantId: receipt.TenantID, ReceiptId: receipt.ID, Outcome: outcome, Now: tsToPB(now)})
@@ -104,6 +105,7 @@ func (s *Server) ProtectionReserve(ctx context.Context, q *storev1.ProtectionReq
 		}
 		a, e := p.Reserve(ctx, ls, tsFromPB(q.Now))
 		r.Allowed = a.Allowed
+		r.DeniedKinds = a.DeniedKinds
 		r.TenantId = a.Receipt.TenantID
 		r.ReceiptId = a.Receipt.ID
 		r.RetryAt = tsToPB(a.RetryAt)

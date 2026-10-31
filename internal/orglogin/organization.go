@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -81,7 +82,14 @@ func EnsureMembership(ctx context.Context, tx store.Store, oc Context, userID, c
 	if !link.AssignMembershipOnLogin {
 		return ErrNotMember
 	}
-	return tx.Organizations().AddMembers(ctx, tid, id, []string{userID})
+	inserted, err := store.AddMembersResult(ctx, tx.Organizations(), tid, id, []string{userID})
+	if err != nil {
+		return err
+	}
+	if pending, ok := ctx.Value(membershipEventsKey{}).(*membershipEvents); ok && slices.Contains(inserted, userID) {
+		pending.events = append(pending.events, logs.Enrich(ctx, logs.Event{TenantID: tid, Type: "organization_member_added", OrganizationID: id, OrganizationName: oc.Org.Name, UserID: userID, ConnectionID: connectionID}))
+	}
+	return nil
 }
 
 // PickerChoices preserves the connection/membership-only choice calculation.

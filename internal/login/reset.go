@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -72,6 +73,9 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	code := "fcpr"
+	var eventUser *store.User
+	defer func() { h.event(r, f, code, eventUser) }()
 	attemptID := secrets.RandomString(32)
 	if err := h.submitCaptcha(r, f.res, &f.view, "reset-send", f.txn.ID, attemptID); err != nil {
 		status, key := captchaFailure(err)
@@ -85,15 +89,22 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	var ue *identity.UnauthorizedError
 	switch {
 	case err == nil:
+		eventUser = user
 		if err := h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang(), f.txn.Params[store.TxnParamOrgID]); err != nil {
 			h.fail(w, r, err, f)
 			return
 		}
 	case errors.As(err, &ue), errors.Is(err, store.ErrNotFound), errors.Is(err, identity.ErrScript):
+		if errors.Is(err, store.ErrNotFound) {
+			code = "scpr"
+		}
 		// Nothing to send; the page must not say so. identity has logged
 		// a script failure.
 	default:
 		h.log().ErrorContext(ctx, "reset request: find user", "tenant", f.res.Tenant.ID, "err", err)
+	}
+	if err == nil {
+		code = "scpr"
 	}
 	ui.RenderResetEmailSent(w, f.view)
 }
@@ -171,6 +182,7 @@ func setResetCookie(w http.ResponseWriter, value string, maxAge int) {
 // A bound password-reset-post-challenge flow runs first, unless the ticket
 // already passed it.
 func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
+	h.maskRequest(r)
 	res, ok := tenant.FromContext(r.Context())
 	if !ok {
 		h.fail(w, r, errTxn, nil)
@@ -335,6 +347,11 @@ func (h *Handlers) resetOutcome(w http.ResponseWriter, r *http.Request, res tena
 // /continue. The state, the ticket and the page cookie must all match; a
 // completed flow records the pass and shows the new-password form.
 func (h *Handlers) ResetContinue(w http.ResponseWriter, r *http.Request, state string, req actions.RequestInfo) {
+	h.maskRequest(r)
+	if cookie, err := r.Cookie(resetContinueCookie); err == nil {
+		ticket, _, _ := strings.Cut(cookie.Value, ".")
+		*r = *r.WithContext(logscrub.WithCredentials(r.Context(), ticket))
+	}
 	invalid := func() { httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "invalid continuation state") }
 	res, ok := tenant.FromContext(r.Context())
 	if !ok || h.Actions == nil {
@@ -392,6 +409,12 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		h.renderResetError(w, ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, "")), resetInvalid)
 		return
 	}
+	h.maskRequest(r)
+	ctx = r.Context()
+	var eventConn *store.Connection
+	var eventUser *store.User
+	eventCode, eventClient := "fcp", ""
+	defer func() { h.ticketEvent(r, eventCode, eventClient, eventConn, eventUser) }()
 	// 1. CSRF: the form's token must match the za_reset cookie.
 	csrf := r.PostForm.Get("csrf")
 	c, cerr := r.Cookie(resetCookie)
@@ -445,6 +468,9 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	eventConn = conn
+	eventClient = tk.ClientID
+	eventUser = &store.User{UserID: tk.UserID}
 	// 3. The new password; the ticket stays usable while it is rejected.
 	pw := r.PostForm.Get("password")
 	form := ui.ResetFormData{Ticket: raw, CSRF: csrf, RedirectURI: tk.ChallengeResultURL}
@@ -470,6 +496,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, nil)
 		return
 	}
+	eventUser = user
 	history, err := identity.LoadHistory(ctx, h.Store, conn, user.UserID)
 	if err != nil {
 		h.fail(w, r, err, nil)
@@ -496,7 +523,13 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pw = identity.EffectivePassword(conn, pw)
-	if err := h.protectionService().CheckPassword(ctx, res.Tenant, "pre-change-password", pw); err != nil {
+	ctx = logscrub.WithCredentials(ctx, pw)
+	*r = *r.WithContext(ctx)
+	hit, checkErr := h.protectionService().CheckPasswordForUserResult(ctx, res.Tenant, "pre-change-password", pw, tk.UserID)
+	if hit {
+		h.ticketEvent(r, "reset_pwd_leak", tk.ClientID, conn, user)
+	}
+	if err := checkErr; err != nil {
 		if riskErr := h.recordFailure(r, res, "reset", attemptID, err); riskErr != nil {
 			h.fail(w, r, riskErr, nil)
 			return
@@ -632,6 +665,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, nil)
 		return
 	}
+	eventCode = "scp"
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 	// A Management API ticket with mark_email_as_verified also verifies
 	// the email (U6). Its result_url is not used: Auth0's page shows the

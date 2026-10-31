@@ -117,9 +117,12 @@ type ProtectionLimit struct {
 }
 type ProtectionReceipt struct{ TenantID, ID string }
 type ProtectionAdmission struct {
-	Allowed bool
-	Receipt ProtectionReceipt
-	RetryAt time.Time
+	// DeniedKinds identifies only budgets that actually refused this admission.
+	// Optional for older plugins; an absent value never changes the decision.
+	DeniedKinds []string
+	Allowed     bool
+	Receipt     ProtectionReceipt
+	RetryAt     time.Time
 }
 type ProtectionBlock struct {
 	Key          ProtectionKey

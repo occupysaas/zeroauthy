@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -398,7 +399,7 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 		// earlier login or a concurrent first login) is adopted as before
 		// Actions; upsertProfile still reports a real collision. The
 		// adopted record keeps its own metadata.
-		err = d.Store.WithTx(ctx, func(tx store.Store) error {
+		err = orglogin.WithMembershipEvents(ctx, d.Store, func(ctx context.Context, tx store.Store) error {
 			bound := *d
 			bound.Store = tx
 			u, err = bound.upsertProfile(ctx, conn, p, true)

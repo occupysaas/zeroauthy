@@ -212,3 +212,20 @@ func (UnimplementedOrganizations) ChangeMemberRoles(context.Context, string, str
 func (UnimplementedOrganizations) RoleMembers(context.Context, string, string, string, OrgPage) (OrgResult[string], error) {
 	return OrgResult[string]{}, ErrOrganizationsUnavailable
 }
+
+// OrganizationMembershipWriter optionally reports the members inserted by an
+// AddMembers write. The report shares the business write and transaction; a
+// no-op insertion returns no IDs. Older repositories need not implement it.
+type OrganizationMembershipWriter interface {
+	AddMembersResult(context.Context, string, string, []string) ([]string, error)
+}
+
+// AddMembersResult retains old repository behavior without an attribution read.
+// When the repository cannot report insertions it returns no IDs, so callers
+// omit uncertain membership events while authentication remains available.
+func AddMembersResult(ctx context.Context, repository Organizations, tenantID, orgID string, userIDs []string) ([]string, error) {
+	if writer, ok := repository.(OrganizationMembershipWriter); ok {
+		return writer.AddMembersResult(ctx, tenantID, orgID, userIDs)
+	}
+	return nil, repository.AddMembers(ctx, tenantID, orgID, userIDs)
+}

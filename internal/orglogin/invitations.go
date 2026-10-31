@@ -3,10 +3,12 @@ package orglogin
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -23,6 +25,7 @@ const (
 var ErrInvitationIdentity = errors.New("organization invitation: sign in with the verified invited email")
 
 type AcceptanceInput struct {
+	Recorder                                                                                     logs.Recorder
 	TenantID, OrganizationID, ClientID, InvitationID, TransactionID, UserID, PrimaryConnectionID string
 	Now                                                                                          time.Time
 }
@@ -32,6 +35,8 @@ type AcceptanceInput struct {
 // transaction; a browser assertion of verification/completion is never used.
 func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (*store.InvitationReceipt, error) {
 	var result *store.InvitationReceipt
+	added, acceptedNew := false, false
+	event := logs.Event{TenantID: in.TenantID, ClientID: in.ClientID, OrganizationID: in.OrganizationID, UserID: in.UserID, ConnectionID: in.PrimaryConnectionID}
 	err := st.WithTx(ctx, func(tx store.Store) error {
 		txn, err := tx.AuthTransactions().Get(ctx, in.TenantID, in.TransactionID)
 		if err != nil {
@@ -118,9 +123,11 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if err != nil {
 			return err
 		}
-		if err = tx.Organizations().AddMembers(ctx, in.TenantID, in.OrganizationID, []string{in.UserID}); err != nil {
+		inserted, err := store.AddMembersResult(ctx, tx.Organizations(), in.TenantID, in.OrganizationID, []string{in.UserID})
+		if err != nil {
 			return err
 		}
+
 		if len(invite.Roles) > 0 {
 			if err = tx.Organizations().ChangeMemberRoles(ctx, in.TenantID, in.OrganizationID, in.UserID, true, invite.Roles); err != nil {
 				return err
@@ -131,9 +138,30 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if err = tx.Users().Update(ctx, u); err != nil {
 			return err
 		}
+		added = slices.Contains(inserted, in.UserID)
+		acceptedNew = true
+		event.Connection = conn.Name
+		event.Strategy = conn.Strategy
+		event.StrategyType = logs.StrategyType(conn.Strategy)
+		event.UserName = u.Name
 		result = &accepted
 		return nil
 	})
+	recorder := in.Recorder
+	if recorder == nil {
+		recorder = logs.RecorderFromContext(ctx)
+	}
+	if err != nil {
+		event.Type = "fi"
+		logs.RecordEvent(ctx, recorder, event)
+	} else if acceptedNew {
+		if added {
+			event.Type = "organization_member_added"
+			logs.RecordEvent(ctx, recorder, event)
+		}
+		event.Type = "si"
+		logs.RecordEvent(ctx, recorder, event)
+	}
 	return result, err
 }
 func mergeInvitationMetadata(existing, invited map[string]any) map[string]any {

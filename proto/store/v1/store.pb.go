@@ -12961,6 +12961,7 @@ type ProtectionResult struct {
 	RetryAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=retry_at,json=retryAt,proto3" json:"retry_at,omitempty"`
 	Blocks        []*ProtectionBlock     `protobuf:"bytes,6,rep,name=blocks,proto3" json:"blocks,omitempty"`
 	Count         int64                  `protobuf:"varint,7,opt,name=count,proto3" json:"count,omitempty"`
+	DeniedKinds   []string               `protobuf:"bytes,8,rep,name=denied_kinds,json=deniedKinds,proto3" json:"denied_kinds,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -13042,6 +13043,13 @@ func (x *ProtectionResult) GetCount() int64 {
 		return x.Count
 	}
 	return 0
+}
+
+func (x *ProtectionResult) GetDeniedKinds() []string {
+	if x != nil {
+		return x.DeniedKinds
+	}
+	return nil
 }
 
 // ---- private custom-domain and encrypted TLS persistence (Plan 23) ----
@@ -15319,6 +15327,7 @@ type OrganizationsRequest struct {
 	RoleId         string                       `protobuf:"bytes,11,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	Ids            []string                     `protobuf:"bytes,12,rep,name=ids,proto3" json:"ids,omitempty"`
 	Page           *OrganizationPageMsg         `protobuf:"bytes,13,opt,name=page,proto3" json:"page,omitempty"`
+	ReportInserted bool                         `protobuf:"varint,14,opt,name=report_inserted,json=reportInserted,proto3" json:"report_inserted,omitempty"` // AddMembers: return actual inserted user IDs in response.ids
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -15442,6 +15451,13 @@ func (x *OrganizationsRequest) GetPage() *OrganizationPageMsg {
 		return x.Page
 	}
 	return nil
+}
+
+func (x *OrganizationsRequest) GetReportInserted() bool {
+	if x != nil {
+		return x.ReportInserted
+	}
+	return false
 }
 
 type OrganizationsResponse struct {
@@ -20922,7 +20938,7 @@ const file_store_proto_rawDesc = "" +
 	"attempt_id\x18\n" +
 	" \x01(\tR\tattemptId\x12\x0e\n" +
 	"\x02ip\x18\v \x01(\tR\x02ip\x12\x14\n" +
-	"\x05limit\x18\f \x01(\x03R\x05limit\"\xa3\x02\n" +
+	"\x05limit\x18\f \x01(\x03R\x05limit\"\xc6\x02\n" +
 	"\x10ProtectionResult\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x12\x18\n" +
 	"\aallowed\x18\x02 \x01(\bR\aallowed\x12\x1b\n" +
@@ -20931,7 +20947,8 @@ const file_store_proto_rawDesc = "" +
 	"receipt_id\x18\x04 \x01(\tR\treceiptId\x125\n" +
 	"\bretry_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\aretryAt\x12;\n" +
 	"\x06blocks\x18\x06 \x03(\v2#.zeroauthy.store.v1.ProtectionBlockR\x06blocks\x12\x14\n" +
-	"\x05count\x18\a \x01(\x03R\x05count\"\xa9\v\n" +
+	"\x05count\x18\a \x01(\x03R\x05count\x12!\n" +
+	"\fdenied_kinds\x18\b \x03(\tR\vdeniedKinds\"\xa9\v\n" +
 	"\fCustomDomain\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x16\n" +
@@ -21165,7 +21182,7 @@ const file_store_proto_rawDesc = "" +
 	"\x04from\x18\x04 \x01(\tR\x04from\x12\x12\n" +
 	"\x04take\x18\x05 \x01(\x03R\x04take\x12\x12\n" +
 	"\x04sort\x18\x06 \x01(\tR\x04sort\x12C\n" +
-	"\x1einclude_client_association_for\x18\a \x01(\tR\x1bincludeClientAssociationFor\"\xa8\x04\n" +
+	"\x1einclude_client_association_for\x18\a \x01(\tR\x1bincludeClientAssociationFor\"\xd1\x04\n" +
 	"\x14OrganizationsRequest\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12'\n" +
@@ -21182,7 +21199,8 @@ const file_store_proto_rawDesc = "" +
 	" \x01(\tR\x06userId\x12\x17\n" +
 	"\arole_id\x18\v \x01(\tR\x06roleId\x12\x10\n" +
 	"\x03ids\x18\f \x03(\tR\x03ids\x12;\n" +
-	"\x04page\x18\r \x01(\v2'.zeroauthy.store.v1.OrganizationPageMsgR\x04page\"\xcc\x03\n" +
+	"\x04page\x18\r \x01(\v2'.zeroauthy.store.v1.OrganizationPageMsgR\x04page\x12'\n" +
+	"\x0freport_inserted\x18\x0e \x01(\bR\x0ereportInserted\"\xcc\x03\n" +
 	"\x15OrganizationsResponse\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x12G\n" +
 	"\forganization\x18\x02 \x01(\v2#.zeroauthy.store.v1.OrganizationMsgR\forganization\x12I\n" +

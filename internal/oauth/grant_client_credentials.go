@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -21,7 +22,19 @@ import (
 
 // clientCredentials implements RFC 6749 §4.4. The client must be
 // confidential and hold a client grant for the audience.
-func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
+func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
+	var eventConn *store.Connection
+	var eventUserID string
+	defer func() {
+		if failure != nil && (failure.Code == "authorization_pending" || failure.Code == "slow_down") {
+			return
+		}
+		code := "seccft"
+		if failure != nil {
+			code = "feccft"
+		}
+		h.event(ctx, res, c, code, eventConn, eventUserID)
+	}()
 	if c.TokenEndpointAuthMethod == store.AuthMethodNone {
 		return nil, unauthorizedClient("client_credentials requires a confidential client")
 	}
@@ -182,6 +195,13 @@ func (h *Handlers) credentialsExchange(ctx context.Context, res tenant.Resolved,
 		Tenant: res, Client: c, ResourceServer: rs, Request: requestInfoFrom(ctx),
 		RequestedScopes: requested, TargetScopes: scopes, Organization: org,
 	})
+	if result != nil {
+		logs.AddExecution(ctx, result.ExecutionID)
+	}
+	var executionFailure *actions.ErrFlow
+	if errors.As(err, &executionFailure) {
+		logs.AddExecution(ctx, executionFailure.ExecutionID)
+	}
 	if err != nil {
 		var fe *actions.ErrFlow
 		if !errors.As(err, &fe) {

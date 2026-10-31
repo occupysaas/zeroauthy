@@ -11,11 +11,13 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 type Handlers struct {
+	Recorder   logs.Recorder
 	Protection *protection.Service
 	Store      store.Store
 	Log        *slog.Logger
@@ -59,5 +61,5 @@ func (h *Handlers) protectionService() *protection.Service {
 	if h.Protection != nil {
 		return h.Protection
 	}
-	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log}
+	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log, Recorder: h.Recorder}
 }

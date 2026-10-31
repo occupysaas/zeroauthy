@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/logrules"
-	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logsearch"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -133,7 +133,7 @@ func logView(r *http.Request, e store.LogEvent, fields []string, include bool) m
 	}
 	out["type"] = e.Type
 	out["date"] = e.Date.UTC().Format(time.RFC3339Nano)
-	out = logscrub.ScrubValueContext(r.Context(), out).(map[string]any)
+	out = logs.ScrubStoredEvent(r.Context(), out)
 	// The server-assigned cursor is protocol metadata, independent of body masks.
 	out["log_id"] = e.ID
 	if len(fields) > 0 {

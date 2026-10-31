@@ -10,6 +10,8 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -32,6 +34,10 @@ func (h *Handlers) OauthPar(w http.ResponseWriter, r *http.Request) {
 	}
 	out, oerr := h.par(w, r, res)
 	if oerr != nil {
+		e := logs.FromRequest(r)
+		e.Type = "fpar"
+		e.ClientID = r.PostForm.Get("client_id")
+		logs.RecordEvent(r.Context(), h.Recorder, e)
 		writeError(w, oerr)
 		return
 	}
@@ -49,6 +55,7 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	if oerr != nil {
 		return nil, oerr
 	}
+	ctx = r.Context()
 	c, oerr := h.authenticateClient(ctx, r, form, t.ID)
 	if oerr != nil {
 		return nil, oerr
@@ -110,6 +117,15 @@ func parStatus(code string) int {
 // repeated parameters (P2d, P2e). An oversized body is 413
 // payload_too_large, as on Auth0.
 func parsePARRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error) {
+	defer func() {
+		values := []string{}
+		for key, value := range r.PostForm {
+			if logscrub.SensitiveKey(key) {
+				values = append(values, value...)
+			}
+		}
+		*r = *r.WithContext(logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...))
+	}()
 	r.Body = http.MaxBytesReader(w, r.Body, maxPARRequestBytes)
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || mediaType != "application/x-www-form-urlencoded" {

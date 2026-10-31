@@ -4,7 +4,10 @@
 // here is an alias, so values are interchangeable.
 package store
 
-import "github.com/zeroauthy/zeroauthy/internal/store"
+import (
+	"context"
+	"github.com/zeroauthy/zeroauthy/internal/store"
+)
 
 type (
 	OrganizationsIISupporter     = store.OrganizationsIISupporter
@@ -343,3 +346,9 @@ var ErrLogsUnavailable = store.ErrLogsUnavailable
 
 func FormatLogID(seq int64) string        { return store.FormatLogID(seq) }
 func ParseLogID(id string) (int64, error) { return store.ParseLogID(id) }
+
+type OrganizationMembershipWriter = store.OrganizationMembershipWriter
+
+func AddMembersResult(ctx context.Context, repository Organizations, tenantID, orgID string, userIDs []string) ([]string, error) {
+	return store.AddMembersResult(ctx, repository, tenantID, orgID, userIDs)
+}

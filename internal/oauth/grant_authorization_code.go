@@ -9,13 +9,26 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // authorizationCode implements RFC 6749 §4.1.3 with RFC 7636 PKCE.
-func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
+func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
+	var eventConn *store.Connection
+	var eventUserID string
+	defer func() {
+		if failure != nil && (failure.Code == "authorization_pending" || failure.Code == "slow_down") {
+			return
+		}
+		code := "seacft"
+		if failure != nil {
+			code = "feacft"
+		}
+		h.event(ctx, res, c, code, eventConn, eventUserID)
+	}()
 	code := form.Get("code")
 	if code == "" {
 		return nil, invalidRequest("code is required")
@@ -77,10 +90,13 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		}
 	}
 
+	eventUserID = ac.UserID
 	user, oerr := h.activeUser(ctx, tenantID, ac.UserID)
 	if oerr != nil {
 		return nil, oerr
 	}
+	eventConn = eventConnection(user, ac.OrganizationConnectionID)
+	ctx = logs.WithEvent(ctx, logs.Event{OrganizationID: ac.OrganizationID, UserID: user.UserID, UserName: user.Name, Connection: eventConn.Name, ConnectionID: eventConn.ID, Strategy: eventConn.Strategy})
 	org, oerr := h.organizationForToken(ctx, tenantID, user.UserID, ac.OrganizationID, ac.OrganizationConnectionID, c)
 	if oerr != nil {
 		return nil, oerr
@@ -155,6 +171,9 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			return nil, invalidGrant("invalid authorization code")
 		}
 		resp.RefreshToken = &raw
+	}
+	if user != nil {
+		eventUserID = user.UserID
 	}
 	return resp, nil
 }

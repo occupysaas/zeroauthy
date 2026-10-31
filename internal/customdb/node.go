@@ -17,10 +17,12 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -104,8 +106,10 @@ type proc struct {
 	// Each is the union of the values the connection has had in this
 	// process, so a late line from before a configuration change is still
 	// masked; all is the union over every connection.
-	reds map[string]*Redactor
-	all  *Redactor
+	reds      map[string]*Redactor
+	all       *Redactor
+	masks     context.Context
+	connMasks map[string]context.Context
 }
 
 func (r *NodeRunner) started(tenant string) any {
@@ -181,6 +185,7 @@ type logLine struct {
 
 // Execute runs one script in the tenant's runner process.
 func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage, error) {
+	ctx = credentialContext(ctx, req.Script, req.Args)
 	if !slices.Contains(store.ScriptNames, req.Script) {
 		return nil, fmt.Errorf("customdb: unknown script %q", req.Script)
 	}
@@ -205,6 +210,16 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 			p := state.(*proc)
 			red := NewRedactor(req.Config)
 			p.mu.Lock()
+			if p.masks == nil {
+				p.masks = context.Background()
+				p.connMasks = map[string]context.Context{}
+			}
+			p.masks = logscrub.CopyMasks(p.masks, ctx)
+			mask := p.connMasks[req.ConnectionID]
+			if mask == nil {
+				mask = context.Background()
+			}
+			p.connMasks[req.ConnectionID] = logscrub.CopyMasks(mask, ctx)
 			if p.reds == nil {
 				p.reds = map[string]*Redactor{}
 			}
@@ -260,12 +275,12 @@ func (r *NodeRunner) logLine(p *proc, b []byte) {
 	var l logLine
 	if err := json.Unmarshal(b, &l); err != nil || l.Level == "" {
 		// Unstructured output could carry any connection's values.
-		out := p.redactorFor("").RedactLine(string(b))
-		r.log.Warn("custom database runner output", "tenant", p.tenant, "output", noderunner.Truncate(out, maxLogMsg))
+		out := logscrub.ScrubTruncatedText(p.maskFor(""), p.redactorFor("").RedactLine(string(b)), cutMin)
+		r.log.Warn("custom database runner output", "tenant", p.tenant, "output", truncateMaskedLine(out, maxLogMsg))
 		return
 	}
 	// Mask before truncating, so a cut never leaves a prefix of a value.
-	msg := p.redactorFor(l.Conn).RedactLine(l.Msg)
+	msg := logscrub.ScrubTruncatedText(p.maskFor(l.Conn), p.redactorFor(l.Conn).RedactLine(l.Msg), cutMin)
 	level := slog.LevelInfo
 	switch l.Level {
 	case "debug":
@@ -277,7 +292,7 @@ func (r *NodeRunner) logLine(p *proc, b []byte) {
 	}
 	// "output", not "msg": the record's own message already uses that key.
 	r.log.Log(context.Background(), level, "custom database script",
-		"tenant", p.tenant, "connection", l.Conn, "output", noderunner.Truncate(msg, maxLogMsg))
+		"tenant", p.tenant, "connection", l.Conn, "output", truncateMaskedLine(msg, maxLogMsg))
 }
 
 // redactorFor returns the masker for a connection's console lines: the
@@ -299,4 +314,31 @@ func (r *NodeRunner) Close() error {
 		return fmt.Errorf("customdb: %w", err)
 	}
 	return nil
+}
+
+func (p *proc) maskFor(conn string) context.Context {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if conn != "" && p.connMasks[conn] != nil {
+		return p.connMasks[conn]
+	}
+	if p.masks != nil {
+		return p.masks
+	}
+	return context.Background()
+}
+
+// truncateMaskedLine keeps the complete marker when redaction lengthens a line
+// across the output byte cap. The source prefix is already scrubbed here.
+func truncateMaskedLine(text string, limit int) string {
+	if len(text) <= limit {
+		return text
+	}
+	cut := noderunner.Truncate(text, limit)
+	for size := 1; size < len(logscrub.Marker); size++ {
+		if strings.HasSuffix(cut, logscrub.Marker[:size]) {
+			return noderunner.Truncate(strings.TrimSuffix(cut, logscrub.Marker[:size]), limit-len(logscrub.Marker)) + logscrub.Marker
+		}
+	}
+	return cut
 }

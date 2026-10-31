@@ -8,8 +8,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/zeroauthy/zeroauthy/internal/certificates"
-	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"log/slog"
 	"net/http"
 	"os"
@@ -19,8 +17,10 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	actionsbuild "github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/certificates"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
@@ -265,6 +265,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
+	recorder := logs.NewRecorder(st, logs.Config{Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize}, log)
 	tenantEmail := &email.Service{Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
 	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
@@ -290,7 +291,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
 		Processors: map[store.JobType]jobs.Processor{
 			store.JobVerificationEmail: jobs.VerifyEmail{
-				Sender: &login.VerificationMailer{Store: st, Mailer: mailer, Email: tenantEmail, BaseDomain: cfg.Server.BaseDomain, Log: log},
+				Sender: &login.VerificationMailer{Recorder: recorder, Store: st, Mailer: mailer, Email: tenantEmail, BaseDomain: cfg.Server.BaseDomain, Log: log},
 				Log:    log,
 			},
 			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
@@ -366,10 +367,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		actions:    actionsRunner,
 		actionJobs: &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
 		jobs:       jobRunner,
-		logs:       logs.NewRecorder(st, logs.Config{Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize}, log),
+		logs:       recorder,
 		logPurge:   logs.NewPurger(st, logs.Config{Retention: cfg.Logs.Retention}, log),
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
+			Recorder:     recorder,
 			Store:        st,
 			Keys:         km,
 			Resolver:     tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),

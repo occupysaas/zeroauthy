@@ -9,6 +9,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -21,7 +22,19 @@ func familyForDevice(deviceCodeHash string) string {
 
 // deviceCodeGrant implements RFC 8628 §3.4-3.5: the device polls until the
 // user decides.
-func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
+func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
+	var eventConn *store.Connection
+	var eventUserID string
+	defer func() {
+		if failure != nil && (failure.Code == "authorization_pending" || failure.Code == "slow_down") {
+			return
+		}
+		code := "sede"
+		if failure != nil {
+			code = "fede"
+		}
+		h.event(ctx, res, c, code, eventConn, eventUserID)
+	}()
 	code := form.Get("device_code")
 	if code == "" {
 		return nil, invalidRequest("device_code is required")
@@ -63,10 +76,13 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	}
 
 	dc := poll.Code
+	eventUserID = dc.UserID
 	user, oerr := h.activeUser(ctx, tenantID, dc.UserID)
 	if oerr != nil {
 		return nil, deviceError(oerr)
 	}
+	eventConn = eventConnection(user, "")
+	ctx = logs.WithEvent(ctx, logs.Event{UserID: user.UserID, UserName: user.Name, Connection: eventConn.Name, ConnectionID: eventConn.ID, Strategy: eventConn.Strategy})
 	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, dc.Audience)
 	if oerr != nil {
 		return nil, deviceError(oerr)
@@ -116,6 +132,9 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	}
 	if rt != nil {
 		resp.RefreshToken = &raw
+	}
+	if user != nil {
+		eventUserID = user.UserID
 	}
 	return resp, nil
 }

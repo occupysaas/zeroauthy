@@ -33,6 +33,7 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, res tenant.Res
 	if oerr != nil {
 		return oerr
 	}
+	ctx = r.Context()
 	c, oerr := h.authenticateClient(ctx, r, form, tenantID)
 	if oerr != nil {
 		return oerr
@@ -58,6 +59,9 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, res tenant.Res
 	if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, h.now().UTC()); err != nil {
 		h.log().ErrorContext(ctx, "revoke refresh tokens", "tenant", tenantID, "err", err)
 		return serverError()
+	}
+	if rt.RevokedAt == nil {
+		h.event(requestEventContext(r), res, c, "srrt", nil, rt.UserID)
 	}
 	h.log().InfoContext(ctx, "refresh tokens revoked", "tenant", tenantID, "client_id", c.ClientID, "family", rt.FamilyID)
 	return nil

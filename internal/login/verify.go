@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -25,7 +26,8 @@ import (
 // issues a fresh email verification ticket (432000 s, U6) and emails its
 // link. It implements mgmt.VerificationSender and dbconn.SignupVerifier.
 type VerificationMailer struct {
-	Store store.Store
+	Recorder logs.Recorder
+	Store    store.Store
 	// Mailer sends the email. Without one nothing is sent and nothing
 	// fails, so a signup still succeeds.
 	Mailer email.Mailer
@@ -89,7 +91,20 @@ func (m *VerificationMailer) resolve(ctx context.Context, tenantID string) (tena
 }
 
 // Send emails u a verification link in lang. It sends synchronously.
-func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *store.User, clientID, lang string) error {
+func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *store.User, clientID, lang string) (failure error) {
+	defer func() {
+		if failure != nil {
+			e := logs.Event{TenantID: res.Tenant.ID, Type: "fv", Hostname: res.Host, ClientID: clientID, UserID: u.UserID, UserName: u.Name, Connection: dbconn.VerificationConnection(u)}
+			for _, identity := range u.Identities {
+				if identity.Connection == e.Connection {
+					e.Strategy = identity.Provider
+					e.StrategyType = logs.StrategyType(identity.Provider)
+					break
+				}
+			}
+			logs.RecordEvent(ctx, m.Recorder, e)
+		}
+	}()
 	if u.Email == "" {
 		return nil
 	}
@@ -271,6 +286,7 @@ func (h *Handlers) finishVerification(w http.ResponseWriter, view ui.Tenant, tk 
 // import mode, only once the verify script answers true), then redirects
 // to the ticket's result_url or shows the result page.
 func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request) {
+	h.maskRequest(r)
 	ctx := r.Context()
 	res, ok := tenant.FromContext(ctx)
 	if !ok {
@@ -387,6 +403,7 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		h.fail(w, r, err, nil)
 		return
 	}
+	h.ticketEvent(r, "sv", tk.ClientID, conn, user)
 	h.log().InfoContext(ctx, "email verified", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 	if h.Verification != nil {
 		h.Verification.SendWelcomeInBackground(res.Tenant.ID, tk.UserID, tk.ClientID, tk.Lang)
@@ -439,6 +456,7 @@ func (h *Handlers) setEmailVerified(ctx context.Context, tenantID, userID string
 // Management API password-change ticket (U6). Like Auth0's, it forwards to
 // the new-password form, which checks the ticket.
 func (h *Handlers) ResetVerify(w http.ResponseWriter, r *http.Request) {
+	h.maskRequest(r)
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Location", "/u/reset-password?"+url.Values{"ticket": {r.URL.Query().Get("ticket")}}.Encode())

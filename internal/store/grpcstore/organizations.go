@@ -439,9 +439,22 @@ func (o clientOrganizations) AddMembers(ctx context.Context, tid, orgID string, 
 	_, err := orgCall(o.c, "AddMembers", &storev1.OrganizationsRequest{TenantId: tid, OrganizationId: orgID, Ids: userIDs}, o.c.rpc.OrganizationsAddMembers, ctx)
 	return err
 }
+func (o clientOrganizations) AddMembersResult(ctx context.Context, tid, orgID string, userIDs []string) ([]string, error) {
+	result, err := orgCall(o.c, "AddMembers", &storev1.OrganizationsRequest{TenantId: tid, OrganizationId: orgID, Ids: userIDs, ReportInserted: true}, o.c.rpc.OrganizationsAddMembers, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return result.Ids, nil
+}
 func (srv *Server) OrganizationsAddMembers(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {
-	return srv.orgServe(q.TxId, &storev1.OrganizationsResponse{}, func(o store.Organizations) error {
-		return o.AddMembers(ctx, q.TenantId, q.OrganizationId, q.Ids)
+	result := &storev1.OrganizationsResponse{}
+	return srv.orgServe(q.TxId, result, func(repository store.Organizations) error {
+		if !q.ReportInserted {
+			return repository.AddMembers(ctx, q.TenantId, q.OrganizationId, q.Ids)
+		}
+		var err error
+		result.Ids, err = store.AddMembersResult(ctx, repository, q.TenantId, q.OrganizationId, q.Ids)
+		return err
 	}), nil
 }
 

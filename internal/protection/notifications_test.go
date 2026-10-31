@@ -111,7 +111,7 @@ func TestStolenCredentialsNotifiesVerifiedLoginSubject(t *testing.T) {
 	}
 }
 
-func TestAdminNotificationStillDeferred(t *testing.T) {
+func TestAdminNotificationHitReportedWithoutDeferredWarning(t *testing.T) {
 	s, tn, _, n := notificationService(t)
 	ctx := context.Background()
 	tn.ProtectionSettings.BreachedPassword.Enabled = true
@@ -123,10 +123,10 @@ func TestAdminNotificationStillDeferred(t *testing.T) {
 	s.Log = slog.New(slog.NewTextHandler(&logs, nil))
 	s.Now = func() time.Time { return time.Now().UTC().Add(2 * time.Hour) }
 	s.BreachChecker = hitChecker{}
-	if err := s.CheckPasswordForUser(ctx, tn, "login", "secret", "u"); err != nil {
-		t.Fatal(err)
+	if hit, err := s.CheckPasswordForUserResult(ctx, tn, "login", "secret", "u"); err != nil || !hit {
+		t.Fatal(hit, err)
 	}
-	if !strings.Contains(logs.String(), "protection admin notification deferred") || len(n.calls) != 0 {
+	if strings.Contains(logs.String(), "protection admin notification deferred") || len(n.calls) != 0 {
 		t.Fatalf("admin notification behavior logs=%q user=%v", logs.String(), n.calls)
 	}
 }

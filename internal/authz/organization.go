@@ -3,11 +3,12 @@ package authz
 import (
 	"context"
 	"errors"
-	"github.com/zeroauthy/zeroauthy/internal/access"
-	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"net/http"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -192,7 +193,7 @@ func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, r
 		return false, errLoginRequired()
 	}
 	emptyPicker := false
-	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+	err = orglogin.WithMembershipEvents(r.Context(), h.Store, func(ctx context.Context, tx store.Store) error {
 		fresh, e := tx.Clients().Get(r.Context(), res.Tenant.ID, c.ClientID)
 		if e != nil {
 			return e
@@ -223,7 +224,7 @@ func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, r
 		if e != nil {
 			return e
 		}
-		return orglogin.EnsureMembership(r.Context(), tx, oc, sess.UserID, conn.ID)
+		return orglogin.EnsureMembership(logs.WithEvent(ctx, logs.Event{ClientID: c.ClientID, ClientName: c.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)}), tx, oc, sess.UserID, conn.ID)
 	})
 	if errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, store.ErrNotFound) {
 		if fr.OrgMode == OrgPickAfter {

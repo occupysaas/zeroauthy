@@ -27,6 +27,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
@@ -37,6 +38,7 @@ import (
 )
 
 type Deps struct {
+	Recorder   logs.Recorder
 	Protection *protection.Service
 
 	Store        store.Store
@@ -137,6 +139,9 @@ func (a authAPI) OidcLogoutPost(w http.ResponseWriter, r *http.Request) { a.oidc
 var _ authapi.ServerInterface = authAPI{}
 
 func New(d Deps) http.Handler {
+	if d.Recorder == nil {
+		d.Recorder = logs.Nop
+	}
 	if d.EmailService == nil {
 		renderer, _ := email.NewRenderer()
 		d.EmailService = &email.Service{Store: d.Store, Wrapper: d.Wrapper, Renderer: renderer, Providers: &providers.Factory{}, Fallback: d.Mailer, DefaultFrom: "zeroauthy@localhost"}
@@ -171,25 +176,28 @@ func New(d Deps) http.Handler {
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
 	// hosted page) and for the Management API's verify_email.
-	verification := &login.VerificationMailer{Store: d.Store, Mailer: d.Mailer, Email: d.EmailService, BaseDomain: d.BaseDomain, Log: d.Log}
+	verification := &login.VerificationMailer{Recorder: d.Recorder, Store: d.Store, Mailer: d.Mailer, Email: d.EmailService, BaseDomain: d.BaseDomain, Log: d.Log}
 	// All password flows use the store-backed policy service. Reset send
 	// budgets also remain shared across independently constructed servers.
 	sharedProtection := d.Protection
 	if sharedProtection == nil {
 		sharedProtection = &protection.Service{Store: d.Store, Log: d.Log}
 	}
+	sharedProtection.Recorder = d.Recorder
 	if sharedProtection.Notifier == nil && d.EmailService != nil {
 		sharedProtection.Notifier = d.EmailService
 	}
 	dbconnHandlers := &dbconn.Handlers{
-		Store: d.Store, Database: db, Actions: d.Actions,
+		Recorder: d.Recorder,
+		Store:    d.Store, Database: db, Actions: d.Actions,
 		Protection: sharedProtection, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 		Mailer:       d.Mailer,
 		Email:        d.EmailService,
 		Verification: verification,
 	}
 	lg := &login.Handlers{
-		Store: d.Store, Sessions: d.Sessions, Authz: az,
+		Recorder: d.Recorder,
+		Store:    d.Store, Sessions: d.Sessions, Authz: az,
 		Database:          db,
 		Actions:           d.Actions,
 		Resets:            dbconnHandlers,
@@ -203,11 +211,16 @@ func New(d Deps) http.Handler {
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
-		tr.Use(d.Resolver.Middleware, cors(d.Store), hostedPresentation(d.Store))
+		tr.Use(d.Resolver.Middleware, cors(d.Store), hostedPresentation(d.Store), func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				next.ServeHTTP(w, r.WithContext(logs.WithRecorder(r.Context(), d.Recorder)))
+			})
+		})
 		authapi.HandlerWithOptions(authAPI{
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
-				Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
+				Recorder: d.Recorder,
+				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
 				BaseDomain:        d.BaseDomain,
 				Database:          db,
 				Protection:        sharedProtection,

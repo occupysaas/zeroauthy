@@ -285,3 +285,21 @@ func TestSlogEncodedJSONPreservesNumbersAndMarkers(t *testing.T) {
 		t.Fatalf("encoded JSON markers/numbers changed: %#v", nested)
 	}
 }
+
+func TestShortCredentialsMaskedWithoutChangingWithValues(t *testing.T) {
+	for _, secret := range []string{"a", "ab", "abc", "猫"} {
+		t.Run(secret, func(t *testing.T) {
+			if got := logscrub.MaskText(logscrub.WithValues(context.Background(), secret), secret); got != secret {
+				t.Fatalf("generic short mask changed: %q", got)
+			}
+			ctx := logscrub.WithCredentials(context.Background(), secret)
+			if got := logscrub.MaskText(ctx, secret); got != logscrub.Marker {
+				t.Fatalf("credential not masked: %q", got)
+			}
+			detached := logscrub.CopyMasks(context.Background(), ctx)
+			if got := logscrub.MaskText(detached, secret); got != logscrub.Marker {
+				t.Fatalf("detached short mask lost: %q", got)
+			}
+		})
+	}
+}

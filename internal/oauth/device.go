@@ -50,7 +50,13 @@ func (h *Handlers) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
-func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved) (*deviceCodeResponse, *Error) {
+func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved) (response *deviceCodeResponse, failure *Error) {
+	var eventClient *store.Client
+	defer func() {
+		if failure != nil {
+			h.event(requestEventContext(r), res, eventClient, "fdeaz", nil, "")
+		}
+	}()
 	ctx := r.Context()
 	t := res.Tenant
 	form, oerr := parseTokenRequest(w, r)
@@ -65,6 +71,7 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 	if _, _, hasBasic := r.BasicAuth(); hasBasic || r.Header.Get("Authorization") != "" || form.Get("client_secret") != "" {
 		return nil, unauthorizedClient("device clients do not authenticate")
 	}
+	ctx = r.Context()
 	clientID := form.Get("client_id")
 	c, err := h.Store.Clients().Get(ctx, t.ID, clientID)
 	if clientID == "" || errors.Is(err, store.ErrNotFound) {
@@ -76,6 +83,7 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 	}
 	// Seed validation already limits the grant to first-party native
 	// public clients; checking again here is defence in depth.
+	eventClient = c
 	if c.TokenEndpointAuthMethod != store.AuthMethodNone || !slices.Contains(c.GrantTypes, GrantDeviceCode) ||
 		c.AppType != store.AppTypeNative || !c.IsFirstParty {
 		return nil, unauthorizedClient("the client is not allowed to use the device authorization flow")

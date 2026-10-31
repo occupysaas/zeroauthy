@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 )
 
 const maxTokenRequestBytes = 64 << 10
@@ -17,7 +19,16 @@ const maxTokenRequestBytes = 64 << 10
 // send both form-encoded and JSON bodies, so both are accepted. JSON
 // values must be scalars and are converted to strings. Query parameters
 // are never read: credentials must not travel in URLs.
-func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error) {
+func parseTokenRequest(w http.ResponseWriter, r *http.Request) (form url.Values, failure *Error) {
+	defer func() {
+		values := []string{}
+		for k, v := range form {
+			if logscrub.SensitiveKey(k) || k == "otp" {
+				values = append(values, v...)
+			}
+		}
+		*r = *r.WithContext(logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...))
+	}()
 	r.Body = http.MaxBytesReader(w, r.Body, maxTokenRequestBytes)
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
