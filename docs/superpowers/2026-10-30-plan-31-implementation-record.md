@@ -1033,3 +1033,68 @@ is claimed here; those remain later plan tasks/Task 16. Broader PostgreSQL/MySQL
 suites were not run in Task 8 beyond the new membership write contract. The full
 internal short suite exercised native/SQLite-backed paths. Controller review is
 pending; implementation self-review found no remaining task-level blocker.
+
+### Task 8 focused correction — bounded customdb mask retention
+
+This correction supersedes Task 8's earlier accepted lifetime-growing customdb
+mask-state limitation. The controller chose bounded process muting, without a
+noderunner/request-ID or JavaScript protocol redesign. Configured values and
+request masks now share one actual distinct allowance: at most 256 nonempty
+values and 64 KiB plaintext payload per process (not exact allocator overhead).
+Values are detached; no request context or per-connection history is retained.
+A no-copy logscrub iterator lets admission stop at the first excess value instead
+of cloning a large request list or copying lifetime history.
+
+One absolute timer starts at the first admitted sensitive value. At 60 seconds,
+or whenever admitting a new value would exceed either cap, the process permanently
+stops admitting all stderr/captured console diagnostics, physically clears its
+mask/redactor state, and cancels its timer. Retirement also clears and cancels.
+There is no evict-and-log/raw fallback. Old configured values after rotation and
+passwords cached in script globals remain protected across later requests.
+Business results and error kind/code/message continue unchanged. Small policy
+limits and injectable clock/timer hooks are internal only; public config is unchanged.
+
+Cost/ruling: a sensitive busy process provides only its initial diagnostic window,
+possibly shortened by capacity, and process-wide masks can over-hide other
+connections' output. The controller also ruled that arbitrary slog handlers run
+outside the mask mutex, with Background and already-safe strings: no new diagnostics
+are admitted after muting, but an already-scrubbed in-flight line may finish.
+A blocked handler must not delay physical clearing or business admission.
+
+Verification used `GOTOOLCHAIN=go1.26.7` throughout:
+
+- Behavioral RED against the original code: `go test ./internal/customdb
+  -run TestRunnerBoundedMasksMuteAtCapacity -count=1` failed on call 256 continuing
+  captured output with a cached first password; task-8-bounded-red.log.
+- Final-review RED: the real-Node blocked-handler test failed with
+  `slow stderr handler blocked physical mask clearing`; it passed after releasing
+  the mutex before handler emission. See task-8-bounded-blocked-logger-red.log.
+- Final `go test ./internal/customdb ./internal/logscrub -count=1`: PASS, exit 0;
+  task-8-bounded-final-green.log. Final `go test -race ./internal/customdb
+  ./internal/logscrub -count=1`: PASS, exit 0; task-8-bounded-final-race.log.
+- Required ten-package Task 8 command (`go test ./internal/login ./internal/oauth
+  ./internal/dbconn ./internal/session ./internal/hostedlogin ./internal/devicecode
+  ./internal/protection ./internal/orglogin ./internal/federation ./internal/customdb
+  -run 'Event|Masked|RecorderFull' -count=1`): PASS, exit 0;
+  task-8-bounded-final-focused.log. Session/hostedlogin/devicecode have no selected
+  tests. Real Node tests ran; no customdb/logscrub test was skipped.
+- `go test ./internal/... -count=1 -short`: PASS, exit 0, 70 tested packages;
+  task-8-bounded-final-internal-short.log. The required focused command and this
+  short suite preceded the final narrow log-lock adjustment; final full customdb/
+  logscrub and race checks include it. Controller accepted those focused final
+  checks without repeating the full short suite. Ordinary nonverbose short output
+  does not enumerate individual skips; environment/short-gated external driver
+  tests are not claimed.
+- Tests include a 270-call live-process loop with count/byte checks, combined
+  config/password capacity, oversized metadata and payload, cached credentials
+  and rotated configuration in capture/stderr, unknown/unstructured output,
+  exact short masks, deterministic physical expiry without lookup, real quiet
+  process timer expiry, cancellation/watch safety, retirement/timer races, and
+  business success/error behavior after muting. Existing late30ms, 200ms rotation,
+  JSON keys and truncation regressions remain green.
+- `git diff --check`: PASS. No dedicated noderunner/Actions rerun was needed since
+  their code and Prepare API are unchanged; their short tests ran in the suite.
+  No full PostgreSQL/MySQL script, browser/E2E, generated build, or Task 16 final
+  suite was run for this correction. No new behavior test is deferred.
+
+Full focused report: `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-8-bounded-report.md`.

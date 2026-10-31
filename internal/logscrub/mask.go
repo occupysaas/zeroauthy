@@ -3,6 +3,7 @@ package logscrub
 import (
 	"context"
 	"encoding/json"
+	"iter"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -159,4 +160,17 @@ func ScrubTruncatedText(ctx context.Context, text string, minimumCut int) string
 		}
 	}
 	return ScrubValueContext(ctx, text).(string)
+}
+
+// MaskValues visits immutable registered values without cloning them or keeping
+// the request context. A bounded consumer can stop before copying excess input.
+func MaskValues(ctx context.Context) iter.Seq[string] {
+	values, _ := ctx.Value(valuesKey{}).([]string)
+	return func(yield func(string) bool) {
+		for _, value := range values {
+			if !yield(value) {
+				return
+			}
+		}
+	}
 }
