@@ -82,7 +82,7 @@ func streamCreate(t *testing.T, e *clientsEnv, typ string, extra map[string]any)
 		body[k] = v
 	}
 	w, out := streamCall(t, e, "POST", "", body)
-	if w.Code != 201 {
+	if w.Code != 200 {
 		t.Fatalf("create %s: %d %s", typ, w.Code, w.Body)
 	}
 	id, _ := out.(map[string]any)["id"].(string)
@@ -454,7 +454,7 @@ func TestLogStreamSecretReplacementAndUnconfiguredMarker(t *testing.T) {
 	e := newClientsEnv(t)
 	logSetup(e)
 	w, out := streamCall(t, e, "POST", "", map[string]any{"type": "http", "sink": map[string]any{"httpEndpoint": "https://collector.example.test"}})
-	if w.Code != 201 {
+	if w.Code != 200 {
 		t.Fatal(w.Code, w.Body)
 	}
 	id := out.(map[string]any)["id"].(string)

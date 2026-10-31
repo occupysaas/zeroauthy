@@ -167,7 +167,7 @@ func (h *Handlers) CreateLogStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logDetails(r, "create log stream", "id", s.ID, "type", s.Type)
-	h.writeStream(w, r, s, 201)
+	h.writeStream(w, r, s, http.StatusOK)
 }
 func (h *Handlers) UpdateLogStream(w http.ResponseWriter, r *http.Request, id string) {
 	repo, ok := h.logsRepo(w, r)

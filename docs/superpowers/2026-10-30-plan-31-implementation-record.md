@@ -1646,3 +1646,35 @@ Task 12 network/worker tests were run or claimed passing for this task. Existing
 storage implementation was reused without mutation; final broad regression
 remains Task 16. Commit subject: `feat: manage log streams`. Detailed report:
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-11-report.md`.
+
+### Task 11 review correction — create status contract (2026-10-31)
+
+Review found that Task 11 returned201 on stream creation and its initial tests
+encoded that status, while the frozen `api/management.yaml` POST response and
+D-0057 require200. Starting from `3b88347`, independently corrected the two
+Management test expectations and both mounted-route create/HTTP-opt-in
+expectations to200 first. Actual `GOTOOLCHAIN=go1.26.7 go test ./internal/mgmt
+./internal/server -run 'LogStream|CloudStreams' -count=1` was **RED**: create
+cases returned201 in both packages (mgmt4.753s/server0.547s;
+`task-11-status-red.log`). Then changed the handler's success status to
+`http.StatusOK`.
+
+Final correction checks, both using GOTOOLCHAIN=go1.26.7:
+
+- `go test ./internal/mgmt ./internal/server -run 'LogStream|CloudStreams'
+  -count=1`: **PASS**, mgmt7.148s/server0.958s
+  (`task-11-status-green.log`).
+- `go test -race ./internal/mgmt ./internal/server -run
+  'LogStream|CloudStreams' -count=1`: **PASS**, mgmt12.108s/server2.256s
+  (`task-11-status-race.log`).
+- `git diff --check`: **PASS**. Self-review confirmed the one production-line
+  change and all four create expectations agree with the existing frozen200
+  contract. No other behavior or generated schema changed.
+
+The earlier Task 11 check results above describe the pre-correction snapshot;
+these focused/race results are the final corrected-source evidence. No broad,
+database, E2E, source-link or build checks were repeated for this status-only
+change. The controller explicitly deferred the review's minor request for a
+concurrent sealed-secret-replacement test; existing concurrent public-field
+refresh and independent secret-preservation coverage remain unchanged.
+Fix commit subject: `fix: match log stream create status contract`.

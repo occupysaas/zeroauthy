@@ -42,7 +42,7 @@ func TestLogStreamsThroughServer(t *testing.T) {
 		t.Fatal(w.Code, w.Body)
 	}
 	w, out := sendJSON(h, "POST", "https://acme.example.test/api/v2/log-streams", admin, body)
-	if w.Code != 201 || strings.Contains(w.Body.String(), "SENTINEL_") {
+	if w.Code != 200 || strings.Contains(w.Body.String(), "SENTINEL_") {
 		t.Fatal(w.Code, w.Body)
 	}
 	id, _ := out["id"].(string)
@@ -113,7 +113,7 @@ func TestLogStreamsInsecureHTTPOptInThroughServer(t *testing.T) {
 			w, _ := sendJSON(h, "POST", "https://acme.example.test/api/v2/log-streams", token, map[string]any{"type": "http", "sink": map[string]any{"httpEndpoint": "http://collector.example.test/logs"}})
 			want := 400
 			if allow {
-				want = 201
+				want = 200
 			}
 			if w.Code != want {
 				t.Fatal(w.Code, w.Body)
