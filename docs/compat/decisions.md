@@ -2018,3 +2018,11 @@ Further frozen contracts and evidence gaps:
   Plan 45. Existing tenant Management 429 outcomes can emit `api_limit` from
   the shared middleware. No per-code emission integration tests or runtime
   endpoint, store, delivery, console or E2E claims are made by Task 1.
+
+The console's local `GET /api/system/tenants/{tenant}/log-streams/status`
+extension exposes only stream ID, status, failure count, safe error class,
+last-success and next-attempt timestamps (unset timestamps omitted). It requires
+an operator with a current grant for the path tenant and `read:log_streams`;
+missing Logs v1 returns `501 logs_unavailable`. It never exposes sink settings,
+sealed credentials or lease ownership. This keeps delivery diagnostics out of
+the Auth0-compatible public log-stream shape.

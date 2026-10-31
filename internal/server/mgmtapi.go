@@ -893,3 +893,8 @@ func (a mgmtAPI) UpdateLogStream(w http.ResponseWriter, r *http.Request, id stri
 func (a mgmtAPI) DeleteLogStream(w http.ResponseWriter, r *http.Request, id string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteLogStream(w, r, id) }, "delete:log_streams")
 }
+
+// GetTenantLogStreamStatus is a local operator-only delivery health view.
+func (a mgmtAPI) GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request, name string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTenantLogStreamStatus(w, r, name) }, "read:log_streams")
+}

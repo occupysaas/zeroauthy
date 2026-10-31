@@ -12,7 +12,8 @@ const { t } = useI18n(), { tenant, id } = useActionContext()
     <RouterLink :to="{ name: 'action-triggers', params: { tenant: tenant.name } }">{{ t('actions.triggers') }}</RouterLink>
     <RouterLink :to="{ name: 'action-execution', params: { tenant: tenant.name } }">{{ t('actions.execution') }}</RouterLink>
     <RouterLink :to="{ name: 'action-modules', params: { tenant: tenant.name } }">{{ t('actions.modules') }}</RouterLink>
-    <template v-if="id && !String(route.name).startsWith('action-module')">
+    <RouterLink :to="{ name: 'actions-logs', params: { tenant: tenant.name } }">{{ t('monitor.actionsLogs') }}</RouterLink>
+    <template v-if="!String(route.name).includes('execution') && id && !String(route.name).startsWith('action-module')">
       <RouterLink v-for="tab in tabs" :key="tab.name" :to="{ name: 'action-' + tab.name, params: { tenant: tenant.name, id } }">{{ t(tab.label) }}</RouterLink>
     </template>
   </nav>

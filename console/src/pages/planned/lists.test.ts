@@ -1,33 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { expect, it } from 'vitest'
+import LogsList from '../logs/LogsList.vue'
 import { plannedPages } from './index'
-import { assertPreviewInert } from './preview'
 import { mountAt } from '../../test/mount'
 
-const never = () => ({ status: 500, body: {} })
-
-// key, title, column headers, empty text, header buttons
-const tables: [string, string, string[], string, string[]][] = [
-  ['logs', 'Logs', ['Event', 'Description', 'Date', 'Connection', 'Application'], 'Log events will appear here.', ['Log streams']],
-]
-
-describe('list-style planned previews', () => {
-  it.each(tables)('%s shows its table, empty state and inert controls', async (key, title, headers, empty, buttons) => {
-    const { wrapper, calls } = await mountAt(plannedPages[key]!, `/t/acme/${key}`, never)
-    expect(wrapper.get('h1').text()).toBe(title)
-    expect(wrapper.findAll('th').map((x) => x.text())).toEqual(headers)
-    expect(wrapper.findAll('tbody tr')).toHaveLength(1)
-    expect(wrapper.get('tbody td').text()).toBe(empty)
-    const labels = wrapper.findAll('button').map((b) => b.text())
-    for (const b of buttons) expect(labels).toContain(b)
-    assertPreviewInert(wrapper)
-    expect(calls.length).toBe(0)
-    wrapper.unmount()
-  })
-
-  it('logs has a disabled type select and date range', async () => {
-    const { wrapper } = await mountAt(plannedPages.logs!, '/t/acme/logs', never)
-    expect(wrapper.get('select').attributes('disabled')).toBeDefined()
-    expect(wrapper.findAll('input[type=date]')).toHaveLength(2)
-    wrapper.unmount()
-  })
+it('ships Logs with a live table, search and date controls', async () => {
+  expect(plannedPages.logs).toBeUndefined()
+  const { wrapper, calls } = await mountAt(LogsList, '/t/acme/logs', () => ({ status: 200, body: { logs: [], total: 0 } }))
+  expect(wrapper.get('h1').text()).toBe('Logs')
+  expect(wrapper.findAll('th').map(h => h.text())).toEqual(['Time (UTC)', 'Event type', 'Description', 'Application', 'Connection', 'User ID'])
+  expect(wrapper.get('#log-q').attributes('disabled')).toBeUndefined()
+  expect(wrapper.findAll('input[type=date]')).toHaveLength(2)
+  expect(wrapper.findAll('input[type=date]').every(i => i.attributes('disabled') === undefined)).toBe(true)
+  expect(calls).toHaveLength(1)
+  wrapper.unmount()
 })

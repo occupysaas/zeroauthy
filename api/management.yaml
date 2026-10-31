@@ -4531,6 +4531,27 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{tenant}/log-streams/status:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantLogStreamStatus
+      tags: [system]
+      summary: Read tenant log stream delivery health
+      description: Local D-0057 operator extension with live target-tenant grants and read:log_streams authorization. Returns only delivery metadata; never sink configuration, credentials or leases. Unset timestamps are omitted.
+      x-source:
+        - https://auth0.com/docs/customize/log-streams
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Delivery health for the target tenant streams.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: "#/components/schemas/SystemLogStreamStatus"}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: The storage plugin does not support logs.}
   /api/system/tenants/{tenant}/actions/executions:
     parameters:
       - {name: tenant, in: path, required: true, schema: {type: string}}
@@ -9322,6 +9343,19 @@ components:
       description: The member's user ID.
       schema: {type: string}
   schemas:
+    SystemLogStreamStatus:
+      type: object
+      additionalProperties: false
+      required: [id, status, failures, last_error_class]
+      properties:
+        id: {type: string}
+        status: {type: string, enum: [active, paused, suspended]}
+        last_success_at: {type: string, format: date-time}
+        next_at: {type: string, format: date-time}
+        failures: {type: integer, minimum: 0}
+        last_error_class:
+          type: string
+          description: Safe delivery error class, empty after success; unknown for an unrecognized driver value.
     SystemActionExecution:
       type: object
       required: [id, trigger_id, status, results, created_at, updated_at]

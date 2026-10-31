@@ -3936,6 +3936,27 @@ func (e SuspiciousIpThrottlingUpdateShields) Valid() bool {
 	}
 }
 
+// Defines values for SystemLogStreamStatusStatus.
+const (
+	SystemLogStreamStatusStatusActive    SystemLogStreamStatusStatus = "active"
+	SystemLogStreamStatusStatusPaused    SystemLogStreamStatusStatus = "paused"
+	SystemLogStreamStatusStatusSuspended SystemLogStreamStatusStatus = "suspended"
+)
+
+// Valid indicates whether the value is a known member of the SystemLogStreamStatusStatus enum.
+func (e SystemLogStreamStatusStatus) Valid() bool {
+	switch e {
+	case SystemLogStreamStatusStatusActive:
+		return true
+	case SystemLogStreamStatusStatusPaused:
+		return true
+	case SystemLogStreamStatusStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TenantSettingsCountryCodesMode.
 const (
 	TenantSettingsCountryCodesModeAllow TenantSettingsCountryCodesMode = "allow"
@@ -8441,6 +8462,21 @@ type SystemActionExecution struct {
 	TriggerId string    `json:"trigger_id"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// SystemLogStreamStatus defines model for SystemLogStreamStatus.
+type SystemLogStreamStatus struct {
+	Failures int    `json:"failures"`
+	Id       string `json:"id"`
+
+	// LastErrorClass Safe delivery error class, empty after success; unknown for an unrecognized driver value.
+	LastErrorClass string                      `json:"last_error_class"`
+	LastSuccessAt  *time.Time                  `json:"last_success_at,omitempty"`
+	NextAt         *time.Time                  `json:"next_at,omitempty"`
+	Status         SystemLogStreamStatusStatus `json:"status"`
+}
+
+// SystemLogStreamStatusStatus defines model for SystemLogStreamStatus.Status.
+type SystemLogStreamStatusStatus string
 
 // SystemTenant A tenant, as the system API reports it.
 type SystemTenant struct {
@@ -14031,6 +14067,9 @@ type ServerInterface interface {
 	// GetTenantJobs List a tenant's jobs
 	// (GET /api/system/tenants/{tenant}/jobs)
 	GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams)
+	// GetTenantLogStreamStatus Read tenant log stream delivery health
+	// (GET /api/system/tenants/{tenant}/log-streams/status)
+	GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request, tenant string)
 	// GetActions GetActions addressed to the current tenant
 	// (GET /api/v2/actions/actions)
 	GetActions(w http.ResponseWriter, r *http.Request, params GetActionsParams)
@@ -14751,6 +14790,12 @@ func (_ Unimplemented) TestTenantEmail(w http.ResponseWriter, r *http.Request, t
 // GetTenantJobs List a tenant's jobs
 // (GET /api/system/tenants/{tenant}/jobs)
 func (_ Unimplemented) GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantLogStreamStatus Read tenant log stream delivery health
+// (GET /api/system/tenants/{tenant}/log-streams/status)
+func (_ Unimplemented) GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request, tenant string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -16515,6 +16560,32 @@ func (siw *ServerInterfaceWrapper) GetTenantJobs(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTenantJobs(w, r, tenant, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantLogStreamStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantLogStreamStatus(w, r, tenant)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -24603,6 +24674,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/system/operators/{id}", wrapper.UpdateOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/log-streams/status", wrapper.GetTenantLogStreamStatus)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/actions/executions", wrapper.GetTenantActionExecutions)

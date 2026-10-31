@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { errorMessage, useServices, useTenant } from '../context'
+import { errorMessage } from '../context'
+import type { LogStat } from '../api/client'
+import { unavailable, useMonitoringContext } from './logs/shared'
+import DailyActivity from './logs/DailyActivity.vue'
 import { useI18n } from 'vue-i18n'
 import { homeLinks } from '../links'
 import Banner from '../ui/Banner.vue'
@@ -8,27 +11,25 @@ import CopyButton from '../ui/CopyButton.vue'
 
 const { t } = useI18n()
 
-const { api } = useServices()
-const tenant = useTenant()
+const { api, tenant, key, capture, current } = useMonitoringContext()
+const stats = ref<LogStat[]>([]), active = ref<number>(), statsError = ref(''), activeError = ref(''), missing = ref(false)
 const count = ref<number | null>(null)
 const countError = ref('')
 
 const discovery = computed(() => (tenant.value ? 'https://' + tenant.value.host + '/.well-known/openid-configuration' : ''))
 
-watch(
-  tenant,
-  async (tn) => {
-    count.value = null
-    countError.value = ''
-    if (!tn) return
-    try {
-      count.value = (await api.listClients(tn, { page: 0, per_page: 1 })).total
-    } catch (e) {
-      countError.value = errorMessage(e)
-    }
-  },
-  { immediate: true },
-)
+watch(key, async () => {
+  const c = capture()
+  count.value = null; countError.value = ''; stats.value = []; active.value = undefined; statsError.value = ''; activeError.value = ''; missing.value = false
+  if (!c) return
+  const to = new Date(); const from = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate() - 29))
+  const date = (d: Date) => d.toISOString().slice(0, 10).replaceAll('-', '')
+  await Promise.allSettled([
+    (async () => { try { const r = await api.listClients(c.tenant, { page: 0, per_page: 1 }); if(current(c)) count.value = r.total } catch(e) { if(current(c)) countError.value = errorMessage(e) } })(),
+    (async () => { try { const r = await api.dailyStats(c.tenant, { from: date(from), to: date(to) }); if(current(c)) stats.value = Array.isArray(r) ? r : [] } catch(e) { if(current(c)) { if(unavailable(e)) missing.value = true; else statsError.value = errorMessage(e) } } })(),
+    (async () => { try { const r = await api.activeUsers(c.tenant); if(current(c)) active.value = r } catch(e) { if(current(c)) { if(unavailable(e)) missing.value = true; else activeError.value = errorMessage(e) } } })(),
+  ])
+}, { immediate: true })
 </script>
 
 <template>
@@ -62,6 +63,10 @@ watch(
         </dd>
       </dl>
     </section>
+    <Banner v-if="missing" kind="warn">{{ t('monitor.unavailable') }}</Banner>
+    <Banner v-if="statsError" kind="error">{{ statsError }}</Banner>
+    <DailyActivity v-else-if="!missing" :stats="stats" class="mt-4" />
+    <section v-if="!missing" class="card stack mt-4"><h2>{{ t('monitor.activeUsers') }}</h2><Banner v-if="activeError" kind="error">{{ activeError }}</Banner><strong v-else data-testid="active-users" class="text-3xl">{{ active ?? '…' }}</strong></section>
     <h2>{{ t('applicationCount') }}</h2>
     <p v-if="countError" class="muted" role="alert">{{ countError }}</p>
     <p v-else>

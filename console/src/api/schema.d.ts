@@ -1854,6 +1854,28 @@ export interface paths {
         patch: operations["updateOperator"];
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/log-streams/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read tenant log stream delivery health
+         * @description Local D-0057 operator extension with live target-tenant grants and read:log_streams authorization. Returns only delivery metadata; never sink configuration, credentials or leases. Unset timestamps are omitted.
+         */
+        get: operations["getTenantLogStreamStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/actions/executions": {
         parameters: {
             query?: never;
@@ -3027,7 +3049,7 @@ export interface paths {
         };
         /**
          * Read UTC daily authentication counters
-         * @description DailyStat[] with date YYYY-MM-DD, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         * @description DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps. See D-0057 for local behavior.
          */
         get: operations["GetDailyStats"];
         put?: never;
@@ -3047,7 +3069,7 @@ export interface paths {
         };
         /**
          * Count users active within thirty days
-         * @description JSON integer; distinct existing users with last_login >= now minus 30 days See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         * @description JSON integer; distinct existing users with last_login >= now minus 30 days See D-0057 for local behavior.
          */
         get: operations["GetActiveUsers"];
         put?: never;
@@ -3062,6 +3084,18 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SystemLogStreamStatus: {
+            id: string;
+            /** @enum {string} */
+            status: "active" | "paused" | "suspended";
+            /** Format: date-time */
+            last_success_at?: string;
+            /** Format: date-time */
+            next_at?: string;
+            failures: number;
+            /** @description Safe delivery error class, empty after success; unknown for an unrecognized driver value. */
+            last_error_class: string;
+        };
         SystemActionExecution: {
             id: string;
             trigger_id: string;
@@ -3619,7 +3653,7 @@ export interface components {
             status?: "active" | "paused" | "suspended";
         };
         LogDailyStat: {
-            /** Format: date */
+            /** Format: date-time */
             date: string;
             logins: number;
             signups: number;
@@ -11243,6 +11277,38 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    getTenantLogStreamStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery health for the target tenant streams. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemLogStreamStatus"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description The storage plugin does not support logs. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getTenantActionExecutions: {
         parameters: {
             query?: {
@@ -16014,7 +16080,7 @@ export interface operations {
             query?: {
                 /** @description YYYYMMDD inclusive UTC day; default today minus 6 days; max inclusive range 366 days (local) */
                 from?: string;
-                /** @description YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters (local) */
+                /** @description YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters and midnight UTC created_at/updated_at (local) */
                 to?: string;
             };
             header?: never;
@@ -16023,7 +16089,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description DailyStat[] with date YYYY-MM-DD, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps */
+            /** @description DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -1879,3 +1879,115 @@ No broader suites, database/gRPC, console, browser or E2E checks were run for
 this correction. Existing exact-Go-zero ActiveUsers SQL/memory minor remains
 unchanged and carried forward. Correction commit subject:
 `fix: reject malformed stats query strings`; SHA is in the original task report.
+
+## Task 14 — Console monitoring, streams and Home activity (2026-10-31)
+
+Implemented the live Monitoring sections using the existing Vue console shell,
+forms, buttons, route modal and localization catalog. Logs provide Lucene
+search, type/date/user/application filters, failure-category filtering, bounded
+pagination, checkpoint Live mode and a full scrubbed JSON detail modal with
+user/application/Action-execution links. Live requests run serially, two seconds
+after completion, deduplicate by log ID and replay from the lowest displayed
+sequence when enabled so page-mode unsettled rows do not skip later settlement.
+All asynchronous reads/writes/polls capture the tenant and route epoch, ignore
+stale replies (including A→B→A), and stop scheduling after unmount. Failure
+window reads also capture the applied query before the first request.
+
+Actions logs use the tenant-targeted system execution API with trigger and
+immutable Action ID filters. The initial newest page establishes the `after`
+cursor; subsequent reads append keyset results and refresh the newest page by
+ID so a terminal update of an existing execution replaces earlier console
+output. The cursor commits only after both reads succeed. Execution detail and
+the existing lookup now show persisted console lines, timing, Action links,
+errors and optional job attempts through the operator route.
+
+All eight stream forms use the frozen inventory's field/secret/enum contracts
+and generated API types. Public fields load normally; credential fields never
+receive a response marker. Blank PATCH credentials preserve stored secrets;
+optional empty public fields are omitted rather than replacing a configured
+value with a placeholder. Create supports category filters, PII mask/hash and
+RFC3339 `startFrom`; cloud forms explain that delivery is unavailable and stay
+suspended. The stream list supports pause/resume/delete and delivery health.
+Home displays thirty inclusive UTC days of logins/signups and active users;
+RFC3339 bucket labels are sliced as UTC calendar dates, avoiding local shifts.
+
+Controller-directed API glue resolves the spec §6 delivery-state requirement:
+`GET /api/system/tenants/{tenant}/log-streams/status` is an operator-only,
+`read:log_streams` system extension, with exact path-tenant token/live-grant
+checks and `501 logs_unavailable`. Its explicit projection contains only ID,
+status, failure count, safe error class, last success and next attempt; unset
+timestamps are omitted, unknown error classes become `unknown`, and no sink,
+sealed secrets or leases are exposed. OpenAPI, generated Go/TypeScript and
+D-0057 document the extension. Public stream responses retain their shape.
+
+Rulings and costs:
+
+- Ruling: disable Live for every applied log filter and explain how to clear
+  filters — checkpoint mode ignores `q`, so showing filtered Live would be
+  misleading — cost: filtered realtime searches require clearing filters.
+- Ruling: failure-only filtering checks frozen failure categories within the
+  first 1,000 matching events, with a visible limit notice — a canonical OR
+  across failure codes exceeds the five-term parser bound — cost: up to ten
+  sequential reads per load/page; older failures require a narrower search.
+- Ruling: Actions Live uses sequential cursor and newest-page reads — updated
+  results can retain their creation ID — cost: two requests per polling cycle;
+  recent-page refresh is bounded to the latest 100 executions.
+- Ruling: use a small SVG chart with existing accent/focus theme colors and an
+  accessible data table — the optional dataviz skill is absent from the catalog
+  and the controller approved existing conventions — cost: no chart library
+  interactions or new dependencies.
+- Ruling: add only the minimal safe system health endpoint for missing delivery
+  metadata — controller identified a concrete spec gap — cost: one extra
+  system read on list load and after pause/resume, without public API changes.
+
+Actual verification:
+
+- `cd console && npm test -- --run` before component implementation: **RED**,
+  13 new failures, 527 existing tests passed (74 files). Required eleven named
+  behavior tests all existed; failures reflected missing active pages/controls.
+- Focused component suites grew through 23, 35, 37 and finally 40 monitoring
+  tests. Additional observed RED→GREEN regressions cover stale detail/save/
+  tenant/poll replies, unmount/nonoverlap, every non-HTTP sink create request,
+  filters/PII/startFrom, write-only secrets, existing-ID console refresh,
+  applied-filter polling, capability notices, failed-refresh cursor retention,
+  localized malformed header JSON and applied-query capture across pages.
+- First `make console` attempt: **FAIL**, five stale assertions across four
+  files (old planned Logs table, planned section list, sidebar labels and
+  dynamic locale-key scanning). Retired the planned Logs stub and updated
+  those tests to assert the newly live behavior. No failures were deferred.
+- `GOTOOLCHAIN=go1.26.7 go test ./internal/server -run
+  '^TestSystemLogStreamStatus' -count=1`: **RED** before implementation
+  (403/404 instead of authorized health/501), then **PASS**, both mounted
+  tests, 0.243s. Covers safe exact response, tenant isolation, target-only token
+  and live grants, revocation, unauthenticated/M2M/tenant-host denial and
+  unavailable-plugin behavior. UI health tests separately observed RED2→GREEN.
+- `GOTOOLCHAIN=go1.26.7 make generate`: **PASS**, generated Go only through the
+  generator; TypeScript regenerated by console `gen`/`make console`.
+- `GOTOOLCHAIN=go1.26.7 go test ./internal/server -run
+  '^(TestSystemLogStreamStatus|TestSystemExecutionsTargetGrant|TestLogStreamAPIRouteScopes|TestLogStreamsThroughServer|TestLogStreamsThroughServerUnavailable|TestStatsScopeThroughServer)$'
+  -count=1`: **PASS**, 0.951s, memory-backed mounted route checks.
+- `GOTOOLCHAIN=go1.26.7 go test ./internal/mgmt -run
+  '^(TestSystemExecutionsList|TestSystemExecutionsUnavailable|TestPublicExecutionShapeUnchanged)$'
+  -count=1`: **PASS**, 0.846s; public execution console privacy remains intact.
+- Final `GOTOOLCHAIN=go1.26.7 make console`: **PASS**, generation, zero-warning
+  ESLint, TypeScript, **74 files / 566 tests**, and Vite production build.
+  `console/dist` rebuilt. npm reports the existing vue-demi install-script
+  approval notice; Vite reports its >500 kB chunk advisory (JS 951.54 kB raw,
+  252.07 kB gzip). Neither is a test failure or a new dependency.
+- Local Chromium/Playwright visual QA used the real Shell/components/router
+  with temporary fixture services, never live Auth0. Eight desktop routes,
+  log detail modal, stream health, 390px mobile Logs, dark Home: **PASS**,
+  ten screenshots inspected; document width matched viewport at 1440 and390,
+  no page errors. New York timezone retained UTC labels 2026-10-02 and
+  2026-10-31. Temporary preview HTML/TS removed before final `make console`.
+- Postbuild `cd console && npm test -- --run src/build.test.ts`: **PASS**,
+  six checks against the freshly generated dist bundle (0.221s).
+- `git diff --check`: **PASS**. Read the complete task diff and reviewed privacy,
+  route/grant binding, stale response handling, polling/cursors and secrets.
+
+No broad Go, SQL/database/plugin integration, full E2E, live Auth0, race or
+external source-URL reachability suite was run for Task 14. Those are not
+reported as passing. Full plan regression remains Task 16. Visual artifacts,
+RED/GREEN command logs and the task report are under
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/`.
+Commit subject: `feat: monitor logs, streams and Actions in the console`.
