@@ -33,6 +33,7 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "delete:log_streams", Description: "Delete log streams"},
 	{Value: "read:logs", Description: "Read tenant logs"},
 	{Value: "read:logs_users", Description: "Read user logs"},
+	{Value: "read:stats", Description: "Read tenant statistics"},
 	{Value: "read:organizations", Description: "Read organizations"},
 	{Value: "read:organizations_summary", Description: "Read organization summaries"},
 	{Value: "create:organizations", Description: "Create organizations"},

@@ -295,6 +295,20 @@ func TestLogsOpenAPIContract(t *testing.T) {
 	}
 }
 
+func TestDailyStatsOpenAPIFormat(t *testing.T) {
+	data, err := os.ReadFile("../../api/management.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := openapi3.NewLoader().LoadFromData(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := doc.Components.Schemas["LogDailyStat"].Value.Properties["date"].Value.Format; got != "date-time" {
+		t.Fatalf("daily date format=%q, want RFC3339 date-time", got)
+	}
+}
+
 func TestLogObjectFieldTypes(t *testing.T) {
 	inv := Inventory()
 	fields := map[string]string{}

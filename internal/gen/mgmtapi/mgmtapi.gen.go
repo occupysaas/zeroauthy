@@ -6923,12 +6923,12 @@ type ListTotals struct {
 
 // LogDailyStat defines model for LogDailyStat.
 type LogDailyStat struct {
-	CreatedAt       time.Time          `json:"created_at"`
-	Date            openapi_types.Date `json:"date"`
-	LeakedPasswords int                `json:"leaked_passwords"`
-	Logins          int                `json:"logins"`
-	Signups         int                `json:"signups"`
-	UpdatedAt       time.Time          `json:"updated_at"`
+	CreatedAt       time.Time `json:"created_at"`
+	Date            time.Time `json:"date"`
+	LeakedPasswords int       `json:"leaked_passwords"`
+	Logins          int       `json:"logins"`
+	Signups         int       `json:"signups"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 // LogEvent Tenant event; absent fields omitted. location_info is unavailable locally. All responses are scrubbed (D-0057).
@@ -10080,7 +10080,7 @@ type GetDailyStatsParams struct {
 	// From YYYYMMDD inclusive UTC day; default today minus 6 days; max inclusive range 366 days (local)
 	From *string `form:"from,omitempty" json:"from,omitempty"`
 
-	// To YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters (local)
+	// To YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters and midnight UTC created_at/updated_at (local)
 	To *string `form:"to,omitempty" json:"to,omitempty"`
 }
 

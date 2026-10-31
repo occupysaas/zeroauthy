@@ -3472,10 +3472,10 @@
           "name": "to",
           "type": "string",
           "in": "query",
-          "rule": "YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters (local)"
+          "rule": "YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters and midnight UTC created_at/updated_at (local)"
         }
       ],
-      "envelope": "DailyStat[] with date YYYY-MM-DD, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps",
+      "envelope": "DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps",
       "success_status": 200,
       "body": "none",
       "errors": {

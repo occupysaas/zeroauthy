@@ -9149,8 +9149,8 @@ paths:
     get:
       operationId: GetDailyStats
       summary: Read UTC daily authentication counters
-      description: DailyStat[] with date YYYY-MM-DD, logins, signups, leaked_passwords, created_at, updated_at; UTC
-        RFC3339 timestamps See D-0057 for local behavior. Contract publication precedes runtime implementation.
+      description: DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at, updated_at;
+        UTC RFC3339 timestamps. See D-0057 for local behavior.
       tags:
       - stats
       x-source:
@@ -9168,14 +9168,15 @@ paths:
           pattern: ^[0-9]{8}$
       - name: to
         in: query
-        description: YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters (local)
+        description: YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters and
+          midnight UTC created_at/updated_at (local)
         schema:
           type: string
           pattern: ^[0-9]{8}$
       responses:
         '200':
-          description: DailyStat[] with date YYYY-MM-DD, logins, signups, leaked_passwords, created_at, updated_at;
-            UTC RFC3339 timestamps
+          description: DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at,
+            updated_at; UTC RFC3339 timestamps
           content:
             application/json:
               schema:
@@ -9218,7 +9219,7 @@ paths:
       operationId: GetActiveUsers
       summary: Count users active within thirty days
       description: JSON integer; distinct existing users with last_login >= now minus 30 days See D-0057 for local
-        behavior. Contract publication precedes runtime implementation.
+        behavior.
       tags:
       - stats
       x-source:
@@ -10753,7 +10754,7 @@ components:
       properties:
         date:
           type: string
-          format: date
+          format: date-time
         logins:
           type: integer
           minimum: 0

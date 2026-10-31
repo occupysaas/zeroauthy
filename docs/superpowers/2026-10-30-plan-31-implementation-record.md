@@ -1754,3 +1754,92 @@ source-link checks, live vendor deliveries or browser/E2E runs were performed
 or claimed passing. Full regression remains Task16. Commit subject:
 `feat: deliver log streams`; resulting SHA and detailed code→test review are in
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-12-report.md`.
+
+## Task 13 — Tenant statistics API (2026-10-31)
+
+Implemented `internal/mgmt/stats.go` and scoped both generated Management API
+operations through `internal/server/mgmtapi.go`. Daily stats use the existing
+tenant-scoped Logs repository and return ascending inclusive UTC days, including
+zero counters for missing days. Bounds default independently to today minus six
+days and today; both bounds accept exactly YYYYMMDD, including years0000–9999.
+Calendar parsing rejects invalid dates, unknown/repeated query parameters,
+reversed windows and windows exceeding the frozen366-day inclusive maximum.
+The maximum comparison uses calendar addition, avoiding saturated durations or
+iterating oversized input. Active users returns a bare JSON integer from
+`ActiveUsers(tenant, now - 30*24h)` with the existing inclusive lower bound.
+Both routes use the shared capability/error adapter, including501
+`logs_unavailable` for older plugins. Added `read:stats` to ManagementAPIScopes
+and verified provisioning plus repair through the existing tenant-setup test.
+
+Rulings: the controller's provisional sparse-day instruction conflicted with
+the frozen inventory's `to` parameter and D-0057, which explicitly require zero
+counters for missing days. The controller confirmed zero-fill. Task13 explicitly
+requires RFC3339 midnight UTC for `date`, so corrected the earlier date-only
+OpenAPI schema and inventory envelope. Synthetic rows use that day's midnight
+for required created_at/updated_at (deterministic local rule, controller
+confirmed); persisted rows retain their repository timestamps. Updated D-0057
+and ran `make generate` rather than editing generated Go. Cost if date-only
+consumers relied on the provisional schema: they must accept the intended
+RFC3339 timestamp; the generated model now uses time.Time. Cost if synthetic
+timestamps need different upstream semantics: change the documented local rule
+and synthetic-row mapping together. No recorder, StatsKind mapping, store
+atomicity, dependency, global auth, or store ActiveUsers behavior changed.
+
+Actual checks, all Go/make commands with GOTOOLCHAIN=go1.26.7:
+
+- Required RED `go test ./internal/mgmt -run
+  'DailyStats|ActiveUsers|StatsScope' -count=1`: five expected runtime failures,
+  “stats handlers are not implemented” (`task-13-red.log`).
+- Initial server/tenant-setup RED attempt caught an incorrect ClientGrants.List
+  fixture signature plus the expected missing read:stats catalog entry
+  (`task-13-routes-red.log`). Corrected the fixture before implementation;
+  focused server RED then failed on unknown seed scope and generated501 with
+  empty body, proving unpublished scope/unwired routes
+  (`task-13-routes-red-final.log`).
+- `go test ./internal/logrules -run TestDailyStatsOpenAPIFormat -count=1`:
+  expected RED, date format="date", want date-time (`task-13-format-red.log`).
+- Intermediate GREEN attempts exposed test assumptions, not production defects:
+  an explicitly injected empty Caller is authenticated to Require (403), an
+  operator grant cannot name a nonexistent tenant, and existing M2M auth trusts
+  JWT scopes rather than reloading client grants. Removed the anonymous Caller
+  assumption (mounted tests prove401), created a real second tenant, and kept
+  M2M tests on token scopes/cross-tenant rejection. Live operator narrowing is
+  explicitly tested; no global M2M revocation feature was introduced. These
+  failed attempts remain in `task-13-green.log`/`task-13-focused-green.log`.
+- Required GREEN `go test ./internal/mgmt -run
+  'DailyStats|ActiveUsers|StatsScope' -count=1`: **PASS**,0.464s
+  (`task-13-required-final.log`).
+- `go test ./internal/mgmt ./internal/server ./internal/tenantsetup
+  ./internal/logrules -run 'DailyStats|ActiveUsers|StatsScope|TestManagementAPI$|TestLogsOpenAPIContract|TestLogsInventory'
+  -count=1`: **PASS**,0.640s/0.329s/0.006s/0.202s
+  (`task-13-focused-green-final.log`).
+- `go test -race ./internal/mgmt ./internal/server ./internal/tenantsetup
+  ./internal/logs -run 'DailyStats|ActiveUsers|StatsScope|TestManagementAPI$|TestRecorderStats$'
+  -count=1`: **PASS**,2.028s/1.761s/1.047s/1.057s
+  (`task-13-race-final.log`). The unchanged recorder stats test confirms the
+  existing catalog mapping and UTC aggregation continue to work.
+- `go test ./internal/mgmt ./internal/server ./internal/tenantsetup
+  ./internal/logrules -run 'TestMgmtAuth|TestManagementAPI$|TestLogsAPI|TestLogStreamAPIRouteScopes|TestLogStreamsThroughServer|TestLogsOpenAPIContract|TestLogsInventory'
+  -count=1`: **PASS**,3.585s/0.463s/0.009s/0.135s
+  (`task-13-regression.log`).
+- `make generate`: **PASS** (`task-13-generate.log`); generated diff is only
+  LogDailyStat.date's time.Time type and the clarified to-parameter comment.
+- `go vet ./internal/mgmt ./internal/server ./internal/tenantsetup
+  ./internal/logrules`: **PASS**,exit0/no diagnostics (`task-13-vet.log`).
+  `git diff --check`: **PASS**.
+
+Self-review mapped fixture deltas, missing-day shape, chronological output,
+UTC-midnight/default bounds, leap366-day window, years0000/9999, invalid/reversed/
+oversized/repeated/unknown input, inclusive active-user cutoff,31-day/nil-login
+exclusion and cross-tenant filtering to focused handler tests. Real server tests
+cover anonymous401, wrong M2M scope403, right scope/operator200, live operator
+grant narrowing403, cross-tenant M2M401, malformed query400 and capability501
+with the existing errorCode envelope. Checked generated schema consistency and
+bounded iteration; no hand-edited generated file. Existing minor remains:
+store ActiveUsers with an exact Go-zero since bound has SQL epoch versus memory
+pre1970 behavior. Task13 always passes a modern now-minus30days value; this
+minor stays in final acceptance carry-forward. No database, gRPC, broad full
+suite, console build/generation, source-link network, browser or E2E checks were
+run or claimed passing. Final regression remains Task16; console work remains
+Task14. Commit subject: `feat: serve tenant stats`; SHA and full report at
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-13-report.md`.

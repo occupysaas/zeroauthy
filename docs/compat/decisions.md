@@ -1984,7 +1984,9 @@ Further frozen contracts and evidence gaps:
   documents inclusive YYYYMMDD bounds but no range maximum/default in the
   reviewed material. Locally the default is seven UTC calendar days including
   today, maximum 366 inclusive days, missing bounds default independently,
-  reversed/invalid dates are 400, and missing days return zero counters. Local
+  reversed/invalid dates are 400, and missing days return zero counters. The
+  `date` is RFC3339 midnight UTC; synthetic rows use that same midnight for
+  `created_at` and `updated_at` (local deterministic timestamps). Local
   stats mapping is `s`/`ssa`/`sepft` to logins, `ss` to signups, and each
   password-breach code to leaked_passwords. A flow chooses its matching login
   success code once; subsequent code/refresh exchanges do not double-count.

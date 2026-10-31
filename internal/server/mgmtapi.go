@@ -856,6 +856,14 @@ func (a mgmtAPI) SearchOrganizations(w http.ResponseWriter, r *http.Request, _ m
 func (a mgmtAPI) GetLogs(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetLogsParams) {
 	scopedAll(w, r, a.h.ListLogs, "read:logs")
 }
+
+func (a mgmtAPI) GetDailyStats(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetDailyStatsParams) {
+	scopedAll(w, r, a.h.GetDailyStats, "read:stats")
+}
+
+func (a mgmtAPI) GetActiveUsers(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.GetActiveUsers, "read:stats")
+}
 func (a mgmtAPI) GetLog(w http.ResponseWriter, r *http.Request, id string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetLog(w, r, id) }, "read:logs")
 }
