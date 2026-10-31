@@ -60,6 +60,8 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	if oerr != nil {
 		return nil, oerr
 	}
+	ctx = logs.WithEvent(ctx, logs.Event{ClientID: c.ClientID, ClientName: c.Name})
+	*r = *r.WithContext(ctx)
 	if c.TokenEndpointAuthMethod == store.AuthMethodNone {
 		return nil, invalidRequest("only confidential applications may push authorization requests") // P3b
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -125,6 +126,7 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 			if !eligible {
 				return errTxn
 			}
+			ctx = logs.WithEvent(ctx, logs.Event{ClientID: client.ClientID, ClientName: client.Name, ConnectionID: conn.ID, Connection: conn.Name, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)})
 			if e = EnsureMembership(ctx, tx, OrgContext{Org: org}, sess.UserID, conn.ID); e != nil {
 				return e
 			}

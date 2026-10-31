@@ -1138,3 +1138,53 @@ All commands used `GOTOOLCHAIN=go1.26.7`:
   SQL, E2E, Actions or noderunner repeat was run in this scoped privacy pass.
 
 Full evidence and ruling are appended to the scratch `task-8-bounded-report.md`.
+
+
+### Task 8 review correction — already-resolved attribution
+
+Corrected the four attribution omissions identified in task-8-review.md using
+only existing business objects. PAR retains the authenticated client ID/name in
+request context before later validation (including Basic authentication with no
+body client_id). Refresh retains token user/org/connection IDs only after origin
+and client ownership validation, before revoked/reuse/expiry/audience/scope
+rejection; both ferrt and fertft have the known IDs without a user/name lookup.
+Invitation acceptance captures connection/strategy/user/client/org names as
+existing resolutions succeed; failure retains them, while success remains after
+commit. Prompt-after-login bindOrg enriches the staging context with its already
+resolved client/connection metadata before EnsureMembership. No extra store read,
+public response change, policy change, transaction boundary change or generated
+file is introduced. Unknown names/strategy remain absent.
+
+All commands used `GOTOOLCHAIN=go1.26.7`:
+
+- RED: `go test ./internal/oauth ./internal/orglogin ./internal/login -run
+  'TestPARBasicFailureEventAttribution|TestRefreshFailureEventAttribution|TestInvitationFailureEventAttribution|TestOrganizationPickerMembershipEventAttribution'
+  -count=1` exited 1 with expected missing-attribution assertions in all four
+  paths; no compile/setup failure. Same command GREEN, exit 0, three packages.
+  Logs: task-8-attribution-red.log and task-8-attribution-green.log.
+- Final-source `go test -race ./internal/oauth ./internal/orglogin
+  ./internal/login -count=1 -v`: PASS, exit 0, no skipped tests or race reports;
+  task-8-attribution-race.log.
+- Exact required Task 8 focused command (`go test ./internal/login
+  ./internal/oauth ./internal/dbconn ./internal/session ./internal/hostedlogin
+  ./internal/devicecode ./internal/protection ./internal/orglogin
+  ./internal/federation ./internal/customdb -run 'Event|Masked|RecorderFull'
+  -count=1`): PASS, exit 0. Session/hostedlogin/devicecode explicitly report no
+  matching tests. Log: task-8-attribution-focused.log.
+- Final `go test ./internal/... -count=1 -short -v`: PASS, exit 0, 70 tested
+  packages, nine with no test files, zero failures. Exactly one actual skip:
+  `TestOrganizationsPluginRoundTrip/Organizations/Limits`, reason `store cannot
+  override Organizations limits`. No new behavior test was skipped. Log:
+  task-8-attribution-internal-short.log. Final source includes the prior console
+  privacy composition correction and remained stable before race/focused/short.
+- `git diff --check`: PASS. Focused source/test diff self-reviewed. Real memory
+  regressions assert exact known fields, unchanged response status/error,
+  ownership/origin identity boundaries, unknown metadata omission and no member
+  on invitation failure. Existing rollback/success tests passed under race.
+- No three-driver PostgreSQL/MySQL script, browser/E2E, generated build or later
+  Task 16 suite was run for this correction; SQLite/native/gRPC paths ran in the
+  internal short suite. No new behavior test is deferred. Scope/ruling cost:
+  scalar field capture and context enrichment only; no enrichment lookup.
+
+Full focused report and commit:
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-8-attribution-report.md`.

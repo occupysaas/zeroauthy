@@ -56,6 +56,10 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if err != nil {
 			return err
 		}
+		event.Connection = conn.Name
+		event.ConnectionID = conn.ID
+		event.Strategy = conn.Strategy
+		event.StrategyType = logs.StrategyType(conn.Strategy)
 		if conn.ID != in.PrimaryConnectionID || (txn.Params[InvitationConnectionParam] != "" && txn.Params[InvitationConnectionParam] != conn.ID) {
 			return store.ErrPrecondition
 		}
@@ -63,6 +67,7 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if err != nil {
 			return err
 		}
+		event.UserName = u.Name
 		if !u.EmailVerified {
 			return ErrInvitationIdentity
 		}
@@ -73,6 +78,7 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if err != nil {
 			return err
 		}
+		event.ClientName = client.Name
 		if !access.ConnectionUsable(client, conn) || (client.OrganizationUsage != store.OrgUsageAllow && client.OrganizationUsage != store.OrgUsageRequire) {
 			return ErrNotMember
 		}
@@ -80,6 +86,7 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if err != nil {
 			return err
 		}
+		event.OrganizationName = org.Name
 		if !client.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
 			return ErrNotMember
 		}
@@ -140,10 +147,6 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		}
 		added = slices.Contains(inserted, in.UserID)
 		acceptedNew = true
-		event.Connection = conn.Name
-		event.Strategy = conn.Strategy
-		event.StrategyType = logs.StrategyType(conn.Strategy)
-		event.UserName = u.Name
 		result = &accepted
 		return nil
 	})

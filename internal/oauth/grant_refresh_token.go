@@ -58,6 +58,10 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		h.log().WarnContext(ctx, "refresh token presented by another client", "tenant", tenantID, "client_id", c.ClientID, "owner", rt.ClientID)
 		return nil, invalid
 	}
+	// Ownership and origin are validated; retain token attribution before any
+	// remaining rejection without loading its user or connection for logging.
+	eventUserID = rt.UserID
+	ctx = logs.WithEvent(ctx, logs.Event{UserID: rt.UserID, OrganizationID: rt.OrganizationID, ConnectionID: rt.OrganizationConnectionID})
 	if rt.RevokedAt != nil {
 		return nil, invalid
 	}
@@ -96,7 +100,6 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		scopes = requested
 	}
 
-	eventUserID = rt.UserID
 	user, oerr := h.activeUserBlocked(ctx, tenantID, rt.UserID, "user is blocked")
 	if oerr != nil {
 		return nil, oerr
