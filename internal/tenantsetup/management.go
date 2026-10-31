@@ -27,6 +27,8 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "read:role_members", Description: "read role_members"},
 	{Value: "create:role_members", Description: "create role_members"},
 	{Value: "delete:role_members", Description: "delete role_members"},
+	{Value: "read:logs", Description: "Read tenant logs"},
+	{Value: "read:logs_users", Description: "Read user logs"},
 	{Value: "read:organizations", Description: "Read organizations"},
 	{Value: "read:organizations_summary", Description: "Read organization summaries"},
 	{Value: "create:organizations", Description: "Create organizations"},

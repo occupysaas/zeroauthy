@@ -29,6 +29,7 @@ func logStream(tid, id string) *store.LogStream {
 	return &store.LogStream{TenantID: tid, ID: id, Name: id, Type: "http", Status: "active", Sink: map[string]any{"nested": map[string]any{"items": []any{"a"}}}, SealedSecrets: []byte("sealed"), Filters: []store.LogStreamFilter{{Type: "category", Name: "auth.login.success"}}, PII: &store.LogStreamPII{LogFields: []string{"email"}, Method: "mask"}}
 }
 func testLogs(t *testing.T, f Factory) {
+	t.Run("LogsBodyValidation", func(t *testing.T) { LogBodyValidation(t, f) })
 	t.Run("LogsAppendOrdering", func(t *testing.T) {
 		s, ctx, at := logsFixture(t, f)
 		appendLog(t, s, ctx, "ten_logs", at.Add(time.Hour))
@@ -449,4 +450,27 @@ func testLogs(t *testing.T, f Factory) {
 		}
 	})
 
+}
+
+// LogBodyValidation verifies the log object input contract and batch atomicity.
+// It is also exposed for focused driver validation without selecting all suites.
+func LogBodyValidation(t *testing.T, f Factory) {
+	s, ctx, at := logsFixture(t, f)
+	for _, body := range [][]byte{nil, {}, []byte(`{"details":{"n":9007199254740993}}`)} {
+		mustNoErr(t, s.Logs().AppendLogs(ctx, []store.LogEvent{{TenantID: "ten_logs", Date: at, Body: body}}, nil))
+	}
+	for _, body := range []string{`{"broken":`, `[]`, `null`, `"text"`, `42`, `true`, ` `} {
+		err := s.Logs().AppendLogs(ctx, []store.LogEvent{{TenantID: "ten_logs", Date: at, Body: []byte(`{}`)}, {TenantID: "ten_logs", Date: at, Body: []byte(body)}}, []store.DailyStatDelta{{TenantID: "ten_logs", Day: at, Logins: 999}})
+		mustErrIs(t, err, store.ErrInvalid)
+		rows, total, err := s.Logs().SearchLogs(ctx, "ten_logs", nil, store.LogPage{PerPage: 100, IncludeTotals: true})
+		mustNoErr(t, err)
+		if len(rows) != 3 || total != 3 {
+			t.Fatalf("invalid body %q persisted batch: rows%d total%d", body, len(rows), total)
+		}
+		stats, err := s.Logs().DailyStats(ctx, "ten_logs", at.Add(-24*time.Hour), at.Add(24*time.Hour))
+		mustNoErr(t, err)
+		if len(stats) != 0 {
+			t.Fatalf("invalid body %q persisted stats: %+v", body, stats)
+		}
+	}
 }

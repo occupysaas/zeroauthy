@@ -852,3 +852,13 @@ func (a mgmtAPI) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *htt
 func (a mgmtAPI) SearchOrganizations(w http.ResponseWriter, r *http.Request, _ mgmtapi.SearchOrganizationsParams) {
 	scopedAll(w, r, a.h.SearchOrganizations, "read:organizations", "read:organizations_summary")
 }
+
+func (a mgmtAPI) GetLogs(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetLogsParams) {
+	scopedAll(w, r, a.h.ListLogs, "read:logs")
+}
+func (a mgmtAPI) GetLog(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetLog(w, r, id) }, "read:logs")
+}
+func (a mgmtAPI) GetUserLogs(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserLogsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UserLogs(w, r, id) }, "read:logs", "read:logs_users")
+}

@@ -26,10 +26,8 @@ func (s *Store) logNow() time.Time {
 }
 
 func (r logs) AppendLogs(ctx context.Context, events []store.LogEvent, stats []store.DailyStatDelta) error {
-	for _, e := range events {
-		if err := store.ValidateLogTimes(e.Date); err != nil {
-			return err
-		}
+	if err := store.ValidateLogEvents(events); err != nil {
+		return err
 	}
 	for _, d := range stats {
 		if err := store.ValidateLogTimes(d.Day); err != nil {

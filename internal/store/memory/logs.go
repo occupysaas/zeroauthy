@@ -45,10 +45,8 @@ func (s *Store) CheckLogsSupport(context.Context) error { return nil }
 func (s *Store) LogsSupported() bool                    { return true }
 
 func (r logs) AppendLogs(ctx context.Context, events []store.LogEvent, deltas []store.DailyStatDelta) error {
-	for _, e := range events {
-		if err := store.ValidateLogTimes(e.Date); err != nil {
-			return err
-		}
+	if err := store.ValidateLogEvents(events); err != nil {
+		return err
 	}
 	for _, d := range deltas {
 		if err := store.ValidateLogTimes(d.Day); err != nil {

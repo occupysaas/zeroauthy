@@ -288,6 +288,11 @@ func New(d Deps) http.Handler {
 			mgmt.WriteError(w, http.StatusBadRequest, "invalid_query_string", "Query validation error: "+err.Error())
 		},
 	})
+	// Checkpoint mode ignores typed page/projection/query parameters. Bind the
+	// raw query here so generated page binding cannot reject ignored values.
+	mr.Get("/api/v2/logs", func(w http.ResponseWriter, r *http.Request) {
+		scopedAll(w, r, mh.ListLogs, "read:logs")
+	})
 	mr.NotFound(mgmtNotFound)
 	mr.MethodNotAllowed(mgmtNotFound)
 	// mr routes on the full path, independently of r.

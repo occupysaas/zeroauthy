@@ -764,3 +764,107 @@ scrub enrichment. No such metadata reaches storage or fallback output.
 Broad/final regression suites remain unrun and assigned to Task 16. The exact
 review was copied to the plan scratch `task-6-review.md`; detailed fix output is
 in `task-6-review-{red,red-detached,green,race}.log`.
+
+### Task 7 — log search and Logs API
+
+Implemented the inventory-backed bounded Lucene parser and replaced Task 4's
+match-all SQL placeholder with parameterized SQLite/PostgreSQL/MySQL predicates.
+The existing SQL repository already calls this translator for bounded page and
+checkpoint queries, so no repository read-path rewrite or tenant hydration was
+needed. The store-owned AST and earlier Match/Validate remain the shared contract;
+no duplicate AST package was introduced. Search covers boolean precedence, NOT,
+field groups, quoted/bare literals, escaped literals, trailing prefixes, and UTC
+date ranges. Date-only inclusive upper bounds cover their full UTC day; SQL binds
+all dates using store.LogTimeLayout with nine fractional digits. JSON extraction
+accepts string properties only, missing/null/non-string properties have memory
+semantics, NOT is two-valued, LIKE metacharacters are literal, and prefix matching
+is case-sensitive across all three drivers. MySQL's BLOB body is explicitly
+converted to utf8mb4 before JSON extraction.
+
+Added tenant-scoped ListLogs/GetLog/UserLogs, bounded pagination, projection,
+capped totals, settled checkpoint reads, safe errors and capability 501. Final
+responses use ScrubValueContext and preserve JSON numeric precision. Canonical
+server-assigned log_id is attached after body scrubbing, keeping cursors intact
+when registered masks overlap digits. User logs require a currently present
+user; missing/deleted/cross-tenant users return this route's not_found rather
+than the general Users API's inexistent_user code. Authentication registration
+uses existing scopedAll (read:logs; both read:logs and read:logs_users for user
+logs). Both scopes are registered in tenantsetup's Management API scope catalog.
+
+Rulings and costs:
+
+- The generated GetLogs wrapper binds typed page parameters before delegation,
+  which incorrectly rejects ignored invalid values in checkpoint mode. The real
+  server replaces that one GET route after generated registration using the same
+  router middleware and scopedAll check, with raw query binding in ListLogs.
+  A real seeded server regression proves invalid ignored parameters return200;
+  unknown parameters and repeated from/take still return400. Known ignored
+  parameters may repeat. Cost: direct consumers of the generated handler outside
+  server.New retain generated binding behavior; our application uses server.New.
+- Inventory's 56-decimal cursor shape is narrowed to store.ParseLogID's canonical
+  positive int64 sequence representation. Zero/overflow 56-digit cursors return
+  invalid_query_string400. Controller explicitly accepted this local gap; a
+  wider cursor domain would need API saturation or a wider storage sequence.
+- Nil/empty Body is accepted by the repository contract. SQL JSON expressions
+  treat it as an empty object, matching memory's missing-field behavior. Invalid
+  nonempty/non-object Body was previously accepted incidentally, despite the
+  documented Auth0-object JSON contract. Controller ruled to reject it atomically
+  with store.ErrInvalid using shared ValidateLogEvents in memory and SQL, rather
+  than mutate bytes silently or require PostgreSQL16 IS JSON. Cost: callers that
+  supplied malformed/scalar/array payloads must now provide object JSON. Earlier
+  already-persisted malformed nonempty bodies are outside that contract and not
+  repaired; no released Plan31 data migration is needed. Empty-body parity and
+  shared batch/stats atomicity tests cover this correction; gRPC delegates to the
+  same backend validation.
+- No generated source or dependency pins changed. Existing generated route and
+  optional list projection schemas already cover these handlers. Full repository
+  regression stays in Task16, as instructed; this is Task7 only.
+
+Actual verification (all Go commands use GOTOOLCHAIN=go1.26.7):
+
+- RED `go test ./internal/logsearch ./internal/mgmt -run 'LogSearch|LogsAPI|UserLogs|LogsCross|LogsUnavail' -count=1`:
+  exit1, missing Parse and Logs handlers before implementation. A test-only
+  RequireAll typo was corrected to composition of the existing Require helper.
+- RED `go test ./internal/store/sqlstore -run LogSearch -count=1` against the
+  original match-all translator: exit1, requested searches incorrectly returned
+  every tenant row, demonstrating real memory/SQL parity assertions.
+- RED real-server route tests first exposed absent Management API scopes, then
+  generated page binding rejected ignored page=bad. Both failures were fixed.
+- RED parser/API regressions rejected unknown-field bypass (`unknown:(type:f)`)
+  only after field-group validation was added. Additional RED tests observed
+  inexistent_user rather than not_found for deleted users, and a registered
+  cursor value replacing log_id. Both are fixed and covered.
+- Three-driver verification initially failed MySQL with error3144 (binary BLOB
+  JSON input). After the conversion change an overly broad text replacement
+  temporarily put MySQL syntax in SQLite; the subsequent run exposed this and
+  it was restricted to the MySQL branch.
+- RED body validation: `go test ./internal/store/memory -run '^TestLogs$/Logs/LogsBodyValidation$' -count=1`
+  failed because malformed JSON returned nil; SQLite LogSearch failed with
+  malformed JSON for an accepted nil-body event. Shared validation and guarded
+  empty-body extraction fixed both. Final memory `go test ./internal/store/memory -run '^(TestLogs|TestLogsRingRollbackAndCopies|TestLogsCommitTimestampAndNestedRollback|TestLogsBackwardsClockCheckpoint)$' -count=1`:
+  PASS0.026s, covering Logs conformance plus selected ring/commit/clock checks.
+- Final GREEN `go test ./internal/logsearch ./internal/mgmt -run 'LogSearch|LogsAPI|UserLogs|LogsCross|LogsUnavail' -count=1`:
+  PASS (exact package times retained in task-7-green.log).
+- Final GREEN `go test ./internal/server ./internal/tenantsetup -run 'LogsAPI|ManagementAPI' -count=1`:
+  PASS (route/scope catalog regression, task-7-route-green.log).
+- `go test ./internal/logsearch -count=1`: PASS0.005s, including prior evaluator
+  and AST validation tests as well as the new parser tests.
+- Final `ZEROAUTHY_TEST_PG_PORT=56437 ZEROAUTHY_TEST_MYSQL_PORT=54317 ./scripts/test-sql.sh -v -run 'LogSearch' -count=1 ./internal/store/sqlstore/...`:
+  PASS8.039s with -race, all three drivers. Checks the six
+  required queries plus literal wildcards, case, NULL/missing/non-string JSON,
+  NOT, bare terms, precedence, nanosecond boundaries, tenant isolation, matching
+  totals and both checkpoint repository methods. TestLogSearchBodyValidation
+  also passed PostgreSQL/MySQL/SQLite, proving invalid batch and statistics
+  atomicity. No driver skipped.
+- Final `go test ./internal/logsearch -run '^$' -fuzz FuzzLogQuery -fuzztime=30s -parallel=4`:
+  PASS30.091s, 2,959,995 executions. This is an actual FuzzLogQuery target;
+  an earlier full30s run also passed before the field-group validation change.
+- Self-review covered parser bounds/precedence, SQL placeholder/value ordering,
+  dialect JSON types and LIKE escaping, tenant scopes, capability/error mapping,
+  route replacement, final response scrubbing and numeric precision.
+  `git diff --check`: PASS. Feature commit subject: `feat: search and read tenant logs`.
+
+Unrun: broad suites, full SQL store conformance, gRPC/plugin regression, browser,
+SDK and CLI end-to-end checks; those are reserved for Task16. None is claimed
+passing. Task7 report and complete local command output are in the plan scratch
+workspace (`task-7-report.md`, `task-7-*.log`).
