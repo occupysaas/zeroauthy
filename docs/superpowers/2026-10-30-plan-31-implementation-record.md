@@ -1274,3 +1274,40 @@ Actual evidence, all Go commands with `GOTOOLCHAIN=go1.26.7`:
 Commit subject: `feat: log Management API operations as sapi/fapi`.
 Detailed report and exact command logs:
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-9-report.md`.
+
+### Task 9 review correction — independent strict-parser baseline
+
+The Important review finding against `c6c7417` was confirmed: both arms of
+`TestManagementStrictParserPreserved` called the shared client fixture, which
+now installs the middleware, so their comparison could not detect a consistent
+body-replay regression. This section supersedes that test's earlier claimed
+independent parity evidence. Production behavior did not need a change.
+
+The corrected test invokes `CreateClient` directly for the bare baseline, and
+explicitly invokes `LogMiddleware(CreateClient)` for the comparison. Each request
+has its own original body with identical tenant, authenticated caller, method,
+path and query context. Both arms independently require HTTP/body status 400,
+`invalid_body`, and literal expected messages for trailing JSON, array, null,
+malformed JSON, and more than 1 MiB. Only invalid cases are compared, avoiding
+server-generated ID/secret differences.
+
+Actual evidence with `GOTOOLCHAIN=go1.26.7`:
+
+- Scoped mutation changed only the replay reader temporarily from the full
+  captured prefix to its first 13 bytes. `go test ./internal/mgmt -run
+  '^TestManagementStrictParserPreserved$' -count=1` failed, exit 1 (0.103s):
+  trailing JSON became 201 instead of 400, and the oversized request lost its
+  size-error message. The bare baseline retained its expected errors. The
+  mutation was restored in a `finally` block before any GREEN checks; no
+  production diff remains. Log: task-9-parser-review-red.log.
+- `go test ./internal/mgmt -run 'ManagementStrictParser|ManagementCapture'
+  -count=1`: PASS (0.872s). Log: task-9-parser-review-focused.log.
+- Final `go test ./internal/mgmt -count=1`: PASS (30.032s), exit 0.
+  The full package ran once after the test correction and restored mutation.
+  Log: task-9-parser-review-full.log.
+- `git diff --check`: PASS. Self-review verified distinct bare/wrapped calls,
+  independent expected error assertions, fresh matching requests and restored
+  production source. No additional source behavior, generated files or broader
+  scope was changed; no new tests were deferred.
+
+Review-correction commit subject: `test: compare Management parser with bare handler`.

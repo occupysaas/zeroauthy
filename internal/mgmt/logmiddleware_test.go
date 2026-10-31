@@ -527,12 +527,45 @@ func TestManagementSecretReadBeyondCaptureLogged(t *testing.T) {
 func TestManagementStrictParserPreserved(t *testing.T) {
 	e := newClientsEnv(t)
 	logSetup(e)
-	for _, body := range []string{`{"name":"ok"} {}`, `[]`, `null`, `{"name":`, strings.Repeat(" ", 1048577)} {
-		plain, _ := e.call(t, e.tn, m2mCaller(allClientScopes...), "POST", "/api/v2/clients", body, e.h.CreateClient)
-		logged, _ := e.call(t, e.tn, m2mCaller(allClientScopes...), "POST", "/api/v2/clients", body, http.HandlerFunc(e.h.CreateClient))
-		if logged.Code != plain.Code || logged.Body.String() != plain.Body.String() {
-			t.Fatalf("parser changed: plain=%d %s logged=%d %s", plain.Code, plain.Body, logged.Code, logged.Body)
-		}
+	for _, tc := range []struct{ name, body, message string }{
+		{"trailing JSON", `{"name":"ok"} {}`, "Payload validation error: the body must be a JSON object"},
+		{"array", `[]`, "Payload validation error: the body must be a JSON object"},
+		{"null", `null`, "Payload validation error: the body must be a JSON object"},
+		{"malformed JSON", `{"name":`, "Payload validation error: the body must be a JSON object"},
+		{"over 1 MiB", strings.Repeat(" ", 1048577), "Payload validation error: the body is too large or unreadable"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			request := func() *http.Request {
+				req := httptest.NewRequest(http.MethodPost, "https://login.acme.test/api/v2/clients?include_fields=true", strings.NewReader(tc.body))
+				ctx := tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: e.tn, Host: "login.acme.test"})
+				return req.WithContext(mgmt.WithCaller(ctx, m2mCaller(allClientScopes...)))
+			}
+			// The baseline deliberately bypasses clientsEnv.call, which installs the
+			// middleware itself. Each branch owns a fresh body and identical context.
+			plain := httptest.NewRecorder()
+			e.h.CreateClient(plain, request())
+			logged := httptest.NewRecorder()
+			e.h.LogMiddleware(http.HandlerFunc(e.h.CreateClient)).ServeHTTP(logged, request())
+			for _, response := range []struct {
+				name   string
+				writer *httptest.ResponseRecorder
+			}{{"bare", plain}, {"middleware", logged}} {
+				var body struct {
+					StatusCode int    `json:"statusCode"`
+					ErrorCode  string `json:"errorCode"`
+					Message    string `json:"message"`
+				}
+				if err := json.Unmarshal(response.writer.Body.Bytes(), &body); err != nil {
+					t.Fatalf("%s invalid error JSON: %v", response.name, err)
+				}
+				if response.writer.Code != http.StatusBadRequest || body.StatusCode != 400 || body.ErrorCode != "invalid_body" || body.Message != tc.message {
+					t.Errorf("%s: status=%d body status=%d code=%q message=%q; want 400/400 invalid_body %q", response.name, response.writer.Code, body.StatusCode, body.ErrorCode, body.Message, tc.message)
+				}
+			}
+			if logged.Code != plain.Code || logged.Body.String() != plain.Body.String() {
+				t.Error("middleware changed the bare handler's strict-parser response")
+			}
+		})
 	}
 }
 func TestManagementLargeBodyRegistersCredentialsBeforeScripts(t *testing.T) {
