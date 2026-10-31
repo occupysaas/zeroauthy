@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -82,7 +85,7 @@ func TestAsyncJobFailureLogged(t *testing.T) {
 }
 
 func TestActionConsoleEscapedScalarCredential(t *testing.T) {
-	for _, password := range []string{"line\nbreak\"value", `"quoted-secret"`, `{"value":"json-secret"}`} {
+	for _, password := range []string{"line\nbreak\"value", `"quoted-secret"`, `{"value":"json-secret"}`, `{ "value" : "json-secret" }`, `"\u0071uoted-secret"`, `{ "password" : "hidden", "value":"json-secret" }`} {
 		t.Run(password, func(t *testing.T) {
 			h := newHarness(t)
 			encoded, _ := json.Marshal(password)
@@ -183,5 +186,117 @@ func TestActionConsoleShortCredentialPreservesDenyCode(t *testing.T) {
 	out, err := h.eng.CredentialsExchange(logscrub.WithCredentials(context.Background(), "a"), h.m2mInput("t1"))
 	if err != nil || out.Denied == nil || out.Denied.Code != "invalid_request" || strings.Contains(out.Denied.Reason, "a") {
 		t.Fatalf("denial=%+v err=%v", out, err)
+	}
+}
+
+// Exercise the real Node formatter and both operator console responses. Redaction
+// must precede severity prefixes, argument joining and the runner's line cutoff.
+func TestActionConsolePrivacyBeforeFormatting(t *testing.T) {
+	for _, tc := range []struct{ name, body string }{
+		{"warn_object", `console.warn({password:'unregistered-private-value'});`},
+		{"error_nested", `console.error({normal:[{nested:{'API.-KEY':'unregistered-private-value'}}]});`},
+		{"oversized_object", `console.log({password:'unregistered-private-value',padding:'x'.repeat(3000)});`},
+		{"encoded_nested", `console.debug('prefix',JSON.stringify({normal:JSON.stringify([{password:'unregistered-private-value'}])}));`},
+		{"immutable", `const v={password:'unregistered-private-value'};console.warn(v);if(v.password!=='unregistered-private-value')throw Error('console mutated script data');`},
+		{"cycle", `const v={password:'unregistered-private-value'};v.self=v;console.warn(v);`},
+		{"deep", `let v={password:'unregistered-private-value'};for(let i=0;i<100;i++)v={normal:v};console.warn(v);`},
+		{"toJSON", `console.warn({password:'unregistered-private-value',toJSON(){return this.password}});`},
+		{"key_policy", `console.warn(Object.fromEntries(['Password','pre-PASSWD-post','p.w.d','client-secret','refresh_token','Authorization','API.-KEY','private_key','Credential','OTP','recovery-code','prİvatekey'].map(k=>[k,'unregistered-private-value'])));`},
+		{"wide", `console.warn(Object.fromEntries(Array.from({length:9000},(_,i)=>['key'+i,{password:'unregistered-private-value'}])));`},
+		{"sparse_array", `const v=[];v[1000000]={password:'unregistered-private-value'};console.warn(v);`},
+		{"accessor", `console.warn({get value(){return 'unregistered-private-value'}});`},
+		{"escaped_cut", `console.log('x'.repeat(2035)+JSON.stringify(p));`},
+		{"escaped_prefix", `console.error('prefix',JSON.stringify(p));`},
+		{"escaped_configuration_cut", `console.warn('x'.repeat(2035)+JSON.stringify(e.secrets.KEY));`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newHarness(t)
+			password := "line\nbreak\"value"
+			encoded, _ := json.Marshal(password)
+			var configuration map[string]string
+			if tc.name == "escaped_configuration_cut" {
+				configuration = map[string]string{"KEY": password}
+			}
+			a := h.action("t1", trigLogin, "privacy", `exports.onExecutePostLogin=(e)=>{const p=`+string(encoded)+`;`+tc.body+`};`, configuration, false)
+			h.bind("t1", trigLogin, a)
+			out, err := h.eng.PostLogin(logscrub.WithCredentials(context.Background(), password), h.loginInput("t1"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			ex := h.execution("t1", out.ExecutionID)
+			check := func(where string, lines []string) {
+				t.Helper()
+				if len(lines) != 1 {
+					t.Fatalf("%s logs=%q", where, lines)
+				}
+				line := lines[0]
+				for _, secret := range []string{"unregistered-private-value", "line", `line\n`, "break", password} {
+					if strings.Contains(line, secret) {
+						t.Errorf("%s leaked %q in %q", where, secret, line)
+					}
+				}
+				if !strings.Contains(line, logscrub.Marker) && !strings.Contains(line, "■■■■■■■■") {
+					t.Errorf("%s missing redaction: %q", where, line)
+				}
+			}
+			check("persisted", ex.Results[0].Logs)
+			handlers := &mgmt.Handlers{Store: h.st}
+			for _, list := range []bool{false, true} {
+				rec := httptest.NewRecorder()
+				req := httptest.NewRequest("GET", "https://system.example/api/system/tenants/t1/actions/executions", nil)
+				if list {
+					handlers.GetTenantActionExecutions(rec, req, "t1", mgmtapi.GetTenantActionExecutionsParams{})
+				} else {
+					handlers.GetTenantActionExecution(rec, req, "t1", out.ExecutionID)
+				}
+				var doc struct {
+					Results []struct {
+						Logs []string `json:"logs"`
+					} `json:"results"`
+				}
+				if rec.Code != 200 {
+					t.Fatalf("system response %d %s", rec.Code, rec.Body)
+				}
+				if list {
+					var docs []json.RawMessage
+					if err := json.Unmarshal(rec.Body.Bytes(), &docs); err != nil || len(docs) != 1 {
+						t.Fatalf("list %s: %v", rec.Body, err)
+					}
+					if err := json.Unmarshal(docs[0], &doc); err != nil {
+						t.Fatal(err)
+					}
+				} else if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+					t.Fatal(err)
+				}
+				if len(doc.Results) != 1 {
+					t.Fatalf("system response %s", rec.Body)
+				}
+				check("system response", doc.Results[0].Logs)
+			}
+		})
+	}
+}
+
+func TestActionConsoleEscapedCredentialStderr(t *testing.T) {
+	h := newHarness(t)
+	password := "line\nbreak\"value"
+	encoded, _ := json.Marshal(password)
+	a := h.action("t1", trigLogin, "stderr", `exports.onExecutePostLogin=()=>{const p=`+string(encoded)+`;setTimeout(()=>{throw Error('x'.repeat(1011)+JSON.stringify(p))},10)};`, nil, false)
+	h.bind("t1", trigLogin, a)
+	if _, err := h.eng.PostLogin(logscrub.WithCredentials(context.Background(), password), h.loginInput("t1")); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for !strings.Contains(h.logs.String(), "uncaught:") && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	output := h.logs.String()
+	if !strings.Contains(output, "uncaught:") || !strings.Contains(output, "■■■■■■■■") {
+		t.Fatalf("missing stderr redaction: %s", output)
+	}
+	for _, secret := range []string{"line", "break", password} {
+		if strings.Contains(output, secret) {
+			t.Errorf("stderr leaked %q: %s", secret, output)
+		}
 	}
 }

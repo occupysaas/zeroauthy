@@ -37,3 +37,24 @@ func TestScrubTruncatedTextWithMaskOriginalSpans(t *testing.T) {
 		}
 	}
 }
+
+func TestScrubTruncatedTextEscapedOriginalSpans(t *testing.T) {
+	for _, tc := range []struct{ name, credential, configured, text, want string }{
+		{"node_literal_and_html", "\\u003c<\nbreak", "", `warn: "\\u003c<\nbreak"`, `warn: "` + Marker + `"`},
+		{"prefixed", "line\nbreak\"value", "", `warn: "line\nbreak\"value"`, `warn: "` + Marker + `"`},
+		{"cut", "line\nbreak\"value", "", strings.Repeat("x", 20) + `"line\nbreak`, strings.Repeat("x", 20) + `"` + Marker},
+		{"escaped_overlap", "prefix-\n-middle-suffix", "\n-middle", `warn: prefix-\n-middle-suffix`, "warn: " + Marker},
+		{"config_covers", "\n-middle", "prefix-\n-middle-suffix", `warn: prefix-\n-middle-suffix`, "warn: CONFIG"},
+		{"config_escaped", "", "line\nbreak\"value", `warn: "line\nbreak\"value"`, `warn: "CONFIG"`},
+		{"config_cut", "", "line\nbreak\"value", strings.Repeat("x", 20) + `line\nbreak`, strings.Repeat("x", 20) + "CONFIG"},
+		{"raw_json_credential", `"quoted-secret"`, "", `"quoted-secret"`, Marker},
+		{"raw_object_credential", `{"value":"json-secret"}`, "", `{"value":"json-secret"}`, Marker},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := WithCredentials(context.Background(), tc.credential)
+			if got := ScrubTruncatedTextWithMask(ctx, tc.text, 20, []string{tc.configured}, "CONFIG"); got != tc.want {
+				t.Errorf("got=%q want=%q", got, tc.want)
+			}
+		})
+	}
+}

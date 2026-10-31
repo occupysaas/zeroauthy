@@ -106,3 +106,80 @@ func TestProcessMasksOverlapUnknownAndUnstructuredOutput(t *testing.T) {
 		t.Fatalf("unsafe/missing diagnostic output: %s", out)
 	}
 }
+
+func TestRunnerConsolePrivacyBeforeFormatting(t *testing.T) {
+	for _, tc := range []struct{ name, body string }{
+		{"warn_object", `console.warn({password:'unregistered-private-value'});`},
+		{"error_nested", `console.error({normal:[{nested:{'API.-KEY':'unregistered-private-value'}}]});`},
+		{"oversized_object", `console.log({password:'unregistered-private-value',padding:'x'.repeat(3000)});`},
+		{"encoded_nested", `console.debug('prefix',JSON.stringify({normal:JSON.stringify([{password:'unregistered-private-value'}])}));`},
+		{"immutable", `const v={password:'unregistered-private-value'};console.warn(v);if(v.password!=='unregistered-private-value')throw Error('console mutated script data');`},
+		{"cycle", `const v={password:'unregistered-private-value'};v.self=v;console.warn(v);`},
+		{"deep", `let v={password:'unregistered-private-value'};for(let i=0;i<100;i++)v={normal:v};console.warn(v);`},
+		{"toJSON", `console.warn({password:'unregistered-private-value',toJSON(){return this.password}});`},
+		{"key_policy", `console.warn(Object.fromEntries(['Password','pre-PASSWD-post','p.w.d','client-secret','refresh_token','Authorization','API.-KEY','private_key','Credential','OTP','recovery-code','prİvatekey'].map(k=>[k,'unregistered-private-value'])));`},
+		{"wide", `console.warn(Object.fromEntries(Array.from({length:9000},(_,i)=>['key'+i,{password:'unregistered-private-value'}])));`},
+		{"sparse_array", `const v=[];v[1000000]={password:'unregistered-private-value'};console.warn(v);`},
+		{"accessor", `console.warn({get value(){return 'unregistered-private-value'}});`},
+		{"escaped_cut", `console.log('x'.repeat(2035)+JSON.stringify(p));`},
+		{"escaped_prefix", `console.error('prefix',JSON.stringify(p));`},
+		{"escaped_configuration_cut", `console.warn('x'.repeat(2035)+JSON.stringify(configuration.K));`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var sink syncBuffer
+			r := newRunnerLog(t, config.CustomDB{}, slog.New(slog.NewJSONHandler(&sink, nil)))
+			password := "line\nbreak\"value"
+			var lines []string
+			var configuration map[string]string
+			if tc.name == "escaped_configuration_cut" {
+				configuration = map[string]string{"K": password}
+			}
+			raw, err := r.Execute(context.Background(), Request{TenantID: "privacy", ConnectionID: "c", Script: store.ScriptLogin, Config: configuration, Args: []any{"a", password}, OnLogs: func(v []string) { lines = v }, Source: `function login(e,p,cb){` + tc.body + `cb(null,{name:p});setTimeout(()=>{` + tc.body + `console.log('late-safe-marker')},10);}`})
+			want, _ := json.Marshal(map[string]string{"name": password})
+			if err != nil || string(raw) != string(want) {
+				t.Fatalf("business result=%s err=%v", raw, err)
+			}
+			if len(lines) != 1 {
+				t.Fatalf("logs=%q", lines)
+			}
+			check := func(where, text string) {
+				t.Helper()
+				for _, secret := range []string{"unregistered-private-value", "line", `line\n`, "break", password} {
+					if strings.Contains(text, secret) {
+						t.Errorf("%s leaked %q: %q", where, secret, text)
+					}
+				}
+			}
+			check("captured", strings.Join(lines, "\n"))
+			if !strings.Contains(lines[0], logscrub.Marker) && !strings.Contains(lines[0], Mask) {
+				t.Errorf("missing redaction: %q", lines)
+			}
+			waitLog(t, &sink, "late-safe-marker")
+			check("stderr including late output", sink.String())
+		})
+	}
+}
+
+func TestRunnerConsoleRawJSONCredentials(t *testing.T) {
+	for _, password := range []string{`{ "value" : "json-secret" }`, `"\u0071uoted-secret"`, `{ "password" : "hidden", "value":"json-secret" }`} {
+		t.Run(password, func(t *testing.T) {
+			var sink syncBuffer
+			r := newRunnerLog(t, config.CustomDB{}, slog.New(slog.NewJSONHandler(&sink, nil)))
+			var lines []string
+			raw, err := r.Execute(context.Background(), Request{TenantID: "privacy", ConnectionID: "c", Script: store.ScriptLogin, Args: []any{"a", password}, OnLogs: func(v []string) { lines = v }, Source: `function login(e,p,cb){console.log(p);console.warn(JSON.stringify(p));cb(null,{name:p});setTimeout(()=>{console.error(p);console.log('raw-json-safe-marker')},10)}`})
+			want, _ := json.Marshal(map[string]string{"name": password})
+			if err != nil || string(raw) != string(want) {
+				t.Fatalf("business result=%s err=%v", raw, err)
+			}
+			if len(lines) != 2 {
+				t.Fatalf("captured=%q", lines)
+			}
+			waitLog(t, &sink, "raw-json-safe-marker")
+			for _, out := range append(lines, sink.String()) {
+				if strings.Contains(out, "json-secret") || strings.Contains(out, "quoted-secret") || !strings.Contains(out, logscrub.Marker) {
+					t.Errorf("unsafe/missing redaction: %s", out)
+				}
+			}
+		})
+	}
+}

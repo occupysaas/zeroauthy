@@ -1480,3 +1480,78 @@ Task 10 final terminal evidence:
   actions2.209s/jobs0.018s/mgmt1.022s (`task-10-required-complete.log`).
 - Final staged diff check: PASS. Task 10 implementation is complete with the
   explicitly assigned Task 16 source-audit/import-abandonment gaps above.
+
+
+## Task 10 I1 follow-up — enforce console privacy before formatting
+
+Review I1 found that the prior Task10 self-review missed the Node boundary:
+objects were serialized, severity-prefixed and cut before Go could scrub their
+keys; escaped credentials in prefixed/incomplete JSON evaded raw-value masks.
+This follow-up is limited to that privacy defect, from base `0c2558c`.
+
+Both existing Action/customdb runners now scrub independent console argument
+trees before serialization, joining, severity and cutoff. The policy matches
+Go's original-key normalized-contains rule (including dotted-I simple lowercase).
+Nested objects, arrays and encoded JSON are covered. Cycles/accessors/functions,
+depth beyond64, trees beyond8192 nodes/properties, oversized arrays and
+structured strings beyond64KiB fail closed. Original script values and business
+results are unchanged. JSON-shaped strings retain their original bytes when
+safe; if decoded key scrubbing changes them, the entire console string becomes
+Marker. This explicit over-hiding prevents a password that itself is JSON from
+being rewritten before Go's original-credential mask can match its other members.
+
+The Go sink adds raw/JSON-escaped/Node-compatible credential and configuration
+variants (at most three ephemeral spellings per value), including cutoff prefixes,
+to the existing original-span union. Configuration-covered spans retain the
+configuration marker, extending credentials retain Marker, and raw JSON-valued
+credentials keep whole-original-match precedence. Literal backslash-u sequences
+are not decoded accidentally. Existing bounded delayed-diagnostic state,
+256-value/64KiB/60-second limits and permanent mute behavior are unchanged. No
+credentials are added to the Node request protocol; no module/dependency,
+API/generated/store/migration/UI changes or business-result mutations.
+
+Actual TDD evidence (all Go commands use GOTOOLCHAIN=go1.26.7 and require Node):
+
+- Initial actual-Node Action/customdb plus escaped-span regression command
+  **FAIL** in all three packages (`task-10-i1-red.log`): reviewer warn object,
+  oversized object and escaped newline/quote cutoff fixtures leak through
+  persisted/system list/detail output or captured/delayed stderr output.
+- Raw JSON password spelling/escaped-HTML refinement command **FAIL**
+  (`task-10-i1-raw-red.log`), then fixed. Raw JSON password containing a secret
+  key and dotted-I sensitive-key refinement command **FAIL**
+  (`task-10-i1-json-key-red.log`), then fixed. Some defensive matrix fixtures
+  were added after implementation or already safe; no individual RED is claimed
+  for every later row.
+- Final regression command `go test ./internal/actions ./internal/customdb
+  ./internal/logscrub -run 'ConsolePrivacyBeforeFormatting|ActionConsoleEscaped|EscapedOriginalSpans|ConsoleRawJSONCredentials' -count=1`: **PASS** actions2.239s/customdb1.635s/logscrub0.003s
+  (`task-10-i1-green-final.log`). Includes immutable source objects, normalized
+  key families, encoded nested JSON, cycle/depth/width/sparse/accessor/toJSON,
+  credential/config cutoffs and overlap, system responses and actual Action
+  delayed stderr. Customdb responses retain exact business data.
+
+Final-source checks, all terminal exit0:
+
+- `go test -race ./internal/actions ./internal/logscrub ./internal/customdb
+  -count=1`: **PASS** actions119.962s/logscrub1.028s/customdb8.812s
+  (`task-10-i1-full-race-final.log`). Includes existing64KiB cap, short/raw
+  credentials, config overlap, late output, diagnostic capacity/expiry/mute,
+  and customdb console baseline tests.
+- `go test ./internal/actions ./internal/jobs ./internal/mgmt ./internal/login
+  -run 'ExecutionIDs|ActionDeny|ActionThrow|AsyncJobFailure|ActionConsole|PublicExecution|SystemExecutions|ImportJobOutcome'
+  -count=1`: **PASS** actions4.178s/jobs0.014s/mgmt0.703s/login0.641s
+  (`task-10-i1-required-final.log`). The required Task10 packages plus actual
+  persisted login execution links are covered.
+- `GOTOOLCHAIN=go1.26.7 make check-sources`: **PASS**, exit0
+  (`task-10-i1-check-sources.log`). `git diff --check`: **PASS**.
+- Focused follow-up commit subject: `fix: scrub console arguments before runner formatting`.
+
+
+The intermediate full affected race PASS119.699s/1.026s/7.981s and required
+focused PASS4.058s/0.028s/0.767s/0.592s predate the final JSON-string/dotted-I
+corrections; they are intermediate evidence only. Final-source evidence is the
+run above. Full gRPC20-minute/SQL/store/repository-wide/generation/console/E2E
+checks were not rerun for this diagnostic-only fix; previous results remain
+historical evidence. Task16 no-engine/no-binding authz emission and import sweep
+abandonment outcomes remain open and assigned to the controller. No later task
+is claimed complete. Detailed decisions/commands/report:
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-10-privacy-report.md`.

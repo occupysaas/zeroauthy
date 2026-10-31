@@ -2,6 +2,7 @@ package logscrub
 
 import (
 	"context"
+	"encoding/json"
 	"slices"
 	"strings"
 )
@@ -26,13 +27,62 @@ func ScrubTruncatedTextWithMask(ctx context.Context, text string, minimumCut int
 		credential bool
 	}
 	var literals []literal
+	// Match both the original value and its JSON string spelling against the
+	// original text. Severity prefixes and cutoffs may leave invalid JSON, so
+	// decoding the line alone cannot protect an escaped credential. Keep these
+	// variants in the same span union to preserve configuration overlap policy.
+	add := func(value string, credential bool) {
+		literals = append(literals, literal{value, credential})
+		encoded, _ := json.Marshal(value)
+		escaped := string(encoded[1 : len(encoded)-1])
+		if escaped != value {
+			literals = append(literals, literal{escaped, credential})
+		}
+		// JSON.stringify leaves HTML characters and line separators literal.
+		var node strings.Builder
+		for i := 0; i < len(escaped); {
+			if escaped[i] == '\\' && i+1 < len(escaped) {
+				if i+6 <= len(escaped) {
+					var decoded string
+					switch escaped[i : i+6] {
+					case `\u003c`:
+						decoded = "<"
+					case `\u003e`:
+						decoded = ">"
+					case `\u0026`:
+						decoded = "&"
+					case `\u2028`:
+						decoded = "\u2028"
+					case `\u2029`:
+						decoded = "\u2029"
+					}
+					if decoded != "" {
+						node.WriteString(decoded)
+						i += 6
+						continue
+					}
+				}
+				// Consume an escape atomically: a literal \\u003c must
+				// remain literal rather than being decoded as HTML.
+				node.WriteString(escaped[i : i+2])
+				i += 2
+				continue
+			}
+			node.WriteByte(escaped[i])
+			i++
+		}
+		nodeEscaped := node.String()
+		if nodeEscaped != value && nodeEscaped != escaped {
+			literals = append(literals, literal{nodeEscaped, credential})
+		}
+	}
 	for value := range MaskValues(ctx) {
 		if _, exists := configured[value]; !exists {
-			literals = append(literals, literal{value, true})
+			add(value, true)
 		}
 	}
 	for value := range configured {
-		literals = append(literals, literal{value, false})
+		add(value, false)
 	}
 	mask := func(s string) string {
 		type span struct {
