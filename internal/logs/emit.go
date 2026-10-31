@@ -23,6 +23,13 @@ func RecordEvent(ctx context.Context, recorder Recorder, event Event) {
 	if !enabled {
 		return
 	}
+	// Outcomes following an Action use all credentials already opened in this
+	// request, even when their original context predates the Action. The sink
+	// receives an immutable snapshot and cannot observe later registrations.
+	ctx, safe := flowCredentialContext(ctx)
+	if !safe {
+		return
+	}
 	event = Enrich(ctx, event)
 	if event.Description == "" {
 		event.Description = description

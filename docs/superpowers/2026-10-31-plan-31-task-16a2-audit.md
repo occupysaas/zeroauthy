@@ -12,10 +12,10 @@ acceptance remain separate.
 
 | Emitted code | Actual production decision/write boundary | Real event test evidence / scope |
 | --- | --- | --- |
-| `actions_execution_failed` | internal/actions/engine.go: Engine.run → executionFailureEvent (synchronous only); internal/actions/jobs.go: Worker.Run after successful terminal FinishJob | internal/actions/failure_events_test.go: TestSynchronousActionFailureEvents (post-login throw/timeout, pre-registration throw, metadata/record failures; deny/validation/success negatives); internal/actions/console_test.go: TestAsyncJobFailureLogged (exact terminal count), TestAsyncJobFailureNotLoggedWhenFinishRollsBack; mounted TestHostedLoginOutcomeEvents; login TestActionThrowLogged, TestActionExecutionLinksOnSignupEvents |
+| `actions_execution_failed` | internal/actions/engine.go: Engine.run → executionFailureEvent (synchronous only); internal/actions/jobs.go: Worker.Run after successful terminal FinishJob | internal/actions/partial_secret_events_test.go: TestPartialSecretOpenFailureEventMasked (valid first/corrupt second Action and Module); internal/actions/failure_events_test.go: TestSynchronousActionFailureEvents (post-login throw/timeout, pre-registration throw, metadata/record failures; deny/validation/success negatives); internal/actions/console_test.go: TestAsyncJobFailureLogged (exact terminal count), TestAsyncJobFailureNotLoggedWhenFinishRollsBack; mounted TestHostedLoginOutcomeEvents; login TestActionThrowLogged, TestActionExecutionLinksOnSignupEvents |
 | `api_limit` | internal/mgmt/logmiddleware.go | internal/mgmt/logmiddleware_test.go: TestManagementRateLimitLogged |
 | `custom_domain_verification_failed` | internal/mgmt/custom_domains.go | internal/mgmt/logmiddleware_test.go: TestManagementDomainVerificationLogged |
-| `f` | internal/authz/actions.go; internal/login/login.go; internal/login/login.go; internal/login/social.go; internal/oauth/grant_password.go; internal/oauth/grant_password.go | internal/login/events_test.go: TestAuthenticationEvents, TestActionDenyLogged, TestActionThrowLogged, TestSocialCallbackFailureEventAttribution; internal/server/login_outcomes_test.go: TestHostedLoginOutcomeEvents |
+| `f` | internal/authz/actions.go; internal/login/login.go; internal/login/login.go; internal/login/social.go; internal/oauth/grant_password.go; internal/oauth/grant_password.go | internal/login/events_test.go: TestAuthenticationEvents, TestActionDenyLogged, TestActionThrowLogged, TestSocialCallbackFailureEventAttribution; internal/server/login_outcomes_test.go: TestHostedLoginOutcomeEvents; internal/server/action_mask_outcomes_test.go: TestMountedSilentActionCredentialMasks (real mounted throw/deny with short/long credential collision, exact full sequences and links) |
 | `fapi` | internal/mgmt/logmiddleware.go | internal/mgmt/logmiddleware_test.go: TestManagementWriteLogged, TestManagementFailedWriteLogged, TestManagementReadNotLogged, TestManagementSecretReadLogged |
 | `fce` | internal/mgmt/users.go | internal/mgmt/logmiddleware_test.go: TestManagementUserDomainLogged; internal/login/events_test.go: TestHostedOutcomeEvents (fcp/scp) |
 | `fcp` | internal/login/reset.go; internal/mgmt/users.go | internal/mgmt/logmiddleware_test.go: TestManagementUserDomainLogged; internal/login/events_test.go: TestHostedOutcomeEvents (fcp/scp) |
@@ -37,7 +37,7 @@ acceptance remain separate.
 | `fp` | internal/login/login.go; internal/oauth/grant_password.go | internal/login/events_test.go: TestAuthenticationEvents; internal/oauth/events_test.go: TestPasswordFailureClassificationEvents |
 | `fpar` | internal/oauth/par.go | internal/oauth/events_test.go: TestAuthorizationRequestFailureEvents |
 | `fs` | internal/dbconn/signup.go; internal/login/login.go | internal/dbconn/events_test.go: TestDatabaseConnectionEvents; internal/login/events_test.go: TestHostedOutcomeEvents, TestActionExecutionLinksOnSignupEvents; mounted TestHostedLoginOutcomeEvents |
-| `fsa` | internal/authz/handlers.go: Authorize outcome observer after resolved/PAR request validation; completed only by flow.go: loginSucceeded after issuance | internal/authz/silent_events_test.go: TestSilentAuthorizationOutcomeEvents (login/consent/interaction, redirect/deny/throw, invalid session/disabled connection, issuance failure, PAR, cookie masks; ssa/ordinary/malformed negatives); mounted internal/server/flow_test.go: TestEndToEndRefreshAndLogout |
+| `fsa` | internal/authz/handlers.go: Authorize outcome observer after resolved/PAR request validation; completed only by flow.go: loginSucceeded after issuance | internal/authz/silent_events_test.go: TestSilentAuthorizationOutcomeEvents (login/consent/interaction, redirect/deny/throw, invalid session/disabled connection, issuance failure, PAR, cookie masks; ssa/ordinary/malformed negatives); mounted internal/server/flow_test.go: TestEndToEndRefreshAndLogout; internal/server/action_mask_outcomes_test.go: TestMountedSilentActionCredentialMasks (real mounted throw/deny with short/long credential collision, exact full sequences and links) |
 | `fu` | internal/login/login.go; internal/oauth/grant_password.go | internal/login/events_test.go: TestAuthenticationEvents; internal/oauth/events_test.go: TestPasswordFailureClassificationEvents |
 | `fui` | internal/jobs/runner.go; internal/jobs/sweep.go | internal/jobs/outcome_test.go: TestImportJobOutcomeLogged; internal/app/job_outcomes_test.go: TestSweepRecordsAbandonedImportsAfterWrite (fui sweep); storetest.JobSweepOutcomes native+grpc |
 | `fv` | internal/login/verify.go | internal/login/events_test.go: TestHostedOutcomeEvents |
@@ -121,3 +121,37 @@ acceptance remain separate.
   regression, whole-branch review, and prior carry-forward minors remain.
   Dedicated event coverage for every consent/device/redirect continuation and
   every unchanged inventory trigger is not claimed by this 60-row audit.
+
+## Review correction after 93ec9d2
+
+Review exposed two real privacy gaps despite the earlier package suite passing.
+Engine.step registered a credential group only after every envelope opened;
+a later corrupt Action/Module envelope could leave an already opened value
+unmasked. It now registers each opened credential immediately, before another
+open/error return. Partial-open tests assert actual persisted failure metadata.
+
+Private flow.logCtx alone did not update the caller's older request context,
+so later f/fsa could disclose an opened Action credential in client_name.
+The existing request execution trace now additionally owns bounded credential
+metadata (256 distinct values,64KiB total, cloned string storage). Engine.step
+explicitly registers each opened Action/Module value. RecordEvent snapshots
+these values into its recorder context before enrichment/recording, including
+when invoked with the original outer request context. Generic logscrub
+WithValues/WithCredentials remain immutable. TestFlowCredentialSnapshotsAndIsolation
+pins snapshots/request isolation; TestFlowCredentialLimitsDropUnsafeEvents
+pins inclusive limits and duplicate/empty handling; TestFlowCredentialsConcurrentSnapshots
+pins concurrent registration/recording under race.
+
+On count/byte overflow the request trace becomes permanently unsafe, discards
+its collector values and suppresses subsequent RecordEvent calls. Rewrapping
+the same request cannot reset it. Cost: those events/stat increments are lost,
+and this source-level suppression does not increment AsyncRecorder's queue-drop
+counter. No synchronous warning or raw credential is logged. Requests and
+business outcomes continue. Already recorded snapshots are immutable; async
+recorder enrichment keeps only its existing detached scrubber, not the mutable
+trace/request context. No process-wide credential history or new goroutine.
+
+Real mounted silent throw/deny now asserts the complete initial login/exchange
+and failed silent sequences, actual shared execution IDs and RFC3339 dates,
+with both short and long secret collisions redacted in every target event.
+Task16 remains incomplete; this correction changes no store/SQL/proto/API.

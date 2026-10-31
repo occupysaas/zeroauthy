@@ -493,13 +493,12 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		if err != nil {
 			return nil, fmt.Errorf("actions: secret %q of %q does not open", s.Name, u.name)
 		}
+		ctx = logscrub.WithCredentials(ctx, v)
+		logs.AddCredentials(ctx, v)
 		vals[s.Name] = v
 	}
 	red := customdb.NewRedactor(vals).Union(f.redactor)
 	ctx = red.WithCredentials(ctx)
-	for _, v := range vals {
-		ctx = logscrub.WithCredentials(ctx, v)
-	}
 	modules := make([]wireModule, 0, len(u.modules))
 	for _, m := range u.modules {
 		mv := make(map[string]string, len(m.version.Secrets))
@@ -508,12 +507,11 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 			if err != nil {
 				return nil, fmt.Errorf("actions: secret %q of module %q does not open", s.Name, m.name)
 			}
+			ctx = logscrub.WithCredentials(ctx, v)
+			logs.AddCredentials(ctx, v)
 			mv[s.Name] = v
 		}
 		red = red.Union(customdb.NewRedactor(mv))
-		for _, v := range mv {
-			ctx = logscrub.WithCredentials(ctx, v)
-		}
 		modules = append(modules, wireModule{Name: m.name, VersionKey: m.version.ID, Code: m.version.Code, DepsRoot: m.depsRoot, Secrets: mv})
 	}
 	// Ensure may have waited on a build lock past the deadline; dispatching

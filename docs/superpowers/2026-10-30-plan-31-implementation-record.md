@@ -2307,3 +2307,34 @@ SQL-driver/full-gRPC run or make generate. No full-branch regression,
 browser/CLI/console acceptance, docs completion or whole-branch review is
 claimed. Task16b and all prior carry-forward minors remain explicitly open.
 Focused commit subject: `fix: record silent auth logout notification and Action failures`.
+
+### Task16a2 review corrections — partial opens and later flow masks
+
+Review of93ec9d2 found two Important privacy gaps beyond the initial passing
+matrix. Real TestPartialSecretOpenFailureEventMasked RED showed valid-first /
+corrupt-second Action and Module credentials visible in persisted execution
+failure metadata. Immediate per-open private registration fixed it;
+GREEN0.094s. Real mounted TestMountedSilentActionCredentialMasks RED showed
+both f and fsa exposing an Action credential equal to client_name, on silent
+throw/deny for short and long credentials. The existing execution trace now
+shares explicitly opened credential metadata with later RecordEvent calls;
+each call supplies its recorder an immutable mask snapshot. Focused GREEN
+logs0.041s/actions0.152s/server1.027s includes snapshots, isolation, concurrency
+and count/byte limits. Scratch evidence uses task-16a2-review-* logs.
+
+GOTOOLCHAIN=go1.26.7 `go test -race ./internal/logs ./internal/logscrub ./internal/actions ./internal/authz ./internal/login ./internal/server -count=1`
+PASS logs1.562s/logscrub1.027s/actions162.065s/authz21.273s/login80.088s/server113.493s.
+No reported test failures/skips. `git diff --check` PASS; reviewed all3 source
+hunks and3 new test files. Updated durable audit still maps all60 codes and
+now59 named tests. Original generic logscrub immutability is unchanged.
+
+The mutex-protected request collector owns cloned values, bounded to256
+credentials/64KiB; no global history, new goroutine or logging DB read. On
+saturation the trace releases values and suppresses subsequent source events
+(including stat increments) until the request ends. Rewrapping cannot reset
+unsafe state. This intentional loss does not increment AsyncRecorder's queue
+drop counter. Existing queued events keep immutable snapshots/detached masks.
+Full details and actual RED/GREEN remain in the task16a2 report/audit. No
+SQL/store/proto/generated changes, so no redundant SQL/full-gRPC checks.
+Task16 remains incomplete; all acceptance/docs/regression/review debt stays.
+Follow-up commit subject: `fix: preserve Action credential masks across flow outcomes`.

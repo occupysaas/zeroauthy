@@ -134,3 +134,54 @@ claimed. No further implementation gap is silently waived by this stage.
 
 Commit: focused repair, audit and durable report commit; exact SHA in the
 scratch report/controller handoff after creation.
+
+## Review correction after 93ec9d2
+
+Two Important review findings reproduced as real persisted event failures:
+(1) a valid first Action/Module credential followed by a corrupt second envelope
+left the first value visible in actions_execution_failed client_name;
+(2) keeping masks only in private flow.logCtx left the caller's f/fsa metadata
+unmasked after synchronous Actions. Prior package passes did not cover these
+collisions; they are corrected in this follow-up, not waived.
+
+Engine.step now registers every successfully opened Action/Module value
+immediately before another open or possible error. It keeps existing private
+immutable masks and explicitly adds the opened value to the existing request
+execution trace. The trace stores cloned strings, at most256 distinct values
+and64KiB, under its mutex. RecordEvent clones a mask snapshot into its recorder
+context before enrichment and recording, so an older outer request context
+sees credentials already opened by the Action. Generic logscrub.WithValues /
+WithCredentials retain their immutable contracts. No process-global history,
+DB reads, goroutines or request-context retention in async queue payloads.
+
+Overflow makes the request trace permanently unsafe, releases collector
+values and drops subsequent RecordEvent calls; wrapping the same request with
+WithRecorder cannot reset this. This is intentional privacy-first loss of
+logs/stat increments, without failing business requests. It does not increment
+the AsyncRecorder queue-drop counter. No synchronous/raw-credential warning is
+introduced. Snapshot tests pin earlier events independently from later masks;
+the async recorder still keeps only its detached immutable scrubber.
+
+Actual follow-up evidence (GOTOOLCHAIN=go1.26.7, scratch log prefix
+`task-16a2-review-`):
+
+- `go test ./internal/actions -run '^TestPartialSecretOpenFailureEventMasked$' -count=1`
+  RED both Action/Module valid-first/corrupt-second cases exposed the opened
+  credential. Immediate registration GREEN0.094s (`partial-red/green.log`).
+- `go test ./internal/server -run '^TestMountedSilentActionCredentialMasks$' -count=1`
+  RED all four real TLS mounted cases (throw/deny × short/long secret) exposed
+  client_name in f and fsa (`mounted-red.log`). Assertions inspect complete
+  exact sequences, shared resolving execution links, RFC3339 date and every
+  affected event, rather than catalog membership.
+- `go test ./internal/logs ./internal/actions ./internal/server -run '^(TestFlowCredential.*|TestPartialSecretOpenFailureEventMasked|TestMountedSilentActionCredentialMasks)$' -count=1`
+  GREEN logs0.041s/actions0.152s/server1.027s (`green.log`). Includes count/byte
+  overflow, duplicate/empty values, immutable snapshots, request isolation and
+  concurrent registration/recording tests. Test API additions are secondary
+  coverage to the actual runtime RED reproductions above.
+- `go test -race ./internal/logs ./internal/logscrub ./internal/actions ./internal/authz ./internal/login ./internal/server -count=1` PASS logs1.562s/logscrub1.027s/actions162.065s/authz21.273s/login80.088s/server113.493s (`race.log`). No test failures or skips reported.
+- Updated60-row audit matches all emitted inventory codes;59 named event and
+  masking tests exist. Reviewed all3 production hunks and new test helpers.
+  No store/SQL/protobuf/generated/dependency changes, no SQL/full-gRPC rerun.
+
+Task16 remains incomplete, with the same Task16b acceptance/docs/regression
+and whole-branch review work and prior carry-forward minors outstanding.
