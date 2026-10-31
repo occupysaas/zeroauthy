@@ -1843,3 +1843,39 @@ suite, console build/generation, source-link network, browser or E2E checks were
 run or claimed passing. Final regression remains Task16; console work remains
 Task14. Commit subject: `feat: serve tenant stats`; SHA and full report at
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-13-report.md`.
+
+### Task 13 review correction — Strict raw query parsing
+
+Review13 identified that URL.Query discards malformed query pairs, allowing
+daily `from=20261030;to=20261031` to use defaults and active-users
+`unknown=%zz` to return a count. Confirmed with new direct and mounted-route
+subtests before implementation: both endpoints returned200 for each malformed
+semicolon/invalid escape case. Replaced both stats uses of URL.Query with
+`url.ParseQuery(r.URL.RawQuery)` and reject any parse error as400
+`invalid_query_string`. Daily then validates its allowed/repeated/date parameters
+on the successfully parsed query; active-users still permits no parameters.
+No route, capability precedence, valid-window, scope, recorder or store changes.
+
+Actual checks with GOTOOLCHAIN=go1.26.7:
+
+- RED `go test ./internal/mgmt ./internal/server -run
+  'TestDailyStatsAndActiveUsersMalformedQuery' -count=1`: **FAIL**,16 expected
+  subtest failures (8 direct,8 mounted), returning200 instead of400; package
+  times0.088s/0.125s (`task-13-i1-red.log`). Four raw queries for each endpoint:
+  `from=20261030;to=20261031`, `unknown=%zz`, `from=%`, `unknown;`.
+- GREEN `go test ./internal/mgmt ./internal/server -run
+  'DailyStats|ActiveUsers|StatsScope' -count=1`: **PASS**,0.577s/0.528s
+  (`task-13-i1-green.log`), covering malformed cases plus existing valid-window,
+  bare-number, authorization, tenant isolation and capability behavior.
+- Same focused mgmt/server selection with `-race`: **PASS**,2.365s/2.022s
+  (`task-13-i1-race.log`).
+- Required `go test ./internal/mgmt -run 'DailyStats|ActiveUsers|StatsScope'
+  -count=1`: **PASS** (`task-13-i1-required.log`).
+- `git diff --check`: **PASS**. Read the complete correction diff; both endpoints
+  reject partial parsed results when parsing reports an error, and existing
+  calendar/default/range behavior still uses the same validation and mapping.
+
+No broader suites, database/gRPC, console, browser or E2E checks were run for
+this correction. Existing exact-Go-zero ActiveUsers SQL/memory minor remains
+unchanged and carried forward. Correction commit subject:
+`fix: reject malformed stats query strings`; SHA is in the original task report.

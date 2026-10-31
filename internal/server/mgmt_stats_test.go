@@ -108,3 +108,19 @@ func TestDailyStatsAndActiveUsersThroughServerUnavailable(t *testing.T) {
 }
 
 func timePtr(t time.Time) *time.Time { return &t }
+
+func TestDailyStatsAndActiveUsersMalformedQueryThroughServer(t *testing.T) {
+	seed := strings.Replace(mgmtSeed, `"read:connections", "create:connections"`, `"read:stats", "read:connections", "create:connections"`, 1)
+	h, _ := newMgmtEnvSeed(t, seed, nil)
+	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
+	for _, path := range []string{"daily", "active-users"} {
+		for _, query := range []string{"from=20261030;to=20261031", "unknown=%zz", "from=%", "unknown;"} {
+			t.Run(path+"/"+query, func(t *testing.T) {
+				w, out := sendRaw(h, "GET", "https://acme.example.test/api/v2/stats/"+path+"?"+query, admin, nil)
+				if w.Code != 400 || errCode(out) != "invalid_query_string" {
+					t.Fatal(w.Code, w.Body)
+				}
+			})
+		}
+	}
+}

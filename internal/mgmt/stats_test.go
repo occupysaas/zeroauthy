@@ -149,3 +149,21 @@ func TestDailyStatsAndActiveUsersUnavailable(t *testing.T) {
 		}
 	}
 }
+
+func TestDailyStatsAndActiveUsersMalformedQuery(t *testing.T) {
+	e := newClientsEnv(t)
+	a := statsAPI(t, e.h)
+	for _, endpoint := range []struct {
+		path string
+		fn   http.HandlerFunc
+	}{{"daily", a.GetDailyStats}, {"active-users", a.GetActiveUsers}} {
+		for _, query := range []string{"from=20261030;to=20261031", "unknown=%zz", "from=%", "unknown;"} {
+			t.Run(endpoint.path+"/"+query, func(t *testing.T) {
+				w, out := e.call(t, e.tn, m2mCaller("read:stats"), "GET", "/api/v2/stats/"+endpoint.path+"?"+query, nil, endpoint.fn)
+				if w.Code != 400 || out.(map[string]any)["errorCode"] != "invalid_query_string" {
+					t.Fatal(w.Code, w.Body)
+				}
+			})
+		}
+	}
+}

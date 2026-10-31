@@ -2,6 +2,7 @@ package mgmt
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -13,7 +14,11 @@ func dailyStatsWindow(r *http.Request, now time.Time) (time.Time, time.Time, err
 	now = now.UTC()
 	to := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	from := to.AddDate(0, 0, 1-logLimits["stats_default_days"])
-	for key, values := range r.URL.Query() {
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		return from, to, badQuery("Invalid query string")
+	}
+	for key, values := range query {
 		if (key != "from" && key != "to") || len(values) != 1 {
 			return from, to, badQuery("Unsupported or repeated parameter %q", key)
 		}
@@ -89,7 +94,12 @@ func (h *Handlers) GetActiveUsers(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if len(r.URL.Query()) != 0 {
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		Fail(w, badQuery("Invalid query string"))
+		return
+	}
+	if len(query) != 0 {
 		Fail(w, badQuery("Unsupported query parameters"))
 		return
 	}
