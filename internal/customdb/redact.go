@@ -199,3 +199,12 @@ func (d *Redactor) walk(v any) any {
 	}
 	return v
 }
+
+// WithCredentials registers all configuration values for bounded diagnostics
+// which must retain masks beyond a single call. No plaintext is logged.
+func (d *Redactor) WithCredentials(ctx context.Context) context.Context {
+	if d == nil {
+		return ctx
+	}
+	return logscrub.WithCredentials(ctx, d.vals...)
+}

@@ -1854,6 +1854,51 @@ export interface paths {
         patch: operations["updateOperator"];
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/actions/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List tenant Action executions with console output
+         * @description Local operator extension. Lists newest first, or ascending after an execution ID cursor. Action filters use immutable Action IDs; older records without IDs do not match.
+         */
+        get: operations["getTenantActionExecutions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/actions/executions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a tenant Action execution with console output
+         * @description Local operator extension containing immutable scrubbed console lines.
+         */
+        get: operations["getTenantActionExecution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/actions/executions/{id}/attempt": {
         parameters: {
             query?: never;
@@ -2861,10 +2906,729 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search tenant log events
+         * @description Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores every parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised. See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        get: operations["GetLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/logs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one tenant log event
+         * @description Log object; malformed ID is not_found, not invalid_query_string. See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        get: operations["GetLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one user’s log events
+         * @description Log[] or {logs,start,limit,length,total}; only the referenced tenant user. Missing/deleted user=404 locally; historical events remain searchable globally. See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        get: operations["GetUserLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/log-streams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List log stream configurations
+         * @description LogStream[]; sink secret values replaced with marker See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        get: operations["GetLogStreams"];
+        put?: never;
+        /**
+         * Create a log stream
+         * @description LogStream object; sink secret values replaced with marker See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        post: operations["CreateLogStream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/log-streams/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a log stream
+         * @description LogStream object; sink secret values replaced with marker See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        get: operations["GetLogStream"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a log stream
+         * @description empty See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        delete: operations["DeleteLogStream"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a log stream
+         * @description LogStream object; sink secret values replaced with marker See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        patch: operations["UpdateLogStream"];
+        trace?: never;
+    };
+    "/api/v2/stats/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read UTC daily authentication counters
+         * @description DailyStat[] with date YYYY-MM-DD, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        get: operations["GetDailyStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/stats/active-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count users active within thirty days
+         * @description JSON integer; distinct existing users with last_login >= now minus 30 days See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         */
+        get: operations["GetActiveUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SystemActionExecution: {
+            id: string;
+            trigger_id: string;
+            status: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            results: {
+                action_id?: string;
+                action_name: string;
+                /** Format: date-time */
+                started_at: string;
+                /** Format: date-time */
+                ended_at: string;
+                logs: string[];
+                job_id?: string;
+                job_attempt?: number;
+                error?: {
+                    id: string;
+                    message: string;
+                };
+            }[];
+        };
+        /** @description Tenant event; absent fields omitted. location_info is unavailable locally. All responses are scrubbed (D-0057). */
+        LogEvent: {
+            log_id: string;
+            /** Format: date-time */
+            date: string;
+            type: string;
+            description?: string;
+            client_id?: string;
+            client_name?: string;
+            connection?: string;
+            connection_id?: string;
+            strategy?: string;
+            strategy_type?: string;
+            user_id?: string;
+            user_name?: string;
+            audience?: string;
+            scope?: string;
+            ip?: string;
+            hostname?: string;
+            user_agent?: string;
+            isMobile?: boolean;
+            organization_id?: string;
+            organization_name?: string;
+            tenant_name?: string;
+            /** @description Scrubbed event detail; Actions execution IDs appear at actions.executions. */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** @description Optional event schema metadata, omitted when unavailable. */
+            $event_schema?: {
+                [key: string]: unknown;
+            };
+            /** @description Only trustworthy available security signals are included. */
+            security_context?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Log list item; every field is optional because page-mode include/exclude projection can remove log_id, date and type. Available fields retain the full event types and scrubbed values (D-0057). */
+        LogEventListItem: {
+            log_id?: string;
+            /** Format: date-time */
+            date?: string;
+            type?: string;
+            description?: string;
+            client_id?: string;
+            client_name?: string;
+            connection?: string;
+            connection_id?: string;
+            strategy?: string;
+            strategy_type?: string;
+            user_id?: string;
+            user_name?: string;
+            audience?: string;
+            scope?: string;
+            ip?: string;
+            hostname?: string;
+            user_agent?: string;
+            isMobile?: boolean;
+            organization_id?: string;
+            organization_name?: string;
+            tenant_name?: string;
+            /** @description Scrubbed event detail; Actions execution IDs appear at actions.executions. */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** @description Optional event schema metadata, omitted when unavailable. */
+            $event_schema?: {
+                [key: string]: unknown;
+            };
+            /** @description Only trustworthy available security signals are included. */
+            security_context?: {
+                [key: string]: unknown;
+            };
+        };
+        LogEventsPage: {
+            logs: components["schemas"]["LogEventListItem"][];
+            start: number;
+            limit: number;
+            length: number;
+            total: number;
+        };
+        LogEventsResponse: components["schemas"]["LogEventListItem"][] | components["schemas"]["LogEventsPage"];
+        LogStreamFilter: {
+            /** @enum {string} */
+            type: "category";
+            /** @enum {string} */
+            name: "auth.login.fail" | "auth.login.notification" | "auth.login.success" | "auth.logout.fail" | "auth.logout.success" | "auth.signup.fail" | "auth.signup.success" | "auth.silent_auth.fail" | "auth.silent_auth.success" | "auth.token_exchange.fail" | "auth.token_exchange.success" | "management.fail" | "management.success" | "scim.event" | "system.notification" | "user.fail" | "user.notification" | "user.success" | "actions" | "other";
+        };
+        LogStreamPII: {
+            log_fields: ("first_name" | "last_name" | "username" | "email" | "phone" | "address")[];
+            /**
+             * @default mask
+             * @enum {string}
+             */
+            method?: "mask" | "hash";
+            /**
+             * @default xxhash
+             * @enum {string}
+             */
+            algorithm?: "xxhash";
+        };
+        LogStreamCustomHeader: {
+            header: string;
+            value: string;
+        };
+        LogStreamHTTPSink: {
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            httpAuthorization?: string;
+            /**
+             * @default JSONLINES
+             * @enum {string}
+             */
+            httpContentFormat?: "JSONARRAY" | "JSONLINES" | "JSONOBJECT";
+            /** @default application/json */
+            httpContentType?: string;
+            /** @description HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057). */
+            httpEndpoint: string;
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            httpCustomHeaders?: components["schemas"]["LogStreamCustomHeader"][];
+        };
+        LogStreamHTTPSinkView: {
+            /**
+             * @description Opaque credential replacement; raw configured values are never returned.
+             * @enum {string}
+             */
+            httpAuthorization?: "[REDACTED]";
+            /**
+             * @default JSONLINES
+             * @enum {string}
+             */
+            httpContentFormat?: "JSONARRAY" | "JSONLINES" | "JSONOBJECT";
+            /** @default application/json */
+            httpContentType?: string;
+            /** @description HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057). */
+            httpEndpoint: string;
+            /**
+             * @description Opaque credential replacement; raw configured values are never returned.
+             * @enum {string}
+             */
+            httpCustomHeaders?: "[REDACTED]";
+        };
+        LogStreamHTTPCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "http";
+            sink: components["schemas"]["LogStreamHTTPSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stream configuration with all sink credentials redacted on read. */
+        LogStreamHTTP: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "http";
+            /** @enum {string} */
+            status: "active" | "paused" | "suspended";
+            sink: components["schemas"]["LogStreamHTTPSinkView"];
+        };
+        LogStreamDatadogSink: {
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            datadogApiKey: string;
+            /** @enum {string} */
+            datadogRegion: "us" | "eu" | "us3" | "us5";
+        };
+        LogStreamDatadogSinkView: {
+            /**
+             * @description Opaque credential replacement; raw configured values are never returned.
+             * @enum {string}
+             */
+            datadogApiKey: "[REDACTED]";
+            /** @enum {string} */
+            datadogRegion: "us" | "eu" | "us3" | "us5";
+        };
+        LogStreamDatadogCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "datadog";
+            sink: components["schemas"]["LogStreamDatadogSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stream configuration with all sink credentials redacted on read. */
+        LogStreamDatadog: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "datadog";
+            /** @enum {string} */
+            status: "active" | "paused" | "suspended";
+            sink: components["schemas"]["LogStreamDatadogSinkView"];
+        };
+        LogStreamSplunkSink: {
+            splunkDomain: string;
+            splunkPort: string;
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            splunkToken: string;
+            /** @description Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment opt-in (D-0057). */
+            splunkSecure: boolean;
+        };
+        LogStreamSplunkSinkView: {
+            splunkDomain: string;
+            splunkPort: string;
+            /**
+             * @description Opaque credential replacement; raw configured values are never returned.
+             * @enum {string}
+             */
+            splunkToken: "[REDACTED]";
+            /** @description Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment opt-in (D-0057). */
+            splunkSecure: boolean;
+        };
+        LogStreamSplunkCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "splunk";
+            sink: components["schemas"]["LogStreamSplunkSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stream configuration with all sink credentials redacted on read. */
+        LogStreamSplunk: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "splunk";
+            /** @enum {string} */
+            status: "active" | "paused" | "suspended";
+            sink: components["schemas"]["LogStreamSplunkSinkView"];
+        };
+        LogStreamSumoSink: {
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            sumoSourceAddress: string;
+        };
+        LogStreamSumoSinkView: {
+            /**
+             * @description Opaque credential replacement; raw configured values are never returned.
+             * @enum {string}
+             */
+            sumoSourceAddress: "[REDACTED]";
+        };
+        LogStreamSumoCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "sumo";
+            sink: components["schemas"]["LogStreamSumoSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stream configuration with all sink credentials redacted on read. */
+        LogStreamSumo: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "sumo";
+            /** @enum {string} */
+            status: "active" | "paused" | "suspended";
+            sink: components["schemas"]["LogStreamSumoSinkView"];
+        };
+        LogStreamSegmentSink: {
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            segmentWriteKey: string;
+        };
+        LogStreamSegmentSinkView: {
+            /**
+             * @description Opaque credential replacement; raw configured values are never returned.
+             * @enum {string}
+             */
+            segmentWriteKey: "[REDACTED]";
+        };
+        LogStreamSegmentCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "segment";
+            sink: components["schemas"]["LogStreamSegmentSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stream configuration with all sink credentials redacted on read. */
+        LogStreamSegment: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "segment";
+            /** @enum {string} */
+            status: "active" | "paused" | "suspended";
+            sink: components["schemas"]["LogStreamSegmentSinkView"];
+        };
+        LogStreamMixpanelSink: {
+            /** @enum {string} */
+            mixpanelRegion: "us" | "eu";
+            mixpanelProjectId: string;
+            mixpanelServiceAccountUsername: string;
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            mixpanelServiceAccountPassword: string;
+        };
+        LogStreamMixpanelSinkView: {
+            /** @enum {string} */
+            mixpanelRegion: "us" | "eu";
+            mixpanelProjectId: string;
+            mixpanelServiceAccountUsername: string;
+            /**
+             * @description Opaque credential replacement; raw configured values are never returned.
+             * @enum {string}
+             */
+            mixpanelServiceAccountPassword: "[REDACTED]";
+        };
+        LogStreamMixpanelCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "mixpanel";
+            sink: components["schemas"]["LogStreamMixpanelSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stream configuration with all sink credentials redacted on read. */
+        LogStreamMixpanel: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "mixpanel";
+            /** @enum {string} */
+            status: "active" | "paused" | "suspended";
+            sink: components["schemas"]["LogStreamMixpanelSinkView"];
+        };
+        LogStreamEventBridgeSink: {
+            awsAccountId: string;
+            /** @enum {string} */
+            awsRegion: "af-south-1" | "ap-east-1" | "ap-east-2" | "ap-northeast-1" | "ap-northeast-2" | "ap-northeast-3" | "ap-south-1" | "ap-south-2" | "ap-southeast-1" | "ap-southeast-2" | "ap-southeast-3" | "ap-southeast-4" | "ap-southeast-5" | "ap-southeast-6" | "ap-southeast-7" | "ca-central-1" | "ca-west-1" | "eu-central-1" | "eu-central-2" | "eu-north-1" | "eu-south-1" | "eu-south-2" | "eu-west-1" | "eu-west-2" | "eu-west-3" | "il-central-1" | "me-central-1" | "me-south-1" | "mx-central-1" | "sa-east-1" | "us-gov-east-1" | "us-gov-west-1" | "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2";
+            awsPartnerEventSource?: string;
+        };
+        LogStreamEventBridgeSinkView: {
+            awsAccountId: string;
+            /** @enum {string} */
+            awsRegion: "af-south-1" | "ap-east-1" | "ap-east-2" | "ap-northeast-1" | "ap-northeast-2" | "ap-northeast-3" | "ap-south-1" | "ap-south-2" | "ap-southeast-1" | "ap-southeast-2" | "ap-southeast-3" | "ap-southeast-4" | "ap-southeast-5" | "ap-southeast-6" | "ap-southeast-7" | "ca-central-1" | "ca-west-1" | "eu-central-1" | "eu-central-2" | "eu-north-1" | "eu-south-1" | "eu-south-2" | "eu-west-1" | "eu-west-2" | "eu-west-3" | "il-central-1" | "me-central-1" | "me-south-1" | "mx-central-1" | "sa-east-1" | "us-gov-east-1" | "us-gov-west-1" | "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2";
+            awsPartnerEventSource?: string;
+        };
+        LogStreamEventBridgeCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "eventbridge";
+            sink: components["schemas"]["LogStreamEventBridgeSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stored only and permanently suspended locally. */
+        LogStreamEventBridge: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "eventbridge";
+            /** @enum {string} */
+            status: "suspended";
+            sink: components["schemas"]["LogStreamEventBridgeSinkView"];
+        };
+        LogStreamEventGridSink: {
+            azureSubscriptionId: string;
+            /** @enum {string} */
+            azureRegion: "australiacentral" | "australiaeast" | "australiasoutheast" | "brazilsouth" | "canadacentral" | "canadaeast" | "centralindia" | "centralus" | "eastasia" | "eastus" | "eastus2" | "francecentral" | "germanywestcentral" | "japaneast" | "japanwest" | "koreacentral" | "koreasouth" | "northcentralus" | "northeurope" | "norwayeast" | "southafricanorth" | "southcentralus" | "southeastasia" | "southindia" | "swedencentral" | "switzerlandnorth" | "uaenorth" | "uksouth" | "ukwest" | "westcentralus" | "westeurope" | "westindia" | "westus" | "westus2";
+            azureResourceGroup: string;
+            azurePartnerTopic?: string;
+        };
+        LogStreamEventGridSinkView: {
+            azureSubscriptionId: string;
+            /** @enum {string} */
+            azureRegion: "australiacentral" | "australiaeast" | "australiasoutheast" | "brazilsouth" | "canadacentral" | "canadaeast" | "centralindia" | "centralus" | "eastasia" | "eastus" | "eastus2" | "francecentral" | "germanywestcentral" | "japaneast" | "japanwest" | "koreacentral" | "koreasouth" | "northcentralus" | "northeurope" | "norwayeast" | "southafricanorth" | "southcentralus" | "southeastasia" | "southindia" | "swedencentral" | "switzerlandnorth" | "uaenorth" | "uksouth" | "ukwest" | "westcentralus" | "westeurope" | "westindia" | "westus" | "westus2";
+            azureResourceGroup: string;
+            azurePartnerTopic?: string;
+        };
+        LogStreamEventGridCreate: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            /** @enum {string} */
+            type: "eventgrid";
+            sink: components["schemas"]["LogStreamEventGridSink"];
+            /**
+             * Format: date-time
+             * @description Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never a log ID; omitted from responses (D-0057).
+             */
+            startFrom?: string;
+        };
+        /** @description Stored only and permanently suspended locally. */
+        LogStreamEventGrid: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            id: string;
+            /** @enum {string} */
+            type: "eventgrid";
+            /** @enum {string} */
+            status: "suspended";
+            sink: components["schemas"]["LogStreamEventGridSinkView"];
+        };
+        LogStreamCreate: components["schemas"]["LogStreamHTTPCreate"] | components["schemas"]["LogStreamEventBridgeCreate"] | components["schemas"]["LogStreamEventGridCreate"] | components["schemas"]["LogStreamDatadogCreate"] | components["schemas"]["LogStreamSplunkCreate"] | components["schemas"]["LogStreamSumoCreate"] | components["schemas"]["LogStreamSegmentCreate"] | components["schemas"]["LogStreamMixpanelCreate"];
+        LogStream: components["schemas"]["LogStreamHTTP"] | components["schemas"]["LogStreamEventBridge"] | components["schemas"]["LogStreamEventGrid"] | components["schemas"]["LogStreamDatadog"] | components["schemas"]["LogStreamSplunk"] | components["schemas"]["LogStreamSumo"] | components["schemas"]["LogStreamSegment"] | components["schemas"]["LogStreamMixpanel"];
+        /** @description Partial sink; runtime validates fields against the immutable stored stream type. Type-mismatched fields are rejected. */
+        LogStreamSinkPatch: {
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            httpAuthorization?: string;
+            /**
+             * @default JSONLINES
+             * @enum {string}
+             */
+            httpContentFormat?: "JSONARRAY" | "JSONLINES" | "JSONOBJECT";
+            /** @default application/json */
+            httpContentType?: string;
+            /** @description HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057). */
+            httpEndpoint?: string;
+            /** @description Full header replacement, or marker to preserve existing sealed headers. */
+            httpCustomHeaders?: components["schemas"]["LogStreamCustomHeader"][] | "[REDACTED]";
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            datadogApiKey?: string;
+            /** @enum {string} */
+            datadogRegion?: "us" | "eu" | "us3" | "us5";
+            splunkDomain?: string;
+            splunkPort?: string;
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            splunkToken?: string;
+            /** @description Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment opt-in (D-0057). */
+            splunkSecure?: boolean;
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            sumoSourceAddress?: string;
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            segmentWriteKey?: string;
+            /** @enum {string} */
+            mixpanelRegion?: "us" | "eu";
+            mixpanelProjectId?: string;
+            mixpanelServiceAccountUsername?: string;
+            /** @description Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored value (local D-0057). */
+            mixpanelServiceAccountPassword?: string;
+            awsAccountId?: string;
+            /** @enum {string} */
+            awsRegion?: "af-south-1" | "ap-east-1" | "ap-east-2" | "ap-northeast-1" | "ap-northeast-2" | "ap-northeast-3" | "ap-south-1" | "ap-south-2" | "ap-southeast-1" | "ap-southeast-2" | "ap-southeast-3" | "ap-southeast-4" | "ap-southeast-5" | "ap-southeast-6" | "ap-southeast-7" | "ca-central-1" | "ca-west-1" | "eu-central-1" | "eu-central-2" | "eu-north-1" | "eu-south-1" | "eu-south-2" | "eu-west-1" | "eu-west-2" | "eu-west-3" | "il-central-1" | "me-central-1" | "me-south-1" | "mx-central-1" | "sa-east-1" | "us-gov-east-1" | "us-gov-west-1" | "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2";
+            awsPartnerEventSource?: string;
+            azureSubscriptionId?: string;
+            /** @enum {string} */
+            azureRegion?: "australiacentral" | "australiaeast" | "australiasoutheast" | "brazilsouth" | "canadacentral" | "canadaeast" | "centralindia" | "centralus" | "eastasia" | "eastus" | "eastus2" | "francecentral" | "germanywestcentral" | "japaneast" | "japanwest" | "koreacentral" | "koreasouth" | "northcentralus" | "northeurope" | "norwayeast" | "southafricanorth" | "southcentralus" | "southeastasia" | "southindia" | "swedencentral" | "switzerlandnorth" | "uaenorth" | "uksouth" | "ukwest" | "westcentralus" | "westeurope" | "westindia" | "westus" | "westus2";
+            azureResourceGroup?: string;
+            azurePartnerTopic?: string;
+        };
+        /** @description type and startFrom are immutable; unknown properties rejected. Active transition for cloud-only stream types is invalid_operation. */
+        LogStreamPatch: {
+            name?: string;
+            /** @default false */
+            isPriority?: boolean;
+            filters?: components["schemas"]["LogStreamFilter"][];
+            pii_config?: components["schemas"]["LogStreamPII"];
+            sink?: components["schemas"]["LogStreamSinkPatch"];
+            /** @enum {string} */
+            status?: "active" | "paused" | "suspended";
+        };
+        LogDailyStat: {
+            /** Format: date */
+            date: string;
+            logins: number;
+            signups: number;
+            leaked_passwords: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         /** @enum {string} */
         IISearchParserEnum: "scim" | "lucene";
         /** @enum {string} */
@@ -10479,6 +11243,77 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    getTenantActionExecutions: {
+        parameters: {
+            query?: {
+                after?: string;
+                trigger?: string;
+                action?: string;
+                take?: number;
+            };
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded execution page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemActionExecution"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description The storage plugin does not support logs or execution listing. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getTenantActionExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Full execution with console output. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemActionExecution"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description The storage plugin does not support logs or execution listing. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getTenantActionExecutionAttempt: {
         parameters: {
             query?: never;
@@ -14532,6 +15367,773 @@ export interface operations {
                 };
             };
             /** @description missing OrganizationsII capability => organizations_ii_unavailable (local D-0056) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetLogs: {
+        parameters: {
+            query?: {
+                /** @description 0-based; default 0; nonnegative; (page+1)*per_page <= 1000 */
+                page?: number;
+                /** @description 1..100; default 50 (local consistent lower bound) */
+                per_page?: number;
+                /** @description date:1 or date:-1; default date:-1 */
+                sort?: "date:1" | "date:-1";
+                /** @description Comma-separated log object fields; empty means all; unknown fields rejected locally */
+                fields?: string;
+                /** @description default true; fields projection applies in page mode */
+                include_fields?: boolean;
+                /** @description default false; true returns {logs,start,limit,length,total}; total is matching count capped at 1000 locally */
+                include_totals?: boolean;
+                /** @description Lucene subset; max 4000 bytes/1000 runes, depth 16, 5 terms; ignored in checkpoint mode */
+                q?: string;
+                /** @description 56 decimal digits; checkpoint is exclusive, ascending sequence; malformed=400; valid absent ID still an opaque cursor */
+                from?: string;
+                /** @description 1..100; default 50; from or presence of take selects checkpoint mode; take alone returns latest settled events ascending */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores every parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogEventsResponse"];
+                };
+            };
+            /** @description invalid_query_string: malformed cursor, query, projection or pagination limit (local code) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Log object; malformed ID is not_found, not invalid_query_string. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogEvent"];
+                };
+            };
+            /** @description invalid_query_string: unsupported query; malformed/missing log ID uses 404 instead (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description not_found (including cross-tenant and malformed log ID on GET /logs/{id}) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetUserLogs: {
+        parameters: {
+            query?: {
+                /** @description 0-based; default 0; nonnegative; (page+1)*per_page <= 1000 */
+                page?: number;
+                /** @description 1..100; default 50 (local consistent lower bound) */
+                per_page?: number;
+                /** @description date:1 or date:-1; default date:-1 */
+                sort?: "date:1" | "date:-1";
+                /** @description default false; true returns {logs,start,limit,length,total}; total is matching count capped at 1000 locally */
+                include_totals?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Log[] or {logs,start,limit,length,total}; only the referenced tenant user. Missing/deleted user=404 locally; historical events remain searchable globally. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogEventsResponse"];
+                };
+            };
+            /** @description invalid_query_string: invalid page/per_page/sort/totals; invalid_uri for malformed user ID (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description not_found (including cross-tenant and malformed log ID on GET /logs/{id}) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetLogStreams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description LogStream[]; sink secret values replaced with marker */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogStream"][];
+                };
+            };
+            /** @description invalid_query_string: unsupported query parameters (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateLogStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogStreamCreate"];
+            };
+        };
+        responses: {
+            /** @description LogStream object; sink secret values replaced with marker */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogStream"];
+                };
+            };
+            /** @description invalid_body: malformed/unknown/null fields, invalid typed sink/filter/PII/startFrom configuration (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description conflict (duplicate stream name or concurrent update, local) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetLogStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description LogStream object; sink secret values replaced with marker */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogStream"];
+                };
+            };
+            /** @description invalid_query_string: unsupported query parameters (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description not_found (including cross-tenant and malformed log ID on GET /logs/{id}) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteLogStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description empty */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description invalid_query_string: unsupported query parameters (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description not_found (including cross-tenant and malformed log ID on GET /logs/{id}) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateLogStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogStreamPatch"];
+            };
+        };
+        responses: {
+            /** @description LogStream object; sink secret values replaced with marker */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogStream"];
+                };
+            };
+            /** @description invalid_body for malformed/unknown/null properties or sink/filter/PII types; invalid_operation for immutable type/startFrom or cloud status transition (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description not_found (including cross-tenant and malformed log ID on GET /logs/{id}) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description conflict (duplicate stream name or concurrent update, local) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetDailyStats: {
+        parameters: {
+            query?: {
+                /** @description YYYYMMDD inclusive UTC day; default today minus 6 days; max inclusive range 366 days (local) */
+                from?: string;
+                /** @description YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters (local) */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description DailyStat[] with date YYYY-MM-DD, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogDailyStat"][];
+                };
+            };
+            /** @description invalid_query_string: invalid calendar date, reversed range, unsupported query or range >366 inclusive UTC days (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetActiveUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JSON integer; distinct existing users with last_login >= now minus 30 days */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number;
+                };
+            };
+            /** @description invalid_query_string: unsupported query parameters (local) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description invalid_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description insufficient_scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description too_many_requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description logs_unavailable (local plugin capability) */
             501: {
                 headers: {
                     [name: string]: unknown;

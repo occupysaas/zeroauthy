@@ -862,3 +862,10 @@ func (a mgmtAPI) GetLog(w http.ResponseWriter, r *http.Request, id string) {
 func (a mgmtAPI) GetUserLogs(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserLogsParams) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UserLogs(w, r, id) }, "read:logs", "read:logs_users")
 }
+
+func (a mgmtAPI) GetTenantActionExecutions(w http.ResponseWriter, r *http.Request, tenant string, params mgmtapi.GetTenantActionExecutionsParams) {
+	a.h.GetTenantActionExecutions(w, r, tenant, params)
+}
+func (a mgmtAPI) GetTenantActionExecution(w http.ResponseWriter, r *http.Request, tenant, id string) {
+	a.h.GetTenantActionExecution(w, r, tenant, id)
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -261,6 +262,8 @@ func (w *Worker) Run(ctx context.Context) {
 					}
 					if err := w.Store.Actions().FinishJob(ctx, next, job.LeaseUntil); err != nil {
 						w.Engine.log().Warn("actions: finishing job", "tenant", job.TenantID, "job_id", job.ID, "error", err)
+					} else if next.Status == "failed" {
+						logs.RecordEvent(ctx, w.Engine.Recorder, logs.Event{TenantID: next.TenantID, Type: "actions_execution_failed", Date: w.Engine.now(), ExecutionIDs: next.ExecutionIDs, Details: map[string]any{"job_id": next.ID, "trigger": next.Trigger}})
 					}
 				}
 				// Drain a backlog promptly; polling only delays empty or failed claims.

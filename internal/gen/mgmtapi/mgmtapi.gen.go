@@ -8420,6 +8420,28 @@ type SuspiciousIpThrottlingUpdate struct {
 // SuspiciousIpThrottlingUpdateShields defines model for SuspiciousIpThrottlingUpdate.Shields.
 type SuspiciousIpThrottlingUpdateShields string
 
+// SystemActionExecution defines model for SystemActionExecution.
+type SystemActionExecution struct {
+	CreatedAt time.Time `json:"created_at"`
+	Id        string    `json:"id"`
+	Results   []struct {
+		ActionId   *string   `json:"action_id,omitempty"`
+		ActionName string    `json:"action_name"`
+		EndedAt    time.Time `json:"ended_at"`
+		Error      *struct {
+			Id      string `json:"id"`
+			Message string `json:"message"`
+		} `json:"error,omitempty"`
+		JobAttempt *int      `json:"job_attempt,omitempty"`
+		JobId      *string   `json:"job_id,omitempty"`
+		Logs       []string  `json:"logs"`
+		StartedAt  time.Time `json:"started_at"`
+	} `json:"results"`
+	Status    string    `json:"status"`
+	TriggerId string    `json:"trigger_id"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // SystemTenant A tenant, as the system API reports it.
 type SystemTenant struct {
 	// BreachedPasswordChecker Nonsecret zeroauthy operator capability. Available only after a server-side breach checker is constructed; no corpus or configuration details are exposed.
@@ -9367,6 +9389,14 @@ type Unauthorized = ManagementError
 type DeleteTenantParams struct {
 	// Confirm The tenant's name again.
 	Confirm string `form:"confirm" json:"confirm"`
+}
+
+// GetTenantActionExecutionsParams defines parameters for GetTenantActionExecutions.
+type GetTenantActionExecutionsParams struct {
+	After   *string `form:"after,omitempty" json:"after,omitempty"`
+	Trigger *string `form:"trigger,omitempty" json:"trigger,omitempty"`
+	Action  *string `form:"action,omitempty" json:"action,omitempty"`
+	Take    *int    `form:"take,omitempty" json:"take,omitempty"`
 }
 
 // PreviewTenantBrandingJSONBody defines parameters for PreviewTenantBranding.
@@ -13977,6 +14007,12 @@ type ServerInterface interface {
 	// UpdateTenant Update a tenant
 	// (PATCH /api/system/tenants/{name})
 	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
+	// GetTenantActionExecutions List tenant Action executions with console output
+	// (GET /api/system/tenants/{tenant}/actions/executions)
+	GetTenantActionExecutions(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantActionExecutionsParams)
+	// GetTenantActionExecution Read a tenant Action execution with console output
+	// (GET /api/system/tenants/{tenant}/actions/executions/{id})
+	GetTenantActionExecution(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// GetTenantActionExecutionAttempt Read local asynchronous Action attempt metadata
 	// (GET /api/system/tenants/{tenant}/actions/executions/{id}/attempt)
 	GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string)
@@ -14667,6 +14703,18 @@ func (_ Unimplemented) DeleteTenant(w http.ResponseWriter, r *http.Request, name
 // UpdateTenant Update a tenant
 // (PATCH /api/system/tenants/{name})
 func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantActionExecutions List tenant Action executions with console output
+// (GET /api/system/tenants/{tenant}/actions/executions)
+func (_ Unimplemented) GetTenantActionExecutions(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantActionExecutionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantActionExecution Read a tenant Action execution with console output
+// (GET /api/system/tenants/{tenant}/actions/executions/{id})
+func (_ Unimplemented) GetTenantActionExecution(w http.ResponseWriter, r *http.Request, tenant string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -16126,6 +16174,122 @@ func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTenant(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantActionExecutions operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantActionExecutions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTenantActionExecutionsParams
+
+	// ------------- Optional query parameter "after" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "after", r.URL.Query(), &params.After, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "after"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "after", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "trigger" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "trigger", r.URL.Query(), &params.Trigger, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "trigger"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trigger", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "action" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "action", r.URL.Query(), &params.Action, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "action"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "action", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantActionExecutions(w, r, tenant, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantActionExecution operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantActionExecution(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantActionExecution(w, r, tenant, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -24439,6 +24603,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/system/operators/{id}", wrapper.UpdateOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/actions/executions", wrapper.GetTenantActionExecutions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/actions/executions/{id}", wrapper.GetTenantActionExecution)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/actions/executions/{id}/attempt", wrapper.GetTenantActionExecutionAttempt)

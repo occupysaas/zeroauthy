@@ -6,13 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -61,6 +65,7 @@ func (e *ErrFlow) Unwrap() error { return e.Cause }
 
 // Engine runs Action flows.
 type Engine struct {
+	Recorder        logs.Recorder
 	InvitationEmail InvitationEmailDispatcher
 	Store           store.Store
 	Runner          *noderunner.Pool
@@ -306,6 +311,7 @@ func errorID(err error) string {
 // execution record. Any failure fails the whole flow closed.
 func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, error) {
 	execID := newExecutionID()
+	logs.AddExecution(ctx, execID)
 	budget := f.remaining
 	if budget == 0 {
 		budget = e.budget()
@@ -319,7 +325,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 	for i, u := range f.units {
 		started := e.now()
 		before := f.acc.notification
-		_, err := e.step(fctx, f, u, f.event())
+		step, err := e.step(fctx, f, u, f.event())
 		switch n := f.acc.notification; {
 		case err != nil:
 			f.outcomes = append(f.outcomes, "error")
@@ -331,7 +337,10 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		default:
 			f.outcomes = append(f.outcomes, "ok")
 		}
-		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
+		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionID: u.actionID, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
+		if step != nil {
+			r.Logs = capConsole(step.logs)
+		}
 		if err != nil {
 			r.ErrorID, r.ErrorMsg = errorID(err), err.Error()
 			failure, failed = err, u.name
@@ -465,6 +474,10 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		vals[s.Name] = v
 	}
 	red := customdb.NewRedactor(vals).Union(f.redactor)
+	ctx = red.WithCredentials(ctx)
+	for _, v := range vals {
+		ctx = logscrub.WithCredentials(ctx, v)
+	}
 	modules := make([]wireModule, 0, len(u.modules))
 	for _, m := range u.modules {
 		mv := make(map[string]string, len(m.version.Secrets))
@@ -476,6 +489,9 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 			mv[s.Name] = v
 		}
 		red = red.Union(customdb.NewRedactor(mv))
+		for _, v := range mv {
+			ctx = logscrub.WithCredentials(ctx, v)
+		}
 		modules = append(modules, wireModule{Name: m.name, VersionKey: m.version.ID, Code: m.version.Code, DepsRoot: m.depsRoot, Secrets: mv})
 	}
 	// Ensure may have waited on a build lock past the deadline; dispatching
@@ -495,7 +511,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		Budget: max(time.Until(f.deadline), time.Millisecond),
 		Prepare: func(state any) {
 			if ps, ok := state.(*procState); ok {
-				ps.add(red)
+				ps.add(ctx)
 			}
 		},
 		LogAttrs: []any{"action", u.name},
@@ -504,31 +520,53 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	case errors.Is(err, noderunner.ErrTimeout), err != nil && ctx.Err() != nil:
 		return nil, ErrTimeout
 	case err != nil:
-		return nil, &maskedError{msg: red.RedactLine(fmt.Sprintf("actions: runner: %v", err)), err: err}
+		return nil, &maskedError{msg: red.RedactLineContext(ctx, fmt.Sprintf("actions: runner: %v", err)), err: err}
 	}
 	var resp wireResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
 		return nil, fmt.Errorf("actions: invalid runner response")
 	}
-	out := &stepOut{commands: resp.Commands, logs: red.RedactAll(resp.Logs), red: red}
+	for i, line := range resp.Logs {
+		resp.Logs[i] = red.RedactLineContext(ctx, line)
+	}
+	out := &stepOut{commands: resp.Commands, logs: resp.Logs, red: red}
 	// An unsupported call fails the flow even when the Action caught it.
 	for _, c := range resp.Commands {
 		if c.Op == "unsupported" {
 			err := f.acc.apply(c)
-			return out, &maskedError{msg: red.RedactLine(err.Error()), err: err}
+			return out, &maskedError{msg: red.RedactLineContext(ctx, err.Error()), err: err}
 		}
 	}
 	if resp.Error != nil {
-		return out, fmt.Errorf("%w: %s", ErrActionError, red.RedactLine(resp.Error.Message))
+		return out, fmt.Errorf("%w: %s", ErrActionError, red.RedactLineContext(ctx, resp.Error.Message))
 	}
 	f.acc.cache = nil
 	for _, c := range resp.Commands {
+		// Scrub display-only messages before validation truncates them. Do not
+		// mutate business commands (claims, metadata, cache or redirect URLs).
+		if c.Op == "access.deny" || c.Op == "validation.error" || strings.HasPrefix(c.Op, "notification.") {
+			start := 0
+			if c.Op == "validation.error" || (c.Op == "access.deny" && f.trigger == TriggerCredentialsExchange) {
+				start = 1
+			}
+			for i := start; i < len(c.Args); i++ {
+				raw := c.Args[i]
+				var text string
+				if json.Unmarshal(raw, &text) == nil {
+					c.Args[i], _ = json.Marshal(red.RedactLineContext(ctx, text))
+				}
+			}
+		}
 		if err := f.acc.apply(c); err != nil {
-			return out, &maskedError{msg: red.RedactLine(err.Error()), err: err}
+			return out, &maskedError{msg: red.RedactLineContext(ctx, err.Error()), err: err}
 		}
 	}
-	if f.acc.notification != nil && f.redactor != nil {
-		f.acc.notification.Reason = f.redactor.RedactLine(f.acc.notification.Reason)
+	if f.acc.notification != nil {
+		f.acc.notification.Reason = red.RedactLineContext(ctx, f.acc.notification.Reason)
+	}
+	if f.acc.denied != nil {
+		f.acc.denied.Reason = red.RedactLineContext(ctx, f.acc.denied.Reason)
+		f.acc.denied.UserMessage = red.RedactLineContext(ctx, f.acc.denied.UserMessage)
 	}
 	// Oversized claims fail at the Action that made them (spec §7).
 	for _, m := range []map[string]any{f.acc.eff.AccessClaims, f.acc.eff.IDClaims} {
@@ -652,7 +690,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 	var red *customdb.Redactor
 	if st != nil {
 		red = st.red
-		out.Logs = append(out.Logs, st.logs...)
+		out.Logs = append(out.Logs, capConsole(st.logs)...)
 		for _, c := range st.commands {
 			out.Commands = append(out.Commands, testCommand(c))
 		}
@@ -728,4 +766,38 @@ func (e *Engine) organizationRoleSnapshot(ctx context.Context, tid, uid, oid str
 		return nil
 	})
 	return out, err
+}
+
+// capConsole bounds the persisted UTF-8 console, including newline separators
+// and the final marker. Inputs have already been scrubbed in their original form.
+func capConsole(lines []string) []string {
+	const limit = 64 * 1024
+	const marker = "… truncated"
+	total := 0
+	for i, line := range lines {
+		size := len(line)
+		if i > 0 {
+			size++
+		}
+		if total+size > limit {
+			out := append([]string(nil), lines[:i]...)
+			for len(out) > 0 && len(strings.Join(out, "\n"))+1+len(marker) > limit {
+				out = out[:len(out)-1]
+			}
+			remaining := limit - len(strings.Join(out, "\n")) - len(marker) - 1
+			if len(out) > 0 {
+				remaining--
+			}
+			if remaining > 0 {
+				fragment := line[:min(len(line), remaining)]
+				for !utf8.ValidString(fragment) {
+					fragment = fragment[:len(fragment)-1]
+				}
+				out = append(out, fragment)
+			}
+			return append(out, marker)
+		}
+		total += size
+	}
+	return append([]string(nil), lines...)
 }

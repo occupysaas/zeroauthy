@@ -92,5 +92,10 @@ func ScrubTruncatedTextWithMask(ctx context.Context, text string, minimumCut int
 		out.WriteString(s[last:])
 		return out.String()
 	}
+	// A credential can itself be valid JSON. Preserve a covering original
+	// match before structured scrubbing changes its spelling or removes keys.
+	if original := mask(text); original == Marker || original == replacement {
+		return original
+	}
 	return maskValueWith(ScrubValue(text), mask).(string)
 }

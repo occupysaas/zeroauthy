@@ -114,6 +114,7 @@ const (
 	StoreService_ActionsInitializeBindings_FullMethodName               = "/zeroauthy.store.v1.StoreService/ActionsInitializeBindings"
 	StoreService_ActionsReplaceBindings_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsReplaceBindings"
 	StoreService_ActionsCreateExecution_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsCreateExecution"
+	StoreService_ActionsListExecutions_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsListExecutions"
 	StoreService_ActionsGetExecution_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsGetExecution"
 	StoreService_ActionsPurgeExecutions_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsPurgeExecutions"
 	StoreService_ActionsCreateContinue_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsCreateContinue"
@@ -486,6 +487,7 @@ type StoreServiceClient interface {
 	ActionsInitializeBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsReplaceBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsCreateExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsListExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsGetExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsPurgeExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsCreateContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
@@ -1675,6 +1677,16 @@ func (c *storeServiceClient) ActionsCreateExecution(ctx context.Context, in *Act
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ActionsResponse)
 	err := c.cc.Invoke(ctx, StoreService_ActionsCreateExecution_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsListExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsListExecutions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3914,6 +3926,7 @@ type StoreServiceServer interface {
 	ActionsInitializeBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsReplaceBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsCreateExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsListExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsGetExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsPurgeExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsCreateContinue(context.Context, *ActionsRequest) (*ActionsResponse, error)
@@ -4431,6 +4444,9 @@ func (UnimplementedStoreServiceServer) ActionsReplaceBindings(context.Context, *
 }
 func (UnimplementedStoreServiceServer) ActionsCreateExecution(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsCreateExecution not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsListExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsListExecutions not implemented")
 }
 func (UnimplementedStoreServiceServer) ActionsGetExecution(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsGetExecution not implemented")
@@ -6759,6 +6775,24 @@ func _StoreService_ActionsCreateExecution_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ActionsCreateExecution(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsListExecutions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsListExecutions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsListExecutions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsListExecutions(ctx, req.(*ActionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -10842,6 +10876,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ActionsCreateExecution",
 			Handler:    _StoreService_ActionsCreateExecution_Handler,
+		},
+		{
+			MethodName: "ActionsListExecutions",
+			Handler:    _StoreService_ActionsListExecutions_Handler,
 		},
 		{
 			MethodName: "ActionsGetExecution",

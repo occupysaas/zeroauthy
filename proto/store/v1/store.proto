@@ -165,6 +165,7 @@ service StoreService {
   rpc ActionsInitializeBindings(ActionsRequest) returns (ActionsResponse);
   rpc ActionsReplaceBindings(ActionsRequest) returns (ActionsResponse);
   rpc ActionsCreateExecution(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsListExecutions(ActionsRequest) returns (ActionsResponse);
   rpc ActionsGetExecution(ActionsRequest) returns (ActionsResponse);
   rpc ActionsPurgeExecutions(ActionsRequest) returns (ActionsResponse);
   rpc ActionsCreateContinue(ActionsRequest) returns (ActionsResponse);
@@ -1196,6 +1197,7 @@ message ActionBindingMsg {
 }
 message ActionBoundMsg { ActionBindingMsg binding=1; ActionMsg action=2; ActionVersionMsg version=3; }
 message ActionExecutionResultMsg {
+  repeated string logs=8; string action_id=9;
   string job_id=6; int32 job_attempt=7;
   string action_name=1; string error_id=2; string error_msg=3;
   google.protobuf.Timestamp started_at=4; google.protobuf.Timestamp ended_at=5;
@@ -1219,6 +1221,7 @@ message ActionsRequest {
   ActionModuleMsg module=20; ActionJobMsg job=21;
   google.protobuf.Duration lease=22; int64 max_jobs=23;
   google.protobuf.Timestamp lease_until=24;
+  string after_execution=25;
 }
 message ActionsResponse {
   Error error=1; ActionMsg action=2; repeated ActionMsg actions=3; int64 total=4;
@@ -1227,6 +1230,7 @@ message ActionsResponse {
   bool bindings_initialized=12;
   ActionModuleMsg module=13; repeated ActionModuleMsg modules=14;
   ActionModuleVersionMsg module_version=15; repeated ActionModuleVersionMsg module_versions=16;
+  repeated ActionExecutionMsg executions=19;
   repeated ActionModuleUserMsg module_users=17; repeated ActionJobMsg jobs=18;
 }
 message ActionsArtifactChunk {

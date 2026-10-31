@@ -1311,3 +1311,172 @@ Actual evidence with `GOTOOLCHAIN=go1.26.7`:
   scope was changed; no new tests were deferred.
 
 Review-correction commit subject: `test: compare Management parser with bare handler`.
+
+### Task 10 — Action execution console, links and worker outcomes
+
+Implemented immutable console lines and Action IDs in execution results across
+memory, SQL JSON storage and additive protobuf/gRPC codecs. The engine captures
+successful and failed Action output, masks Action/Module/delivery secrets and
+request credentials against original text (including 1–3 rune credentials,
+overlapping values, dynamic object keys, encoded JSON and truncated prefixes),
+then caps each persisted result at 64 KiB including a final `… truncated` line.
+Quoted JSON scalar strings now pass through the shared context scrubber so
+`console.log(JSON.stringify(password))` cannot retain an escaped credential.
+Delayed runner diagnostics retain at most 256 credentials / 64 KiB for 60 s;
+exhausting either bound or the lifetime clears history and permanently drops
+later diagnostics until that runner retires.
+
+System operator routes list and retrieve full executions with logs. Tenant
+lookup and live operator grants remain in the existing system middleware;
+listing accepts trigger, immutable Action ID, execution-ID cursor and take
+(clamped at 100). Ordering is `(created_at, id)` descending initially and
+ascending after a tenant-scoped cursor. SQL uses `LIMIT` and indexed Action-ID
+membership rather than hydrating every tenant execution. Public execution JSON
+retains its exact previous shape and excludes console, Action IDs and job data.
+
+Authz post-login outcomes now use the request recorder and existing execution
+trace: `s` on a completed bound flow, `f` with its safe denial reason, and generic
+`f` on a throw; persisted `details.actions.executions` links resolve to the stored
+record. Async Action workers emit `actions_execution_failed` only after a
+terminal failed finish succeeds; retries and failed finish writes do not emit.
+Import processors emit `sui`/`fui` only after successful terminal `Jobs.Finish`.
+App wiring supplies the shared recorder to both worker types.
+
+Rulings and scope:
+
+- Migration **0030_execution_console.sql**, not a modification of 0028/0029:
+  results already reside in a JSON column, so no redundant logs column is needed.
+  0030 adds keyset indexes and an Action-ID membership relation, with resumable
+  MySQL DDL. Explicit upgrade tests preserve a populated version-29 execution.
+- `action=` means immutable Action ID. Older executions have only names and
+  cannot be attributed safely after rename/deletion; they remain available in
+  unfiltered/trigger reads and GET, and do not match an Action-ID filter.
+- Preserve existing once-only post-change-password/post-user-registration
+  attempts. Custom-email-provider retries still produce six attempts before
+  terminal failure. This task does not invent retries for once-only triggers.
+- Task 10 exposed an authz emitter gap. New events cover actual bound post-login
+  flows; no-engine/no-binding generic login coverage remains a Task 16 source
+  audit item, without altering existing signup event boundaries.
+- Controller explicitly assigned the remaining import abandonment edge to
+  Task 16: `Jobs.DeleteExpired` in memory/SQL can mark processing imports failed
+  for timeout/exhausted leases but returns only a deletion count. It cannot
+  authoritatively report per-import `fui` through the runner's Finish boundary.
+  This is an outstanding acceptance gap, not a claim that all terminal job
+  failures are covered. A future optional outcome-reporting writer must return
+  the actual committed transitions; old plugins must omit uncertain events.
+- Generated Go/protobuf outputs use `make generate`; console API types use
+  `npm run gen`. That generated type refresh also incorporates earlier Plan 31
+  API additions. No console UI/dist behavior changed in Task 10.
+
+Evidence uses `GOTOOLCHAIN=go1.26.7` throughout:
+
+- Initial console RED: missing Logs field, then actual empty captured console.
+  Store RED: missing bounded-list contract. Initial combined named RED:
+  async jobs and import jobs produced no terminal events. Login RED: post-login
+  success, deny and throw produced no events. Escaped scalar regression RED:
+  the actual Action leaked `"line\\nbreak\\\"value"` before the shared fix.
+  Memory isolation RED exposed an uncommitted execution before rollback;
+  transaction-aware read locking fixed it. Logs are in the task scratch folder.
+- Required focused command `go test ./internal/actions ./internal/jobs
+  ./internal/mgmt -run 'ExecutionIDs|ActionDeny|ActionThrow|AsyncJobFailure|ActionConsole|PublicExecution|SystemExecutions|ImportJobOutcome'
+  -count=1`: PASS (0.634s / 0.022s / 0.752s).
+- Final focused `-race` Actions, management, login, jobs, logscrub and customdb
+  checks: PASS (4.210s / 4.651s / 4.507s / 1.160s / 1.070s / 1.468s).
+  Includes short/overlapping/truncated/escaped credential cases, permanent
+  diagnostic mute bounds, six-attempt failure, no event on finish rollback,
+  live tenant grants, 100-result cap and exact public JSON shape.
+- Final named login tests also flush the real recorder and assert persisted
+  `details.actions.executions`, not merely the emitter input: PASS under race
+  (2.058s). Its first strengthened read used a historical settle cutoff against
+  the memory store's real commit clock and returned no records; the test now
+  uses a bounded ordinary search to inspect the persisted documents.
+- Final store focused `-race 'Execution|LatestVersion'`: PASS memory/gRPC/SQLite
+  (1.105s / 1.085s / 5.685s), including transaction isolation after rollback.
+- Required `./scripts/test-sql.sh -run Execution -count=1
+  ./internal/store/sqlstore/...`: PASS under its race detector (12.303s).
+  Final authoritative verbose run with `-run 'Execution|LatestVersion'`: PASS
+  (7.667s), explicitly showing SQLite, PostgreSQL and MySQL console/upgrade
+  subtests and no skips. Command-scoped ports PG=56430, MySQL=54330.
+- Shared helper final full `go test -race ./internal/logscrub ./internal/customdb
+  -count=1`: PASS (1.035s / 7.312s).
+- `make generate`, API source checks, generated console API types and TypeScript
+  typecheck: PASS. Full console/browser/E2E and full repository regression were
+  not run; Task 14/16 owns those. The full affected-package race run is recorded
+  separately below with its actual terminal result.
+
+Self-review checked bounded SQL reads, cursor tenant boundaries, immutable slices,
+rollback visibility, projection cascade deletion, upgrade from 29, field numbers,
+auth middleware, nonduplicated request execution tracing, safe denial/error text,
+redaction-before-truncation and terminal-write-before-event ordering. Public-shape
+and system-route checks were added after the initial implementation slice; the
+combined RED showed missing async outcomes, while those compatibility/API tests
+were already green. No independent before-implementation RED is claimed for
+those two checks or the later diagnostics-bound controls.
+
+Commit subject: `feat: link log events to Action executions and capture console output`.
+Detailed report and exact outputs:
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-10-report.md`.
+
+Task 10 final review corrections and broader-check results:
+
+- Full affected-package race command (`actions jobs mgmt authz login customdb
+  store/memory store/grpcstore server app`, `-count=1`) returned FAIL. Seven
+  packages passed (actions 200.741s, jobs 31.257s, mgmt 104.812s, authz 25.809s,
+  login 98.565s, customdb 9.727s, memory 85.353s); app passed (25.208s).
+  gRPC hit the default 10-minute timeout during `TestConformanceSQLite/Users/
+  AppMetadataIsCopiedAndNilRoundTrips`. Its stack was actively creating a
+  pre-existing migration-002 index through modernc SQLite, rather than waiting
+  on an execution-list lock. A full gRPC race rerun with `-timeout=30m` is the
+  authoritative follow-up, with its terminal result recorded below.
+- Server's initial full run failed `TestActionsManagementResponseSchemas`
+  because empty test-console lines had become null. The test endpoint now
+  preserves its initialized empty array. `TestDomainSecretExposure` also
+  failed because its historical assertion prohibited the literal field name
+  `cname_api_key` in the central redacted audit. A diagnostic rerun confirmed
+  actual key=false, hash=false, field-name=true. The assertion still prohibits
+  actual key/hash in every sink and that field in every later public response;
+  it permits the redacted audit field name. Both server regressions passed
+  under race (3.297s), and again with the final operator/capability checks.
+- New mounted operator tests exposed the required path-target grant check:
+  `operatorTarget` previously recognized only presentation and `/attempt`
+  routes. A tenant-only Acme operator got 403 on the new console routes.
+  The classifier now covers exactly execution list/detail. Positive Acme-only,
+  signed-other-target, persisted-revoked-target, tenant-host and anonymous
+  checks run through the mounted server. Existing attempt/email target tests
+  remain covered. A negative-only direct fixture was insufficient evidence;
+  the mounted positive check is the authoritative grant test.
+- Missing Logs v1 capability returned 200, and an unavailable new list RPC
+  returned legacy Actions 503 in the initial regression. Per controller ruling,
+  the two new system routes check optional `LogsSupporter` after authentication
+  and map missing Logs/Actions capability to 501 `logs_unavailable`. Existing
+  public Actions errors remain unchanged. Final mgmt/server capability, grant,
+  public-shape and prior-regression race checks passed (2.756s / 5.122s).
+- Keyset IDs now use the existing byte-order dialect suffix in both ORDER BY
+  and the cursor predicate, with matching PostgreSQL indexes. Final verbose
+  all-three-driver execution/upgrade/version race run passed (8.409s), including
+  mixed-case IDs at identical times. Final memory/gRPC execution checks passed
+  (1.091s / 1.076s).
+- A short credential initially changed a credentials-exchange denial's fixed
+  error code into an invalid command. The real regression failed with ErrFlow;
+  only display messages are now scrubbed before truncation, preserving fixed
+  error-code arguments. Final Action/login race checks passed (3.785s / 2.098s).
+- The escaped-scalar test additionally reproduced valid JSON credentials
+  (`"quoted-secret"` and an object-shaped password). Original covering text
+  matches now win before structural scrubbing, and decoded scalar strings are
+  masked once without recursively stripping their own quotes. Final focused
+  helper/customdb/Actions race checks passed (1.047s / 3.370s / 4.111s).
+- API/protobuf generation and console API generation/typecheck were rerun
+  after documenting both new routes' 501 responses. No generated file was
+  hand-edited. `git diff --check` passed.
+
+Task 10 final terminal evidence:
+
+- Full gRPC race follow-up `go test -race -timeout=30m
+  ./internal/store/grpcstore -count=1`: **PASS**, exit 0, 1229.746s.
+  `task-10-grpc-full-final.log`. The default-timeout failure above remains
+  disclosed. This package run began before final byte-order/handler hardening;
+  current-source focused SQL/store/system/privacy checks cover those changes.
+- Final required named command after all source corrections: **PASS**,
+  actions2.209s/jobs0.018s/mgmt1.022s (`task-10-required-complete.log`).
+- Final staged diff check: PASS. Task 10 implementation is complete with the
+  explicitly assigned Task 16 source-audit/import-abandonment gaps above.

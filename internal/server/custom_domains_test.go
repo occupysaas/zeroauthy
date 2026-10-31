@@ -266,8 +266,11 @@ func TestDomainSecretExposure(t *testing.T) {
 	bodies = append(bodies, rec.Body.String(), logs.String())
 	stored, _ := e.st.CustomDomains().Get(context.Background(), e.acme.ID, d["custom_domain_id"].(string))
 	for i, b := range bodies {
-		if strings.Contains(b, key) || strings.Contains(b, "cname_api_key") || strings.Contains(b, fmt.Sprintf("%x", stored.ProxyKeyHash)) {
-			t.Errorf("output %d exposes the key or its hash", i)
+		// The central management audit may name a redacted secret field.
+		// Public responses must omit that field entirely after verification.
+		fieldExposed := i < len(bodies)-1 && strings.Contains(b, "cname_api_key")
+		if strings.Contains(b, key) || fieldExposed || strings.Contains(b, fmt.Sprintf("%x", stored.ProxyKeyHash)) {
+			t.Errorf("output %d exposes the key, its hash, or a public secret field", i)
 		}
 	}
 }

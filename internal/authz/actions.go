@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -26,6 +27,13 @@ const effectsKey = "za_action_effects"
 // the flow's effects; on a denial or failure the response has been written
 // and ok is false. Without an engine no Action runs and the effects are nil.
 func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, in access.Input, screenShown bool) (*actions.Effects, bool) {
+	event := logs.FromRequest(r)
+	event.TenantID = res.Tenant.ID
+	event.ClientID = client.ClientID
+	event.ClientName = client.Name
+	event.UserID = sess.UserID
+	event.Connection = sess.Connection
+	*r = *r.WithContext(logs.WithEvent(r.Context(), event))
 	if h.Actions == nil {
 		return nil, true
 	}
@@ -82,25 +90,41 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 }
 
 func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, result *actions.Result, err error) (*actions.Effects, bool) {
+	event := logs.FromRequest(r)
+	event.TenantID = res.Tenant.ID
+	event.ClientID = client.ClientID
+	event.Type = "f"
+	if result != nil {
+		logs.AddExecution(r.Context(), result.ExecutionID)
+	}
 	var fe *actions.ErrFlow
 	switch {
 	case errors.Is(err, actions.ErrRedirectNotAllowed) && slices.Contains(fr.Prompts(), "none"):
 		h.refuse(w, r, res, client, fr, &Error{Code: "interaction_required", Description: "the Action requires interaction"})
 		return nil, false
 	case errors.As(err, &fe):
+		logs.AddExecution(r.Context(), fe.ExecutionID)
+		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
 		h.actionsFailed(w, r, res, client, fr, fe.ExecutionID)
 		return nil, false
 	case err != nil:
+		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
 		h.log().ErrorContext(r.Context(), "run post-login Actions", "tenant", res.Tenant.ID, "err", err)
 		h.actionsFailed(w, r, res, client, fr, "")
 		return nil, false
 	case result.Denied != nil:
+		event.Description = result.Denied.Reason
+		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
 		h.refuse(w, r, res, client, fr, &Error{Code: result.Denied.Code, Description: result.Denied.Reason})
 		return nil, false
 	}
 	if result.Redirect != nil {
 		redirect(w, r, result.Redirect.URL)
 		return nil, false
+	}
+	event.Type = "s"
+	if result.ExecutionID != "" {
+		logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
 	}
 	return &result.Effects, true
 }

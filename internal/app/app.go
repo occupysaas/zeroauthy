@@ -288,7 +288,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 	jobRunner := &jobs.Runner{
-		Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
+		Recorder: recorder, Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
 		Processors: map[store.JobType]jobs.Processor{
 			store.JobVerificationEmail: jobs.VerifyEmail{
 				Sender: &login.VerificationMailer{Recorder: recorder, Store: st, Mailer: mailer, Email: tenantEmail, BaseDomain: cfg.Server.BaseDomain, Log: log},
@@ -348,7 +348,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		}
 		return nil, err
 	}
-	engine := &actions.Engine{Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
+	engine := &actions.Engine{Recorder: recorder, Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
 	tenantEmail.Actions = engine
 	engine.InvitationEmail = tenantEmail
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}

@@ -4531,6 +4531,53 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{tenant}/actions/executions:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantActionExecutions
+      tags: [system]
+      summary: List tenant Action executions with console output
+      description: Local operator extension. Lists newest first, or ascending after an execution ID cursor. Action filters use immutable Action IDs; older records without IDs do not match.
+      x-source: [https://auth0.com/docs/api/management/v2/actions/get-execution]
+      security: [{operatorToken: []}]
+      parameters:
+        - {name: after, in: query, schema: {type: string}}
+        - {name: trigger, in: query, schema: {type: string}}
+        - {name: action, in: query, schema: {type: string}}
+        - {name: take, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Bounded execution page.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: "#/components/schemas/SystemActionExecution"}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: The storage plugin does not support logs or execution listing.}
+  /api/system/tenants/{tenant}/actions/executions/{id}:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantActionExecution
+      tags: [system]
+      summary: Read a tenant Action execution with console output
+      description: Local operator extension containing immutable scrubbed console lines.
+      x-source: [https://auth0.com/docs/api/management/v2/actions/get-execution]
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Full execution with console output.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SystemActionExecution"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: The storage plugin does not support logs or execution listing.}
   /api/system/tenants/{tenant}/actions/executions/{id}/attempt:
     parameters:
       - {name: tenant, in: path, required: true, schema: {type: string}}
@@ -9274,6 +9321,35 @@ components:
       description: The member's user ID.
       schema: {type: string}
   schemas:
+    SystemActionExecution:
+      type: object
+      required: [id, trigger_id, status, results, created_at, updated_at]
+      properties:
+        id: {type: string}
+        trigger_id: {type: string}
+        status: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        results:
+          type: array
+          items:
+            type: object
+            required: [action_name, started_at, ended_at, logs]
+            properties:
+              action_id: {type: string}
+              action_name: {type: string}
+              started_at: {type: string, format: date-time}
+              ended_at: {type: string, format: date-time}
+              logs: {type: array, items: {type: string}}
+              job_id: {type: string}
+              job_attempt: {type: integer}
+              error:
+                type: object
+                required: [id, message]
+                properties:
+                  id: {type: string}
+                  message: {type: string}
+
     LogEvent:
       type: object
       additionalProperties: false

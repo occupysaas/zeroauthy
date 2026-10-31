@@ -385,3 +385,75 @@ func TestSocialCallbackFailureEventAttribution(t *testing.T) {
 		t.Fatalf("event=%+v", got)
 	}
 }
+
+func loginActionEvent(t *testing.T, script string) logs.Event {
+	t.Helper()
+	e := newEnv(t)
+	capture := &eventRecorder{}
+	persisted := logs.NewRecorder(e.st, logs.Config{Now: fixedNow}, slog.New(slog.DiscardHandler))
+	e.h.Recorder = executionEventRecorder{capture, persisted}
+	a := actionstest.NewOffline(t, e.st, e.h.Database.Scripts.Wrapper)
+	tn := mustTenant(t, e, "acme")
+	a.Bind(t, tn.ID, actions.TriggerPostLogin, a.Deploy(t, tn.ID, actions.TriggerPostLogin, "login-event", `exports.onExecutePostLogin=(event,api)=>{`+script+`};`))
+	e.h.Actions = a.Engine
+	e.h.Authz.Actions = a.Engine
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"alice password 1"}})
+	if len(capture.events) != 1 {
+		t.Fatalf("events=%+v", capture.events)
+	}
+	event := capture.events[0]
+	if len(event.ExecutionIDs) != 1 {
+		t.Fatalf("execution links=%+v", event)
+	}
+	if _, err := e.st.Actions().GetExecution(context.Background(), tn.ID, event.ExecutionIDs[0]); err != nil {
+		t.Fatal(err)
+	}
+	if err := persisted.Flush(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	stored, _, err := e.st.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 10})
+	if err != nil || len(stored) != 1 {
+		t.Fatalf("stored events=%+v %v", stored, err)
+	}
+	var doc struct {
+		Details struct {
+			Actions struct {
+				Executions []string `json:"executions"`
+			} `json:"actions"`
+		} `json:"details"`
+	}
+	if err := json.Unmarshal(stored[0].Body, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Details.Actions.Executions) != 1 || doc.Details.Actions.Executions[0] != event.ExecutionIDs[0] {
+		t.Fatalf("stored execution links=%s", stored[0].Body)
+	}
+	return event
+}
+func TestLoginLogCarriesExecutionIDs(t *testing.T) {
+	if e := loginActionEvent(t, ""); e.Type != "s" {
+		t.Fatalf("event=%+v", e)
+	}
+}
+func TestActionDenyLogged(t *testing.T) {
+	if e := loginActionEvent(t, `api.access.deny('nope');`); e.Type != "f" || e.Description != "nope" {
+		t.Fatalf("event=%+v", e)
+	}
+}
+func TestActionThrowLogged(t *testing.T) {
+	if e := loginActionEvent(t, `throw Error('private failure');`); e.Type != "f" || strings.Contains(e.Description, "private") {
+		t.Fatalf("event=%+v", e)
+	}
+}
+
+type executionEventRecorder struct {
+	capture   *eventRecorder
+	persisted logs.Recorder
+}
+
+func (r executionEventRecorder) Record(ctx context.Context, event logs.Event) {
+	r.capture.Record(ctx, event)
+	r.persisted.Record(ctx, event)
+}

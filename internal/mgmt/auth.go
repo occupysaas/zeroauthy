@@ -123,7 +123,8 @@ func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tena
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	presentation := len(parts) == 6 && ((parts[4] == "emails" && (parts[5] == "preview" || parts[5] == "test")) || (parts[4] == "branding" && parts[5] == "preview"))
 	attempt := len(parts) == 8 && parts[4] == "actions" && parts[5] == "executions" && parts[7] == "attempt"
-	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt) {
+	executions := (len(parts) == 6 || len(parts) == 7) && parts[4] == "actions" && parts[5] == "executions"
+	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions) {
 		return base, nil
 	}
 	t, err := cfg.Store.Tenants().GetByName(ctx, parts[3])

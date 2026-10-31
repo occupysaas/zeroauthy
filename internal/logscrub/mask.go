@@ -89,11 +89,19 @@ func maskValueWith(v any, mask func(string) string) any {
 			return v
 		}
 		trimmed := strings.TrimSpace(v)
-		if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[') {
+		if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[' || trimmed[0] == '"') {
 			if decoded, err := decode([]byte(trimmed)); err == nil {
-				// Decode keys and values before masking: JSON escaping must not
+				// Decode keys and values (including scalar strings) before masking: JSON escaping must not
 				// conceal a submitted password from its exact-value mask.
-				encoded, err := json.Marshal(maskValueWith(decoded, mask))
+				var masked any
+				if scalar, ok := decoded.(string); ok {
+					// A decoded JSON string is original text. Interpreting it
+					// again can discard quotes that belong to a credential.
+					masked = mask(scalar)
+				} else {
+					masked = maskValueWith(decoded, mask)
+				}
+				encoded, err := json.Marshal(masked)
 				if err != nil {
 					return Marker
 				}
