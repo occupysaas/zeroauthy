@@ -222,3 +222,26 @@ it('failure window keeps the applied query while draft search text changes', asy
  await w.get('#log-q').setValue('type:s'); resolve(logs([log('1', { type: 'f' })], 101)); await flushPromises()
  expect(new URL(calls[1]!.url).searchParams.get('q')).toBe('type:f')
 })
+
+it('Actions logs keeps a pending initial result when Live is disabled and schedules no polls', async () => {
+ vi.useFakeTimers(); let resolve!: (r: Reply) => void
+ const { wrapper: w, calls } = await setup('actions-logs', '/t/acme/actions-logs', () => new Promise<Reply>(r => { resolve = r }))
+ expect(w.get('[role=status]').text()).toContain('Loading')
+ await w.get('input[type=checkbox]').setValue(false); await flushPromises()
+ expect(w.text()).not.toContain('No matching executions')
+ expect(w.get('[role=status]').text()).toContain('Loading')
+ resolve(ok([execution()])); await flushPromises()
+ expect(w.text()).toContain('hello [REDACTED]'); expect(w.find('[role=status]').exists()).toBe(false)
+ await vi.advanceTimersByTimeAsync(6000); await flushPromises(); expect(calls).toHaveLength(1)
+})
+it('Actions logs reenables Live during an initial read without overlapping requests', async () => {
+ vi.useFakeTimers(); const replies: Array<(r: Reply) => void> = []
+ const { wrapper: w, calls } = await setup('actions-logs', '/t/acme/actions-logs', () => new Promise<Reply>(r => { replies.push(r) }))
+ await w.get('input[type=checkbox]').setValue(false); await w.get('input[type=checkbox]').setValue(true); await flushPromises()
+ await vi.advanceTimersByTimeAsync(6000); expect(calls).toHaveLength(1)
+ replies[0]!(ok([execution()])); await flushPromises(); expect(w.text()).toContain('hello [REDACTED]')
+ await vi.advanceTimersByTimeAsync(2000); expect(calls).toHaveLength(2)
+ expect(new URL(calls[1]!.url).searchParams.get('after')).toBe('ex1')
+ await w.get('input[type=checkbox]').setValue(false); w.unmount(); replies[1]!(ok([execution('stale')])); await flushPromises()
+ await vi.advanceTimersByTimeAsync(4000); expect(calls).toHaveLength(2)
+})

@@ -40,6 +40,13 @@ async function read(gen: number, initial = false) {
 }
 function load() { stop(); items.value = []; cursor = undefined; error.value = ''; missing.value = false; busy.value = false; trigger.value = typeof route.query.trigger === 'string' ? route.query.trigger : ''; action.value = typeof route.query.action === 'string' ? route.query.action : ''; void read(generation, true) }
 function filter() { void router.push({ query: { ...(trigger.value ? { trigger: trigger.value } : {}), ...(action.value ? { action: action.value } : {}) } }) }
-watch(key, load, { immediate: true }); watch(live, enabled => { stop(); busy.value = false; if(enabled) void read(generation, !cursor) }); onBeforeUnmount(stop)
+watch(key, load, { immediate: true })
+watch(live, enabled => {
+ // Changing scheduling must not invalidate a useful in-flight read. It will
+ // finish normally and schedule another cycle only if Live is still enabled.
+ clearTimeout(timer); timer = undefined
+ if(enabled && !busy.value) void read(generation, !cursor)
+})
+onBeforeUnmount(stop)
 </script>
 <template><div v-if="tenant" class="stack"><ActionNav /><h1>{{ t('monitor.actionsLogs') }}</h1><form class="card stack" @submit.prevent="filter"><div class="grid gap-3 md:grid-cols-2"><Field id="execution-trigger" :label="t('monitor.trigger')"><input id="execution-trigger" v-model="trigger" /></Field><Field id="execution-action" :label="t('monitor.actionID')"><input id="execution-action" v-model="action" /></Field></div><Button type="submit">{{ t('monitor.apply') }}</Button></form><label class="row"><input v-model="live" type="checkbox" :disabled="missing" /> {{ t('monitor.live') }}</label><p class="muted">{{ t('monitor.executionLiveHint') }}</p><Banner v-if="missing" kind="warn">{{ t('monitor.unavailable') }}</Banner><Banner v-else-if="error" kind="error">{{ error }} <Button @click="load">{{ t('retry') }}</Button></Banner><p v-if="busy && !items.length" role="status">{{ t('loading') }}</p><p v-else-if="!items.length">{{ t('monitor.noExecutions') }}</p><article v-for="ex in items" :key="ex.id" class="card stack"><h2><RouterLink :to="{ name: 'execution-view', params: { tenant: tenant.name, id: ex.id } }">{{ ex.id }}</RouterLink></h2><ExecutionResults :execution="ex" :tenant-name="tenant.name" /></article></div><Banner v-else kind="error">{{ t('unknownTenant') }}</Banner></template>

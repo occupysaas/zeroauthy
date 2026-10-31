@@ -1991,3 +1991,43 @@ reported as passing. Full plan regression remains Task 16. Visual artifacts,
 RED/GREEN command logs and the task report are under
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/`.
 Commit subject: `feat: monitor logs, streams and Actions in the console`.
+
+### Task 14 review correction — Preserve pending Actions reads across Live toggles
+
+Review Important I1 reproduced the default-on Live toggle invalidating a slow
+initial request and clearing loading before any result was available. Turning
+Live back on also started a duplicate request while the first remained pending.
+
+The Live watcher now cancels only its scheduled timer. It preserves the pending
+read's generation/loading state; that read completes normally and schedules
+another cycle only if Live is still enabled. Turning Live on while busy waits
+for that same read. Tenant/resource changes and unmount still use `stop()` to
+invalidate old generations and suppress stale results.
+
+- `cd console && npm test -- --run src/pages/logs-monitoring.test.ts`: **RED**,
+  two new failures / 40 passing tests (`task14-i1-red.log`). Mounted delayed
+  requests prove the false-empty state and overlapping initial request.
+- `cd console && npm test -- --run src/pages/logs-monitoring.test.ts
+  src/pages/actions/actions.test.ts`: **GREEN**, 68 tests across two files
+  (`task14-i1-green.log`,2.81s). Regression assertions cover retained loading,
+  displayed console results, no disabled-Live polls, no off→on overlap,
+  correct follow-on cursor and suppression after unmount; existing tenant
+  race coverage remains green.
+
+No backend or UI scope was added. Minor build advisories remain deferred as
+reviewed. Full console rebuild/check results and correction commit are recorded
+in the original Task 14 report.
+
+- `GOTOOLCHAIN=go1.26.7 make console`: **PASS**, API type generation, ESLint,
+  TypeScript, **74 files / 568 tests**, Vite rebuild
+  (`task14-i1-make-console.log`); committed `console/dist` regenerated.
+- Postbuild `cd console && npm test -- --run src/build.test.ts`: **PASS**,
+  six checks against the freshly rebuilt artifact
+  (`task14-i1-built-artifact.log`).
+- `git diff --check`: **PASS**. Reviewed the complete small correction diff;
+  no pending-read generation is changed by Live alone, no read starts while
+  busy, and the existing tenant/unmount generation invalidation remains intact.
+
+No additional backend, SQL, browser or E2E runs for this scheduling-only fix;
+prior Task 14 evidence remains recorded above. Correction commit subject:
+`fix: preserve pending Actions logs reads across Live toggles`.
