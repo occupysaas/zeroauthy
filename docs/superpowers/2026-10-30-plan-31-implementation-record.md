@@ -1678,3 +1678,79 @@ change. The controller explicitly deferred the review's minor request for a
 concurrent sealed-secret-replacement test; existing concurrent public-field
 refresh and independent secret-preservation coverage remain unchanged.
 Fix commit subject: `fix: match log stream create status contract`.
+
+### Task 12 — ordered stream delivery, adapters, PII and outbound guard (2026-10-31)
+
+Implemented the lease worker and its app lifetime, all three HTTP formats and
+five delivered vendor adapters, immutable nested PII mask/seed-zero XXH64,
+final-boundary secret scrubbing, and guarded HTTP transport. Every lease uses
+a fresh acquisition token for60s; batches read100 rows settled at now−2s.
+Category and create-only StartFrom date skips advance the checkpoint without
+sending empty batches. Only successful2xx delivery acknowledges selected rows;
+failed/partially sent JSONOBJECT batches replay. RecordDelivery fences stale,
+expired and admin-invalidated leases. Retry doubles1s to5min, suspends after24h,
+and resumes existing persisted state. Older plugins remain in the retry loop
+without startup failure. App shutdown cancels delivery, waits for the worker,
+and closes its idle HTTP connections.
+
+Searched federation transport/PublicAddr and custom-domain diagnostics first.
+Their transport/probe lifecycle is specialized, so the new httpx.GuardedDialer
+reuses federation/rules.PublicAddr and checks every DNS answer at every dial,
+then connects only to a checked IP. Production clients reject HTTP unless opted
+in, block nonpublic addresses unless opted in, disable proxies and redirects,
+retain hostname TLS verification, and apply10s batch/request timeouts. Sink
+errors persist only fixed classes; response bodies are neither read nor logged.
+No credentials/ciphertext/request endpoints are logged by the worker.
+
+Rulings: Sink.Send consumes map[string]any, matching existing OpenSecrets and
+preserving structured secret httpCustomHeaders. This intentionally refines the
+brief's provisional map[string]string; the controller approved the deviation.
+Cost if wrong: a future internal adapter expecting string-only secrets needs
+conversion; no existing adapter caller changes. Non-*http.Transport client
+RoundTrippers are trusted Go-constructor fixture injections; app passes nil.
+Guard claims apply to the production transport and sanitized *http.Transport
+clones, not arbitrary injected RoundTrippers. All redirects are refused per the
+frozen inventory. splunkSecure never disables TLS certificate verification;
+false can select HTTP only with the deployment HTTP opt-in. Structured selected
+PII values hash their canonical JSON; strings hash UTF-8 bytes. Masking may hide
+more data when short sink credentials match outgoing text, preserving privacy.
+
+Actual checks, all using GOTOOLCHAIN=go1.26.7:
+
+- Initial `go test ./internal/logstream ./internal/httpx -count=1`: **RED**,
+  missing Worker/Item/hashPII/HTTPSink and guard symbols (`task-12-red.log`).
+- App lifecycle test with unwired worker: **RED**, “stream worker was not wired”
+  (`task-12-app-red.log`). Initial app GREEN attempt was interrupted with SIGQUIT
+  after its assertions completed but fixture cleanup hung: the fixture waited
+  for request-context cancellation before consuming its body. Goroutine evidence
+  located the wait in the test handler/httptest.Close, not the app worker.
+  Consuming the body and adding explicit fixture cleanup fixed the harness
+  (`task-12-app-green.log` records this failed/interrupted attempt).
+- Final `go test ./internal/logstream ./internal/httpx -count=1`: **PASS**,
+  logstream0.031s/httpx0.003s (`task-12-green-final.log`).
+- Final `go test -race ./internal/logstream -count=3`: **PASS**,
+  logstream1.358s (`task-12-race-final.log`).
+- `go test ./internal/app ./internal/config -run
+  'TestAppLogStreamDeliveryAndShutdown|TestAppServeFlushesRecorder|TestLogsConfig'
+  -count=1 -timeout=30s`: **PASS**, app0.237s/config0.003s
+  (`task-12-app-green-final.log`).
+- Same focused app/config selection with `-race`: **PASS**,
+  app1.407s/config1.014s (`task-12-app-race.log`).
+- `go test -race ./internal/httpx -count=1`: **PASS**,1.007s
+  (`task-12-httpx-race.log`).
+- `go vet ./internal/logstream ./internal/httpx ./internal/app`: **PASS**,
+  exit0/no diagnostics (`task-12-vet.log`). `git diff --check`: **PASS**.
+
+Self-review mapped worker checkpoint/retry/privacy logic to the named delivery,
+restart, lease-race, suspension, resume and fencing tests; HTTP/vendor encodings
+to format and shape assertions; PII/XXH64 to nested-copy, large-number and six
+known-vector tests; guard to literal/mixed/rebinding DNS/pinned-dial tests; app
+wiring to real outbound opt-in and cancelled-delivery lifecycle checks. Reviewed
+all new production files and app diff for raw error/URL/body/secret logging,
+lease-token reuse, stale checkpoint writes, dependency changes and generated
+edits. No new Go module, generated files or sealed-secret codec changes.
+No SQL/gRPC/database suites, broad app/repository suites, console builds,
+source-link checks, live vendor deliveries or browser/E2E runs were performed
+or claimed passing. Full regression remains Task16. Commit subject:
+`feat: deliver log streams`; resulting SHA and detailed code→test review are in
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-12-report.md`.

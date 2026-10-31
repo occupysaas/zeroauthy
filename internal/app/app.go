@@ -31,6 +31,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/login"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/logstream"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -57,6 +58,7 @@ type App struct {
 	jobs       *jobs.Runner
 	logs       *logs.AsyncRecorder
 	logPurge   *logs.Purger
+	logStreams *logstream.Worker
 	handler    http.Handler
 	breachFile *protection.FileChecker
 	// tls serves certificates when ACME is on; nil keeps static or
@@ -265,7 +267,14 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
-	recorder := logs.NewRecorder(st, logs.Config{Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize}, log)
+	logsConfig := logs.Config{
+		Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize,
+		Streams: logs.StreamsConfig{
+			AllowInsecureHTTP:    cfg.Logs.Streams.AllowInsecureHTTP,
+			AllowPrivateNetworks: cfg.Logs.Streams.AllowPrivateNetworks,
+		},
+	}
+	recorder := logs.NewRecorder(st, logsConfig, log)
 	tenantEmail := &email.Service{Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
 	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
@@ -368,16 +377,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		actionJobs: &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
 		jobs:       jobRunner,
 		logs:       recorder,
-		logPurge:   logs.NewPurger(st, logs.Config{Retention: cfg.Logs.Retention}, log),
+		logPurge:   logs.NewPurger(st, logsConfig, log),
+		logStreams: logstream.NewWorker(st, wrapper, logsConfig, nil, log),
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
-			LogsConfig: logs.Config{
-				Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize,
-				Streams: logs.StreamsConfig{
-					AllowInsecureHTTP:    cfg.Logs.Streams.AllowInsecureHTTP,
-					AllowPrivateNetworks: cfg.Logs.Streams.AllowPrivateNetworks,
-				},
-			},
+			LogsConfig:   logsConfig,
 			Recorder:     recorder,
 			Store:        st,
 			Keys:         km,
@@ -592,6 +596,12 @@ func (a *App) Serve(ctx context.Context) error {
 				a.log.Warn("tenant log shutdown flush failed")
 			}
 		}()
+	}
+	if a.logStreams != nil {
+		streamCtx, stopStreams := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); a.logStreams.Run(streamCtx) }()
+		defer func() { stopStreams(); <-done }()
 	}
 	if a.logPurge != nil {
 		purgeCtx, stopPurge := context.WithCancel(ctx)
