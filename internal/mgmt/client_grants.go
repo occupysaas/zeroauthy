@@ -352,7 +352,7 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 		h.failTx(w, r, "create client grant", err)
 		return
 	}
-	h.audit(r, "create client grant", "id", g.ID, "client_id", g.ClientID, "audience", g.Audience)
+	logDetails(r, "create client grant", "id", g.ID, "client_id", g.ClientID, "audience", g.Audience)
 	writeJSON(w, http.StatusCreated, clientGrantView(g))
 }
 
@@ -460,7 +460,7 @@ func (h *Handlers) UpdateClientGrant(w http.ResponseWriter, r *http.Request, id 
 		h.failTx(w, r, "update client grant", err)
 		return
 	}
-	h.audit(r, "update client grant", "id", id)
+	logDetails(r, "update client grant", "id", id)
 	writeJSON(w, http.StatusOK, clientGrantView(out))
 }
 
@@ -477,7 +477,7 @@ func (h *Handlers) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id 
 		return
 	}
 	if err == nil {
-		h.audit(r, "delete client grant", "id", id)
+		logDetails(r, "delete client grant", "id", id)
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)

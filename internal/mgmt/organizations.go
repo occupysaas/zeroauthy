@@ -404,7 +404,7 @@ func (h *Handlers) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		h.orgError(w, r, err)
 		return
 	}
-	h.audit(r, "create organization", "id", o.ID)
+	logDetails(r, "create organization", "id", o.ID)
 	out := orgView(*o)
 	if hasConns {
 		list := make([]map[string]any, len(conns))
@@ -480,7 +480,7 @@ func (h *Handlers) UpdateOrganization(w http.ResponseWriter, r *http.Request, id
 		h.orgError(w, r, err)
 		return
 	}
-	h.audit(r, "update organization", "id", id)
+	logDetails(r, "update organization", "id", id)
 	writeJSON(w, http.StatusOK, orgView(*out))
 }
 
@@ -497,6 +497,6 @@ func (h *Handlers) DeleteOrganization(w http.ResponseWriter, r *http.Request, id
 		h.orgError(w, r, err)
 		return
 	}
-	h.audit(r, "delete organization", "id", id)
+	logDetails(r, "delete organization", "id", id)
 	w.WriteHeader(http.StatusNoContent)
 }

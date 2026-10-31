@@ -84,6 +84,6 @@ func (h *Handlers) UpdateProtection(w http.ResponseWriter, r *http.Request, feat
 		h.failTx(w, r, "update attack protection", err)
 		return
 	}
-	h.audit(r, "update attack protection "+feature)
+	logDetails(r, "update attack protection "+feature)
 	writeJSON(w, 200, publicProtection(out, feature))
 }

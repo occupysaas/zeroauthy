@@ -312,7 +312,7 @@ func (h *Handlers) createOrgConnection(w http.ResponseWriter, r *http.Request, i
 		}
 		return
 	}
-	h.audit(r, "enable organization connection", "id", id, "connection", c.ConnectionID)
+	logDetails(r, "enable organization connection", "id", id, "connection", c.ConnectionID)
 	writeJSON(w, http.StatusCreated, orgConnectionView(c, conn, all))
 }
 
@@ -392,7 +392,7 @@ func (h *Handlers) updateOrgConnection(w http.ResponseWriter, r *http.Request, i
 		h.orgError(w, r, err)
 		return
 	}
-	h.audit(r, "update organization connection", "id", id, "connection", connID)
+	logDetails(r, "update organization connection", "id", id, "connection", connID)
 	writeJSON(w, http.StatusOK, orgConnectionView(out, conn, all))
 }
 
@@ -415,7 +415,7 @@ func (h *Handlers) deleteOrgConnection(w http.ResponseWriter, r *http.Request, i
 		h.orgError(w, r, err)
 		return
 	}
-	h.audit(r, "disable organization connection", "id", id, "connection", connID)
+	logDetails(r, "disable organization connection", "id", id, "connection", connID)
 	w.WriteHeader(http.StatusNoContent)
 }
 

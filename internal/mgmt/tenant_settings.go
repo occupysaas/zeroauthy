@@ -85,6 +85,6 @@ func (h *Handlers) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) 
 		h.failTx(w, r, "update tenant settings", err)
 		return
 	}
-	h.audit(r, "update tenant settings")
+	logDetails(r, "update tenant settings")
 	writeJSON(w, http.StatusOK, tenantrules.Public(out))
 }

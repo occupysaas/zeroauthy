@@ -476,7 +476,7 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		Fail(w, internalError(h, r, "create connection", err))
 		return
 	}
-	h.audit(r, "create connection", "id", c.ID, "name", c.Name)
+	logDetails(r, "create connection", "id", c.ID, "name", c.Name)
 	writeJSON(w, http.StatusCreated, view)
 }
 
@@ -587,7 +587,7 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 		Fail(w, internalError(h, r, "update connection", err))
 		return
 	}
-	h.audit(r, "update connection", "id", id)
+	logDetails(r, "update connection", "id", id)
 	writeJSON(w, http.StatusOK, view)
 }
 
@@ -607,7 +607,7 @@ func (h *Handlers) DeleteConnection(w http.ResponseWriter, r *http.Request, id s
 	case err != nil:
 		Fail(w, internalError(h, r, "delete connection", err))
 	default:
-		h.audit(r, "delete connection", "id", id)
+		logDetails(r, "delete connection", "id", id)
 		writeJSON(w, http.StatusAccepted, map[string]any{"deleted_at": h.now().Format(time.RFC3339)})
 	}
 }
@@ -741,7 +741,7 @@ func (h *Handlers) UpdateConnectionClients(w http.ResponseWriter, r *http.Reques
 		h.failTx(w, r, "update connection clients", err)
 		return
 	}
-	h.audit(r, "update connection clients", "id", id, "entries", len(entries))
+	logDetails(r, "update connection clients", "id", id, "entries", len(entries))
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }

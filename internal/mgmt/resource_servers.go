@@ -148,7 +148,7 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 		h.failTx(w, r, "create resource server", err)
 		return
 	}
-	h.audit(r, "create resource server", "identifier", rs.Identifier, "id", rs.ID)
+	logDetails(r, "create resource server", "identifier", rs.Identifier, "id", rs.ID)
 	writeJSON(w, http.StatusCreated, resourceServerView(rs))
 }
 
@@ -203,7 +203,7 @@ func (h *Handlers) UpdateResourceServer(w http.ResponseWriter, r *http.Request, 
 		h.failTx(w, r, "update resource server", err)
 		return
 	}
-	h.audit(r, "update resource server", "id", id)
+	logDetails(r, "update resource server", "id", id)
 	writeJSON(w, http.StatusOK, resourceServerView(out))
 }
 
@@ -239,7 +239,7 @@ func (h *Handlers) DeleteResourceServer(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	if deleted {
-		h.audit(r, "delete resource server", "id", id)
+		logDetails(r, "delete resource server", "id", id)
 		if clearedDefault {
 			h.log().InfoContext(r.Context(), "cleared the tenant default audience with its API", "tenant", tn.ID, "id", id)
 		}

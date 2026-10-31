@@ -56,8 +56,10 @@ func NewService(st store.Store, resolver DNSResolver, cfg ServiceConfig, clock f
 
 // VerifyResult carries the plaintext proxy key only for the call that created it.
 type VerifyResult struct {
-	Domain      *store.CustomDomain
-	CNAMEAPIKey string
+	// ProofMissing reports a definitive failed proof check, excluding DNS outages.
+	ProofMissing bool
+	Domain       *store.CustomDomain
+	CNAMEAPIKey  string
 }
 
 // Reserved is the namespace API-owned names may not occupy.
@@ -306,7 +308,7 @@ func (s *Service) Verify(ctx context.Context, tenantID, id string) (VerifyResult
 	if err != nil {
 		return VerifyResult{}, err
 	}
-	return VerifyResult{Domain: d, CNAMEAPIKey: key}, nil
+	return VerifyResult{Domain: d, CNAMEAPIKey: key, ProofMissing: outcome == proofMissing}, nil
 }
 
 // proved records a successful explicit proof. Managed domains only queue

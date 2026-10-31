@@ -91,7 +91,7 @@ func (e *clientsEnv) callWith(t *testing.T, tn *store.Tenant, caller mgmt.Caller
 	ctx := tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: tn, Host: "login.acme.test"})
 	req = req.WithContext(mgmt.WithCaller(ctx, caller))
 	rec := httptest.NewRecorder()
-	fn(rec, req)
+	e.h.LogMiddleware(fn).ServeHTTP(rec, req)
 	var out any
 	_ = json.Unmarshal(rec.Body.Bytes(), &out)
 	return rec, out

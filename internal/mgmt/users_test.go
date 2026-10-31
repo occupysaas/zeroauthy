@@ -201,7 +201,7 @@ func TestCreateUserShape(t *testing.T) {
 		strings.Contains(e.logs.String(), "argon2") || strings.Contains(e.logs.String(), "correct horse") {
 		t.Errorf("a password or hash leaked:\n%s\n%s", rec.Body, e.logs)
 	}
-	if !strings.Contains(e.logs.String(), "create user") || !strings.Contains(e.logs.String(), "actor=m2m") {
+	if !strings.Contains(e.logs.String(), "create user") || !strings.Contains(e.logs.String(), "client_id:m2m") {
 		t.Errorf("the write is not logged with its actor:\n%s", e.logs)
 	}
 	// The stored user logs in with the password.

@@ -240,7 +240,7 @@ func (h *Handlers) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		h.failTx(w, r, "create tenant", err)
 		return
 	}
-	h.audit(r, "create tenant", "name", out.Name)
+	logDetails(r, "create tenant", "name", out.Name)
 	writeJSON(w, http.StatusCreated, h.tenantView(out))
 }
 
@@ -305,7 +305,7 @@ func (h *Handlers) UpdateTenant(w http.ResponseWriter, r *http.Request, name str
 		h.failTx(w, r, "update tenant", err)
 		return
 	}
-	h.audit(r, "update tenant", "name", name)
+	logDetails(r, "update tenant", "name", name)
 	writeJSON(w, http.StatusOK, h.tenantView(out))
 }
 
@@ -333,7 +333,7 @@ func (h *Handlers) DeleteTenant(w http.ResponseWriter, r *http.Request, name str
 		h.failTx(w, r, "delete tenant", err)
 		return
 	}
-	h.audit(r, "delete tenant", "name", name)
+	logDetails(r, "delete tenant", "name", name)
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -415,7 +415,7 @@ func (h *Handlers) CreateOperator(w http.ResponseWriter, r *http.Request) {
 		Fail(w, internalError(h, r, "create operator", err))
 		return
 	}
-	h.audit(r, "invite operator", "user_id", u.UserID)
+	logDetails(r, "invite operator", "user_id", u.UserID)
 	writeJSON(w, http.StatusCreated, mgmtapi.OperatorInvite{UserId: v.UserId, Email: v.Email, Tenants: v.Tenants, CreatedAt: v.CreatedAt, SetupUrl: link})
 }
 
@@ -491,7 +491,7 @@ func (h *Handlers) UpdateOperator(w http.ResponseWriter, r *http.Request, id str
 		Fail(w, internalError(h, r, "read updated operator", err))
 		return
 	}
-	h.audit(r, "update operator tenants", "user_id", id)
+	logDetails(r, "update operator tenants", "user_id", id)
 	writeJSON(w, http.StatusOK, view)
 }
 
@@ -552,7 +552,7 @@ func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id str
 		h.failTx(w, r, "delete operator", err)
 		return
 	}
-	h.audit(r, "remove operator", "user_id", id)
+	logDetails(r, "remove operator", "user_id", id)
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }

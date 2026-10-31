@@ -1859,7 +1859,7 @@
         {
           "file": "internal/mgmt/users.go",
           "function": "checkPassword",
-          "when": "A Management pre-change-password breach check refused a leaked value."
+          "when": "A Management pre-change-password breach check confirmed a leaked value, including monitor-only policies; details.blocked records whether admission was refused."
         }
       ]
     },

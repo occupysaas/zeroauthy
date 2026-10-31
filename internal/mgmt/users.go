@@ -20,6 +20,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/loginid"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -584,7 +586,7 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	password := identity.EffectivePassword(conn, in.Password)
-	if err := h.checkPassword(r, tn, "pre-user-registration", password); err != nil {
+	if err := h.checkPassword(r, tn, "pre-user-registration", password, nil, conn); err != nil {
 		Fail(w, err)
 		return
 	}
@@ -633,7 +635,7 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		h.failTx(w, r, "create user", err)
 		return
 	}
-	h.audit(r, "create user", "user_id", u.UserID, "connection", conn.Name)
+	logDetails(r, "create user", "user_id", u.UserID, "connection", conn.Name)
 	if (in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && !u.EmailVerified && u.Email != "") {
 		h.sendVerification(r, u, "")
 	}
@@ -785,6 +787,31 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, err)
 		return
 	}
+
+	var changedEmail, changedUsername, changedPassword bool
+	if in.Email != nil {
+		changedEmail = loginid.Normalize(*in.Email) != u.Email
+	}
+	if in.Username != nil {
+		changedUsername = loginid.Normalize(*in.Username) != u.Username
+	}
+	changedPassword = in.Password != nil
+	var eventConnection *store.Connection
+	changed := false
+	defer func() {
+		for _, change := range []struct {
+			attempted        bool
+			success, failure string
+		}{{changedEmail, "sce", "fce"}, {changedUsername, "scu", "fcu"}, {changedPassword, "scp", "fcp"}} {
+			if change.attempted {
+				typ := change.failure
+				if changed {
+					typ = change.success
+				}
+				h.domainEvent(r, typ, u, eventConnection, nil)
+			}
+		}
+	}()
 	if err := federation.RequireMicrosoftUser(ctx, h.Store, u); err != nil {
 		h.failTx(w, r, "update user", err)
 		return
@@ -794,6 +821,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, err)
 		return
 	}
+	eventConnection = conn
 	if errs := userrules.CheckPatch(conn, u, in); len(errs) > 0 {
 		Fail(w, fieldError(errs[0]))
 		return
@@ -829,7 +857,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 			return
 		}
 		password = identity.EffectivePassword(conn, *in.Password)
-		if err := h.checkPassword(r, resolved(r), "pre-change-password", password); err != nil {
+		if err := h.checkPassword(r, resolved(r), "pre-change-password", password, u, conn); err != nil {
 			Fail(w, err)
 			return
 		}
@@ -869,6 +897,10 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 				return errLastOperatorBlock
 			}
 		}
+		// Determine committed changes under the existing row lock, so a
+		// concurrent identical update cannot manufacture another change event.
+		changedEmail = in.Email != nil && *in.Email != cur.Email
+		changedUsername = in.Username != nil && *in.Username != cur.Username
 		userrules.ApplyPatch(cur, in)
 		cur.UpdatedAt = now
 		if in.Password != nil {
@@ -915,7 +947,8 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		h.failTx(w, r, "update user", err)
 		return
 	}
-	h.audit(r, "update user", "user_id", id, "fields", strings.Join(slices.Sorted(maps.Keys(body)), ","))
+	changed = true
+	logDetails(r, "update user", "user_id", id, "fields", strings.Join(slices.Sorted(maps.Keys(body)), ","))
 	if (in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && emailChanged && !out.EmailVerified) {
 		h.sendVerification(r, out, clientID)
 	}
@@ -971,6 +1004,19 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, internalError(h, r, "delete user", err))
 		return
 	}
+	removed := false
+	recordDeletion := true
+	var eventConnection *store.Connection
+	defer func() {
+		if !recordDeletion {
+			return
+		}
+		typ := "fdu"
+		if removed {
+			typ = "sdu"
+		}
+		h.domainEvent(r, typ, u, eventConnection, nil)
+	}()
 	if err := federation.RequireMicrosoftUser(ctx, h.Store, u); err != nil {
 		h.failTx(w, r, "delete user", err)
 		return
@@ -985,6 +1031,7 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		return
 	}
 	conn, ident, err := h.userConnection(r, u, "")
+	eventConnection = conn
 	switch {
 	case errors.Is(err, errUserConnection), errors.Is(err, errNoDatabaseIdentity):
 		// No connection to run a script on: delete the local record.
@@ -1023,17 +1070,26 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		h.failTx(w, r, "delete user", err)
 		return
 	}
-	h.audit(r, "delete user", "user_id", id)
+	if err == nil {
+		removed = true
+	} else {
+		recordDeletion = false
+	}
+	logDetails(r, "delete user", "user_id", id)
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handlers) checkPassword(r *http.Request, tenant *store.Tenant, stage, password string) error {
+func (h *Handlers) checkPassword(r *http.Request, tenant *store.Tenant, stage, password string, subject *store.User, conn *store.Connection) error {
 	svc := h.Protection
 	if svc == nil {
 		svc = &protection.Service{Store: h.Store, Log: h.log(), Now: h.now}
 	}
-	err := svc.CheckPassword(r.Context(), tenant, stage, password)
+	ctx := logscrub.WithCredentials(r.Context(), password)
+	hit, err := svc.CheckPasswordForUserResult(ctx, tenant, stage, password, "")
+	if hit && stage == "pre-change-password" {
+		h.domainEvent(r.WithContext(ctx), "reset_pwd_leak", subject, conn, map[string]any{"blocked": errors.Is(err, protection.ErrPasswordLeaked)})
+	}
 	if errors.Is(err, protection.ErrPasswordLeaked) {
 		return &Error{Status: http.StatusBadRequest, Code: "invalid_body", Message: protection.ErrPasswordLeaked.Error()}
 	}

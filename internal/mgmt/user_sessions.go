@@ -238,7 +238,7 @@ func (h *Handlers) DeleteUserSessions(w http.ResponseWriter, r *http.Request, id
 		Fail(w, internalError(h, r, "delete sessions", err))
 		return
 	}
-	h.audit(r, "delete user sessions", "user_id", id, "sessions", n)
+	logDetails(r, "delete user sessions", "user_id", id, "sessions", n)
 	writeJSON(w, http.StatusAccepted, map[string]any{})
 }
 
@@ -304,7 +304,7 @@ func (h *Handlers) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Reques
 		Fail(w, internalError(h, r, "delete refresh tokens", err))
 		return
 	}
-	h.audit(r, "delete user refresh tokens", "user_id", id, "tokens", n)
+	logDetails(r, "delete user refresh tokens", "user_id", id, "tokens", n)
 	writeJSON(w, http.StatusAccepted, map[string]any{})
 }
 
@@ -338,7 +338,7 @@ func (h *Handlers) DeleteSession(w http.ResponseWriter, r *http.Request, id stri
 		return
 	}
 	if err == nil {
-		h.audit(r, "delete session", "session_id", id)
+		logDetails(r, "delete session", "session_id", id)
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{})
 }
@@ -381,7 +381,7 @@ func (h *Handlers) DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id
 			return tx.RefreshTokens().RevokeFamily(ctx, tn.ID, t.FamilyID, h.now())
 		})
 		if err == nil {
-			h.audit(r, "delete refresh token", "token_id", id)
+			logDetails(r, "delete refresh token", "token_id", id)
 		}
 	}
 	if err != nil && !errors.Is(err, store.ErrNotFound) {

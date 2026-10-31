@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -205,7 +206,8 @@ func (h *Handlers) changeMembers(w http.ResponseWriter, r *http.Request, id stri
 		Fail(w, err)
 		return
 	}
-	if _, err := loadOrg(r, orgs, id); err != nil {
+	organization, err := loadOrg(r, orgs, id)
+	if err != nil {
 		h.orgError(w, r, err)
 		return
 	}
@@ -213,7 +215,18 @@ func (h *Handlers) changeMembers(w http.ResponseWriter, r *http.Request, id stri
 	action := "remove organization members"
 	if add {
 		action = "add organization members"
-		err = orgs.AddMembers(r.Context(), tid, id, ids)
+		inserted, insertErr := store.AddMembersResult(r.Context(), orgs, tid, id, ids)
+		err = insertErr
+		if err == nil {
+			for _, userID := range inserted {
+				event := logs.FromRequest(r)
+				event.Type = "organization_member_added"
+				event.UserID = userID
+				event.OrganizationID = id
+				event.OrganizationName = organization.Name
+				logs.RecordEvent(r.Context(), h.Recorder, event)
+			}
+		}
 	} else {
 		err = orgs.RemoveMembers(r.Context(), tid, id, ids)
 	}
@@ -226,7 +239,7 @@ func (h *Handlers) changeMembers(w http.ResponseWriter, r *http.Request, id stri
 		h.orgError(w, r, err)
 		return
 	}
-	h.audit(r, action, "id", id, "members", len(ids))
+	logDetails(r, action, "id", id, "members", len(ids))
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -320,7 +333,7 @@ func (h *Handlers) changeMemberRoles(w http.ResponseWriter, r *http.Request, id,
 	if add {
 		action = "assign organization member roles"
 	}
-	h.audit(r, action, "id", id, "user_id", userID, "roles", len(ids))
+	logDetails(r, action, "id", id, "user_id", userID, "roles", len(ids))
 	w.WriteHeader(http.StatusNoContent)
 }
 

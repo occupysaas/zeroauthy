@@ -53,7 +53,7 @@ func TestTenantSettingsTransactionAndAudit(t *testing.T) {
 	if after.DeviceFlowCharset != "digits" || after.SettingsExtra["flags"].(map[string]any)["enable_sso"] != false {
 		t.Fatal("nested patch lost sibling")
 	}
-	if !strings.Contains(log.String(), `"actor":"m2m"`) || !strings.Contains(log.String(), `"tenant":"acme"`) || strings.Count(log.String(), "management API: update tenant settings") != 2 {
+	if !strings.Contains(log.String(), `"client_id":"m2m"`) || !strings.Contains(log.String(), `"tenant_id":"`+e.tn.ID+`"`) || strings.Count(log.String(), `"operation":"update tenant settings"`) != 2 {
 		t.Fatalf("audit: %s", &log)
 	}
 	// Even an operator cannot mutate the reserved tenant via this route.

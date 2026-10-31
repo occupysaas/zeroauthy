@@ -1056,6 +1056,8 @@ message ProtectionResult {
  google.protobuf.Timestamp retry_at = 5; repeated ProtectionBlock blocks = 6;
  int64 count = 7;
  repeated string denied_kinds = 8;
+ // Presence distinguishes older plugins without clear outcome attribution.
+ optional bool cleared_block = 9;
 }
 
 // ---- private custom-domain and encrypted TLS persistence (Plan 23) ----

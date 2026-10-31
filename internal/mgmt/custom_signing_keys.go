@@ -64,7 +64,7 @@ func (h *Handlers) PutCustomSigningKeys(w http.ResponseWriter, r *http.Request) 
 		Fail(w, internalError(h, r, "replace custom signing keys", err))
 		return
 	}
-	h.audit(r, "replace custom signing keys", "kids", ids)
+	logDetails(r, "replace custom signing keys", "kids", ids)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(append(append([]byte(nil), validated...), '\n'))
@@ -90,6 +90,6 @@ func (h *Handlers) DeleteCustomSigningKeys(w http.ResponseWriter, r *http.Reques
 		Fail(w, internalError(h, r, "delete custom signing keys", err))
 		return
 	}
-	h.audit(r, "delete custom signing keys", "kids", ids)
+	logDetails(r, "delete custom signing keys", "kids", ids)
 	w.WriteHeader(http.StatusNoContent)
 }

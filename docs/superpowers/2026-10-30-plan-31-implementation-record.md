@@ -1188,3 +1188,89 @@ All commands used `GOTOOLCHAIN=go1.26.7`:
 
 Full focused report and commit:
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-8-attribution-report.md`.
+
+## Task 9 — Management events and owning-handler outcomes
+
+Implemented the single `Handlers.LogMiddleware` after token authentication and
+live operator-grant checks, before operation scopes. Successful public
+`/api/v2` POST/PUT/PATCH/DELETE requests emit one `sapi`; failures >=400 emit one
+`fapi`. Successful credential-bearing reads emit `mgmt_api_read` according to
+actual serialized fields, excluding metadata, redacted-only values and Action
+secret names. A 429 also emits exactly one `api_limit`. System/console operations
+retain the shared server record without becoming public Management tenant events.
+Unauthenticated or revoked-grant requests do not enter this downstream emitter;
+this follows the frozen middleware placement and prevents fabricated actors.
+
+Replaced all 91 baseline `h.audit` calls with context detail hints and removed
+the helper. The middleware emits the single scrubbed server line, preserving
+already-resolved resource details. Request/response copies use the frozen
+per-resource dotted allowlists, unknown-subtree markers and context scrubbing,
+including embedded JSON and credential-bearing URLs. Captures retain at most
+64 KiB (request reads one overflow sentinel and replays it). Invalid/partial
+bodies become one marker, never a plaintext prefix. The existing strict decoder
+retains its 1 MiB limit and errors and registers validated credentials before
+business work, including bodies beyond the logging budget. Response serialization
+is unchanged; a request-local JSON observer detects secret reads beyond the
+capture limit without copying another body. Writer wrappers preserve optional
+HTTP interfaces, accepted bytes, informational statuses, streaming, read errors,
+close behavior and ResponseController flush errors.
+
+Controller-assigned scope extension implements the inventory's owning Management
+outcomes: sce/fce, scp/fcp, scu/fcu, sdu/fdu, svr/fvr, reset_pwd_leak,
+organization_member_added, ublkdu and custom_domain_verification_failed. Profile
+successes compare actual locked-row changes; deletion/membership/unblock no-ops
+emit no domain success. Native and gRPC/SQL optional clear-result attribution
+uses already-loaded protection state, with an additive optional protobuf field;
+older plugins preserve clearing and suppress uncertain event attribution.
+Custom-domain proof results distinguish definitive missing proof from resolver
+outages without another read. Attribution uses existing user, connection,
+organization and caller results. No lookup was added solely for logging.
+
+Controller ruling: confirmed breached-password corpus hits emit reset_pwd_leak
+also under monitor-only policy, with `details.blocked=false`. The narrow mgmt
+inventory trigger now states this, matching the catalog description and Task 8
+confirmed-hit behavior. Costs: conservative body hiding loses diagnostic detail
+when a capture is invalid/too large; old plugins cannot report uncertain clear
+or membership outcomes; malformed/unresolved profile requests rely on fapi until
+an actual subject/change is known. No task 10/12 worker behavior is claimed.
+
+Actual evidence, all Go commands with `GOTOOLCHAIN=go1.26.7`:
+
+- Required RED `go test ./internal/mgmt -run
+  'Management.*Logged|Management.*Hidden' -count=1`: failed with missing sapi,
+  fapi and secret-read events; body privacy cases failed for missing events.
+  The no-event ordinary-read control passed. Additional domain RED tests showed
+  missing profile/deletion/verification/membership/unblock/proof events;
+  optional-interface, sink-copy, URL-copy, metadata-only read and FlushError
+  regressions were each observed failing before their fixes.
+- Required focused GREEN, same command: PASS (3.494s), no skipped cases reported.
+- First full Management run failed 11 old audit tests: TestProtectionSettingsSecretsAndMerge,
+  TestCustomSigningKeysAPI, TestUsersImportCreate, TestTenantSettingsTransactionAndAudit,
+  TestPasswordChangeTicket, TestEmailVerificationTicket, TestLinkUserIdentity,
+  TestUnlinkUserIdentity, TestDeleteSessionsAndTokens, TestCreateUserShape,
+  TestDeleteUser. Shared fixtures now invoke the middleware with CallerFrom
+  already populated; actor/tenant/resource/privacy assertions remain and check
+  the central record. Focused repaired fixtures passed (6.666s).
+- Final `go test ./internal/mgmt -count=1`: PASS (28.692s), no skips reported;
+  task-9-mgmt-full.log. Final run includes the FlushError fix.
+- `go test -race ./internal/mgmt ./internal/server ./internal/store/grpcstore
+  -run 'Management|TestProtection(ClearResult|ClearOlderPlugin|DeniedKinds|SettingsSecretsAndMerge)|TestTenantSettingsTransactionAndAudit'
+  -count=1`: PASS (15.727s/16.397s/6.426s), no race reports.
+- After the final FlushError fix, `go test -race ./internal/mgmt -run
+  'ManagementCapture|ManagementStrictParser' -count=1`: PASS (2.127s).
+- Native/gRPC/SQLite-gRPC clear-result and old-plugin tests: PASS (0.198s).
+  Real mounted server auth/scope and custom-domain checks: PASS (1.335s).
+  `go test ./internal/logs ./internal/logscrub ./internal/customdomain -count=1`:
+  PASS (0.546s/0.033s/0.962s), preserving Task 8 short-credential protocol tests.
+  Final inventory-only check: PASS (0.391s).
+- `make generate`: PASS; protobuf generated with repository tooling.
+  `git diff --check`: PASS. Self-review checked all 91 audit replacements,
+  actor/grant ordering, no-op outcomes, immutable response observation, decoder
+  compatibility, secret masking and exact optional-writer forwarding.
+- Not run: PostgreSQL/MySQL scripts, full repository suite, browser/E2E,
+  Task 10 asynchronous jobs, Task 12 stream delivery, or Task 16 regression.
+  These are not represented as passing or as completed later tasks.
+
+Commit subject: `feat: log Management API operations as sapi/fapi`.
+Detailed report and exact command logs:
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-9-report.md`.

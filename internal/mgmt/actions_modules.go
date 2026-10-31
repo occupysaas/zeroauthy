@@ -215,7 +215,7 @@ func (h *Handlers) CreateActionModule(w http.ResponseWriter, r *http.Request) {
 		h.moduleError(w, r, err)
 		return
 	}
-	h.audit(r, "create Action Module", "id", m.ID)
+	logDetails(r, "create Action Module", "id", m.ID)
 	h.writeModule(w, r, m, 201)
 }
 func (h *Handlers) GetActionModule(w http.ResponseWriter, r *http.Request, id string) {
@@ -255,7 +255,7 @@ func (h *Handlers) UpdateActionModule(w http.ResponseWriter, r *http.Request, id
 		h.moduleError(w, r, err)
 		return
 	}
-	h.audit(r, "update Action Module", "id", id)
+	logDetails(r, "update Action Module", "id", id)
 	h.writeModule(w, r, m, 200)
 }
 func (h *Handlers) DeleteActionModule(w http.ResponseWriter, r *http.Request, id string) {
@@ -267,7 +267,7 @@ func (h *Handlers) DeleteActionModule(w http.ResponseWriter, r *http.Request, id
 		h.moduleError(w, r, err)
 		return
 	}
-	h.audit(r, "delete Action Module", "id", id)
+	logDetails(r, "delete Action Module", "id", id)
 	w.WriteHeader(204)
 }
 func (h *Handlers) PublishActionModule(w http.ResponseWriter, r *http.Request, id string) {
@@ -283,7 +283,7 @@ func (h *Handlers) PublishActionModule(w http.ResponseWriter, r *http.Request, i
 		h.moduleError(w, r, err)
 		return
 	}
-	h.audit(r, "publish Action Module", "id", id, "version", v.ID)
+	logDetails(r, "publish Action Module", "id", id, "version", v.ID)
 	writeJSON(w, 200, moduleVersionView(v))
 }
 func (h *Handlers) RollbackActionModule(w http.ResponseWriter, r *http.Request, id string) {
@@ -310,7 +310,7 @@ func (h *Handlers) RollbackActionModule(w http.ResponseWriter, r *http.Request, 
 		h.moduleError(w, r, err)
 		return
 	}
-	h.audit(r, "rollback Action Module", "id", id, "version", vid)
+	logDetails(r, "rollback Action Module", "id", id, "version", vid)
 	h.writeModule(w, r, m, 200)
 }
 func (h *Handlers) GetActionModuleVersions(w http.ResponseWriter, r *http.Request, id string) {

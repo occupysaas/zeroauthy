@@ -72,7 +72,7 @@ func TestProtectionSettingsSecretsAndMerge(t *testing.T) {
 	if after.ProtectionSettings.SuspiciousIP.Stage.PreLogin.Rate != 40000 || after.ProtectionSettings.SuspiciousIP.Stage.PreUserRegistration.MaxAttempts != 20 {
 		t.Fatal("patch lost fields")
 	}
-	if strings.Contains(logs.String(), "private-value") || strings.Contains(logs.String(), "zcap1.") || !strings.Contains(logs.String(), `"actor":"m2m"`) {
+	if strings.Contains(logs.String(), "private-value") || strings.Contains(logs.String(), "zcap1.") || !strings.Contains(logs.String(), `"client_id":"m2m"`) {
 		t.Fatalf("audit leaked or missed actor: %s", &logs)
 	}
 }

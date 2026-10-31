@@ -216,7 +216,7 @@ func (h *Handlers) CreateCustomDomain(w http.ResponseWriter, r *http.Request) {
 		h.domainError(w, r, "create custom domain", err)
 		return
 	}
-	h.audit(r, "create custom domain", "id", d.ID, "domain", d.Domain, "type", d.Type)
+	logDetails(r, "create custom domain", "id", d.ID, "domain", d.Domain, "type", d.Type)
 	writeJSON(w, http.StatusCreated, h.customDomainJSON(r, d, ""))
 }
 
@@ -264,7 +264,7 @@ func (h *Handlers) UpdateCustomDomain(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 	def, _ := h.defaultID(r)
-	h.audit(r, "update custom domain", "id", d.ID)
+	logDetails(r, "update custom domain", "id", d.ID)
 	writeJSON(w, http.StatusOK, h.customDomainJSON(r, d, def))
 }
 
@@ -277,7 +277,7 @@ func (h *Handlers) DeleteCustomDomain(w http.ResponseWriter, r *http.Request, id
 		h.domainError(w, r, "delete custom domain", err)
 		return
 	}
-	h.audit(r, "delete custom domain", "id", id)
+	logDetails(r, "delete custom domain", "id", id)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -292,12 +292,15 @@ func (h *Handlers) VerifyCustomDomain(w http.ResponseWriter, r *http.Request, id
 		h.domainError(w, r, "verify custom domain", err)
 		return
 	}
+	if res.ProofMissing {
+		h.domainEvent(r, "custom_domain_verification_failed", nil, nil, map[string]any{"custom_domain_id": res.Domain.ID, "domain": res.Domain.Domain, "reason": "proof_missing"})
+	}
 	def, _ := h.defaultID(r)
 	out := h.customDomainJSON(r, res.Domain, def)
 	if res.CNAMEAPIKey != "" {
 		out["cname_api_key"] = res.CNAMEAPIKey
 	}
-	h.audit(r, "verify custom domain", "id", id, "status", res.Domain.Status)
+	logDetails(r, "verify custom domain", "id", id, "status", res.Domain.Status)
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, out)
 }
@@ -362,7 +365,7 @@ func (h *Handlers) SetDefaultCustomDomain(w http.ResponseWriter, r *http.Request
 		h.domainError(w, r, "set default custom domain", err)
 		return
 	}
-	h.audit(r, "set default custom domain", "domain", domain)
+	logDetails(r, "set default custom domain", "domain", domain)
 	if d == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"domain": resolved(r).CanonicalHost})
 		return

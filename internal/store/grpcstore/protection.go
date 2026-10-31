@@ -57,9 +57,17 @@ func (a clientProtection) Blocks(ctx context.Context, tenant string, f store.Pro
 	return out, nil
 }
 func (a clientProtection) Clear(ctx context.Context, tenant string, f store.ProtectionFilter) error {
-	r, e := a.c.rpc.ProtectionClear(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, TenantId: tenant, Filter: protectionFilterToPB(f)})
-	return protectionRPCError("ProtectionClear", r, e)
+	_, err := a.ClearResult(ctx, tenant, f, time.Now())
+	return err
 }
+func (a clientProtection) ClearResult(ctx context.Context, tenant string, f store.ProtectionFilter, now time.Time) (bool, error) {
+	r, e := a.c.rpc.ProtectionClear(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, TenantId: tenant, Filter: protectionFilterToPB(f), Now: tsToPB(now)})
+	if err := protectionRPCError("ProtectionClear", r, e); err != nil {
+		return false, err
+	}
+	return r.GetClearedBlock(), nil
+}
+
 func (a clientProtection) UseProof(ctx context.Context, hash string, now, expires time.Time) (bool, error) {
 	r, e := a.c.rpc.ProtectionUseProof(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, ProofHash: hash, Now: tsToPB(now), ExpiresAt: tsToPB(expires)})
 	if e = protectionRPCError("ProtectionUseProof", r, e); e != nil {
@@ -140,6 +148,11 @@ func (s *Server) ProtectionClear(ctx context.Context, q *storev1.ProtectionReque
 	r := &storev1.ProtectionResult{}
 	r.Error = errToPB(s.with(q.TxId, func(st store.Store) error {
 		p := st.Protection()
+		if writer, ok := p.(store.ProtectionClearer); ok && q.Now != nil {
+			changed, err := writer.ClearResult(ctx, q.TenantId, protectionFilterFromPB(q.Filter), tsFromPB(q.Now))
+			r.ClearedBlock = &changed
+			return err
+		}
 		return p.Clear(ctx, q.TenantId, protectionFilterFromPB(q.Filter))
 	}))
 	return r, nil

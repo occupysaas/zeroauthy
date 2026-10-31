@@ -12953,15 +12953,17 @@ func (x *ProtectionRequest) GetLimit() int64 {
 }
 
 type ProtectionResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Allowed       bool                   `protobuf:"varint,2,opt,name=allowed,proto3" json:"allowed,omitempty"`
-	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	ReceiptId     string                 `protobuf:"bytes,4,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id,omitempty"`
-	RetryAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=retry_at,json=retryAt,proto3" json:"retry_at,omitempty"`
-	Blocks        []*ProtectionBlock     `protobuf:"bytes,6,rep,name=blocks,proto3" json:"blocks,omitempty"`
-	Count         int64                  `protobuf:"varint,7,opt,name=count,proto3" json:"count,omitempty"`
-	DeniedKinds   []string               `protobuf:"bytes,8,rep,name=denied_kinds,json=deniedKinds,proto3" json:"denied_kinds,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Error       *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Allowed     bool                   `protobuf:"varint,2,opt,name=allowed,proto3" json:"allowed,omitempty"`
+	TenantId    string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ReceiptId   string                 `protobuf:"bytes,4,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id,omitempty"`
+	RetryAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=retry_at,json=retryAt,proto3" json:"retry_at,omitempty"`
+	Blocks      []*ProtectionBlock     `protobuf:"bytes,6,rep,name=blocks,proto3" json:"blocks,omitempty"`
+	Count       int64                  `protobuf:"varint,7,opt,name=count,proto3" json:"count,omitempty"`
+	DeniedKinds []string               `protobuf:"bytes,8,rep,name=denied_kinds,json=deniedKinds,proto3" json:"denied_kinds,omitempty"`
+	// Presence distinguishes older plugins without clear outcome attribution.
+	ClearedBlock  *bool `protobuf:"varint,9,opt,name=cleared_block,json=clearedBlock,proto3,oneof" json:"cleared_block,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -13050,6 +13052,13 @@ func (x *ProtectionResult) GetDeniedKinds() []string {
 		return x.DeniedKinds
 	}
 	return nil
+}
+
+func (x *ProtectionResult) GetClearedBlock() bool {
+	if x != nil && x.ClearedBlock != nil {
+		return *x.ClearedBlock
+	}
+	return false
 }
 
 // ---- private custom-domain and encrypted TLS persistence (Plan 23) ----
@@ -20938,7 +20947,7 @@ const file_store_proto_rawDesc = "" +
 	"attempt_id\x18\n" +
 	" \x01(\tR\tattemptId\x12\x0e\n" +
 	"\x02ip\x18\v \x01(\tR\x02ip\x12\x14\n" +
-	"\x05limit\x18\f \x01(\x03R\x05limit\"\xc6\x02\n" +
+	"\x05limit\x18\f \x01(\x03R\x05limit\"\x82\x03\n" +
 	"\x10ProtectionResult\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x12\x18\n" +
 	"\aallowed\x18\x02 \x01(\bR\aallowed\x12\x1b\n" +
@@ -20948,7 +20957,9 @@ const file_store_proto_rawDesc = "" +
 	"\bretry_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\aretryAt\x12;\n" +
 	"\x06blocks\x18\x06 \x03(\v2#.zeroauthy.store.v1.ProtectionBlockR\x06blocks\x12\x14\n" +
 	"\x05count\x18\a \x01(\x03R\x05count\x12!\n" +
-	"\fdenied_kinds\x18\b \x03(\tR\vdeniedKinds\"\xa9\v\n" +
+	"\fdenied_kinds\x18\b \x03(\tR\vdeniedKinds\x12(\n" +
+	"\rcleared_block\x18\t \x01(\bH\x00R\fclearedBlock\x88\x01\x01B\x10\n" +
+	"\x0e_cleared_block\"\xa9\v\n" +
 	"\fCustomDomain\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x16\n" +
@@ -23296,6 +23307,7 @@ func file_store_proto_init() {
 	file_store_proto_msgTypes[82].OneofWrappers = []any{}
 	file_store_proto_msgTypes[85].OneofWrappers = []any{}
 	file_store_proto_msgTypes[126].OneofWrappers = []any{}
+	file_store_proto_msgTypes[174].OneofWrappers = []any{}
 	file_store_proto_msgTypes[175].OneofWrappers = []any{}
 	file_store_proto_msgTypes[177].OneofWrappers = []any{}
 	file_store_proto_msgTypes[178].OneofWrappers = []any{}

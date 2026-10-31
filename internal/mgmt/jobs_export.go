@@ -199,7 +199,7 @@ func (h *Handlers) CreateUsersExportJob(w http.ResponseWriter, r *http.Request) 
 		Fail(w, err)
 		return
 	}
-	h.audit(r, "create users export job", "job_id", j.ID, "format", in.format, "connection", j.Connection)
+	logDetails(r, "create users export job", "job_id", j.ID, "format", in.format, "connection", j.Connection)
 	writeJSON(w, http.StatusOK, JobJSON(j, ""))
 }
 

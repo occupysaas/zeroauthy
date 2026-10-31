@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -65,7 +66,7 @@ func (e *usersEnv) postImport(t *testing.T, body []byte, contentLength int64) (*
 	ctx := tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: e.tn, Host: "login.acme.test"})
 	req = req.WithContext(mgmt.WithCaller(ctx, m2mCaller("create:users")))
 	rec := httptest.NewRecorder()
-	e.h.CreateUsersImportJob(rec, req)
+	e.h.LogMiddleware(http.HandlerFunc(e.h.CreateUsersImportJob)).ServeHTTP(rec, req)
 	var out map[string]any
 	_ = json.Unmarshal(rec.Body.Bytes(), &out)
 	return rec, out
@@ -129,7 +130,7 @@ func TestUsersImportCreateErrors(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(mgmt.WithCaller(tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: e.tn, Host: "login.acme.test"}), m2mCaller("create:users")))
 	rec := httptest.NewRecorder()
-	e.h.CreateUsersImportJob(rec, req)
+	e.h.LogMiddleware(http.HandlerFunc(e.h.CreateUsersImportJob)).ServeHTTP(rec, req)
 	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "Must provide 'users' file as multipart part.") {
 		t.Errorf("JSON body = %d %s", rec.Code, rec.Body)
 	}
@@ -162,7 +163,7 @@ func TestUsersImportCreate(t *testing.T) {
 	if string(j.Input) != "["+weak+"]" || j.Params[jobs.ParamUpsert] != false || j.Params[jobs.ParamSendCompletionEmail] != true || j.Params[jobs.ParamWeakHashes] != 1 {
 		t.Errorf("job = input %q params %v", j.Input, j.Params)
 	}
-	if !strings.Contains(e.logs.String(), "management API: create users import job") || !strings.Contains(e.logs.String(), "actor=m2m") {
+	if !strings.Contains(e.logs.String(), "create users import job") || !strings.Contains(e.logs.String(), "client_id:m2m") {
 		t.Errorf("no audit line:\n%s", e.logs)
 	}
 

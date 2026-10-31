@@ -282,16 +282,17 @@ func New(d Deps) http.Handler {
 		systemOrigin = "https://" + tenant.NormalizeHost(d.SystemHost)
 	}
 	mr := chi.NewRouter()
-	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, operatorOnly)
 	mh := &mgmt.Handlers{
-		Actions: d.Actions,
-		Store:   d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
+		Actions:  d.Actions,
+		Recorder: d.Recorder,
+		Store:    d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify, EmailService: d.EmailService,
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
 		Protection:             sharedProtection,
 		Domains:                d.Domains,
 	}
+	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}
 	}

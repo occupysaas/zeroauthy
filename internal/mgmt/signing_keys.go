@@ -77,7 +77,7 @@ func (h *Handlers) RotateSigningKeys(w http.ResponseWriter, r *http.Request) {
 		Fail(w, internalError(h, r, "project rotated signing key", err))
 		return
 	}
-	h.audit(r, "rotate signing key", "kid", out.KID)
+	logDetails(r, "rotate signing key", "kid", out.KID)
 	writeJSON(w, http.StatusCreated, out)
 }
 
@@ -110,6 +110,6 @@ func (h *Handlers) RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid 
 		Fail(w, internalError(h, r, "project revoked signing key", err))
 		return
 	}
-	h.audit(r, "revoke signing key", "kid", out.KID)
+	logDetails(r, "revoke signing key", "kid", out.KID)
 	writeJSON(w, http.StatusOK, out)
 }
