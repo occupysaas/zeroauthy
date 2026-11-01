@@ -59,7 +59,9 @@ test('an operator manages a database connection and its users', async ({ page })
   await page.fill('#conn-name', NAME);
   await page.getByRole('button', { name: 'Create connection' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/connections\/con_[A-Za-z0-9]{16}$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(NAME);
+  const detail = page.getByRole('dialog', { name: NAME, exact: true });
+  await expect(detail).toBeVisible();
+  await expect(detail.getByRole('heading', { level: 2, name: NAME, exact: true })).toHaveText(NAME);
   const connURL = page.url();
 
   // 3. Enable an application on it.
@@ -135,7 +137,7 @@ test('an operator manages a database connection and its users', async ({ page })
   //    new connection of the same name has no such user.
   await page.getByRole('tab', { name: 'Danger zone' }).click();
   await page.getByRole('button', { name: 'Delete connection' }).first().click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog', { name: 'Delete this connection?', exact: true });
   await expect(dialog.getByRole('button', { name: 'Delete connection' })).toBeDisabled();
   await dialog.locator('#delete-confirm').fill(NAME);
   await dialog.getByRole('button', { name: 'Delete connection' }).click();
