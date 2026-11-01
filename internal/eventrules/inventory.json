@@ -1,0 +1,1439 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-11-01",
+  "source": "https://auth0.com/docs/oas/events/events-schema.json",
+  "types": [
+    {
+      "name": "connection.created",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "authentication.active",
+        "display_name",
+        "enabled_clients",
+        "id",
+        "is_domain_connection",
+        "metadata",
+        "name",
+        "realms",
+        "connected_accounts.active",
+        "connected_accounts.cross_app_access",
+        "options.authorization_endpoint",
+        "options.client_id",
+        "options.connection_settings.pkce",
+        "options.domain_aliases",
+        "options.dpop_signing_alg",
+        "options.federated_connections_access_tokens.active",
+        "options.icon_url",
+        "options.id_token_session_expiry_supported",
+        "options.id_token_signed_response_algs",
+        "options.issuer",
+        "options.jwks_uri",
+        "options.non_persistent_attrs",
+        "options.oidc_metadata.acr_values_supported",
+        "options.oidc_metadata.authorization_endpoint",
+        "options.oidc_metadata.claim_types_supported",
+        "options.oidc_metadata.claims_locales_supported",
+        "options.oidc_metadata.claims_parameter_supported",
+        "options.oidc_metadata.claims_supported",
+        "options.oidc_metadata.code_challenge_methods_supported",
+        "options.oidc_metadata.display_values_supported",
+        "options.oidc_metadata.dpop_signing_alg_values_supported",
+        "options.oidc_metadata.end_session_endpoint",
+        "options.oidc_metadata.grant_types_supported",
+        "options.oidc_metadata.id_token_encryption_alg_values_supported",
+        "options.oidc_metadata.id_token_encryption_enc_values_supported",
+        "options.oidc_metadata.id_token_signing_alg_values_supported",
+        "options.oidc_metadata.issuer",
+        "options.oidc_metadata.jwks_uri",
+        "options.oidc_metadata.op_policy_uri",
+        "options.oidc_metadata.op_tos_uri",
+        "options.oidc_metadata.registration_endpoint",
+        "options.oidc_metadata.request_object_encryption_alg_values_supported",
+        "options.oidc_metadata.request_object_encryption_enc_values_supported",
+        "options.oidc_metadata.request_object_signing_alg_values_supported",
+        "options.oidc_metadata.request_parameter_supported",
+        "options.oidc_metadata.request_uri_parameter_supported",
+        "options.oidc_metadata.require_request_uri_registration",
+        "options.oidc_metadata.response_modes_supported",
+        "options.oidc_metadata.response_types_supported",
+        "options.oidc_metadata.scopes_supported",
+        "options.oidc_metadata.service_documentation",
+        "options.oidc_metadata.subject_types_supported",
+        "options.oidc_metadata.token_endpoint",
+        "options.oidc_metadata.token_endpoint_auth_methods_supported",
+        "options.oidc_metadata.token_endpoint_auth_signing_alg_values_supported",
+        "options.oidc_metadata.ui_locales_supported",
+        "options.oidc_metadata.userinfo_encryption_alg_values_supported",
+        "options.oidc_metadata.userinfo_encryption_enc_values_supported",
+        "options.oidc_metadata.userinfo_endpoint",
+        "options.oidc_metadata.userinfo_signing_alg_values_supported",
+        "options.schema_version",
+        "options.scope",
+        "options.send_back_channel_nonce",
+        "options.set_user_root_attributes",
+        "options.tenant_domain",
+        "options.token_endpoint",
+        "options.token_endpoint_auth_method",
+        "options.token_endpoint_auth_signing_alg",
+        "options.token_endpoint_jwtca_aud_format",
+        "options.upstream_params",
+        "options.useOauthSpecScope",
+        "options.userinfo_endpoint",
+        "options.attribute_map.attributes",
+        "options.attribute_map.userinfo_scope",
+        "options.attribute_map.mapping_mode",
+        "options.discovery_url",
+        "options.type",
+        "show_as_button",
+        "strategy",
+        "options.domain",
+        "options.assertion_decryption_settings.algorithm_exceptions",
+        "options.assertion_decryption_settings.algorithm_profile",
+        "options.cert",
+        "options.cert_rollover_notification",
+        "options.digestAlgorithm",
+        "options.entityId",
+        "options.expires",
+        "options.idpinitiated.client_authorizequery",
+        "options.idpinitiated.client_id",
+        "options.idpinitiated.client_protocol",
+        "options.idpinitiated.enabled",
+        "options.protocolBinding",
+        "options.signatureAlgorithm",
+        "options.signInEndpoint",
+        "options.signingCert",
+        "options.signSAMLRequest",
+        "options.subject",
+        "options.thumbprints",
+        "options.debug",
+        "options.deflate",
+        "options.destinationUrl",
+        "options.disableFieldsMapFix",
+        "options.disableSignout",
+        "options.fieldsMap",
+        "options.fieldsMapJsonRaw",
+        "options.global_token_revocation_jwt_iss",
+        "options.global_token_revocation_jwt_sub",
+        "options.metadataUrl",
+        "options.recipientUrl",
+        "options.requestTemplate",
+        "options.signOutEndpoint",
+        "options.user_id_attribute",
+        "options.pingFederateBaseUrl",
+        "options.adfs_server",
+        "options.fedMetadataXml",
+        "options.prev_thumbprints",
+        "options.should_trust_email_verified_connection",
+        "options.agentIP",
+        "options.agentMode",
+        "options.agentVersion",
+        "options.brute_force_protection",
+        "options.certAuth",
+        "options.certs",
+        "options.disable_cache",
+        "options.disable_self_service_change_password",
+        "options.ips",
+        "options.kerberos",
+        "options.kerberos_only",
+        "options.admin_access_token_expiresin",
+        "options.allow_setting_login_scopes",
+        "options.api_enable_groups",
+        "options.api_enable_users",
+        "options.email",
+        "options.ext_agreed_terms",
+        "options.ext_groups",
+        "options.ext_groups_extended",
+        "options.ext_is_admin",
+        "options.ext_is_suspended",
+        "options.handle_login_from_social",
+        "options.map_user_id_to_id",
+        "options.profile",
+        "options.app_domain",
+        "options.app_id",
+        "options.basic_profile",
+        "options.ext_nested_groups",
+        "options.ext_profile",
+        "options.granted",
+        "options.identity_api",
+        "options.max_groups_to_retrieve",
+        "options.tenantId",
+        "options.use_wsfed",
+        "options.useCommonEndpoint",
+        "options.userid_attribute",
+        "options.waad_protocol"
+      ],
+      "strategies": [
+        "oidc",
+        "okta",
+        "samlp",
+        "pingfederate",
+        "adfs",
+        "ad",
+        "google-apps",
+        "waad"
+      ],
+      "store_method": "Connections.Create"
+    },
+    {
+      "name": "connection.deleted",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "authentication.active",
+        "display_name",
+        "enabled_clients",
+        "id",
+        "is_domain_connection",
+        "metadata",
+        "name",
+        "realms",
+        "connected_accounts.active",
+        "connected_accounts.cross_app_access",
+        "options.authorization_endpoint",
+        "options.client_id",
+        "options.connection_settings.pkce",
+        "options.domain_aliases",
+        "options.dpop_signing_alg",
+        "options.federated_connections_access_tokens.active",
+        "options.icon_url",
+        "options.id_token_session_expiry_supported",
+        "options.id_token_signed_response_algs",
+        "options.issuer",
+        "options.jwks_uri",
+        "options.non_persistent_attrs",
+        "options.oidc_metadata.acr_values_supported",
+        "options.oidc_metadata.authorization_endpoint",
+        "options.oidc_metadata.claim_types_supported",
+        "options.oidc_metadata.claims_locales_supported",
+        "options.oidc_metadata.claims_parameter_supported",
+        "options.oidc_metadata.claims_supported",
+        "options.oidc_metadata.code_challenge_methods_supported",
+        "options.oidc_metadata.display_values_supported",
+        "options.oidc_metadata.dpop_signing_alg_values_supported",
+        "options.oidc_metadata.end_session_endpoint",
+        "options.oidc_metadata.grant_types_supported",
+        "options.oidc_metadata.id_token_encryption_alg_values_supported",
+        "options.oidc_metadata.id_token_encryption_enc_values_supported",
+        "options.oidc_metadata.id_token_signing_alg_values_supported",
+        "options.oidc_metadata.issuer",
+        "options.oidc_metadata.jwks_uri",
+        "options.oidc_metadata.op_policy_uri",
+        "options.oidc_metadata.op_tos_uri",
+        "options.oidc_metadata.registration_endpoint",
+        "options.oidc_metadata.request_object_encryption_alg_values_supported",
+        "options.oidc_metadata.request_object_encryption_enc_values_supported",
+        "options.oidc_metadata.request_object_signing_alg_values_supported",
+        "options.oidc_metadata.request_parameter_supported",
+        "options.oidc_metadata.request_uri_parameter_supported",
+        "options.oidc_metadata.require_request_uri_registration",
+        "options.oidc_metadata.response_modes_supported",
+        "options.oidc_metadata.response_types_supported",
+        "options.oidc_metadata.scopes_supported",
+        "options.oidc_metadata.service_documentation",
+        "options.oidc_metadata.subject_types_supported",
+        "options.oidc_metadata.token_endpoint",
+        "options.oidc_metadata.token_endpoint_auth_methods_supported",
+        "options.oidc_metadata.token_endpoint_auth_signing_alg_values_supported",
+        "options.oidc_metadata.ui_locales_supported",
+        "options.oidc_metadata.userinfo_encryption_alg_values_supported",
+        "options.oidc_metadata.userinfo_encryption_enc_values_supported",
+        "options.oidc_metadata.userinfo_endpoint",
+        "options.oidc_metadata.userinfo_signing_alg_values_supported",
+        "options.schema_version",
+        "options.scope",
+        "options.send_back_channel_nonce",
+        "options.set_user_root_attributes",
+        "options.tenant_domain",
+        "options.token_endpoint",
+        "options.token_endpoint_auth_method",
+        "options.token_endpoint_auth_signing_alg",
+        "options.token_endpoint_jwtca_aud_format",
+        "options.upstream_params",
+        "options.useOauthSpecScope",
+        "options.userinfo_endpoint",
+        "options.attribute_map.attributes",
+        "options.attribute_map.userinfo_scope",
+        "options.attribute_map.mapping_mode",
+        "options.discovery_url",
+        "options.type",
+        "show_as_button",
+        "strategy",
+        "options.domain",
+        "options.assertion_decryption_settings.algorithm_exceptions",
+        "options.assertion_decryption_settings.algorithm_profile",
+        "options.cert",
+        "options.cert_rollover_notification",
+        "options.digestAlgorithm",
+        "options.entityId",
+        "options.expires",
+        "options.idpinitiated.client_authorizequery",
+        "options.idpinitiated.client_id",
+        "options.idpinitiated.client_protocol",
+        "options.idpinitiated.enabled",
+        "options.protocolBinding",
+        "options.signatureAlgorithm",
+        "options.signInEndpoint",
+        "options.signingCert",
+        "options.signSAMLRequest",
+        "options.subject",
+        "options.thumbprints",
+        "options.debug",
+        "options.deflate",
+        "options.destinationUrl",
+        "options.disableFieldsMapFix",
+        "options.disableSignout",
+        "options.fieldsMap",
+        "options.fieldsMapJsonRaw",
+        "options.global_token_revocation_jwt_iss",
+        "options.global_token_revocation_jwt_sub",
+        "options.metadataUrl",
+        "options.recipientUrl",
+        "options.requestTemplate",
+        "options.signOutEndpoint",
+        "options.user_id_attribute",
+        "options.pingFederateBaseUrl",
+        "options.adfs_server",
+        "options.fedMetadataXml",
+        "options.prev_thumbprints",
+        "options.should_trust_email_verified_connection",
+        "options.agentIP",
+        "options.agentMode",
+        "options.agentVersion",
+        "options.brute_force_protection",
+        "options.certAuth",
+        "options.certs",
+        "options.disable_cache",
+        "options.disable_self_service_change_password",
+        "options.ips",
+        "options.kerberos",
+        "options.kerberos_only",
+        "options.admin_access_token_expiresin",
+        "options.allow_setting_login_scopes",
+        "options.api_enable_groups",
+        "options.api_enable_users",
+        "options.email",
+        "options.ext_agreed_terms",
+        "options.ext_groups",
+        "options.ext_groups_extended",
+        "options.ext_is_admin",
+        "options.ext_is_suspended",
+        "options.handle_login_from_social",
+        "options.map_user_id_to_id",
+        "options.profile",
+        "options.app_domain",
+        "options.app_id",
+        "options.basic_profile",
+        "options.ext_nested_groups",
+        "options.ext_profile",
+        "options.granted",
+        "options.identity_api",
+        "options.max_groups_to_retrieve",
+        "options.tenantId",
+        "options.use_wsfed",
+        "options.useCommonEndpoint",
+        "options.userid_attribute",
+        "options.waad_protocol"
+      ],
+      "strategies": [
+        "oidc",
+        "okta",
+        "samlp",
+        "pingfederate",
+        "adfs",
+        "ad",
+        "google-apps",
+        "waad"
+      ],
+      "store_method": "Connections.Delete"
+    },
+    {
+      "name": "connection.updated",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "authentication.active",
+        "display_name",
+        "enabled_clients",
+        "id",
+        "is_domain_connection",
+        "metadata",
+        "name",
+        "realms",
+        "connected_accounts.active",
+        "connected_accounts.cross_app_access",
+        "options.authorization_endpoint",
+        "options.client_id",
+        "options.connection_settings.pkce",
+        "options.domain_aliases",
+        "options.dpop_signing_alg",
+        "options.federated_connections_access_tokens.active",
+        "options.icon_url",
+        "options.id_token_session_expiry_supported",
+        "options.id_token_signed_response_algs",
+        "options.issuer",
+        "options.jwks_uri",
+        "options.non_persistent_attrs",
+        "options.oidc_metadata.acr_values_supported",
+        "options.oidc_metadata.authorization_endpoint",
+        "options.oidc_metadata.claim_types_supported",
+        "options.oidc_metadata.claims_locales_supported",
+        "options.oidc_metadata.claims_parameter_supported",
+        "options.oidc_metadata.claims_supported",
+        "options.oidc_metadata.code_challenge_methods_supported",
+        "options.oidc_metadata.display_values_supported",
+        "options.oidc_metadata.dpop_signing_alg_values_supported",
+        "options.oidc_metadata.end_session_endpoint",
+        "options.oidc_metadata.grant_types_supported",
+        "options.oidc_metadata.id_token_encryption_alg_values_supported",
+        "options.oidc_metadata.id_token_encryption_enc_values_supported",
+        "options.oidc_metadata.id_token_signing_alg_values_supported",
+        "options.oidc_metadata.issuer",
+        "options.oidc_metadata.jwks_uri",
+        "options.oidc_metadata.op_policy_uri",
+        "options.oidc_metadata.op_tos_uri",
+        "options.oidc_metadata.registration_endpoint",
+        "options.oidc_metadata.request_object_encryption_alg_values_supported",
+        "options.oidc_metadata.request_object_encryption_enc_values_supported",
+        "options.oidc_metadata.request_object_signing_alg_values_supported",
+        "options.oidc_metadata.request_parameter_supported",
+        "options.oidc_metadata.request_uri_parameter_supported",
+        "options.oidc_metadata.require_request_uri_registration",
+        "options.oidc_metadata.response_modes_supported",
+        "options.oidc_metadata.response_types_supported",
+        "options.oidc_metadata.scopes_supported",
+        "options.oidc_metadata.service_documentation",
+        "options.oidc_metadata.subject_types_supported",
+        "options.oidc_metadata.token_endpoint",
+        "options.oidc_metadata.token_endpoint_auth_methods_supported",
+        "options.oidc_metadata.token_endpoint_auth_signing_alg_values_supported",
+        "options.oidc_metadata.ui_locales_supported",
+        "options.oidc_metadata.userinfo_encryption_alg_values_supported",
+        "options.oidc_metadata.userinfo_encryption_enc_values_supported",
+        "options.oidc_metadata.userinfo_endpoint",
+        "options.oidc_metadata.userinfo_signing_alg_values_supported",
+        "options.schema_version",
+        "options.scope",
+        "options.send_back_channel_nonce",
+        "options.set_user_root_attributes",
+        "options.tenant_domain",
+        "options.token_endpoint",
+        "options.token_endpoint_auth_method",
+        "options.token_endpoint_auth_signing_alg",
+        "options.token_endpoint_jwtca_aud_format",
+        "options.upstream_params",
+        "options.useOauthSpecScope",
+        "options.userinfo_endpoint",
+        "options.attribute_map.attributes",
+        "options.attribute_map.userinfo_scope",
+        "options.attribute_map.mapping_mode",
+        "options.discovery_url",
+        "options.type",
+        "show_as_button",
+        "strategy",
+        "options.domain",
+        "options.assertion_decryption_settings.algorithm_exceptions",
+        "options.assertion_decryption_settings.algorithm_profile",
+        "options.cert",
+        "options.cert_rollover_notification",
+        "options.digestAlgorithm",
+        "options.entityId",
+        "options.expires",
+        "options.idpinitiated.client_authorizequery",
+        "options.idpinitiated.client_id",
+        "options.idpinitiated.client_protocol",
+        "options.idpinitiated.enabled",
+        "options.protocolBinding",
+        "options.signatureAlgorithm",
+        "options.signInEndpoint",
+        "options.signingCert",
+        "options.signSAMLRequest",
+        "options.subject",
+        "options.thumbprints",
+        "options.debug",
+        "options.deflate",
+        "options.destinationUrl",
+        "options.disableFieldsMapFix",
+        "options.disableSignout",
+        "options.fieldsMap",
+        "options.fieldsMapJsonRaw",
+        "options.global_token_revocation_jwt_iss",
+        "options.global_token_revocation_jwt_sub",
+        "options.metadataUrl",
+        "options.recipientUrl",
+        "options.requestTemplate",
+        "options.signOutEndpoint",
+        "options.user_id_attribute",
+        "options.pingFederateBaseUrl",
+        "options.adfs_server",
+        "options.fedMetadataXml",
+        "options.prev_thumbprints",
+        "options.should_trust_email_verified_connection",
+        "options.agentIP",
+        "options.agentMode",
+        "options.agentVersion",
+        "options.brute_force_protection",
+        "options.certAuth",
+        "options.certs",
+        "options.disable_cache",
+        "options.disable_self_service_change_password",
+        "options.ips",
+        "options.kerberos",
+        "options.kerberos_only",
+        "options.admin_access_token_expiresin",
+        "options.allow_setting_login_scopes",
+        "options.api_enable_groups",
+        "options.api_enable_users",
+        "options.email",
+        "options.ext_agreed_terms",
+        "options.ext_groups",
+        "options.ext_groups_extended",
+        "options.ext_is_admin",
+        "options.ext_is_suspended",
+        "options.handle_login_from_social",
+        "options.map_user_id_to_id",
+        "options.profile",
+        "options.app_domain",
+        "options.app_id",
+        "options.basic_profile",
+        "options.ext_nested_groups",
+        "options.ext_profile",
+        "options.granted",
+        "options.identity_api",
+        "options.max_groups_to_retrieve",
+        "options.tenantId",
+        "options.use_wsfed",
+        "options.useCommonEndpoint",
+        "options.userid_attribute",
+        "options.waad_protocol"
+      ],
+      "strategies": [
+        "oidc",
+        "okta",
+        "samlp",
+        "pingfederate",
+        "adfs",
+        "ad",
+        "google-apps",
+        "waad"
+      ],
+      "store_method": "Connections.Update"
+    },
+    {
+      "name": "group.created",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "id",
+        "name",
+        "external_id",
+        "created_at",
+        "type",
+        "connection_id",
+        "organization_id"
+      ],
+      "store_method": "deferred"
+    },
+    {
+      "name": "group.deleted",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "id",
+        "name",
+        "external_id",
+        "created_at",
+        "type",
+        "connection_id",
+        "updated_at",
+        "organization_id"
+      ],
+      "store_method": "deferred"
+    },
+    {
+      "name": "group.member.added",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "group",
+        "member"
+      ],
+      "store_method": "deferred"
+    },
+    {
+      "name": "group.member.deleted",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "group",
+        "member"
+      ],
+      "store_method": "deferred"
+    },
+    {
+      "name": "group.role.assigned",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "group",
+        "role.id",
+        "role.name",
+        "created_at"
+      ],
+      "store_method": "deferred"
+    },
+    {
+      "name": "group.role.deleted",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "group",
+        "role.id",
+        "deleted_at"
+      ],
+      "store_method": "deferred"
+    },
+    {
+      "name": "group.updated",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "id",
+        "name",
+        "external_id",
+        "created_at",
+        "type",
+        "connection_id",
+        "updated_at",
+        "organization_id"
+      ],
+      "store_method": "deferred"
+    },
+    {
+      "name": "organization.connection.added",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "organization.name",
+        "organization.id",
+        "connection.id",
+        "assign_membership_on_login",
+        "show_as_button",
+        "is_signup_enabled",
+        "is_enabled",
+        "organization_access_level",
+        "organization_member_access_level"
+      ],
+      "store_method": "Organizations.PutConnection(create=true)"
+    },
+    {
+      "name": "organization.connection.removed",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "organization.name",
+        "organization.id",
+        "connection.id"
+      ],
+      "store_method": "Organizations.DeleteConnection"
+    },
+    {
+      "name": "organization.connection.updated",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "organization.name",
+        "organization.id",
+        "connection.id",
+        "assign_membership_on_login",
+        "show_as_button",
+        "is_signup_enabled",
+        "is_enabled",
+        "organization_access_level",
+        "organization_member_access_level"
+      ],
+      "store_method": "Organizations.PutConnection(create=false)"
+    },
+    {
+      "name": "organization.created",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "name",
+        "id",
+        "display_name",
+        "metadata",
+        "branding.logo_url",
+        "branding.colors.primary",
+        "branding.colors.page_background"
+      ],
+      "store_method": "Organizations.Create"
+    },
+    {
+      "name": "organization.deleted",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "name",
+        "id",
+        "display_name",
+        "metadata"
+      ],
+      "store_method": "Organizations.Delete"
+    },
+    {
+      "name": "organization.group.role.assigned",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "organization.id",
+        "role.id",
+        "role.name",
+        "group",
+        "created_at"
+      ],
+      "store_method": "Organizations"
+    },
+    {
+      "name": "organization.group.role.deleted",
+      "emitted": false,
+      "plan": 38,
+      "allowlist": [
+        "organization.id",
+        "role.id",
+        "group",
+        "deleted_at"
+      ],
+      "store_method": "Organizations"
+    },
+    {
+      "name": "organization.member.added",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "organization.name",
+        "organization.id",
+        "user.user_id"
+      ],
+      "store_method": "Organizations.AddMembers"
+    },
+    {
+      "name": "organization.member.deleted",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "organization.name",
+        "organization.id",
+        "user.user_id"
+      ],
+      "store_method": "Organizations.RemoveMembers"
+    },
+    {
+      "name": "organization.member.role.assigned",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "organization.id",
+        "user.user_id",
+        "role.id",
+        "role.name"
+      ],
+      "store_method": "Organizations.ChangeMemberRoles(add=true)"
+    },
+    {
+      "name": "organization.member.role.deleted",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "organization.id",
+        "user.user_id",
+        "role.id",
+        "role.name"
+      ],
+      "store_method": "Organizations.ChangeMemberRoles(add=false)"
+    },
+    {
+      "name": "organization.updated",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "name",
+        "id",
+        "display_name",
+        "metadata",
+        "branding.logo_url",
+        "branding.colors.primary",
+        "branding.colors.page_background"
+      ],
+      "store_method": "Organizations.Update"
+    },
+    {
+      "name": "user.created",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "user_id",
+        "email",
+        "email_verified",
+        "username",
+        "phone_number",
+        "phone_verified",
+        "created_at",
+        "updated_at",
+        "identities[].connection",
+        "identities[].user_id",
+        "identities[].profileData.email",
+        "identities[].profileData.email_verified",
+        "identities[].profileData.name",
+        "identities[].profileData.username",
+        "identities[].profileData.given_name",
+        "identities[].profileData.family_name",
+        "identities[].profileData.phone_number",
+        "identities[].profileData.phone_verified",
+        "identities[].provider",
+        "identities[].isSocial",
+        "app_metadata",
+        "user_metadata",
+        "picture",
+        "name",
+        "nickname",
+        "multifactor",
+        "last_ip",
+        "last_login",
+        "logins_count",
+        "blocked",
+        "given_name",
+        "family_name"
+      ],
+      "store_method": "Users.Create"
+    },
+    {
+      "name": "user.deleted",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "user_id",
+        "email",
+        "email_verified",
+        "username",
+        "phone_number",
+        "phone_verified",
+        "created_at",
+        "updated_at",
+        "identities[].connection",
+        "identities[].user_id",
+        "identities[].profileData.email",
+        "identities[].profileData.email_verified",
+        "identities[].profileData.name",
+        "identities[].profileData.username",
+        "identities[].profileData.given_name",
+        "identities[].profileData.family_name",
+        "identities[].profileData.phone_number",
+        "identities[].profileData.phone_verified",
+        "identities[].provider",
+        "identities[].isSocial",
+        "app_metadata",
+        "user_metadata",
+        "picture",
+        "name",
+        "nickname",
+        "multifactor",
+        "last_ip",
+        "last_login",
+        "logins_count",
+        "blocked",
+        "given_name",
+        "family_name",
+        "deleted_at"
+      ],
+      "store_method": "Users.Delete"
+    },
+    {
+      "name": "user.updated",
+      "emitted": true,
+      "plan": 32,
+      "allowlist": [
+        "user_id",
+        "email",
+        "email_verified",
+        "username",
+        "phone_number",
+        "phone_verified",
+        "created_at",
+        "updated_at",
+        "identities[].connection",
+        "identities[].user_id",
+        "identities[].profileData.email",
+        "identities[].profileData.email_verified",
+        "identities[].profileData.name",
+        "identities[].profileData.username",
+        "identities[].profileData.given_name",
+        "identities[].profileData.family_name",
+        "identities[].profileData.phone_number",
+        "identities[].profileData.phone_verified",
+        "identities[].provider",
+        "identities[].isSocial",
+        "app_metadata",
+        "user_metadata",
+        "picture",
+        "name",
+        "nickname",
+        "multifactor",
+        "last_ip",
+        "last_login",
+        "logins_count",
+        "blocked",
+        "given_name",
+        "family_name"
+      ],
+      "store_method": "Users.Update/SetPasswordHash/SetPasswordHashIfEmpty/LinkIdentity/UnlinkIdentity"
+    }
+  ],
+  "routes": [
+    {
+      "operation": "ListEventStreams",
+      "method": "GET",
+      "path": "/api/v2/event-streams",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:event_streams"
+      ],
+      "parameters": [
+        {
+          "name": "from",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "404": "not_found",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "CreateEventStream",
+      "method": "POST",
+      "path": "/api/v2/event-streams",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "create:event_streams"
+      ],
+      "parameters": [],
+      "body": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EventsCreateEventStreamWebHookRequestContent"
+          },
+          {
+            "$ref": "#/components/schemas/EventsCreateEventStreamEventBridgeRequestContent"
+          },
+          {
+            "$ref": "#/components/schemas/EventsCreateEventStreamActionRequestContent"
+          }
+        ]
+      },
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "409": "conflict",
+        "429": "too_many_requests",
+        "404": "not_found",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "GetEventStream",
+      "method": "GET",
+      "path": "/api/v2/event-streams/{id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:event_streams"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "404": "not_found",
+        "429": "too_many_requests",
+        "400": "invalid_request",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "DeleteEventStream",
+      "method": "DELETE",
+      "path": "/api/v2/event-streams/{id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "delete:event_streams"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "404": "not_found",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "UpdateEventStream",
+      "method": "PATCH",
+      "path": "/api/v2/event-streams/{id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:event_streams"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        }
+      ],
+      "body": {
+        "$ref": "#/components/schemas/EventsUpdateEventStreamRequestContent"
+      },
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "404": "not_found",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "ListEventDeliveries",
+      "method": "GET",
+      "path": "/api/v2/event-streams/{id}/deliveries",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:event_streams",
+        "read:event_deliveries"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        },
+        {
+          "name": "statuses",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "event_types",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "date_from",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        {
+          "name": "date_to",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        {
+          "name": "from",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "404": "not_found",
+        "429": "too_many_requests",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "GetEventDelivery",
+      "method": "GET",
+      "path": "/api/v2/event-streams/{id}/deliveries/{event_id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:event_deliveries"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        },
+        {
+          "name": "event_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^evt_[A-Za-z0-9]{22}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "404": "not_found",
+        "429": "too_many_requests",
+        "400": "invalid_request",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "RedeliverEvents",
+      "method": "POST",
+      "path": "/api/v2/event-streams/{id}/redeliver",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:event_deliveries"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        }
+      ],
+      "body": {
+        "$ref": "#/components/schemas/EventsCreateEventStreamRedeliveryRequestContent"
+      },
+      "errors": {
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "404": "not_found",
+        "409": "conflict",
+        "429": "too_many_requests",
+        "400": "invalid_request",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "RedeliverEvent",
+      "method": "POST",
+      "path": "/api/v2/event-streams/{id}/redeliver/{event_id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:event_deliveries"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        },
+        {
+          "name": "event_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^evt_[A-Za-z0-9]{22}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "404": "not_found",
+        "409": "conflict",
+        "429": "too_many_requests",
+        "400": "invalid_request",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "TestEventStream",
+      "method": "POST",
+      "path": "/api/v2/event-streams/{id}/test",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:event_streams"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "pattern": "^est_[A-Za-z0-9]{22}$"
+          }
+        }
+      ],
+      "body": {
+        "$ref": "#/components/schemas/EventsCreateEventStreamTestEventRequestContent"
+      },
+      "errors": {
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "400": "invalid_request",
+        "404": "not_found",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    },
+    {
+      "operation": "SubscribeEvents",
+      "method": "GET",
+      "path": "/api/v2/events",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:events"
+      ],
+      "parameters": [
+        {
+          "name": "from",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "from_timestamp",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        {
+          "name": "event_type",
+          "in": "query",
+          "style": "form",
+          "explode": true,
+          "schema": {
+            "$ref": "#/components/schemas/EventsEventStreamSubscribeEventsEventTypeParam"
+          }
+        },
+        {
+          "name": "Last-Event-ID",
+          "in": "header",
+          "schema": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "404": "not_found",
+        "410": "cursor_expired",
+        "429": "too_many_requests",
+        "501": "events_unavailable"
+      },
+      "scope_mode": "any"
+    }
+  ],
+  "destinations": [
+    {
+      "type": "webhook",
+      "public_fields": [
+        "webhook_endpoint",
+        "webhook_authorization.method",
+        "webhook_authorization.username",
+        "webhook_authorization.header_key"
+      ],
+      "secret_fields": [
+        "password",
+        "token",
+        "header_value"
+      ],
+      "source": "https://registry.terraform.io/providers/auth0/auth0/latest/docs/resources/event_stream"
+    },
+    {
+      "type": "action",
+      "public_fields": [
+        "action_id"
+      ],
+      "secret_fields": []
+    },
+    {
+      "type": "eventbridge",
+      "public_fields": [
+        "aws_account_id",
+        "aws_region",
+        "aws_partner_event_source"
+      ],
+      "secret_fields": []
+    }
+  ],
+  "gaps": [
+    "E1: no separate observer notes available; spec local default applies",
+    "E2: no separate observer notes available; spec local default applies",
+    "E3: no separate observer notes available; spec local default applies",
+    "E4: no separate observer notes available; spec local default applies",
+    "E5: no separate observer notes available; spec local default applies",
+    "E6: no separate observer notes available; spec local default applies",
+    "E7: no separate observer notes available; spec local default applies",
+    "E8: no separate observer notes available; spec local default applies"
+  ],
+  "limits": {
+    "take_default": 50,
+    "take_max": 100,
+    "max_streams": 10,
+    "max_connections": 4,
+    "retention_days": 7,
+    "retention_min_days": 1,
+    "ring_size": 10000,
+    "attempts": 4,
+    "retry_seconds": [
+      1,
+      2,
+      4
+    ],
+    "timeout_seconds": 10,
+    "settle_seconds": 2,
+    "consecutive_failures": 500,
+    "total_failures": 5000,
+    "heartbeat_seconds": 15,
+    "offset_seconds": 30,
+    "cycle_seconds": 300,
+    "sse_retry_ms": 2000
+  },
+  "sse": {
+    "content_type": "text/event-stream",
+    "connected": ":connected\n\n",
+    "heartbeat": ": heartbeat\n\n",
+    "event_fields": [
+      "offset",
+      "event"
+    ],
+    "offset_only_fields": [
+      "offset"
+    ],
+    "last_event_id_precedence": true,
+    "terminal_errors": [
+      "invalid_cursor",
+      "cursor_expired",
+      "timeout",
+      "processing_error"
+    ]
+  }
+}

@@ -2036,3 +2036,44 @@ an operator with a current grant for the path tenant and `read:log_streams`;
 missing Logs v1 returns `501 logs_unavailable`. It never exposes sink settings,
 sealed credentials or lease ownership. This keeps delivery diagnostics out of
 the Auth0-compatible public log-stream shape.
+
+## D-0058 — Tenant events and event streams
+
+2026-11-01. Sources: [catalog](https://auth0.com/docs/oas/events/events-schema.json),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+[delivery](https://auth0.com/docs/customize/events/events-best-practices),
+[recovery](https://auth0.com/docs/customize/events/event-testing-observability-and-failure-recovery),
+[SSE](https://auth0.com/docs/customize/events/consume-events-with-events-api),
+[authorization](https://registry.terraform.io/providers/auth0/auth0/latest/docs/resources/event_stream).
+
+Plan 32 freezes catalog 0.13.6 and the documented routes in `internal/eventrules`.
+The following are explicit local rulings, subject to later firewalled evidence:
+
+1. Capture events through a store decorator in the business transaction.
+2. Retain events seven days by default, with a one-day minimum.
+3. Emit user updates for stored profile, credential and identity changes; exclude login counters and imported-hash upgrades; collapse updates within one transaction.
+4. Webhooks time out after ten seconds; no undocumented signature header.
+5. Test delivery is synchronous and does not persist an event or failure record; disabled streams reject tests.
+6. Four attempts per event (first plus retries after 1/2/4 seconds); the ambiguous three-attempt bullet is not a separate stream-disable threshold. Disable at 500 consecutive failed events or 5,000 extant failed deliveries.
+7. Default limits: ten streams, four SSE connections per tenant; heartbeat 15 seconds, offset-only 30 seconds, connection cycle five minutes.
+8. EventBridge configuration is stored permanently disabled; no AWS delivery.
+9. Request geo is an empty object.
+10. Private-network delivery targets are refused unless explicitly configured.
+
+E1–E8 remain unanswered: webhook headers/timeout, user-update boundaries and previous-object shape, delivery identifiers/lifecycle, test behavior, disable ambiguity, stream quotas/PATCH boundaries, SSE cadence/retention/limits and EventBridge partner-source value. No observer notes were supplied and the implementer did not observe the tenant. The defaults above follow the approved spec; they are not verified Auth0 behavior. Group events remain deferred to Plan 38. Write-only webhook password/token/header values are never returned.
+
+Task 1 contract normalization (local, 2026-11-01): stream/event ID regexes
+are anchored to the spec's exact 26-character shape. Frozen event object and
+previous-object roots reject fields outside the catalog allowlist; nested
+customer metadata remains open. The catalog organization-name lookahead is
+expressed as equivalent `pattern` and `not` constraints for Go regex support.
+The documented test-only `a0purpose: "test"` extension is accepted even though
+catalog 0.13.6 omits it. API payloads reference raw CloudEvent objects and SSE
+frames; full event validation stays in the frozen catalog rather than a second
+generated 25-type model tree. Create and PATCH authorization schemas are distinct
+from responses: secrets are required on create and optional on PATCH, with
+method-change requirements enforced later by the handler. Delivery-list scopes
+are alternatives. Route provenance uses the fetched canonical OpenAPI URL.
+The published deferred group examples contain IDs rejected by the catalog's own
+`grp_` pattern; examples are preserved and schema constraints remain intact.
+They are an evidence gap, not accepted fixtures or passing validation claims.

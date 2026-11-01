@@ -87,3 +87,36 @@ func checkProvenance(t *testing.T, data []byte) {
 		}
 	}
 }
+
+// Write-only credentials belong exclusively to request schemas; patch preserves omitted secrets.
+func TestEventStreamCredentialContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ auth, secret string }{{"Basic", "password"}, {"Bearer", "token"}, {"CustomHeader", "header_value"}} {
+		for _, mode := range []string{"Create", "Patch"} {
+			name := "EventsEventStreamWebhook" + tc.auth + "Auth" + mode
+			ref := doc.Components.Schemas[name]
+			if ref == nil {
+				t.Errorf("missing %s", name)
+				continue
+			}
+			secret := ref.Value.Properties[tc.secret]
+			if secret == nil || !secret.Value.WriteOnly {
+				t.Errorf("%s missing write-only %s", name, tc.secret)
+			}
+			required := false
+			for _, k := range ref.Value.Required {
+				required = required || k == tc.secret
+			}
+			if required != (mode == "Create") {
+				t.Errorf("%s secret requirement = %v", name, required)
+			}
+		}
+		response := doc.Components.Schemas["EventsEventStreamWebhook"+tc.auth+"Auth"]
+		if response.Value.Properties[tc.secret] != nil {
+			t.Errorf("response contains %s", tc.secret)
+		}
+	}
+}

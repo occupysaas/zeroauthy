@@ -87,6 +87,806 @@ security:
   - managementToken: []
   - operatorToken: []
 paths:
+  /api/v2/event-streams:
+    get:
+      operationId: ListEventStreams
+      tags:
+      - event-streams
+      summary: ListEventStreams
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:event_streams
+      - operatorToken: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsListEventStreamsResponseContent'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: from
+        in: query
+        schema:
+          type: string
+      - name: take
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+    post:
+      operationId: CreateEventStream
+      tags:
+      - event-streams
+      summary: CreateEventStream
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      - https://registry.terraform.io/providers/auth0/auth0/latest/docs/resources/event_stream
+      security:
+      - managementToken:
+        - create:event_streams
+      - operatorToken: []
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsCreateEventStreamResponseContent'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/EventsCreateEventStreamWebHookRequestContent'
+              - $ref: '#/components/schemas/EventsCreateEventStreamEventBridgeRequestContent'
+              - $ref: '#/components/schemas/EventsCreateEventStreamActionRequestContent'
+  /api/v2/event-streams/{id}:
+    get:
+      operationId: GetEventStream
+      tags:
+      - event-streams
+      summary: GetEventStream
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:event_streams
+      - operatorToken: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsGetEventStreamResponseContent'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+    delete:
+      operationId: DeleteEventStream
+      tags:
+      - event-streams
+      summary: DeleteEventStream
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - delete:event_streams
+      - operatorToken: []
+      responses:
+        '204':
+          description: Success
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+    patch:
+      operationId: UpdateEventStream
+      tags:
+      - event-streams
+      summary: UpdateEventStream
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      - https://registry.terraform.io/providers/auth0/auth0/latest/docs/resources/event_stream
+      security:
+      - managementToken:
+        - update:event_streams
+      - operatorToken: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsUpdateEventStreamResponseContent'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventsUpdateEventStreamRequestContent'
+  /api/v2/event-streams/{id}/deliveries:
+    get:
+      operationId: ListEventDeliveries
+      tags:
+      - event-streams
+      summary: ListEventDeliveries
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:event_streams
+      - managementToken:
+        - read:event_deliveries
+      - operatorToken: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsListEventStreamDeliveriesResponseContent'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+      - name: statuses
+        in: query
+        schema:
+          type: string
+      - name: event_types
+        in: query
+        schema:
+          type: string
+      - name: date_from
+        in: query
+        schema:
+          type: string
+          maxLength: 20
+      - name: date_to
+        in: query
+        schema:
+          type: string
+          maxLength: 20
+      - name: from
+        in: query
+        schema:
+          type: string
+      - name: take
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+  /api/v2/event-streams/{id}/deliveries/{event_id}:
+    get:
+      operationId: GetEventDelivery
+      tags:
+      - event-streams
+      summary: GetEventDelivery
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:event_deliveries
+      - operatorToken: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsGetEventStreamDeliveryHistoryResponseContent'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^evt_[A-Za-z0-9]{22}$
+  /api/v2/event-streams/{id}/redeliver:
+    post:
+      operationId: RedeliverEvents
+      tags:
+      - event-streams
+      summary: RedeliverEvents
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:event_deliveries
+      - operatorToken: []
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsCreateEventStreamRedeliveryResponseContent'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventsCreateEventStreamRedeliveryRequestContent'
+  /api/v2/event-streams/{id}/redeliver/{event_id}:
+    post:
+      operationId: RedeliverEvent
+      tags:
+      - event-streams
+      summary: RedeliverEvent
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:event_deliveries
+      - operatorToken: []
+      responses:
+        '202':
+          description: Success
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^evt_[A-Za-z0-9]{22}$
+  /api/v2/event-streams/{id}/test:
+    post:
+      operationId: TestEventStream
+      tags:
+      - event-streams
+      summary: TestEventStream
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:event_streams
+      - operatorToken: []
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsCreateEventStreamTestEventResponseContent'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 26
+          maxLength: 26
+          pattern: ^est_[A-Za-z0-9]{22}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventsCreateEventStreamTestEventRequestContent'
+  /api/v2/events:
+    get:
+      operationId: SubscribeEvents
+      tags:
+      - events
+      summary: SubscribeEvents
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:events
+      - operatorToken: []
+      responses:
+        '200':
+          description: Success
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/EventsEventStreamSubscribeEventsResponseContent'
+        '400':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '410':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: Events capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      parameters:
+      - name: from
+        in: query
+        schema:
+          type: string
+          maxLength: 1024
+      - name: from_timestamp
+        in: query
+        schema:
+          type: string
+          maxLength: 20
+      - name: event_type
+        in: query
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/EventsEventStreamSubscribeEventsEventTypeParam'
+      - name: Last-Event-ID
+        in: header
+        schema:
+          type: string
+          maxLength: 1024
   /api/v2/actions/modules:
     get:
       operationId: GetActionModules
@@ -9353,6 +10153,833 @@ components:
       description: The member's user ID.
       schema: {type: string}
   schemas:
+    EventsListEventStreamsResponseContent:
+      type: object
+      additionalProperties: true
+      properties:
+        eventStreams:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamResponseContent'
+        next:
+          type: string
+    EventsEventStreamResponseContent:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamEventBridgeResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamActionResponseContent'
+    EventsEventStreamWebhookResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          minLength: 26
+          maxLength: 26
+          format: event-stream-id
+          pattern: ^est_[A-Za-z0-9]{22}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subscriptions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/EventsEventStreamSubscription'
+        destination:
+          $ref: '#/components/schemas/EventsEventStreamWebhookDestination'
+        status:
+          $ref: '#/components/schemas/EventsEventStreamStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EventsEventStreamSubscription:
+      type: object
+      additionalProperties: false
+      properties:
+        event_type:
+          type: string
+    EventsEventStreamWebhookDestination:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - configuration
+      properties:
+        type:
+          $ref: '#/components/schemas/EventsEventStreamWebhookDestinationTypeEnum'
+        configuration:
+          $ref: '#/components/schemas/EventsEventStreamWebhookConfiguration'
+    EventsEventStreamWebhookDestinationTypeEnum:
+      type: string
+      enum:
+      - webhook
+    EventsEventStreamWebhookConfiguration:
+      type: object
+      additionalProperties: false
+      required:
+      - webhook_endpoint
+      - webhook_authorization
+      properties:
+        webhook_endpoint:
+          type: string
+          pattern: ^https://.*
+        webhook_authorization:
+          $ref: '#/components/schemas/EventsEventStreamWebhookAuthorizationResponse'
+    EventsEventStreamWebhookAuthorizationResponse:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookBasicAuth'
+      - $ref: '#/components/schemas/EventsEventStreamWebhookBearerAuth'
+      - $ref: '#/components/schemas/EventsEventStreamWebhookCustomHeaderAuth'
+    EventsEventStreamWebhookBasicAuth:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - username
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookBasicAuthMethodEnum'
+        username:
+          type: string
+          maxLength: 128
+          pattern: ^[^:]+$
+    EventsEventStreamWebhookBasicAuthMethodEnum:
+      type: string
+      enum:
+      - basic
+    EventsEventStreamWebhookBearerAuth:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookBearerAuthMethodEnum'
+    EventsEventStreamWebhookBearerAuthMethodEnum:
+      type: string
+      enum:
+      - bearer
+    EventsEventStreamWebhookCustomHeaderAuth:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - header_key
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookCustomHeaderAuthMethodEnum'
+        header_key:
+          type: string
+          minLength: 1
+          pattern: ^[a-zA-Z0-9!#$%&'*+.^_`|~-]+$
+    EventsEventStreamWebhookCustomHeaderAuthMethodEnum:
+      type: string
+      enum:
+      - custom_header
+    EventsEventStreamStatusEnum:
+      type: string
+      maxLength: 8
+      enum:
+      - enabled
+      - disabled
+    EventsEventStreamEventBridgeResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          minLength: 26
+          maxLength: 26
+          format: event-stream-id
+          pattern: ^est_[A-Za-z0-9]{22}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subscriptions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/EventsEventStreamSubscription'
+        destination:
+          $ref: '#/components/schemas/EventsEventStreamEventBridgeDestination'
+        status:
+          $ref: '#/components/schemas/EventsEventStreamStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EventsEventStreamEventBridgeDestination:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - configuration
+      properties:
+        type:
+          $ref: '#/components/schemas/EventsEventStreamEventBridgeDestinationTypeEnum'
+        configuration:
+          $ref: '#/components/schemas/EventsEventStreamEventBridgeConfiguration'
+    EventsEventStreamEventBridgeDestinationTypeEnum:
+      type: string
+      enum:
+      - eventbridge
+    EventsEventStreamEventBridgeConfiguration:
+      type: object
+      additionalProperties: false
+      required:
+      - aws_account_id
+      - aws_region
+      properties:
+        aws_account_id:
+          type: string
+          pattern: ^\d{12}$
+        aws_region:
+          $ref: '#/components/schemas/EventsEventStreamEventBridgeAWSRegionEnum'
+        aws_partner_event_source:
+          type: string
+    EventsEventStreamEventBridgeAWSRegionEnum:
+      type: string
+      enum:
+      - af-south-1
+      - ap-east-1
+      - ap-east-2
+      - ap-northeast-1
+      - ap-northeast-2
+      - ap-northeast-3
+      - ap-south-1
+      - ap-south-2
+      - ap-southeast-1
+      - ap-southeast-2
+      - ap-southeast-3
+      - ap-southeast-4
+      - ap-southeast-5
+      - ap-southeast-6
+      - ap-southeast-7
+      - ca-central-1
+      - ca-west-1
+      - eu-central-1
+      - eu-central-2
+      - eu-north-1
+      - eu-south-1
+      - eu-south-2
+      - eu-west-1
+      - eu-west-2
+      - eu-west-3
+      - il-central-1
+      - me-central-1
+      - me-south-1
+      - mx-central-1
+      - sa-east-1
+      - us-gov-east-1
+      - us-gov-west-1
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+    EventsEventStreamActionResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          minLength: 26
+          maxLength: 26
+          format: event-stream-id
+          pattern: ^est_[A-Za-z0-9]{22}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subscriptions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/EventsEventStreamSubscription'
+        destination:
+          $ref: '#/components/schemas/EventsEventStreamActionDestination'
+        status:
+          $ref: '#/components/schemas/EventsEventStreamStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EventsEventStreamActionDestination:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - configuration
+      properties:
+        type:
+          $ref: '#/components/schemas/EventsEventStreamActionDestinationTypeEnum'
+        configuration:
+          $ref: '#/components/schemas/EventsEventStreamActionConfiguration'
+    EventsEventStreamActionDestinationTypeEnum:
+      type: string
+      enum:
+      - action
+    EventsEventStreamActionConfiguration:
+      type: object
+      additionalProperties: false
+      required:
+      - action_id
+      properties:
+        action_id:
+          type: string
+    EventsCreateEventStreamResponseContent:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamEventBridgeResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamActionResponseContent'
+    EventsCreateEventStreamWebHookRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - subscriptions
+      - destination
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subscriptions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/EventsEventStreamSubscription'
+        destination:
+          $ref: '#/components/schemas/EventsEventStreamWebhookDestinationCreate'
+        status:
+          $ref: '#/components/schemas/EventsEventStreamStatusEnum'
+    EventsCreateEventStreamEventBridgeRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - subscriptions
+      - destination
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subscriptions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/EventsEventStreamSubscription'
+        destination:
+          $ref: '#/components/schemas/EventsEventStreamEventBridgeDestination'
+        status:
+          $ref: '#/components/schemas/EventsEventStreamStatusEnum'
+    EventsCreateEventStreamActionRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - subscriptions
+      - destination
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subscriptions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/EventsEventStreamSubscription'
+        destination:
+          $ref: '#/components/schemas/EventsEventStreamActionDestination'
+        status:
+          $ref: '#/components/schemas/EventsEventStreamStatusEnum'
+    EventsGetEventStreamResponseContent:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamEventBridgeResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamActionResponseContent'
+    EventsUpdateEventStreamResponseContent:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamEventBridgeResponseContent'
+      - $ref: '#/components/schemas/EventsEventStreamActionResponseContent'
+    EventsUpdateEventStreamRequestContent:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamSubscription'
+        destination:
+          $ref: '#/components/schemas/EventsEventStreamDestinationPatch'
+        status:
+          $ref: '#/components/schemas/EventsEventStreamStatusEnum'
+    EventsEventStreamDestinationPatch:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookDestinationPatch'
+      - $ref: '#/components/schemas/EventsEventStreamActionDestination'
+    EventsListEventStreamDeliveriesResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - deliveries
+      properties:
+        deliveries:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamDelivery'
+        next:
+          type: string
+    EventsEventStreamDelivery:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - event_stream_id
+      - status
+      - event_type
+      - attempts
+      properties:
+        id:
+          type: string
+        event_stream_id:
+          type: string
+          minLength: 26
+          maxLength: 26
+          format: event-stream-id
+          pattern: ^est_[A-Za-z0-9]{22}$
+        status:
+          $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+        event_type:
+          $ref: '#/components/schemas/EventsEventStreamDeliveryEventTypeEnum'
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamDeliveryAttempt'
+        event:
+          $ref: '#/components/schemas/EventsEventStreamCloudEvent'
+    EventsEventStreamDeliveryStatusEnum:
+      type: string
+      maxLength: 6
+      enum:
+      - failed
+    EventsEventStreamDeliveryEventTypeEnum:
+      type: string
+      maxLength: 33
+      enum:
+      - connection.created
+      - connection.deleted
+      - connection.updated
+      - group.created
+      - group.deleted
+      - group.member.added
+      - group.member.deleted
+      - group.role.assigned
+      - group.role.deleted
+      - group.updated
+      - organization.connection.added
+      - organization.connection.removed
+      - organization.connection.updated
+      - organization.created
+      - organization.deleted
+      - organization.group.role.assigned
+      - organization.group.role.deleted
+      - organization.member.added
+      - organization.member.deleted
+      - organization.member.role.assigned
+      - organization.member.role.deleted
+      - organization.updated
+      - user.created
+      - user.deleted
+      - user.updated
+    EventsEventStreamDeliveryAttempt:
+      type: object
+      additionalProperties: false
+      required:
+      - status
+      - timestamp
+      properties:
+        status:
+          $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+        timestamp:
+          type: string
+          format: date-time
+        error_message:
+          type: string
+        duration:
+          type: number
+    EventsEventStreamCloudEvent:
+      type: object
+      additionalProperties: true
+      description: CloudEvent validated against internal/eventrules/catalog.json.
+    EventsGetEventStreamDeliveryHistoryResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - event_stream_id
+      - status
+      - event_type
+      - attempts
+      properties:
+        id:
+          type: string
+        event_stream_id:
+          type: string
+          minLength: 26
+          maxLength: 26
+          format: event-stream-id
+          pattern: ^est_[A-Za-z0-9]{22}$
+        status:
+          $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+        event_type:
+          $ref: '#/components/schemas/EventsEventStreamDeliveryEventTypeEnum'
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamDeliveryAttempt'
+        event:
+          $ref: '#/components/schemas/EventsEventStreamCloudEvent'
+    EventsCreateEventStreamRedeliveryResponseContent:
+      type: object
+      additionalProperties: false
+      properties:
+        date_from:
+          type: string
+          maxLength: 20
+          format: date-time
+        date_to:
+          type: string
+          maxLength: 20
+          format: date-time
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamEventTypeEnum'
+    EventsEventStreamEventTypeEnum:
+      type: string
+      enum:
+      - connection.created
+      - connection.deleted
+      - connection.updated
+      - group.created
+      - group.deleted
+      - group.member.added
+      - group.member.deleted
+      - group.role.assigned
+      - group.role.deleted
+      - group.updated
+      - organization.connection.added
+      - organization.connection.removed
+      - organization.connection.updated
+      - organization.created
+      - organization.deleted
+      - organization.group.role.assigned
+      - organization.group.role.deleted
+      - organization.member.added
+      - organization.member.deleted
+      - organization.member.role.assigned
+      - organization.member.role.deleted
+      - organization.updated
+      - user.created
+      - user.deleted
+      - user.updated
+    EventsCreateEventStreamRedeliveryRequestContent:
+      type: object
+      additionalProperties: false
+      properties:
+        date_from:
+          type: string
+          maxLength: 20
+          format: date-time
+        date_to:
+          type: string
+          maxLength: 20
+          format: date-time
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamEventTypeEnum'
+    EventsCreateEventStreamTestEventResponseContent:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - event_stream_id
+      - status
+      - event_type
+      - attempts
+      properties:
+        id:
+          type: string
+        event_stream_id:
+          type: string
+          minLength: 26
+          maxLength: 26
+          format: event-stream-id
+          pattern: ^est_[A-Za-z0-9]{22}$
+        status:
+          $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+        event_type:
+          $ref: '#/components/schemas/EventsEventStreamDeliveryEventTypeEnum'
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventStreamDeliveryAttempt'
+        event:
+          $ref: '#/components/schemas/EventsEventStreamCloudEvent'
+    EventsCreateEventStreamTestEventRequestContent:
+      type: object
+      additionalProperties: false
+      required:
+      - event_type
+      properties:
+        event_type:
+          $ref: '#/components/schemas/EventsEventStreamTestEventTypeEnum'
+        data:
+          $ref: '#/components/schemas/EventsTestEventDataContent'
+    EventsEventStreamTestEventTypeEnum:
+      type: string
+      maxLength: 33
+      enum:
+      - connection.created
+      - connection.deleted
+      - connection.updated
+      - group.created
+      - group.deleted
+      - group.member.added
+      - group.member.deleted
+      - group.role.assigned
+      - group.role.deleted
+      - group.updated
+      - organization.connection.added
+      - organization.connection.removed
+      - organization.connection.updated
+      - organization.created
+      - organization.deleted
+      - organization.group.role.assigned
+      - organization.group.role.deleted
+      - organization.member.added
+      - organization.member.deleted
+      - organization.member.role.assigned
+      - organization.member.role.deleted
+      - organization.updated
+      - user.created
+      - user.deleted
+      - user.updated
+    EventsTestEventDataContent:
+      type: object
+      additionalProperties: true
+    EventsEventStreamSubscribeEventsResponseContent:
+      type: string
+      description: Server-sent event frames carrying an offset and a catalog CloudEvent.
+    EventsEventStreamSubscribeEventsEventTypeParam:
+      type: array
+      items:
+        $ref: '#/components/schemas/EventsEventStreamSubscribeEventsEventTypeEnum'
+    EventsEventStreamSubscribeEventsEventTypeEnum:
+      type: string
+      enum:
+      - connection.created
+      - connection.deleted
+      - connection.updated
+      - group.created
+      - group.deleted
+      - group.member.added
+      - group.member.deleted
+      - group.role.assigned
+      - group.role.deleted
+      - group.updated
+      - organization.connection.added
+      - organization.connection.removed
+      - organization.connection.updated
+      - organization.created
+      - organization.deleted
+      - organization.group.role.assigned
+      - organization.group.role.deleted
+      - organization.member.added
+      - organization.member.deleted
+      - organization.member.role.assigned
+      - organization.member.role.deleted
+      - organization.updated
+      - user.created
+      - user.deleted
+      - user.updated
+    EventsEventStreamWebhookBasicAuthCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - username
+      - password
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookBasicAuthMethodEnum'
+        username:
+          type: string
+          maxLength: 128
+          pattern: ^[^:]+$
+        password:
+          type: string
+          minLength: 1
+          writeOnly: true
+    EventsEventStreamWebhookBearerAuthCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - token
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookBearerAuthMethodEnum'
+        token:
+          type: string
+          minLength: 1
+          writeOnly: true
+    EventsEventStreamWebhookCustomHeaderAuthCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - header_key
+      - header_value
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookCustomHeaderAuthMethodEnum'
+        header_key:
+          type: string
+          minLength: 1
+          pattern: ^[a-zA-Z0-9!#$%&'*+.^_`|~-]+$
+        header_value:
+          type: string
+          minLength: 1
+          writeOnly: true
+    EventsEventStreamWebhookAuthorizationCreate:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookBasicAuthCreate'
+      - $ref: '#/components/schemas/EventsEventStreamWebhookBearerAuthCreate'
+      - $ref: '#/components/schemas/EventsEventStreamWebhookCustomHeaderAuthCreate'
+    EventsEventStreamWebhookConfigurationCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - webhook_endpoint
+      - webhook_authorization
+      properties:
+        webhook_endpoint:
+          type: string
+          pattern: ^https://.*
+        webhook_authorization:
+          $ref: '#/components/schemas/EventsEventStreamWebhookAuthorizationCreate'
+    EventsEventStreamWebhookDestinationCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - configuration
+      properties:
+        type:
+          $ref: '#/components/schemas/EventsEventStreamWebhookDestinationTypeEnum'
+        configuration:
+          $ref: '#/components/schemas/EventsEventStreamWebhookConfigurationCreate'
+    EventsEventStreamWebhookBasicAuthPatch:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - username
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookBasicAuthMethodEnum'
+        username:
+          type: string
+          maxLength: 128
+          pattern: ^[^:]+$
+        password:
+          type: string
+          minLength: 1
+          writeOnly: true
+    EventsEventStreamWebhookBearerAuthPatch:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookBearerAuthMethodEnum'
+        token:
+          type: string
+          minLength: 1
+          writeOnly: true
+    EventsEventStreamWebhookCustomHeaderAuthPatch:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - header_key
+      properties:
+        method:
+          $ref: '#/components/schemas/EventsEventStreamWebhookCustomHeaderAuthMethodEnum'
+        header_key:
+          type: string
+          minLength: 1
+          pattern: ^[a-zA-Z0-9!#$%&'*+.^_`|~-]+$
+        header_value:
+          type: string
+          minLength: 1
+          writeOnly: true
+    EventsEventStreamWebhookAuthorizationPatch:
+      oneOf:
+      - $ref: '#/components/schemas/EventsEventStreamWebhookBasicAuthPatch'
+      - $ref: '#/components/schemas/EventsEventStreamWebhookBearerAuthPatch'
+      - $ref: '#/components/schemas/EventsEventStreamWebhookCustomHeaderAuthPatch'
+    EventsEventStreamWebhookConfigurationPatch:
+      type: object
+      additionalProperties: false
+      required:
+      - webhook_endpoint
+      - webhook_authorization
+      properties:
+        webhook_endpoint:
+          type: string
+          pattern: ^https://.*
+        webhook_authorization:
+          $ref: '#/components/schemas/EventsEventStreamWebhookAuthorizationPatch'
+    EventsEventStreamWebhookDestinationPatch:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - configuration
+      properties:
+        type:
+          $ref: '#/components/schemas/EventsEventStreamWebhookDestinationTypeEnum'
+        configuration:
+          $ref: '#/components/schemas/EventsEventStreamWebhookConfigurationPatch'
     SystemLogStreamStatus:
       type: object
       additionalProperties: false

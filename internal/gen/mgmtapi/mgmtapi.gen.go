@@ -1701,6 +1701,597 @@ func (e EmailTemplatePatchSyntax) Valid() bool {
 	}
 }
 
+// Defines values for EventsEventStreamActionDestinationTypeEnum.
+const (
+	EventsEventStreamActionDestinationTypeEnumAction EventsEventStreamActionDestinationTypeEnum = "action"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamActionDestinationTypeEnum enum.
+func (e EventsEventStreamActionDestinationTypeEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamActionDestinationTypeEnumAction:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamDeliveryEventTypeEnum.
+const (
+	EventsEventStreamDeliveryEventTypeEnumConnectionCreated              EventsEventStreamDeliveryEventTypeEnum = "connection.created"
+	EventsEventStreamDeliveryEventTypeEnumConnectionDeleted              EventsEventStreamDeliveryEventTypeEnum = "connection.deleted"
+	EventsEventStreamDeliveryEventTypeEnumConnectionUpdated              EventsEventStreamDeliveryEventTypeEnum = "connection.updated"
+	EventsEventStreamDeliveryEventTypeEnumGroupCreated                   EventsEventStreamDeliveryEventTypeEnum = "group.created"
+	EventsEventStreamDeliveryEventTypeEnumGroupDeleted                   EventsEventStreamDeliveryEventTypeEnum = "group.deleted"
+	EventsEventStreamDeliveryEventTypeEnumGroupMemberAdded               EventsEventStreamDeliveryEventTypeEnum = "group.member.added"
+	EventsEventStreamDeliveryEventTypeEnumGroupMemberDeleted             EventsEventStreamDeliveryEventTypeEnum = "group.member.deleted"
+	EventsEventStreamDeliveryEventTypeEnumGroupRoleAssigned              EventsEventStreamDeliveryEventTypeEnum = "group.role.assigned"
+	EventsEventStreamDeliveryEventTypeEnumGroupRoleDeleted               EventsEventStreamDeliveryEventTypeEnum = "group.role.deleted"
+	EventsEventStreamDeliveryEventTypeEnumGroupUpdated                   EventsEventStreamDeliveryEventTypeEnum = "group.updated"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationConnectionAdded    EventsEventStreamDeliveryEventTypeEnum = "organization.connection.added"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationConnectionRemoved  EventsEventStreamDeliveryEventTypeEnum = "organization.connection.removed"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationConnectionUpdated  EventsEventStreamDeliveryEventTypeEnum = "organization.connection.updated"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationCreated            EventsEventStreamDeliveryEventTypeEnum = "organization.created"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationDeleted            EventsEventStreamDeliveryEventTypeEnum = "organization.deleted"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationGroupRoleAssigned  EventsEventStreamDeliveryEventTypeEnum = "organization.group.role.assigned"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationGroupRoleDeleted   EventsEventStreamDeliveryEventTypeEnum = "organization.group.role.deleted"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationMemberAdded        EventsEventStreamDeliveryEventTypeEnum = "organization.member.added"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationMemberDeleted      EventsEventStreamDeliveryEventTypeEnum = "organization.member.deleted"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationMemberRoleAssigned EventsEventStreamDeliveryEventTypeEnum = "organization.member.role.assigned"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationMemberRoleDeleted  EventsEventStreamDeliveryEventTypeEnum = "organization.member.role.deleted"
+	EventsEventStreamDeliveryEventTypeEnumOrganizationUpdated            EventsEventStreamDeliveryEventTypeEnum = "organization.updated"
+	EventsEventStreamDeliveryEventTypeEnumUserCreated                    EventsEventStreamDeliveryEventTypeEnum = "user.created"
+	EventsEventStreamDeliveryEventTypeEnumUserDeleted                    EventsEventStreamDeliveryEventTypeEnum = "user.deleted"
+	EventsEventStreamDeliveryEventTypeEnumUserUpdated                    EventsEventStreamDeliveryEventTypeEnum = "user.updated"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamDeliveryEventTypeEnum enum.
+func (e EventsEventStreamDeliveryEventTypeEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamDeliveryEventTypeEnumConnectionCreated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumConnectionDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumConnectionUpdated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumGroupCreated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumGroupDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumGroupMemberAdded:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumGroupMemberDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumGroupRoleAssigned:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumGroupRoleDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumGroupUpdated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationConnectionAdded:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationConnectionRemoved:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationConnectionUpdated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationCreated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationGroupRoleAssigned:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationGroupRoleDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationMemberAdded:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationMemberDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationMemberRoleAssigned:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationMemberRoleDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumOrganizationUpdated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumUserCreated:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumUserDeleted:
+		return true
+	case EventsEventStreamDeliveryEventTypeEnumUserUpdated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamDeliveryStatusEnum.
+const (
+	EventsEventStreamDeliveryStatusEnumFailed EventsEventStreamDeliveryStatusEnum = "failed"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamDeliveryStatusEnum enum.
+func (e EventsEventStreamDeliveryStatusEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamDeliveryStatusEnumFailed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamEventBridgeAWSRegionEnum.
+const (
+	EventsEventStreamEventBridgeAWSRegionEnumAfSouth1     EventsEventStreamEventBridgeAWSRegionEnum = "af-south-1"
+	EventsEventStreamEventBridgeAWSRegionEnumApEast1      EventsEventStreamEventBridgeAWSRegionEnum = "ap-east-1"
+	EventsEventStreamEventBridgeAWSRegionEnumApEast2      EventsEventStreamEventBridgeAWSRegionEnum = "ap-east-2"
+	EventsEventStreamEventBridgeAWSRegionEnumApNortheast1 EventsEventStreamEventBridgeAWSRegionEnum = "ap-northeast-1"
+	EventsEventStreamEventBridgeAWSRegionEnumApNortheast2 EventsEventStreamEventBridgeAWSRegionEnum = "ap-northeast-2"
+	EventsEventStreamEventBridgeAWSRegionEnumApNortheast3 EventsEventStreamEventBridgeAWSRegionEnum = "ap-northeast-3"
+	EventsEventStreamEventBridgeAWSRegionEnumApSouth1     EventsEventStreamEventBridgeAWSRegionEnum = "ap-south-1"
+	EventsEventStreamEventBridgeAWSRegionEnumApSouth2     EventsEventStreamEventBridgeAWSRegionEnum = "ap-south-2"
+	EventsEventStreamEventBridgeAWSRegionEnumApSoutheast1 EventsEventStreamEventBridgeAWSRegionEnum = "ap-southeast-1"
+	EventsEventStreamEventBridgeAWSRegionEnumApSoutheast2 EventsEventStreamEventBridgeAWSRegionEnum = "ap-southeast-2"
+	EventsEventStreamEventBridgeAWSRegionEnumApSoutheast3 EventsEventStreamEventBridgeAWSRegionEnum = "ap-southeast-3"
+	EventsEventStreamEventBridgeAWSRegionEnumApSoutheast4 EventsEventStreamEventBridgeAWSRegionEnum = "ap-southeast-4"
+	EventsEventStreamEventBridgeAWSRegionEnumApSoutheast5 EventsEventStreamEventBridgeAWSRegionEnum = "ap-southeast-5"
+	EventsEventStreamEventBridgeAWSRegionEnumApSoutheast6 EventsEventStreamEventBridgeAWSRegionEnum = "ap-southeast-6"
+	EventsEventStreamEventBridgeAWSRegionEnumApSoutheast7 EventsEventStreamEventBridgeAWSRegionEnum = "ap-southeast-7"
+	EventsEventStreamEventBridgeAWSRegionEnumCaCentral1   EventsEventStreamEventBridgeAWSRegionEnum = "ca-central-1"
+	EventsEventStreamEventBridgeAWSRegionEnumCaWest1      EventsEventStreamEventBridgeAWSRegionEnum = "ca-west-1"
+	EventsEventStreamEventBridgeAWSRegionEnumEuCentral1   EventsEventStreamEventBridgeAWSRegionEnum = "eu-central-1"
+	EventsEventStreamEventBridgeAWSRegionEnumEuCentral2   EventsEventStreamEventBridgeAWSRegionEnum = "eu-central-2"
+	EventsEventStreamEventBridgeAWSRegionEnumEuNorth1     EventsEventStreamEventBridgeAWSRegionEnum = "eu-north-1"
+	EventsEventStreamEventBridgeAWSRegionEnumEuSouth1     EventsEventStreamEventBridgeAWSRegionEnum = "eu-south-1"
+	EventsEventStreamEventBridgeAWSRegionEnumEuSouth2     EventsEventStreamEventBridgeAWSRegionEnum = "eu-south-2"
+	EventsEventStreamEventBridgeAWSRegionEnumEuWest1      EventsEventStreamEventBridgeAWSRegionEnum = "eu-west-1"
+	EventsEventStreamEventBridgeAWSRegionEnumEuWest2      EventsEventStreamEventBridgeAWSRegionEnum = "eu-west-2"
+	EventsEventStreamEventBridgeAWSRegionEnumEuWest3      EventsEventStreamEventBridgeAWSRegionEnum = "eu-west-3"
+	EventsEventStreamEventBridgeAWSRegionEnumIlCentral1   EventsEventStreamEventBridgeAWSRegionEnum = "il-central-1"
+	EventsEventStreamEventBridgeAWSRegionEnumMeCentral1   EventsEventStreamEventBridgeAWSRegionEnum = "me-central-1"
+	EventsEventStreamEventBridgeAWSRegionEnumMeSouth1     EventsEventStreamEventBridgeAWSRegionEnum = "me-south-1"
+	EventsEventStreamEventBridgeAWSRegionEnumMxCentral1   EventsEventStreamEventBridgeAWSRegionEnum = "mx-central-1"
+	EventsEventStreamEventBridgeAWSRegionEnumSaEast1      EventsEventStreamEventBridgeAWSRegionEnum = "sa-east-1"
+	EventsEventStreamEventBridgeAWSRegionEnumUsEast1      EventsEventStreamEventBridgeAWSRegionEnum = "us-east-1"
+	EventsEventStreamEventBridgeAWSRegionEnumUsEast2      EventsEventStreamEventBridgeAWSRegionEnum = "us-east-2"
+	EventsEventStreamEventBridgeAWSRegionEnumUsGovEast1   EventsEventStreamEventBridgeAWSRegionEnum = "us-gov-east-1"
+	EventsEventStreamEventBridgeAWSRegionEnumUsGovWest1   EventsEventStreamEventBridgeAWSRegionEnum = "us-gov-west-1"
+	EventsEventStreamEventBridgeAWSRegionEnumUsWest1      EventsEventStreamEventBridgeAWSRegionEnum = "us-west-1"
+	EventsEventStreamEventBridgeAWSRegionEnumUsWest2      EventsEventStreamEventBridgeAWSRegionEnum = "us-west-2"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamEventBridgeAWSRegionEnum enum.
+func (e EventsEventStreamEventBridgeAWSRegionEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamEventBridgeAWSRegionEnumAfSouth1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApEast1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApEast2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApNortheast1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApNortheast2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApNortheast3:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSouth1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSouth2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSoutheast1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSoutheast2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSoutheast3:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSoutheast4:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSoutheast5:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSoutheast6:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumApSoutheast7:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumCaCentral1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumCaWest1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuCentral1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuCentral2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuNorth1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuSouth1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuSouth2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuWest1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuWest2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumEuWest3:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumIlCentral1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumMeCentral1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumMeSouth1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumMxCentral1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumSaEast1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumUsEast1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumUsEast2:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumUsGovEast1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumUsGovWest1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumUsWest1:
+		return true
+	case EventsEventStreamEventBridgeAWSRegionEnumUsWest2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamEventBridgeDestinationTypeEnum.
+const (
+	EventsEventStreamEventBridgeDestinationTypeEnumEventbridge EventsEventStreamEventBridgeDestinationTypeEnum = "eventbridge"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamEventBridgeDestinationTypeEnum enum.
+func (e EventsEventStreamEventBridgeDestinationTypeEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamEventBridgeDestinationTypeEnumEventbridge:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamEventTypeEnum.
+const (
+	EventsEventStreamEventTypeEnumConnectionCreated              EventsEventStreamEventTypeEnum = "connection.created"
+	EventsEventStreamEventTypeEnumConnectionDeleted              EventsEventStreamEventTypeEnum = "connection.deleted"
+	EventsEventStreamEventTypeEnumConnectionUpdated              EventsEventStreamEventTypeEnum = "connection.updated"
+	EventsEventStreamEventTypeEnumGroupCreated                   EventsEventStreamEventTypeEnum = "group.created"
+	EventsEventStreamEventTypeEnumGroupDeleted                   EventsEventStreamEventTypeEnum = "group.deleted"
+	EventsEventStreamEventTypeEnumGroupMemberAdded               EventsEventStreamEventTypeEnum = "group.member.added"
+	EventsEventStreamEventTypeEnumGroupMemberDeleted             EventsEventStreamEventTypeEnum = "group.member.deleted"
+	EventsEventStreamEventTypeEnumGroupRoleAssigned              EventsEventStreamEventTypeEnum = "group.role.assigned"
+	EventsEventStreamEventTypeEnumGroupRoleDeleted               EventsEventStreamEventTypeEnum = "group.role.deleted"
+	EventsEventStreamEventTypeEnumGroupUpdated                   EventsEventStreamEventTypeEnum = "group.updated"
+	EventsEventStreamEventTypeEnumOrganizationConnectionAdded    EventsEventStreamEventTypeEnum = "organization.connection.added"
+	EventsEventStreamEventTypeEnumOrganizationConnectionRemoved  EventsEventStreamEventTypeEnum = "organization.connection.removed"
+	EventsEventStreamEventTypeEnumOrganizationConnectionUpdated  EventsEventStreamEventTypeEnum = "organization.connection.updated"
+	EventsEventStreamEventTypeEnumOrganizationCreated            EventsEventStreamEventTypeEnum = "organization.created"
+	EventsEventStreamEventTypeEnumOrganizationDeleted            EventsEventStreamEventTypeEnum = "organization.deleted"
+	EventsEventStreamEventTypeEnumOrganizationGroupRoleAssigned  EventsEventStreamEventTypeEnum = "organization.group.role.assigned"
+	EventsEventStreamEventTypeEnumOrganizationGroupRoleDeleted   EventsEventStreamEventTypeEnum = "organization.group.role.deleted"
+	EventsEventStreamEventTypeEnumOrganizationMemberAdded        EventsEventStreamEventTypeEnum = "organization.member.added"
+	EventsEventStreamEventTypeEnumOrganizationMemberDeleted      EventsEventStreamEventTypeEnum = "organization.member.deleted"
+	EventsEventStreamEventTypeEnumOrganizationMemberRoleAssigned EventsEventStreamEventTypeEnum = "organization.member.role.assigned"
+	EventsEventStreamEventTypeEnumOrganizationMemberRoleDeleted  EventsEventStreamEventTypeEnum = "organization.member.role.deleted"
+	EventsEventStreamEventTypeEnumOrganizationUpdated            EventsEventStreamEventTypeEnum = "organization.updated"
+	EventsEventStreamEventTypeEnumUserCreated                    EventsEventStreamEventTypeEnum = "user.created"
+	EventsEventStreamEventTypeEnumUserDeleted                    EventsEventStreamEventTypeEnum = "user.deleted"
+	EventsEventStreamEventTypeEnumUserUpdated                    EventsEventStreamEventTypeEnum = "user.updated"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamEventTypeEnum enum.
+func (e EventsEventStreamEventTypeEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamEventTypeEnumConnectionCreated:
+		return true
+	case EventsEventStreamEventTypeEnumConnectionDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumConnectionUpdated:
+		return true
+	case EventsEventStreamEventTypeEnumGroupCreated:
+		return true
+	case EventsEventStreamEventTypeEnumGroupDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumGroupMemberAdded:
+		return true
+	case EventsEventStreamEventTypeEnumGroupMemberDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumGroupRoleAssigned:
+		return true
+	case EventsEventStreamEventTypeEnumGroupRoleDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumGroupUpdated:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationConnectionAdded:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationConnectionRemoved:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationConnectionUpdated:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationCreated:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationGroupRoleAssigned:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationGroupRoleDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationMemberAdded:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationMemberDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationMemberRoleAssigned:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationMemberRoleDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumOrganizationUpdated:
+		return true
+	case EventsEventStreamEventTypeEnumUserCreated:
+		return true
+	case EventsEventStreamEventTypeEnumUserDeleted:
+		return true
+	case EventsEventStreamEventTypeEnumUserUpdated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamStatusEnum.
+const (
+	Disabled EventsEventStreamStatusEnum = "disabled"
+	Enabled  EventsEventStreamStatusEnum = "enabled"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamStatusEnum enum.
+func (e EventsEventStreamStatusEnum) Valid() bool {
+	switch e {
+	case Disabled:
+		return true
+	case Enabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamSubscribeEventsEventTypeEnum.
+const (
+	EventsEventStreamSubscribeEventsEventTypeEnumConnectionCreated              EventsEventStreamSubscribeEventsEventTypeEnum = "connection.created"
+	EventsEventStreamSubscribeEventsEventTypeEnumConnectionDeleted              EventsEventStreamSubscribeEventsEventTypeEnum = "connection.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumConnectionUpdated              EventsEventStreamSubscribeEventsEventTypeEnum = "connection.updated"
+	EventsEventStreamSubscribeEventsEventTypeEnumGroupCreated                   EventsEventStreamSubscribeEventsEventTypeEnum = "group.created"
+	EventsEventStreamSubscribeEventsEventTypeEnumGroupDeleted                   EventsEventStreamSubscribeEventsEventTypeEnum = "group.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumGroupMemberAdded               EventsEventStreamSubscribeEventsEventTypeEnum = "group.member.added"
+	EventsEventStreamSubscribeEventsEventTypeEnumGroupMemberDeleted             EventsEventStreamSubscribeEventsEventTypeEnum = "group.member.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumGroupRoleAssigned              EventsEventStreamSubscribeEventsEventTypeEnum = "group.role.assigned"
+	EventsEventStreamSubscribeEventsEventTypeEnumGroupRoleDeleted               EventsEventStreamSubscribeEventsEventTypeEnum = "group.role.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumGroupUpdated                   EventsEventStreamSubscribeEventsEventTypeEnum = "group.updated"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationConnectionAdded    EventsEventStreamSubscribeEventsEventTypeEnum = "organization.connection.added"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationConnectionRemoved  EventsEventStreamSubscribeEventsEventTypeEnum = "organization.connection.removed"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationConnectionUpdated  EventsEventStreamSubscribeEventsEventTypeEnum = "organization.connection.updated"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationCreated            EventsEventStreamSubscribeEventsEventTypeEnum = "organization.created"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationDeleted            EventsEventStreamSubscribeEventsEventTypeEnum = "organization.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationGroupRoleAssigned  EventsEventStreamSubscribeEventsEventTypeEnum = "organization.group.role.assigned"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationGroupRoleDeleted   EventsEventStreamSubscribeEventsEventTypeEnum = "organization.group.role.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberAdded        EventsEventStreamSubscribeEventsEventTypeEnum = "organization.member.added"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberDeleted      EventsEventStreamSubscribeEventsEventTypeEnum = "organization.member.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberRoleAssigned EventsEventStreamSubscribeEventsEventTypeEnum = "organization.member.role.assigned"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberRoleDeleted  EventsEventStreamSubscribeEventsEventTypeEnum = "organization.member.role.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumOrganizationUpdated            EventsEventStreamSubscribeEventsEventTypeEnum = "organization.updated"
+	EventsEventStreamSubscribeEventsEventTypeEnumUserCreated                    EventsEventStreamSubscribeEventsEventTypeEnum = "user.created"
+	EventsEventStreamSubscribeEventsEventTypeEnumUserDeleted                    EventsEventStreamSubscribeEventsEventTypeEnum = "user.deleted"
+	EventsEventStreamSubscribeEventsEventTypeEnumUserUpdated                    EventsEventStreamSubscribeEventsEventTypeEnum = "user.updated"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamSubscribeEventsEventTypeEnum enum.
+func (e EventsEventStreamSubscribeEventsEventTypeEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamSubscribeEventsEventTypeEnumConnectionCreated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumConnectionDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumConnectionUpdated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumGroupCreated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumGroupDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumGroupMemberAdded:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumGroupMemberDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumGroupRoleAssigned:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumGroupRoleDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumGroupUpdated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationConnectionAdded:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationConnectionRemoved:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationConnectionUpdated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationCreated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationGroupRoleAssigned:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationGroupRoleDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberAdded:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberRoleAssigned:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationMemberRoleDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumOrganizationUpdated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumUserCreated:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumUserDeleted:
+		return true
+	case EventsEventStreamSubscribeEventsEventTypeEnumUserUpdated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamTestEventTypeEnum.
+const (
+	EventsEventStreamTestEventTypeEnumConnectionCreated              EventsEventStreamTestEventTypeEnum = "connection.created"
+	EventsEventStreamTestEventTypeEnumConnectionDeleted              EventsEventStreamTestEventTypeEnum = "connection.deleted"
+	EventsEventStreamTestEventTypeEnumConnectionUpdated              EventsEventStreamTestEventTypeEnum = "connection.updated"
+	EventsEventStreamTestEventTypeEnumGroupCreated                   EventsEventStreamTestEventTypeEnum = "group.created"
+	EventsEventStreamTestEventTypeEnumGroupDeleted                   EventsEventStreamTestEventTypeEnum = "group.deleted"
+	EventsEventStreamTestEventTypeEnumGroupMemberAdded               EventsEventStreamTestEventTypeEnum = "group.member.added"
+	EventsEventStreamTestEventTypeEnumGroupMemberDeleted             EventsEventStreamTestEventTypeEnum = "group.member.deleted"
+	EventsEventStreamTestEventTypeEnumGroupRoleAssigned              EventsEventStreamTestEventTypeEnum = "group.role.assigned"
+	EventsEventStreamTestEventTypeEnumGroupRoleDeleted               EventsEventStreamTestEventTypeEnum = "group.role.deleted"
+	EventsEventStreamTestEventTypeEnumGroupUpdated                   EventsEventStreamTestEventTypeEnum = "group.updated"
+	EventsEventStreamTestEventTypeEnumOrganizationConnectionAdded    EventsEventStreamTestEventTypeEnum = "organization.connection.added"
+	EventsEventStreamTestEventTypeEnumOrganizationConnectionRemoved  EventsEventStreamTestEventTypeEnum = "organization.connection.removed"
+	EventsEventStreamTestEventTypeEnumOrganizationConnectionUpdated  EventsEventStreamTestEventTypeEnum = "organization.connection.updated"
+	EventsEventStreamTestEventTypeEnumOrganizationCreated            EventsEventStreamTestEventTypeEnum = "organization.created"
+	EventsEventStreamTestEventTypeEnumOrganizationDeleted            EventsEventStreamTestEventTypeEnum = "organization.deleted"
+	EventsEventStreamTestEventTypeEnumOrganizationGroupRoleAssigned  EventsEventStreamTestEventTypeEnum = "organization.group.role.assigned"
+	EventsEventStreamTestEventTypeEnumOrganizationGroupRoleDeleted   EventsEventStreamTestEventTypeEnum = "organization.group.role.deleted"
+	EventsEventStreamTestEventTypeEnumOrganizationMemberAdded        EventsEventStreamTestEventTypeEnum = "organization.member.added"
+	EventsEventStreamTestEventTypeEnumOrganizationMemberDeleted      EventsEventStreamTestEventTypeEnum = "organization.member.deleted"
+	EventsEventStreamTestEventTypeEnumOrganizationMemberRoleAssigned EventsEventStreamTestEventTypeEnum = "organization.member.role.assigned"
+	EventsEventStreamTestEventTypeEnumOrganizationMemberRoleDeleted  EventsEventStreamTestEventTypeEnum = "organization.member.role.deleted"
+	EventsEventStreamTestEventTypeEnumOrganizationUpdated            EventsEventStreamTestEventTypeEnum = "organization.updated"
+	EventsEventStreamTestEventTypeEnumUserCreated                    EventsEventStreamTestEventTypeEnum = "user.created"
+	EventsEventStreamTestEventTypeEnumUserDeleted                    EventsEventStreamTestEventTypeEnum = "user.deleted"
+	EventsEventStreamTestEventTypeEnumUserUpdated                    EventsEventStreamTestEventTypeEnum = "user.updated"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamTestEventTypeEnum enum.
+func (e EventsEventStreamTestEventTypeEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamTestEventTypeEnumConnectionCreated:
+		return true
+	case EventsEventStreamTestEventTypeEnumConnectionDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumConnectionUpdated:
+		return true
+	case EventsEventStreamTestEventTypeEnumGroupCreated:
+		return true
+	case EventsEventStreamTestEventTypeEnumGroupDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumGroupMemberAdded:
+		return true
+	case EventsEventStreamTestEventTypeEnumGroupMemberDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumGroupRoleAssigned:
+		return true
+	case EventsEventStreamTestEventTypeEnumGroupRoleDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumGroupUpdated:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationConnectionAdded:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationConnectionRemoved:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationConnectionUpdated:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationCreated:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationGroupRoleAssigned:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationGroupRoleDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationMemberAdded:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationMemberDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationMemberRoleAssigned:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationMemberRoleDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumOrganizationUpdated:
+		return true
+	case EventsEventStreamTestEventTypeEnumUserCreated:
+		return true
+	case EventsEventStreamTestEventTypeEnumUserDeleted:
+		return true
+	case EventsEventStreamTestEventTypeEnumUserUpdated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamWebhookBasicAuthMethodEnum.
+const (
+	Basic EventsEventStreamWebhookBasicAuthMethodEnum = "basic"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamWebhookBasicAuthMethodEnum enum.
+func (e EventsEventStreamWebhookBasicAuthMethodEnum) Valid() bool {
+	switch e {
+	case Basic:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamWebhookBearerAuthMethodEnum.
+const (
+	Bearer EventsEventStreamWebhookBearerAuthMethodEnum = "bearer"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamWebhookBearerAuthMethodEnum enum.
+func (e EventsEventStreamWebhookBearerAuthMethodEnum) Valid() bool {
+	switch e {
+	case Bearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamWebhookCustomHeaderAuthMethodEnum.
+const (
+	CustomHeader EventsEventStreamWebhookCustomHeaderAuthMethodEnum = "custom_header"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamWebhookCustomHeaderAuthMethodEnum enum.
+func (e EventsEventStreamWebhookCustomHeaderAuthMethodEnum) Valid() bool {
+	switch e {
+	case CustomHeader:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsEventStreamWebhookDestinationTypeEnum.
+const (
+	Webhook EventsEventStreamWebhookDestinationTypeEnum = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamWebhookDestinationTypeEnum enum.
+func (e EventsEventStreamWebhookDestinationTypeEnum) Valid() bool {
+	switch e {
+	case Webhook:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel.
 const (
 	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
@@ -6437,6 +7028,363 @@ type EmailVerificationTicketCreate struct {
 	UserId string `json:"user_id"`
 }
 
+// EventsCreateEventStreamActionRequestContent defines model for EventsCreateEventStreamActionRequestContent.
+type EventsCreateEventStreamActionRequestContent struct {
+	Destination   EventsEventStreamActionDestination `json:"destination"`
+	Name          string                             `json:"name"`
+	Status        *EventsEventStreamStatusEnum       `json:"status,omitempty"`
+	Subscriptions []EventsEventStreamSubscription    `json:"subscriptions"`
+}
+
+// EventsCreateEventStreamEventBridgeRequestContent defines model for EventsCreateEventStreamEventBridgeRequestContent.
+type EventsCreateEventStreamEventBridgeRequestContent struct {
+	Destination   EventsEventStreamEventBridgeDestination `json:"destination"`
+	Name          string                                  `json:"name"`
+	Status        *EventsEventStreamStatusEnum            `json:"status,omitempty"`
+	Subscriptions []EventsEventStreamSubscription         `json:"subscriptions"`
+}
+
+// EventsCreateEventStreamRedeliveryRequestContent defines model for EventsCreateEventStreamRedeliveryRequestContent.
+type EventsCreateEventStreamRedeliveryRequestContent struct {
+	DateFrom   *time.Time                             `json:"date_from,omitempty"`
+	DateTo     *time.Time                             `json:"date_to,omitempty"`
+	EventTypes *[]EventsEventStreamEventTypeEnum      `json:"event_types,omitempty"`
+	Statuses   *[]EventsEventStreamDeliveryStatusEnum `json:"statuses,omitempty"`
+}
+
+// EventsCreateEventStreamRedeliveryResponseContent defines model for EventsCreateEventStreamRedeliveryResponseContent.
+type EventsCreateEventStreamRedeliveryResponseContent struct {
+	DateFrom   *time.Time                             `json:"date_from,omitempty"`
+	DateTo     *time.Time                             `json:"date_to,omitempty"`
+	EventTypes *[]EventsEventStreamEventTypeEnum      `json:"event_types,omitempty"`
+	Statuses   *[]EventsEventStreamDeliveryStatusEnum `json:"statuses,omitempty"`
+}
+
+// EventsCreateEventStreamResponseContent defines model for EventsCreateEventStreamResponseContent.
+type EventsCreateEventStreamResponseContent struct {
+	union json.RawMessage
+}
+
+// EventsCreateEventStreamTestEventRequestContent defines model for EventsCreateEventStreamTestEventRequestContent.
+type EventsCreateEventStreamTestEventRequestContent struct {
+	Data      *EventsTestEventDataContent        `json:"data,omitempty"`
+	EventType EventsEventStreamTestEventTypeEnum `json:"event_type"`
+}
+
+// EventsCreateEventStreamTestEventResponseContent defines model for EventsCreateEventStreamTestEventResponseContent.
+type EventsCreateEventStreamTestEventResponseContent struct {
+	Attempts []EventsEventStreamDeliveryAttempt `json:"attempts"`
+
+	// Event CloudEvent validated against internal/eventrules/catalog.json.
+	Event         *EventsEventStreamCloudEvent           `json:"event,omitempty"`
+	EventStreamId string                                 `json:"event_stream_id"`
+	EventType     EventsEventStreamDeliveryEventTypeEnum `json:"event_type"`
+	Id            string                                 `json:"id"`
+	Status        EventsEventStreamDeliveryStatusEnum    `json:"status"`
+}
+
+// EventsCreateEventStreamWebHookRequestContent defines model for EventsCreateEventStreamWebHookRequestContent.
+type EventsCreateEventStreamWebHookRequestContent struct {
+	Destination   EventsEventStreamWebhookDestinationCreate `json:"destination"`
+	Name          string                                    `json:"name"`
+	Status        *EventsEventStreamStatusEnum              `json:"status,omitempty"`
+	Subscriptions []EventsEventStreamSubscription           `json:"subscriptions"`
+}
+
+// EventsEventStreamActionConfiguration defines model for EventsEventStreamActionConfiguration.
+type EventsEventStreamActionConfiguration struct {
+	ActionId string `json:"action_id"`
+}
+
+// EventsEventStreamActionDestination defines model for EventsEventStreamActionDestination.
+type EventsEventStreamActionDestination struct {
+	Configuration EventsEventStreamActionConfiguration       `json:"configuration"`
+	Type          EventsEventStreamActionDestinationTypeEnum `json:"type"`
+}
+
+// EventsEventStreamActionDestinationTypeEnum defines model for EventsEventStreamActionDestinationTypeEnum.
+type EventsEventStreamActionDestinationTypeEnum string
+
+// EventsEventStreamActionResponseContent defines model for EventsEventStreamActionResponseContent.
+type EventsEventStreamActionResponseContent struct {
+	CreatedAt     *time.Time                          `json:"created_at,omitempty"`
+	Destination   *EventsEventStreamActionDestination `json:"destination,omitempty"`
+	Id            *string                             `json:"id,omitempty"`
+	Name          *string                             `json:"name,omitempty"`
+	Status        *EventsEventStreamStatusEnum        `json:"status,omitempty"`
+	Subscriptions *[]EventsEventStreamSubscription    `json:"subscriptions,omitempty"`
+	UpdatedAt     *time.Time                          `json:"updated_at,omitempty"`
+}
+
+// EventsEventStreamCloudEvent CloudEvent validated against internal/eventrules/catalog.json.
+type EventsEventStreamCloudEvent map[string]interface{}
+
+// EventsEventStreamDelivery defines model for EventsEventStreamDelivery.
+type EventsEventStreamDelivery struct {
+	Attempts []EventsEventStreamDeliveryAttempt `json:"attempts"`
+
+	// Event CloudEvent validated against internal/eventrules/catalog.json.
+	Event         *EventsEventStreamCloudEvent           `json:"event,omitempty"`
+	EventStreamId string                                 `json:"event_stream_id"`
+	EventType     EventsEventStreamDeliveryEventTypeEnum `json:"event_type"`
+	Id            string                                 `json:"id"`
+	Status        EventsEventStreamDeliveryStatusEnum    `json:"status"`
+}
+
+// EventsEventStreamDeliveryAttempt defines model for EventsEventStreamDeliveryAttempt.
+type EventsEventStreamDeliveryAttempt struct {
+	Duration     *float32                            `json:"duration,omitempty"`
+	ErrorMessage *string                             `json:"error_message,omitempty"`
+	Status       EventsEventStreamDeliveryStatusEnum `json:"status"`
+	Timestamp    time.Time                           `json:"timestamp"`
+}
+
+// EventsEventStreamDeliveryEventTypeEnum defines model for EventsEventStreamDeliveryEventTypeEnum.
+type EventsEventStreamDeliveryEventTypeEnum string
+
+// EventsEventStreamDeliveryStatusEnum defines model for EventsEventStreamDeliveryStatusEnum.
+type EventsEventStreamDeliveryStatusEnum string
+
+// EventsEventStreamDestinationPatch defines model for EventsEventStreamDestinationPatch.
+type EventsEventStreamDestinationPatch struct {
+	union json.RawMessage
+}
+
+// EventsEventStreamEventBridgeAWSRegionEnum defines model for EventsEventStreamEventBridgeAWSRegionEnum.
+type EventsEventStreamEventBridgeAWSRegionEnum string
+
+// EventsEventStreamEventBridgeConfiguration defines model for EventsEventStreamEventBridgeConfiguration.
+type EventsEventStreamEventBridgeConfiguration struct {
+	AwsAccountId          string                                    `json:"aws_account_id"`
+	AwsPartnerEventSource *string                                   `json:"aws_partner_event_source,omitempty"`
+	AwsRegion             EventsEventStreamEventBridgeAWSRegionEnum `json:"aws_region"`
+}
+
+// EventsEventStreamEventBridgeDestination defines model for EventsEventStreamEventBridgeDestination.
+type EventsEventStreamEventBridgeDestination struct {
+	Configuration EventsEventStreamEventBridgeConfiguration       `json:"configuration"`
+	Type          EventsEventStreamEventBridgeDestinationTypeEnum `json:"type"`
+}
+
+// EventsEventStreamEventBridgeDestinationTypeEnum defines model for EventsEventStreamEventBridgeDestinationTypeEnum.
+type EventsEventStreamEventBridgeDestinationTypeEnum string
+
+// EventsEventStreamEventBridgeResponseContent defines model for EventsEventStreamEventBridgeResponseContent.
+type EventsEventStreamEventBridgeResponseContent struct {
+	CreatedAt     *time.Time                               `json:"created_at,omitempty"`
+	Destination   *EventsEventStreamEventBridgeDestination `json:"destination,omitempty"`
+	Id            *string                                  `json:"id,omitempty"`
+	Name          *string                                  `json:"name,omitempty"`
+	Status        *EventsEventStreamStatusEnum             `json:"status,omitempty"`
+	Subscriptions *[]EventsEventStreamSubscription         `json:"subscriptions,omitempty"`
+	UpdatedAt     *time.Time                               `json:"updated_at,omitempty"`
+}
+
+// EventsEventStreamEventTypeEnum defines model for EventsEventStreamEventTypeEnum.
+type EventsEventStreamEventTypeEnum string
+
+// EventsEventStreamResponseContent defines model for EventsEventStreamResponseContent.
+type EventsEventStreamResponseContent struct {
+	union json.RawMessage
+}
+
+// EventsEventStreamStatusEnum defines model for EventsEventStreamStatusEnum.
+type EventsEventStreamStatusEnum string
+
+// EventsEventStreamSubscribeEventsEventTypeEnum defines model for EventsEventStreamSubscribeEventsEventTypeEnum.
+type EventsEventStreamSubscribeEventsEventTypeEnum string
+
+// EventsEventStreamSubscribeEventsEventTypeParam defines model for EventsEventStreamSubscribeEventsEventTypeParam.
+type EventsEventStreamSubscribeEventsEventTypeParam = []EventsEventStreamSubscribeEventsEventTypeEnum
+
+// EventsEventStreamSubscribeEventsResponseContent Server-sent event frames carrying an offset and a catalog CloudEvent.
+type EventsEventStreamSubscribeEventsResponseContent = string
+
+// EventsEventStreamSubscription defines model for EventsEventStreamSubscription.
+type EventsEventStreamSubscription struct {
+	EventType *string `json:"event_type,omitempty"`
+}
+
+// EventsEventStreamTestEventTypeEnum defines model for EventsEventStreamTestEventTypeEnum.
+type EventsEventStreamTestEventTypeEnum string
+
+// EventsEventStreamWebhookAuthorizationCreate defines model for EventsEventStreamWebhookAuthorizationCreate.
+type EventsEventStreamWebhookAuthorizationCreate struct {
+	union json.RawMessage
+}
+
+// EventsEventStreamWebhookAuthorizationPatch defines model for EventsEventStreamWebhookAuthorizationPatch.
+type EventsEventStreamWebhookAuthorizationPatch struct {
+	union json.RawMessage
+}
+
+// EventsEventStreamWebhookAuthorizationResponse defines model for EventsEventStreamWebhookAuthorizationResponse.
+type EventsEventStreamWebhookAuthorizationResponse struct {
+	union json.RawMessage
+}
+
+// EventsEventStreamWebhookBasicAuth defines model for EventsEventStreamWebhookBasicAuth.
+type EventsEventStreamWebhookBasicAuth struct {
+	Method   EventsEventStreamWebhookBasicAuthMethodEnum `json:"method"`
+	Username string                                      `json:"username"`
+}
+
+// EventsEventStreamWebhookBasicAuthCreate defines model for EventsEventStreamWebhookBasicAuthCreate.
+type EventsEventStreamWebhookBasicAuthCreate struct {
+	Method   EventsEventStreamWebhookBasicAuthMethodEnum `json:"method"`
+	Password *string                                     `json:"password,omitempty"`
+	Username string                                      `json:"username"`
+}
+
+// EventsEventStreamWebhookBasicAuthMethodEnum defines model for EventsEventStreamWebhookBasicAuthMethodEnum.
+type EventsEventStreamWebhookBasicAuthMethodEnum string
+
+// EventsEventStreamWebhookBasicAuthPatch defines model for EventsEventStreamWebhookBasicAuthPatch.
+type EventsEventStreamWebhookBasicAuthPatch struct {
+	Method   EventsEventStreamWebhookBasicAuthMethodEnum `json:"method"`
+	Password *string                                     `json:"password,omitempty"`
+	Username string                                      `json:"username"`
+}
+
+// EventsEventStreamWebhookBearerAuth defines model for EventsEventStreamWebhookBearerAuth.
+type EventsEventStreamWebhookBearerAuth struct {
+	Method EventsEventStreamWebhookBearerAuthMethodEnum `json:"method"`
+}
+
+// EventsEventStreamWebhookBearerAuthCreate defines model for EventsEventStreamWebhookBearerAuthCreate.
+type EventsEventStreamWebhookBearerAuthCreate struct {
+	Method EventsEventStreamWebhookBearerAuthMethodEnum `json:"method"`
+	Token  *string                                      `json:"token,omitempty"`
+}
+
+// EventsEventStreamWebhookBearerAuthMethodEnum defines model for EventsEventStreamWebhookBearerAuthMethodEnum.
+type EventsEventStreamWebhookBearerAuthMethodEnum string
+
+// EventsEventStreamWebhookBearerAuthPatch defines model for EventsEventStreamWebhookBearerAuthPatch.
+type EventsEventStreamWebhookBearerAuthPatch struct {
+	Method EventsEventStreamWebhookBearerAuthMethodEnum `json:"method"`
+	Token  *string                                      `json:"token,omitempty"`
+}
+
+// EventsEventStreamWebhookConfiguration defines model for EventsEventStreamWebhookConfiguration.
+type EventsEventStreamWebhookConfiguration struct {
+	WebhookAuthorization EventsEventStreamWebhookAuthorizationResponse `json:"webhook_authorization"`
+	WebhookEndpoint      string                                        `json:"webhook_endpoint"`
+}
+
+// EventsEventStreamWebhookConfigurationCreate defines model for EventsEventStreamWebhookConfigurationCreate.
+type EventsEventStreamWebhookConfigurationCreate struct {
+	WebhookAuthorization EventsEventStreamWebhookAuthorizationCreate `json:"webhook_authorization"`
+	WebhookEndpoint      string                                      `json:"webhook_endpoint"`
+}
+
+// EventsEventStreamWebhookConfigurationPatch defines model for EventsEventStreamWebhookConfigurationPatch.
+type EventsEventStreamWebhookConfigurationPatch struct {
+	WebhookAuthorization EventsEventStreamWebhookAuthorizationPatch `json:"webhook_authorization"`
+	WebhookEndpoint      string                                     `json:"webhook_endpoint"`
+}
+
+// EventsEventStreamWebhookCustomHeaderAuth defines model for EventsEventStreamWebhookCustomHeaderAuth.
+type EventsEventStreamWebhookCustomHeaderAuth struct {
+	HeaderKey string                                             `json:"header_key"`
+	Method    EventsEventStreamWebhookCustomHeaderAuthMethodEnum `json:"method"`
+}
+
+// EventsEventStreamWebhookCustomHeaderAuthCreate defines model for EventsEventStreamWebhookCustomHeaderAuthCreate.
+type EventsEventStreamWebhookCustomHeaderAuthCreate struct {
+	HeaderKey   string                                             `json:"header_key"`
+	HeaderValue *string                                            `json:"header_value,omitempty"`
+	Method      EventsEventStreamWebhookCustomHeaderAuthMethodEnum `json:"method"`
+}
+
+// EventsEventStreamWebhookCustomHeaderAuthMethodEnum defines model for EventsEventStreamWebhookCustomHeaderAuthMethodEnum.
+type EventsEventStreamWebhookCustomHeaderAuthMethodEnum string
+
+// EventsEventStreamWebhookCustomHeaderAuthPatch defines model for EventsEventStreamWebhookCustomHeaderAuthPatch.
+type EventsEventStreamWebhookCustomHeaderAuthPatch struct {
+	HeaderKey   string                                             `json:"header_key"`
+	HeaderValue *string                                            `json:"header_value,omitempty"`
+	Method      EventsEventStreamWebhookCustomHeaderAuthMethodEnum `json:"method"`
+}
+
+// EventsEventStreamWebhookDestination defines model for EventsEventStreamWebhookDestination.
+type EventsEventStreamWebhookDestination struct {
+	Configuration EventsEventStreamWebhookConfiguration       `json:"configuration"`
+	Type          EventsEventStreamWebhookDestinationTypeEnum `json:"type"`
+}
+
+// EventsEventStreamWebhookDestinationCreate defines model for EventsEventStreamWebhookDestinationCreate.
+type EventsEventStreamWebhookDestinationCreate struct {
+	Configuration EventsEventStreamWebhookConfigurationCreate `json:"configuration"`
+	Type          EventsEventStreamWebhookDestinationTypeEnum `json:"type"`
+}
+
+// EventsEventStreamWebhookDestinationPatch defines model for EventsEventStreamWebhookDestinationPatch.
+type EventsEventStreamWebhookDestinationPatch struct {
+	Configuration EventsEventStreamWebhookConfigurationPatch  `json:"configuration"`
+	Type          EventsEventStreamWebhookDestinationTypeEnum `json:"type"`
+}
+
+// EventsEventStreamWebhookDestinationTypeEnum defines model for EventsEventStreamWebhookDestinationTypeEnum.
+type EventsEventStreamWebhookDestinationTypeEnum string
+
+// EventsEventStreamWebhookResponseContent defines model for EventsEventStreamWebhookResponseContent.
+type EventsEventStreamWebhookResponseContent struct {
+	CreatedAt     *time.Time                           `json:"created_at,omitempty"`
+	Destination   *EventsEventStreamWebhookDestination `json:"destination,omitempty"`
+	Id            *string                              `json:"id,omitempty"`
+	Name          *string                              `json:"name,omitempty"`
+	Status        *EventsEventStreamStatusEnum         `json:"status,omitempty"`
+	Subscriptions *[]EventsEventStreamSubscription     `json:"subscriptions,omitempty"`
+	UpdatedAt     *time.Time                           `json:"updated_at,omitempty"`
+}
+
+// EventsGetEventStreamDeliveryHistoryResponseContent defines model for EventsGetEventStreamDeliveryHistoryResponseContent.
+type EventsGetEventStreamDeliveryHistoryResponseContent struct {
+	Attempts []EventsEventStreamDeliveryAttempt `json:"attempts"`
+
+	// Event CloudEvent validated against internal/eventrules/catalog.json.
+	Event         *EventsEventStreamCloudEvent           `json:"event,omitempty"`
+	EventStreamId string                                 `json:"event_stream_id"`
+	EventType     EventsEventStreamDeliveryEventTypeEnum `json:"event_type"`
+	Id            string                                 `json:"id"`
+	Status        EventsEventStreamDeliveryStatusEnum    `json:"status"`
+}
+
+// EventsGetEventStreamResponseContent defines model for EventsGetEventStreamResponseContent.
+type EventsGetEventStreamResponseContent struct {
+	union json.RawMessage
+}
+
+// EventsListEventStreamDeliveriesResponseContent defines model for EventsListEventStreamDeliveriesResponseContent.
+type EventsListEventStreamDeliveriesResponseContent struct {
+	Deliveries []EventsEventStreamDelivery `json:"deliveries"`
+	Next       *string                     `json:"next,omitempty"`
+}
+
+// EventsListEventStreamsResponseContent defines model for EventsListEventStreamsResponseContent.
+type EventsListEventStreamsResponseContent struct {
+	EventStreams         *[]EventsEventStreamResponseContent `json:"eventStreams,omitempty"`
+	Next                 *string                             `json:"next,omitempty"`
+	AdditionalProperties map[string]interface{}              `json:"-"`
+}
+
+// EventsTestEventDataContent defines model for EventsTestEventDataContent.
+type EventsTestEventDataContent map[string]interface{}
+
+// EventsUpdateEventStreamRequestContent defines model for EventsUpdateEventStreamRequestContent.
+type EventsUpdateEventStreamRequestContent struct {
+	Destination   *EventsEventStreamDestinationPatch `json:"destination,omitempty"`
+	Name          *string                            `json:"name,omitempty"`
+	Status        *EventsEventStreamStatusEnum       `json:"status,omitempty"`
+	Subscriptions *[]EventsEventStreamSubscription   `json:"subscriptions,omitempty"`
+}
+
+// EventsUpdateEventStreamResponseContent defines model for EventsUpdateEventStreamResponseContent.
+type EventsUpdateEventStreamResponseContent struct {
+	union json.RawMessage
+}
+
 // IIAppMetadata defines model for IIAppMetadata.
 type IIAppMetadata map[string]interface{}
 
@@ -9723,6 +10671,35 @@ type GetCustomDomainsParams struct {
 	Sort          *string        `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
+// ListEventStreamsParams defines parameters for ListEventStreams.
+type ListEventStreamsParams struct {
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+	Take *int    `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// CreateEventStreamJSONBody defines parameters for CreateEventStream.
+type CreateEventStreamJSONBody struct {
+	union json.RawMessage
+}
+
+// ListEventDeliveriesParams defines parameters for ListEventDeliveries.
+type ListEventDeliveriesParams struct {
+	Statuses   *string `form:"statuses,omitempty" json:"statuses,omitempty"`
+	EventTypes *string `form:"event_types,omitempty" json:"event_types,omitempty"`
+	DateFrom   *string `form:"date_from,omitempty" json:"date_from,omitempty"`
+	DateTo     *string `form:"date_to,omitempty" json:"date_to,omitempty"`
+	From       *string `form:"from,omitempty" json:"from,omitempty"`
+	Take       *int    `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// SubscribeEventsParams defines parameters for SubscribeEvents.
+type SubscribeEventsParams struct {
+	From          *string                                         `form:"from,omitempty" json:"from,omitempty"`
+	FromTimestamp *string                                         `form:"from_timestamp,omitempty" json:"from_timestamp,omitempty"`
+	EventType     *EventsEventStreamSubscribeEventsEventTypeParam `form:"event_type,omitempty" json:"event_type,omitempty"`
+	LastEventID   *string                                         `json:"Last-Event-ID,omitempty"`
+}
+
 // DeleteGrantsByUserParams defines parameters for DeleteGrantsByUser.
 type DeleteGrantsByUserParams struct {
 	// UserId The user whose grants are deleted; required (checked by the handler, for Auth0's error body).
@@ -10446,6 +11423,18 @@ type PatchEmailProviderJSONRequestBody = EmailProviderWrite
 // CreateEmailProviderJSONRequestBody defines body for CreateEmailProvider for application/json ContentType.
 type CreateEmailProviderJSONRequestBody = EmailProviderWrite
 
+// CreateEventStreamJSONRequestBody defines body for CreateEventStream for application/json ContentType.
+type CreateEventStreamJSONRequestBody CreateEventStreamJSONBody
+
+// UpdateEventStreamJSONRequestBody defines body for UpdateEventStream for application/json ContentType.
+type UpdateEventStreamJSONRequestBody = EventsUpdateEventStreamRequestContent
+
+// RedeliverEventsJSONRequestBody defines body for RedeliverEvents for application/json ContentType.
+type RedeliverEventsJSONRequestBody = EventsCreateEventStreamRedeliveryRequestContent
+
+// TestEventStreamJSONRequestBody defines body for TestEventStream for application/json ContentType.
+type TestEventStreamJSONRequestBody = EventsCreateEventStreamTestEventRequestContent
+
 // CreateUsersExportJobJSONRequestBody defines body for CreateUsersExportJob for application/json ContentType.
 type CreateUsersExportJobJSONRequestBody = UsersExportJobCreate
 
@@ -10574,6 +11563,89 @@ type DeleteUserRolesJSONRequestBody = UserRoleBatch
 
 // PostUserRolesJSONRequestBody defines body for PostUserRoles for application/json ContentType.
 type PostUserRolesJSONRequestBody = UserRoleBatch
+
+// Getter for additional properties for EventsListEventStreamsResponseContent. Returns the specified
+// element and whether it was found
+func (a EventsListEventStreamsResponseContent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for EventsListEventStreamsResponseContent
+func (a *EventsListEventStreamsResponseContent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for EventsListEventStreamsResponseContent to handle AdditionalProperties
+func (a *EventsListEventStreamsResponseContent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["eventStreams"]; found {
+		err = json.Unmarshal(raw, &a.EventStreams)
+		if err != nil {
+			return fmt.Errorf("error reading 'eventStreams': %w", err)
+		}
+		delete(object, "eventStreams")
+	}
+
+	if raw, found := object["next"]; found {
+		err = json.Unmarshal(raw, &a.Next)
+		if err != nil {
+			return fmt.Errorf("error reading 'next': %w", err)
+		}
+		delete(object, "next")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for EventsListEventStreamsResponseContent to handle AdditionalProperties
+func (a EventsListEventStreamsResponseContent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.EventStreams != nil {
+		object["eventStreams"], err = json.Marshal(a.EventStreams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'eventStreams': %w", err)
+		}
+	}
+
+	if a.Next != nil {
+		object["next"], err = json.Marshal(a.Next)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'next': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for IIOrganization. Returns the specified
 // element and whether it was found
@@ -11876,6 +12948,684 @@ func (a User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// AsEventsEventStreamWebhookResponseContent returns the union data inside the EventsCreateEventStreamResponseContent as a EventsEventStreamWebhookResponseContent
+func (t EventsCreateEventStreamResponseContent) AsEventsEventStreamWebhookResponseContent() (EventsEventStreamWebhookResponseContent, error) {
+	var body EventsEventStreamWebhookResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookResponseContent overwrites any union data inside the EventsCreateEventStreamResponseContent as the provided EventsEventStreamWebhookResponseContent
+func (t *EventsCreateEventStreamResponseContent) FromEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookResponseContent performs a merge with any union data inside the EventsCreateEventStreamResponseContent, using the provided EventsEventStreamWebhookResponseContent
+func (t *EventsCreateEventStreamResponseContent) MergeEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamEventBridgeResponseContent returns the union data inside the EventsCreateEventStreamResponseContent as a EventsEventStreamEventBridgeResponseContent
+func (t EventsCreateEventStreamResponseContent) AsEventsEventStreamEventBridgeResponseContent() (EventsEventStreamEventBridgeResponseContent, error) {
+	var body EventsEventStreamEventBridgeResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamEventBridgeResponseContent overwrites any union data inside the EventsCreateEventStreamResponseContent as the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsCreateEventStreamResponseContent) FromEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamEventBridgeResponseContent performs a merge with any union data inside the EventsCreateEventStreamResponseContent, using the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsCreateEventStreamResponseContent) MergeEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamActionResponseContent returns the union data inside the EventsCreateEventStreamResponseContent as a EventsEventStreamActionResponseContent
+func (t EventsCreateEventStreamResponseContent) AsEventsEventStreamActionResponseContent() (EventsEventStreamActionResponseContent, error) {
+	var body EventsEventStreamActionResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamActionResponseContent overwrites any union data inside the EventsCreateEventStreamResponseContent as the provided EventsEventStreamActionResponseContent
+func (t *EventsCreateEventStreamResponseContent) FromEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamActionResponseContent performs a merge with any union data inside the EventsCreateEventStreamResponseContent, using the provided EventsEventStreamActionResponseContent
+func (t *EventsCreateEventStreamResponseContent) MergeEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsCreateEventStreamResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsCreateEventStreamResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsEventStreamWebhookDestinationPatch returns the union data inside the EventsEventStreamDestinationPatch as a EventsEventStreamWebhookDestinationPatch
+func (t EventsEventStreamDestinationPatch) AsEventsEventStreamWebhookDestinationPatch() (EventsEventStreamWebhookDestinationPatch, error) {
+	var body EventsEventStreamWebhookDestinationPatch
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookDestinationPatch overwrites any union data inside the EventsEventStreamDestinationPatch as the provided EventsEventStreamWebhookDestinationPatch
+func (t *EventsEventStreamDestinationPatch) FromEventsEventStreamWebhookDestinationPatch(v EventsEventStreamWebhookDestinationPatch) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookDestinationPatch performs a merge with any union data inside the EventsEventStreamDestinationPatch, using the provided EventsEventStreamWebhookDestinationPatch
+func (t *EventsEventStreamDestinationPatch) MergeEventsEventStreamWebhookDestinationPatch(v EventsEventStreamWebhookDestinationPatch) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamActionDestination returns the union data inside the EventsEventStreamDestinationPatch as a EventsEventStreamActionDestination
+func (t EventsEventStreamDestinationPatch) AsEventsEventStreamActionDestination() (EventsEventStreamActionDestination, error) {
+	var body EventsEventStreamActionDestination
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamActionDestination overwrites any union data inside the EventsEventStreamDestinationPatch as the provided EventsEventStreamActionDestination
+func (t *EventsEventStreamDestinationPatch) FromEventsEventStreamActionDestination(v EventsEventStreamActionDestination) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamActionDestination performs a merge with any union data inside the EventsEventStreamDestinationPatch, using the provided EventsEventStreamActionDestination
+func (t *EventsEventStreamDestinationPatch) MergeEventsEventStreamActionDestination(v EventsEventStreamActionDestination) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsEventStreamDestinationPatch) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsEventStreamDestinationPatch) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsEventStreamWebhookResponseContent returns the union data inside the EventsEventStreamResponseContent as a EventsEventStreamWebhookResponseContent
+func (t EventsEventStreamResponseContent) AsEventsEventStreamWebhookResponseContent() (EventsEventStreamWebhookResponseContent, error) {
+	var body EventsEventStreamWebhookResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookResponseContent overwrites any union data inside the EventsEventStreamResponseContent as the provided EventsEventStreamWebhookResponseContent
+func (t *EventsEventStreamResponseContent) FromEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookResponseContent performs a merge with any union data inside the EventsEventStreamResponseContent, using the provided EventsEventStreamWebhookResponseContent
+func (t *EventsEventStreamResponseContent) MergeEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamEventBridgeResponseContent returns the union data inside the EventsEventStreamResponseContent as a EventsEventStreamEventBridgeResponseContent
+func (t EventsEventStreamResponseContent) AsEventsEventStreamEventBridgeResponseContent() (EventsEventStreamEventBridgeResponseContent, error) {
+	var body EventsEventStreamEventBridgeResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamEventBridgeResponseContent overwrites any union data inside the EventsEventStreamResponseContent as the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsEventStreamResponseContent) FromEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamEventBridgeResponseContent performs a merge with any union data inside the EventsEventStreamResponseContent, using the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsEventStreamResponseContent) MergeEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamActionResponseContent returns the union data inside the EventsEventStreamResponseContent as a EventsEventStreamActionResponseContent
+func (t EventsEventStreamResponseContent) AsEventsEventStreamActionResponseContent() (EventsEventStreamActionResponseContent, error) {
+	var body EventsEventStreamActionResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamActionResponseContent overwrites any union data inside the EventsEventStreamResponseContent as the provided EventsEventStreamActionResponseContent
+func (t *EventsEventStreamResponseContent) FromEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamActionResponseContent performs a merge with any union data inside the EventsEventStreamResponseContent, using the provided EventsEventStreamActionResponseContent
+func (t *EventsEventStreamResponseContent) MergeEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsEventStreamResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsEventStreamResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsEventStreamWebhookBasicAuthCreate returns the union data inside the EventsEventStreamWebhookAuthorizationCreate as a EventsEventStreamWebhookBasicAuthCreate
+func (t EventsEventStreamWebhookAuthorizationCreate) AsEventsEventStreamWebhookBasicAuthCreate() (EventsEventStreamWebhookBasicAuthCreate, error) {
+	var body EventsEventStreamWebhookBasicAuthCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookBasicAuthCreate overwrites any union data inside the EventsEventStreamWebhookAuthorizationCreate as the provided EventsEventStreamWebhookBasicAuthCreate
+func (t *EventsEventStreamWebhookAuthorizationCreate) FromEventsEventStreamWebhookBasicAuthCreate(v EventsEventStreamWebhookBasicAuthCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookBasicAuthCreate performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationCreate, using the provided EventsEventStreamWebhookBasicAuthCreate
+func (t *EventsEventStreamWebhookAuthorizationCreate) MergeEventsEventStreamWebhookBasicAuthCreate(v EventsEventStreamWebhookBasicAuthCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamWebhookBearerAuthCreate returns the union data inside the EventsEventStreamWebhookAuthorizationCreate as a EventsEventStreamWebhookBearerAuthCreate
+func (t EventsEventStreamWebhookAuthorizationCreate) AsEventsEventStreamWebhookBearerAuthCreate() (EventsEventStreamWebhookBearerAuthCreate, error) {
+	var body EventsEventStreamWebhookBearerAuthCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookBearerAuthCreate overwrites any union data inside the EventsEventStreamWebhookAuthorizationCreate as the provided EventsEventStreamWebhookBearerAuthCreate
+func (t *EventsEventStreamWebhookAuthorizationCreate) FromEventsEventStreamWebhookBearerAuthCreate(v EventsEventStreamWebhookBearerAuthCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookBearerAuthCreate performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationCreate, using the provided EventsEventStreamWebhookBearerAuthCreate
+func (t *EventsEventStreamWebhookAuthorizationCreate) MergeEventsEventStreamWebhookBearerAuthCreate(v EventsEventStreamWebhookBearerAuthCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamWebhookCustomHeaderAuthCreate returns the union data inside the EventsEventStreamWebhookAuthorizationCreate as a EventsEventStreamWebhookCustomHeaderAuthCreate
+func (t EventsEventStreamWebhookAuthorizationCreate) AsEventsEventStreamWebhookCustomHeaderAuthCreate() (EventsEventStreamWebhookCustomHeaderAuthCreate, error) {
+	var body EventsEventStreamWebhookCustomHeaderAuthCreate
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookCustomHeaderAuthCreate overwrites any union data inside the EventsEventStreamWebhookAuthorizationCreate as the provided EventsEventStreamWebhookCustomHeaderAuthCreate
+func (t *EventsEventStreamWebhookAuthorizationCreate) FromEventsEventStreamWebhookCustomHeaderAuthCreate(v EventsEventStreamWebhookCustomHeaderAuthCreate) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookCustomHeaderAuthCreate performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationCreate, using the provided EventsEventStreamWebhookCustomHeaderAuthCreate
+func (t *EventsEventStreamWebhookAuthorizationCreate) MergeEventsEventStreamWebhookCustomHeaderAuthCreate(v EventsEventStreamWebhookCustomHeaderAuthCreate) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsEventStreamWebhookAuthorizationCreate) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsEventStreamWebhookAuthorizationCreate) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsEventStreamWebhookBasicAuthPatch returns the union data inside the EventsEventStreamWebhookAuthorizationPatch as a EventsEventStreamWebhookBasicAuthPatch
+func (t EventsEventStreamWebhookAuthorizationPatch) AsEventsEventStreamWebhookBasicAuthPatch() (EventsEventStreamWebhookBasicAuthPatch, error) {
+	var body EventsEventStreamWebhookBasicAuthPatch
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookBasicAuthPatch overwrites any union data inside the EventsEventStreamWebhookAuthorizationPatch as the provided EventsEventStreamWebhookBasicAuthPatch
+func (t *EventsEventStreamWebhookAuthorizationPatch) FromEventsEventStreamWebhookBasicAuthPatch(v EventsEventStreamWebhookBasicAuthPatch) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookBasicAuthPatch performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationPatch, using the provided EventsEventStreamWebhookBasicAuthPatch
+func (t *EventsEventStreamWebhookAuthorizationPatch) MergeEventsEventStreamWebhookBasicAuthPatch(v EventsEventStreamWebhookBasicAuthPatch) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamWebhookBearerAuthPatch returns the union data inside the EventsEventStreamWebhookAuthorizationPatch as a EventsEventStreamWebhookBearerAuthPatch
+func (t EventsEventStreamWebhookAuthorizationPatch) AsEventsEventStreamWebhookBearerAuthPatch() (EventsEventStreamWebhookBearerAuthPatch, error) {
+	var body EventsEventStreamWebhookBearerAuthPatch
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookBearerAuthPatch overwrites any union data inside the EventsEventStreamWebhookAuthorizationPatch as the provided EventsEventStreamWebhookBearerAuthPatch
+func (t *EventsEventStreamWebhookAuthorizationPatch) FromEventsEventStreamWebhookBearerAuthPatch(v EventsEventStreamWebhookBearerAuthPatch) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookBearerAuthPatch performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationPatch, using the provided EventsEventStreamWebhookBearerAuthPatch
+func (t *EventsEventStreamWebhookAuthorizationPatch) MergeEventsEventStreamWebhookBearerAuthPatch(v EventsEventStreamWebhookBearerAuthPatch) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamWebhookCustomHeaderAuthPatch returns the union data inside the EventsEventStreamWebhookAuthorizationPatch as a EventsEventStreamWebhookCustomHeaderAuthPatch
+func (t EventsEventStreamWebhookAuthorizationPatch) AsEventsEventStreamWebhookCustomHeaderAuthPatch() (EventsEventStreamWebhookCustomHeaderAuthPatch, error) {
+	var body EventsEventStreamWebhookCustomHeaderAuthPatch
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookCustomHeaderAuthPatch overwrites any union data inside the EventsEventStreamWebhookAuthorizationPatch as the provided EventsEventStreamWebhookCustomHeaderAuthPatch
+func (t *EventsEventStreamWebhookAuthorizationPatch) FromEventsEventStreamWebhookCustomHeaderAuthPatch(v EventsEventStreamWebhookCustomHeaderAuthPatch) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookCustomHeaderAuthPatch performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationPatch, using the provided EventsEventStreamWebhookCustomHeaderAuthPatch
+func (t *EventsEventStreamWebhookAuthorizationPatch) MergeEventsEventStreamWebhookCustomHeaderAuthPatch(v EventsEventStreamWebhookCustomHeaderAuthPatch) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsEventStreamWebhookAuthorizationPatch) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsEventStreamWebhookAuthorizationPatch) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsEventStreamWebhookBasicAuth returns the union data inside the EventsEventStreamWebhookAuthorizationResponse as a EventsEventStreamWebhookBasicAuth
+func (t EventsEventStreamWebhookAuthorizationResponse) AsEventsEventStreamWebhookBasicAuth() (EventsEventStreamWebhookBasicAuth, error) {
+	var body EventsEventStreamWebhookBasicAuth
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookBasicAuth overwrites any union data inside the EventsEventStreamWebhookAuthorizationResponse as the provided EventsEventStreamWebhookBasicAuth
+func (t *EventsEventStreamWebhookAuthorizationResponse) FromEventsEventStreamWebhookBasicAuth(v EventsEventStreamWebhookBasicAuth) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookBasicAuth performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationResponse, using the provided EventsEventStreamWebhookBasicAuth
+func (t *EventsEventStreamWebhookAuthorizationResponse) MergeEventsEventStreamWebhookBasicAuth(v EventsEventStreamWebhookBasicAuth) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamWebhookBearerAuth returns the union data inside the EventsEventStreamWebhookAuthorizationResponse as a EventsEventStreamWebhookBearerAuth
+func (t EventsEventStreamWebhookAuthorizationResponse) AsEventsEventStreamWebhookBearerAuth() (EventsEventStreamWebhookBearerAuth, error) {
+	var body EventsEventStreamWebhookBearerAuth
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookBearerAuth overwrites any union data inside the EventsEventStreamWebhookAuthorizationResponse as the provided EventsEventStreamWebhookBearerAuth
+func (t *EventsEventStreamWebhookAuthorizationResponse) FromEventsEventStreamWebhookBearerAuth(v EventsEventStreamWebhookBearerAuth) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookBearerAuth performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationResponse, using the provided EventsEventStreamWebhookBearerAuth
+func (t *EventsEventStreamWebhookAuthorizationResponse) MergeEventsEventStreamWebhookBearerAuth(v EventsEventStreamWebhookBearerAuth) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamWebhookCustomHeaderAuth returns the union data inside the EventsEventStreamWebhookAuthorizationResponse as a EventsEventStreamWebhookCustomHeaderAuth
+func (t EventsEventStreamWebhookAuthorizationResponse) AsEventsEventStreamWebhookCustomHeaderAuth() (EventsEventStreamWebhookCustomHeaderAuth, error) {
+	var body EventsEventStreamWebhookCustomHeaderAuth
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookCustomHeaderAuth overwrites any union data inside the EventsEventStreamWebhookAuthorizationResponse as the provided EventsEventStreamWebhookCustomHeaderAuth
+func (t *EventsEventStreamWebhookAuthorizationResponse) FromEventsEventStreamWebhookCustomHeaderAuth(v EventsEventStreamWebhookCustomHeaderAuth) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookCustomHeaderAuth performs a merge with any union data inside the EventsEventStreamWebhookAuthorizationResponse, using the provided EventsEventStreamWebhookCustomHeaderAuth
+func (t *EventsEventStreamWebhookAuthorizationResponse) MergeEventsEventStreamWebhookCustomHeaderAuth(v EventsEventStreamWebhookCustomHeaderAuth) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsEventStreamWebhookAuthorizationResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsEventStreamWebhookAuthorizationResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsEventStreamWebhookResponseContent returns the union data inside the EventsGetEventStreamResponseContent as a EventsEventStreamWebhookResponseContent
+func (t EventsGetEventStreamResponseContent) AsEventsEventStreamWebhookResponseContent() (EventsEventStreamWebhookResponseContent, error) {
+	var body EventsEventStreamWebhookResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookResponseContent overwrites any union data inside the EventsGetEventStreamResponseContent as the provided EventsEventStreamWebhookResponseContent
+func (t *EventsGetEventStreamResponseContent) FromEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookResponseContent performs a merge with any union data inside the EventsGetEventStreamResponseContent, using the provided EventsEventStreamWebhookResponseContent
+func (t *EventsGetEventStreamResponseContent) MergeEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamEventBridgeResponseContent returns the union data inside the EventsGetEventStreamResponseContent as a EventsEventStreamEventBridgeResponseContent
+func (t EventsGetEventStreamResponseContent) AsEventsEventStreamEventBridgeResponseContent() (EventsEventStreamEventBridgeResponseContent, error) {
+	var body EventsEventStreamEventBridgeResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamEventBridgeResponseContent overwrites any union data inside the EventsGetEventStreamResponseContent as the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsGetEventStreamResponseContent) FromEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamEventBridgeResponseContent performs a merge with any union data inside the EventsGetEventStreamResponseContent, using the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsGetEventStreamResponseContent) MergeEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamActionResponseContent returns the union data inside the EventsGetEventStreamResponseContent as a EventsEventStreamActionResponseContent
+func (t EventsGetEventStreamResponseContent) AsEventsEventStreamActionResponseContent() (EventsEventStreamActionResponseContent, error) {
+	var body EventsEventStreamActionResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamActionResponseContent overwrites any union data inside the EventsGetEventStreamResponseContent as the provided EventsEventStreamActionResponseContent
+func (t *EventsGetEventStreamResponseContent) FromEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamActionResponseContent performs a merge with any union data inside the EventsGetEventStreamResponseContent, using the provided EventsEventStreamActionResponseContent
+func (t *EventsGetEventStreamResponseContent) MergeEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsGetEventStreamResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsGetEventStreamResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsEventStreamWebhookResponseContent returns the union data inside the EventsUpdateEventStreamResponseContent as a EventsEventStreamWebhookResponseContent
+func (t EventsUpdateEventStreamResponseContent) AsEventsEventStreamWebhookResponseContent() (EventsEventStreamWebhookResponseContent, error) {
+	var body EventsEventStreamWebhookResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamWebhookResponseContent overwrites any union data inside the EventsUpdateEventStreamResponseContent as the provided EventsEventStreamWebhookResponseContent
+func (t *EventsUpdateEventStreamResponseContent) FromEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamWebhookResponseContent performs a merge with any union data inside the EventsUpdateEventStreamResponseContent, using the provided EventsEventStreamWebhookResponseContent
+func (t *EventsUpdateEventStreamResponseContent) MergeEventsEventStreamWebhookResponseContent(v EventsEventStreamWebhookResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamEventBridgeResponseContent returns the union data inside the EventsUpdateEventStreamResponseContent as a EventsEventStreamEventBridgeResponseContent
+func (t EventsUpdateEventStreamResponseContent) AsEventsEventStreamEventBridgeResponseContent() (EventsEventStreamEventBridgeResponseContent, error) {
+	var body EventsEventStreamEventBridgeResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamEventBridgeResponseContent overwrites any union data inside the EventsUpdateEventStreamResponseContent as the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsUpdateEventStreamResponseContent) FromEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamEventBridgeResponseContent performs a merge with any union data inside the EventsUpdateEventStreamResponseContent, using the provided EventsEventStreamEventBridgeResponseContent
+func (t *EventsUpdateEventStreamResponseContent) MergeEventsEventStreamEventBridgeResponseContent(v EventsEventStreamEventBridgeResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsEventStreamActionResponseContent returns the union data inside the EventsUpdateEventStreamResponseContent as a EventsEventStreamActionResponseContent
+func (t EventsUpdateEventStreamResponseContent) AsEventsEventStreamActionResponseContent() (EventsEventStreamActionResponseContent, error) {
+	var body EventsEventStreamActionResponseContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsEventStreamActionResponseContent overwrites any union data inside the EventsUpdateEventStreamResponseContent as the provided EventsEventStreamActionResponseContent
+func (t *EventsUpdateEventStreamResponseContent) FromEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsEventStreamActionResponseContent performs a merge with any union data inside the EventsUpdateEventStreamResponseContent, using the provided EventsEventStreamActionResponseContent
+func (t *EventsUpdateEventStreamResponseContent) MergeEventsEventStreamActionResponseContent(v EventsEventStreamActionResponseContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EventsUpdateEventStreamResponseContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EventsUpdateEventStreamResponseContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsIIListClientGrantOrganizationsResponseContent0 returns the union data inside the IIListClientGrantOrganizationsResponseContent as a IIListClientGrantOrganizationsResponseContent0
 func (t IIListClientGrantOrganizationsResponseContent) AsIIListClientGrantOrganizationsResponseContent0() (IIListClientGrantOrganizationsResponseContent0, error) {
 	var body IIListClientGrantOrganizationsResponseContent0
@@ -13068,6 +14818,94 @@ func (t GetConnections200JSONResponseBody) MarshalJSON() ([]byte, error) {
 }
 
 func (t *GetConnections200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEventsCreateEventStreamWebHookRequestContent returns the union data inside the CreateEventStreamJSONBody as a EventsCreateEventStreamWebHookRequestContent
+func (t CreateEventStreamJSONBody) AsEventsCreateEventStreamWebHookRequestContent() (EventsCreateEventStreamWebHookRequestContent, error) {
+	var body EventsCreateEventStreamWebHookRequestContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsCreateEventStreamWebHookRequestContent overwrites any union data inside the CreateEventStreamJSONBody as the provided EventsCreateEventStreamWebHookRequestContent
+func (t *CreateEventStreamJSONBody) FromEventsCreateEventStreamWebHookRequestContent(v EventsCreateEventStreamWebHookRequestContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsCreateEventStreamWebHookRequestContent performs a merge with any union data inside the CreateEventStreamJSONBody, using the provided EventsCreateEventStreamWebHookRequestContent
+func (t *CreateEventStreamJSONBody) MergeEventsCreateEventStreamWebHookRequestContent(v EventsCreateEventStreamWebHookRequestContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsCreateEventStreamEventBridgeRequestContent returns the union data inside the CreateEventStreamJSONBody as a EventsCreateEventStreamEventBridgeRequestContent
+func (t CreateEventStreamJSONBody) AsEventsCreateEventStreamEventBridgeRequestContent() (EventsCreateEventStreamEventBridgeRequestContent, error) {
+	var body EventsCreateEventStreamEventBridgeRequestContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsCreateEventStreamEventBridgeRequestContent overwrites any union data inside the CreateEventStreamJSONBody as the provided EventsCreateEventStreamEventBridgeRequestContent
+func (t *CreateEventStreamJSONBody) FromEventsCreateEventStreamEventBridgeRequestContent(v EventsCreateEventStreamEventBridgeRequestContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsCreateEventStreamEventBridgeRequestContent performs a merge with any union data inside the CreateEventStreamJSONBody, using the provided EventsCreateEventStreamEventBridgeRequestContent
+func (t *CreateEventStreamJSONBody) MergeEventsCreateEventStreamEventBridgeRequestContent(v EventsCreateEventStreamEventBridgeRequestContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEventsCreateEventStreamActionRequestContent returns the union data inside the CreateEventStreamJSONBody as a EventsCreateEventStreamActionRequestContent
+func (t CreateEventStreamJSONBody) AsEventsCreateEventStreamActionRequestContent() (EventsCreateEventStreamActionRequestContent, error) {
+	var body EventsCreateEventStreamActionRequestContent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEventsCreateEventStreamActionRequestContent overwrites any union data inside the CreateEventStreamJSONBody as the provided EventsCreateEventStreamActionRequestContent
+func (t *CreateEventStreamJSONBody) FromEventsCreateEventStreamActionRequestContent(v EventsCreateEventStreamActionRequestContent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEventsCreateEventStreamActionRequestContent performs a merge with any union data inside the CreateEventStreamJSONBody, using the provided EventsCreateEventStreamActionRequestContent
+func (t *CreateEventStreamJSONBody) MergeEventsCreateEventStreamActionRequestContent(v EventsCreateEventStreamActionRequestContent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CreateEventStreamJSONBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *CreateEventStreamJSONBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -14346,6 +16184,39 @@ type ServerInterface interface {
 	// CreateEmailProvider Create the tenant email provider.
 	// (POST /api/v2/emails/provider)
 	CreateEmailProvider(w http.ResponseWriter, r *http.Request)
+	// ListEventStreams ListEventStreams
+	// (GET /api/v2/event-streams)
+	ListEventStreams(w http.ResponseWriter, r *http.Request, params ListEventStreamsParams)
+	// CreateEventStream CreateEventStream
+	// (POST /api/v2/event-streams)
+	CreateEventStream(w http.ResponseWriter, r *http.Request)
+	// DeleteEventStream DeleteEventStream
+	// (DELETE /api/v2/event-streams/{id})
+	DeleteEventStream(w http.ResponseWriter, r *http.Request, id string)
+	// GetEventStream GetEventStream
+	// (GET /api/v2/event-streams/{id})
+	GetEventStream(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateEventStream UpdateEventStream
+	// (PATCH /api/v2/event-streams/{id})
+	UpdateEventStream(w http.ResponseWriter, r *http.Request, id string)
+	// ListEventDeliveries ListEventDeliveries
+	// (GET /api/v2/event-streams/{id}/deliveries)
+	ListEventDeliveries(w http.ResponseWriter, r *http.Request, id string, params ListEventDeliveriesParams)
+	// GetEventDelivery GetEventDelivery
+	// (GET /api/v2/event-streams/{id}/deliveries/{event_id})
+	GetEventDelivery(w http.ResponseWriter, r *http.Request, id string, eventId string)
+	// RedeliverEvents RedeliverEvents
+	// (POST /api/v2/event-streams/{id}/redeliver)
+	RedeliverEvents(w http.ResponseWriter, r *http.Request, id string)
+	// RedeliverEvent RedeliverEvent
+	// (POST /api/v2/event-streams/{id}/redeliver/{event_id})
+	RedeliverEvent(w http.ResponseWriter, r *http.Request, id string, eventId string)
+	// TestEventStream TestEventStream
+	// (POST /api/v2/event-streams/{id}/test)
+	TestEventStream(w http.ResponseWriter, r *http.Request, id string)
+	// SubscribeEvents SubscribeEvents
+	// (GET /api/v2/events)
+	SubscribeEvents(w http.ResponseWriter, r *http.Request, params SubscribeEventsParams)
 	// DeleteGrantsByUser Delete a user's grants
 	// (DELETE /api/v2/grants)
 	DeleteGrantsByUser(w http.ResponseWriter, r *http.Request, params DeleteGrantsByUserParams)
@@ -15318,6 +17189,72 @@ func (_ Unimplemented) PatchEmailProvider(w http.ResponseWriter, r *http.Request
 // CreateEmailProvider Create the tenant email provider.
 // (POST /api/v2/emails/provider)
 func (_ Unimplemented) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListEventStreams ListEventStreams
+// (GET /api/v2/event-streams)
+func (_ Unimplemented) ListEventStreams(w http.ResponseWriter, r *http.Request, params ListEventStreamsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateEventStream CreateEventStream
+// (POST /api/v2/event-streams)
+func (_ Unimplemented) CreateEventStream(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteEventStream DeleteEventStream
+// (DELETE /api/v2/event-streams/{id})
+func (_ Unimplemented) DeleteEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetEventStream GetEventStream
+// (GET /api/v2/event-streams/{id})
+func (_ Unimplemented) GetEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateEventStream UpdateEventStream
+// (PATCH /api/v2/event-streams/{id})
+func (_ Unimplemented) UpdateEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListEventDeliveries ListEventDeliveries
+// (GET /api/v2/event-streams/{id}/deliveries)
+func (_ Unimplemented) ListEventDeliveries(w http.ResponseWriter, r *http.Request, id string, params ListEventDeliveriesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetEventDelivery GetEventDelivery
+// (GET /api/v2/event-streams/{id}/deliveries/{event_id})
+func (_ Unimplemented) GetEventDelivery(w http.ResponseWriter, r *http.Request, id string, eventId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RedeliverEvents RedeliverEvents
+// (POST /api/v2/event-streams/{id}/redeliver)
+func (_ Unimplemented) RedeliverEvents(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RedeliverEvent RedeliverEvent
+// (POST /api/v2/event-streams/{id}/redeliver/{event_id})
+func (_ Unimplemented) RedeliverEvent(w http.ResponseWriter, r *http.Request, id string, eventId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TestEventStream TestEventStream
+// (POST /api/v2/event-streams/{id}/test)
+func (_ Unimplemented) TestEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SubscribeEvents SubscribeEvents
+// (GET /api/v2/events)
+func (_ Unimplemented) SubscribeEvents(w http.ResponseWriter, r *http.Request, params SubscribeEventsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -19135,6 +21072,453 @@ func (siw *ServerInterfaceWrapper) CreateEmailProvider(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateEmailProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEventStreams operation middleware
+func (siw *ServerInterfaceWrapper) ListEventStreams(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEventStreamsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEventStreams(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEventStream operation middleware
+func (siw *ServerInterfaceWrapper) CreateEventStream(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEventStream(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteEventStream operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEventStream(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEventStream(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEventStream operation middleware
+func (siw *ServerInterfaceWrapper) GetEventStream(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEventStream(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateEventStream operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEventStream(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateEventStream(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEventDeliveries operation middleware
+func (siw *ServerInterfaceWrapper) ListEventDeliveries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEventDeliveriesParams
+
+	// ------------- Optional query parameter "statuses" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "statuses", r.URL.Query(), &params.Statuses, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "statuses"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "statuses", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "event_types" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "event_types", r.URL.Query(), &params.EventTypes, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "event_types"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "event_types", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "date_from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "date_from", r.URL.Query(), &params.DateFrom, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "date_from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "date_from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "date_to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "date_to", r.URL.Query(), &params.DateTo, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "date_to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "date_to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEventDeliveries(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEventDelivery operation middleware
+func (siw *ServerInterfaceWrapper) GetEventDelivery(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "event_id" -------------
+	var eventId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "event_id", chi.URLParam(r, "event_id"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "event_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEventDelivery(w, r, id, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RedeliverEvents operation middleware
+func (siw *ServerInterfaceWrapper) RedeliverEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RedeliverEvents(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RedeliverEvent operation middleware
+func (siw *ServerInterfaceWrapper) RedeliverEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "event_id" -------------
+	var eventId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "event_id", chi.URLParam(r, "event_id"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "event_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RedeliverEvent(w, r, id, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestEventStream operation middleware
+func (siw *ServerInterfaceWrapper) TestEventStream(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestEventStream(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubscribeEvents operation middleware
+func (siw *ServerInterfaceWrapper) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SubscribeEventsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from_timestamp" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from_timestamp", r.URL.Query(), &params.FromTimestamp, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from_timestamp"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from_timestamp", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "event_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "event_type", r.URL.Query(), &params.EventType, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "event_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "event_type", Err: err})
+		}
+		return
+	}
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Last-Event-ID" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Last-Event-ID")]; found {
+		var LastEventID string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Last-Event-ID", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Last-Event-ID", valueList[0], &LastEventID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Last-Event-ID", Err: err})
+			return
+		}
+
+		params.LastEventID = &LastEventID
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubscribeEvents(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -24343,6 +26727,39 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/event-streams", wrapper.ListEventStreams)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/event-streams", wrapper.CreateEventStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/event-streams/{id}", wrapper.DeleteEventStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/event-streams/{id}", wrapper.GetEventStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/event-streams/{id}", wrapper.UpdateEventStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/event-streams/{id}/deliveries", wrapper.ListEventDeliveries)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/event-streams/{id}/deliveries/{event_id}", wrapper.GetEventDelivery)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/event-streams/{id}/redeliver", wrapper.RedeliverEvents)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/event-streams/{id}/redeliver/{event_id}", wrapper.RedeliverEvent)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/event-streams/{id}/test", wrapper.TestEventStream)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/events", wrapper.SubscribeEvents)
+	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/actions/modules", wrapper.GetActionModules)
 	})
