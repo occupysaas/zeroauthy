@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/events/eventcontext"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
@@ -193,6 +194,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	ctx = eventcontext.Enrich(ctx, in.Client, in.Connection)
 	// Resolve only the bound ID; caller-provided snapshots cannot select a
 	// different organization. The input is sealed unchanged on suspension.
 	in.Organization = nil

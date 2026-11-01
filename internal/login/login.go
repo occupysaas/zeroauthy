@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -120,9 +121,14 @@ func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 		res.Tenant = hostedlogin.LocalizedTenant(res.Tenant, config)
 		viewRequest = r.WithContext(hostedlogin.WithConfiguration(ctx, config))
 	}
+	// Resolve attribution before continuing authentication writes.
 	clientName, named := txn.ClientID, false
-	if c, err := h.Store.Clients().Get(ctx, res.Tenant.ID, txn.ClientID); err == nil && c.Name != "" {
-		clientName, named = c.Name, true
+	if client, err := h.Store.Clients().Get(ctx, res.Tenant.ID, txn.ClientID); err == nil {
+		ctx = events.Enrich(events.WithContext(ctx, events.FromRequest(r)), client, nil)
+		*r = *r.WithContext(ctx)
+		if client.Name != "" {
+			clientName, named = client.Name, true
+		}
 	}
 	l := i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]).WithVar("clientName", clientName)
 	if r.Method == http.MethodPost && txn.HostedState.FormLanguage != "" {
@@ -168,6 +174,9 @@ func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
 		return f, err
 	}
 	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
+	if err == nil {
+		*r = *r.WithContext(events.Enrich(r.Context(), nil, f.conn))
+	}
 	return f, err
 }
 

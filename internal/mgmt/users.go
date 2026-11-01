@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"maps"
 	"net/http"
 	"slices"
@@ -16,6 +15,8 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -541,6 +542,8 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Fail(w, internalError(h, r, "create user", err))
 		return
 	}
+	ctx = events.Enrich(ctx, nil, conn)
+	*r = *r.WithContext(ctx)
 	if errs := userrules.CheckCreate(conn, in); len(errs) > 0 {
 		Fail(w, fieldError(errs[0]))
 		return

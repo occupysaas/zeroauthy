@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
@@ -65,6 +66,14 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "load connection", err)
 		return
 	}
+	ctx = events.WithContext(ctx, events.FromRequest(r))
+	if id := fields["client_id"]; id != "" {
+		if client, err := h.Store.Clients().Get(ctx, tenantID, id); err == nil {
+			ctx = events.Enrich(ctx, client, nil)
+		}
+	}
+	ctx = events.Enrich(ctx, nil, conn)
+	*r = *r.WithContext(ctx)
 	code := "fcpr"
 	defer func() { h.event(r, code, fields["client_id"], conn, nil) }()
 	if id := fields["client_id"]; id != "" && !slices.Contains(conn.EnabledClients, id) {

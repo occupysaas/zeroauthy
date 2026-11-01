@@ -88,10 +88,11 @@ func TestActionsInventory(t *testing.T) {
 		t.Fatalf("missing operations %v", want)
 	}
 
-	if len(inv.Triggers) != 7 {
+	if len(inv.Triggers) != 8 {
 		t.Fatalf("triggers=%d", len(inv.Triggers))
 	}
 	members := map[string][]string{
+		"event-stream":                  {"cache.get", "cache.set", "cache.delete"},
 		"pre-user-registration":         {"access.deny", "user.setAppMetadata", "user.setUserMetadata", "cache.get", "cache.set", "cache.delete", "validation.error"},
 		"post-user-registration":        {"cache.get", "cache.set", "cache.delete"},
 		"post-change-password":          {"cache.get", "cache.set", "cache.delete"},
@@ -131,8 +132,10 @@ func TestActionsInventory(t *testing.T) {
 		"post-change-password":          {"onExecutePostChangePassword", "", false},
 		"password-reset-post-challenge": {"onExecutePostChallenge", "onContinuePostChallenge", true},
 		"custom-email-provider":         {"onExecuteCustomEmailProvider", "", false},
+		"event-stream":                  {"onExecuteEventStream", "", false},
 	}
 	events := map[string][]string{
+		"event-stream":                  {"message", "secrets"},
 		"pre-user-registration":         {"user", "connection", "client", "request", "request.body", "tenant", "transaction", "secrets", "custom_domain.domain"},
 		"post-user-registration":        {"user", "user.user_id", "user.created_at", "connection", "request", "tenant", "transaction", "secrets"},
 		"post-change-password":          {"user", "user.last_password_reset", "connection", "request", "tenant", "secrets"},
@@ -145,12 +148,12 @@ func TestActionsInventory(t *testing.T) {
 			t.Fatalf("unexpected trigger %q", tr.ID)
 		}
 		delete(members, tr.ID)
-		switch tr.ID {
-		case "pre-user-registration", "post-user-registration", "post-change-password":
-			if tr.Version != "v2" {
-				t.Errorf("%s version=%q want observed current v2", tr.ID, tr.Version)
-			}
+		// Empty versions retain the existing HTTP discovery defaults.
+		versions := map[string]string{"post-login": "", "credentials-exchange": "", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "", "custom-email-provider": "", "event-stream": "v1"}
+		if tr.Version != versions[tr.ID] {
+			t.Errorf("%s version=%q want %q", tr.ID, tr.Version, versions[tr.ID])
 		}
+
 		h := handlers[tr.ID]
 		if tr.Handler != h.execute || tr.ContinueHandler != h.resume || tr.Blocking != h.blocking {
 			t.Errorf("%s handlers/blocking=(%q,%q,%v), want (%q,%q,%v)", tr.ID, tr.Handler, tr.ContinueHandler, tr.Blocking, h.execute, h.resume, h.blocking)
@@ -202,7 +205,7 @@ func TestActionsInventory(t *testing.T) {
 		t.Errorf("missing triggers %v", members)
 	}
 	deferred := map[string]string{
-		"send-phone-message": "34", "custom-phone-provider": "34", "custom-token-exchange": "35", "event-stream": "32",
+		"send-phone-message": "34", "custom-phone-provider": "34", "custom-token-exchange": "35",
 		"password-hash-migration": "deferred", "login-post-identifier": "deferred", "signup-post-identifier": "deferred", "post-credential-validation": "deferred",
 	}
 	for _, tr := range inv.DeferredTriggers {

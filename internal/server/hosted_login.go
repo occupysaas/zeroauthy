@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -23,6 +24,7 @@ func hostedPresentation(st store.Store) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
+			r = r.WithContext(events.WithContext(r.Context(), events.FromRequest(r)))
 			c, err := (hostedlogin.Service{Store: st}).Load(r.Context(), res.Tenant.ID)
 			if err != nil {
 				view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))

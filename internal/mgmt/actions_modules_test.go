@@ -170,7 +170,7 @@ func TestActionsModulesPublicVersionShapeAndTombstone(t *testing.T) {
 	}
 }
 
-func TestActionsManagementSevenTriggersDryRun(t *testing.T) {
+func TestActionsManagementTriggersDryRun(t *testing.T) {
 	e := newClientsEnv(t)
 	ae := actionstest.NewOffline(t, e.st, e.w)
 	e.h.Actions = ae.Engine
@@ -180,9 +180,24 @@ func TestActionsManagementSevenTriggersDryRun(t *testing.T) {
 		t.Fatal(rec.Body)
 	}
 	triggers := out.(map[string]any)["triggers"].([]any)
-	if len(triggers) != 7 {
-		t.Fatal(triggers)
+
+	want := map[string]string{"post-login": "v3", "credentials-exchange": "v2", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "v3", "custom-email-provider": "v3", "event-stream": "v1"}
+	if len(triggers) != len(want) {
+		t.Fatalf("triggers=%v", triggers)
 	}
+	for _, item := range triggers {
+		tr := item.(map[string]any)
+		id, _ := tr["id"].(string)
+		version, ok := want[id]
+		if !ok || tr["version"] != version || tr["binding_policy"] != "trigger-bound" {
+			t.Fatalf("unexpected trigger=%v", tr)
+		}
+		delete(want, id)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing triggers=%v", want)
+	}
+
 	for _, tr := range actionsrules.Inventory().Triggers {
 		t.Run(tr.ID, func(t *testing.T) {
 			commands := "console.log('ran');"
@@ -195,6 +210,8 @@ func TestActionsManagementSevenTriggersDryRun(t *testing.T) {
 				commands += `api.user.setUserMetadata("dry",true);api.access.deny("dry","dry");`
 			case "password-reset-post-challenge":
 				commands += `api.transaction.setResultUrl("https://example.test/result");`
+			case "event-stream":
+				commands += `api.cache.set("dry","value");if(api.cache.get("dry").value!=="value")throw Error("cache");api.cache.delete("dry");`
 			case "custom-email-provider":
 				commands += `api.notification.retry("dry");api.notification.drop("dry");`
 			}

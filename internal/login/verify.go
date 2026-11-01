@@ -351,6 +351,8 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		h.fail(w, r, err, nil)
 		return
 	}
+	h.withTicketContext(r, tk.ClientID, conn)
+	ctx = r.Context()
 	// The legacy store is the source of truth: its verify script must
 	// accept first. The ticket stays usable when it does not.
 	if identity.IsLegacy(conn) && !h.legacyVerify(ctx, conn, user) {

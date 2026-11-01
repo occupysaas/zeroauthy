@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -17,6 +18,7 @@ import (
 // The single-use state and the browser's active session jointly authorize it.
 // A reset-page state goes to ResetContinue instead.
 func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
+	*r = *r.WithContext(events.WithContext(r.Context(), events.FromRequest(r)))
 	invalid := func() { httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "invalid continuation state") }
 	res, ok := tenant.FromContext(r.Context())
 	if !ok || h.Actions == nil {

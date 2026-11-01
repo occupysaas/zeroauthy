@@ -468,6 +468,8 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.withTicketContext(r, tk.ClientID, conn)
+	ctx = r.Context()
 	eventConn = conn
 	eventClient = tk.ClientID
 	eventUser = &store.User{UserID: tk.UserID}

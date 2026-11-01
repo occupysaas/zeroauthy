@@ -1241,3 +1241,46 @@ change. Prior cursor rulings remain unchanged. `git diff --check` passed.
 Full commands, RED/GREEN, resource/clock tests and actual verification results:
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-10-fix1-report.md`.
 No remaining self-review finding; controller review pending.
+
+### Task 11 — Attach request context to tenant events
+
+Base `d24329c`. HTTP event context now follows hosted/direct signup, OAuth,
+federation callback provisioning, verified invitation acceptance, ticket reset/
+verification, Management writes, and post-login Action effects/continuations.
+Enrichment retains existing request/client/connection fields. The lightweight
+`events/eventcontext` carrier avoids the orglogin dependency cycle while public
+`events` aliases remain available. Trusted `httpx` IP and tenant-resolved custom
+origins are used; no query/body/credentials enter context. Management's app is
+resolved from authenticated Caller, operators acquire no synthetic M2M app.
+Imports, seed and durable Actions clear event origin and emit tenant-only context.
+Stored client metadata is absent by existing D-0039, so metadata honestly is `{}`.
+
+All five named regressions first failed through actual decorated write paths,
+then passed; added direct-signup/seed/trusted-IP/privacy/real-Node-Action checks.
+Required focused command PASS; context race checks PASS10leaves/0skips/races.
+The first required internal short run correctly recorded FAIL exit1 (9072leaf
+passes,5failures,1skip): stale Task8 seven-trigger inventory/discovery/schema
+assumptions plus the Task3 event wrapper hiding the raw plugin from KillForTest.
+Controller-authorized integration repairs assert the exact eight trigger IDs,
+versions/handlers/event/API semantics, add source ActionTrigger event-stream enum
+and `make generate` (exit0), and traverse structural Unwrap in the crash helper
+with nil/cycle guards. Production readiness/Ping stays unchanged; an actual killed
+wrapped plugin now yields503. Focused integration checks PASS14leaves/0skips.
+
+Final `GOTOOLCHAIN=go1.26.7 ZA_REQUIRE_NODE=1 go test ./internal/... -count=1
+-short -timeout=90m -json` PASS exit0:9084leaf passes,0failures,1actual skip,
+74package passes plus11without tests. Skip:
+`grpcstore/TestOrganizationsPluginRoundTrip/Organizations/Limits`, reason store
+cannot override Organizations limits. First run UTC21:21:35–21:24:45,
+finalUTC21:28:45–21:32:01 (196.575s), sole task monitor, sessions80954/57450
+completed. The90m limit was selected in advance from prior SQL/gRPC timing;
+neither run timed out. Both actual results/logs/snapshot manifests are retained
+at `/tmp/plan32-task11-short*`; final source manifestSHA256
+`d83580b02fec7c71a398745bde7d3e022428f1b3f0af8ef40365f192d71fe497`.
+
+No new dependency/manual generated edit. `git diff --check` passed. Full exact
+commands, RED/GREEN stages, initial failures and fixes, skips and source hashes:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-11-report.md`.
+No active run remains; controller review pending. Full non-short/E2E/console
+acceptance remains for later tasks, and earlier capture-overhead/cursor/lease
+limitations remain explicitly recorded.

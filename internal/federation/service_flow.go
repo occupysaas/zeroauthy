@@ -17,6 +17,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
@@ -107,6 +108,7 @@ func CookieHash(v string) string { return StateHash("cookie:" + v) }
 // Begin creates the attempt and returns the provider redirect. Nothing is
 // sent upstream except OIDC discovery (bounded, cached).
 func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) {
+	ctx = events.Enrich(ctx, in.Client, in.Connection)
 	conn := in.Connection
 	if conn == nil || !access.ConnectionUsable(in.Client, conn) {
 		return nil, ErrConnectionUnusable
@@ -296,6 +298,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		return nil, err
 	}
 	actor := logs.Event{TenantID: a.TenantID, ClientID: txn.ClientID, ClientName: client.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy), OrganizationID: txn.Params[store.TxnParamOrgID]}
+	ctx = events.Enrich(ctx, client, conn)
 	ctx = logs.WithEvent(ctx, actor)
 	if in.OnResolved != nil {
 		in.OnResolved(actor)

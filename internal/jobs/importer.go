@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
@@ -155,6 +156,7 @@ func paramBool(j *store.Job, k string, def bool) bool {
 
 // Run implements Processor.
 func (p Importer) Run(ctx context.Context, st store.Store, j *store.Job, lease Lease) (status store.JobStatus, details string, err error) {
+	ctx = events.WithContext(ctx, events.Context{})
 	recs, details := ParseImportFile(j.Input)
 	if details != "" {
 		p.log().InfoContext(ctx, "jobs: user import failed", "tenant", j.TenantID, "job", j.ID, "details", details)

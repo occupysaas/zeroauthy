@@ -10,6 +10,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
@@ -27,6 +28,7 @@ const effectsKey = "za_action_effects"
 // the flow's effects; on a denial or failure the response has been written
 // and ok is false. Without an engine no Action runs and the effects are nil.
 func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, in access.Input, screenShown bool) (*actions.Effects, bool) {
+	*r = *r.WithContext(events.WithContext(r.Context(), events.FromRequest(r)))
 	event := logs.FromRequest(r)
 	event.TenantID = res.Tenant.ID
 	event.ClientID = client.ClientID

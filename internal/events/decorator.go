@@ -28,6 +28,15 @@ func Wrap(st store.Store, cfg Config) store.Store {
 	}
 	return &capture{Store: st, cfg: cfg}
 }
+
+// Unwrap exposes the underlying store to lifecycle and diagnostic helpers.
+func (s *capture) Unwrap() store.Store {
+	if s == nil {
+		return nil
+	}
+	return s.Store
+}
+
 func (s *capture) available(ctx context.Context) (bool, error) {
 	if p, ok := s.Store.(store.EventsSupporter); ok {
 		err := p.CheckEventsSupport(ctx)

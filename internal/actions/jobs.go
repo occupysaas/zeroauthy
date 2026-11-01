@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/events/eventcontext"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -126,6 +127,7 @@ func (e *Engine) enqueueSnapshot(ctx context.Context, tx store.Store, j AsyncJob
 // means the worker was canceled: it must leave the existing lease untouched.
 // FinishJob's expected lease must still be supplied by the caller.
 func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJob {
+	ctx = eventcontext.WithContext(ctx, eventcontext.Context{})
 	if j == nil || ctx.Err() != nil {
 		return nil
 	}

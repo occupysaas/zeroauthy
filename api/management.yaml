@@ -13791,6 +13791,7 @@ components:
           - post-change-password
           - password-reset-post-challenge
           - custom-email-provider
+          - event-stream
         version:
           type: string
         binding_policy:

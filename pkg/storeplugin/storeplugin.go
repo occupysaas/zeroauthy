@@ -55,6 +55,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -223,10 +224,29 @@ type opened struct {
 }
 
 // KillForTest stops the plugin process behind a store returned by Open,
-// without closing the store. It exists for crash tests.
+// including stores behind Unwrap wrappers, without closing the store. It exists
+// for crash tests.
 func KillForTest(s store.Store) {
-	if o, ok := s.(*opened); ok {
-		o.client.Kill()
+	// A bounded traversal also handles accidentally cyclic diagnostic wrappers.
+	for depth := 0; depth < 64 && s != nil; depth++ {
+		value := reflect.ValueOf(s)
+		switch value.Kind() {
+		case reflect.Pointer, reflect.Interface, reflect.Map, reflect.Slice, reflect.Func, reflect.Chan:
+			if value.IsNil() {
+				return
+			}
+		}
+		if o, ok := s.(*opened); ok {
+			if o.client != nil {
+				o.client.Kill()
+			}
+			return
+		}
+		wrapper, ok := s.(interface{ Unwrap() store.Store })
+		if !ok {
+			return
+		}
+		s = wrapper.Unwrap()
 	}
 }
 

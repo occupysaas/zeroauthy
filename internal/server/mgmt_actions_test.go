@@ -61,9 +61,24 @@ func TestActionsManagementRoutes(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("triggers=%d %s", rec.Code, rec.Body)
 	}
-	if len(out["triggers"].([]any)) != 7 {
-		t.Fatal(out)
+
+	want := map[string]string{"post-login": "v3", "credentials-exchange": "v2", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "v3", "custom-email-provider": "v3", "event-stream": "v1"}
+	if len(out["triggers"].([]any)) != len(want) {
+		t.Fatalf("triggers=%v", out["triggers"].([]any))
 	}
+	for _, item := range out["triggers"].([]any) {
+		tr := item.(map[string]any)
+		id, _ := tr["id"].(string)
+		version, ok := want[id]
+		if !ok || tr["version"] != version || tr["binding_policy"] != "trigger-bound" {
+			t.Fatalf("unexpected trigger=%v", tr)
+		}
+		delete(want, id)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing triggers=%v", want)
+	}
+
 }
 
 func TestActionsManagementResponseSchemas(t *testing.T) {

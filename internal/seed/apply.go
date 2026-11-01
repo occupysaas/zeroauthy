@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/hostname"
@@ -51,6 +52,7 @@ func applyOrdinary(ctx context.Context, st store.Store, f *File, now func() time
 }
 
 func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
+	ctx = events.WithContext(ctx, events.Context{})
 	if now == nil {
 		now = time.Now
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -114,6 +115,7 @@ func hasActions(f *File) bool {
 // and creates Actions outside it. A failed build leaves the ordinary seed
 // applied, but creates no Action; a retry can safely finish the same seed.
 func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper, engine *actions.Engine) error {
+	ctx = events.WithContext(ctx, events.Context{})
 	if hasActions(f) && (engine == nil || engine.Builds == nil) {
 		return errors.New("seed: Actions require an Actions build manager")
 	}

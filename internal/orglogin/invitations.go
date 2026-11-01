@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/events/eventcontext"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -78,6 +79,7 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if err != nil {
 			return err
 		}
+		ctx = eventcontext.Enrich(ctx, client, conn)
 		event.ClientName = client.Name
 		if !access.ConnectionUsable(client, conn) || (client.OrganizationUsage != store.OrgUsageAllow && client.OrganizationUsage != store.OrgUsageRequire) {
 			return ErrNotMember

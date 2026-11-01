@@ -4,15 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/logrules"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 const managementCaptureLimit = 64 << 10
@@ -33,7 +37,22 @@ func (h *Handlers) logMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		ctx := r.Context()
+		ctx := events.WithContext(r.Context(), events.FromRequest(r))
+		// Caller comes from Auth, never a client_id in a mutation body.
+		if caller.Kind == M2M && caller.ClientID != "" {
+			attribution := events.FromRequest(r)
+			attribution.ClientID, attribution.ClientName, attribution.ClientMetadata = caller.ClientID, "", map[string]string{}
+			ctx = events.WithContext(ctx, attribution)
+			if res, ok := tenant.FromContext(ctx); ok {
+				client, err := h.Store.Clients().Get(ctx, res.Tenant.ID, caller.ClientID)
+				if err == nil {
+					ctx = events.Enrich(ctx, client, nil)
+				} else if !errors.Is(err, store.ErrNotFound) {
+					Fail(w, err)
+					return
+				}
+			}
+		}
 		for key, values := range r.Header {
 			if logscrub.SensitiveKey(key) || strings.EqualFold(key, "Cookie") {
 				for _, value := range values {

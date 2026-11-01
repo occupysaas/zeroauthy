@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -78,6 +79,8 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "load connection", err)
 		return
 	}
+	ctx = events.Enrich(events.WithContext(ctx, events.FromRequest(r)), client, conn)
+	*r = *r.WithContext(ctx)
 	ctx = logs.WithRecorder(ctx, h.Recorder)
 	ctx = logs.WithEvent(ctx, logs.Event{TenantID: res.Tenant.ID, ClientID: client.ClientID, ClientName: client.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "database"})
 	ctx = logscrub.WithCredentials(ctx, identity.EffectivePassword(conn, fields["password"]))

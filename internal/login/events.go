@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -40,7 +41,8 @@ func (h *Handlers) maskRequest(r *http.Request) {
 			}
 		}
 	}
-	ctx := logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...)
+	ctx := events.WithContext(r.Context(), events.FromRequest(r))
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, values...), values...)
 	*r = *r.WithContext(logs.WithRecorder(ctx, h.Recorder))
 }
 
@@ -56,6 +58,7 @@ func (h *Handlers) ticketEvent(r *http.Request, code, clientID string, conn *sto
 }
 
 func (h *Handlers) withFlowEvent(r *http.Request, f *flow) {
+	*r = *r.WithContext(events.Enrich(r.Context(), nil, f.conn))
 	e := logs.FromRequest(r)
 	e.ClientID = f.txn.ClientID
 	e.ClientName = f.clientName
@@ -67,4 +70,16 @@ func (h *Handlers) withFlowEvent(r *http.Request, f *flow) {
 		e.StrategyType = logs.StrategyType(f.conn.Strategy)
 	}
 	*r = *r.WithContext(logs.WithEvent(r.Context(), e))
+}
+
+func (h *Handlers) withTicketContext(r *http.Request, clientID string, conn *store.Connection) {
+	ctx := events.Enrich(r.Context(), nil, conn)
+	if clientID != "" {
+		if res, ok := tenant.FromContext(ctx); ok {
+			if client, err := h.Store.Clients().Get(ctx, res.Tenant.ID, clientID); err == nil {
+				ctx = events.Enrich(ctx, client, nil)
+			}
+		}
+	}
+	*r = *r.WithContext(ctx)
 }

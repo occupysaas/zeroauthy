@@ -12,6 +12,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -104,6 +105,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, serverError()
 	}
 
+	ctx = events.Enrich(ctx, c, conn)
 	ctx = logscrub.WithCredentials(ctx, identity.EffectivePassword(conn, password))
 	eventConn = conn
 	svc := h.protectionService()

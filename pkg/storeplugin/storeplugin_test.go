@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/pkg/store"
 	"github.com/zeroauthy/zeroauthy/pkg/storeplugin"
 	"github.com/zeroauthy/zeroauthy/pkg/storetest"
@@ -269,4 +270,36 @@ func TestPluginArgsReachArgvInOrder(t *testing.T) {
 	if got, want := string(b), "--first\ntwo words\n\n"; got != want {
 		t.Fatalf("argv = %q, want %q", got, want)
 	}
+}
+
+// Application storage is wrapped by tenant-event capture. Crash tests must still
+// stop the underlying process rather than silently leaving it alive.
+func TestPluginStoppedWrapped(t *testing.T) {
+	ctx := context.Background()
+	raw, err := storeplugin.Open(ctx, pluginBin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer raw.Close()
+	wrapped := events.Wrap(raw, events.Config{})
+	storeplugin.KillForTest(wrapped)
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := wrapped.Ping(cctx); err == nil {
+		t.Fatal("Ping succeeded after stopping wrapped plugin")
+	}
+	if cctx.Err() != nil {
+		t.Fatal("Ping hung until deadline")
+	}
+}
+
+type cyclicTestStore struct{ store.Store }
+
+func (s *cyclicTestStore) Unwrap() store.Store { return s }
+func TestKillForTestUnwrapGuards(t *testing.T) {
+	storeplugin.KillForTest(nil)
+	var typedNil *cyclicTestStore
+	storeplugin.KillForTest(typedNil)
+	storeplugin.KillForTest(&cyclicTestStore{})
+	storeplugin.KillForTest(events.Wrap(nil, events.Config{}))
 }

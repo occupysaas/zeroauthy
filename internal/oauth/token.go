@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
@@ -75,7 +76,8 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	}
 	// Grants that throttle by end user see the IP through the context.
 	ip := h.endUserIP(r, client)
-	ctx := withClientIP(r.Context(), ip)
+	ctx := events.Enrich(events.WithContext(r.Context(), events.FromRequest(r)), client, nil)
+	ctx = withClientIP(ctx, ip)
 	ctx = withRequestInfo(ctx, r, ip, form)
 	e := logs.FromRequest(r)
 	e.ClientID = client.ClientID

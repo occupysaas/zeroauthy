@@ -166,6 +166,7 @@ func (e ActionTriggerBindingPolicy) Valid() bool {
 const (
 	ActionTriggerIdCredentialsExchange        ActionTriggerId = "credentials-exchange"
 	ActionTriggerIdCustomEmailProvider        ActionTriggerId = "custom-email-provider"
+	ActionTriggerIdEventStream                ActionTriggerId = "event-stream"
 	ActionTriggerIdPasswordResetPostChallenge ActionTriggerId = "password-reset-post-challenge"
 	ActionTriggerIdPostChangePassword         ActionTriggerId = "post-change-password"
 	ActionTriggerIdPostLogin                  ActionTriggerId = "post-login"
@@ -179,6 +180,8 @@ func (e ActionTriggerId) Valid() bool {
 	case ActionTriggerIdCredentialsExchange:
 		return true
 	case ActionTriggerIdCustomEmailProvider:
+		return true
+	case ActionTriggerIdEventStream:
 		return true
 	case ActionTriggerIdPasswordResetPostChallenge:
 		return true

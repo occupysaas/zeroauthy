@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/events/eventcontext"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -156,6 +157,7 @@ func (e *Engine) ContinuePostLoginValidated(ctx context.Context, tenantID, state
 			return nil, err
 		}
 	}
+	ctx = eventcontext.Enrich(ctx, p.Input.Client, p.Input.Connection)
 	// Keep the original flow/event snapshot, with the current request and session.
 	p.Input.Request, p.Input.Session = req, sess
 	f := &flow{tenantID: tenantID, trigger: TriggerPostLogin, handler: "onContinuePostLogin", hostname: p.Input.Tenant.Host, input: &p.Input,
