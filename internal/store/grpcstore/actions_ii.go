@@ -389,3 +389,32 @@ func (srv *Server) PasswordResetTicketsMarkChallengePassed(ctx context.Context, 
 	})
 	return &storev1.Result{Error: errToPB(err)}, nil
 }
+
+func (r clientActions) GetJob(ctx context.Context, tid, id string) (*store.ActionJob, error) {
+	q := r.req(tid)
+	q.Id = id
+	v, err := r.call("GetJob", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsGetJob(ctx, q) })
+	if err != nil {
+		return nil, err
+	}
+	if v.Job == nil {
+		return nil, fmt.Errorf("%w: plugin returned a nil ActionJob", store.ErrInvalid)
+	}
+	return actionJobFromPB(v.Job), nil
+}
+func (srv *Server) ActionsGetJob(ctx context.Context, q *storev1.ActionsRequest) (*storev1.ActionsResponse, error) {
+	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error {
+		j, err := a.GetJob(ctx, q.TenantId, q.Id)
+		o.Job = actionJobToPB(j)
+		return err
+	}), nil
+}
+func (r clientActions) CancelJob(ctx context.Context, tid, id string) error {
+	q := r.req(tid)
+	q.Id = id
+	_, err := r.call("CancelJob", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsCancelJob(ctx, q) })
+	return err
+}
+func (srv *Server) ActionsCancelJob(ctx context.Context, q *storev1.ActionsRequest) (*storev1.ActionsResponse, error) {
+	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error { return a.CancelJob(ctx, q.TenantId, q.Id) }), nil
+}

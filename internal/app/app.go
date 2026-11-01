@@ -389,7 +389,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		logPurge:     logs.NewPurger(st, logsConfig, log),
 		logStreams:   logstream.NewWorker(st, wrapper, logsConfig, nil, log),
 		eventPurge:   events.NewPurger(st, events.Config{Retention: cfg.Events.Retention}, log),
-		eventStreams: eventstream.NewWorker(st, wrapper, events.Config{AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP}, nil, nil, log),
+		eventStreams: eventstream.NewWorker(st, wrapper, events.Config{AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP}, nil, eventstream.NewActionRunner(engine), log),
 		breachFile:   breachFile,
 		handler: server.New(server.Deps{
 			LogsConfig:   logsConfig,

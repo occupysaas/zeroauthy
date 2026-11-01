@@ -886,3 +886,83 @@ fixture diagnostics remain deferred as directed. The prior relative10% capture
 overhead target remains explicitly **not met**. Full fix report with exact
 commands, timestamps and limits:
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-7-fix1-report.md`.
+
+## Task 8 — Event-stream Actions (2026-11-01)
+
+Base `72175ff`; activates the `event-stream` inventory entry, the exact
+`onExecuteEventStream` Node handler, and a durable Action destination wired into
+the app's existing stream/job worker lifecycles. The queue snapshots the selected
+tenant Action's deployed version, Action/Module secrets and immutable Module
+versions, together with the original CloudEvent and an absolute deadline. Only
+the queue worker invokes Node. Each delivery retry creates a distinct job and
+execution; existing Plan 31 recording/masking makes executions discoverable.
+`event.message` and `event.secrets` are the only event fields and cache
+get/set/delete are the only enabled APIs. Customer payload fields are passed
+through without a credential-name blacklist.
+
+Public [event](https://auth0.com/docs/actions/reference/event-stream/event-stream-event-object)
+and [API](https://auth0.com/docs/actions/reference/event-stream/event-stream-api-object)
+references were checked on this task. They confirm the event shape and cache;
+`api.message.fail` is not enabled. Task 1 omitted a trigger-version declaration:
+`v1` is a local compatibility default, **not** a documented/observed upstream
+version. That gap and its correction cost are recorded in D-0058.
+
+Controller-authorized prerequisite: tenant-scoped `GetJob` and `CancelJob` for
+memory, SQL and storage plugins, with additive generated RPCs and no Actions
+capability-version change. Older plugins missing either operation reject this
+new destination before enqueue while prior Actions jobs remain usable. Cancel
+atomically marks pending jobs failed and clears/fences their leases. Workers
+check the persisted state before dispatch and every25ms while running, so another
+process can stop Node; the sealed deadline prevents late execution even after the
+delivery process disappears. Delivery waits reserve up to100ms inside their10s
+budget for cancellation I/O, proportionally less for short caller deadlines.
+Storage failure can prevent the cancellation write; the sealed deadline remains
+an independent execution fence. Cost: extra queue polling, up to100ms less runtime
+budget, and external plugin updates for this destination.
+
+RED evidence: initial required command rejected the trigger and lacked the
+adapter (exit1); memory/plugin common tests lacked read/cancel and the real
+Management Action creation returned400 (exit1). Self-review regressions reproduced
+a cancelled warm Node claim executing before the periodic check, cancellation
+cleanup extending a100ms deadline to1.100589s, and deadline/runtime timeouts being
+classified as action errors. Each was repaired and the corresponding focused
+checks passed. An intermediate compile failure from an unused test import was
+fixed; its failing log is preserved. No RED/deferred run is labelled passing.
+
+Validation (all Go commands exported `GOTOOLCHAIN=go1.26.7`, real Node26.8.1,
+`ZA_REQUIRE_NODE=1` on Actions executions):
+
+- Final required Actions/actionsrules/eventstream selection:25 passed leaves,
+  exit0,0skips, `/tmp/plan32-task8-final.log`, `.exit`; session55714.
+- Required full Actions suite, started once:225 passed leaves, exit0,0skips,
+ 34.648s; `/tmp/plan32-task8-actions-full.log`, `.exit`, session12956;
+  UTC19:59:28–20:00:04. Later repairs changed only the destination adapter/worker
+  and its tests; this Actions engine snapshot is unchanged.
+- Focused Actions/eventstream/memory/plugin race run:17 passed leaves, exit0,
+ 0skips/race reports; `/tmp/plan32-task8-race.log`, `.exit`, session79350.
+- Final adapter/timeout/secret/failure-record race selection:12 passed leaves,
+  exit0,0skips/race reports; `/tmp/plan32-task8-adapter-final2.log`, `.exit`,
+  session16659.
+- Real Management create Action/create stream/build/deploy/durable execution/read
+  execution path plus plugin read/cancel and old-plugin compatibility:5 passed
+  leaves, exit0,0skips; `/tmp/plan32-task8-api-plugin.log`, `.exit`, session8326.
+- Only the new shared `TestActionJobReadCancel` on SQLite/PostgreSQL/MySQL through
+  `scripts/test-sql.sh -run '^TestActionJobReadCancel$' ./internal/store/sqlstore`:
+  exit0 under race,5.144s,0reported skips; `/tmp/plan32-task8-sql.log`, `.exit`,
+  session27379. The script exported both server DSNs and removed its containers.
+  No broad SQL/plugin conformance suite was run.
+- App/server/CLI compile only with `-run '^$'`:exit0;
+  `/tmp/plan32-task8-compile.log`, `.exit`, session94870. No runtime-test claim.
+- `go generate ./proto/store/v1` and `git diff --check`:exit0. Protobuf outputs
+  were generated with the repository toolchain; no generated file was hand edited.
+
+Implementation tree before this record-only addition:
+`e6ab0be5271eb452714208aad136e35df7b1a207`
+(`/tmp/plan32-task8-final.tree`). Self-review checked durable-only execution,
+selected trigger/version pinning, tenant separation, stale-lease fencing,
+queued/running timeout cancellation, retry uniqueness, masking and lifecycle
+wiring. No unresolved Task8 issue. The earlier Plan32 relative10% capture-overhead
+target remains explicitly **not met**; no broad suites were repeated to fill
+waiting time. All runs finished; one sole monitor. Exact commands, failures,
+limits and snapshots are retained in
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-8-report.md`.

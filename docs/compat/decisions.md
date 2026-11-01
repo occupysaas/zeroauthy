@@ -2121,5 +2121,25 @@ Task 6 Management API rulings (local, 2026-11-01):
   markers while suppressing the entire credential-bearing destination subtree.
   No public-body logging allowlist expansion is needed for CRUD.
 
-The `event-stream` Actions trigger remains deferred until Task 8; Task 6 validates
-an existing Action's tenant and trigger without changing trigger availability.
+Task 8 activates `event-stream` Actions through durable jobs. The public
+[event reference](https://auth0.com/docs/actions/reference/event-stream/event-stream-event-object)
+and [API reference](https://auth0.com/docs/actions/reference/event-stream/event-stream-api-object)
+confirm `message`, `secrets`, and cache get/set/delete. No `api.message.fail` or
+other API member is enabled. Task 1 did not freeze a trigger version and the
+consulted references provide no version declaration: `v1` is an explicit local
+compatibility default, not an observed or documented upstream version. Cost if
+wrong: the advertised trigger version may need adjustment after independent
+observer evidence.
+
+The durable queue gains tenant-scoped job read/cancel operations and additive
+plugin RPCs without changing the existing Actions capability version. Plugins
+missing either operation refuse new event-stream attempts before enqueue, while
+prior Actions features remain usable. Cancellation fails pending jobs and fences
+leased completions; workers verify ownership before dispatch and check cancellation
+while running. Each sealed job also carries its deadline, preventing late Node
+execution after a delivery worker disappears. A normal ten-second attempt reserves
+100ms inside its deadline for cancellation I/O (shorter caller budgets reserve one
+tenth, capped at 100ms); storage cancellation failure still leaves the sealed
+deadline as the execution fence. Cost if wrong: additional queue polling and a
+small reduction in available Action execution time; external plugins must add the
+two RPCs to support this destination.

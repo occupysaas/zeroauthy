@@ -29,7 +29,7 @@ func scanActionJob(row scanner) (*store.ActionJob, error) {
 	return &j, nil
 }
 func jobTriggerValid(t string) bool {
-	return t == "post-user-registration" || t == "post-change-password" || t == "custom-email-provider"
+	return t == "post-user-registration" || t == "post-change-password" || t == "custom-email-provider" || t == "event-stream"
 }
 func jobStatusValid(s string) bool {
 	return s == "pending" || s == "done" || s == "failed" || s == "dropped"
@@ -232,4 +232,25 @@ func (r actionsRepo) PurgeJobs(ctx context.Context, before time.Time) (int, erro
 		return nil
 	})
 	return n, err
+}
+
+func (r actionsRepo) GetJob(ctx context.Context, tid, id string) (*store.ActionJob, error) {
+	j, err := scanActionJob(r.s.queryRow(ctx, `SELECT `+actionJobCols+` FROM action_jobs WHERE tenant_id=? AND id=?`, tid, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return j, err
+}
+func (r actionsRepo) CancelJob(ctx context.Context, tid, id string) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var one int
+		if err := tx.queryRow(ctx, `SELECT 1 FROM action_jobs WHERE tenant_id=? AND id=?`+tx.d.forUpdate, tid, id).Scan(&one); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return store.ErrNotFound
+			}
+			return err
+		}
+		_, err := tx.exec(ctx, `UPDATE action_jobs SET status='failed',lease_until=0,updated_at=? WHERE tenant_id=? AND id=? AND status='pending'`, micros(time.Now().UTC()), tid, id)
+		return err
+	})
 }

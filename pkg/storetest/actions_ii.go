@@ -411,3 +411,59 @@ func testActionsII(t *testing.T, factory Factory) {
 		}
 	})
 }
+
+// TestActionJobReadCancel is shared by direct and plugin stores. A cancelled
+// lease must fence stale FinishJob and prevent a delayed job from ever running.
+func TestActionJobReadCancel(t *testing.T, s store.Store) {
+	ctx := t.Context()
+	a := s.Actions()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tid := range []string{"job-owner", "job-other"} {
+		must(s.Tenants().Create(ctx, &store.Tenant{ID: tid, Name: tid}))
+	}
+	now := time.Now().UTC()
+	for _, id := range []string{"pending", "leased"} {
+		must(a.EnqueueJob(ctx, &store.ActionJob{TenantID: "job-owner", ID: id, Trigger: "event-stream", Sealed: []byte("snapshot"), NextAt: now}))
+	}
+	if _, err := a.GetJob(ctx, "job-other", "pending"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("tenant read", err)
+	}
+	if err := a.CancelJob(ctx, "job-other", "pending"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("tenant cancel", err)
+	}
+	read, err := a.GetJob(ctx, "job-owner", "pending")
+	must(err)
+	read.Sealed[0] = 'X'
+	read, err = a.GetJob(ctx, "job-owner", "pending")
+	must(err)
+	if string(read.Sealed) != "snapshot" {
+		t.Fatal("alias")
+	}
+	must(a.CancelJob(ctx, "job-owner", "pending"))
+	jobs, err := a.ClaimJobs(ctx, now, time.Minute, 10)
+	must(err)
+	if len(jobs) != 1 || jobs[0].ID != "leased" {
+		t.Fatalf("cancelled pending claimed: %+v", jobs)
+	}
+	must(a.CancelJob(ctx, "job-owner", "leased"))
+	jobs[0].Status = "pending"
+	if err = a.FinishJob(ctx, &jobs[0], jobs[0].LeaseUntil); !errors.Is(err, store.ErrConflict) {
+		t.Fatal("stale finish", err)
+	}
+	read, err = a.GetJob(ctx, "job-owner", "leased")
+	must(err)
+	if read.Status != "failed" || !read.LeaseUntil.IsZero() {
+		t.Fatal(read)
+	}
+	must(a.CancelJob(ctx, "job-owner", "leased"))
+	jobs, err = a.ClaimJobs(ctx, now.Add(time.Hour), time.Minute, 10)
+	must(err)
+	if len(jobs) != 0 {
+		t.Fatal("cancelled jobs reclaimed", jobs)
+	}
+}

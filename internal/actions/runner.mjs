@@ -58,7 +58,7 @@ Object.defineProperty(net.Socket.prototype, 'connect', {
   writable: false, enumerable: false, configurable: false,
 });
 
-const handlers = new Set(['onExecutePostLogin', 'onContinuePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onContinuePostChallenge', 'onExecuteCustomEmailProvider']);
+const handlers = new Set(['onExecutePostLogin', 'onContinuePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onContinuePostChallenge', 'onExecuteCustomEmailProvider', 'onExecuteEventStream']);
 
 // The denylist only gives clear errors; --permission is the control.
 const denied = new Set(['child_process', 'cluster', 'worker_threads', 'inspector', 'vm', 'v8', 'module', 'repl', 'wasi', 'trace_events']);

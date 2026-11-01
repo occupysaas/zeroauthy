@@ -8,6 +8,7 @@ import (
 
 // Trigger IDs share the frozen inventory with Management's catalogue.
 const (
+	TriggerEventStream          = "event-stream"
 	TriggerPostLogin            = "post-login"
 	TriggerCredentialsExchange  = "credentials-exchange"
 	TriggerPreUserRegistration  = "pre-user-registration"

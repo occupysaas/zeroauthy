@@ -31,10 +31,11 @@ type jobPayload struct {
 	Invitation *InvitationDelivery `json:",omitempty"`
 	Units      []continueUnit
 	Input      map[string]any
+	Deadline   time.Time `json:",omitempty"`
 }
 
 func asyncTrigger(trigger string) bool {
-	return trigger == TriggerPostUserRegistration || trigger == TriggerPostChangePassword || trigger == TriggerCustomEmailProvider
+	return trigger == TriggerPostUserRegistration || trigger == TriggerPostChangePassword || trigger == TriggerCustomEmailProvider || trigger == TriggerEventStream
 }
 
 // Enqueue snapshots the binding order, deployed Actions and immutable Modules
@@ -53,22 +54,52 @@ func (e *Engine) Enqueue(ctx context.Context, tx store.Store, j AsyncJob) error 
 
 // enqueueBound snapshots bound, the trigger's bindings in order, into a job.
 func (e *Engine) enqueueBound(ctx context.Context, tx store.Store, j AsyncJob, bound []store.BoundVersion) error {
+	_, err := e.enqueueSnapshot(ctx, tx, j, bound, time.Time{})
+	return err
+}
+
+// EnqueueEventStream pins the selected deployed Action without using trigger
+// bindings. The sealed deadline also prevents execution after the caller dies.
+func (e *Engine) EnqueueEventStream(ctx context.Context, tid, id string, message json.RawMessage, deadline time.Time) (*store.ActionJob, error) {
+	if tid == "" || id == "" || deadline.IsZero() {
+		return nil, store.ErrInvalid
+	}
+	var job *store.ActionJob
+	err := e.Store.WithTx(ctx, func(tx store.Store) error {
+		a, err := tx.Actions().GetAction(ctx, tid, id)
+		if err != nil {
+			return err
+		}
+		if a.Trigger != TriggerEventStream || a.DeployedVersionID == "" {
+			return store.ErrInvalid
+		}
+		v, err := tx.Actions().GetVersion(ctx, tid, id, a.DeployedVersionID)
+		if err != nil {
+			return err
+		}
+		job, err = e.enqueueSnapshot(ctx, tx, AsyncJob{TenantID: tid, Trigger: TriggerEventStream, Input: map[string]any{"message": message}}, []store.BoundVersion{{Action: *a, Version: *v}}, deadline)
+		return err
+	})
+	return job, err
+}
+
+func (e *Engine) enqueueSnapshot(ctx context.Context, tx store.Store, j AsyncJob, bound []store.BoundVersion, deadline time.Time) (*store.ActionJob, error) {
 	if len(bound) == 0 {
-		return nil
+		return nil, nil
 	}
 	raw, err := json.Marshal(j.Input)
 	if err != nil {
-		return fmt.Errorf("actions: encoding job event: %w", err)
+		return nil, fmt.Errorf("actions: encoding job event: %w", err)
 	}
-	var p jobPayload
+	p := jobPayload{Deadline: deadline}
 	if err = json.Unmarshal(raw, &p.Input); err != nil || p.Input == nil {
-		return ErrInvalidPayload
+		return nil, ErrInvalidPayload
 	}
 	var ids []string
 	for _, u := range pinned(bound) {
 		versions, err := resolveModuleVersions(ctx, tx.Actions(), j.TenantID, u)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		p.Units = append(p.Units, continueUnit{Name: u.name, ActionID: u.actionID, VersionKey: u.versionKey, Code: u.code, BuildID: u.buildID, Secrets: u.secrets, Modules: u.moduleRefs, ModuleVersions: versions})
 		for _, v := range versions {
@@ -77,15 +108,18 @@ func (e *Engine) enqueueBound(ctx context.Context, tx store.Store, j AsyncJob, b
 	}
 	plain, err := json.Marshal(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	now := e.now()
 	job := &store.ActionJob{TenantID: j.TenantID, ID: "ajob_" + secrets.RandomString(24), Trigger: j.Trigger, Status: "pending", NextAt: now, CreatedAt: now, UpdatedAt: now, ModuleVersionIDs: ids}
 	job.Sealed, err = keys.SealBound(e.Secrets, jobLabel, []string{job.TenantID, job.ID, job.Trigger}, plain)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return tx.Actions().EnqueueJob(ctx, job)
+	if err := tx.Actions().EnqueueJob(ctx, job); err != nil {
+		return nil, err
+	}
+	return job, nil
 }
 
 // RunJob performs one claimed attempt against its sealed snapshot. A nil result
@@ -101,6 +135,9 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 		return &next
 	}
 	var result *Result
+	runCtx := ctx
+	var stopRun context.CancelFunc
+	var monitorDone chan struct{}
 	var runErr error
 	var f *flow
 	// An envelope that does not open or decode can never succeed: it is
@@ -140,6 +177,35 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	if runErr == nil && (err != nil || !asyncTrigger(j.Trigger) || (!invitation && json.Unmarshal(plain, &p) != nil) || len(p.Units) == 0 || p.Input == nil) {
 		runErr, corrupt = errors.New("actions: invalid job envelope"), true
 	} else if runErr == nil {
+		if j.Trigger == TriggerEventStream {
+			state, readErr := e.Store.Actions().GetJob(ctx, j.TenantID, j.ID)
+			if readErr != nil || state.Status != "pending" || !state.LeaseUntil.Equal(j.LeaseUntil) {
+				runErr = errors.New("actions: event stream job no longer owned")
+			} else if p.Deadline.IsZero() {
+				runErr, corrupt = errors.New("actions: invalid event stream deadline"), true
+			} else {
+				runCtx, stopRun = context.WithDeadline(ctx, p.Deadline)
+				monitorDone = make(chan struct{})
+				go func() {
+					defer close(monitorDone)
+					timer := time.NewTicker(25 * time.Millisecond)
+					defer timer.Stop()
+					for {
+						select {
+						case <-runCtx.Done():
+							return
+						case <-timer.C:
+							state, err := e.Store.Actions().GetJob(runCtx, j.TenantID, j.ID)
+							if err != nil || state.Status != "pending" || !state.LeaseUntil.Equal(j.LeaseUntil) {
+								stopRun()
+								return
+							}
+						}
+					}
+				}()
+				defer func() { stopRun(); <-monitorDone }()
+			}
+		}
 		f = &flow{redactor: customdb.NewRedactor(sensitive), jobID: j.ID, jobAttempt: j.Attempts, tenantID: j.TenantID, trigger: j.Trigger, handler: handlerFor(j.Trigger), acc: newAccum(j.Trigger, nil, nil, false), cache: e.caches.get(j.TenantID, j.Trigger)}
 		for _, u := range p.Units {
 			if u.ActionID == "" || u.VersionKey == "" || u.BuildID == "" || len(u.Modules) != len(u.ModuleVersions) {
@@ -150,7 +216,7 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 		}
 		if runErr == nil {
 			f.event = func() map[string]any { return p.Input }
-			result, runErr = e.run(ctx, f, nil)
+			result, runErr = e.run(runCtx, f, nil)
 		}
 	}
 	if ctx.Err() != nil {
@@ -172,7 +238,11 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 				e.log().Warn("actions: recording a failed job execution", "tenant", j.TenantID, "execution_id", executionID, "error", err)
 			}
 		}
-		e.log().Warn("actions job failed", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID, "error", runErr)
+		if j.Trigger == TriggerEventStream {
+			e.log().Warn("actions job failed", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID, "error", errorID(runErr))
+		} else {
+			e.log().Warn("actions job failed", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID, "error", runErr)
+		}
 	}
 	next.ExecutionIDs = append(next.ExecutionIDs, executionID)
 	next.Status = "done"

@@ -209,6 +209,8 @@ service StoreService {
   rpc ActionsGetModuleVersion(ActionsRequest) returns (ActionsResponse);
   rpc ActionsModuleUsers(ActionsRequest) returns (ActionsResponse);
   rpc ActionsEnqueueJob(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetJob(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsCancelJob(ActionsRequest) returns (ActionsResponse);
   rpc ActionsClaimJobs(ActionsRequest) returns (ActionsResponse);
   rpc ActionsFinishJob(ActionsRequest) returns (ActionsResponse);
   rpc ActionsPurgeJobs(ActionsRequest) returns (ActionsResponse);
@@ -1276,6 +1278,7 @@ message ActionsResponse {
   ActionModuleVersionMsg module_version=15; repeated ActionModuleVersionMsg module_versions=16;
   repeated ActionExecutionMsg executions=19;
   repeated ActionModuleUserMsg module_users=17; repeated ActionJobMsg jobs=18;
+  ActionJobMsg job=20;
 }
 message ActionsArtifactChunk {
   Error error=1; string tx_id=2; string tenant_id=3; string build_id=4;

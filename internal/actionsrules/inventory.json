@@ -1129,6 +1129,34 @@
         }
       ],
       "source_url": "https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object"
+    },
+    {
+      "id": "event-stream",
+      "version": "v1",
+      "handler": "onExecuteEventStream",
+      "blocking": false,
+      "event": [
+        "message",
+        "secrets"
+      ],
+      "api": [
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/reference/event-stream/event-stream-api-object"
     }
   ],
   "limits": {
@@ -1215,10 +1243,6 @@
     {
       "id": "custom-token-exchange",
       "plan": "35"
-    },
-    {
-      "id": "event-stream",
-      "plan": "32"
     },
     {
       "id": "password-hash-migration",

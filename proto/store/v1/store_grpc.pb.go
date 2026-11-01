@@ -153,6 +153,8 @@ const (
 	StoreService_ActionsGetModuleVersion_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsGetModuleVersion"
 	StoreService_ActionsModuleUsers_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ActionsModuleUsers"
 	StoreService_ActionsEnqueueJob_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ActionsEnqueueJob"
+	StoreService_ActionsGetJob_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsGetJob"
+	StoreService_ActionsCancelJob_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsCancelJob"
 	StoreService_ActionsClaimJobs_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsClaimJobs"
 	StoreService_ActionsFinishJob_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsFinishJob"
 	StoreService_ActionsPurgeJobs_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsPurgeJobs"
@@ -550,6 +552,8 @@ type StoreServiceClient interface {
 	ActionsGetModuleVersion(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsModuleUsers(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsEnqueueJob(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsGetJob(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsCancelJob(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsClaimJobs(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsFinishJob(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsPurgeJobs(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
@@ -2111,6 +2115,26 @@ func (c *storeServiceClient) ActionsEnqueueJob(ctx context.Context, in *ActionsR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ActionsResponse)
 	err := c.cc.Invoke(ctx, StoreService_ActionsEnqueueJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsGetJob(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsGetJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsCancelJob(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsCancelJob_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4222,6 +4246,8 @@ type StoreServiceServer interface {
 	ActionsGetModuleVersion(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsModuleUsers(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsEnqueueJob(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsGetJob(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsCancelJob(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsClaimJobs(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsFinishJob(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsPurgeJobs(context.Context, *ActionsRequest) (*ActionsResponse, error)
@@ -4838,6 +4864,12 @@ func (UnimplementedStoreServiceServer) ActionsModuleUsers(context.Context, *Acti
 }
 func (UnimplementedStoreServiceServer) ActionsEnqueueJob(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsEnqueueJob not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsGetJob(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsGetJob not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsCancelJob(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsCancelJob not implemented")
 }
 func (UnimplementedStoreServiceServer) ActionsClaimJobs(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsClaimJobs not implemented")
@@ -7817,6 +7849,42 @@ func _StoreService_ActionsEnqueueJob_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ActionsEnqueueJob(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsGetJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsGetJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsGetJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsGetJob(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsCancelJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsCancelJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsCancelJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsCancelJob(ctx, req.(*ActionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -11750,6 +11818,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ActionsEnqueueJob",
 			Handler:    _StoreService_ActionsEnqueueJob_Handler,
+		},
+		{
+			MethodName: "ActionsGetJob",
+			Handler:    _StoreService_ActionsGetJob_Handler,
+		},
+		{
+			MethodName: "ActionsCancelJob",
+			Handler:    _StoreService_ActionsCancelJob_Handler,
 		},
 		{
 			MethodName: "ActionsClaimJobs",

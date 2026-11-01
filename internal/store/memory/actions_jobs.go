@@ -22,7 +22,7 @@ func jobStatusValid(s string) bool {
 	return s == "pending" || s == "done" || s == "failed" || s == "dropped"
 }
 func jobTriggerValid(s string) bool {
-	return s == "post-user-registration" || s == "post-change-password" || s == "custom-email-provider"
+	return s == "post-user-registration" || s == "post-change-password" || s == "custom-email-provider" || s == "event-stream"
 }
 func (r actionsRepo) EnqueueJob(_ context.Context, j *store.ActionJob) error {
 	c := cloneActionJob(j)
@@ -136,4 +136,28 @@ func (r actionsRepo) PurgeJobs(_ context.Context, before time.Time) (int, error)
 	}
 	r.s.purgeModuleTombstones()
 	return n, nil
+}
+
+func (r actionsRepo) GetJob(_ context.Context, tid, id string) (*store.ActionJob, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	j := r.s.actionJobs[key{tid, id}]
+	if j == nil {
+		return nil, store.ErrNotFound
+	}
+	return cloneActionJob(j), nil
+}
+func (r actionsRepo) CancelJob(_ context.Context, tid, id string) error {
+	r.s.lock()
+	defer r.s.unlock()
+	j := r.s.actionJobs[key{tid, id}]
+	if j == nil {
+		return store.ErrNotFound
+	}
+	if j.Status == "pending" {
+		j.Status = "failed"
+		j.LeaseUntil = time.Time{}
+		j.UpdatedAt = r.s.now()
+	}
+	return nil
 }

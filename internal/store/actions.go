@@ -192,6 +192,11 @@ type Actions interface {
 	ModuleUsers(ctx context.Context, tenantID, moduleID string, p PageRequest) (Paged[ModuleUser], error)
 	// EnqueueJob returns ErrPrecondition at the per-tenant pending cap.
 	EnqueueJob(ctx context.Context, j *ActionJob) error
+	// GetJob reads an immutable job snapshot and current outcome in this tenant.
+	GetJob(ctx context.Context, tenantID, id string) (*ActionJob, error)
+	// CancelJob atomically fails a pending job and fences every outstanding lease.
+	// Terminal jobs are unchanged; repeating cancellation is harmless.
+	CancelJob(ctx context.Context, tenantID, id string) error
 	// ClaimJobs atomically leases due pending jobs in NextAt order across tenants.
 	ClaimJobs(ctx context.Context, now time.Time, lease time.Duration, max int) ([]ActionJob, error)
 	// FinishJob updates worker state only if the lease still matches (ErrConflict otherwise).
@@ -431,4 +436,11 @@ func ResolveDraftModuleRefs(refs []ModuleRef, live func(moduleID string) (bool, 
 
 func (UnimplementedActions) ListExecutions(context.Context, string, ExecutionFilter) ([]Execution, error) {
 	return nil, ErrActionsUnavailable
+}
+
+func (UnimplementedActions) GetJob(context.Context, string, string) (*ActionJob, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) CancelJob(context.Context, string, string) error {
+	return ErrActionsUnavailable
 }

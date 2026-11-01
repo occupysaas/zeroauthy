@@ -70,6 +70,8 @@ func (w *Worker) Deliver(ctx context.Context, s *store.EventStream, body []byte)
 					stop = true
 				} else if attemptCtx.Err() != nil {
 					message = transportError(attemptCtx.Err())
+				} else if errors.Is(err, context.DeadlineExceeded) {
+					message = "timeout"
 				} else {
 					masked := logscrub.ScrubValueContext(ctx, err.Error()).(string)
 					message = "action_error: " + string([]rune(masked)[:min(len([]rune(masked)), 512)])
