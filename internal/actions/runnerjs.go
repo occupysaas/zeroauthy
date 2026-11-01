@@ -77,6 +77,29 @@ func (p *procState) scrub(line string) (string, bool) {
 	return logscrub.ScrubTruncatedTextWithMask(context.Background(), line, 1024, values, customdb.Mask), true
 }
 
+// capture uses the state of the process that actually executed the call, even
+// if the pool retires or replaces that process before the response is consumed.
+func (p *procState) capture(ctx context.Context, red *customdb.Redactor, lines []string) []string {
+	if p == nil {
+		return nil
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.muted || (!p.until.IsZero() && !time.Now().Before(p.until)) {
+		p.mute()
+		return nil
+	}
+	values := make([]string, 0, len(p.values))
+	for value := range p.values {
+		values = append(values, value)
+	}
+	ctx = logscrub.WithCredentials(ctx, values...)
+	for i, line := range lines {
+		lines[i] = red.RedactLineContext(ctx, line)
+	}
+	return lines
+}
+
 // NewRunner returns the Actions runner Pool: one process per tenant that may
 // read only the tenant's extracted-build root (Action and Module trees),
 // with the flow budget as the call limit, and stderr lines masked with all

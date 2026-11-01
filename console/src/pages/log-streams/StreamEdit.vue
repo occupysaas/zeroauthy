@@ -12,6 +12,7 @@ import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 const { t } = useI18n(), router = useRouter(), { api, tenant, id, key, capture, current } = useMonitoringContext()
 const type = ref<LogStream['type']>('http'), name = ref(''), values = ref<Record<string, string | boolean>>({}), priority = ref(false), filters = ref<components['schemas']['LogStreamFilter']['name'][]>([]), pii = ref<components['schemas']['LogStreamPII']['log_fields']>([]), method = ref<'mask' | 'hash'>('mask'), start = ref('')
+const configuredPII = ref(false)
 const busy = ref(false), loaded = ref(false), error = ref(''), missing = ref(false), saved = ref(false)
 const schema = computed(() => sinks.find(s => s.type === type.value)!)
 let generation = 0
@@ -19,13 +20,13 @@ function clearSecrets() { schema.value.fields.filter(f => f.secret).forEach(f =>
 function defaults() { values.value = {}; schema.value.fields.forEach(f => { values.value[f.name] = f.type === 'boolean' ? true : '' }) }
 watch(type, defaults, { flush: 'sync' })
 async function load() {
- const c = capture(), gen = ++generation; type.value = 'http'; name.value = ''; defaults(); priority.value = false; filters.value = []; pii.value = []; method.value = 'mask'; start.value = ''; error.value = ''; missing.value = false; saved.value = false; busy.value = false; loaded.value = false
+ const c = capture(), gen = ++generation; type.value = 'http'; name.value = ''; defaults(); priority.value = false; filters.value = []; pii.value = []; configuredPII.value = false; method.value = 'mask'; start.value = ''; error.value = ''; missing.value = false; saved.value = false; busy.value = false; loaded.value = false
  if(!c) return
  if(!c.id) { loaded.value = true; return }
  busy.value = true
  try {
   const r = await api.getLogStream(c.tenant, c.id); if(!current(c) || gen !== generation) return
-  type.value = r.type; defaults(); name.value = r.name || ''; priority.value = !!r.isPriority; filters.value = r.filters?.map(f => f.name) || []; pii.value = r.pii_config?.log_fields || []; method.value = r.pii_config?.method || 'mask'
+  type.value = r.type; defaults(); name.value = r.name || ''; priority.value = !!r.isPriority; filters.value = r.filters?.map(f => f.name) || []; pii.value = r.pii_config?.log_fields || []; configuredPII.value = !!r.pii_config; method.value = r.pii_config?.method || 'mask'
   for(const f of schema.value.fields) { const v = (r.sink as Record<string, unknown>)[f.name]; if(!f.secret && (typeof v === 'string' || typeof v === 'boolean')) values.value[f.name] = v }
   clearSecrets(); loaded.value = true
  } catch(e) { if(current(c) && gen === generation) { missing.value = unavailable(e); error.value = missing.value ? '' : errorMessage(e) } }
@@ -48,7 +49,8 @@ async function save() {
    } else sink[f.name] = v
   }
   if(start.value && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(start.value)) throw new Error(t('monitor.startInvalid'))
-  const body: LogStreamPatch = { name: name.value, isPriority: priority.value, filters: filters.value.map(name => ({ type: 'category', name })), pii_config: { log_fields: pii.value, method: method.value, algorithm: 'xxhash' }, sink }
+  if(configuredPII.value && !pii.value.length) throw new Error(t('monitor.piiRequired'))
+  const body: LogStreamPatch = { name: name.value, isPriority: priority.value, filters: filters.value.map(name => ({ type: 'category', name })), ...(pii.value.length ? { pii_config: { log_fields: pii.value, method: method.value, algorithm: 'xxhash' as const } } : {}), sink }
   busy.value = true
   if(c.id) await api.updateLogStream(c.tenant, c.id, body)
   else await api.createLogStream(c.tenant, { ...body, type: type.value, sink, ...(start.value ? { startFrom: start.value } : {}) } as LogStreamCreate)

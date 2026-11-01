@@ -5,6 +5,8 @@ import { routes } from '../router'
 import { mountAt } from '../test/mount'
 import type { Call, Reply } from '../test/services'
 
+import consolePayloads from '../../../internal/logstream/testdata/console-payloads.json'
+
 const ok = (body: unknown): Reply => ({ status: 200, body })
 const log = (id: string, extra = {}) => ({ log_id: id, type: 's', date: '2026-10-30T12:00:00Z', description: `Event ${id}`, ...extra })
 const logs = (items = [log('10')], total = items.length) => ok({ logs: items, total, start: 0, limit: 20, length: items.length })
@@ -253,4 +255,19 @@ it('execution displays a normal denial reason as escaped text separately from er
  expect(w.text()).toContain('Denial reason: '+reason)
  expect(w.find('img').exists()).toBe(false)
  expect(w.find('[role=alert]').exists()).toBe(false)
+})
+
+it.each([['stream-new', '/t/acme/log-streams/new', 'POST'], ['stream-edit', '/t/acme/log-streams/st1', 'PATCH']])('omits absent PII in %s payload', async (page, path, verb) => {
+ const { wrapper: w, calls } = await setup(page, path, () => ok(stream()))
+ if(verb === 'POST') { await w.get('#httpEndpoint').setValue('https://sink.example.test'); await w.get('#httpAuthorization').setValue('new-secret') }
+ await w.get('form').trigger('submit'); await flushPromises()
+ expect(calls.find(c => c.method === verb)!.body).toEqual(verb === 'POST' ? consolePayloads.create : consolePayloads.edit)
+})
+it('prevents clearing configured PII and allows saving a new method', async () => {
+ const { wrapper: w, calls } = await setup('stream-edit', '/t/acme/log-streams/st1', () => ok(stream({ pii_config: { log_fields: ['email'], method: 'mask', algorithm: 'xxhash' } })))
+ await w.get('#pii-email').setValue(false); await w.get('form').trigger('submit'); await flushPromises()
+ expect(calls.some(c => c.method === 'PATCH')).toBe(false)
+ expect(w.text()).toContain('At least one PII field is required')
+ await w.get('#pii-email').setValue(true); await w.get('#pii-method').setValue('hash'); await w.get('form').trigger('submit'); await flushPromises()
+ expect(calls.find(c => c.method === 'PATCH')!.body).toEqual(consolePayloads.configured)
 })

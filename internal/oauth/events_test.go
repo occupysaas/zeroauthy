@@ -168,22 +168,36 @@ func TestPasswordFailureClassificationEvents(t *testing.T) {
 }
 
 func TestActionExecutionLinksOnGrantEvents(t *testing.T) {
-	for _, tc := range []struct{ name, script, code string }{{"success", "", "sepft"}, {"deny", "api.access.deny('blocked','denied');", "fepft"}, {"throw", "throw Error('private failure');", "fepft"}} {
+	for _, tc := range []struct{ name, script, code string }{{"success", "", "sepft"}, {"deny", "api.access.deny('denied');", "fepft"}, {"throw", "throw Error('private failure');", "fepft"}} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newActionsFixture(t)
 			capture := &eventRecorder{}
 			f.h.Recorder = capture
 			f.actions.PostLogin(t, f.tid, "event-link", `exports.onExecutePostLogin=(event,api)=>{`+tc.script+`};`)
 			f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1"))
-			if len(capture.events) != 1 {
+			codes := []string{tc.code}
+			if tc.name == "throw" {
+				codes = []string{"actions_execution_failed", "fepft"}
+			}
+			if len(capture.events) != len(codes) {
 				t.Fatalf("events=%+v", capture.events)
 			}
-			got := capture.events[0]
-			if got.Type != tc.code || got.UserID == "" || len(got.ExecutionIDs) != 1 {
-				t.Fatalf("event=%+v", got)
-			}
-			if _, err := f.st.Actions().GetExecution(context.Background(), f.tid, got.ExecutionIDs[0]); err != nil {
-				t.Fatal("execution link does not resolve", err)
+			executionID := ""
+			for i, got := range capture.events {
+				if got.Type != codes[i] || got.UserID == "" || len(got.ExecutionIDs) != 1 {
+					t.Fatalf("event=%+v", got)
+				}
+				if executionID != "" && got.ExecutionIDs[0] != executionID {
+					t.Fatalf("events point to different executions: %+v", capture.events)
+				}
+				executionID = got.ExecutionIDs[0]
+				execution, err := f.st.Actions().GetExecution(context.Background(), f.tid, executionID)
+				if err != nil {
+					t.Fatal("execution link does not resolve", err)
+				}
+				if tc.name == "throw" && (len(execution.Results) != 1 || execution.Results[0].ErrorID != "runtime_error") {
+					t.Fatalf("runtime failure execution=%+v", execution)
+				}
 			}
 		})
 	}

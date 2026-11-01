@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/logrules"
@@ -41,6 +43,48 @@ func TestPIIExactFrozenFieldsNestedCopies(t *testing.T) {
 			}
 			if !bytes.Contains(out, []byte("9007199254740993")) || !bytes.Equal(body, original) {
 				t.Fatal("numeric precision or original changed")
+			}
+		})
+	}
+}
+
+func TestOutgoingPreservesTrustedMetadataWithShortCredentials(t *testing.T) {
+	body := []byte(`{"date":"2026-10-30T12:00:00Z","type":"s","log_id":"00000000000000000000000000000000000000000000000000000001","_id":"00000000000000000000000000000000000000000000000000000001","description":"echo s e 0 d","details":{"actions":{"executions":["exe_abcdefghijklmnopqrstuvwx"]},"dynamic-e":"echo e","password":"hidden"},"email":"alice@example.com"}`)
+	original := bytes.Clone(body)
+	for _, secret := range []string{"e", "s", "0", "d"} {
+		t.Run(secret, func(t *testing.T) {
+			out, err := outgoing(logscrub.WithCredentials(context.Background(), secret), body, &store.LogStreamPII{LogFields: []string{"email"}, Method: "mask"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got, want map[string]any
+			json.Unmarshal(out, &got)
+			json.Unmarshal(body, &want)
+			for _, key := range []string{"date", "type", "log_id", "_id"} {
+				if got[key] != want[key] {
+					t.Fatalf("metadata %s=%v want %v", key, got[key], want[key])
+				}
+			}
+			details, ok := got["details"].(map[string]any)
+			if !ok {
+				t.Fatalf("details=%v", got)
+			}
+			acts := details["actions"].(map[string]any)
+			if acts["executions"].([]any)[0] != "exe_abcdefghijklmnopqrstuvwx" {
+				t.Fatal(acts)
+			}
+			if strings.Contains(got["description"].(string), secret) {
+				t.Fatal(got)
+			}
+			key := "email"
+			if secret == "e" {
+				key = "[REDACTED]mail"
+			}
+			if got[key] != logrules.Marker {
+				t.Fatal(got)
+			}
+			if !bytes.Equal(body, original) {
+				t.Fatal("stored body changed")
 			}
 		})
 	}

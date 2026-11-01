@@ -530,11 +530,13 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
 	}
+	var executed *procState
 	raw, err := e.Runner.CallWith(ctx, f.tenantID, req, noderunner.CallOptions{
 		// At least 1 ms: a zero Budget would mean the Pool's 20 s default.
 		Budget: max(time.Until(f.deadline), time.Millisecond),
 		Prepare: func(state any) {
 			if ps, ok := state.(*procState); ok {
+				executed = ps
 				ps.add(ctx)
 			}
 		},
@@ -550,9 +552,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	if err := json.Unmarshal(raw, &resp); err != nil {
 		return nil, fmt.Errorf("actions: invalid runner response")
 	}
-	for i, line := range resp.Logs {
-		resp.Logs[i] = red.RedactLineContext(ctx, line)
-	}
+	resp.Logs = executed.capture(ctx, red, resp.Logs)
 	out := &stepOut{commands: resp.Commands, logs: resp.Logs, red: red}
 	// An unsupported call fails the flow even when the Action caught it.
 	for _, c := range resp.Commands {

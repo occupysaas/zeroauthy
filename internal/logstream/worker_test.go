@@ -449,3 +449,34 @@ func (r readHook) LogsAfter(c context.Context, tid string, after int64, q *store
 	r.check(after, q, take, settled)
 	return r.Logs.LogsAfter(c, tid, after, q, take, settled)
 }
+
+func TestHTTPSinkShortCredentialPreservesSchema(t *testing.T) {
+	received := make(chan []byte, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		received <- b
+		w.WriteHeader(204)
+	}))
+	defer server.Close()
+	sink := newHTTPSink(logs.StreamsConfig{AllowPrivateNetworks: true, AllowInsecureHTTP: true}, nil)
+	stream := &store.LogStream{Type: "http", Sink: map[string]any{"httpEndpoint": server.URL, "httpContentFormat": "JSONARRAY", "httpContentType": "application/json"}}
+	body := json.RawMessage(`{"date":"2026-10-30T12:00:00Z","type":"s","log_id":"00000000000000000000000000000000000000000000000000000001","details":{"actions":{"executions":["exe_abcdefghijklmnopqrstuvwx"]},"echo-e":"e"}}`)
+	if err := sink.Send(context.Background(), stream, map[string]any{"httpAuthorization": "e"}, []Item{{LogID: "1", Data: body}}); err != nil {
+		t.Fatal(err)
+	}
+	var got []map[string]any
+	if err := json.Unmarshal(<-received, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatal(got)
+	}
+	data := got[0]["data"].(map[string]any)
+	if data["date"] != "2026-10-30T12:00:00Z" || data["type"] != "s" || data["log_id"] != "00000000000000000000000000000000000000000000000000000001" {
+		t.Fatal(got)
+	}
+	details := data["details"].(map[string]any)
+	if details["actions"].(map[string]any)["executions"].([]any)[0] != "exe_abcdefghijklmnopqrstuvwx" || details["[REDACTED]cho-[REDACTED]"] != "[REDACTED]" {
+		t.Fatal(details)
+	}
+}

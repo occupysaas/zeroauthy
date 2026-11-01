@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 )
 
@@ -40,5 +41,27 @@ func TestActionConsoleDiagnosticBounds(t *testing.T) {
 				t.Fatal("mute was not permanent")
 			}
 		})
+	}
+}
+
+func TestActionConsoleExpiredCapturePermanentlyClearsState(t *testing.T) {
+	p := &procState{}
+	p.add(logscrub.WithCredentials(context.Background(), "prior-secret"))
+	p.until = time.Now().Add(-time.Second)
+	red := customdb.NewRedactor(nil)
+	for range 2 {
+		if got := p.capture(context.Background(), red, []string{"prior-secret"}); len(got) != 0 {
+			t.Fatalf("expired capture: %q", got)
+		}
+		p.add(logscrub.WithCredentials(context.Background(), "new-secret"))
+	}
+	if !p.muted || p.bytes != 0 || len(p.values) != 0 {
+		t.Fatal("expired history retained")
+	}
+	// Retirement gives a new process an independent diagnostic lifetime.
+	fresh := &procState{}
+	fresh.add(context.Background())
+	if got := fresh.capture(context.Background(), red, []string{"new process"}); len(got) != 1 || got[0] != "new process" {
+		t.Fatalf("fresh process muted: %q", got)
 	}
 }

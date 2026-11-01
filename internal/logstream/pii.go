@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/zeroauthy/zeroauthy/internal/logrules"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -24,23 +25,21 @@ func outgoing(ctx context.Context, body []byte, pii *store.LogStreamPII) (json.R
 	if len(body) == 0 {
 		body = []byte(`{}`)
 	}
-	clean, err := logscrub.ScrubContext(ctx, body)
-	if err != nil {
-		return nil, err
-	}
-	if pii == nil || len(pii.LogFields) == 0 {
-		return clean, nil
-	}
-	var v any
-	decoder := json.NewDecoder(bytes.NewReader(clean))
+	var doc map[string]any
+	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.UseNumber()
-	if err = decoder.Decode(&v); err != nil {
+	if err := decoder.Decode(&doc); err != nil {
 		return nil, err
+	}
+	v := logs.ScrubStoredEvent(ctx, doc)
+	if pii == nil || len(pii.LogFields) == 0 {
+		return json.Marshal(v)
 	}
 	fields := map[string]bool{}
 	for _, f := range pii.LogFields {
 		if piiFields[f] {
 			fields[f] = true
+			fields[logscrub.MaskText(ctx, f)] = true
 		}
 	}
 	var visit func(any)

@@ -2538,3 +2538,84 @@ in source but was not independently fault-injected; actual create and write
 failures were exercised. No all-driver SQL, full gRPC, broad final regression,
 CLI selector repair or E2E lane was run in this focused stage. Final regression
 and the pending CLI selector decision remain the controller's next work.
+
+## Final review fix wave — I1–I4 (2026-11-01)
+
+Implemented the single scoped review dispatch in the managed Plan31 worktree.
+Actions capture now retains the actual process state selected by Prepare and
+uses its bounded credential union before persistence; count/byte/60-second
+expiry permanently clears and mutes capture as well as stderr. Current Action
+configuration masking and business responses retain their existing behavior.
+Real cached-VM tests cover prior-request plain, JSON-escaped and truncated
+credentials; real engine calls cover count/byte exhaustion and continued
+successful responses. Direct process-state coverage exercises expiry, physical
+clear, permanent mute and the independent lifetime of a replacement process.
+
+OAuth ingress registers raw Authorization/Basic representations, decoded Basic
+secrets and known protocol code/ticket values on the outer request. Form
+registration reads already-parsed PostForm even after repetition failures;
+JSON registers each parsed scalar before a subsequent failure, without another
+body or repository read. PAR parses its bounded body before the disabled-feature
+check so that its failure event also has the mask. Stored-event regressions use
+mounted handlers and the real recorder/memory store, with secret/code echoes in
+user-agent and client name. A real post-login Action verifies Basic/code/ticket
+console output is hidden.
+
+StreamEdit omits absent PII on create/edit; existing configured PII cannot be
+silently cleared and shows a localized validation message before submission.
+Nonempty selections preserve method edits. Mounted Vue tests assert exact
+payloads shared with a Go Configure test using the actual backend validator in
+internal/logstream/testdata/console-payloads.json. No backend clear semantics
+were added. Stream output now uses logs.ScrubStoredEvent before PII; schema,
+canonical date/type/log IDs and generated execution links survive short sink
+credentials. Valid matching _id aliases are preserved at that trusted boundary;
+arbitrary/dynamic names and free text remain masked. PII also recognizes a
+field's masked dynamic name. Stored bytes remain unchanged. Actual HTTP delivery
+covers the short-credential boundary, alongside direct outgoing PII coverage.
+
+Corrected the post-login denial fixture to api.access.deny(reason), confirmed
+by the current public Auth0 reference:
+https://auth0.com/docs/actions/reference/post-login/post-login-api-object .
+Runtime errors retain both actions_execution_failed and fepft, and both links
+must resolve to the same execution with runtime_error. Denials retain one grant
+outcome. TestRecorderNeverBlocks passed ten focused race runs (~0.02s each).
+Its blocked-store synchronization already establishes storage independence;
+Record only scrubs/enqueues under a short admission lock and never calls storage
+or the logger synchronously. Kept its 50ms/1000-calls limit unchanged. The prior
+60.550898ms heavily concurrent failure is not classified as passing or proven
+production blocking.
+
+All Go/make commands below used GOTOOLCHAIN=go1.26.7; Node execution runs set
+ZA_REQUIRE_NODE=1 for the final affected suites. Scratch logs are fix-*.log in
+.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/.
+
+| Actual check | Result |
+| --- | --- |
+| go test ./internal/actions -run 'TestActionConsole(CachedCredential\|PermanentMuteCapture)' -count=1 | RED: three cached-secret cases leaked; count/bytes captured after mute. |
+| go test ./internal/logstream -run TestOutgoingPreservesTrustedMetadataWithShortCredentials -count=1 | RED: e/d renamed date, s masked type, 0 masked date. |
+| npm test --prefix console -- src/pages/logs-monitoring.test.ts | RED: 3 failed /43 passed; empty PII sent on create/edit and clear request sent. Then GREEN:46/46. |
+| go test ./internal/oauth -run TestIngress -count=1 | RED: Basic/code/ticket and partial credentials unregistered, real stored-event echoes exposed. Two initial early-token cases expected events that the existing endpoint does not emit; removed those event expectations, preserving parser-failure coverage. Then GREEN1.762s. |
+| go test ./internal/oauth -run '^TestIngressStoredEventPrivacy/PAR_disabled$' -count=1 | RED: ticket echoed in disabled-feature failure; fixed by bounded parse ordering. Included in final GREEN. |
+| go test ./internal/oauth -run '^TestActionExecutionLinksOnGrantEvents$' -count=1 | RED: deny/throw old fixtures both received two events. |
+| go test -race ./internal/logs -run '^TestRecorderNeverBlocks$' -count=10 -v | PASS1.269s, all10 (~0.02s each); threshold unchanged. |
+| go test ./internal/actions ./internal/logstream ./internal/oauth ./internal/logs -count=1 | Actions PASS47.928s, logs PASS0.368s; stream and OAuth FAIL due to new test assertions wrongly expecting flattened HTTP data and execution status failed. Corrected assertions to actual data envelope and runtime_error result; this initial covering invocation remains FAIL. |
+| go test -race ./internal/actions ./internal/logstream ./internal/oauth -run 'TestActionConsole(CachedCredential\|PermanentMuteCapture\|ExpiredCapture)\|TestIngress\|TestActionExecutionLinksOnGrantEvents\|TestOutgoing\|TestConsolePayloadsConfigure\|TestHTTPSinkShortCredentialPreservesSchema' -count=1 | Final PASS actions2.236s, logstream1.154s, oauth7.189s. Earlier attempt failed only added execution status assertion, now corrected. |
+| go test ./internal/logstream ./internal/logs -count=1 | Corrected covering PASS logstream0.042s, logs0.355s. |
+| make console | PASS install/gen/lint/typecheck/all74 files572 tests/build; committed dist rebuilt. Existing vue-demi unapproved install-script warning and Vite >500kB chunk advisory remain maintenance notices. |
+| go vet ./internal/actions ./internal/logstream ./internal/oauth ./internal/logs | PASS. |
+| git diff --check | PASS. |
+
+Self-review checked executed-process identity (no Pool/global lookup), locked
+union/mute race protection, immutable request propagation, no diagnostic-only
+repository/body reads, strict backend PII behavior, outgoing-only PII and trusted
+metadata provenance. Decisions/costs: registering Basic representations can use
+more bounded diagnostic union slots and cause earlier safe mute; disabled PAR
+now parses before the feature check (malformed disabled requests can report the
+parse error first, same failure status for ordinary bad requests). Clearing
+configured PII remains unavailable pending a documented contract, visibly blocked
+instead of claiming success. Canonical _id is trusted only when equal to a valid
+56-digit log_id. No CLI search_engine acceptance was implemented; approval is
+still pending. No full-repository race/SQL/gRPC/E2E regression or Task16 completion
+is claimed by this dispatch; the controller owns frozen-source final validation.
+Commit subject: fix(plan31): close final log privacy and stream form findings.
+Detailed evidence/commit identity: final-fix-report.md in the plan scratch dir.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -354,6 +355,60 @@ func TestActionExecutionDenialReason(t *testing.T) {
 			}
 			if (ex.Results[0].ErrorID != "") != tc.failure {
 				t.Fatalf("error conflated with denial: %+v", ex.Results[0])
+			}
+		})
+	}
+}
+
+// A cached VM may print a credential after its request context has gone away.
+func TestActionConsoleCachedCredential(t *testing.T) {
+	for _, secret := range []string{"prior-request-secret", "line\nbreak\"secret", "prefix-middle-suffix"} {
+		t.Run(secret, func(t *testing.T) {
+			h := newHarness(t)
+			a := h.action("t1", trigLogin, "cached", `let prior;exports.onExecutePostLogin=(e)=>{if(!prior){prior=e.user.email;return;} console.log(prior); console.log(JSON.stringify(prior));console.log('x'.repeat(2040)+prior);};`, nil, false)
+			h.bind("t1", trigLogin, a)
+			in := h.loginInput("t1")
+			in.User.Email = secret
+			if _, err := h.eng.PostLogin(logscrub.WithCredentials(context.Background(), secret), in); err != nil {
+				t.Fatal(err)
+			}
+			out, err := h.eng.PostLogin(context.Background(), h.loginInput("t1"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			lines := h.execution("t1", out.ExecutionID).Results[0].Logs
+			if len(lines) != 3 {
+				t.Fatalf("logs=%q", lines)
+			}
+			for _, line := range lines {
+				if strings.Contains(line, secret) || strings.Contains(line, "prior-request") || strings.Contains(line, "break") || strings.Contains(line, "prefix-") {
+					t.Fatalf("cached credential leaked: %q", line)
+				}
+			}
+		})
+	}
+}
+func TestActionConsolePermanentMuteCapture(t *testing.T) {
+	for _, kind := range []string{"count", "bytes"} {
+		t.Run(kind, func(t *testing.T) {
+			h := newHarness(t)
+			a := h.action("t1", trigLogin, "mute", `exports.onExecutePostLogin=()=>console.log('business proceeds');`, nil, false)
+			h.bind("t1", trigLogin, a)
+			values := []string{strings.Repeat("s", 64*1024+1)}
+			if kind == "count" {
+				values = nil
+				for i := 0; i < 257; i++ {
+					values = append(values, fmt.Sprintf("secret-%d", i))
+				}
+			}
+			for _, ctx := range []context.Context{logscrub.WithCredentials(context.Background(), values...), context.Background()} {
+				out, err := h.eng.PostLogin(ctx, h.loginInput("t1"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if lines := h.execution("t1", out.ExecutionID).Results[0].Logs; len(lines) != 0 {
+					t.Fatalf("muted capture=%q", lines)
+				}
 			}
 		})
 	}

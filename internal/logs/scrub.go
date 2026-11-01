@@ -112,7 +112,18 @@ func ScrubStoredEvent(ctx context.Context, doc map[string]any) map[string]any {
 			executions = actions["executions"]
 		}
 	}
+	// API aliases are trusted only when they repeat a valid canonical log ID.
+	id, _ := doc["log_id"].(string)
+	_, validID := ParseID(id)
+	alias := validID && doc["_id"] == id
+	if alias {
+		doc = maps.Clone(doc)
+		delete(doc, "_id")
+	}
 	safe := ScrubEvent(ctx, doc)
+	if alias {
+		safe["_id"] = id
+	}
 	if executions != nil {
 		attachExecutionIDs(ctx, safe, executions)
 	}

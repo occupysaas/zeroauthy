@@ -1,0 +1,5 @@
+{
+ "create": {"name":"","isPriority":false,"filters":[],"sink":{"httpEndpoint":"https://sink.example.test","httpAuthorization":"new-secret"},"type":"http"},
+ "edit": {"name":"Audit","isPriority":false,"filters":[],"sink":{"httpEndpoint":"https://sink.example.test"}},
+ "configured": {"name":"Audit","isPriority":false,"filters":[],"pii_config":{"log_fields":["email"],"method":"hash","algorithm":"xxhash"},"sink":{"httpEndpoint":"https://sink.example.test"}}
+}
