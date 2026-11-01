@@ -2,6 +2,23 @@ import logInventory from '../../../internal/logrules/inventory.json'
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+  events: {
+    title: 'Event streams', create: 'Create event stream', edit: 'Edit event stream', back: 'Back to event streams', backStream: 'Back to stream', name: 'Name', destination: 'Destination', status: 'Status', failures: 'Failed deliveries', controls: 'Controls',
+    listHint: 'Subscribe to tenant changes and deliver them to a webhook or Action. Failure counts include retained failed deliveries only.',
+    unavailable: 'This storage provider does not support event streams or deliveries.', empty: 'No event streams configured.',
+    destinations: { webhook: 'Webhook', action: 'Action', eventbridge: 'Amazon EventBridge' }, statuses: { enabled: 'Enabled', disabled: 'Disabled', failed: 'Failed', success: 'Success' },
+    enable: 'Enable', disable: 'Disable', delete: 'Delete', deleteTitle: 'Delete this event stream?', deleteHint: 'This removes the stream and its failed deliveries. Captured tenant events are preserved.', deleted: 'Stream deleted.', updated: 'Stream updated.', saved: 'Stream saved.', save: 'Save stream',
+    cloudHint: 'EventBridge configuration is stored only and is not delivered. This stream stays disabled and cannot be enabled. Account and region cannot be changed after creation.',
+    endpoint: 'Webhook endpoint (HTTPS)', authorization: 'Authorization method', methods: { basic: 'Basic', bearer: 'Bearer', custom_header: 'Custom header' }, username: 'Username', header: 'Header name', credentials: { basic: 'Password', bearer: 'Bearer token', custom_header: 'Header value' },
+    secretHint: 'Credentials are write-only. Leave blank when editing to keep the stored credential.', methodHint: 'Changing the authorization method requires a new credential. Stored secrets are never loaded into this form.', credentialRequired: 'Enter a new credential for this authorization method.',
+    action: 'Action', actionHint: 'Only Actions with the event-stream trigger can receive these events.', chooseAction: 'Choose an event-stream Action', awsAccount: 'AWS account ID', awsRegion: 'AWS region', partner: 'Partner event source',
+    subscriptions: 'Subscriptions', subscriptionHint: 'Choose at least one event type. Event identifiers are shown as sent to the receiver.', required: 'Enter a name and choose at least one subscription.',
+    test: 'Send test event', testHint: 'Send a synthetic event immediately. Leave data blank to use example data. Test outcomes are shown here and are not saved as failed deliveries.', type: 'Event type', data: 'Event data (optional JSON object)', dataInvalid: 'Enter a JSON object for event data, or leave it blank.',
+    attempts: 'Attempts', timestamp: 'Timestamp (UTC)', duration: 'Duration (ms)', attemptError: 'Error', unknown: 'Unknown', none: 'None', json: 'Event JSON',
+    deliveries: 'Failed deliveries', deliveryHint: 'Only retained failed deliveries appear here. Redelivery can run while a stream is disabled. A queued request is processed in the background; refresh to see the stored result.',
+    dateFrom: 'From (UTC, inclusive)', dateTo: 'Until (UTC, exclusive)', dateHint: 'Use UTC whole seconds, for example 2026-11-01T00:00:00Z. The end is exclusive.', dateExample: '2026-11-01T00:00:00Z', dateInvalid: 'Enter valid UTC timestamps with whole seconds ending in Z, with the end after the start.',
+    allTypes: 'All event types', failedOnly: 'Failed status', apply: 'Apply filters', eventID: 'Event ID', noDeliveries: 'No matching failed deliveries.', redeliver: 'Redeliver', redeliverAll: 'Redeliver all matching', redeliverHint: 'Queue every failed event matching the applied filters, across all pages. Processing happens in the background, including while the stream is disabled.', queueAll: 'Queue all matching', queued: 'Queued', queuedOne: 'Redelivery queued. Refresh later to see the stored result.', queuedAll: 'All matching failed events have been queued for redelivery. Refresh later to see stored results.', refresh: 'Refresh', conflict: 'The event is no longer failed or is already queued. Refresh to see the current deliveries.',
+  },
   monitor: {
     logs: 'Logs', streams: 'Log streams', actionsLogs: 'Actions logs', execution: 'Action execution',
     search: 'Search logs', searchHint: 'Use field:value, quoted values, prefix wildcards, AND, OR, NOT and ranges. For example: type:s AND user_id:"user-123". Up to five search terms.',

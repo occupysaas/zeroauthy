@@ -1,3 +1,6 @@
+import EventStreamsList from './pages/event-streams/StreamsList.vue'
+import EventStreamEdit from './pages/event-streams/StreamEdit.vue'
+import EventDeliveries from './pages/event-streams/Deliveries.vue'
 import LogsList from './pages/logs/LogsList.vue'
 import LogDetail from './pages/logs/LogDetail.vue'
 import StreamsList from './pages/log-streams/StreamsList.vue'
@@ -125,6 +128,10 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/log-streams', name: 'log-streams', component: StreamsList },
   { path: '/t/:tenant/log-streams/new', name: 'stream-new', component: StreamEdit },
   { path: '/t/:tenant/log-streams/:id', name: 'stream-edit', component: StreamEdit },
+  { path: '/t/:tenant/event-streams', name: 'event-streams', component: EventStreamsList },
+  { path: '/t/:tenant/event-streams/new', name: 'event-stream-new', component: EventStreamEdit },
+  { path: '/t/:tenant/event-streams/:id', name: 'event-stream-edit', component: EventStreamEdit },
+  { path: '/t/:tenant/event-streams/:id/deliveries', name: 'event-deliveries', component: EventDeliveries },
   { path: '/t/:tenant/actions-logs', name: 'actions-logs', component: ActionsLogs },
   { path: '/t/:tenant/actions/executions/:id', name: 'execution-view', component: ExecutionView },
   { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },

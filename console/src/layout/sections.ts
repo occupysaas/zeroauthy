@@ -40,6 +40,7 @@ export const sections: Section[] = [
   { key: 'custom-domains', label: 'nav.customDomains', group: 'navGroup.branding', path: 'custom-domains', status: 'live' },
   { key: 'logs', label: 'nav.logs', group: 'navGroup.monitoring', path: 'logs', status: 'live' },
   { key: 'log-streams', label: 'monitor.streams', group: 'navGroup.monitoring', path: 'log-streams', status: 'live' },
+  { key: 'event-streams', label: 'events.title', group: 'navGroup.monitoring', path: 'event-streams', status: 'live' },
   { key: 'actions-logs', label: 'monitor.actionsLogs', group: 'navGroup.monitoring', path: 'actions-logs', status: 'live' },
   { key: 'settings', label: 'nav.settings', group: 'navGroup.settings', path: 'settings', status: 'live' },
   { key: 'operators', label: 'nav.operators', group: 'navGroup.system', path: 'operators', status: 'live', systemOnly: true },

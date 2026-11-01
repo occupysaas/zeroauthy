@@ -1311,3 +1311,72 @@ Prior full short evidence/limitations remain tied to their original snapshot.
 Exact commands, RED/GREEN and limits:
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-11-fix1-report.md`.
 No active run or remaining self-review finding; controller review pending.
+
+### Task 12 — Console event streams and Action trigger (base dac6d06)
+
+- Added live Monitoring navigation and stream list/create/edit/delivery routes.
+  Stream lists show persisted enabled/disabled state and the read-only local
+  `total_failures` summary, with checkpoint pagination. Enable/disable responses,
+  including refusal above the failure threshold, remain visible.
+- Added webhook basic/bearer/custom-header forms. Credential controls start
+  empty, ignore response secret fields, omit empty secrets on PATCH, require a
+  fresh secret on authorization-method change, and clear typed credentials after
+  submission. EventBridge stays disabled, explains stored-only delivery, and
+  excludes immutable configuration from PATCH. The tenant-scoped Action picker
+  requests and independently filters `event-stream` Actions.
+- Test events use the real typed Management API client, accept event type plus
+  optional object data, and display returned outcomes/attempts. Delivery pages
+  show only returned failed records, validate whole-second UTC date boundaries,
+  preserve applied filters across `from`/`next` pages, inspect event JSON and
+  attempts, and queue one or all matching failures across pages. HTTP 202 is
+  shown as queued, HTTP 409 has a recovery message, and refresh reconciles local
+  queued markers so another failed attempt can be redelivered.
+- Reused the existing tenant/route epoch context for all asynchronous reads and
+  mutations, rejecting stale replies, including A→B→A. Added localized
+  `events_unavailable` notices. English is the only supported catalog in this
+  repository; all new product copy is in that catalog. Event IDs, regions and
+  payloads remain literal protocol values. Actions creation and sample payloads
+  now include `exports.onExecuteEventStream`, `event.message`, `event.secrets`
+  and `api.cache`; no unsupported Action API is suggested.
+- Regenerated `console/src/api/schema.d.ts` from `api/management.yaml` through
+  `npm run gen` and `make console`, and rebuilt committed `console/dist`.
+  No source API, Go implementation, dependency or package-pin changes.
+
+Verification (Node v26.8.1; isolated worktree, sole suite monitor):
+
+- Initial behavioral RED: `cd console && npm test -- --run`, exit 1;
+  19 new failures and 572 existing passes, 75 files, 16.22s. Missing stream
+  routes and the event-stream template were the expected failures.
+  `/tmp/plan32-task12-red.log` and `.exit`.
+- Initial focused GREEN: `npx vitest run src/pages/event-streams/events.test.ts`,
+  exit 0; 19 passed. `/tmp/plan32-task12-focused.log` and `.exit`.
+- The expanded first full run recorded four integration failures: sidebar
+  expected navigation, catalog scanner syntax, seven-vs-eight sample count,
+  and trigger-template expectations. Corrected the navigation/count/handler
+  expectations and used the established dynamic translation-key syntax;
+  subsequent full run passed all 603 tests. No failed assertion was waived.
+- Self-review recovery regression RED: focused command, exit 1; one failed and
+  31 passed. A queued marker kept retry disabled after a refreshed failed result.
+  `/tmp/plan32-task12-refresh-red.log` and `.exit`. Fixed marker reconciliation.
+- Final `cd console && npm test -- --run`: exit 0; **604 passed, 0 failed,
+  0 skipped**, 75 files, 16.65s, UTC 21:48:32–21:48:49.
+  `/tmp/plan32-task12-final-tests.{log,exit,start,end}`.
+- Final `make console`: exit 0; install, generation, lint, typecheck, all
+  **604 tests** and build passed, UTC 21:48:58–21:49:38.
+  `/tmp/plan32-task12-final-make.{log,exit,start,end}`. Vite retains its
+  advisory about the single minified JavaScript chunk exceeding 500 kB
+  (981.86 kB, gzip 258.57 kB); no build failure or skipped check.
+- Rebuilt bundle verification: `cd console && npx vitest run src/build.test.ts`,
+  exit 0; six tests passed. `/tmp/plan32-task12-built-bundle.log` and `.exit`.
+- Final source manifest includes tracked and new console sources and package
+  configuration; SHA-256
+  `08733a9ef0f3b1541e983f9a3b0e2a416eb683c5713cd1b143e083c4161bca9b`.
+  `/tmp/plan32-task12-final.{sources,snapshot}`; unchanged after final make.
+- Browser skill visual QA: existing shell, stream list, write-only edit form,
+  failed-delivery filters, event JSON and attempt table rendered correctly;
+  no browser warning/error diagnostics. Used disposable local synthetic API
+  fixtures; removed the fixture files and stopped Vite afterward. This does
+  not claim live server, database or acceptance-lane coverage.
+- `git diff --check` passed. Full task commands, setup failures, intermediate
+  results and limitations are recorded in workspace `task-12-report.md`.
+  No database or broader Go/E2E suites were run for this console task.

@@ -4,6 +4,145 @@
  */
 
 export interface paths {
+    "/api/v2/event-streams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ListEventStreams */
+        get: operations["ListEventStreams"];
+        put?: never;
+        /** CreateEventStream */
+        post: operations["CreateEventStream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/event-streams/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GetEventStream */
+        get: operations["GetEventStream"];
+        put?: never;
+        post?: never;
+        /** DeleteEventStream */
+        delete: operations["DeleteEventStream"];
+        options?: never;
+        head?: never;
+        /** UpdateEventStream */
+        patch: operations["UpdateEventStream"];
+        trace?: never;
+    };
+    "/api/v2/event-streams/{id}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ListEventDeliveries */
+        get: operations["ListEventDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/event-streams/{id}/deliveries/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GetEventDelivery */
+        get: operations["GetEventDelivery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/event-streams/{id}/redeliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** RedeliverEvents */
+        post: operations["RedeliverEvents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/event-streams/{id}/redeliver/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** RedeliverEvent */
+        post: operations["RedeliverEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/event-streams/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** TestEventStream */
+        post: operations["TestEventStream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** SubscribeEvents */
+        get: operations["SubscribeEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/actions/modules": {
         parameters: {
             query?: never;
@@ -3084,6 +3223,264 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        EventsListEventStreamsResponseContent: {
+            eventStreams?: components["schemas"]["EventsEventStreamResponseContent"][];
+            next?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        EventsEventStreamResponseContent: components["schemas"]["EventsEventStreamWebhookResponseContent"] | components["schemas"]["EventsEventStreamEventBridgeResponseContent"] | components["schemas"]["EventsEventStreamActionResponseContent"];
+        EventsEventStreamWebhookResponseContent: {
+            /** @description Local console extension reporting extant failed deliveries; not observed Auth0 parity. */
+            readonly total_failures?: number;
+            /** Format: event-stream-id */
+            id?: string;
+            name?: string;
+            subscriptions?: components["schemas"]["EventsEventStreamSubscription"][];
+            destination?: components["schemas"]["EventsEventStreamWebhookDestination"];
+            status?: components["schemas"]["EventsEventStreamStatusEnum"];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        EventsEventStreamSubscription: {
+            event_type: components["schemas"]["EventsEventStreamEventTypeEnum"];
+        };
+        EventsEventStreamWebhookDestination: {
+            type: components["schemas"]["EventsEventStreamWebhookDestinationTypeEnum"];
+            configuration: components["schemas"]["EventsEventStreamWebhookConfiguration"];
+        };
+        /** @enum {string} */
+        EventsEventStreamWebhookDestinationTypeEnum: "webhook";
+        EventsEventStreamWebhookConfiguration: {
+            webhook_endpoint: string;
+            webhook_authorization: components["schemas"]["EventsEventStreamWebhookAuthorizationResponse"];
+        };
+        EventsEventStreamWebhookAuthorizationResponse: components["schemas"]["EventsEventStreamWebhookBasicAuth"] | components["schemas"]["EventsEventStreamWebhookBearerAuth"] | components["schemas"]["EventsEventStreamWebhookCustomHeaderAuth"];
+        EventsEventStreamWebhookBasicAuth: {
+            method: components["schemas"]["EventsEventStreamWebhookBasicAuthMethodEnum"];
+            username: string;
+        };
+        /** @enum {string} */
+        EventsEventStreamWebhookBasicAuthMethodEnum: "basic";
+        EventsEventStreamWebhookBearerAuth: {
+            method: components["schemas"]["EventsEventStreamWebhookBearerAuthMethodEnum"];
+        };
+        /** @enum {string} */
+        EventsEventStreamWebhookBearerAuthMethodEnum: "bearer";
+        EventsEventStreamWebhookCustomHeaderAuth: {
+            method: components["schemas"]["EventsEventStreamWebhookCustomHeaderAuthMethodEnum"];
+            header_key: string;
+        };
+        /** @enum {string} */
+        EventsEventStreamWebhookCustomHeaderAuthMethodEnum: "custom_header";
+        /** @enum {string} */
+        EventsEventStreamStatusEnum: "enabled" | "disabled";
+        EventsEventStreamEventBridgeResponseContent: {
+            /** @description Local console extension reporting extant failed deliveries; not observed Auth0 parity. */
+            readonly total_failures?: number;
+            /** Format: event-stream-id */
+            id?: string;
+            name?: string;
+            subscriptions?: components["schemas"]["EventsEventStreamSubscription"][];
+            destination?: components["schemas"]["EventsEventStreamEventBridgeDestination"];
+            status?: components["schemas"]["EventsEventStreamStatusEnum"];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        EventsEventStreamEventBridgeDestination: {
+            type: components["schemas"]["EventsEventStreamEventBridgeDestinationTypeEnum"];
+            configuration: components["schemas"]["EventsEventStreamEventBridgeConfiguration"];
+        };
+        /** @enum {string} */
+        EventsEventStreamEventBridgeDestinationTypeEnum: "eventbridge";
+        EventsEventStreamEventBridgeConfiguration: {
+            aws_account_id: string;
+            aws_region: components["schemas"]["EventsEventStreamEventBridgeAWSRegionEnum"];
+            aws_partner_event_source?: string;
+        };
+        /** @enum {string} */
+        EventsEventStreamEventBridgeAWSRegionEnum: "af-south-1" | "ap-east-1" | "ap-east-2" | "ap-northeast-1" | "ap-northeast-2" | "ap-northeast-3" | "ap-south-1" | "ap-south-2" | "ap-southeast-1" | "ap-southeast-2" | "ap-southeast-3" | "ap-southeast-4" | "ap-southeast-5" | "ap-southeast-6" | "ap-southeast-7" | "ca-central-1" | "ca-west-1" | "eu-central-1" | "eu-central-2" | "eu-north-1" | "eu-south-1" | "eu-south-2" | "eu-west-1" | "eu-west-2" | "eu-west-3" | "il-central-1" | "me-central-1" | "me-south-1" | "mx-central-1" | "sa-east-1" | "us-gov-east-1" | "us-gov-west-1" | "us-east-1" | "us-east-2" | "us-west-1" | "us-west-2";
+        EventsEventStreamActionResponseContent: {
+            /** @description Local console extension reporting extant failed deliveries; not observed Auth0 parity. */
+            readonly total_failures?: number;
+            /** Format: event-stream-id */
+            id?: string;
+            name?: string;
+            subscriptions?: components["schemas"]["EventsEventStreamSubscription"][];
+            destination?: components["schemas"]["EventsEventStreamActionDestination"];
+            status?: components["schemas"]["EventsEventStreamStatusEnum"];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        EventsEventStreamActionDestination: {
+            type: components["schemas"]["EventsEventStreamActionDestinationTypeEnum"];
+            configuration: components["schemas"]["EventsEventStreamActionConfiguration"];
+        };
+        /** @enum {string} */
+        EventsEventStreamActionDestinationTypeEnum: "action";
+        EventsEventStreamActionConfiguration: {
+            action_id: string;
+        };
+        EventsCreateEventStreamResponseContent: components["schemas"]["EventsEventStreamWebhookResponseContent"] | components["schemas"]["EventsEventStreamEventBridgeResponseContent"] | components["schemas"]["EventsEventStreamActionResponseContent"];
+        EventsCreateEventStreamWebHookRequestContent: {
+            name: string;
+            subscriptions: components["schemas"]["EventsEventStreamSubscription"][];
+            destination: components["schemas"]["EventsEventStreamWebhookDestinationCreate"];
+            status?: components["schemas"]["EventsEventStreamStatusEnum"];
+        };
+        EventsCreateEventStreamEventBridgeRequestContent: {
+            name: string;
+            subscriptions: components["schemas"]["EventsEventStreamSubscription"][];
+            destination: components["schemas"]["EventsEventStreamEventBridgeDestination"];
+            status?: components["schemas"]["EventsEventStreamStatusEnum"];
+        };
+        EventsCreateEventStreamActionRequestContent: {
+            name: string;
+            subscriptions: components["schemas"]["EventsEventStreamSubscription"][];
+            destination: components["schemas"]["EventsEventStreamActionDestination"];
+            status?: components["schemas"]["EventsEventStreamStatusEnum"];
+        };
+        EventsGetEventStreamResponseContent: components["schemas"]["EventsEventStreamWebhookResponseContent"] | components["schemas"]["EventsEventStreamEventBridgeResponseContent"] | components["schemas"]["EventsEventStreamActionResponseContent"];
+        EventsUpdateEventStreamResponseContent: components["schemas"]["EventsEventStreamWebhookResponseContent"] | components["schemas"]["EventsEventStreamEventBridgeResponseContent"] | components["schemas"]["EventsEventStreamActionResponseContent"];
+        EventsUpdateEventStreamRequestContent: {
+            name?: string;
+            subscriptions?: components["schemas"]["EventsEventStreamSubscription"][];
+            destination?: components["schemas"]["EventsEventStreamDestinationPatch"];
+            status?: components["schemas"]["EventsEventStreamStatusEnum"];
+        };
+        EventsEventStreamDestinationPatch: components["schemas"]["EventsEventStreamWebhookDestinationPatch"] | components["schemas"]["EventsEventStreamActionDestination"];
+        EventsListEventStreamDeliveriesResponseContent: {
+            deliveries: components["schemas"]["EventsEventStreamDelivery"][];
+            next?: string;
+        };
+        EventsEventStreamDelivery: {
+            id: string;
+            /** Format: event-stream-id */
+            event_stream_id: string;
+            status: components["schemas"]["EventsEventStreamDeliveryStatusEnum"];
+            event_type: components["schemas"]["EventsEventStreamDeliveryEventTypeEnum"];
+            attempts: components["schemas"]["EventsEventStreamDeliveryAttempt"][];
+            event?: components["schemas"]["EventsEventStreamCloudEvent"];
+        };
+        /** @enum {string} */
+        EventsEventStreamDeliveryStatusEnum: "failed";
+        /** @enum {string} */
+        EventsEventStreamAttemptStatusEnum: "failed" | "success";
+        /** @enum {string} */
+        EventsEventStreamDeliveryEventTypeEnum: "connection.created" | "connection.deleted" | "connection.updated" | "group.created" | "group.deleted" | "group.member.added" | "group.member.deleted" | "group.role.assigned" | "group.role.deleted" | "group.updated" | "organization.connection.added" | "organization.connection.removed" | "organization.connection.updated" | "organization.created" | "organization.deleted" | "organization.group.role.assigned" | "organization.group.role.deleted" | "organization.member.added" | "organization.member.deleted" | "organization.member.role.assigned" | "organization.member.role.deleted" | "organization.updated" | "user.created" | "user.deleted" | "user.updated";
+        EventsEventStreamDeliveryAttempt: {
+            status: components["schemas"]["EventsEventStreamAttemptStatusEnum"];
+            /** Format: date-time */
+            timestamp: string;
+            error_message?: string;
+            duration?: number;
+        };
+        /** @description CloudEvent validated against internal/eventrules/catalog.json. */
+        EventsEventStreamCloudEvent: {
+            [key: string]: unknown;
+        };
+        EventsGetEventStreamDeliveryHistoryResponseContent: {
+            id: string;
+            /** Format: event-stream-id */
+            event_stream_id: string;
+            status: components["schemas"]["EventsEventStreamDeliveryStatusEnum"];
+            event_type: components["schemas"]["EventsEventStreamDeliveryEventTypeEnum"];
+            attempts: components["schemas"]["EventsEventStreamDeliveryAttempt"][];
+            event?: components["schemas"]["EventsEventStreamCloudEvent"];
+        };
+        EventsCreateEventStreamRedeliveryResponseContent: {
+            /** Format: date-time */
+            date_from?: string;
+            /** Format: date-time */
+            date_to?: string;
+            statuses?: components["schemas"]["EventsEventStreamDeliveryStatusEnum"][];
+            event_types?: components["schemas"]["EventsEventStreamEventTypeEnum"][];
+        };
+        /** @enum {string} */
+        EventsEventStreamEventTypeEnum: "connection.created" | "connection.deleted" | "connection.updated" | "group.created" | "group.deleted" | "group.member.added" | "group.member.deleted" | "group.role.assigned" | "group.role.deleted" | "group.updated" | "organization.connection.added" | "organization.connection.removed" | "organization.connection.updated" | "organization.created" | "organization.deleted" | "organization.group.role.assigned" | "organization.group.role.deleted" | "organization.member.added" | "organization.member.deleted" | "organization.member.role.assigned" | "organization.member.role.deleted" | "organization.updated" | "user.created" | "user.deleted" | "user.updated";
+        EventsCreateEventStreamRedeliveryRequestContent: {
+            /** Format: date-time */
+            date_from?: string;
+            /** Format: date-time */
+            date_to?: string;
+            statuses?: components["schemas"]["EventsEventStreamDeliveryStatusEnum"][];
+            event_types?: components["schemas"]["EventsEventStreamEventTypeEnum"][];
+        };
+        EventsCreateEventStreamTestEventResponseContent: {
+            id: string;
+            /** Format: event-stream-id */
+            event_stream_id: string;
+            status: components["schemas"]["EventsEventStreamAttemptStatusEnum"];
+            event_type: components["schemas"]["EventsEventStreamDeliveryEventTypeEnum"];
+            attempts: components["schemas"]["EventsEventStreamDeliveryAttempt"][];
+            event?: components["schemas"]["EventsEventStreamCloudEvent"];
+        };
+        EventsCreateEventStreamTestEventRequestContent: {
+            event_type: components["schemas"]["EventsEventStreamTestEventTypeEnum"];
+            data?: components["schemas"]["EventsTestEventDataContent"];
+        };
+        /** @enum {string} */
+        EventsEventStreamTestEventTypeEnum: "connection.created" | "connection.deleted" | "connection.updated" | "group.created" | "group.deleted" | "group.member.added" | "group.member.deleted" | "group.role.assigned" | "group.role.deleted" | "group.updated" | "organization.connection.added" | "organization.connection.removed" | "organization.connection.updated" | "organization.created" | "organization.deleted" | "organization.group.role.assigned" | "organization.group.role.deleted" | "organization.member.added" | "organization.member.deleted" | "organization.member.role.assigned" | "organization.member.role.deleted" | "organization.updated" | "user.created" | "user.deleted" | "user.updated";
+        EventsTestEventDataContent: {
+            [key: string]: unknown;
+        };
+        /** @description Server-sent event frames carrying an offset and a catalog CloudEvent. */
+        EventsEventStreamSubscribeEventsResponseContent: string;
+        EventsEventStreamSubscribeEventsEventTypeParam: components["schemas"]["EventsEventStreamSubscribeEventsEventTypeEnum"][];
+        /** @enum {string} */
+        EventsEventStreamSubscribeEventsEventTypeEnum: "connection.created" | "connection.deleted" | "connection.updated" | "group.created" | "group.deleted" | "group.member.added" | "group.member.deleted" | "group.role.assigned" | "group.role.deleted" | "group.updated" | "organization.connection.added" | "organization.connection.removed" | "organization.connection.updated" | "organization.created" | "organization.deleted" | "organization.group.role.assigned" | "organization.group.role.deleted" | "organization.member.added" | "organization.member.deleted" | "organization.member.role.assigned" | "organization.member.role.deleted" | "organization.updated" | "user.created" | "user.deleted" | "user.updated";
+        EventsEventStreamWebhookBasicAuthCreate: {
+            method: components["schemas"]["EventsEventStreamWebhookBasicAuthMethodEnum"];
+            username: string;
+            password: string;
+        };
+        EventsEventStreamWebhookBearerAuthCreate: {
+            method: components["schemas"]["EventsEventStreamWebhookBearerAuthMethodEnum"];
+            token: string;
+        };
+        EventsEventStreamWebhookCustomHeaderAuthCreate: {
+            method: components["schemas"]["EventsEventStreamWebhookCustomHeaderAuthMethodEnum"];
+            header_key: string;
+            header_value: string;
+        };
+        EventsEventStreamWebhookAuthorizationCreate: components["schemas"]["EventsEventStreamWebhookBasicAuthCreate"] | components["schemas"]["EventsEventStreamWebhookBearerAuthCreate"] | components["schemas"]["EventsEventStreamWebhookCustomHeaderAuthCreate"];
+        EventsEventStreamWebhookConfigurationCreate: {
+            webhook_endpoint: string;
+            webhook_authorization: components["schemas"]["EventsEventStreamWebhookAuthorizationCreate"];
+        };
+        EventsEventStreamWebhookDestinationCreate: {
+            type: components["schemas"]["EventsEventStreamWebhookDestinationTypeEnum"];
+            configuration: components["schemas"]["EventsEventStreamWebhookConfigurationCreate"];
+        };
+        EventsEventStreamWebhookBasicAuthPatch: {
+            method: components["schemas"]["EventsEventStreamWebhookBasicAuthMethodEnum"];
+            username: string;
+            password?: string;
+        };
+        EventsEventStreamWebhookBearerAuthPatch: {
+            method: components["schemas"]["EventsEventStreamWebhookBearerAuthMethodEnum"];
+            token?: string;
+        };
+        EventsEventStreamWebhookCustomHeaderAuthPatch: {
+            method: components["schemas"]["EventsEventStreamWebhookCustomHeaderAuthMethodEnum"];
+            header_key: string;
+            header_value?: string;
+        };
+        EventsEventStreamWebhookAuthorizationPatch: components["schemas"]["EventsEventStreamWebhookBasicAuthPatch"] | components["schemas"]["EventsEventStreamWebhookBearerAuthPatch"] | components["schemas"]["EventsEventStreamWebhookCustomHeaderAuthPatch"];
+        EventsEventStreamWebhookConfigurationPatch: {
+            webhook_endpoint: string;
+            webhook_authorization: components["schemas"]["EventsEventStreamWebhookAuthorizationPatch"];
+        };
+        EventsEventStreamWebhookDestinationPatch: {
+            type: components["schemas"]["EventsEventStreamWebhookDestinationTypeEnum"];
+            configuration: components["schemas"]["EventsEventStreamWebhookConfigurationPatch"];
+        };
         SystemLogStreamStatus: {
             id: string;
             /** @enum {string} */
@@ -4233,7 +4630,7 @@ export interface components {
         };
         ActionTrigger: {
             /** @enum {string} */
-            id: "post-login" | "credentials-exchange" | "pre-user-registration" | "post-user-registration" | "post-change-password" | "password-reset-post-challenge" | "custom-email-provider";
+            id: "post-login" | "credentials-exchange" | "pre-user-registration" | "post-user-registration" | "post-change-password" | "password-reset-post-challenge" | "custom-email-provider" | "event-stream";
             version?: string;
             /** @enum {string} */
             readonly binding_policy?: "trigger-bound";
@@ -6593,6 +6990,902 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ListEventStreams: {
+        parameters: {
+            query?: {
+                from?: string;
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsListEventStreamsResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateEventStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventsCreateEventStreamWebHookRequestContent"] | components["schemas"]["EventsCreateEventStreamEventBridgeRequestContent"] | components["schemas"]["EventsCreateEventStreamActionRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsCreateEventStreamResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetEventStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsGetEventStreamResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteEventStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateEventStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventsUpdateEventStreamRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsUpdateEventStreamResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    ListEventDeliveries: {
+        parameters: {
+            query?: {
+                statuses?: string;
+                event_types?: string;
+                date_from?: string;
+                date_to?: string;
+                from?: string;
+                take?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsListEventStreamDeliveriesResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetEventDelivery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsGetEventStreamDeliveryHistoryResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    RedeliverEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventsCreateEventStreamRedeliveryRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsCreateEventStreamRedeliveryResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    RedeliverEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    TestEventStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventsCreateEventStreamTestEventRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsCreateEventStreamTestEventResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SubscribeEvents: {
+        parameters: {
+            query?: {
+                from?: string;
+                from_timestamp?: string;
+                event_type?: components["schemas"]["EventsEventStreamSubscribeEventsEventTypeParam"];
+            };
+            header?: {
+                "Last-Event-ID"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["EventsEventStreamSubscribeEventsResponseContent"];
+                };
+            };
+            /** @description Request rejected */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rejected */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Events capability unavailable */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
     GetActionModules: {
         parameters: {
             query?: {

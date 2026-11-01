@@ -193,14 +193,14 @@ it('pins published modules by name and version, limits selection to ten and subm
  expect(w.text()).toContain('Shared 9'); expect(w.findAll('button').find(b => b.text() === 'Add module')!.attributes('disabled')).toBeDefined()
  await click(w, 'Save draft'); await flushPromises(); expect((calls.find(c => c.method === 'PATCH')!.body as { modules: unknown[] }).modules).toHaveLength(10)
 })
-it('shows seven trigger choices from the catalogue', async () => {
- const ids = ['post-login', 'credentials-exchange', 'pre-user-registration', 'post-user-registration', 'post-change-password', 'password-reset-post-challenge', 'custom-email-provider']
+it('shows eight trigger choices from the catalogue', async () => {
+ const ids = ['event-stream', 'post-login', 'credentials-exchange', 'pre-user-registration', 'post-user-registration', 'post-change-password', 'password-reset-post-challenge', 'custom-email-provider']
  const { wrapper: w } = await setup('action-triggers', '/t/acme/actions/triggers', () => ok({ triggers: ids.map(id => ({ id })) }))
  ids.forEach(id => expect(w.text()).toContain(id))
 })
 it('offers each trigger sample payload and preserves manual event edits until explicitly loading a template', async () => {
  const { wrapper: w } = await setup('action-test', '/t/acme/actions/a/test', () => ok(action()))
- expect(w.findAll('#event-template option')).toHaveLength(7)
+ expect(w.findAll('#event-template option')).toHaveLength(8)
  await w.get('#event-template').setValue('custom-email-provider'); await click(w, 'Load sample event'); await flushPromises()
  expect(JSON.parse((w.get('#action-event').element as HTMLTextAreaElement).value)).toHaveProperty('notification.to')
  await w.get('#action-event').setValue('{"my":"draft"}'); await w.get('#event-template').setValue('pre-user-registration')
@@ -212,9 +212,9 @@ it('shows actual persisted job attempts via the local operator endpoint', async 
 })
 
 it('creates correct entrypoint templates for every trigger', async () => {
- const handlers = ['onExecutePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onExecuteCustomEmailProvider']
+ const handlers = ['onExecuteEventStream', 'onExecutePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onExecuteCustomEmailProvider']
  const { triggerCode, eventTemplates } = await import('./templates')
- Object.keys(eventTemplates).forEach((id, i) => { expect(triggerCode(id)).toContain(`exports.${handlers[i]} = async (event, api)`); expect(eventTemplates[id]).toHaveProperty('tenant') })
+ Object.keys(eventTemplates).forEach((id, i) => { expect(triggerCode(id)).toContain(`exports.${handlers[i]} = async (event, api)`); expect(eventTemplates[id]).toHaveProperty(id === 'event-stream' ? 'message' : 'tenant') })
 })
 
 it('ignores a late attempt reply after execution navigation', async () => {

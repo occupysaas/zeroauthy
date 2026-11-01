@@ -5,6 +5,16 @@ export type { Role, RolePage, PermissionKey, Permission, PermissionSource, Permi
 // A thin, typed wrapper over fetch for the Management API (on each
 // tenant's own host) and the system API (on the system host).
 
+export type EventStream = components['schemas']['EventsEventStreamResponseContent']
+export type EventStreamCreate = components['schemas']['EventsCreateEventStreamWebHookRequestContent'] | components['schemas']['EventsCreateEventStreamActionRequestContent'] | components['schemas']['EventsCreateEventStreamEventBridgeRequestContent']
+export type EventStreamPatch = components['schemas']['EventsUpdateEventStreamRequestContent']
+export type EventType = components['schemas']['EventsEventStreamEventTypeEnum']
+export type EventDelivery = components['schemas']['EventsEventStreamDelivery']
+export type EventTestRequest = components['schemas']['EventsCreateEventStreamTestEventRequestContent']
+export type EventTestResult = components['schemas']['EventsCreateEventStreamTestEventResponseContent']
+export type EventRedelivery = components['schemas']['EventsCreateEventStreamRedeliveryRequestContent']
+export type EventDeliveryQuery = { statuses?: string; event_types?: string; date_from?: string; date_to?: string; from?: string; take: number }
+
 export type Client = components['schemas']['Client']
 export type ClientCreate = components['schemas']['ClientCreate']
 export type ClientUpdate = components['schemas']['ClientUpdate']
@@ -805,6 +815,37 @@ export class Api {
     return collect(page => this.listActionBindings(t, trigger, { page, per_page: ALL_PER_PAGE }).then(r => ({ items: r.bindings, total: r.total })))
   }
 
+  listEventStreams(t: SystemTenant, q: { from?: string; take: number }): Promise<components['schemas']['EventsListEventStreamsResponseContent']> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/event-streams', { query: q })
+  }
+  getEventStream(t: SystemTenant, id: string): Promise<EventStream> {
+    return this.request(Api.tenantOrigin(t), 'GET', eventStreamPath(id))
+  }
+  createEventStream(t: SystemTenant, body: EventStreamCreate): Promise<EventStream> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/event-streams', { body })
+  }
+  updateEventStream(t: SystemTenant, id: string, body: EventStreamPatch): Promise<EventStream> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', eventStreamPath(id), { body })
+  }
+  deleteEventStream(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', eventStreamPath(id))
+  }
+  testEventStream(t: SystemTenant, id: string, body: EventTestRequest): Promise<EventTestResult> {
+    return this.request(Api.tenantOrigin(t), 'POST', eventStreamPath(id) + '/test', { body })
+  }
+  listEventDeliveries(t: SystemTenant, id: string, q: EventDeliveryQuery): Promise<components['schemas']['EventsListEventStreamDeliveriesResponseContent']> {
+    return this.request(Api.tenantOrigin(t), 'GET', eventStreamPath(id) + '/deliveries', { query: q })
+  }
+  getEventDelivery(t: SystemTenant, id: string, event: string): Promise<EventDelivery> {
+    return this.request(Api.tenantOrigin(t), 'GET', eventStreamPath(id) + '/deliveries/' + encodeURIComponent(event))
+  }
+  redeliverEvent(t: SystemTenant, id: string, event: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'POST', eventStreamPath(id) + '/redeliver/' + encodeURIComponent(event))
+  }
+  redeliverEvents(t: SystemTenant, id: string, body: EventRedelivery): Promise<EventRedelivery> {
+    return this.request(Api.tenantOrigin(t), 'POST', eventStreamPath(id) + '/redeliver', { body })
+  }
+
   listLogs(t: SystemTenant, q: { page: number; per_page: number; q?: string }): Promise<LogPage> {
     return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/logs', { query: { ...q, include_totals: true, sort: 'date:-1' } })
   }
@@ -895,3 +936,5 @@ async function collect<T>(fetchPage: (page: number) => Promise<{ items: T[]; tot
 
 function actionPath(id: string): string { return '/api/v2/actions/actions/' + encodeURIComponent(id) }
 function triggerPath(id: string): string { return '/api/v2/actions/triggers/' + encodeURIComponent(id) + '/bindings' }
+
+function eventStreamPath(id: string): string { return '/api/v2/event-streams/' + encodeURIComponent(id) }
