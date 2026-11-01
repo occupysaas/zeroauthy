@@ -8582,6 +8582,7 @@ paths:
       - logs
       x-source:
       - https://auth0.com/docs/api/management/v2/logs/get-logs
+      - https://auth0.com/docs/secure/security-guidance/incident-response-using-logs
       security:
       - managementToken:
         - read:logs
@@ -8699,6 +8700,7 @@ paths:
       - logs
       x-source:
       - https://auth0.com/docs/api/management/v2/logs/get-logs-by-id
+      - https://auth0.com/docs/secure/security-guidance/incident-response-using-logs
       security:
       - managementToken:
         - read:logs
@@ -8764,6 +8766,7 @@ paths:
       - logs
       x-source:
       - https://auth0.com/docs/api/management/v2/users/get-logs-by-user
+      - https://auth0.com/docs/secure/security-guidance/incident-response-using-logs
       security:
       - managementToken:
         - read:logs
@@ -9392,6 +9395,10 @@ components:
         log_id:
           type: string
           pattern: ^[0-9]{56}$
+        _id:
+          type: string
+          pattern: ^[0-9]{56}$
+          description: Authoritative alias of log_id for compatible log clients.
         date:
           type: string
           format: date-time
@@ -9458,6 +9465,10 @@ components:
         log_id:
           type: string
           pattern: ^[0-9]{56}$
+        _id:
+          type: string
+          pattern: ^[0-9]{56}$
+          description: Authoritative alias of log_id for compatible log clients.
         date:
           type: string
           format: date-time

@@ -2807,6 +2807,12 @@
       "omission": "omit when unavailable"
     },
     {
+      "name": "_id",
+      "type": "string",
+      "source": "https://auth0.com/docs/secure/security-guidance/incident-response-using-logs",
+      "omission": "optional authoritative alias of log_id"
+    },
+    {
       "name": "date",
       "type": "string",
       "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",

@@ -35,7 +35,7 @@ func TestLogSearchParity(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			queries := []string{`type:f`, `type:(s OR f)`, `user_id:"auth0|abc"`, `date:[2026-10-01 TO 2026-10-30]`, `client_name:My*`, `NOT type:sapi`, `NOT hostname:any`, `hostname:12`, `NOT hostname:present`, `description:100%_!*`, `client_name:My_*`, `Alice`, `NOT user_name:Alice`, `type:f OR type:s AND user_id:other`, `date:"2026-10-30T12:00:00.123456789Z"`, `date:{2026-10-30T12:00:00.123456788Z TO *]`, `date:[* TO 2026-10-30T12:00:00.123456788Z]`}
+			queries := []string{`log_id:[` + store.FormatLogID(2) + ` TO *]`, `log_id:[* TO ` + store.FormatLogID(3) + `]`, `log_id:{` + store.FormatLogID(2) + ` TO ` + store.FormatLogID(5) + `}`, `type:f`, `type:(s OR f)`, `user_id:"auth0|abc"`, `date:[2026-10-01 TO 2026-10-30]`, `client_name:My*`, `NOT type:sapi`, `NOT hostname:any`, `hostname:12`, `NOT hostname:present`, `description:100%_!*`, `client_name:My_*`, `Alice`, `NOT user_name:Alice`, `type:f OR type:s AND user_id:other`, `date:"2026-10-30T12:00:00.123456789Z"`, `date:{2026-10-30T12:00:00.123456788Z TO *]`, `date:[* TO 2026-10-30T12:00:00.123456788Z]`}
 			for _, raw := range queries {
 				t.Run(raw, func(t *testing.T) {
 					q, err := logsearch.Parse(raw)
@@ -185,7 +185,7 @@ func TestLogSearchMigration29(t *testing.T) {
 				t.Fatal(err)
 			}
 			v, err := s.SchemaVersion(ctx)
-			if err != nil || v != 29 {
+			if err != nil || v != s.LatestVersion() {
 				t.Fatalf("version=%d err=%v", v, err)
 			}
 			for _, tc := range []struct {

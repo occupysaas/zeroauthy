@@ -3123,6 +3123,8 @@ export interface components {
         /** @description Tenant event; absent fields omitted. location_info is unavailable locally. All responses are scrubbed (D-0057). */
         LogEvent: {
             log_id: string;
+            /** @description Authoritative alias of log_id for compatible log clients. */
+            _id?: string;
             /** Format: date-time */
             date: string;
             type: string;
@@ -3160,6 +3162,8 @@ export interface components {
         /** @description Log list item; every field is optional because page-mode include/exclude projection can remove log_id, date and type. Available fields retain the full event types and scrubbed values (D-0057). */
         LogEventListItem: {
             log_id?: string;
+            /** @description Authoritative alias of log_id for compatible log clients. */
+            _id?: string;
             /** Format: date-time */
             date?: string;
             type?: string;

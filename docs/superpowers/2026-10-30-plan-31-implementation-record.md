@@ -2338,3 +2338,48 @@ Full details and actual RED/GREEN remain in the task16a2 report/audit. No
 SQL/store/proto/generated changes, so no redundant SQL/full-gRPC checks.
 Task16 remains incomplete; all acceptance/docs/regression/review debt stays.
 Follow-up commit subject: `fix: preserve Action credential masks across flow outcomes`.
+
+## Task16b — production logs acceptance fixtures (2026-10-31)
+
+Added `make e2e-logs` and four real app/SQLite fixtures. Shipped binary wiring
+records and streams actual browser/operator/SDK/CLI activity; server process
+restart reuses persistent configuration/state. CLI bootstrap setup output is
+private0600, with startup bootstrap email unset. No synthetic sessions or log
+rows, live Auth0 tenant or vendor delivery endpoint.
+
+**Fixture implementation DONE_WITH_CONCERNS; acceptance FAIL; Task16 remains
+incomplete.** Final `E2E_KEEP_WORK=1 make e2e-logs` intentionally fails the
+execution-page explicit-denial-reason assertion and pinnedCLI1.37 filtered
+list/tail `search_engine`400. It continues the operator editor redeploy and
+PKCE retry, SDK modern7.4/bundledlegacy4.37.1 page/checkpoint/user-log reads,
+all3 stream formats/filter/recursivePIImask, actual outage/restart no-loss
+replay, daily3logins/active2 and the privacy audit. No combined browser or
+whole acceptance PASS is claimed. Unfiltered CLI list plus stream CRUD pass.
+Final artifacts `/tmp/plan31-VLWjFG`: privacy17logging/monitoring sinks,
+476951bytes/eight representative secrets absent, with exact private fixture
+exclusions enumerated. Explicit deny is not a thrown Action error; a separate
+scrubbed result denial field remains a follow-up. Undocumented page selector
+behavior was not inferred/implemented from client source alone.
+
+Actual repairs via RED→GREEN: checkpoint override ignores all non-from/take
+parameters; authoritative `_id` alias backed by public incident-response docs;
+fixed-width decimal log-ID ranges in memory/SQL backed by public searchable
+fields/ranges; stale migration29 latest-version test corrected after actual
+version30 failure, retaining upgrade/backfill assertions. API/inventory/source
+provenance and generated Go/console types updated. No dependency added.
+
+All commands GOTOOLCHAIN=go1.26.7. Fresh focused log races PASS
+logrules3.722s/logsearch1.033s/mgmt12.562s/server2.606s. Focused three-driver
+LogSearch race script PASS13.152s (SQLite/PostgreSQL17/MySQL8.4), including
+range parity/backfill. Earlier affected-package race had SQL migration-test
+FAIL, then corrected focused migration race PASS2.828s. Final logsearch race
+PASS1.033s. `make generate`, console schema generation/typecheck and diff
+whitespace check PASS. `make check-sources` FAIL at seven pre-existing RFC
+URLs returning301000 in authentication.yaml; Management source step did not
+run. Full console build/regression/E2E/conformance/docs/review deferred to the
+controller. No deferred suite is called passing.
+
+Complete actual commands, RED/GREEN, development failures, decisions/costs,
+audited sinks and gaps: [Task16b report](2026-10-31-plan-31-task-16b-report.md).
+Scratch report/logs share `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/`.
+Commit subject: `test: add Plan 31 production logs acceptance fixtures`.

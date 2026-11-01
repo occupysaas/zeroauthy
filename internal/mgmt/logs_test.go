@@ -69,6 +69,36 @@ func TestLogsAPICheckpoint(t *testing.T) {
 		t.Fatal(r.Body)
 	}
 }
+
+// The pinned CLI adds a search selector while polling checkpoints. The
+// checkpoint contract ignores every parameter except from/take, including
+// unknown names and repetitions; page mode remains strict.
+func TestLogsAPICheckpointIgnoresAllOtherParameters(t *testing.T) {
+	e := newClientsEnv(t)
+	e.h.Now = func() time.Time { return time.Now().Add(3 * time.Second) }
+	if err := e.st.Logs().AppendLogs(context.Background(), []store.LogEvent{{TenantID: e.tn.ID, Type: "f", Date: time.Now(), Body: []byte(`{"description":"CLI tail event"}`)}, {TenantID: e.tn.ID, Type: "f", Date: time.Now(), Body: []byte(`{"description":"CLI tail event"}`)}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, query := range []string{
+		"from=" + store.FormatLogID(1) + "&take=100&search_engine=v3&q=*&sort=date:1",
+		"take=1&unknown=x&unknown=y&search_engine=v3&search_engine=bad",
+	} {
+		r, out := e.call(t, e.tn, m2mCaller("read:logs"), "GET", "/api/v2/logs?"+query, nil, e.h.ListLogs)
+		if r.Code != 200 {
+			t.Fatalf("%s: %d %s", query, r.Code, r.Body)
+		}
+		rows := out.([]any)
+		if len(rows) != 1 || rows[0].(map[string]any)["description"] != "CLI tail event" {
+			t.Fatal(out)
+		}
+	}
+	for _, query := range []string{"search_engine=v3", "take=1&from=0&from=0", "take=1&take=1"} {
+		r, _ := e.call(t, e.tn, m2mCaller("read:logs"), "GET", "/api/v2/logs?"+query, nil, e.h.ListLogs)
+		if r.Code != 400 {
+			t.Fatalf("%s: %d %s", query, r.Code, r.Body)
+		}
+	}
+}
 func TestLogsCrossTenant(t *testing.T) {
 	e := newClientsEnv(t)
 	ctx := context.Background()
@@ -217,5 +247,25 @@ func TestShortCredentialEventGETPreservesSchema(t *testing.T) {
 	}
 	if body["details"].(map[string]any)[logscrub.Marker] != logscrub.Marker {
 		t.Fatal(body)
+	}
+}
+
+func TestLogsAuthoritativeIDAlias(t *testing.T) {
+	e := newClientsEnv(t)
+	if err := e.st.Logs().AppendLogs(context.Background(), []store.LogEvent{{TenantID: e.tn.ID, Type: "f", Date: time.Now(), Body: []byte(`{"_id":"spoof","log_id":"spoof"}`)}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, query := range []string{"", "?fields=_id,log_id", "?fields=log_id&include_fields=false"} {
+		r, out := e.call(t, e.tn, m2mCaller("read:logs"), "GET", "/api/v2/logs"+query, nil, e.h.ListLogs)
+		if r.Code != 200 {
+			t.Fatal(r.Code, r.Body)
+		}
+		item := out.([]any)[0].(map[string]any)
+		if item["_id"] != store.FormatLogID(1) {
+			t.Fatalf("alias=%v", item)
+		}
+		if query != "?fields=log_id&include_fields=false" && item["log_id"] != item["_id"] {
+			t.Fatal(item)
+		}
 	}
 }

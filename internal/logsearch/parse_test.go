@@ -64,3 +64,40 @@ func FuzzLogQuery(f *testing.F) {
 		}
 	})
 }
+
+// Public search syntax documents ranges and log_id; fixed-width decimal IDs
+// preserve the same ordering under memory and each SQL dialect's binary collation.
+func TestLogIDRanges(t *testing.T) {
+	id := store.FormatLogID(2)
+	event := store.LogEvent{ID: id}
+	for _, tc := range []struct {
+		raw  string
+		want bool
+	}{
+		{`log_id:[` + id + ` TO *]`, true},
+		{`log_id:[* TO ` + id + `]`, true},
+		{`log_id:[` + id + ` TO ` + id + `]`, true},
+		{`log_id:{` + id + ` TO *]`, false},
+		{`log_id:[* TO ` + id + `}`, false},
+		{`log_id:[` + store.FormatLogID(3) + ` TO *]`, false},
+	} {
+		q, err := Parse(tc.raw)
+		if err != nil {
+			t.Fatalf("%s: %v", tc.raw, err)
+		}
+		if got := Match(q, event); got != tc.want {
+			t.Fatalf("%s: got%v want%v", tc.raw, got, tc.want)
+		}
+		for _, dialect := range []string{"sqlite", "postgres", "mysql"} {
+			where, args, err := SQL(q, dialect)
+			if err != nil || !strings.Contains(where, "log_id") || len(args) == 0 {
+				t.Fatalf("%s: %s %v %v", dialect, where, args, err)
+			}
+		}
+	}
+	for _, raw := range []string{`log_id:[1 TO *]`, `log_id:[` + strings.Repeat("x", 56) + ` TO *]`, `type:[f TO s]`} {
+		if _, err := Parse(raw); err == nil {
+			t.Fatalf("accepted %s", raw)
+		}
+	}
+}

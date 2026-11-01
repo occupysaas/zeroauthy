@@ -63,7 +63,12 @@ func logParams(r *http.Request, user bool) (store.LogPage, *store.LogQuery, []st
 	}
 	checkpoint := !user && (q.Has("from") || q.Has("take"))
 	for k, v := range q {
-		if !slices.Contains(allowed, k) || len(v) != 1 && (!checkpoint || k == "from" || k == "take") {
+		// Checkpoint reads ignore every other parameter, including unknown
+		// names and repeated values. Only cursor/take validation applies.
+		if checkpoint && k != "from" && k != "take" {
+			continue
+		}
+		if !slices.Contains(allowed, k) || len(v) != 1 {
 			return p, nil, nil, include, badQuery("Unsupported or repeated parameter %q", k)
 		}
 	}
@@ -136,6 +141,7 @@ func logView(r *http.Request, e store.LogEvent, fields []string, include bool) m
 	out = logs.ScrubStoredEvent(r.Context(), out)
 	// The server-assigned cursor is protocol metadata, independent of body masks.
 	out["log_id"] = e.ID
+	out["_id"] = e.ID
 	if len(fields) > 0 {
 		for k := range out {
 			if slices.Contains(fields, k) != include {

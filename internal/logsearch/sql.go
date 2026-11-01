@@ -91,6 +91,26 @@ func SQL(q *store.LogQuery, dialect string) (string, []any, error) {
 			if f.Storage == "json-string" {
 				value = hex.EncodeToString([]byte(value))
 			}
+			if n.Op == "range" {
+				if n.Value != "" {
+					op := ">="
+					if n.LowerExclusive {
+						op = ">"
+					}
+					terms = append(terms, v+op+bind(n.Value))
+				}
+				if n.Upper != "" {
+					op := "<="
+					if n.UpperExclusive {
+						op = "<"
+					}
+					terms = append(terms, v+op+bind(n.Upper))
+				}
+				if len(terms) == 0 {
+					return "1=1"
+				}
+				return "(" + strings.Join(terms, " AND ") + ")"
+			}
 			if n.Op == "eq" {
 				terms = append(terms, v+"="+bind(value))
 				continue

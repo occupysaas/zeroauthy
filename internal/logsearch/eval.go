@@ -48,6 +48,22 @@ func Validate(q *store.LogQuery) error {
 			return false
 		}
 		if n.Op == "range" {
+			if n.Field == "log_id" {
+				for _, bound := range []string{n.Value, n.Upper} {
+					if bound == "" {
+						continue
+					}
+					if len(bound) != queryLimits["id_digits"] {
+						return false
+					}
+					for _, digit := range bound {
+						if digit < '0' || digit > '9' {
+							return false
+						}
+					}
+				}
+				return true
+			}
 			if field.Type != "date" {
 				return false
 			}
@@ -89,6 +105,10 @@ func Match(q *store.LogQuery, e store.LogEvent) bool {
 	case "not":
 		return q.Left != nil && q.Right == nil && !Match(q.Left, e)
 	case "range":
+		if q.Field == "log_id" {
+			return (q.Value == "" || e.ID > q.Value || !q.LowerExclusive && e.ID == q.Value) &&
+				(q.Upper == "" || e.ID < q.Upper || !q.UpperExclusive && e.ID == q.Upper)
+		}
 		if q.Field != "date" {
 			return false
 		}

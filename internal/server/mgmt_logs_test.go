@@ -35,7 +35,7 @@ func TestLogsAPIRealCheckpointBinding(t *testing.T) {
 	for _, tc := range []struct {
 		query string
 		want  int
-	}{{"take=1&page=bad&per_page=bad&include_totals=bad&include_fields=bad&sort=bad&q=bad:&fields=bad", 200}, {"from=bad&take=1", 400}, {"take=0", 400}, {"take=1&page=bad&page=bad", 200}, {"take=1&take=1", 400}, {"take=1&unknown=x", 400}, {"page=10&per_page=100", 400}} {
+	}{{"take=1&page=bad&per_page=bad&include_totals=bad&include_fields=bad&sort=bad&q=bad:&fields=bad", 200}, {"from=bad&take=1", 400}, {"take=0", 400}, {"take=1&page=bad&page=bad", 200}, {"take=1&take=1", 400}, {"take=1&unknown=x", 200}, {"from=" + strings.Repeat("0", 55) + "1&take=100&search_engine=v3&q=*&sort=date:1", 200}, {"take=1&search_engine=v3&search_engine=bad&unknown=x&unknown=y", 200}, {"search_engine=v3", 400}, {"page=10&per_page=100", 400}} {
 		r := httptest.NewRequest("GET", "https://acme.example.test/api/v2/logs?"+tc.query, nil)
 		r.Header.Set("Authorization", "Bearer "+tok)
 		w := httptest.NewRecorder()

@@ -57,7 +57,7 @@ type LogPage struct {
 
 // LogQuery is the storage-owned Lucene subset AST. A nil or empty root matches
 // all events. Binary and/or nodes have Left and Right; not has only Left.
-// Leaves use eq (exact text), sw (trailing wildcard) or range (date bounds).
+// Leaves use eq (exact text), sw (trailing wildcard) or range (date or fixed-width log ID bounds).
 // Empty range endpoints mean unbounded. Bare text leaves use an empty Field.
 // Date values use RFC3339Nano. Field names are frozen by internal/logrules.
 type LogQuery struct {

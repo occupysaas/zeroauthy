@@ -6955,14 +6955,17 @@ type LogDailyStat struct {
 // LogEvent Tenant event; absent fields omitted. location_info is unavailable locally. All responses are scrubbed (D-0057).
 type LogEvent struct {
 	// EventSchema Optional event schema metadata, omitted when unavailable.
-	EventSchema  *map[string]interface{} `json:"$event_schema,omitempty"`
-	Audience     *string                 `json:"audience,omitempty"`
-	ClientId     *string                 `json:"client_id,omitempty"`
-	ClientName   *string                 `json:"client_name,omitempty"`
-	Connection   *string                 `json:"connection,omitempty"`
-	ConnectionId *string                 `json:"connection_id,omitempty"`
-	Date         time.Time               `json:"date"`
-	Description  *string                 `json:"description,omitempty"`
+	EventSchema *map[string]interface{} `json:"$event_schema,omitempty"`
+
+	// UnderscoreId Authoritative alias of log_id for compatible log clients.
+	UnderscoreId *string   `json:"_id,omitempty"`
+	Audience     *string   `json:"audience,omitempty"`
+	ClientId     *string   `json:"client_id,omitempty"`
+	ClientName   *string   `json:"client_name,omitempty"`
+	Connection   *string   `json:"connection,omitempty"`
+	ConnectionId *string   `json:"connection_id,omitempty"`
+	Date         time.Time `json:"date"`
+	Description  *string   `json:"description,omitempty"`
 
 	// Details Scrubbed event detail; Actions execution IDs appear at actions.executions.
 	Details          *map[string]interface{} `json:"details,omitempty"`
@@ -6988,14 +6991,17 @@ type LogEvent struct {
 // LogEventListItem Log list item; every field is optional because page-mode include/exclude projection can remove log_id, date and type. Available fields retain the full event types and scrubbed values (D-0057).
 type LogEventListItem struct {
 	// EventSchema Optional event schema metadata, omitted when unavailable.
-	EventSchema  *map[string]interface{} `json:"$event_schema,omitempty"`
-	Audience     *string                 `json:"audience,omitempty"`
-	ClientId     *string                 `json:"client_id,omitempty"`
-	ClientName   *string                 `json:"client_name,omitempty"`
-	Connection   *string                 `json:"connection,omitempty"`
-	ConnectionId *string                 `json:"connection_id,omitempty"`
-	Date         *time.Time              `json:"date,omitempty"`
-	Description  *string                 `json:"description,omitempty"`
+	EventSchema *map[string]interface{} `json:"$event_schema,omitempty"`
+
+	// UnderscoreId Authoritative alias of log_id for compatible log clients.
+	UnderscoreId *string    `json:"_id,omitempty"`
+	Audience     *string    `json:"audience,omitempty"`
+	ClientId     *string    `json:"client_id,omitempty"`
+	ClientName   *string    `json:"client_name,omitempty"`
+	Connection   *string    `json:"connection,omitempty"`
+	ConnectionId *string    `json:"connection_id,omitempty"`
+	Date         *time.Time `json:"date,omitempty"`
+	Description  *string    `json:"description,omitempty"`
 
 	// Details Scrubbed event detail; Actions execution IDs appear at actions.executions.
 	Details          *map[string]interface{} `json:"details,omitempty"`
