@@ -220,6 +220,11 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			return fmt.Errorf("user %q: %w", u.Email, err)
 		}
 	}
+	if len(in.Actions) == 0 {
+		if err := applyEventStreams(ctx, st, tn.ID, in.EventStreams, now, w); err != nil {
+			return err
+		}
+	}
 	if err := applyLogStreams(ctx, st, tn.ID, in.LogStreams, now, w); err != nil {
 		return err
 	}

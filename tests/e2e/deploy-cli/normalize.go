@@ -86,6 +86,10 @@ func Compare(source, target deploymigration.Export, manifest Manifest, domains D
 		if name == "resourceServers" {
 			mapObjectIDs(dst, apiMap)
 		}
+		if name == "eventStreams" {
+			canonicalEventStreamActions(src, source, &r)
+			canonicalEventStreamActions(dst, target, &r)
+		}
 		compareRecords(name, src, dst, manifest, domains, &r)
 	}
 	sort.Slice(r.Counts, func(i, j int) bool { return r.Counts[i].Resource < r.Counts[j].Resource })
@@ -372,6 +376,53 @@ func validateReferences(export deploymigration.Export, entries map[string]Manife
 	}
 }
 
+// Resolve references only through each export's own Action inventory. No
+// substitutions are applied to endpoint, header or credential strings.
+func canonicalEventStreamActions(streams []object, export deploymigration.Export, r *Report) {
+	actions, _, _ := decodeRows(export.Resources["actions"])
+	names := map[string]string{}
+	ambiguous := map[string]bool{}
+	for _, a := range actions {
+		name, _ := a["name"].(string)
+		if name == "" {
+			continue
+		}
+		for _, field := range []string{"id", "name"} {
+			key, _ := a[field].(string)
+			if key == "" {
+				continue
+			}
+			if old, exists := names[key]; exists && old != name {
+				ambiguous[key] = true
+			}
+			names[key] = name
+		}
+	}
+	for _, stream := range streams {
+		dest, _ := stream["destination"].(map[string]any)
+		cfg, _ := dest["configuration"].(map[string]any)
+		if dest["type"] == "action" {
+			ref, _ := cfg["action_id"].(string)
+			if names[ref] == "" || ambiguous[ref] {
+				addDiff(r, "eventStreams", "destination.configuration.action_id", "Action reference is not unique within export")
+				continue
+			}
+			cfg["action_id"] = names[ref]
+		}
+		if dest["type"] == "webhook" {
+			auth, _ := cfg["webhook_authorization"].(map[string]any)
+			method, _ := auth["method"].(string)
+			marker := map[string]string{"basic": "##EVENT_STREAM_WEBHOOK_BASIC_AUTH_PASSWORD##", "bearer": "##EVENT_STREAM_WEBHOOK_BEARER_TOKEN##", "custom_header": "##EVENT_STREAM_WEBHOOK_HEADER_VALUE##"}[method]
+			secretField := map[string]string{"basic": "password", "bearer": "token", "custom_header": "header_value"}[method]
+			for _, field := range []string{"password", "token", "header_value"} {
+				if value, exists := auth[field]; exists && (field != secretField || marker == "" || value != marker) {
+					addDiff(r, "eventStreams", "destination.configuration.webhook_authorization", "public export contains a secret field")
+				}
+			}
+		}
+	}
+}
+
 func compareFiles(source, target map[string][]byte, r *Report) {
 	all := map[string]bool{}
 	for k := range source {
@@ -440,7 +491,7 @@ func compareGrants(src, dst []object, clients, apis map[string]string, r *Report
 	}
 }
 func compareRecords(name string, src, dst []object, m Manifest, domains Domains, r *Report) {
-	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "organizations": "name", "actions": "name", "actionModules": "name", "triggers": "$singleton", "logStreams": "name"}[name]
+	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "organizations": "name", "actions": "name", "actionModules": "name", "triggers": "$singleton", "logStreams": "name", "eventStreams": "name"}[name]
 	by := map[string]object{}
 	for _, o := range src {
 		k := naturalKey(o, keyField)
@@ -482,7 +533,7 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 				}
 			}
 		}
-		if name == "resourceServers" || name == "roles" || name == "organizations" || name == "actions" || name == "actionModules" || name == "logStreams" {
+		if name == "resourceServers" || name == "roles" || name == "organizations" || name == "actions" || name == "actionModules" || name == "logStreams" || name == "eventStreams" {
 			delete(a, "id")
 			delete(b, "id")
 		}

@@ -1380,3 +1380,83 @@ Verification (Node v26.8.1; isolated worktree, sole suite monitor):
 - `git diff --check` passed. Full task commands, setup failures, intermediate
   results and limitations are recorded in workspace `task-12-report.md`.
   No database or broader Go/E2E suites were run for this console task.
+
+## Task 13 — seed and Deploy CLI provisioning
+
+Implemented create-only tenant `event_streams` in both seed modes, with stable
+optional IDs, tenant-name natural keys, whole environment references for
+write-only credentials and tenant-bound Action name/ID resolution. The seed
+path reuses `eventstream.Configure` and `SealSecrets`; tenant locking, quota,
+initial latest-sequence checkpoint and insertion share a transaction. Existing
+streams are skipped before environment resolution. Same-seed Actions build
+before their streams are created. Tests cover all three authorization methods,
+rollback, quota, historical checkpoint, tenant isolation and restart edits.
+
+Enabled pinned Deploy CLI 9.1.0 `eventStreams` in the existing manifest and
+four-cell matrix. Both formats retain nonempty webhook/Action configuration,
+compare Action references within their own export inventory and reject lost
+fields, dangling references and credential-bearing public exports. Opaque
+configuration is never loaded as a file. Only the pinned tool's three exact
+method-specific nonsecret credential placeholders are accepted; no arbitrary
+credential-marker normalization is allowed. Events and delivery records are
+not migration resources. `docs/deploy-cli.md` documents seed semantics,
+private credential staging, omission/rotation and tool provenance.
+
+Verification (Go 1.26.7, Node v26.8.1; no new dependencies):
+
+- Required RED: `go test ./internal/seed ./internal/deploymigration -run
+  EventStream -count=1`, exit 1: unknown seed field and missing directory
+  resource. `/tmp/plan32-task13-red.log`. Required focused GREEN repeated after
+  final implementation, exit 0;
+  `/tmp/plan32-task13-final-required-focused.{log,exit}`.
+- Comparator RED/GREEN covers stream identity, exact credential placeholders,
+  Action references, secret privacy and opaque configuration. Original RED
+  logs: `/tmp/plan32-task13-{comparator,references,opaque,placeholder}-red.log`.
+  An intermediate full package run also exposed `TestManifestCoverage`'s
+  approved-normalization allowlist; the resource-specific metadata entries
+  were added. `/tmp/plan32-task13-packages.{log,exit}` preserves that exit 1.
+- Final three-package JSON run: `go test -json ./internal/seed
+  ./internal/deploymigration ./tests/e2e/deploy-cli -count=1`, exit 0,
+  **306 passed leaves, 0 failures, 2 skipped leaves**, UTC 23:38:00–23:38:02.
+  The skips are `TestE2EPrivateEmailProviderCredentialAfterImport` and
+  `TestE2EPrivateLogStreamSecretsAfterImport`, which require the isolated E2E
+  environment and are actually invoked inside the successful Deploy CLI lane.
+  `/tmp/plan32-task13-final-json.{log,exit,start,end,summary}`.
+- Focused EventStream race tests across those same three packages, exit 0;
+  `/tmp/plan32-task13-final-race.{log,exit}`. No race diagnostics.
+- Original `E2E_KEEP_WORK=1 make e2e-deploy`: exit **2**, UTC
+  22:53:11–22:53:38. The first generated/YAML source-self comparison rejected
+  the real tool's fixed bearer placeholder as a credential. No import cell
+  passed in this attempt. `/tmp/plan32-task13-deploy.{log,exit,start,end}`;
+  artifacts `/tmp/tmp.czdrxgj7qs`; source snapshot
+  `09cb8124d21409fa7cf39128781e6e6108083974e12a3c234f6dc1c0038dbaa1`.
+- After exact-placeholder regression RED/GREEN, the required full retry
+  **passed all four cells**, exit **0**, UTC 23:10:21–23:27:37. Each cell
+  exported two streams and seven Actions; public configuration, field-loss
+  negatives, target Action ownership, explicit rotation, omitted-secret CLI
+  update, webhook delivery and Action execution passed. Original source
+  credential recovery is not claimed. `/tmp/plan32-task13-deploy-retry.*`;
+  artifacts `/tmp/tmp.Yof5B1R37v`; source snapshot
+  `93254ffe5c5943105b94d2fb0c4bb8aeed24cf1290c7de09e57e9f18c07f1452`.
+- A final assertion additionally checks real webhook delivery with the freshly
+  reinjected token **before** rotation. The final script's targeted
+  `E2E_KEEP_WORK=1 E2E_M20_ONLY_MODE=generated make e2e-deploy` passed both YAML
+  and directory cells, exit **0**, UTC 23:28:37–23:37:09.
+  `/tmp/plan32-task13-fresh-proof.*`; artifacts `/tmp/tmp.fp6cPKjv4e`;
+  source snapshot
+  `6c4542ae828446133390a595e507c28991e0ee495d988d5d9512baff2487edf9`.
+  The full four-cell pass precedes this added assertion; it is not reported
+  as a full four-cell run of the final script.
+- Source manifests and HEAD are retained beside each long-run log. One agent
+  monitored each run. The original run was checked after 15 minutes; later
+  runs used automated blocking waits with no model-driven process/log polls.
+  No suite was repeated because of quiet output. Node syntax, shell syntax
+  and `git diff --check` passed.
+
+Limitations: local zeroauthy only; upstream observer lane unavailable and no
+Auth0 requests made. Existing `databases` and ACUL exclusions, the
+`attackProtection` phone-provider-protection tool gap and API-only custom-domain
+header rejections remain explicit. EventBridge delivery is unavailable. The
+full repository race/SQL/browser acceptance matrix belongs to Task 14 and was
+not run here. Complete commands, intermediate failures and artifact paths are
+in workspace `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-13-report.md`.

@@ -332,10 +332,10 @@
     },
     {
       "name": "eventStreams",
-      "status": "excluded",
-      "owner": "roadmap: event streams milestone",
-      "reason": "Event streams are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 32",
+      "reason": "Webhook and action stream public configuration round trips; private credentials are staged explicitly",
+      "fixture": "fixtures/event-streams.json"
     },
     {
       "name": "clientAuthCredentials",
@@ -460,6 +460,24 @@
       "path": "latest_version_number",
       "rule": "read-only",
       "reason": "Deploy CLI republishes unchanged module drafts during repeated private-secret injection; Action pins retain strict module name/version comparisons and execute that pinned version after import."
+    },
+    {
+      "resource": "eventStreams",
+      "path": "created_at",
+      "rule": "read-only",
+      "reason": "Destination-generated stream runtime metadata is not portable configuration"
+    },
+    {
+      "resource": "eventStreams",
+      "path": "updated_at",
+      "rule": "read-only",
+      "reason": "Destination-generated stream runtime metadata is not portable configuration"
+    },
+    {
+      "resource": "eventStreams",
+      "path": "total_failures",
+      "rule": "read-only",
+      "reason": "Destination-generated stream runtime metadata is not portable configuration"
     }
   ]
 }

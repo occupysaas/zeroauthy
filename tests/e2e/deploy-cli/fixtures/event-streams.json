@@ -1,0 +1,4 @@
+[
+  {"name":"Deploy webhook events","subscriptions":[{"event_type":"user.created"},{"event_type":"user.updated"}],"destination":{"type":"webhook","configuration":{"webhook_endpoint":"https://localhost:8447/intake","webhook_authorization":{"method":"bearer"}}},"status":"disabled"},
+  {"name":"Deploy action events","subscriptions":[{"event_type":"organization.created"}],"destination":{"type":"action","configuration":{"action_id":"Deploy event-stream"}},"status":"disabled"}
+]

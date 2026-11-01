@@ -100,5 +100,17 @@
         "module_version_number": 1
       }
     ]
+  },
+  {
+    "name": "Deploy event-stream",
+    "runtime": "node22",
+    "supported_triggers": [
+      {
+        "id": "event-stream",
+        "version": "v1"
+      }
+    ],
+    "code": "exports.onExecuteEventStream=async(e,a)=>{if(!e.message.id)throw Error('missing event');a.cache.set('deploy-event-received',e.message.id)};",
+    "modules": []
   }
 ]

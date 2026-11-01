@@ -106,8 +106,10 @@ func LoadExport(path, format string) (Export, error) {
 					return errors.New("deploymigration: invalid YAML resource")
 				}
 			}
-			if err := checkExportReferences(value, root, out.Files); err != nil {
-				return err
+			if resourceName(rel) != "eventStreams" {
+				if err := checkExportReferences(value, root, out.Files); err != nil {
+					return err
+				}
 			}
 			if strings.HasPrefix(rel, "branding/templates/") {
 				if err := checkTemplateBodyReference(value, root, filepath.Dir(rel), out.Files); err != nil {
@@ -225,6 +227,10 @@ func LoadExport(path, format string) (Export, error) {
 func checkExportReferences(value any, root string, files map[string][]byte) error {
 	var visit func(any, string) error
 	visit = func(v any, key string) error {
+		// Event stream destination strings are opaque configuration, never file references.
+		if key == "eventStreams" {
+			return nil
+		}
 		switch x := v.(type) {
 		case map[string]any:
 			for k, child := range x {
@@ -326,6 +332,8 @@ func resourceName(path string) string {
 		// auth0-deploy-cli 9.1.0 stores client grants under grants/ in
 		// directory exports, although the Management API family is clientGrants.
 		return "clientGrants"
+	case "eventstreams", "event-streams", "event_streams":
+		return "eventStreams"
 	case "logstreams", "log-streams", "log_streams":
 		return "logStreams"
 	case "customdomains", "custom-domains", "custom_domains":

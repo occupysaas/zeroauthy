@@ -186,6 +186,11 @@ func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() t
 				engine.Builds.PrewarmBuild(tn.ID, deployed.BuildID)
 			}
 		}
+		if len(in.Actions) > 0 {
+			if err := st.WithTx(ctx, func(tx store.Store) error { return applyEventStreams(ctx, tx, tn.ID, in.EventStreams, now().UTC(), w) }); err != nil {
+				return err
+			}
+		}
 		for trigger, t := range in.Triggers {
 			err := st.WithTx(ctx, func(tx store.Store) error {
 				initialized, err := tx.Actions().BindingsInitialized(ctx, tn.ID, trigger)

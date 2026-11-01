@@ -20,6 +20,9 @@ const streamDatadogSecret = process.env.E2E_M31_STREAM_DATADOG_SECRET;
 assert.ok(streamHTTPSecret && streamDatadogSecret);
 secrets.push(streamHTTPSecret, streamDatadogSecret);
 const logStreams = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures/log-streams.json'), 'utf8'));
+const eventSecret = 'm32-private-webhook-token';
+const eventStreams = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures/event-streams.json'), 'utf8'));
+secrets.push(eventSecret);
 const actionSecret = 'm27-private-deploy-action-value';
 secrets.push(actionSecret);
 const emailSecret = 'm21-deploy-private-provider-secret';
@@ -31,7 +34,7 @@ const federation = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures
 const federationCredentials = path.join(work, 'federation-credentials.json');
 await writeFile(federationCredentials, JSON.stringify(Object.fromEntries(federation.map(c => [c.name, upstreamSecret]))), { mode: 0o600 });
 const sourceConfig = { ...JSON.parse(await readFile(process.env.E2E_M20_CONFIG, 'utf8')), AUTH0_CLIENT_SECRET: secrets[0], AUTH0_EXPORT_IDENTIFIERS: false };
-const targetConfig = { ...sourceConfig, AUTH0_KEYWORD_REPLACE_MAPPINGS:{ACTION_SECRET:actionSecret,LOGSTREAMS_HTTP_SECRET:streamHTTPSecret,LOGSTREAMS_DATADOG_SECRET:streamDatadogSecret}, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
+const targetConfig = { ...sourceConfig, AUTH0_KEYWORD_REPLACE_MAPPINGS:{ACTION_SECRET:actionSecret,EVENT_STREAM_TOKEN:eventSecret,LOGSTREAMS_HTTP_SECRET:streamHTTPSecret,LOGSTREAMS_DATADOG_SECRET:streamDatadogSecret}, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
 const bin = path.join(e2e, 'node_modules/.bin/a0deploy');
 const comparator = args => spawnSync('go', ['run', './tests/e2e/deploy-cli', ...args], { cwd: root, encoding: 'utf8' });
 function checkedCompare(source, target) {
@@ -82,6 +85,7 @@ async function assertNoEmailSecrets(exportPath) {
   const folder=format==='yaml'?path.dirname(exportPath):exportPath;
   const files=await Promise.all((await readdir(folder,{recursive:true})).map(name=>readFile(path.join(folder,name),'utf8').catch(()=>'')));
   const joined = files.join('\n');
+  assert.equal(joined.includes(eventSecret),false,'public deploy export contains event stream credential');
   for (const secret of proxySecrets) assert.equal(joined.includes(secret), false, 'deploy export contains a proxy secret');
   for (const secret of [streamHTTPSecret,streamDatadogSecret]) assert.equal(joined.includes(secret), false, 'public deploy export contains a log stream credential');
   assert.equal(joined.includes('[REDACTED]'), false, 'public deploy export contains server credential marker');
@@ -181,8 +185,59 @@ async function prepareImport(input, name, mutate = () => {}, { inject = true } =
   mutate(domains);
   await writeFile(file,format==='yaml'?dumpYaml(data):JSON.stringify(data),{mode:0o600});
   await injectActionKeywords(destination);
+  await stageEventStreams(destination);
   if(inject) await injectFederation(destination);
   return destination;
+}
+// Webhook credentials are write-only. Stage an explicit private keyword for
+// creation/rotation; omission on subsequent imports must retain the stored token.
+async function readEventStreams(input) {
+ if(format==='yaml')return parseYaml(await readFile(input,'utf8')).eventStreams;
+ const dir=path.join(input,'event-streams');return Promise.all((await readdir(dir)).filter(f=>f.endsWith('.json')).map(async f=>JSON.parse(await readFile(path.join(dir,f),'utf8'))));
+}
+async function stageEventStreams(input,includeSecret=true) {
+ const rows=await readEventStreams(input);
+ for(const row of rows){delete row.created_at;delete row.updated_at;delete row.total_failures;
+  if(row.destination.type==='webhook'&&includeSecret)row.destination.configuration.webhook_authorization.token='##EVENT_STREAM_TOKEN##';
+ }
+ if(format==='yaml'){const data=parseYaml(await readFile(input,'utf8'));data.eventStreams=rows;await writeFile(input,dumpYaml(data),{mode:0o600});}
+ else{const dir=path.join(input,'event-streams');await rm(dir,{recursive:true});await mkdir(dir,{mode:0o700});for(let i=0;i<rows.length;i++)await writeFile(path.join(dir,`${i}.json`),JSON.stringify(rows[i]),{mode:0o600});}
+}
+async function eventStreamNegatives(input) {
+ for(const field of ['name','subscriptions','destination','status']){
+  const folder=path.join(work,`missing-event-stream-${field}`);await cp(format==='yaml'?path.dirname(input):input,folder,{recursive:true});const output=format==='yaml'?path.join(folder,'tenant.yaml'):folder;
+  if(format==='yaml'){const data=parseYaml(await readFile(output,'utf8'));delete data.eventStreams[0][field];await writeFile(output,dumpYaml(data));}
+  else{const dir=path.join(folder,'event-streams'),file=(await readdir(dir)).find(f=>f.endsWith('.json'));const p=path.join(dir,file),row=JSON.parse(await readFile(p,'utf8'));delete row[field];await writeFile(p,JSON.stringify(row));}
+  assert.equal(checkedCompare(input,output).equivalent,false,`lost event stream ${field} escaped comparator`);
+ }
+}
+async function eventStreamRuntime() {
+ const received=[];
+ const receiver=https.createServer({key:await readFile(process.env.ZEROAUTHY_SERVER__TLS_KEY_FILE),cert:await readFile(process.env.ZEROAUTHY_SERVER__TLS_CERT_FILE)},(req,res)=>{received.push(req.headers.authorization);req.resume();res.writeHead(204);res.end();});
+ await new Promise(resolve=>receiver.listen(8447,'127.0.0.1',resolve));
+ try {
+ const {eventStreams:rows}=await api(targetConfig,'GET','event-streams');assert.equal(rows.length,2);
+ const webhook=rows.find(s=>s.destination.type==='webhook'),action=rows.find(s=>s.destination.type==='action');
+ const actions=await api(targetConfig,'GET','actions/actions');assert.equal(actions.actions.find(a=>a.id===action.destination.configuration.action_id)?.name,'Deploy event-stream','Action stream must reference the target tenant Action');
+ for(const stream of [webhook,action])await api(targetConfig,'PATCH',`event-streams/${stream.id}`,{status:'enabled'});
+ // Explicit API rotation, then an actual pinned CLI import omitting the token.
+ const fresh=await api(targetConfig,'POST',`event-streams/${webhook.id}/test`,{event_type:webhook.subscriptions[0].event_type});
+ assert.equal(fresh.status,'success','fresh private keyword reinjection did not deliver');
+ assert.ok(received.length>0);assert.ok(received.every(value=>value===`Bearer ${eventSecret}`),'fresh import lost the reinjected webhook credential');
+ received.length=0;
+ const rotated=eventSecret+'-rotated';secrets.push(rotated);
+ await api(targetConfig,'PATCH',`event-streams/${webhook.id}`,{destination:{...webhook.destination,configuration:{...webhook.destination.configuration,webhook_authorization:{method:'bearer',token:rotated}}}});
+ const omitted=await prepareImport(sourcePath,'event-secret-omitted');
+ if(format==='yaml'){const d=parseYaml(await readFile(omitted,'utf8'));delete d.eventStreams.find(s=>s.destination.type==='webhook').destination.configuration.webhook_authorization.token;await writeFile(omitted,dumpYaml(d));}
+ else{const dir=path.join(omitted,'event-streams');for(const f of await readdir(dir)){const p=path.join(dir,f),d=JSON.parse(await readFile(p,'utf8'));if(d.destination.type==='webhook'){delete d.destination.configuration.webhook_authorization.token;await writeFile(p,JSON.stringify(d));}}}
+ deploy('import','target',omitted);
+ for(const stream of [webhook,action]){
+  await api(targetConfig,'PATCH',`event-streams/${stream.id}`,{status:'enabled'});
+  const result=await api(targetConfig,'POST',`event-streams/${stream.id}/test`,{event_type:stream.subscriptions[0].event_type});assert.equal(result.status,'success',`${stream.destination.type} runtime delivery failed`);
+  await api(targetConfig,'PATCH',`event-streams/${stream.id}`,{status:'disabled'});
+ }
+ assert.ok(received.length>0);assert.ok(received.every(value=>value===`Bearer ${rotated}`),'omitted-secret import rotated or lost webhook credential');
+ } finally {await new Promise(resolve=>receiver.close(resolve));}
 }
 // The checked export contains secret names only. The actual pinned Deploy CLI
 // resolves keyword values from its private target config during import.
@@ -291,10 +346,13 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   const actionDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/actions.json'),'utf8'));
   for(const declaration of actionDeclarations){const a=await api(sourceConfig,'POST','actions/actions',{...declaration,secrets:[{name:'DEPLOY_VALUE',value:actionSecret}]});let built=false;for(let n=0;n<300;n++){const draft=await api(sourceConfig,'GET',`actions/actions/${a.id}`);if(draft.status==='built'){built=true;break;}assert.notEqual(draft.status,'failed');await new Promise(r=>setTimeout(r,100));}assert.ok(built,'source Action build timeout');await api(sourceConfig,'POST',`actions/actions/${a.id}/deploy`);}
   for(const trigger of new Set(actionDeclarations.map(a=>a.supported_triggers[0].id)))await api(sourceConfig,'PATCH',`actions/triggers/${trigger}/bindings`,{bindings:actionDeclarations.filter(a=>a.supported_triggers[0].id===trigger).map(a=>({ref:{type:'action_name',value:a.name},display_name:a.name}))});
+  const sourceActions=await api(sourceConfig,'GET','actions/actions');
+  for(const fixture of eventStreams){const row=structuredClone(fixture);if(row.destination.type==='webhook')row.destination.configuration.webhook_authorization.token=eventSecret;else row.destination.configuration.action_id=sourceActions.actions.find(a=>a.name===row.destination.configuration.action_id).id;await api(sourceConfig,'POST','event-streams',row);}
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
   await actionNegatives(sourcePublicExport);
   await logStreamNegatives(sourcePublicExport);
+  await eventStreamNegatives(sourcePublicExport);
   assert.equal((await api(sourceConfig,'GET','branding/templates/universal-login')).body,templateBody);
   const exportConfig = format === 'yaml' ? parseYaml(await readFile(sourcePublicExport,'utf8')).branding : JSON.parse(await readFile(path.join(sourcePublicExport,'branding/templates/universal_login.json'),'utf8'));
   if(format==='yaml') assert.ok(exportConfig.templates?.length,'nonempty Universal Login template must export');
@@ -404,6 +462,8 @@ assert.equal(repeated.client_id, imported.client_id); assert.ok(repeated.client_
 targetPath = await exportTo('target', 'target-repeat');
 assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'repeat import differs');
 await assertPrivateLogStreamSecrets();
+await eventStreamRuntime();
+console.log('Plan 32 deploy: webhook/action public configuration, strict field-loss negatives, target Action ownership, fresh credential reinjection, explicit token rotation, omitted-secret CLI import and actual runtime delivery passed');
 console.log('Plan 31 deploy: HTTP and Datadog name/type/status/filters/PII/priority/public sink, private keyword reinjection, repeat secret retention and field-loss negatives passed');
 await api(sourceConfig,'PATCH','branding',{colors:{primary:'#654321'}});
 const changedBranding=await exportTo('source','source-branding-changed');

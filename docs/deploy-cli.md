@@ -281,3 +281,91 @@ Tool evidence: `auth0/auth0-deploy-cli` v9.1.0,
 `lib/context/defaults.js` and `lib/tools/utils.js` (MIT). Public API fields follow
 [Create a log stream](https://auth0.com/docs/api/management/v2/log-streams/post-log-streams).
 No Auth0 tenant observation is used by these tests.
+
+## Event streams (Plan 32)
+
+Seed tenants may declare `event_streams` with the Management API create fields,
+plus an optional stable `id`:
+
+```yaml
+tenants:
+  - name: example
+    event_streams:
+      - name: User events
+        status: disabled
+        subscriptions:
+          - {event_type: user.created}
+          - {event_type: user.updated}
+        destination:
+          type: webhook
+          configuration:
+            webhook_endpoint: https://events.example.test/intake
+            webhook_authorization:
+              method: bearer
+              token: ${EVENT_RECEIVER_TOKEN}
+      - name: Action events
+        subscriptions: [{event_type: organization.created}]
+        destination:
+          type: action
+          configuration: {action_name: Receive events}
+```
+
+Streams are create-only in both seed modes. Existing IDs are authoritative,
+including after a console rename; without an ID, the tenant's unique stream
+name identifies an existing stream. Reapplying leaves its status, destination,
+subscriptions, encrypted credentials, checkpoint and failure counters untouched,
+and does not read its environment variables. Duplicate seed names/IDs and a
+new explicit ID colliding with an existing name fail. New streams use the
+current tenant checkpoint and the default ten-stream quota inside the seed
+transaction. They do not replay existing events.
+
+Webhook `password`, `token` and `header_value` must be whole `${ENV_NAME}`
+references. The selected authorization method determines which credential is
+required. Missing/empty variables, literal credentials and partial interpolation
+fail creation; public username, header name and endpoint fields remain literal.
+Credentials are encrypted with tenant/stream/destination binding and excluded
+from public configuration. Seed uses HTTPS. `eventbridge` remains disabled.
+
+For Action destinations, `action_id` resolves an existing Action in the same
+tenant. Seed additionally accepts `action_name`, following seed trigger name
+references; supply exactly one reference. The Action must support `event-stream`.
+Actions declared in the same seed are built before stream creation. As with
+other Action seed failures, ordinary seed data may already be committed if an
+Action build or the later stream transaction fails; reapplying safely completes
+missing resources.
+
+Pinned Deploy CLI **9.1.0** now includes `eventStreams`. The local migration
+matrix compares nonempty webhook and Action fixtures in YAML's `eventStreams`
+and directory `event-streams/*.json`. It retains names, subscriptions,
+destinations and disabled status; generated IDs, timestamps and the local
+runtime failure count are not portable settings. Action references resolve
+through each export's own Action inventory. Destination strings are opaque
+configuration and are never treated as script/file references. Missing fields
+and dangling Action references fail comparison. Events and delivery records
+are not exported.
+
+Default tool exports insert these nonsecret webhook placeholders:
+
+| Method | Write-only field | Placeholder |
+| --- | --- | --- |
+| `basic` | `password` | `##EVENT_STREAM_WEBHOOK_BASIC_AUTH_PASSWORD##` |
+| `bearer` | `token` | `##EVENT_STREAM_WEBHOOK_BEARER_TOKEN##` |
+| `custom_header` | `header_value` | `##EVENT_STREAM_WEBHOOK_HEADER_VALUE##` |
+
+Supply fresh credentials privately with `AUTH0_KEYWORD_REPLACE_MAPPINGS` before
+creating a destination stream. The local fixture stages its own explicit
+keyword; the comparator accepts only the pinned tool's exact method-specific
+export placeholders and rejects actual credential values. Exports cannot
+recover source credentials, including with secret export requested. An update
+that omits the credential preserves it when the authorization method stays the
+same. Method changes require a fresh credential. Runtime checks verify initial
+private reinjection, explicit rotation and retention after a pinned CLI import
+omitting the token, plus execution of the imported Action. These results prove
+public configuration migration and destination credential provisioning; they
+do not claim that source secrets round trip.
+
+Tool provenance: `auth0/auth0-deploy-cli` v9.1.0 (MIT),
+`lib/context/defaults.js`,
+`lib/context/{yaml,directory}/handlers/eventStreams.js` and
+`lib/tools/auth0/handlers/eventStreams.js`. The tool is exercised only against
+local zeroauthy. No Auth0 tenant observation was performed.

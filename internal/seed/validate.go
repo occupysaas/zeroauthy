@@ -27,6 +27,9 @@ func (f *File) validate() error {
 	domainOwner := map[string]string{}
 	for i := range f.Tenants {
 		t := &f.Tenants[i]
+		if err := validateEventStreams(t); err != nil {
+			errs = append(errs, fmt.Errorf("seed: tenant %q: %w", t.Name, err))
+		}
 		if err := validateLogStreams(t); err != nil {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: %w", t.Name, err))
 		}
