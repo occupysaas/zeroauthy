@@ -208,3 +208,28 @@ func TestStampNormalAndInvalid(t *testing.T) {
 		t.Fatal("changed invalid JSON")
 	}
 }
+
+func TestBuildUpdatedRequiresPrevious(t *testing.T) {
+	for _, rule := range eventrules.Types() {
+		if !rule.Emitted || !strings.HasSuffix(rule.Name, ".updated") {
+			continue
+		}
+		t.Run(rule.Name, func(t *testing.T) {
+			var example map[string]any
+			if err := json.Unmarshal(eventrules.Example(rule.Name), &example); err != nil {
+				t.Fatal(err)
+			}
+			for name, previous := range map[string]any{"absent": nil, "typed-nil-user": (*store.User)(nil), "typed-nil-map": map[string]any(nil), "empty": map[string]any{}, "no-catalog-fields": map[string]any{"unknown": "ignored"}} {
+				t.Run(name, func(t *testing.T) {
+					event, err := Build(context.Background(), testTenant, rule.Name, data(example)["object"], previous, testTime)
+					if err == nil {
+						t.Fatal("accepted update without a meaningful prior object")
+					}
+					if len(event.Body) != 0 || event.ID != "" {
+						t.Fatal("returned an event on error")
+					}
+				})
+			}
+		})
+	}
+}

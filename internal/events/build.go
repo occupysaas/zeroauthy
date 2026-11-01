@@ -43,12 +43,16 @@ func Build(ctx context.Context, tenant *store.Tenant, typ string, object, previo
 		obj["deleted_at"] = timestamp(at)
 	}
 	d := map[string]any{"object": project(obj, rule.Allowlist), "context": eventContext(ctx, tenant.ID)}
-	if strings.HasSuffix(typ, ".updated") && previous != nil {
+	if strings.HasSuffix(typ, ".updated") {
 		p, err := response(previous)
 		if err != nil {
-			return zero, err
+			return zero, fmt.Errorf("updated event requires a prior object: %w", err)
 		}
-		d["previous_object"] = project(p, rule.Allowlist)
+		prior := project(p, rule.Allowlist)
+		if len(prior) == 0 {
+			return zero, errors.New("updated event requires a prior object with catalog fields")
+		}
+		d["previous_object"] = prior
 	}
 	id := NewEventID()
 	body, err := json.Marshal(map[string]any{"specversion": "1.0", "type": typ, "source": "urn:auth0:" + tenant.CanonicalHost, "id": id, "time": timestamp(at), "a0tenant": tenant.ID, "data": d})

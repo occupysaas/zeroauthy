@@ -141,3 +141,26 @@ Additional TDD evidence:
   No database, integration, broad or full suites run; these remain deferred to
   Task 14. No upstream observations and no dependencies added.
 - Commit: `feat: build Auth0 CloudEvents` (this entry's containing commit).
+
+### Task 2 Important review fix — require prior update snapshot
+
+- Review verified: Build could produce *.updated events without previous_object.
+  Build now always serializes prior input for every emitted updated event and
+  rejects nil, typed-nil, empty objects and objects with no catalog fields before
+  returning an event. Existing valid full previous snapshots remain unchanged.
+- RED with `export GOTOOLCHAIN=go1.26.7`:
+  `go test ./internal/events -run 'TestBuildUpdatedRequiresPrevious' -count=1`
+  failed, exit 1, 0.126s. All four emitted updated types accepted absent, empty
+  and no-catalog-field prior objects. Typed-nil variants already rejected and
+  remain pinned. Log: /tmp/plan32-task2-fix-red.log.
+- GREEN with the same exported toolchain:
+  `go test ./internal/events -run 'Build|IDFormats|Stamp' -count=1`
+  passed, exit 0, 0.274s. Log: /tmp/plan32-task2-fix-green.log.
+- Consumer compilation with the same exported toolchain:
+  `go test ./internal/mgmt ./internal/app -run '^$' -count=1` passed, exit 0;
+  mgmt 0.021s/app 0.019s, no tests selected.
+  Log: /tmp/plan32-task2-fix-compile.log.
+- `git diff --check` passed, exit 0. Self-reviewed only the Important fix and
+  covering regression. Misplaced test import Minor is deferred by instruction.
+  No database or broad suites run. Fix base: 98eac76.
+- Commit: `fix: require prior snapshots for updated events` (containing entry).
