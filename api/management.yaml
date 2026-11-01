@@ -8577,7 +8577,7 @@ paths:
       summary: Search tenant log events
       description: 'Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores every
         parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised. See D-0057 for
-        local behavior. Contract publication precedes runtime implementation.'
+        local behavior. Page mode accepts only the local supported selector search_engine=v3; this does not imply full search-engine parity.'
       tags:
       - logs
       x-source:
@@ -8636,6 +8636,13 @@ paths:
         schema:
           type: string
           maxLength: 1000
+      - name: search_engine
+        in: query
+        description: Local supported page selector; only one v3 value is accepted. Uses the existing bounded search subset; ignored in checkpoint mode. Acceptance independently observed 2026-11-01; no broader engine parity is implied.
+        schema:
+          type: string
+          enum:
+          - v3
       - name: from
         in: query
         description: 56 decimal digits; checkpoint is exclusive, ascending sequence; malformed=400; valid absent ID

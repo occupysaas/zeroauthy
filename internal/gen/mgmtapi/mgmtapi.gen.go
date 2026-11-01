@@ -4878,6 +4878,21 @@ func (e GetLogsParamsSort) Valid() bool {
 	}
 }
 
+// Defines values for GetLogsParamsSearchEngine.
+const (
+	V3 GetLogsParamsSearchEngine = "v3"
+)
+
+// Valid indicates whether the value is a known member of the GetLogsParamsSearchEngine enum.
+func (e GetLogsParamsSearchEngine) Valid() bool {
+	switch e {
+	case V3:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetUserLogsParamsSort.
 const (
 	GetUserLogsParamsSortDate1  GetUserLogsParamsSort = "date:1"
@@ -9797,6 +9812,9 @@ type GetLogsParams struct {
 	// Q Lucene subset; max 4000 bytes/1000 runes, depth 16, 5 terms; ignored in checkpoint mode
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
 
+	// SearchEngine Local supported page selector; only one v3 value is accepted. Uses the existing bounded search subset; ignored in checkpoint mode. Acceptance independently observed 2026-11-01; no broader engine parity is implied.
+	SearchEngine *GetLogsParamsSearchEngine `form:"search_engine,omitempty" json:"search_engine,omitempty"`
+
 	// From 56 decimal digits; checkpoint is exclusive, ascending sequence; malformed=400; valid absent ID still an opaque cursor
 	From *string `form:"from,omitempty" json:"from,omitempty"`
 
@@ -9806,6 +9824,9 @@ type GetLogsParams struct {
 
 // GetLogsParamsSort defines parameters for GetLogs.
 type GetLogsParamsSort string
+
+// GetLogsParamsSearchEngine defines parameters for GetLogs.
+type GetLogsParamsSearchEngine string
 
 // ListOrganizationsParams defines parameters for ListOrganizations.
 type ListOrganizationsParams struct {
@@ -19809,6 +19830,19 @@ func (siw *ServerInterfaceWrapper) GetLogs(w http.ResponseWriter, r *http.Reques
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "search_engine" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search_engine", r.URL.Query(), &params.SearchEngine, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "search_engine"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search_engine", Err: err})
 		}
 		return
 	}

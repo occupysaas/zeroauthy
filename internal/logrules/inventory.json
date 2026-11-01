@@ -3229,6 +3229,12 @@
           "rule": "Lucene subset; max 4000 bytes/1000 runes, depth 16, 5 terms; ignored in checkpoint mode"
         },
         {
+          "name": "search_engine",
+          "type": "string",
+          "in": "query",
+          "rule": "Local supported page selector: exactly one v3 value; existing bounded search subset unchanged; ignored in checkpoint mode. Acceptance independently observed 2026-11-01, not full search-engine parity."
+        },
+        {
           "name": "from",
           "type": "string",
           "in": "query",

@@ -1918,6 +1918,16 @@ The ten spec §8 rulings are local, not observations of Auth0 internals:
 
 Further frozen contracts and evidence gaps:
 
+- Global log page search accepts exactly one `search_engine=v3` as a local
+  supported selector, retaining the existing bounded query semantics. Other
+  values and duplicates return `400 invalid_query_string`; checkpoint mode
+  still ignores it along with all parameters except `from`/`take`. The
+  [independent 2026-11-01 observation](observations/2026-11-01-logs-search-selector.md)
+  confirms acceptance on the documented endpoint with bounded pagination and
+  with `q`/totals. It establishes neither engine selection semantics nor broader
+  v3 parity. Rejection of other values is the local strict policy, not an
+  observed upstream rule. This extension is limited to `/api/v2/logs`; user-log
+  routes retain their own parameter allowlist.
 - [Search logs](https://auth0.com/docs/api/management/v2/logs/get-logs)
   explicitly says `from` overrides `q` and that checkpoint mode ignores every
   parameter except `from`/`take`. This governs the implementation, superseding

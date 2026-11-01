@@ -70,9 +70,9 @@ func TestLogsAPICheckpoint(t *testing.T) {
 	}
 }
 
-// The pinned CLI adds a search selector while polling checkpoints. The
-// checkpoint contract ignores every parameter except from/take, including
-// unknown names and repetitions; page mode remains strict.
+// Checkpoint requests can include page selectors. The checkpoint contract
+// ignores every parameter except from/take, including unknown names and
+// repetitions; page mode validates its supported selector strictly.
 func TestLogsAPICheckpointIgnoresAllOtherParameters(t *testing.T) {
 	e := newClientsEnv(t)
 	e.h.Now = func() time.Time { return time.Now().Add(3 * time.Second) }
@@ -92,7 +92,7 @@ func TestLogsAPICheckpointIgnoresAllOtherParameters(t *testing.T) {
 			t.Fatal(out)
 		}
 	}
-	for _, query := range []string{"search_engine=v3", "take=1&from=0&from=0", "take=1&take=1"} {
+	for _, query := range []string{"search_engine=v2", "take=1&from=0&from=0", "take=1&take=1"} {
 		r, _ := e.call(t, e.tn, m2mCaller("read:logs"), "GET", "/api/v2/logs?"+query, nil, e.h.ListLogs)
 		if r.Code != 400 {
 			t.Fatalf("%s: %d %s", query, r.Code, r.Body)

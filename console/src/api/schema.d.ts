@@ -2937,7 +2937,7 @@ export interface paths {
         };
         /**
          * Search tenant log events
-         * @description Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores every parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised. See D-0057 for local behavior. Contract publication precedes runtime implementation.
+         * @description Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores every parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised. See D-0057 for local behavior. Page mode accepts only the local supported selector search_engine=v3; this does not imply full search-engine parity.
          */
         get: operations["GetLogs"];
         put?: never;
@@ -15466,6 +15466,8 @@ export interface operations {
                 include_totals?: boolean;
                 /** @description Lucene subset; max 4000 bytes/1000 runes, depth 16, 5 terms; ignored in checkpoint mode */
                 q?: string;
+                /** @description Local supported page selector; only one v3 value is accepted. Uses the existing bounded search subset; ignored in checkpoint mode. Acceptance independently observed 2026-11-01; no broader engine parity is implied. */
+                search_engine?: "v3";
                 /** @description 56 decimal digits; checkpoint is exclusive, ascending sequence; malformed=400; valid absent ID still an opaque cursor */
                 from?: string;
                 /** @description 1..100; default 50; from or presence of take selects checkpoint mode; take alone returns latest settled events ascending */

@@ -12,8 +12,8 @@ choices in [D-0057](compat/decisions.md#d-0057--tenant-logs-streams-and-statisti
 The [inventory](../internal/logrules/inventory.json) owns codes, categories,
 fields and limits. This guide describes the implementation; Plan 31 remains
 in acceptance until the [implementation record](superpowers/2026-10-30-plan-31-implementation-record.md)
-records the full regression and review. The pinned CLI limitation below is
-an actual acceptance failure, not a waived check.
+records the full regression and review. The prior CLI selector failure has a
+scoped compatibility fix; client acceptance must still be rerun and recorded.
 
 ## Troubleshoot an Action denial
 
@@ -67,7 +67,10 @@ support returns `501 logs_unavailable` on logs/streams/stats and these local
 execution diagnostics. Other existing plugin functionality keeps working.
 
 Page mode accepts `q`, `page`, `per_page`, date sort, field projection and
-`include_totals`. Default page size is 50, maximum 100; pages cannot extend
+`include_totals`. Global tenant-log pages also accept exactly one
+`search_engine=v3` selector, using the same bounded query subset; unsupported
+values and duplicates return 400. This selector does not extend the user-log
+route or imply full upstream search-engine parity. Default page size is 50, maximum 100; pages cannot extend
 past 1,000 results, and totals are capped there. With totals, the envelope is
 `{logs,start,limit,length,total}`; otherwise it is an array. Projection can
 omit fields. A full GET-by-ID retains the complete event shape.
@@ -224,16 +227,18 @@ in the local production fixture. The modern SDK exposes `search`; use its
 `queryParams.q` pass-through for the frozen wire `q` parameter. No `search`
 alias is promised.
 
-Pinned auth0-cli 1.37.0 unfiltered list and HTTP stream CRUD work in the
-fixture. Filtered list and `logs tail` currently fail because their page
-requests send undocumented `search_engine=v3`, rejected by the strict page
-contract. Tail polls log-ID range pages, not checkpoint mode. This is a known
-open acceptance failure pending permitted contract evidence or an explicit
-maintainer ruling; the fixture keeps those assertions enabled.
+Pinned auth0-cli 1.37.0 unfiltered list and HTTP stream CRUD worked in the
+fixture. Its filtered list and `logs tail` previously failed because page
+requests included `search_engine=v3`. A separate permitted
+[independent observation](compat/observations/2026-11-01-logs-search-selector.md)
+now confirms upstream acceptance of that value, and global tenant-log page mode
+accepts it locally with the existing bounded query semantics. Tail polls log-ID
+range pages rather than checkpoint mode. Final CLI/E2E acceptance remains pending
+its rerun; the earlier failed result is retained in the implementation record.
 
 The local primary-source contract and code catalog do not assert complete
-Auth0 equivalence. No live Auth0 tenant or vendor delivery endpoint was used
-for this lane. See the [compatibility matrix](compat/matrix.md) for the current
+Auth0 equivalence. The implementer used only the sanitized independent selector observation; no
+tenant contact or vendor delivery endpoint was used for this implementation. See the [compatibility matrix](compat/matrix.md) for the current
 boundary and the implementation record for actual tests and unrun checks.
 
 ## Event inventory

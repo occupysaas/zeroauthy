@@ -59,7 +59,7 @@ func logParams(r *http.Request, user bool) (store.LogPage, *store.LogQuery, []st
 	include := true
 	allowed := []string{"page", "per_page", "sort", "include_totals"}
 	if !user {
-		allowed = append(allowed, "q", "fields", "include_fields", "from", "take")
+		allowed = append(allowed, "q", "fields", "include_fields", "from", "take", "search_engine")
 	}
 	checkpoint := !user && (q.Has("from") || q.Has("take"))
 	for k, v := range q {
@@ -74,6 +74,9 @@ func logParams(r *http.Request, user bool) (store.LogPage, *store.LogQuery, []st
 	}
 	if !user && (q.Has("from") || q.Has("take")) {
 		return p, nil, nil, include, nil
+	}
+	if q.Has("search_engine") && q.Get("search_engine") != "v3" {
+		return p, nil, nil, include, badQuery("Invalid search_engine")
 	}
 	number := func(k string, def, lo, hi int) (int, error) {
 		if !q.Has(k) {

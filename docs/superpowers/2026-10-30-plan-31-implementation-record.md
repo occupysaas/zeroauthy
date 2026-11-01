@@ -2619,3 +2619,62 @@ still pending. No full-repository race/SQL/gRPC/E2E regression or Task16 complet
 is claimed by this dispatch; the controller owns frozen-source final validation.
 Commit subject: fix(plan31): close final log privacy and stream form findings.
 Detailed evidence/commit identity: final-fix-report.md in the plan scratch dir.
+
+## Task 16 selector acceptance delta — independently unblocked I5 (2026-11-01)
+
+A separate observer supplied sanitized permitted evidence in
+[the selector observation](../compat/observations/2026-11-01-logs-search-selector.md).
+The implementer read those notes only for upstream facts: pagination without a
+selector, one search_engine=v3, and v3 with q/totals all returned200. No tenant
+contact or Auth0 tool-source study was performed by the implementer. This
+satisfies CLEAN_ROOM's independent confirmation path for this previously blocked
+Task16b scope; no user policy exception or undocumented-behavior waiver was used.
+
+The production change is five lines in internal/mgmt/logs.go: add search_engine
+to the global log page allowlist and reject a present value other than exact v3
+after the checkpoint early return. Existing duplicate checks enforce a single
+value. The selector uses the existing bounded local query semantics; this does
+not claim a separate upstream engine implementation or broader v3 parity.
+Checkpoint from/take continues to ignore every other query parameter, including
+unsupported/repeated selector values. User-log routes retain their narrower
+allowlist: the observation did not cover that endpoint. Unknown page parameters
+and invalid/duplicate cursor/take parameters stay rejected.
+
+Mounted server tests seed success/failure rows and validate the real CLI-style
+filtered page, totals and selected event, exact supported selector, invalid,
+empty/case/duplicate values, unknown parameters, both checkpoint precedence
+paths and user-log strictness. Previous tests that asserted rejection of v3
+were updated to reject v2; the old CLI/checkpoint comment now accurately
+expresses checkpoint behavior without claiming CLI tail polls checkpoints.
+OpenAPI and frozen route inventory now represent the supported page selector;
+operation x-source retains the documented logs endpoint. make generate and the
+console generator updated their respective committed outputs. Docs/decisions/
+matrix describe the narrow observation and local policy, retaining the prior
+failed CLI run and pending final acceptance rather than claiming a rerun.
+
+Validation identity is explicit: the controller's already-compiled broad Go race
+run remains baseline e7127d6, not this new source. This delta gets its own
+focused/affected checks and commit identity. No SQL matrix, full repository race
+or make e2e-logs was run by this implementer; the controller/validation runner
+owns those gates and actual final CLI acceptance.
+
+All Go/make commands used GOTOOLCHAIN=go1.26.7. Scratch selector-*.log files
+live in .superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/.
+
+| Check | Actual result |
+| --- | --- |
+| go test ./internal/server -run '^TestLogsSearchEngineSelectorThroughServer$' -count=1 | RED: selector and CLI filtered page each returned400 Unsupported or repeated parameter search_engine instead of200. Other strictness/precedence cases passed. |
+| make generate | PASS go generate ./...; generated Management Go output changed only for the new selector representation. |
+| go test ./internal/server ./internal/mgmt ./internal/logrules -run 'TestLogsSearchEngineSelectorThroughServer\|TestLogsAPIRealCheckpointBinding\|TestLogsAPICheckpointIgnoresAllOtherParameters\|TestUserLogs\|TestInventory\|TestRoutes' -count=1 | GREEN server0.578s, mgmt0.351s; logrules had no matching tests (not a logrules suite pass). |
+| go test -race ./internal/server -run '^TestLogs(SearchEngineSelectorThroughServer\|APIRealCheckpointBinding\|APIRouteScopes)$' -count=1 | PASS1.826s. |
+| npm run gen --prefix console; npm run typecheck --prefix console | Both PASS. Only generated type declarations changed; no console runtime or dist change in this delta. |
+| go vet ./internal/mgmt ./internal/logrules ./internal/server | PASS, empty output. |
+| git diff --check | PASS. |
+
+Full affected delta check: `go test -race ./internal/mgmt ./internal/logrules
+-count=1` PASS mgmt91.816s, logrules7.690s (selector-mgmt-race.log). These are
+actual full-package results on the selector delta, separately identified from
+the controller's e7127d6 broad baseline. Self-review confirmed the minimal
+runtime change, unchanged checkpoint/user-route boundaries, matching generated
+contracts, and honest pending acceptance status. Commit subject:
+`fix(plan31): accept confirmed v3 log page selector`.
