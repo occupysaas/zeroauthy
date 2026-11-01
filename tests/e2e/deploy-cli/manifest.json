@@ -234,10 +234,10 @@
     },
     {
       "name": "logStreams",
-      "status": "excluded",
-      "owner": "roadmap: log streams milestone",
-      "reason": "Log destinations are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 31",
+      "reason": "HTTP and Datadog public configuration round trips with private keyword credential reinjection; logs and stats are never exported",
+      "fixture": "fixtures/log-streams.json"
     },
     {
       "name": "customDomains",

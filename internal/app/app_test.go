@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -17,11 +18,30 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/pkg/storeplugin"
 )
 
 // testServer gives the system tenant a host (server.system_host).
 var testServer = config.Server{SystemHost: "system.localhost"}
+
+func TestNewScrubsServerLogger(t *testing.T) {
+	var output strings.Builder
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	a, err := New(context.Background(), cfg, slog.New(slog.NewJSONHandler(&output, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	output.Reset()
+	ctx := logscrub.WithValues(context.Background(), "hunter2!!")
+	a.log.With("note", "hunter2!!").InfoContext(ctx, "failed hunter2!!", "password", "hidden", "public", "keep")
+	if strings.Contains(output.String(), "hunter2!!") || strings.Contains(output.String(), "hidden") || !strings.Contains(output.String(), `"public":"keep"`) {
+		t.Fatalf("app server logger did not scrub: %s", output.String())
+	}
+}
 
 func TestNewSeedsAndServes(t *testing.T) {
 	dir := t.TempDir()
@@ -357,32 +377,115 @@ func TestNewRefusesSeedOnSystemHost(t *testing.T) {
 	}
 }
 
-// bootstrap.admin_email creates the first operator once: a later start
-// with an operator present creates nothing and logs no link.
+// bootstrap.admin_email delivers the setup credential through a private file,
+// once per persisted system tenant. A restart must not create another artifact.
 func TestBootstrapAdminEmailOnce(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("TMPDIR", dir)
 	cfg := sqliteConfig(t, true)
 	cfg.Bootstrap.AdminEmail = "root@example.test"
-	setupLink := regexp.MustCompile(`setup_url="?https://system\.localhost/u/reset-password\?ticket=\S+`)
-	start := func() string {
-		t.Helper()
-		var buf strings.Builder
-		a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(&buf, nil)))
+	var setupPath string
+	for start := range 3 {
+		var output strings.Builder
+		a, err := New(context.Background(), cfg, slog.New(slog.NewJSONHandler(&output, nil)))
 		if err != nil {
 			t.Fatal(err)
+		}
+		if start == 0 {
+			setupPath = checkBootstrapSetupArtifact(t, a, &output)
 		}
 		if err := a.Close(); err != nil {
 			t.Fatal(err)
 		}
-		return buf.String()
-	}
-	if log := start(); len(setupLink.FindAllString(log, -1)) != 1 || !strings.Contains(log, "root@example.test") {
-		t.Fatalf("first start log has no single setup link:\n%s", log)
-	}
-	for range 2 {
-		if log := start(); setupLink.MatchString(log) {
-			t.Fatalf("a later start logged a setup link again:\n%s", log)
+		files, err := filepath.Glob(filepath.Join(dir, "zeroauthy-operator-setup-*"))
+		if err != nil || len(files) != 1 || files[0] != setupPath {
+			t.Fatalf("start %d artifacts = %v, err=%v; want original private file", start, files, err)
+		}
+		if start > 0 && strings.Contains(output.String(), "setup_file") {
+			t.Fatal("a later start announced another setup artifact")
+		}
+		if strings.Contains(output.String(), "ticket=") || strings.Contains(output.String(), "setup_url") {
+			t.Fatal("server log contains setup credential")
 		}
 	}
+}
+
+func TestBootstrapAdminEmailMemory(t *testing.T) {
+	t.Setenv("TMPDIR", t.TempDir())
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Bootstrap: config.Bootstrap{AdminEmail: "root@example.test"}}
+	var output strings.Builder
+	a, err := New(context.Background(), cfg, slog.New(slog.NewJSONHandler(&output, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	checkBootstrapSetupArtifact(t, a, &output)
+}
+
+func TestBootstrapAdminEmailArtifactCreationFailure(t *testing.T) {
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	var output strings.Builder
+	a, err := New(context.Background(), cfg, slog.New(slog.NewJSONHandler(&output, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "missing"))
+	err = bootstrapOperator(context.Background(), a.store, "root@example.test", a.log)
+	if err == nil || err.Error() != "app: could not save private operator setup file" {
+		t.Fatalf("bootstrap did not return a safe artifact delivery error: %v", err)
+	}
+	if strings.Contains(output.String(), "ticket=") || strings.Contains(output.String(), "setup_url") {
+		t.Fatal("failed delivery logged the setup credential")
+	}
+}
+
+// Check the operator-visible delivery and the real setup handler rather than
+// inferring ticket validity from a log message or an internal ticket builder.
+func checkBootstrapSetupArtifact(t *testing.T, a *App, output *strings.Builder) string {
+	t.Helper()
+	var path string
+	decoder := json.NewDecoder(strings.NewReader(output.String()))
+	for decoder.More() {
+		var entry map[string]any
+		if err := decoder.Decode(&entry); err != nil {
+			t.Fatal(err)
+		}
+		if p, ok := entry["setup_file"].(string); ok {
+			if path != "" || entry["email"] != "root@example.test" || entry["expires_in"] != "1h0m0s" {
+				t.Fatal("setup artifact announcement missing email/expiry or repeated")
+			}
+			path = p
+		}
+	}
+	if path == "" {
+		t.Fatal("server log has no private setup artifact path")
+	}
+	info, err := os.Stat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm() != 0o600 {
+		t.Fatalf("setup artifact is not an owner-only regular file: %v, %v", info, err)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link := regexp.MustCompile(`https://system\.localhost/u/reset-password\?ticket=[A-Za-z0-9_-]+`).FindString(string(content))
+	if link == "" || !strings.Contains(string(content), "1 hour") || !strings.Contains(string(content), "delete") {
+		t.Fatal("private setup file missing link, validity or cleanup guidance")
+	}
+	ticket := strings.SplitN(link, "ticket=", 2)[1]
+	if strings.Contains(output.String(), link) || strings.Contains(output.String(), ticket) || strings.Contains(output.String(), "setup_url") {
+		t.Fatal("server log contains setup credential")
+	}
+	rec := httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", link, nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `name="password"`) {
+		t.Fatalf("delivered link does not open the password setup form: status %d", rec.Code)
+	}
+	if strings.Contains(output.String(), ticket) {
+		t.Fatal("setup browser handler logged the ticket")
+	}
+	return path
 }
 
 func TestNewWiresActionsBuilds(t *testing.T) {
@@ -401,5 +504,49 @@ func TestNewWiresActionsBuilds(t *testing.T) {
 	}
 	if root, err := a.builds.TenantRoot("t1"); err != nil || root != filepath.Join(cache, "t1") {
 		t.Fatalf("TenantRoot = %s, %v; want under %s", root, err, cache)
+	}
+}
+
+func TestAppClosesAndFlushesRecorder(t *testing.T) {
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tn, err := a.store.Tenants().GetByName(context.Background(), "system")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.logs.Record(context.Background(), logs.Event{TenantID: tn.ID, Type: "s"})
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_, total, err := a.store.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 100, IncludeTotals: true})
+	if err != nil || total != 1 {
+		t.Fatalf("close flushed %d events: %v", total, err)
+	}
+}
+
+func TestAppServeFlushesRecorder(t *testing.T) {
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	cfg.Server.Listen = "127.0.0.1:0"
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	tn, err := a.store.Tenants().GetByName(context.Background(), "system")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.logs.Record(context.Background(), logs.Event{TenantID: tn.ID, Type: "s"})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := a.Serve(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, total, err := a.store.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 100, IncludeTotals: true})
+	if err != nil || total != 1 {
+		t.Fatalf("serve shutdown flushed %d events: %v", total, err)
 	}
 }

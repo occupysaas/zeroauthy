@@ -15,6 +15,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/passhash"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -157,7 +159,7 @@ func (d *Database) LoginWithCheckAndCommit(ctx context.Context, conn *store.Conn
 		return nil, err
 	}
 	if !committed {
-		err = d.Store.WithTx(ctx, func(tx store.Store) error { return commit(ctx, tx, u) })
+		err = orglogin.WithMembershipEvents(ctx, d.Store, func(ctx context.Context, tx store.Store) error { return commit(ctx, tx, u) })
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +171,7 @@ func (d *Database) loginWrite(ctx context.Context, fn func(*Database) (*store.Us
 		return fn(d)
 	}
 	var u *store.User
-	err := d.Store.WithTx(ctx, func(tx store.Store) error {
+	err := orglogin.WithMembershipEvents(ctx, d.Store, func(ctx context.Context, tx store.Store) error {
 		bound := *d
 		bound.Store = tx
 		bound.loginCommit = nil
@@ -550,9 +552,13 @@ func (d *Database) runSignupActions(ctx context.Context, a SignupActions, u *sto
 		return nil
 	}
 	result, err := a.Run(ctx, u)
+	if result != nil {
+		logs.AddExecution(ctx, result.ExecutionID)
+	}
 	if err != nil {
 		var failed *ErrSignupActionFailed
 		if errors.As(err, &failed) {
+			logs.AddExecution(ctx, failed.ExecutionID)
 			return failed
 		}
 		return &ErrSignupActionFailed{}
@@ -594,7 +600,7 @@ func mergeSignupMetadata(base, patch map[string]any) map[string]any {
 	return out
 }
 func (d *Database) insertSignup(ctx context.Context, conn *store.Connection, a SignupActions, u *store.User, hash string) error {
-	err := d.Store.WithTx(ctx, func(tx store.Store) error {
+	err := orglogin.WithMembershipEvents(ctx, d.Store, func(ctx context.Context, tx store.Store) error {
 		if err := tx.Users().Create(ctx, u); err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -176,7 +177,10 @@ func TestSystemAPITenants(t *testing.T) {
 }
 
 func TestSystemAPIOperators(t *testing.T) {
-	h, st := newMgmtEnv(t)
+	var output strings.Builder
+	h, st := newMgmtEnvWith(t, func(d *Deps) {
+		d.Log = slog.New(slog.NewJSONHandler(&output, nil))
+	})
 	op, opID := operatorToken(t, st, "op@example.test")
 	api := "https://" + mgmtSystemHost + "/api/system/operators"
 
@@ -188,8 +192,13 @@ func TestSystemAPIOperators(t *testing.T) {
 		invite["tenants"].([]any)[0] != "*" {
 		t.Fatalf("invite = %d %s", rec.Code, rec.Body)
 	}
-	if u, err := url.Parse(link); err != nil || u.Query().Get("ticket") == "" {
-		t.Errorf("setup link %q", link)
+	setupURL, err := url.Parse(link)
+	if err != nil || setupURL.Query().Get("ticket") == "" {
+		t.Fatal("operator invitation did not return a setup ticket")
+	}
+	if strings.Contains(output.String(), link) || strings.Contains(output.String(), setupURL.Query().Get("ticket")) ||
+		!strings.Contains(output.String(), `"setup_url":"[REDACTED]"`) {
+		t.Fatal("operator invitation setup credential was not hidden in server audit output")
 	}
 	for _, body := range []any{map[string]any{"email": "not an email"}, map[string]any{}, map[string]any{"email": "a@b.test", "role": "admin"}} {
 		if rec, _ := sendRaw(h, "POST", api, op, body); rec.Code != 400 {

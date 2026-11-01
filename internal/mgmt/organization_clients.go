@@ -170,7 +170,7 @@ func (h *Handlers) AssociateOrganizationClients(w http.ResponseWriter, r *http.R
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "associate organization clients", "id", id)
+	logDetails(r, "associate organization clients", "id", id)
 	writeJSON(w, 201, items)
 }
 func (h *Handlers) DeleteOrganizationClients(w http.ResponseWriter, r *http.Request, id string) {
@@ -200,7 +200,7 @@ func (h *Handlers) DeleteOrganizationClients(w http.ResponseWriter, r *http.Requ
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "remove organization clients", "id", id)
+	logDetails(r, "remove organization clients", "id", id)
 	w.WriteHeader(204)
 }
 func (h *Handlers) GetOrganizationClient(w http.ResponseWriter, r *http.Request, id, clientID string) {
@@ -271,6 +271,6 @@ func (h *Handlers) UpdateOrganizationClient(w http.ResponseWriter, r *http.Reque
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "update organization client", "id", id, "client", clientID)
+	logDetails(r, "update organization client", "id", id, "client", clientID)
 	writeJSON(w, 200, out)
 }

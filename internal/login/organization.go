@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -53,7 +54,7 @@ func (h *Handlers) renderOrganization(w http.ResponseWriter, r *http.Request, f 
 // bindOrg replaces only a still-pending transaction in a single store tx. The
 // browser cookie and CSRF binding survive; a replay cannot replace the choice.
 func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) error {
-	return h.Store.WithTx(r.Context(), func(tx store.Store) error {
+	return orglogin.WithMembershipEvents(r.Context(), h.Store, func(ctx context.Context, tx store.Store) error {
 		cur, err := tx.AuthTransactions().Get(r.Context(), f.res.Tenant.ID, f.txn.ID)
 		if err != nil {
 			return err
@@ -125,7 +126,8 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 			if !eligible {
 				return errTxn
 			}
-			if e = EnsureMembership(r.Context(), tx, OrgContext{Org: org}, sess.UserID, conn.ID); e != nil {
+			ctx = logs.WithEvent(ctx, logs.Event{ClientID: client.ClientID, ClientName: client.Name, ConnectionID: conn.ID, Connection: conn.Name, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)})
+			if e = EnsureMembership(ctx, tx, OrgContext{Org: org}, sess.UserID, conn.ID); e != nil {
 				return e
 			}
 		}

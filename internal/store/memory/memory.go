@@ -30,6 +30,10 @@ type Store struct {
 // and rollback never undoes a write that is not its own. Ordinary readers share
 // txMu's read lock and mu's read lock, so independent reads can run together.
 type state struct {
+	logEvents              map[string]*logRing
+	logStreams             map[key]*store.LogStream
+	logStats               map[key]*store.DailyStat
+	logSeq                 int64
 	roles                  map[key]*store.Role
 	orgInvitations         map[orgIIKey]*store.OrganizationInvitation
 	orgReceipts            map[key]*store.InvitationReceipt
@@ -110,6 +114,7 @@ func NewWithClock(now func() time.Time) *Store {
 // New returns an empty store.
 func New() *Store {
 	return &Store{state: &state{
+		logEvents: map[string]*logRing{}, logStreams: map[key]*store.LogStream{}, logStats: map[key]*store.DailyStat{},
 		modules: map[key]*store.ActionModule{}, moduleVersions: map[key]*store.ActionModuleVersion{}, actionJobs: map[key]*store.ActionJob{},
 		actions: map[key]*store.Action{}, actionVersions: map[key]*store.ActionVersion{}, builds: map[key]*store.Build{},
 		bindingSets: map[key]bool{}, artifacts: map[key][]byte{}, bindings: map[key][]store.Binding{}, executions: map[key]*store.Execution{}, continues: map[key]*store.ContinueState{},

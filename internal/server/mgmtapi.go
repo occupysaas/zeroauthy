@@ -852,3 +852,49 @@ func (a mgmtAPI) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *htt
 func (a mgmtAPI) SearchOrganizations(w http.ResponseWriter, r *http.Request, _ mgmtapi.SearchOrganizationsParams) {
 	scopedAll(w, r, a.h.SearchOrganizations, "read:organizations", "read:organizations_summary")
 }
+
+func (a mgmtAPI) GetLogs(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetLogsParams) {
+	scopedAll(w, r, a.h.ListLogs, "read:logs")
+}
+
+func (a mgmtAPI) GetDailyStats(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetDailyStatsParams) {
+	scopedAll(w, r, a.h.GetDailyStats, "read:stats")
+}
+
+func (a mgmtAPI) GetActiveUsers(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.GetActiveUsers, "read:stats")
+}
+func (a mgmtAPI) GetLog(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetLog(w, r, id) }, "read:logs")
+}
+func (a mgmtAPI) GetUserLogs(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserLogsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UserLogs(w, r, id) }, "read:logs", "read:logs_users")
+}
+
+func (a mgmtAPI) GetTenantActionExecutions(w http.ResponseWriter, r *http.Request, tenant string, params mgmtapi.GetTenantActionExecutionsParams) {
+	a.h.GetTenantActionExecutions(w, r, tenant, params)
+}
+func (a mgmtAPI) GetTenantActionExecution(w http.ResponseWriter, r *http.Request, tenant, id string) {
+	a.h.GetTenantActionExecution(w, r, tenant, id)
+}
+
+func (a mgmtAPI) GetLogStreams(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.ListLogStreams, "read:log_streams")
+}
+func (a mgmtAPI) CreateLogStream(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.CreateLogStream, "create:log_streams")
+}
+func (a mgmtAPI) GetLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetLogStream(w, r, id) }, "read:log_streams")
+}
+func (a mgmtAPI) UpdateLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateLogStream(w, r, id) }, "update:log_streams")
+}
+func (a mgmtAPI) DeleteLogStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteLogStream(w, r, id) }, "delete:log_streams")
+}
+
+// GetTenantLogStreamStatus is a local operator-only delivery health view.
+func (a mgmtAPI) GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request, name string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTenantLogStreamStatus(w, r, name) }, "read:log_streams")
+}

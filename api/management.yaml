@@ -39,6 +39,12 @@ servers:
         default: tenant.example.com
         description: Any domain of the tenant.
 tags:
+  - name: logs
+    description: Tenant authentication and Management event search.
+  - name: log-streams
+    description: Tenant log stream configuration.
+  - name: stats
+    description: Daily authentication counters and active users.
   - name: actions
     description: Actions, immutable versions, trigger bindings and executions.
   - name: branding
@@ -4525,6 +4531,74 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{tenant}/log-streams/status:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantLogStreamStatus
+      tags: [system]
+      summary: Read tenant log stream delivery health
+      description: Local D-0057 operator extension with live target-tenant grants and read:log_streams authorization. Returns only delivery metadata; never sink configuration, credentials or leases. Unset timestamps are omitted.
+      x-source:
+        - https://auth0.com/docs/customize/log-streams
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Delivery health for the target tenant streams.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: "#/components/schemas/SystemLogStreamStatus"}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: The storage plugin does not support logs.}
+  /api/system/tenants/{tenant}/actions/executions:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantActionExecutions
+      tags: [system]
+      summary: List tenant Action executions with console output
+      description: Local operator extension. Lists newest first, or ascending after an execution ID cursor. Includes bounded scrubbed denial_reason display metadata for explicit access.deny outcomes, separately from runtime errors (see docs/actions.md). Action filters use immutable Action IDs; older records without IDs do not match.
+      x-source: [https://auth0.com/docs/api/management/v2/actions/get-execution]
+      security: [{operatorToken: []}]
+      parameters:
+        - {name: after, in: query, schema: {type: string}}
+        - {name: trigger, in: query, schema: {type: string}}
+        - {name: action, in: query, schema: {type: string}}
+        - {name: take, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Bounded execution page.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: "#/components/schemas/SystemActionExecution"}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: The storage plugin does not support logs or execution listing.}
+  /api/system/tenants/{tenant}/actions/executions/{id}:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantActionExecution
+      tags: [system]
+      summary: Read a tenant Action execution with console output
+      description: Local operator extension containing immutable scrubbed console lines and bounded denial_reason display metadata for explicit access.deny outcomes, separately from runtime errors (see docs/actions.md).
+      x-source: [https://auth0.com/docs/api/management/v2/actions/get-execution]
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Full execution with console output.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SystemActionExecution"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: The storage plugin does not support logs or execution listing.}
   /api/system/tenants/{tenant}/actions/executions/{id}/attempt:
     parameters:
       - {name: tenant, in: path, required: true, schema: {type: string}}
@@ -8497,6 +8571,732 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementError'
+  /api/v2/logs:
+    get:
+      operationId: GetLogs
+      summary: Search tenant log events
+      description: 'Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores every
+        parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised. See D-0057 for
+        local behavior. Page mode accepts only the local supported selector search_engine=v3; this does not imply full search-engine parity.'
+      tags:
+      - logs
+      x-source:
+      - https://auth0.com/docs/api/management/v2/logs/get-logs
+      - https://auth0.com/docs/secure/security-guidance/incident-response-using-logs
+      security:
+      - managementToken:
+        - read:logs
+      - operatorToken: []
+      parameters:
+      - name: page
+        in: query
+        description: 0-based; default 0; nonnegative; (page+1)*per_page <= 1000
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: per_page
+        in: query
+        description: 1..100; default 50 (local consistent lower bound)
+        schema:
+          type: integer
+          minimum: 1
+          default: 50
+          maximum: 100
+      - name: sort
+        in: query
+        description: date:1 or date:-1; default date:-1
+        schema:
+          type: string
+          enum:
+          - date:1
+          - date:-1
+          default: date:-1
+      - name: fields
+        in: query
+        description: Comma-separated log object fields; empty means all; unknown fields rejected locally
+        schema:
+          type: string
+      - name: include_fields
+        in: query
+        description: default true; fields projection applies in page mode
+        schema:
+          type: boolean
+          default: true
+      - name: include_totals
+        in: query
+        description: default false; true returns {logs,start,limit,length,total}; total is matching count capped at
+          1000 locally
+        schema:
+          type: boolean
+          default: false
+      - name: q
+        in: query
+        description: Lucene subset; max 4000 bytes/1000 runes, depth 16, 5 terms; ignored in checkpoint mode
+        schema:
+          type: string
+          maxLength: 1000
+      - name: search_engine
+        in: query
+        description: Local supported page selector; only one v3 value is accepted. Uses the existing bounded search subset; ignored in checkpoint mode. Acceptance independently observed 2026-11-01; no broader engine parity is implied.
+        schema:
+          type: string
+          enum:
+          - v3
+      - name: from
+        in: query
+        description: 56 decimal digits; checkpoint is exclusive, ascending sequence; malformed=400; valid absent ID
+          still an opaque cursor
+        schema:
+          type: string
+          pattern: ^[0-9]{56}$
+      - name: take
+        in: query
+        description: 1..100; default 50; from or presence of take selects checkpoint mode; take alone returns latest
+          settled events ascending
+        schema:
+          type: integer
+          minimum: 1
+          default: 50
+          maximum: 100
+      responses:
+        '200':
+          description: 'Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores
+            every parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEventsResponse'
+        '400':
+          description: 'invalid_query_string: malformed cursor, query, projection or pagination limit (local code)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/logs/{id}:
+    get:
+      operationId: GetLog
+      summary: Read one tenant log event
+      description: Log object; malformed ID is not_found, not invalid_query_string. See D-0057 for local behavior.
+        Contract publication precedes runtime implementation.
+      tags:
+      - logs
+      x-source:
+      - https://auth0.com/docs/api/management/v2/logs/get-logs-by-id
+      - https://auth0.com/docs/secure/security-guidance/incident-response-using-logs
+      security:
+      - managementToken:
+        - read:logs
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        description: Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Log object; malformed ID is not_found, not invalid_query_string.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEvent'
+        '400':
+          description: 'invalid_query_string: unsupported query; malformed/missing log ID uses 404 instead (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: not_found (including cross-tenant and malformed log ID on GET /logs/{id})
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/users/{id}/logs:
+    get:
+      operationId: GetUserLogs
+      summary: Read one user’s log events
+      description: Log[] or {logs,start,limit,length,total}; only the referenced tenant user. Missing/deleted user=404
+        locally; historical events remain searchable globally. See D-0057 for local behavior. Contract publication
+        precedes runtime implementation.
+      tags:
+      - logs
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/get-logs-by-user
+      - https://auth0.com/docs/secure/security-guidance/incident-response-using-logs
+      security:
+      - managementToken:
+        - read:logs
+        - read:logs_users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        description: Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404
+        schema:
+          type: string
+        required: true
+      - name: page
+        in: query
+        description: 0-based; default 0; nonnegative; (page+1)*per_page <= 1000
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: per_page
+        in: query
+        description: 1..100; default 50 (local consistent lower bound)
+        schema:
+          type: integer
+          minimum: 1
+          default: 50
+          maximum: 100
+      - name: sort
+        in: query
+        description: date:1 or date:-1; default date:-1
+        schema:
+          type: string
+          enum:
+          - date:1
+          - date:-1
+          default: date:-1
+      - name: include_totals
+        in: query
+        description: default false; true returns {logs,start,limit,length,total}; total is matching count capped at
+          1000 locally
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Log[] or {logs,start,limit,length,total}; only the referenced tenant user. Missing/deleted
+            user=404 locally; historical events remain searchable globally.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEventsResponse'
+        '400':
+          description: 'invalid_query_string: invalid page/per_page/sort/totals; invalid_uri for malformed user ID
+            (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: not_found (including cross-tenant and malformed log ID on GET /logs/{id})
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/log-streams:
+    get:
+      operationId: GetLogStreams
+      summary: List log stream configurations
+      description: LogStream[]; sink secret values replaced with marker See D-0057 for local behavior. Contract publication
+        precedes runtime implementation.
+      tags:
+      - log-streams
+      x-source:
+      - https://auth0.com/docs/api/management/v2/log-streams/get-log-streams
+      security:
+      - managementToken:
+        - read:log_streams
+      - operatorToken: []
+      responses:
+        '200':
+          description: LogStream[]; sink secret values replaced with marker
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LogStream'
+        '400':
+          description: 'invalid_query_string: unsupported query parameters (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    post:
+      operationId: CreateLogStream
+      summary: Create a log stream
+      description: LogStream object; sink secret values replaced with marker See D-0057 for local behavior. Contract
+        publication precedes runtime implementation.
+      tags:
+      - log-streams
+      x-source:
+      - https://auth0.com/docs/api/management/v2/log-streams/post-log-streams
+      security:
+      - managementToken:
+        - create:log_streams
+      - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogStreamCreate'
+      responses:
+        '200':
+          description: LogStream object; sink secret values replaced with marker
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogStream'
+        '400':
+          description: 'invalid_body: malformed/unknown/null fields, invalid typed sink/filter/PII/startFrom configuration
+            (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: conflict (duplicate stream name or concurrent update, local)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/log-streams/{id}:
+    get:
+      operationId: GetLogStream
+      summary: Read a log stream
+      description: LogStream object; sink secret values replaced with marker See D-0057 for local behavior. Contract
+        publication precedes runtime implementation.
+      tags:
+      - log-streams
+      x-source:
+      - https://auth0.com/docs/api/management/v2/log-streams/get-log-streams-by-id
+      security:
+      - managementToken:
+        - read:log_streams
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        description: Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: LogStream object; sink secret values replaced with marker
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogStream'
+        '400':
+          description: 'invalid_query_string: unsupported query parameters (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: not_found (including cross-tenant and malformed log ID on GET /logs/{id})
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateLogStream
+      summary: Update a log stream
+      description: LogStream object; sink secret values replaced with marker See D-0057 for local behavior. Contract
+        publication precedes runtime implementation.
+      tags:
+      - log-streams
+      x-source:
+      - https://auth0.com/docs/api/management/v2/log-streams/patch-log-streams-by-id
+      security:
+      - managementToken:
+        - update:log_streams
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        description: Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404
+        schema:
+          type: string
+        required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogStreamPatch'
+      responses:
+        '200':
+          description: LogStream object; sink secret values replaced with marker
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogStream'
+        '400':
+          description: invalid_body for malformed/unknown/null properties or sink/filter/PII types; invalid_operation
+            for immutable type/startFrom or cloud status transition (local)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: not_found (including cross-tenant and malformed log ID on GET /logs/{id})
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: conflict (duplicate stream name or concurrent update, local)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    delete:
+      operationId: DeleteLogStream
+      summary: Delete a log stream
+      description: empty See D-0057 for local behavior. Contract publication precedes runtime implementation.
+      tags:
+      - log-streams
+      x-source:
+      - https://auth0.com/docs/api/management/v2/log-streams/delete-log-streams-by-id
+      security:
+      - managementToken:
+        - delete:log_streams
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        description: Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404
+        schema:
+          type: string
+        required: true
+      responses:
+        '204':
+          description: empty
+        '400':
+          description: 'invalid_query_string: unsupported query parameters (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: not_found (including cross-tenant and malformed log ID on GET /logs/{id})
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/stats/daily:
+    get:
+      operationId: GetDailyStats
+      summary: Read UTC daily authentication counters
+      description: DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at, updated_at;
+        UTC RFC3339 timestamps. See D-0057 for local behavior.
+      tags:
+      - stats
+      x-source:
+      - https://auth0.com/docs/api/management/v2/stats/get-daily
+      security:
+      - managementToken:
+        - read:stats
+      - operatorToken: []
+      parameters:
+      - name: from
+        in: query
+        description: YYYYMMDD inclusive UTC day; default today minus 6 days; max inclusive range 366 days (local)
+        schema:
+          type: string
+          pattern: ^[0-9]{8}$
+      - name: to
+        in: query
+        description: YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters and
+          midnight UTC created_at/updated_at (local)
+        schema:
+          type: string
+          pattern: ^[0-9]{8}$
+      responses:
+        '200':
+          description: DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at,
+            updated_at; UTC RFC3339 timestamps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LogDailyStat'
+        '400':
+          description: 'invalid_query_string: invalid calendar date, reversed range, unsupported query or range >366
+            inclusive UTC days (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/stats/active-users:
+    get:
+      operationId: GetActiveUsers
+      summary: Count users active within thirty days
+      description: JSON integer; distinct existing users with last_login >= now minus 30 days See D-0057 for local
+        behavior.
+      tags:
+      - stats
+      x-source:
+      - https://auth0.com/docs/api/management/v2/stats/get-active-users
+      security:
+      - managementToken:
+        - read:stats
+      - operatorToken: []
+      responses:
+        '200':
+          description: JSON integer; distinct existing users with last_login >= now minus 30 days
+          content:
+            application/json:
+              schema:
+                type: integer
+                minimum: 0
+        '400':
+          description: 'invalid_query_string: unsupported query parameters (local)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: too_many_requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: logs_unavailable (local plugin capability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
 components:
   securitySchemes:
     managementToken:
@@ -8553,6 +9353,1486 @@ components:
       description: The member's user ID.
       schema: {type: string}
   schemas:
+    SystemLogStreamStatus:
+      type: object
+      additionalProperties: false
+      required: [id, status, failures, last_error_class]
+      properties:
+        id: {type: string}
+        status: {type: string, enum: [active, paused, suspended]}
+        last_success_at: {type: string, format: date-time}
+        next_at: {type: string, format: date-time}
+        failures: {type: integer, minimum: 0}
+        last_error_class:
+          type: string
+          description: Safe delivery error class, empty after success; unknown for an unrecognized driver value.
+    SystemActionExecution:
+      type: object
+      required: [id, trigger_id, status, results, created_at, updated_at]
+      properties:
+        id: {type: string}
+        trigger_id: {type: string}
+        status: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        results:
+          type: array
+          items:
+            type: object
+            required: [action_name, started_at, ended_at, logs]
+            properties:
+              action_id: {type: string}
+              action_name: {type: string}
+              started_at: {type: string, format: date-time}
+              ended_at: {type: string, format: date-time}
+              denial_reason:
+                type: string
+                maxLength: 512
+                description: Local operator display metadata for an explicit access.deny command, scrubbed before bounding; absent for success or runtime errors.
+              logs: {type: array, items: {type: string}}
+              job_id: {type: string}
+              job_attempt: {type: integer}
+              error:
+                type: object
+                required: [id, message]
+                properties:
+                  id: {type: string}
+                  message: {type: string}
+
+    LogEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        log_id:
+          type: string
+          pattern: ^[0-9]{56}$
+        _id:
+          type: string
+          pattern: ^[0-9]{56}$
+          description: Authoritative alias of log_id for compatible log clients.
+        date:
+          type: string
+          format: date-time
+        type:
+          type: string
+        description:
+          type: string
+        client_id:
+          type: string
+        client_name:
+          type: string
+        connection:
+          type: string
+        connection_id:
+          type: string
+        strategy:
+          type: string
+        strategy_type:
+          type: string
+        user_id:
+          type: string
+        user_name:
+          type: string
+        audience:
+          type: string
+        scope:
+          type: string
+        ip:
+          type: string
+        hostname:
+          type: string
+        user_agent:
+          type: string
+        isMobile:
+          type: boolean
+        organization_id:
+          type: string
+        organization_name:
+          type: string
+        tenant_name:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+          description: Scrubbed event detail; Actions execution IDs appear at actions.executions.
+        $event_schema:
+          type: object
+          additionalProperties: true
+          description: Optional event schema metadata, omitted when unavailable.
+        security_context:
+          type: object
+          additionalProperties: true
+          description: Only trustworthy available security signals are included.
+      required:
+      - log_id
+      - date
+      - type
+      description: Tenant event; absent fields omitted. location_info is unavailable locally. All responses are scrubbed
+        (D-0057).
+    LogEventListItem:
+      type: object
+      additionalProperties: false
+      properties:
+        log_id:
+          type: string
+          pattern: ^[0-9]{56}$
+        _id:
+          type: string
+          pattern: ^[0-9]{56}$
+          description: Authoritative alias of log_id for compatible log clients.
+        date:
+          type: string
+          format: date-time
+        type:
+          type: string
+        description:
+          type: string
+        client_id:
+          type: string
+        client_name:
+          type: string
+        connection:
+          type: string
+        connection_id:
+          type: string
+        strategy:
+          type: string
+        strategy_type:
+          type: string
+        user_id:
+          type: string
+        user_name:
+          type: string
+        audience:
+          type: string
+        scope:
+          type: string
+        ip:
+          type: string
+        hostname:
+          type: string
+        user_agent:
+          type: string
+        isMobile:
+          type: boolean
+        organization_id:
+          type: string
+        organization_name:
+          type: string
+        tenant_name:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+          description: Scrubbed event detail; Actions execution IDs appear at actions.executions.
+        $event_schema:
+          type: object
+          additionalProperties: true
+          description: Optional event schema metadata, omitted when unavailable.
+        security_context:
+          type: object
+          additionalProperties: true
+          description: Only trustworthy available security signals are included.
+      description: Log list item; every field is optional because page-mode include/exclude projection can remove
+        log_id, date and type. Available fields retain the full event types and scrubbed values (D-0057).
+    LogEventsPage:
+      type: object
+      additionalProperties: false
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEventListItem'
+        start:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 0
+        length:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+      required:
+      - logs
+      - start
+      - limit
+      - length
+      - total
+    LogEventsResponse:
+      oneOf:
+      - type: array
+        items:
+          $ref: '#/components/schemas/LogEventListItem'
+      - $ref: '#/components/schemas/LogEventsPage'
+    LogStreamFilter:
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+          - category
+        name:
+          type: string
+          enum:
+          - auth.login.fail
+          - auth.login.notification
+          - auth.login.success
+          - auth.logout.fail
+          - auth.logout.success
+          - auth.signup.fail
+          - auth.signup.success
+          - auth.silent_auth.fail
+          - auth.silent_auth.success
+          - auth.token_exchange.fail
+          - auth.token_exchange.success
+          - management.fail
+          - management.success
+          - scim.event
+          - system.notification
+          - user.fail
+          - user.notification
+          - user.success
+          - actions
+          - other
+      required:
+      - type
+      - name
+    LogStreamPII:
+      type: object
+      additionalProperties: false
+      properties:
+        log_fields:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - first_name
+            - last_name
+            - username
+            - email
+            - phone
+            - address
+        method:
+          type: string
+          enum:
+          - mask
+          - hash
+          default: mask
+        algorithm:
+          type: string
+          enum:
+          - xxhash
+          default: xxhash
+      required:
+      - log_fields
+    LogStreamCustomHeader:
+      type: object
+      additionalProperties: false
+      properties:
+        header:
+          type: string
+        value:
+          type: string
+      required:
+      - header
+      - value
+    LogStreamHTTPSink:
+      type: object
+      additionalProperties: false
+      properties:
+        httpAuthorization:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        httpContentFormat:
+          type: string
+          enum:
+          - JSONARRAY
+          - JSONLINES
+          - JSONOBJECT
+          default: JSONLINES
+        httpContentType:
+          type: string
+          default: application/json
+        httpEndpoint:
+          type: string
+          pattern: ^https?://.*
+          description: HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057).
+        httpCustomHeaders:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamCustomHeader'
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+      required:
+      - httpEndpoint
+    LogStreamHTTPSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        httpAuthorization:
+          type: string
+          enum:
+          - '[REDACTED]'
+          description: Opaque credential replacement; raw configured values are never returned.
+        httpContentFormat:
+          type: string
+          enum:
+          - JSONARRAY
+          - JSONLINES
+          - JSONOBJECT
+          default: JSONLINES
+        httpContentType:
+          type: string
+          default: application/json
+        httpEndpoint:
+          type: string
+          pattern: ^https?://.*
+          description: HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057).
+        httpCustomHeaders:
+          type: string
+          enum:
+          - '[REDACTED]'
+          description: Opaque credential replacement; raw configured values are never returned.
+      required:
+      - httpEndpoint
+    LogStreamHTTPCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - http
+        sink:
+          $ref: '#/components/schemas/LogStreamHTTPSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamHTTP:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - http
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamHTTPSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stream configuration with all sink credentials redacted on read.
+    LogStreamDatadogSink:
+      type: object
+      additionalProperties: false
+      properties:
+        datadogApiKey:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        datadogRegion:
+          type: string
+          enum:
+          - us
+          - eu
+          - us3
+          - us5
+      required:
+      - datadogApiKey
+      - datadogRegion
+    LogStreamDatadogSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        datadogApiKey:
+          type: string
+          enum:
+          - '[REDACTED]'
+          description: Opaque credential replacement; raw configured values are never returned.
+        datadogRegion:
+          type: string
+          enum:
+          - us
+          - eu
+          - us3
+          - us5
+      required:
+      - datadogApiKey
+      - datadogRegion
+    LogStreamDatadogCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - datadog
+        sink:
+          $ref: '#/components/schemas/LogStreamDatadogSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamDatadog:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - datadog
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamDatadogSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stream configuration with all sink credentials redacted on read.
+    LogStreamSplunkSink:
+      type: object
+      additionalProperties: false
+      properties:
+        splunkDomain:
+          type: string
+        splunkPort:
+          type: string
+          pattern: ^[0-9]*$
+        splunkToken:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        splunkSecure:
+          type: boolean
+          description: Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment
+            opt-in (D-0057).
+      required:
+      - splunkDomain
+      - splunkPort
+      - splunkToken
+      - splunkSecure
+    LogStreamSplunkSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        splunkDomain:
+          type: string
+        splunkPort:
+          type: string
+          pattern: ^[0-9]*$
+        splunkToken:
+          type: string
+          enum:
+          - '[REDACTED]'
+          description: Opaque credential replacement; raw configured values are never returned.
+        splunkSecure:
+          type: boolean
+          description: Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment
+            opt-in (D-0057).
+      required:
+      - splunkDomain
+      - splunkPort
+      - splunkToken
+      - splunkSecure
+    LogStreamSplunkCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - splunk
+        sink:
+          $ref: '#/components/schemas/LogStreamSplunkSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamSplunk:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - splunk
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamSplunkSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stream configuration with all sink credentials redacted on read.
+    LogStreamSumoSink:
+      type: object
+      additionalProperties: false
+      properties:
+        sumoSourceAddress:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+      required:
+      - sumoSourceAddress
+    LogStreamSumoSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        sumoSourceAddress:
+          type: string
+          enum:
+          - '[REDACTED]'
+          description: Opaque credential replacement; raw configured values are never returned.
+      required:
+      - sumoSourceAddress
+    LogStreamSumoCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - sumo
+        sink:
+          $ref: '#/components/schemas/LogStreamSumoSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamSumo:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - sumo
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamSumoSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stream configuration with all sink credentials redacted on read.
+    LogStreamSegmentSink:
+      type: object
+      additionalProperties: false
+      properties:
+        segmentWriteKey:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+      required:
+      - segmentWriteKey
+    LogStreamSegmentSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        segmentWriteKey:
+          type: string
+          enum:
+          - '[REDACTED]'
+          description: Opaque credential replacement; raw configured values are never returned.
+      required:
+      - segmentWriteKey
+    LogStreamSegmentCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - segment
+        sink:
+          $ref: '#/components/schemas/LogStreamSegmentSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamSegment:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - segment
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamSegmentSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stream configuration with all sink credentials redacted on read.
+    LogStreamMixpanelSink:
+      type: object
+      additionalProperties: false
+      properties:
+        mixpanelRegion:
+          type: string
+          enum:
+          - us
+          - eu
+        mixpanelProjectId:
+          type: string
+          pattern: ^\d+$
+        mixpanelServiceAccountUsername:
+          type: string
+          pattern: ^[^:]+$
+        mixpanelServiceAccountPassword:
+          type: string
+          pattern: ^[^:]+$
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+      required:
+      - mixpanelRegion
+      - mixpanelProjectId
+      - mixpanelServiceAccountUsername
+      - mixpanelServiceAccountPassword
+    LogStreamMixpanelSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        mixpanelRegion:
+          type: string
+          enum:
+          - us
+          - eu
+        mixpanelProjectId:
+          type: string
+          pattern: ^\d+$
+        mixpanelServiceAccountUsername:
+          type: string
+          pattern: ^[^:]+$
+        mixpanelServiceAccountPassword:
+          type: string
+          enum:
+          - '[REDACTED]'
+          description: Opaque credential replacement; raw configured values are never returned.
+      required:
+      - mixpanelRegion
+      - mixpanelProjectId
+      - mixpanelServiceAccountUsername
+      - mixpanelServiceAccountPassword
+    LogStreamMixpanelCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - mixpanel
+        sink:
+          $ref: '#/components/schemas/LogStreamMixpanelSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamMixpanel:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - mixpanel
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamMixpanelSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stream configuration with all sink credentials redacted on read.
+    LogStreamEventBridgeSink:
+      type: object
+      additionalProperties: false
+      properties:
+        awsAccountId:
+          type: string
+          pattern: ^\d{12}$
+        awsRegion:
+          type: string
+          enum:
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-south-1
+          - eu-south-2
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - il-central-1
+          - me-central-1
+          - me-south-1
+          - mx-central-1
+          - sa-east-1
+          - us-gov-east-1
+          - us-gov-west-1
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+        awsPartnerEventSource:
+          type: string
+      required:
+      - awsAccountId
+      - awsRegion
+    LogStreamEventBridgeSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        awsAccountId:
+          type: string
+          pattern: ^\d{12}$
+        awsRegion:
+          type: string
+          enum:
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-south-1
+          - eu-south-2
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - il-central-1
+          - me-central-1
+          - me-south-1
+          - mx-central-1
+          - sa-east-1
+          - us-gov-east-1
+          - us-gov-west-1
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+        awsPartnerEventSource:
+          type: string
+      required:
+      - awsAccountId
+      - awsRegion
+    LogStreamEventBridgeCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - eventbridge
+        sink:
+          $ref: '#/components/schemas/LogStreamEventBridgeSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamEventBridge:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - eventbridge
+        status:
+          type: string
+          enum:
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamEventBridgeSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stored only and permanently suspended locally.
+    LogStreamEventGridSink:
+      type: object
+      additionalProperties: false
+      properties:
+        azureSubscriptionId:
+          type: string
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        azureRegion:
+          type: string
+          enum:
+          - australiacentral
+          - australiaeast
+          - australiasoutheast
+          - brazilsouth
+          - canadacentral
+          - canadaeast
+          - centralindia
+          - centralus
+          - eastasia
+          - eastus
+          - eastus2
+          - francecentral
+          - germanywestcentral
+          - japaneast
+          - japanwest
+          - koreacentral
+          - koreasouth
+          - northcentralus
+          - northeurope
+          - norwayeast
+          - southafricanorth
+          - southcentralus
+          - southeastasia
+          - southindia
+          - swedencentral
+          - switzerlandnorth
+          - uaenorth
+          - uksouth
+          - ukwest
+          - westcentralus
+          - westeurope
+          - westindia
+          - westus
+          - westus2
+        azureResourceGroup:
+          type: string
+        azurePartnerTopic:
+          type: string
+      required:
+      - azureSubscriptionId
+      - azureRegion
+      - azureResourceGroup
+    LogStreamEventGridSinkView:
+      type: object
+      additionalProperties: false
+      properties:
+        azureSubscriptionId:
+          type: string
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        azureRegion:
+          type: string
+          enum:
+          - australiacentral
+          - australiaeast
+          - australiasoutheast
+          - brazilsouth
+          - canadacentral
+          - canadaeast
+          - centralindia
+          - centralus
+          - eastasia
+          - eastus
+          - eastus2
+          - francecentral
+          - germanywestcentral
+          - japaneast
+          - japanwest
+          - koreacentral
+          - koreasouth
+          - northcentralus
+          - northeurope
+          - norwayeast
+          - southafricanorth
+          - southcentralus
+          - southeastasia
+          - southindia
+          - swedencentral
+          - switzerlandnorth
+          - uaenorth
+          - uksouth
+          - ukwest
+          - westcentralus
+          - westeurope
+          - westindia
+          - westus
+          - westus2
+        azureResourceGroup:
+          type: string
+        azurePartnerTopic:
+          type: string
+      required:
+      - azureSubscriptionId
+      - azureRegion
+      - azureResourceGroup
+    LogStreamEventGridCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        type:
+          type: string
+          enum:
+          - eventgrid
+        sink:
+          $ref: '#/components/schemas/LogStreamEventGridSink'
+        startFrom:
+          type: string
+          format: date-time
+          description: Create-only inclusive UTC event-time lower bound. Omitted starts at latest committed event. Never
+            a log ID; omitted from responses (D-0057).
+      required:
+      - type
+      - sink
+    LogStreamEventGrid:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - eventgrid
+        status:
+          type: string
+          enum:
+          - suspended
+        sink:
+          $ref: '#/components/schemas/LogStreamEventGridSinkView'
+      required:
+      - id
+      - type
+      - status
+      - sink
+      description: Stored only and permanently suspended locally.
+    LogStreamCreate:
+      oneOf:
+      - $ref: '#/components/schemas/LogStreamHTTPCreate'
+      - $ref: '#/components/schemas/LogStreamEventBridgeCreate'
+      - $ref: '#/components/schemas/LogStreamEventGridCreate'
+      - $ref: '#/components/schemas/LogStreamDatadogCreate'
+      - $ref: '#/components/schemas/LogStreamSplunkCreate'
+      - $ref: '#/components/schemas/LogStreamSumoCreate'
+      - $ref: '#/components/schemas/LogStreamSegmentCreate'
+      - $ref: '#/components/schemas/LogStreamMixpanelCreate'
+    LogStream:
+      oneOf:
+      - $ref: '#/components/schemas/LogStreamHTTP'
+      - $ref: '#/components/schemas/LogStreamEventBridge'
+      - $ref: '#/components/schemas/LogStreamEventGrid'
+      - $ref: '#/components/schemas/LogStreamDatadog'
+      - $ref: '#/components/schemas/LogStreamSplunk'
+      - $ref: '#/components/schemas/LogStreamSumo'
+      - $ref: '#/components/schemas/LogStreamSegment'
+      - $ref: '#/components/schemas/LogStreamMixpanel'
+    LogStreamSinkPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        httpAuthorization:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        httpContentFormat:
+          type: string
+          enum:
+          - JSONARRAY
+          - JSONLINES
+          - JSONOBJECT
+          default: JSONLINES
+        httpContentType:
+          type: string
+          default: application/json
+        httpEndpoint:
+          type: string
+          pattern: ^https?://.*
+          description: HTTPS endpoint; HTTP is accepted only with deployment allow_insecure_http (local D-0057).
+        httpCustomHeaders:
+          oneOf:
+          - type: array
+            items:
+              $ref: '#/components/schemas/LogStreamCustomHeader'
+          - type: string
+            enum:
+            - '[REDACTED]'
+          description: Full header replacement, or marker to preserve existing sealed headers.
+        datadogApiKey:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        datadogRegion:
+          type: string
+          enum:
+          - us
+          - eu
+          - us3
+          - us5
+        splunkDomain:
+          type: string
+        splunkPort:
+          type: string
+          pattern: ^[0-9]*$
+        splunkToken:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        splunkSecure:
+          type: boolean
+          description: Stored vendor flag. TLS verification remains mandatory locally; insecure HTTP needs deployment
+            opt-in (D-0057).
+        sumoSourceAddress:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        segmentWriteKey:
+          type: string
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        mixpanelRegion:
+          type: string
+          enum:
+          - us
+          - eu
+        mixpanelProjectId:
+          type: string
+          pattern: ^\d+$
+        mixpanelServiceAccountUsername:
+          type: string
+          pattern: ^[^:]+$
+        mixpanelServiceAccountPassword:
+          type: string
+          pattern: ^[^:]+$
+          description: 'Credential material: sealed at rest, returned as [REDACTED]; omitted PATCH keeps the stored
+            value (local D-0057).'
+        awsAccountId:
+          type: string
+          pattern: ^\d{12}$
+        awsRegion:
+          type: string
+          enum:
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-south-1
+          - eu-south-2
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - il-central-1
+          - me-central-1
+          - me-south-1
+          - mx-central-1
+          - sa-east-1
+          - us-gov-east-1
+          - us-gov-west-1
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+        awsPartnerEventSource:
+          type: string
+        azureSubscriptionId:
+          type: string
+          pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+        azureRegion:
+          type: string
+          enum:
+          - australiacentral
+          - australiaeast
+          - australiasoutheast
+          - brazilsouth
+          - canadacentral
+          - canadaeast
+          - centralindia
+          - centralus
+          - eastasia
+          - eastus
+          - eastus2
+          - francecentral
+          - germanywestcentral
+          - japaneast
+          - japanwest
+          - koreacentral
+          - koreasouth
+          - northcentralus
+          - northeurope
+          - norwayeast
+          - southafricanorth
+          - southcentralus
+          - southeastasia
+          - southindia
+          - swedencentral
+          - switzerlandnorth
+          - uaenorth
+          - uksouth
+          - ukwest
+          - westcentralus
+          - westeurope
+          - westindia
+          - westus
+          - westus2
+        azureResourceGroup:
+          type: string
+        azurePartnerTopic:
+          type: string
+      description: Partial sink; runtime validates fields against the immutable stored stream type. Type-mismatched
+        fields are rejected.
+    LogStreamPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        isPriority:
+          type: boolean
+          default: false
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogStreamFilter'
+        pii_config:
+          $ref: '#/components/schemas/LogStreamPII'
+        sink:
+          $ref: '#/components/schemas/LogStreamSinkPatch'
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - suspended
+      description: type and startFrom are immutable; unknown properties rejected. Active transition for cloud-only stream
+        types is invalid_operation.
+    LogDailyStat:
+      type: object
+      additionalProperties: false
+      properties:
+        date:
+          type: string
+          format: date-time
+        logins:
+          type: integer
+          minimum: 0
+        signups:
+          type: integer
+          minimum: 0
+        leaked_passwords:
+          type: integer
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - date
+      - logins
+      - signups
+      - leaked_passwords
+      - created_at
+      - updated_at
     IISearchParserEnum:
       type: string
       enum:

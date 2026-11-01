@@ -39,6 +39,7 @@ type Config struct {
 	CustomDB CustomDB `koanf:"custom_db"`
 	Actions  Actions  `koanf:"actions"`
 	Jobs     Jobs     `koanf:"jobs"`
+	Logs     Logs     `koanf:"logs"`
 	// Bootstrap creates the first console operator on an empty install.
 	Bootstrap Bootstrap `koanf:"bootstrap"`
 	// Seed is an optional path to a declarative seed file applied at startup.
@@ -47,6 +48,16 @@ type Config struct {
 	// defines at every start) or "create_only" (it only creates what is
 	// missing, so edits made in the console survive a restart).
 	SeedMode string `koanf:"seed_mode"`
+}
+
+type Logs struct {
+	Retention time.Duration `koanf:"retention"`
+	QueueSize int           `koanf:"queue_size"`
+	Streams   LogStreams    `koanf:"streams"`
+}
+type LogStreams struct {
+	AllowInsecureHTTP    bool `koanf:"allow_insecure_http"`
+	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 
 type Server struct {
@@ -254,6 +265,7 @@ func defaults() *Config {
 			DeviceActivationTenantMaxMisses: 1000, DeviceActivationTenantWindowSeconds: 600, DeviceActivationTenantLockoutSeconds: 60,
 		},
 		Jobs:     Jobs{Workers: 2, Lease: time.Minute},
+		Logs:     Logs{Retention: 30 * 24 * time.Hour, QueueSize: 10000},
 		CustomDB: CustomDB{Node: "node", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute},
 		Actions: Actions{
 			Node: "node", Registry: "https://registry.npmjs.org/", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute,
@@ -482,6 +494,12 @@ func (c *Config) validate() error {
 	errs = append(errs, c.Actions.validate()...)
 	if c.Jobs.Workers < 0 {
 		errs = append(errs, fmt.Errorf("jobs.workers %d must not be negative", c.Jobs.Workers))
+	}
+	if c.Logs.Retention < 24*time.Hour {
+		errs = append(errs, fmt.Errorf("logs.retention %s must be at least 24h", c.Logs.Retention))
+	}
+	if c.Logs.QueueSize < 1 {
+		errs = append(errs, fmt.Errorf("logs.queue_size must be positive"))
 	}
 	if c.Jobs.Lease < time.Second {
 		errs = append(errs, fmt.Errorf("jobs.lease %s must be at least 1s", c.Jobs.Lease))

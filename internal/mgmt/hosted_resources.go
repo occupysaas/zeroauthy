@@ -57,7 +57,7 @@ func (h *Handlers) mutateHosted(w http.ResponseWriter, r *http.Request, action s
 			h.failTx(w, r, action, err)
 			return
 		}
-		h.audit(r, action)
+		logDetails(r, action)
 		response(next)
 		return
 	}

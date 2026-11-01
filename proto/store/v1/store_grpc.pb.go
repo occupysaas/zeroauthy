@@ -19,6 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	StoreService_LogsCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/LogsCapabilities"
+	StoreService_AppendLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/AppendLogs"
+	StoreService_GetLog_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/GetLog"
+	StoreService_SearchLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/SearchLogs"
+	StoreService_LogsAfter_FullMethodName                               = "/zeroauthy.store.v1.StoreService/LogsAfter"
+	StoreService_LatestLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/LatestLogs"
+	StoreService_PurgeLogs_FullMethodName                               = "/zeroauthy.store.v1.StoreService/PurgeLogs"
+	StoreService_DeleteTenantLogs_FullMethodName                        = "/zeroauthy.store.v1.StoreService/DeleteTenantLogs"
+	StoreService_CreateLogStream_FullMethodName                         = "/zeroauthy.store.v1.StoreService/CreateLogStream"
+	StoreService_GetLogStream_FullMethodName                            = "/zeroauthy.store.v1.StoreService/GetLogStream"
+	StoreService_ListLogStreams_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ListLogStreams"
+	StoreService_UpdateLogStream_FullMethodName                         = "/zeroauthy.store.v1.StoreService/UpdateLogStream"
+	StoreService_DeleteLogStream_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DeleteLogStream"
+	StoreService_LeaseLogStream_FullMethodName                          = "/zeroauthy.store.v1.StoreService/LeaseLogStream"
+	StoreService_RecordDelivery_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RecordDelivery"
+	StoreService_DailyStats_FullMethodName                              = "/zeroauthy.store.v1.StoreService/DailyStats"
+	StoreService_ActiveUsers_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ActiveUsers"
 	StoreService_RBACCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RBACCapabilities"
 	StoreService_RBACCreateRole_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RBACCreateRole"
 	StoreService_RBACGetRole_FullMethodName                             = "/zeroauthy.store.v1.StoreService/RBACGetRole"
@@ -97,6 +114,7 @@ const (
 	StoreService_ActionsInitializeBindings_FullMethodName               = "/zeroauthy.store.v1.StoreService/ActionsInitializeBindings"
 	StoreService_ActionsReplaceBindings_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsReplaceBindings"
 	StoreService_ActionsCreateExecution_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsCreateExecution"
+	StoreService_ActionsListExecutions_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsListExecutions"
 	StoreService_ActionsGetExecution_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsGetExecution"
 	StoreService_ActionsPurgeExecutions_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsPurgeExecutions"
 	StoreService_ActionsCreateContinue_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsCreateContinue"
@@ -365,6 +383,24 @@ const (
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceClient interface {
+	// Logs v1 is independent of every earlier storage capability.
+	LogsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*LogsCapabilitiesResult, error)
+	AppendLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	GetLog(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	SearchLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	LogsAfter(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	LatestLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	PurgeLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	DeleteTenantLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	CreateLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	GetLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	ListLogStreams(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	UpdateLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	DeleteLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	LeaseLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	RecordDelivery(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	DailyStats(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
+	ActiveUsers(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
 	RBACCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*RBACCapabilitiesResult, error)
 	RBACCreateRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACGetRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
@@ -451,6 +487,7 @@ type StoreServiceClient interface {
 	ActionsInitializeBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsReplaceBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsCreateExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsListExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsGetExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsPurgeExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsCreateContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
@@ -682,6 +719,176 @@ type storeServiceClient struct {
 
 func NewStoreServiceClient(cc grpc.ClientConnInterface) StoreServiceClient {
 	return &storeServiceClient{cc}
+}
+
+func (c *storeServiceClient) LogsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*LogsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_LogsCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) AppendLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_AppendLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) GetLog(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_GetLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SearchLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_SearchLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) LogsAfter(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_LogsAfter_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) LatestLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_LatestLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PurgeLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_PurgeLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeleteTenantLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_DeleteTenantLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CreateLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_CreateLogStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) GetLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_GetLogStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ListLogStreams(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ListLogStreams_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UpdateLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_UpdateLogStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeleteLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_DeleteLogStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) LeaseLogStream(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_LeaseLogStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RecordDelivery(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_RecordDelivery_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DailyStats(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_DailyStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActiveUsers(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActiveUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *storeServiceClient) RBACCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*RBACCapabilitiesResult, error) {
@@ -1470,6 +1677,16 @@ func (c *storeServiceClient) ActionsCreateExecution(ctx context.Context, in *Act
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ActionsResponse)
 	err := c.cc.Invoke(ctx, StoreService_ActionsCreateExecution_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsListExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsListExecutions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3605,6 +3822,24 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceServer interface {
+	// Logs v1 is independent of every earlier storage capability.
+	LogsCapabilities(context.Context, *PingRequest) (*LogsCapabilitiesResult, error)
+	AppendLogs(context.Context, *LogsRequest) (*LogsResponse, error)
+	GetLog(context.Context, *LogsRequest) (*LogsResponse, error)
+	SearchLogs(context.Context, *LogsRequest) (*LogsResponse, error)
+	LogsAfter(context.Context, *LogsRequest) (*LogsResponse, error)
+	LatestLogs(context.Context, *LogsRequest) (*LogsResponse, error)
+	PurgeLogs(context.Context, *LogsRequest) (*LogsResponse, error)
+	DeleteTenantLogs(context.Context, *LogsRequest) (*LogsResponse, error)
+	CreateLogStream(context.Context, *LogsRequest) (*LogsResponse, error)
+	GetLogStream(context.Context, *LogsRequest) (*LogsResponse, error)
+	ListLogStreams(context.Context, *LogsRequest) (*LogsResponse, error)
+	UpdateLogStream(context.Context, *LogsRequest) (*LogsResponse, error)
+	DeleteLogStream(context.Context, *LogsRequest) (*LogsResponse, error)
+	LeaseLogStream(context.Context, *LogsRequest) (*LogsResponse, error)
+	RecordDelivery(context.Context, *LogsRequest) (*LogsResponse, error)
+	DailyStats(context.Context, *LogsRequest) (*LogsResponse, error)
+	ActiveUsers(context.Context, *LogsRequest) (*LogsResponse, error)
 	RBACCapabilities(context.Context, *PingRequest) (*RBACCapabilitiesResult, error)
 	RBACCreateRole(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACGetRole(context.Context, *RBACRequest) (*RBACResponse, error)
@@ -3691,6 +3926,7 @@ type StoreServiceServer interface {
 	ActionsInitializeBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsReplaceBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsCreateExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsListExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsGetExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsPurgeExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsCreateContinue(context.Context, *ActionsRequest) (*ActionsResponse, error)
@@ -3924,6 +4160,57 @@ type StoreServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedStoreServiceServer struct{}
 
+func (UnimplementedStoreServiceServer) LogsCapabilities(context.Context, *PingRequest) (*LogsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method LogsCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) AppendLogs(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AppendLogs not implemented")
+}
+func (UnimplementedStoreServiceServer) GetLog(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLog not implemented")
+}
+func (UnimplementedStoreServiceServer) SearchLogs(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchLogs not implemented")
+}
+func (UnimplementedStoreServiceServer) LogsAfter(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LogsAfter not implemented")
+}
+func (UnimplementedStoreServiceServer) LatestLogs(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LatestLogs not implemented")
+}
+func (UnimplementedStoreServiceServer) PurgeLogs(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PurgeLogs not implemented")
+}
+func (UnimplementedStoreServiceServer) DeleteTenantLogs(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTenantLogs not implemented")
+}
+func (UnimplementedStoreServiceServer) CreateLogStream(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateLogStream not implemented")
+}
+func (UnimplementedStoreServiceServer) GetLogStream(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLogStream not implemented")
+}
+func (UnimplementedStoreServiceServer) ListLogStreams(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLogStreams not implemented")
+}
+func (UnimplementedStoreServiceServer) UpdateLogStream(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateLogStream not implemented")
+}
+func (UnimplementedStoreServiceServer) DeleteLogStream(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteLogStream not implemented")
+}
+func (UnimplementedStoreServiceServer) LeaseLogStream(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LeaseLogStream not implemented")
+}
+func (UnimplementedStoreServiceServer) RecordDelivery(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RecordDelivery not implemented")
+}
+func (UnimplementedStoreServiceServer) DailyStats(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DailyStats not implemented")
+}
+func (UnimplementedStoreServiceServer) ActiveUsers(context.Context, *LogsRequest) (*LogsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActiveUsers not implemented")
+}
 func (UnimplementedStoreServiceServer) RBACCapabilities(context.Context, *PingRequest) (*RBACCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RBACCapabilities not implemented")
 }
@@ -4157,6 +4444,9 @@ func (UnimplementedStoreServiceServer) ActionsReplaceBindings(context.Context, *
 }
 func (UnimplementedStoreServiceServer) ActionsCreateExecution(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsCreateExecution not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsListExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsListExecutions not implemented")
 }
 func (UnimplementedStoreServiceServer) ActionsGetExecution(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsGetExecution not implemented")
@@ -4795,6 +5085,312 @@ func RegisterStoreServiceServer(s grpc.ServiceRegistrar, srv StoreServiceServer)
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&StoreService_ServiceDesc, srv)
+}
+
+func _StoreService_LogsCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).LogsCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_LogsCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).LogsCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_AppendLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).AppendLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_AppendLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).AppendLogs(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_GetLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).GetLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_GetLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).GetLog(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SearchLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SearchLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SearchLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SearchLogs(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_LogsAfter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).LogsAfter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_LogsAfter_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).LogsAfter(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_LatestLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).LatestLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_LatestLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).LatestLogs(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PurgeLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PurgeLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PurgeLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PurgeLogs(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeleteTenantLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeleteTenantLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeleteTenantLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeleteTenantLogs(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CreateLogStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CreateLogStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CreateLogStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CreateLogStream(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_GetLogStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).GetLogStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_GetLogStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).GetLogStream(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ListLogStreams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ListLogStreams(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ListLogStreams_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ListLogStreams(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UpdateLogStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UpdateLogStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UpdateLogStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UpdateLogStream(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeleteLogStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeleteLogStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeleteLogStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeleteLogStream(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_LeaseLogStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).LeaseLogStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_LeaseLogStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).LeaseLogStream(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RecordDelivery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RecordDelivery(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RecordDelivery_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RecordDelivery(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DailyStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DailyStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DailyStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DailyStats(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActiveUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActiveUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActiveUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActiveUsers(ctx, req.(*LogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_RBACCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -6179,6 +6775,24 @@ func _StoreService_ActionsCreateExecution_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ActionsCreateExecution(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsListExecutions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsListExecutions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsListExecutions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsListExecutions(ctx, req.(*ActionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -9892,6 +10506,74 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*StoreServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "LogsCapabilities",
+			Handler:    _StoreService_LogsCapabilities_Handler,
+		},
+		{
+			MethodName: "AppendLogs",
+			Handler:    _StoreService_AppendLogs_Handler,
+		},
+		{
+			MethodName: "GetLog",
+			Handler:    _StoreService_GetLog_Handler,
+		},
+		{
+			MethodName: "SearchLogs",
+			Handler:    _StoreService_SearchLogs_Handler,
+		},
+		{
+			MethodName: "LogsAfter",
+			Handler:    _StoreService_LogsAfter_Handler,
+		},
+		{
+			MethodName: "LatestLogs",
+			Handler:    _StoreService_LatestLogs_Handler,
+		},
+		{
+			MethodName: "PurgeLogs",
+			Handler:    _StoreService_PurgeLogs_Handler,
+		},
+		{
+			MethodName: "DeleteTenantLogs",
+			Handler:    _StoreService_DeleteTenantLogs_Handler,
+		},
+		{
+			MethodName: "CreateLogStream",
+			Handler:    _StoreService_CreateLogStream_Handler,
+		},
+		{
+			MethodName: "GetLogStream",
+			Handler:    _StoreService_GetLogStream_Handler,
+		},
+		{
+			MethodName: "ListLogStreams",
+			Handler:    _StoreService_ListLogStreams_Handler,
+		},
+		{
+			MethodName: "UpdateLogStream",
+			Handler:    _StoreService_UpdateLogStream_Handler,
+		},
+		{
+			MethodName: "DeleteLogStream",
+			Handler:    _StoreService_DeleteLogStream_Handler,
+		},
+		{
+			MethodName: "LeaseLogStream",
+			Handler:    _StoreService_LeaseLogStream_Handler,
+		},
+		{
+			MethodName: "RecordDelivery",
+			Handler:    _StoreService_RecordDelivery_Handler,
+		},
+		{
+			MethodName: "DailyStats",
+			Handler:    _StoreService_DailyStats_Handler,
+		},
+		{
+			MethodName: "ActiveUsers",
+			Handler:    _StoreService_ActiveUsers_Handler,
+		},
+		{
 			MethodName: "RBACCapabilities",
 			Handler:    _StoreService_RBACCapabilities_Handler,
 		},
@@ -10194,6 +10876,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ActionsCreateExecution",
 			Handler:    _StoreService_ActionsCreateExecution_Handler,
+		},
+		{
+			MethodName: "ActionsListExecutions",
+			Handler:    _StoreService_ActionsListExecutions_Handler,
 		},
 		{
 			MethodName: "ActionsGetExecution",

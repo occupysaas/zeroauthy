@@ -10,6 +10,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -201,6 +202,7 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 // socialFailure renders safe copy for a federation error; details go to the
 // operator log only as error classes.
 func (h *Handlers) socialFailure(w http.ResponseWriter, r *http.Request, f *flow, err error) {
+	h.event(r, f, "f", nil)
 	view := ui.Tenant{}
 	if f != nil {
 		view = f.view
@@ -255,6 +257,7 @@ func federationErrorClass(err error) string {
 
 // SocialCallback is GET /login/callback.
 func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
+	h.maskRequest(r)
 	ctx := r.Context()
 	w.Header().Set("Cache-Control", "no-store")
 	res, ok := tenant.FromContext(ctx)
@@ -282,7 +285,8 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: federation.CallbackPath, MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 	var sess *store.LoginSession
 	done, err := h.Federation.Complete(ctx, federation.CompleteInput{
-		Tenant: res.Tenant, Origin: res.Origin(), Params: params, CookieValue: c.Value,
+		OnResolved: func(event logs.Event) { *r = *r.WithContext(logs.WithEvent(r.Context(), event)) },
+		Tenant:     res.Tenant, Origin: res.Origin(), Params: params, CookieValue: c.Value,
 		BeforeProvision: func(ctx context.Context) error {
 			svc := h.protectionService()
 			d, err := svc.Begin(ctx, protection.Attempt{Tenant: res.Tenant, Connection: &store.Connection{ID: callbackConnection(ctx, h, res, params)}, IP: ip, Flow: "social-signup"})

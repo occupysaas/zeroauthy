@@ -2,10 +2,11 @@ package grpcstore
 
 import (
 	"context"
+	"time"
+
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"time"
 )
 
 type clientProtection struct{ c *Client }
@@ -38,7 +39,7 @@ func (a clientProtection) Reserve(ctx context.Context, ls []store.ProtectionLimi
 	if e = protectionRPCError("ProtectionReserve", r, e); e != nil {
 		return store.ProtectionAdmission{}, e
 	}
-	return store.ProtectionAdmission{Allowed: r.Allowed, Receipt: store.ProtectionReceipt{TenantID: r.TenantId, ID: r.ReceiptId}, RetryAt: tsFromPB(r.RetryAt)}, nil
+	return store.ProtectionAdmission{DeniedKinds: r.DeniedKinds, Allowed: r.Allowed, Receipt: store.ProtectionReceipt{TenantID: r.TenantId, ID: r.ReceiptId}, RetryAt: tsFromPB(r.RetryAt)}, nil
 }
 func (a clientProtection) Complete(ctx context.Context, receipt store.ProtectionReceipt, outcome string, now time.Time) error {
 	r, e := a.c.rpc.ProtectionComplete(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, TenantId: receipt.TenantID, ReceiptId: receipt.ID, Outcome: outcome, Now: tsToPB(now)})
@@ -56,9 +57,17 @@ func (a clientProtection) Blocks(ctx context.Context, tenant string, f store.Pro
 	return out, nil
 }
 func (a clientProtection) Clear(ctx context.Context, tenant string, f store.ProtectionFilter) error {
-	r, e := a.c.rpc.ProtectionClear(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, TenantId: tenant, Filter: protectionFilterToPB(f)})
-	return protectionRPCError("ProtectionClear", r, e)
+	_, err := a.ClearResult(ctx, tenant, f, time.Now())
+	return err
 }
+func (a clientProtection) ClearResult(ctx context.Context, tenant string, f store.ProtectionFilter, now time.Time) (bool, error) {
+	r, e := a.c.rpc.ProtectionClear(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, TenantId: tenant, Filter: protectionFilterToPB(f), Now: tsToPB(now)})
+	if err := protectionRPCError("ProtectionClear", r, e); err != nil {
+		return false, err
+	}
+	return r.GetClearedBlock(), nil
+}
+
 func (a clientProtection) UseProof(ctx context.Context, hash string, now, expires time.Time) (bool, error) {
 	r, e := a.c.rpc.ProtectionUseProof(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, ProofHash: hash, Now: tsToPB(now), ExpiresAt: tsToPB(expires)})
 	if e = protectionRPCError("ProtectionUseProof", r, e); e != nil {
@@ -104,6 +113,7 @@ func (s *Server) ProtectionReserve(ctx context.Context, q *storev1.ProtectionReq
 		}
 		a, e := p.Reserve(ctx, ls, tsFromPB(q.Now))
 		r.Allowed = a.Allowed
+		r.DeniedKinds = a.DeniedKinds
 		r.TenantId = a.Receipt.TenantID
 		r.ReceiptId = a.Receipt.ID
 		r.RetryAt = tsToPB(a.RetryAt)
@@ -138,6 +148,11 @@ func (s *Server) ProtectionClear(ctx context.Context, q *storev1.ProtectionReque
 	r := &storev1.ProtectionResult{}
 	r.Error = errToPB(s.with(q.TxId, func(st store.Store) error {
 		p := st.Protection()
+		if writer, ok := p.(store.ProtectionClearer); ok && q.Now != nil {
+			changed, err := writer.ClearResult(ctx, q.TenantId, protectionFilterFromPB(q.Filter), tsFromPB(q.Now))
+			r.ClearedBlock = &changed
+			return err
+		}
 		return p.Clear(ctx, q.TenantId, protectionFilterFromPB(q.Filter))
 	}))
 	return r, nil

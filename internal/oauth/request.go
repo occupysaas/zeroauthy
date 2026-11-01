@@ -2,6 +2,7 @@
 package oauth
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 )
 
 const maxTokenRequestBytes = 64 << 10
@@ -17,7 +21,9 @@ const maxTokenRequestBytes = 64 << 10
 // send both form-encoded and JSON bodies, so both are accepted. JSON
 // values must be scalars and are converted to strings. Query parameters
 // are never read: credentials must not travel in URLs.
-func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error) {
+func parseTokenRequest(w http.ResponseWriter, r *http.Request) (form url.Values, failure *Error) {
+	registerOAuthAuthorization(r)
+	defer func() { registerOAuthForm(r, r.PostForm) }()
 	r.Body = http.MaxBytesReader(w, r.Body, maxTokenRequestBytes)
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
@@ -73,6 +79,7 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Err
 			default:
 				return nil, invalidRequest(fmt.Sprintf("parameter %q must be a string", key))
 			}
+			registerOAuthForm(r, url.Values{key: form[key]})
 		}
 		if tok, err := dec.Token(); err != nil || tok != json.Delim('}') {
 			return nil, bad
@@ -84,4 +91,33 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Err
 	default:
 		return nil, invalidRequest("Content-Type must be application/x-www-form-urlencoded or application/json")
 	}
+}
+
+// Register at ingress, before authentication or validation can log a failure.
+// Parsers cap form/JSON bytes; Basic fields come from the bounded HTTP header.
+func registerOAuthAuthorization(r *http.Request) {
+	header := r.Header.Get("Authorization")
+	values := []string{header}
+	if parts := strings.SplitN(header, " ", 2); len(parts) == 2 && strings.EqualFold(parts[0], "Basic") {
+		values = append(values, parts[1])
+		if decoded, err := base64.StdEncoding.DecodeString(parts[1]); err == nil {
+			values = append(values, string(decoded))
+		}
+	}
+	if _, secret, ok := r.BasicAuth(); ok {
+		values = append(values, secret)
+		if decoded, err := url.QueryUnescape(secret); err == nil {
+			values = append(values, decoded)
+		}
+	}
+	*r = *r.WithContext(logscrub.WithCredentials(r.Context(), values...))
+}
+func registerOAuthForm(r *http.Request, form url.Values) {
+	var values []string
+	for key, value := range form {
+		if logscrub.SensitiveKey(key) || key == "otp" || key == "code" || key == "ticket" {
+			values = append(values, value...)
+		}
+	}
+	*r = *r.WithContext(logscrub.WithCredentials(r.Context(), values...))
 }

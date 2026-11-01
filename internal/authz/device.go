@@ -109,7 +109,7 @@ func (h *Handlers) ContinueDevice(w http.ResponseWriter, r *http.Request, res te
 	}
 	login := sess == nil
 	if !login {
-		if login, err = h.connectionDisabled(ctx, res, client, sess); err != nil {
+		if login, err = h.connectionDisabled(r, res, client, sess); err != nil {
 			h.log().ErrorContext(ctx, "load session connection", "tenant", res.Tenant.ID, "err", err)
 			h.refuse(w, r, res, client, fr, errServer())
 			return

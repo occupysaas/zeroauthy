@@ -1,3 +1,9 @@
+import LogsList from './pages/logs/LogsList.vue'
+import LogDetail from './pages/logs/LogDetail.vue'
+import StreamsList from './pages/log-streams/StreamsList.vue'
+import StreamEdit from './pages/log-streams/StreamEdit.vue'
+import ExecutionView from './pages/actions/ExecutionView.vue'
+import ActionsLogs from './pages/actions/ActionsLogs.vue'
 import OrganizationList from './pages/organizations/List.vue'
 import OrganizationCreate from './pages/organizations/Create.vue'
 import OrganizationDetail from './pages/organizations/Detail.vue'
@@ -115,6 +121,12 @@ export const routes: RouteRecordRaw[] = [
     children: [{ path: 'new', name: 'user-new', component: UserCreate }, { path: ':id', name: 'user', component: UserDetail }],
   },
   { path: '/t/:tenant/users/import-export', name: 'users-import-export', component: UserImportExport },
+  { path: '/t/:tenant/logs', name: 'logs', component: LogsList, children: [{ path: ':id', name: 'log', component: LogDetail }] },
+  { path: '/t/:tenant/log-streams', name: 'log-streams', component: StreamsList },
+  { path: '/t/:tenant/log-streams/new', name: 'stream-new', component: StreamEdit },
+  { path: '/t/:tenant/log-streams/:id', name: 'stream-edit', component: StreamEdit },
+  { path: '/t/:tenant/actions-logs', name: 'actions-logs', component: ActionsLogs },
+  { path: '/t/:tenant/actions/executions/:id', name: 'execution-view', component: ExecutionView },
   { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },
   { path: '/t/:tenant/settings', name: 'settings', component: Settings },
   { path: '/t/:tenant/attack-protection', name: 'attack-protection', component: AttackProtection },

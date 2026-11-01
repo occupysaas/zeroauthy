@@ -86,7 +86,7 @@ func TestPasswordChangeTicket(t *testing.T) {
 	if strings.Contains(e.logs.String(), strings.TrimSuffix(strings.SplitN(link, "ticket=", 2)[1], "#")) {
 		t.Fatal("the ticket token was logged")
 	}
-	if !strings.Contains(e.logs.String(), "create password change ticket") || !strings.Contains(e.logs.String(), "actor=m2m") {
+	if !strings.Contains(e.logs.String(), "create password change ticket") || !strings.Contains(e.logs.String(), "client_id:m2m") {
 		t.Fatalf("no audit line: %s", e.logs)
 	}
 

@@ -375,7 +375,7 @@ func (h *Handlers) CreateAction(w http.ResponseWriter, r *http.Request) {
 		h.actionError(w, r, err)
 		return
 	}
-	h.audit(r, "create Action", "id", a.ID)
+	logDetails(r, "create Action", "id", a.ID)
 	h.writeAction(w, r, a, 201)
 }
 func (h *Handlers) waitActionBuild(ctx context.Context, a *store.Action) error {
@@ -438,7 +438,7 @@ func (h *Handlers) UpdateAction(w http.ResponseWriter, r *http.Request, id strin
 		h.actionError(w, r, err)
 		return
 	}
-	h.audit(r, "update Action", "id", id)
+	logDetails(r, "update Action", "id", id)
 	h.writeAction(w, r, a, 200)
 }
 func (h *Handlers) DeleteAction(w http.ResponseWriter, r *http.Request, id string) {
@@ -457,7 +457,7 @@ func (h *Handlers) DeleteAction(w http.ResponseWriter, r *http.Request, id strin
 		h.actionError(w, r, err)
 		return
 	}
-	h.audit(r, "delete Action", "id", id)
+	logDetails(r, "delete Action", "id", id)
 	w.WriteHeader(204)
 }
 func (h *Handlers) GetActions(w http.ResponseWriter, r *http.Request) {

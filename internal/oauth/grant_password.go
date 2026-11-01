@@ -15,6 +15,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -71,7 +73,20 @@ func (h *Handlers) passwordRealmGrant(ctx context.Context, res tenant.Resolved, 
 }
 
 // resourceOwner implements RFC 6749 §4.3 against one database connection.
-func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values, connName string) (*authapi.TokenResponse, *Error) {
+func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values, connName string) (response *authapi.TokenResponse, failure *Error) {
+	var eventConn *store.Connection
+	var eventUserID string
+	defer func() {
+		if failure != nil && (failure.Code == "authorization_pending" || failure.Code == "slow_down") {
+			return
+		}
+		code := "sepft"
+		if failure != nil {
+			code = "fepft"
+		}
+		h.event(ctx, res, c, code, eventConn, eventUserID)
+	}()
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, form.Get("password")), form.Get("password"))
 	if !c.IsFirstParty {
 		return nil, unauthorizedClient("the password grant is not available to third-party applications")
 	}
@@ -89,12 +104,15 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, serverError()
 	}
 
+	ctx = logscrub.WithCredentials(ctx, identity.EffectivePassword(conn, password))
+	eventConn = conn
 	svc := h.protectionService()
 	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: res.Tenant, Connection: conn, Identifier: username, IP: clientIPFrom(ctx), Flow: "login"})
 	if err != nil {
 		h.log().ErrorContext(ctx, "protection admission", "err", err)
 		return nil, serverError()
 	}
+	eventUserID = decision.SubjectID
 	if !decision.Allowed {
 		return nil, tooManyRequests()
 	}
@@ -112,10 +130,18 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	attemptID := secrets.RandomString(32)
 
 	var breachErr error
+	var breachHit bool
 	user, err := h.Database.LoginWithCheck(ctx, conn, username, password, func(ctx context.Context) error {
-		breachErr = svc.CheckPasswordForUser(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password), decision.SubjectID)
+		breachHit, breachErr = svc.CheckPasswordForUserResult(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password), decision.SubjectID)
 		return breachErr
 	})
+	if user != nil {
+		eventUserID = user.UserID
+		ctx = logs.WithEvent(ctx, logs.Event{UserID: user.UserID, UserName: user.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "database"})
+	}
+	if breachHit {
+		h.event(ctx, res, c, "pwd_leak", conn, eventUserID)
+	}
 	outcome := protection.CredentialOutcome(err)
 	if breachErr != nil {
 		// Credentials were proved before the policy refusal.
@@ -140,6 +166,19 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 			return nil, &Error{Status: http.StatusUnauthorized, Code: "password_leaked", Description: protection.ErrPasswordLeaked.Error()}
 		}
 		return nil, &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Description: protection.ErrBreachUnavailable.Error()}
+	}
+	if err != nil {
+		code := "f"
+		if errors.Is(err, identity.ErrInvalidCredentials) {
+			code = "fu"
+			if identity.IsCustom(conn) {
+				code = "f"
+			}
+			if decision.SubjectID != "" {
+				code = "fp"
+			}
+		}
+		h.event(ctx, res, c, code, conn, eventUserID)
 	}
 	var ue *identity.UnauthorizedError
 	switch {
@@ -249,6 +288,9 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	}
 	if rt != nil {
 		resp.RefreshToken = &raw
+	}
+	if user != nil {
+		eventUserID = user.UserID
 	}
 	return resp, nil
 }

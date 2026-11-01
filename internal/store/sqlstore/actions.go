@@ -196,7 +196,9 @@ func (r actionsRepo) UpdateAction(ctx context.Context, a *store.Action) error {
 				}
 				return pins, rows.Err()
 			},
-			func(refs []store.ModuleRef) ([]store.ModuleRef, error) { return repo.resolveModuleRefs(ctx, c.TenantID, refs) })
+			func(refs []store.ModuleRef) ([]store.ModuleRef, error) {
+				return repo.resolveModuleRefs(ctx, c.TenantID, refs)
+			})
 		if err != nil {
 			return err
 		}
@@ -658,11 +660,26 @@ func (r actionsRepo) CreateExecution(ctx context.Context, e *store.Execution) er
 		return err
 	}
 	created, updated := stampTime(e.CreatedAt), stampTime(e.UpdatedAt)
-	// One INSERT per flow on the login path: no tenant lock; the primary key
-	// refuses duplicates and the tenant foreign key a missing tenant.
-	_, err = r.s.write(ctx, nil, `INSERT INTO action_executions (`+execCols+`) VALUES (?,?,?,?,?,?,?)`,
-		e.TenantID, e.ID, e.Trigger, e.Status, results, micros(created), micros(updated))
-	return r.s.insertErr(err)
+	// Persist the immutable record and Action-ID lookup projection together.
+	// No tenant lock; duplicate executions are refused by the primary key.
+	return r.s.atomic(ctx, nil, func(tx *Store) error {
+		_, err = tx.write(ctx, nil, `INSERT INTO action_executions (`+execCols+`) VALUES (?,?,?,?,?,?,?)`,
+			e.TenantID, e.ID, e.Trigger, e.Status, results, micros(created), micros(updated))
+		if err != nil {
+			return tx.insertErr(err)
+		}
+		seen := map[string]bool{}
+		for _, result := range e.Results {
+			if result.ActionID == "" || seen[result.ActionID] {
+				continue
+			}
+			seen[result.ActionID] = true
+			if _, err := tx.exec(ctx, `INSERT INTO action_execution_actions (tenant_id,execution_id,action_id) VALUES (?,?,?)`, e.TenantID, e.ID, result.ActionID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r actionsRepo) GetExecution(ctx context.Context, tenant, id string) (*store.Execution, error) {
@@ -754,4 +771,53 @@ func (r actionsRepo) ConsumeContinue(ctx context.Context, tenant, hash, sessionI
 		return nil, store.ErrNotFound
 	}
 	return out, nil
+}
+
+func (r actionsRepo) ListExecutions(ctx context.Context, tid string, f store.ExecutionFilter) ([]store.Execution, error) {
+	args := []any{tid}
+	q := `SELECT ` + execCols + ` FROM action_executions WHERE tenant_id=?`
+	if f.Trigger != "" {
+		q += ` AND trigger_id=?`
+		args = append(args, f.Trigger)
+	}
+	if f.Action != "" {
+		q += ` AND EXISTS (SELECT 1 FROM action_execution_actions x WHERE x.tenant_id=action_executions.tenant_id AND x.execution_id=action_executions.id AND x.action_id=?)`
+		args = append(args, f.Action)
+	}
+	direction := " DESC"
+	if f.After != "" {
+		var created int64
+		err := r.s.queryRow(ctx, `SELECT created_at FROM action_executions WHERE tenant_id=? AND id=?`, tid, f.After).Scan(&created)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		q += ` AND (created_at>? OR (created_at=? AND id` + r.s.d.byteOrder + `>?))`
+		args = append(args, created, created, f.After)
+		direction = " ASC"
+	}
+	q += ` ORDER BY created_at` + direction + `,id` + r.s.d.byteOrder + direction + ` LIMIT ?`
+	args = append(args, f.Limit())
+	rows, err := r.s.query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []store.Execution{}
+	for rows.Next() {
+		var ex store.Execution
+		var results string
+		var created, updated int64
+		if err := rows.Scan(&ex.TenantID, &ex.ID, &ex.Trigger, &ex.Status, &results, &created, &updated); err != nil {
+			return nil, err
+		}
+		if err := fromJSON(results, &ex.Results); err != nil {
+			return nil, err
+		}
+		ex.CreatedAt, ex.UpdatedAt = fromMicros(created), fromMicros(updated)
+		out = append(out, ex)
+	}
+	return out, rows.Err()
 }

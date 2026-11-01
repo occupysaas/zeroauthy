@@ -1,6 +1,35 @@
+import logInventory from '../../../internal/logrules/inventory.json'
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+  monitor: {
+    logs: 'Logs', streams: 'Log streams', actionsLogs: 'Actions logs', execution: 'Action execution',
+    search: 'Search logs', searchHint: 'Use field:value, quoted values, prefix wildcards, AND, OR, NOT and ranges. For example: type:s AND user_id:"user-123". Up to five search terms.',
+    streamType: 'Stream type', type: 'Event type', user: 'User ID', application: 'Application', connection: 'Connection', from: 'From (UTC)', to: 'Through (UTC)', failures: 'Failures only', failureHint: 'Failure categories are checked within the first 1,000 matching events. Narrow the date range or search to inspect older failures.', apply: 'Apply filters', clear: 'Clear filters', live: 'Live',
+    liveFilterHint: 'Clear filters to use Live. Live reads every new event; checkpoint requests do not support search filters.',
+    liveHint: 'Checking for settled events every 2 seconds. New events append below; duplicates are omitted.',
+    unavailable: 'This storage provider does not support logs, streams or statistics. Ask an administrator to enable Logs v1 support.',
+    empty: 'No matching log events on this page.', time: 'Time (UTC)', description: 'Description', total: '{total} matching events (maximum 1,000)',
+    backLogs: 'Back to logs', logDetail: 'Log detail', related: 'Related resources', json: 'Event JSON', redaction: 'Sensitive values are replaced with [REDACTED] before storage. Raw credentials cannot be recovered here.',
+    trigger: 'Trigger ID', actionID: 'Action ID', console: 'Console output', noConsole: 'No captured console lines.', denialReason: 'Denial reason: {reason}', timing: 'Started: {start} · Ended: {end}', noExecutions: 'No matching executions.',
+    executionLiveHint: 'Newest executions appear first. Live checks persisted executions every 2 seconds.',
+    name: 'Name', status: 'Status', delivery: 'Delivery', controls: 'Controls', createStream: 'Create log stream', editStream: 'Edit log stream',
+    healthFailed: 'Delivery health could not be loaded.', lastSuccess: 'Last successful delivery (UTC)', nextAttempt: 'Next attempt (UTC)', neverDelivered: 'No successful delivery yet', notScheduled: 'No attempt scheduled', failedAttempts: '{count} failed attempts', lastError: 'Last error class', notDelivered: 'Stored only; not delivered', workerDelivery: 'Background delivery', deliveryHint: 'Delivery follows each stream’s stored checkpoint. Resuming preserves the checkpoint and retries delivery.',
+    pause: 'Pause', resume: 'Resume', delete: 'Delete', deleteTitle: 'Delete this log stream?', deleteHint: 'This removes the stream and its delivery checkpoint. Stored logs are preserved.', noStreams: 'No log streams configured.', backStreams: 'Back to log streams',
+    cloudHint: 'EventBridge and EventGrid configurations are stored only and are not delivered. These streams remain suspended and cannot be resumed.',
+    secretHint: 'Credential fields are write-only. Stored secrets are never loaded into this form.', keepSecret: 'Leave blank to keep the stored credential. Enter a value only to replace it.', newSecret: 'Enter the credential to configure delivery.',
+    requiredField: 'Enter {field}.', markerInput: 'Enter a new credential or leave the field blank to keep the stored value.', headersInvalid: 'Custom headers must be a JSON array of objects with string header and value fields.',
+    headersHint: 'Custom headers use a JSON array of objects with header and value fields. Leave optional content fields blank to use server defaults.',
+    choose: 'Choose a value', priority: 'Priority stream', startFrom: 'Start from event time (optional)', startHint: 'RFC3339 timestamp, inclusive. Leave blank to begin at the latest committed event. This cannot be changed after creation.', startPlaceholder: '2026-10-30T00:00:00Z', startInvalid: 'Enter an RFC3339 timestamp with a timezone.',
+    filters: 'Event categories', filtersHint: 'No selection delivers all categories. Selected categories are combined with OR.', pii: 'Personal information', piiHint: 'Apply masking or hashing to the selected log fields before delivery. Sensitive credential fields are always redacted.', piiRequired: 'At least one PII field is required for a stream with configured PII. Select a field before saving.', piiMethod: 'Transformation', mask: 'Mask', hash: 'Hash (xxHash64)', save: 'Save stream', saved: 'Stream saved.',
+    logins: 'Logins', signups: 'Signups', activeUsers: 'Active users (last 30 days)', activity: 'Activity over the last 30 days', dailyData: 'Daily activity data', day: 'Date (UTC)', chartLabel: 'Daily successful logins and signups', statsEmpty: 'No recorded activity in this period.',
+    statuses: { active: 'Active', paused: 'Paused', suspended: 'Suspended' },
+    sinkTypes: { http: 'Custom HTTP', datadog: 'Datadog', splunk: 'Splunk', sumo: 'Sumo Logic', segment: 'Segment', mixpanel: 'Mixpanel', eventbridge: 'Amazon EventBridge', eventgrid: 'Azure Event Grid' },
+    fields: { httpEndpoint: 'HTTP endpoint', httpContentFormat: 'HTTP content format', httpContentType: 'HTTP content type', httpAuthorization: 'Authorization header', httpCustomHeaders: 'Custom headers (JSON)', datadogApiKey: 'Datadog API key', datadogRegion: 'Datadog region', splunkDomain: 'Splunk domain', splunkPort: 'Splunk port', splunkToken: 'Splunk token', splunkSecure: 'Secure Splunk transport', sumoSourceAddress: 'Sumo source address', segmentWriteKey: 'Segment write key', mixpanelRegion: 'Mixpanel region', mixpanelProjectId: 'Mixpanel project ID', mixpanelServiceAccountUsername: 'Mixpanel service account username', mixpanelServiceAccountPassword: 'Mixpanel service account password', awsAccountId: 'AWS account ID', awsRegion: 'AWS region', awsPartnerEventSource: 'AWS partner event source (optional)', azureSubscriptionId: 'Azure subscription ID', azureRegion: 'Azure region', azureResourceGroup: 'Azure resource group', azurePartnerTopic: 'Azure partner topic (optional)' },
+    categories: { auth_login_fail: 'Login failure', auth_login_notification: 'Login notification', auth_login_success: 'Login success', auth_logout_fail: 'Logout failure', auth_logout_success: 'Logout success', auth_signup_fail: 'Signup failure', auth_signup_success: 'Signup success', auth_silent_auth_fail: 'Silent authentication failure', auth_silent_auth_success: 'Silent authentication success', auth_token_exchange_fail: 'Token exchange failure', auth_token_exchange_success: 'Token exchange success', management_fail: 'Management failure', management_success: 'Management success', scim_event: 'SCIM event', system_notification: 'System notification', user_fail: 'User failure', user_notification: 'User notification', user_success: 'User success', actions: 'Actions', other: 'Other' },
+    piiFields: { first_name: 'First name', last_name: 'Last name', username: 'Username', email: 'Email', phone: 'Phone', address: 'Address' },
+    types: Object.fromEntries(logInventory.codes.map(c => [c.type, c.description])),
+  },
   next: 'Next', previous: 'Previous',
   orgs: {
     legacySearch: 'Search is unavailable with this storage provider. You can browse organizations by page.',
@@ -1190,7 +1219,7 @@ const en = {
       empty: 'Organizations will appear here.',
     },
     logs: {
-      type: 'Event type',
+      streamType: 'Stream type', type: 'Event type',
       anyType: 'All events',
       from: 'From',
       to: 'To',

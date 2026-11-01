@@ -66,15 +66,20 @@ func (r protection) Blocks(_ context.Context, tenant string, f store.ProtectionF
 	}
 	return p.Blocks(f, now), nil
 }
-func (r protection) Clear(_ context.Context, tenant string, f store.ProtectionFilter) error {
+func (r protection) Clear(ctx context.Context, tenant string, f store.ProtectionFilter) error {
+	_, err := r.ClearResult(ctx, tenant, f, time.Now())
+	return err
+}
+func (r protection) ClearResult(_ context.Context, tenant string, f store.ProtectionFilter, now time.Time) (bool, error) {
 	r.s.lock()
 	defer r.s.unlock()
 	p, e := r.state(tenant)
 	if e != nil {
-		return e
+		return false, e
 	}
+	changed := len(p.Blocks(f, now)) > 0
 	p.Clear(f)
-	return nil
+	return changed, nil
 }
 func (r protection) UseProof(_ context.Context, hash string, now, expires time.Time) (bool, error) {
 	if hash == "" || !expires.After(now) {

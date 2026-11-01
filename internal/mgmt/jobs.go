@@ -265,6 +265,15 @@ func readVerificationIdentity(raw json.RawMessage) (*struct{ userID, provider, c
 // CreateVerificationEmailJob serves POST /jobs/verification-email (J10).
 // The checks run now; a worker sends the email.
 func (h *Handlers) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
+	queued := false
+	var subject *store.User
+	defer func() {
+		typ := "fvr"
+		if queued {
+			typ = "svr"
+		}
+		h.domainEvent(r, typ, subject, nil, nil)
+	}()
 	body, err := decodeObject(r)
 	if err != nil {
 		Fail(w, err)
@@ -285,6 +294,7 @@ func (h *Handlers) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Req
 		Fail(w, internalError(h, r, "load user", err))
 		return
 	}
+	subject = u
 	params := map[string]any{"user_id": u.UserID}
 	if in.identity != nil {
 		id, err := h.verificationIdentity(r, u, in.identity.userID, in.identity.provider, in.identity.connectionID)
@@ -328,7 +338,8 @@ func (h *Handlers) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Req
 		Fail(w, err)
 		return
 	}
-	h.audit(r, "create verification email job", "job_id", j.ID, "user_id", u.UserID)
+	queued = true
+	logDetails(r, "create verification email job", "job_id", j.ID, "user_id", u.UserID)
 	writeJSON(w, http.StatusCreated, JobJSON(j, ""))
 }
 
@@ -492,7 +503,7 @@ func (h *Handlers) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) 
 		Fail(w, err)
 		return
 	}
-	h.audit(r, "create users import job", "job_id", j.ID, "connection", conn.Name, "upsert", upsert, "bytes", len(users))
+	logDetails(r, "create users import job", "job_id", j.ID, "connection", conn.Name, "upsert", upsert, "bytes", len(users))
 	writeJSON(w, http.StatusAccepted, JobJSON(j, ""))
 }
 

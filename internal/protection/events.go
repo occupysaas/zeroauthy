@@ -3,8 +3,6 @@ package protection
 import (
 	"context"
 	"log/slog"
-	"slices"
-	"sync"
 	"time"
 )
 
@@ -15,31 +13,6 @@ func (s *Service) Event(ctx context.Context, tenant, feature, outcome, actorID s
 		log = slog.Default()
 	}
 	log.InfoContext(ctx, "security protection", "tenant", tenant, "feature", feature, "outcome", outcome, "actor_id", actorID)
-}
-
-var notificationWarning struct {
-	sync.Mutex
-	next time.Time
-}
-
-func (s *Service) adminNotifications(ctx context.Context, tenant, feature string, shields []string) {
-	if !slices.Contains(shields, "admin_notification") {
-		return
-	}
-	notificationWarning.Lock()
-	now := s.now()
-	warn := !now.Before(notificationWarning.next)
-	if warn {
-		notificationWarning.next = now.Add(time.Hour)
-	}
-	notificationWarning.Unlock()
-	if warn {
-		log := s.Log
-		if log == nil {
-			log = slog.Default()
-		}
-		log.WarnContext(ctx, "protection admin notification deferred", "tenant", tenant, "feature", feature)
-	}
 }
 
 func (s *Service) notify(ctx context.Context, tenant, user, purpose string) {

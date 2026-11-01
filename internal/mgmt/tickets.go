@@ -331,7 +331,7 @@ func (h *Handlers) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Req
 		Fail(w, internalError(h, r, "create password change ticket", err))
 		return
 	}
-	h.audit(r, "create password change ticket", "user_id", u.UserID, "connection", connection, "ttl_sec", int64(in.lifetime()/time.Second))
+	logDetails(r, "create password change ticket", "user_id", u.UserID, "connection", connection, "ttl_sec", int64(in.lifetime()/time.Second))
 	writeJSON(w, http.StatusCreated, map[string]string{"ticket": dbconn.PasswordChangeLink("https://"+host+"/", raw)})
 }
 
@@ -385,6 +385,6 @@ func (h *Handlers) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.
 		Fail(w, internalError(h, r, "create email verification ticket", err))
 		return
 	}
-	h.audit(r, "create email verification ticket", "user_id", u.UserID, "connection", connection, "ttl_sec", int64(in.lifetime()/time.Second))
+	logDetails(r, "create email verification ticket", "user_id", u.UserID, "connection", connection, "ttl_sec", int64(in.lifetime()/time.Second))
 	writeJSON(w, http.StatusCreated, map[string]string{"ticket": dbconn.VerificationLink("https://"+host+"/", raw)})
 }

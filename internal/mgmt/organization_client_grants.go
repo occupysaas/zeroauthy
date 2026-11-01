@@ -87,7 +87,7 @@ func (h *Handlers) AssociateOrganizationClientGrant(w http.ResponseWriter, r *ht
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "associate organization client grant", "id", id, "grant_id", grantID)
+	logDetails(r, "associate organization client grant", "id", id, "grant_id", grantID)
 	writeJSON(w, 201, clientGrantView(grant))
 }
 func (h *Handlers) DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id, grantID string) {
@@ -129,7 +129,7 @@ func (h *Handlers) DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "remove organization client grant", "id", id, "grant_id", grantID)
+	logDetails(r, "remove organization client grant", "id", id, "grant_id", grantID)
 	w.WriteHeader(204)
 }
 func (h *Handlers) ListClientGrantOrganizations(w http.ResponseWriter, r *http.Request, grantID string) {

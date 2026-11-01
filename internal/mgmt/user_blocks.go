@@ -39,7 +39,13 @@ func (h *Handlers) UserBlocks(w http.ResponseWriter, r *http.Request, userID str
 		}
 	}
 	rows := []map[string]string{}
+	clearedBlock := false
+	var subject *store.User
+	subjects := map[string]*store.User{}
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		clearedBlock = false
+		subject = nil
+		subjects = map[string]*store.User{}
 		tenantID := resolved(r).ID
 		connections, _, err := tx.Connections().List(r.Context(), tenantID, store.ConnectionFilter{}, store.Page{})
 		if err != nil {
@@ -72,6 +78,7 @@ func (h *Handlers) UserBlocks(w http.ResponseWriter, r *http.Request, userID str
 			if e != nil {
 				return e
 			}
+			subject = u
 			for i := range u.Identities {
 				addIdentity(u, &u.Identities[i])
 			}
@@ -90,6 +97,7 @@ func (h *Handlers) UserBlocks(w http.ResponseWriter, r *http.Request, userID str
 					return e
 				}
 				if id := u.IdentityByLogin(c.Name, identifier); id != nil {
+					subjects[u.UserID] = u
 					addIdentity(u, id)
 				}
 			}
@@ -106,9 +114,11 @@ func (h *Handlers) UserBlocks(w http.ResponseWriter, r *http.Request, userID str
 		now := h.now()
 		for f := range filters {
 			if r.Method == "DELETE" {
-				if e := tx.Protection().Clear(r.Context(), tenantID, f); e != nil {
+				changed, e := store.ClearProtectionResult(r.Context(), tx.Protection(), tenantID, f, now)
+				if e != nil {
 					return e
 				}
+				clearedBlock = clearedBlock || changed
 				continue
 			}
 			blocks, e := tx.Protection().Blocks(r.Context(), tenantID, f, now)
@@ -138,7 +148,15 @@ func (h *Handlers) UserBlocks(w http.ResponseWriter, r *http.Request, userID str
 		return
 	}
 	if r.Method == "DELETE" {
-		h.audit(r, "clear user automatic blocks")
+		if clearedBlock {
+			if subject == nil && len(subjects) == 1 {
+				for _, u := range subjects {
+					subject = u
+				}
+			}
+			h.domainEvent(r, "ublkdu", subject, nil, nil)
+		}
+		logDetails(r, "clear user automatic blocks")
 		w.WriteHeader(204)
 		return
 	}
@@ -184,7 +202,7 @@ func (h *Handlers) IPBlock(w http.ResponseWriter, r *http.Request, raw string) {
 		return
 	}
 	if r.Method == "DELETE" {
-		h.audit(r, "clear IP automatic blocks")
+		logDetails(r, "clear IP automatic blocks")
 		w.WriteHeader(204)
 		return
 	}

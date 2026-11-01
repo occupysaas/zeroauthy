@@ -71,7 +71,7 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
   });
   const nav = page.getByRole('navigation', { name: 'Sections' });
   const saved = page.getByRole('status').filter({ hasText: 'Saved' });
-  const dialog = page.getByRole('dialog');
+  const detail = page.getByRole('dialog', { name: USER, exact: true });
 
   // 1. Set a password and sign in.
   await page.goto(setup);
@@ -97,7 +97,8 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
   const since = Date.now() - 1000;
   await page.getByRole('button', { name: 'Create user' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/users\/auth0(%7C|\|)[0-9a-f]{24}$/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(USER);
+  await expect(detail).toBeVisible();
+  await expect(detail.getByRole('heading', { level: 2, name: USER, exact: true })).toHaveText(USER);
   const userURL = page.url();
   await expect(page.getByText('(not verified)')).toBeVisible();
   // The verification email was written; its link is a single-use page.
@@ -105,7 +106,7 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
   expect(emailed).toContain('/u/email-verification?ticket=');
 
   // 3. Find the user by a search query.
-  await page.getByRole('link', { name: 'All users' }).click();
+  await detail.getByRole('button', { name: 'Close', exact: true }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/users$/);
   await page.fill('#users-search', `email:"${USER}"`);
   await page.getByRole('button', { name: 'Search' }).click();
@@ -130,7 +131,7 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
   await page.getByRole('tab', { name: 'Raw JSON' }).click();
   await expect(page.locator('body')).toContainText('"plan": "pro"');
   await expect(page.locator('body')).not.toContainText('password_hash');
-  await page.getByRole('link', { name: 'All users' }).click();
+  await detail.getByRole('button', { name: 'Close', exact: true }).click();
   await page.fill('#users-search', `app_metadata.plan:pro AND email:"${USER}"`);
   await page.getByRole('button', { name: 'Search' }).click();
   await expect(page.getByRole('link', { name: USER })).toBeVisible();
@@ -141,9 +142,10 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
 
   // 5. Block: the password sign-in fails. Unblock: it works.
   await page.getByRole('button', { name: 'Block', exact: true }).click();
-  await dialog.getByRole('button', { name: 'Block user' }).click();
-  await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Blocked');
+  const blockDialog = page.getByRole('dialog', { name: 'Block user', exact: true });
+  await blockDialog.getByRole('button', { name: 'Block user' }).click();
+  await expect(blockDialog).toHaveCount(0);
+  await expect(detail.getByText('Blocked', { exact: true })).toBeVisible();
   const blockedCtx = await browser.newContext();
   const blockedPage = await blockedCtx.newPage();
   await signIn(blockedPage, FIRST);
@@ -164,8 +166,9 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
   await expect(page.getByRole('button', { name: 'Revoke all sessions' })).toBeVisible();
   await expect(page.getByText('No active sessions.')).toHaveCount(0);
   await page.getByRole('button', { name: 'Revoke all sessions' }).click();
-  await dialog.getByRole('button', { name: 'Revoke all', exact: true }).click();
-  await expect(dialog).toHaveCount(0);
+  const revokeDialog = page.getByRole('dialog', { name: 'Revoke all sessions', exact: true });
+  await revokeDialog.getByRole('button', { name: 'Revoke all', exact: true }).click();
+  await expect(revokeDialog).toHaveCount(0);
   await page.reload();
   await page.getByRole('tab', { name: 'Sessions and devices' }).click();
   await expect(page.getByText('No active sessions.')).toBeVisible();
@@ -176,10 +179,11 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
 
   // 7. A password-change link, opened in a fresh context.
   await page.getByRole('button', { name: 'Create password link' }).click();
-  const resetLink = (await dialog.getByTestId('ticket-url').textContent()).trim();
+  const resetDialog = page.getByRole('dialog', { name: 'Password-change link', exact: true });
+  const resetLink = (await resetDialog.getByTestId('ticket-url').textContent()).trim();
   expect(resetLink).toContain('/u/reset-verify?ticket=');
-  await dialog.getByRole('button', { name: 'Done' }).click();
-  await expect(dialog).toHaveCount(0);
+  await resetDialog.getByRole('button', { name: 'Done' }).click();
+  await expect(resetDialog).toHaveCount(0);
   const resetCtx = await browser.newContext();
   const resetPage = await resetCtx.newPage();
   await resetPage.goto(resetLink);
@@ -199,9 +203,10 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
 
   // 8. A verification ticket, opened in a fresh context: Email Verified.
   await page.getByRole('button', { name: 'Create verification link' }).click();
-  const verifyLink = (await dialog.getByTestId('ticket-url').textContent()).trim();
+  const verifyDialog = page.getByRole('dialog', { name: 'Verification link', exact: true });
+  const verifyLink = (await verifyDialog.getByTestId('ticket-url').textContent()).trim();
   expect(verifyLink).toContain('/u/email-verification?ticket=');
-  await dialog.getByRole('button', { name: 'Done' }).click();
+  await verifyDialog.getByRole('button', { name: 'Done' }).click();
   const verifyCtx = await browser.newContext();
   const verifyPage = await verifyCtx.newPage();
   await verifyPage.goto(verifyLink);
@@ -213,6 +218,7 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
 
   // 9. Delete: type the email.
   await page.getByRole('button', { name: 'Delete user' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Delete this user?', exact: true });
   await dialog.locator('#delete-confirm').fill(USER);
   await dialog.getByRole('button', { name: 'Delete user' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/users$/);

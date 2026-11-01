@@ -51,7 +51,7 @@ func (h *Handlers) DeployAction(w http.ResponseWriter, r *http.Request, id strin
 	if h.Actions != nil && h.Actions.Builds != nil {
 		h.Actions.Builds.PrewarmBuild(a.TenantID, v.BuildID)
 	}
-	h.audit(r, "deploy Action", "id", id, "version", v.ID)
+	logDetails(r, "deploy Action", "id", id, "version", v.ID)
 	h.writeActionVersion(w, r, v, 202)
 }
 func (h *Handlers) GetActionVersions(w http.ResponseWriter, r *http.Request, id string) {
@@ -144,6 +144,6 @@ func (h *Handlers) DeployActionVersion(w http.ResponseWriter, r *http.Request, i
 	if h.Actions != nil && h.Actions.Builds != nil {
 		h.Actions.Builds.PrewarmBuild(out.TenantID, out.BuildID)
 	}
-	h.audit(r, "rollback Action", "id", id, "version", out.ID)
+	logDetails(r, "rollback Action", "id", id, "version", out.ID)
 	h.writeActionVersion(w, r, out, 202)
 }

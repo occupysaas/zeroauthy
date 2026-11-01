@@ -17,10 +17,12 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -57,6 +59,7 @@ type NodeRunner struct {
 	log         *slog.Logger
 	maxDuration time.Duration // MaxDuration; tests shorten it
 	reapGrace   time.Duration // how long a reaped process may take to exit before it is killed
+	maskPolicy  maskPolicy    // internal timing/limit injection; never public configuration
 
 	mu    sync.Mutex
 	procs map[string]*proc // by tenant ID; the log state of the processes taking new requests
@@ -96,20 +99,20 @@ func NewNodeRunner(cfg config.CustomDB, log *slog.Logger) (*NodeRunner, error) {
 type proc struct {
 	tenant string
 
-	mu sync.Mutex
-	// reds masks each connection's configuration values in the script
-	// console lines logged for it. Entries stay after a request ends: the
-	// runner's stderr is read apart from its answers, so a line can be
-	// logged after the answer.
-	// Each is the union of the values the connection has had in this
-	// process, so a late line from before a configuration change is still
-	// masked; all is the union over every connection.
-	reds map[string]*Redactor
-	all  *Redactor
+	mu           sync.Mutex
+	policy       maskPolicy
+	values       map[string]string // distinct detached values; key and value share storage
+	configValues map[string]struct{}
+	payloadBytes int
+	masks        context.Context
+	red          *Redactor
+	deadline     time.Time
+	timer        maskTimer
+	muted        bool
 }
 
 func (r *NodeRunner) started(tenant string) any {
-	p := &proc{tenant: tenant}
+	p := &proc{tenant: tenant, policy: r.maskPolicy.defaults()}
 	r.mu.Lock()
 	r.procs[tenant] = p
 	r.mu.Unlock()
@@ -117,6 +120,10 @@ func (r *NodeRunner) started(tenant string) any {
 }
 
 func (r *NodeRunner) retired(tenant string, state any) {
+	p := state.(*proc)
+	p.mu.Lock()
+	p.muteLocked()
+	p.mu.Unlock()
 	r.mu.Lock()
 	if r.procs[tenant] == state {
 		delete(r.procs, tenant)
@@ -199,18 +206,12 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 	if wire.Args == nil {
 		wire.Args = []any{}
 	}
+	var executed *proc
 	raw, err := r.pool.CallWith(ctx, req.TenantID, wire, noderunner.CallOptions{
 		Budget: r.maxDuration,
 		Prepare: func(state any) {
-			p := state.(*proc)
-			red := NewRedactor(req.Config)
-			p.mu.Lock()
-			if p.reds == nil {
-				p.reds = map[string]*Redactor{}
-			}
-			p.reds[req.ConnectionID] = red.Union(p.reds[req.ConnectionID])
-			p.all = p.all.Union(red)
-			p.mu.Unlock()
+			executed = state.(*proc)
+			executed.registerMasks(ctx, req)
 		},
 		LogAttrs: []any{"connection", req.ConnectionID, "script", req.Script},
 	})
@@ -227,6 +228,7 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 	if err := json.Unmarshal(raw, &resp); err != nil {
 		return nil, fmt.Errorf("%w: invalid runner response", ErrUnavailable)
 	}
+	resp.Logs = executed.capture(resp.Logs)
 	return deliver(req, resp)
 }
 
@@ -257,15 +259,23 @@ func toResult(resp response) (json.RawMessage, error) {
 }
 
 func (r *NodeRunner) logLine(p *proc, b []byte) {
-	var l logLine
-	if err := json.Unmarshal(b, &l); err != nil || l.Level == "" {
-		// Unstructured output could carry any connection's values.
-		out := p.redactorFor("").RedactLine(string(b))
-		r.log.Warn("custom database runner output", "tenant", p.tenant, "output", noderunner.Truncate(out, maxLogMsg))
+	// Admit and scrub under the state lock, then hand only safe text to the
+	// handler. A slow sink must not delay physical expiry or business requests.
+	// An admitted safe line may finish emission after the process is muted.
+	p.mu.Lock()
+	if !p.diagnosticsLocked() {
+		p.mu.Unlock()
 		return
 	}
-	// Mask before truncating, so a cut never leaves a prefix of a value.
-	msg := p.redactorFor(l.Conn).RedactLine(l.Msg)
+	var l logLine
+	if err := json.Unmarshal(b, &l); err != nil || l.Level == "" {
+		out := p.scrubLocked(string(b))
+		p.mu.Unlock()
+		r.log.Warn("custom database runner output", "tenant", p.tenant, "output", truncateMaskedLine(out, maxLogMsg))
+		return
+	}
+	msg := p.scrubLocked(l.Msg)
+	p.mu.Unlock()
 	level := slog.LevelInfo
 	switch l.Level {
 	case "debug":
@@ -275,21 +285,8 @@ func (r *NodeRunner) logLine(p *proc, b []byte) {
 	case "error":
 		level = slog.LevelError
 	}
-	// "output", not "msg": the record's own message already uses that key.
 	r.log.Log(context.Background(), level, "custom database script",
-		"tenant", p.tenant, "connection", l.Conn, "output", noderunner.Truncate(msg, maxLogMsg))
-}
-
-// redactorFor returns the masker for a connection's console lines: the
-// values it has had in this process, or every value the process has seen
-// for a line with no or an unknown connection.
-func (p *proc) redactorFor(conn string) *Redactor {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if r := p.reds[conn]; r != nil {
-		return r
-	}
-	return p.all
+		"tenant", p.tenant, "connection", l.Conn, "output", truncateMaskedLine(msg, maxLogMsg))
 }
 
 // Close kills every runner process, including retired ones still running,
@@ -299,4 +296,19 @@ func (r *NodeRunner) Close() error {
 		return fmt.Errorf("customdb: %w", err)
 	}
 	return nil
+}
+
+// truncateMaskedLine keeps the complete marker when redaction lengthens a line
+// across the output byte cap. The source prefix is already scrubbed here.
+func truncateMaskedLine(text string, limit int) string {
+	if len(text) <= limit {
+		return text
+	}
+	cut := noderunner.Truncate(text, limit)
+	for size := 1; size < len(logscrub.Marker); size++ {
+		if strings.HasSuffix(cut, logscrub.Marker[:size]) {
+			return noderunner.Truncate(strings.TrimSuffix(cut, logscrub.Marker[:size]), limit-len(logscrub.Marker)) + logscrub.Marker
+		}
+	}
+	return cut
 }

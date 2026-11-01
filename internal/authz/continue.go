@@ -96,7 +96,7 @@ func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
 			}
 			return rejected
 		}
-		disabled, connErr := h.connectionDisabled(ctx, res, client, sess)
+		disabled, connErr := h.connectionDisabled(r, res, client, sess)
 		if connErr != nil || disabled {
 			invalid()
 			return rejected

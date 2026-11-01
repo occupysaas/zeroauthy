@@ -402,24 +402,33 @@ func (r organizations) Members(_ context.Context, tid, orgID string, p store.Org
 	return orgrules.PageIDs(ids, p, orgScope("members", tid, orgID))
 }
 
-func (r organizations) AddMembers(_ context.Context, tid, orgID string, userIDs []string) error {
+func (r organizations) AddMembers(ctx context.Context, tid, orgID string, userIDs []string) error {
+	_, err := r.AddMembersResult(ctx, tid, orgID, userIDs)
+	return err
+}
+func (r organizations) AddMembersResult(_ context.Context, tid, orgID string, userIDs []string) ([]string, error) {
 	if len(userIDs) == 0 {
-		return store.ErrInvalid
+		return nil, store.ErrInvalid
 	}
 	r.s.lock()
 	defer r.s.unlock()
 	if r.s.orgs[key{tid, orgID}] == nil {
-		return store.ErrNotFound
+		return nil, store.ErrNotFound
 	}
 	for _, id := range userIDs {
 		if r.s.users[key{tid, id}] == nil {
-			return store.ErrNotFound
+			return nil, store.ErrNotFound
 		}
 	}
+	var inserted []string
 	for _, id := range userIDs {
-		r.s.orgMembers[orgMemberKey{tid, orgID, id}] = true
+		k := orgMemberKey{tid, orgID, id}
+		if !r.s.orgMembers[k] {
+			r.s.orgMembers[k] = true
+			inserted = append(inserted, id)
+		}
 	}
-	return nil
+	return inserted, nil
 }
 
 func (r organizations) RemoveMembers(_ context.Context, tid, orgID string, userIDs []string) error {

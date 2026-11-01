@@ -1,0 +1,11 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import type { LogStat } from '../../api/client'
+const props = defineProps<{ stats: LogStat[] }>(), { t } = useI18n()
+const max = computed(() => Math.max(1, ...props.stats.flatMap(s => [s.logins, s.signups])))
+const total = (field: 'logins' | 'signups') => props.stats.reduce((sum, s) => sum + s[field], 0)
+</script>
+<template><section class="card stack" data-testid="daily-stats"><h2>{{ t('monitor.activity') }}</h2><div class="row flex-wrap gap-6"><span class="row"><span class="inline-block h-3 w-3 bg-accent" />{{ t('monitor.logins') }} <strong>{{ total('logins') }}</strong></span><span class="row"><span class="inline-block h-3 w-3 bg-focus" />{{ t('monitor.signups') }} <strong>{{ total('signups') }}</strong></span></div>
+<svg v-if="stats.length" viewBox="0 0 900 230" role="img" :aria-label="t('monitor.chartLabel')" class="block w-full"><line x1="15" y1="205" x2="885" y2="205" stroke="currentColor" opacity="0.25" /><g v-for="(s, i) in stats" :key="s.date"><title>{{ s.date.slice(0, 10) }}: {{ t('monitor.logins') }} {{ s.logins }}, {{ t('monitor.signups') }} {{ s.signups }}</title><rect :x="20 + i * 860 / stats.length" :y="205 - s.logins / max * 180" :width="Math.max(1, 360 / stats.length)" :height="s.logins / max * 180" fill="var(--accent)" /><rect :x="20 + i * 860 / stats.length + 380 / stats.length" :y="205 - s.signups / max * 180" :width="Math.max(1, 360 / stats.length)" :height="s.signups / max * 180" fill="var(--focus)" /></g><text x="20" y="225" fill="currentColor" font-size="12">{{ stats[0]?.date.slice(0, 10) }}</text><text x="880" y="225" text-anchor="end" fill="currentColor" font-size="12">{{ stats.at(-1)?.date.slice(0, 10) }}</text><text x="20" y="15" fill="currentColor" font-size="12">{{ max }}</text></svg><p v-if="!total('logins') && !total('signups')" class="muted">{{ t('monitor.statsEmpty') }}</p>
+<details><summary>{{ t('monitor.dailyData') }}</summary><div class="overflow-x-auto"><table class="data"><thead><tr><th>{{ t('monitor.day') }}</th><th>{{ t('monitor.logins') }}</th><th>{{ t('monitor.signups') }}</th></tr></thead><tbody><tr v-for="s in stats" :key="s.date"><td>{{ s.date.slice(0, 10) }}</td><td>{{ s.logins }}</td><td>{{ s.signups }}</td></tr></tbody></table></div></details></section></template>

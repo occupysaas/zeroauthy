@@ -90,11 +90,64 @@ const maxLogs = 100;
 const maxLogChars = 2048;
 
 function str(v) { try { return String(v); } catch { return '[unprintable]'; } }
-function safeJSON(v) { try { const s = JSON.stringify(v); return s === undefined ? str(v) : s; } catch { return str(v); } }
+function safeJSON(v) { try { const s = JSON.stringify(v); return s === undefined ? str(v) : s; } catch { return redacted; } }
+// Match logscrub.SensitiveKey before formatting can hide the JSON structure.
+// This operates on an independent diagnostic tree, never the script's values.
+const redacted = '[REDACTED]';
+function sensitiveKey(key) {
+  // Go uses simple Unicode lowercasing; JS expands capital dotted I.
+  return /password|passwd|pwd|secret|token|authorization|apikey|privatekey|credential|otp|recoverycode/.test(key.replace(/\u0130/g, 'i').toLowerCase().replace(/[_\-.]/g, ''));
+}
+function consoleArgs(args) {
+  const path = new WeakSet();
+  let remaining = 8192;
+  function scrub(value, depth) {
+    if (depth > 64 || --remaining < 0) return redacted;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!/^[{["]/.test(trimmed)) return value;
+      // Parsing a diagnostic is bounded too; oversize structured text fails closed.
+      if (trimmed.length > 64 * 1024) return redacted;
+      let decoded;
+      try { decoded = JSON.parse(trimmed); } catch { return value; }
+      const encoded = JSON.stringify(scrub(decoded, depth + 1));
+      // Preserve unchanged strings for Go's original-credential matching. If
+      // a JSON string needs key scrubbing, hide the entire argument: it might
+      // itself be a credential, whose other members must not become visible
+      // after rewriting its original spelling before the Go mask can match.
+      return encoded === JSON.stringify(decoded) ? value : redacted;
+    }
+    if (value === null || typeof value !== 'object') {
+      return typeof value === 'function' || typeof value === 'symbol' ? redacted : value;
+    }
+    if (path.has(value)) return redacted;
+    path.add(value);
+    try {
+      const array = Array.isArray(value);
+      if (array && value.length > remaining) return redacted;
+      const keys = Object.keys(value);
+      if (keys.length > remaining) return redacted;
+      const out = array ? [] : Object.create(null);
+      for (const key of keys) {
+        if (--remaining < 0) return redacted;
+        const descriptor = Object.getOwnPropertyDescriptor(value, key);
+        // Do not invoke user accessors or toJSON while preparing diagnostics.
+        out[key] = sensitiveKey(key) || !descriptor || !('value' in descriptor)
+          ? redacted : scrub(descriptor.value, depth + 1);
+      }
+      return out;
+    } catch { return redacted; }
+    finally { path.delete(value); }
+  }
+  return args.map((value) => {
+    try { return scrub(value, 0); } catch { return redacted; }
+  });
+}
+
 function log(level, args) {
   const sink = captured.getStore();
   if (!sink || sink.length >= maxLogs) return;
-  const msg = args.map((a) => (typeof a === 'string' ? a : safeJSON(a))).join(' ').slice(0, maxLogChars);
+  const msg = consoleArgs(args).map((a) => (typeof a === 'string' ? a : safeJSON(a))).join(' ').slice(0, maxLogChars);
   sink.push(level === 'info' ? msg : level + ': ' + msg);
 }
 const logger = (level) => (...a) => log(level, a);

@@ -104,10 +104,13 @@ type Execution struct {
 // ExecutionResult is one Action's outcome within an execution.
 type ExecutionResult struct {
 	// JobID and JobAttempt identify this immutable asynchronous attempt.
-	JobID                         string
-	JobAttempt                    int
-	ActionName, ErrorID, ErrorMsg string
-	StartedAt, EndedAt            time.Time
+	JobID                                   string
+	JobAttempt                              int
+	ActionID, ActionName, ErrorID, ErrorMsg string
+	// DenialReason is scrubbed operator display metadata, distinct from runtime errors.
+	DenialReason       string
+	Logs               []string
+	StartedAt, EndedAt time.Time
 }
 
 // ContinueState is the single-use state behind a post-login redirect.
@@ -150,6 +153,21 @@ type Paged[T any] struct {
 type ActionFilter struct {
 	Trigger string
 	PageRequest
+}
+
+// ExecutionFilter selects a bounded keyset page. After is a tenant-scoped
+// execution ID; pages after it ascend by (CreatedAt, ID), otherwise descend.
+// Action is the immutable Action ID; historical records without IDs do not match.
+type ExecutionFilter struct {
+	After, Trigger, Action string
+	Take                   int
+}
+
+func (f ExecutionFilter) Limit() int {
+	if f.Take <= 0 {
+		return 20
+	}
+	return min(f.Take, 100)
 }
 
 // Actions persists Actions, versions, builds, bindings, executions and
@@ -214,6 +232,7 @@ type Actions interface {
 	// must exist, match the trigger and be deployed (ErrInvalid otherwise).
 	// Every successful replacement durably marks the trigger initialized, even empty.
 	ReplaceBindings(ctx context.Context, tenantID, trigger string, b []Binding) ([]BoundVersion, error)
+	ListExecutions(ctx context.Context, tenantID string, filter ExecutionFilter) ([]Execution, error)
 	CreateExecution(ctx context.Context, e *Execution) error
 	GetExecution(ctx context.Context, tenantID, id string) (*Execution, error)
 	// PurgeExecutions deletes executions with CreatedAt before the cutoff.
@@ -408,4 +427,8 @@ func ResolveDraftModuleRefs(refs []ModuleRef, live func(moduleID string) (bool, 
 		out = append(out, r)
 	}
 	return out, nil
+}
+
+func (UnimplementedActions) ListExecutions(context.Context, string, ExecutionFilter) ([]Execution, error) {
+	return nil, ErrActionsUnavailable
 }

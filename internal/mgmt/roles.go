@@ -177,7 +177,7 @@ func (h *Handlers) PostRoles(w http.ResponseWriter, r *http.Request) {
 		h.rbacError(w, r, err)
 		return
 	}
-	h.audit(r, "create role", "id", role.ID)
+	logDetails(r, "create role", "id", role.ID)
 	writeJSON(w, 200, roleView(*role))
 }
 func (h *Handlers) PatchRolesById(w http.ResponseWriter, r *http.Request, id string) {
@@ -200,7 +200,7 @@ func (h *Handlers) PatchRolesById(w http.ResponseWriter, r *http.Request, id str
 		h.rbacError(w, r, err)
 		return
 	}
-	h.audit(r, "update role", "id", id)
+	logDetails(r, "update role", "id", id)
 	writeJSON(w, 200, roleView(*out))
 }
 func (h *Handlers) DeleteRolesById(w http.ResponseWriter, r *http.Request, id string) {
@@ -208,7 +208,7 @@ func (h *Handlers) DeleteRolesById(w http.ResponseWriter, r *http.Request, id st
 		h.rbacError(w, r, err)
 		return
 	}
-	h.audit(r, "delete role", "id", id)
+	logDetails(r, "delete role", "id", id)
 	w.WriteHeader(200)
 }
 func (h *Handlers) GetRolePermissions(w http.ResponseWriter, r *http.Request, id string) {
@@ -257,7 +257,7 @@ func (h *Handlers) rolePermissions(w http.ResponseWriter, r *http.Request, id st
 		h.rbacError(w, r, err)
 		return
 	}
-	h.audit(r, "change role permissions", "id", id)
+	logDetails(r, "change role permissions", "id", id)
 	w.WriteHeader(status)
 }
 func (h *Handlers) PostRolePermissions(w http.ResponseWriter, r *http.Request, id string) {
@@ -320,6 +320,6 @@ func (h *Handlers) PostRoleUsers(w http.ResponseWriter, r *http.Request, id stri
 		h.rbacError(w, r, err)
 		return
 	}
-	h.audit(r, "assign role users", "id", id)
+	logDetails(r, "assign role users", "id", id)
 	w.WriteHeader(200)
 }

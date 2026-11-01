@@ -2,14 +2,17 @@
 package actions
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 )
 
@@ -22,25 +25,79 @@ var RunnerJS []byte
 // maxStderrLog bounds one logged runner diagnostic.
 const maxStderrLog = 2048
 
-// procState is the masking state of one tenant's runner process: the union
-// of the secret values every call in it has carried. Entries stay after a
-// call ends, because stderr (an uncaught exception from a timer) is read
-// apart from answers and may arrive later.
+// procState retains a bounded credential union for delayed diagnostics. Once
+// its lifetime or capacity is exhausted, all future output is dropped until the
+// process retires; no eviction can make an older timer's secret visible.
 type procState struct {
-	mu  sync.Mutex
-	red *customdb.Redactor
+	mu     sync.Mutex
+	values map[string]struct{}
+	bytes  int
+	until  time.Time
+	muted  bool
 }
 
-func (p *procState) add(r *customdb.Redactor) {
-	p.mu.Lock()
-	p.red = p.red.Union(r)
-	p.mu.Unlock()
-}
-
-func (p *procState) redactor() *customdb.Redactor {
+func (p *procState) add(ctx context.Context) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.red
+	if p.muted {
+		return
+	}
+	if p.until.IsZero() {
+		p.until = time.Now().Add(time.Minute)
+		p.values = map[string]struct{}{}
+	}
+	if !time.Now().Before(p.until) {
+		p.mute()
+		return
+	}
+	for value := range logscrub.MaskValues(ctx) {
+		if _, ok := p.values[value]; ok {
+			continue
+		}
+		if len(p.values) >= 256 || p.bytes+len(value) > 64*1024 {
+			p.mute()
+			return
+		}
+		p.values[value] = struct{}{}
+		p.bytes += len(value)
+	}
+}
+func (p *procState) mute() { p.muted = true; p.values = nil; p.bytes = 0 }
+func (p *procState) scrub(line string) (string, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.muted || (!p.until.IsZero() && !time.Now().Before(p.until)) {
+		p.mute()
+		return "", false
+	}
+	values := make([]string, 0, len(p.values))
+	for value := range p.values {
+		values = append(values, value)
+	}
+	return logscrub.ScrubTruncatedTextWithMask(context.Background(), line, 1024, values, customdb.Mask), true
+}
+
+// capture uses the state of the process that actually executed the call, even
+// if the pool retires or replaces that process before the response is consumed.
+func (p *procState) capture(ctx context.Context, red *customdb.Redactor, lines []string) []string {
+	if p == nil {
+		return nil
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.muted || (!p.until.IsZero() && !time.Now().Before(p.until)) {
+		p.mute()
+		return nil
+	}
+	values := make([]string, 0, len(p.values))
+	for value := range p.values {
+		values = append(values, value)
+	}
+	ctx = logscrub.WithCredentials(ctx, values...)
+	for i, line := range lines {
+		lines[i] = red.RedactLineContext(ctx, line)
+	}
+	return lines
 }
 
 // NewRunner returns the Actions runner Pool: one process per tenant that may
@@ -66,10 +123,6 @@ func NewRunner(cfg config.Actions, builds *build.Manager, log *slog.Logger) (*no
 		Script: RunnerJS, Name: "actions", Budget: flowBudget,
 		OnStart: func(string) any { return &procState{} },
 		OnStderr: func(tenantID string, state any, line []byte) {
-			var red *customdb.Redactor
-			if ps, ok := state.(*procState); ok {
-				red = ps.redactor()
-			}
 			msg := string(line)
 			var l struct{ Msg string }
 			if json.Unmarshal(line, &l) == nil && l.Msg != "" {
@@ -77,7 +130,15 @@ func NewRunner(cfg config.Actions, builds *build.Manager, log *slog.Logger) (*no
 			}
 			// Secrets reach the process only in calls, and Prepare registers
 			// each call's values before the call is written.
-			log.Warn("actions runner output", "tenant", tenantID, "output", noderunner.Truncate(red.RedactLine(msg), maxStderrLog))
+			ps, ok := state.(*procState)
+			if !ok {
+				return
+			}
+			msg, ok = ps.scrub(msg)
+			if !ok {
+				return
+			}
+			log.Warn("actions runner output", "tenant", tenantID, "output", noderunner.Truncate(msg, maxStderrLog))
 		},
 	}, log)
 }

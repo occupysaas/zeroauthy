@@ -8,8 +8,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/zeroauthy/zeroauthy/internal/certificates"
-	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"log/slog"
 	"net/http"
 	"os"
@@ -19,8 +17,10 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	actionsbuild "github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/certificates"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
@@ -29,6 +29,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/logstream"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -53,6 +56,9 @@ type App struct {
 	profiles   *script.Runner        // nil when profile scripts cannot run
 	actionJobs *actions.Worker
 	jobs       *jobs.Runner
+	logs       *logs.AsyncRecorder
+	logPurge   *logs.Purger
+	logStreams *logstream.Worker
 	handler    http.Handler
 	breachFile *protection.FileChecker
 	// tls serves certificates when ACME is on; nil keeps static or
@@ -80,6 +86,7 @@ func WithFederationProviders(f func() *federation.Providers) Option {
 }
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger, opts ...Option) (*App, error) {
+	log = slog.New(logscrub.Handler(log.Handler()))
 	// The master key is checked before the store is opened, so a missing key
 	// never leaves a created or migrated database behind.
 	masterKey, err := MasterKey(cfg, log)
@@ -260,7 +267,15 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
-	tenantEmail := &email.Service{Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
+	logsConfig := logs.Config{
+		Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize,
+		Streams: logs.StreamsConfig{
+			AllowInsecureHTTP:    cfg.Logs.Streams.AllowInsecureHTTP,
+			AllowPrivateNetworks: cfg.Logs.Streams.AllowPrivateNetworks,
+		},
+	}
+	recorder := logs.NewRecorder(st, logsConfig, log)
+	tenantEmail := &email.Service{Recorder: recorder, Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
 	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
 	}
@@ -282,16 +297,20 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 	jobRunner := &jobs.Runner{
-		Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
+		Recorder: recorder, Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
 		Processors: map[store.JobType]jobs.Processor{
 			store.JobVerificationEmail: jobs.VerifyEmail{
-				Sender: &login.VerificationMailer{Store: st, Mailer: mailer, Email: tenantEmail, BaseDomain: cfg.Server.BaseDomain, Log: log},
+				Sender: &login.VerificationMailer{Recorder: recorder, Store: st, Mailer: mailer, Email: tenantEmail, BaseDomain: cfg.Server.BaseDomain, Log: log},
 				Log:    log,
 			},
 			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
 			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
-		Sweeps: []jobs.Sweep{{Name: "actions continuations", Every: time.Minute,
+		Sweeps: []jobs.Sweep{{Name: "expired jobs", Every: sweepInterval,
+			Run: func(ctx context.Context, st store.Store, now time.Time) error {
+				_, err := jobs.SweepExpired(ctx, st.Jobs(), now)
+				return err
+			}}, {Name: "actions continuations", Every: time.Minute,
 			Run: func(ctx context.Context, st store.Store, now time.Time) error {
 				_, err := actions.PurgeContinue(ctx, st, now)
 				return err
@@ -342,7 +361,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		}
 		return nil, err
 	}
-	engine := &actions.Engine{Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
+	engine := &actions.Engine{Recorder: recorder, Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
 	tenantEmail.Actions = engine
 	engine.InvitationEmail = tenantEmail
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
@@ -361,8 +380,13 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		actions:    actionsRunner,
 		actionJobs: &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
 		jobs:       jobRunner,
+		logs:       recorder,
+		logPurge:   logs.NewPurger(st, logsConfig, log),
+		logStreams: logstream.NewWorker(st, wrapper, logsConfig, nil, log),
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
+			LogsConfig:   logsConfig,
+			Recorder:     recorder,
 			Store:        st,
 			Keys:         km,
 			Resolver:     tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
@@ -393,14 +417,27 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 }
 
 // bootstrapOperator creates the first operator from bootstrap.admin_email
-// when the system tenant has none, and logs its one-time setup link.
+// when the system tenant has none, and delivers its setup link in a private file.
 func bootstrapOperator(ctx context.Context, st store.Store, email string, log *slog.Logger) error {
 	link, err := system.Bootstrap(ctx, st, email)
 	if err != nil || link == "" {
 		return err
 	}
-	log.Warn("created the first console operator from bootstrap.admin_email; open the one-time setup link within an hour to choose a password",
-		"email", email, "setup_url", link, "expires_in", system.SetupLinkLifetime.String())
+	// The link is a credential, so keep it out of every server-log sink.
+	// CreateTemp gives each bootstrap a unique owner-only (0600) file.
+	file, err := os.CreateTemp("", "zeroauthy-operator-setup-*")
+	if err != nil {
+		return errors.New("app: could not save private operator setup file")
+	}
+	_, writeErr := fmt.Fprintf(file, "Open this one-time operator setup link within 1 hour to choose a password:\n%s\n\nKeep this file private and delete it after use.\n", link)
+	closeErr := file.Close()
+	if writeErr != nil || closeErr != nil {
+		_ = os.Remove(file.Name())
+		return errors.New("app: could not save private operator setup file")
+	}
+	// Keep the file after server shutdown: the operator may still need delivery.
+	log.Warn("created the first console operator from bootstrap.admin_email; read the private setup file within an hour and delete it after use",
+		"email", email, "setup_file", file.Name(), "expires_in", system.SetupLinkLifetime.String())
 	return nil
 }
 
@@ -565,6 +602,30 @@ func certificateWorker(cfg *config.Config, m *certificates.Manager, domains *cus
 // Serve listens until ctx is cancelled, then shuts down gracefully.
 func (a *App) Serve(ctx context.Context) error {
 	srv := a.httpServer()
+	if a.logs != nil {
+		writerCtx, stopWriter := context.WithCancel(context.Background())
+		go a.logs.Run(writerCtx)
+		defer func() {
+			stopWriter()
+			flush, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := a.logs.Flush(flush); err != nil {
+				a.log.Warn("tenant log shutdown flush failed")
+			}
+		}()
+	}
+	if a.logStreams != nil {
+		streamCtx, stopStreams := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); a.logStreams.Run(streamCtx) }()
+		defer func() { stopStreams(); <-done }()
+	}
+	if a.logPurge != nil {
+		purgeCtx, stopPurge := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); a.logPurge.Run(purgeCtx) }()
+		defer func() { stopPurge(); <-done }()
+	}
 	useTLS := a.cfg.Server.TLSCertFile != "" || a.tls != nil
 	errc := make(chan error, 1)
 	go func() {
@@ -687,7 +748,13 @@ func (a *App) Close() error {
 	if a.breachFile != nil {
 		errBreach = a.breachFile.Close()
 	}
-	return errors.Join(errRunner, errBreach, a.store.Close())
+	var errLogs error
+	if a.logs != nil {
+		flush, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		errLogs = a.logs.Flush(flush)
+		cancel()
+	}
+	return errors.Join(errRunner, errBreach, errLogs, a.store.Close())
 }
 
 func seconds(n int) time.Duration { return time.Duration(n) * time.Second }

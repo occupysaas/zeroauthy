@@ -1845,3 +1845,194 @@ Default limited and deny/false remain compatible. Verified domain import require
 explicit destination attestation and is rejected. Invitations, receipts, ticket
 material and member/member-role export are not promised. No upstream tenant was
 observed and no new API behavior was inferred from tool code.
+
+## D-0057 — Tenant logs, streams and statistics contract (2026-10-30)
+
+Plan 31 freezes its documentation evidence in
+[`internal/logrules/inventory.json`](../../internal/logrules/inventory.json).
+The inventory is the contract for the later emitter, API, stream and console
+tasks. Publishing it and the OpenAPI paths does not activate those routes.
+`Emitted` means an emission target in Plan 31, with an exact existing source
+file/function and outcome condition; it does not claim Task 1 records events.
+Deferred rows name a roadmap owner for reassessment, including retired or
+Auth0-operated capabilities that zeroauthy may never implement.
+
+The evidence is public documentation reviewed on 2026-10-30. No live Auth0
+tenant, hosted UI, credentials or proprietary code was used. Event summaries
+are original paraphrases. The former event-code URL now redirects to the
+[tenant catalog](https://auth0.com/docs/tenant-logs); its public catalog lists
+171 codes. Eight additional codes remain in the older
+[filter table](https://auth0.com/docs/customize/log-streams/event-filters).
+One legacy code, `fapi`, is retained by the explicit local middleware requirement,
+although neither current public table lists that code. Its `management.fail`
+category is documented. The frozen union therefore contains 180 codes and 20
+valid category names. Catalog categories win over old filter membership: `fco`
+is `other`, even though the old filter table groups it with failed logins.
+
+The ten spec §8 rulings are local, not observations of Auth0 internals:
+
+1. Retention is deployment configuration, defaults to 30 days, and cannot be
+   shorter than one day. Daily counters survive event retention. The development
+   memory store keeps at most 10,000 events per tenant.
+2. Recording uses a bounded asynchronous queue and is at-most-once. Failures and
+   queue overflow drop events and increment diagnostics; they never fail or
+   block the triggering request. Shutdown flushes with a deadline.
+3. Checkpoint reads expose only events committed at least two seconds ago.
+   This delay alone cannot prevent out-of-order commits from skipping events;
+   the store must also serialize sequence assignment and commit visibility.
+   Page reads have no settlement delay. Log IDs are opaque 56-digit decimal
+   strings, locally derived from the store sequence. Shared ID primitives belong
+   to `internal/store` to avoid a store-to-recorder import cycle;
+   `internal/logs` forwards them.
+4. `location_info` is omitted because no GeoIP database is supplied.
+5. `eventbridge` and `eventgrid` configurations round-trip, but are always
+   suspended and never delivered. A transition away from suspended is refused.
+6. A stream suspends after 24 hours of continuous delivery failure. It keeps
+   its checkpoint when paused or suspended; resuming retries from that position.
+   Batches contain at most 100 events, requests time out after ten seconds,
+   and exponential retry delay ranges from one second to five minutes.
+7. Stream delivery requires HTTPS and refuses private, loopback and link-local
+   destinations at dial time after DNS resolution. Deployment settings may
+   explicitly relax these for local use. Redirects are not followed locally.
+   TLS verification stays enabled, including when `splunkSecure=false` is stored;
+   the vendor flag is not permission to disable certificate verification.
+8. Action console capture is at most 64 KiB per result, kept for the existing
+   ten-day execution retention, and exposed only by the console system API.
+   Management execution responses retain their existing public shape.
+9. One Management middleware observes successful writes (`sapi`), failed writes
+   (local legacy `fapi`) and successful credential-bearing reads
+   (`mgmt_api_read`). It replaces per-handler audit emission while retaining a
+   safe server-log summary. Ordinary reads and logs retrieval produce no read
+   event, preventing recursive log traffic. The inventory names the `Auth`
+   downstream boundary; Task 8 adds the shared wrapper there.
+10. Every sink applies secret-key scrubbing, in addition to source body
+    allowlisting and request-scoped free-text masking. Matching removes `_`,
+    `-`, `.` and ignores case, then searches for password/passwd/pwd/secret/token/
+    authorization/apikey/privatekey/credential/otp/recoverycode. Values of any
+    type become `[REDACTED]`, including JSON encoded in strings, at any depth.
+    This marker is a local choice: reviewed public sources establish no single
+    universal Auth0 marker. Over-hiding is accepted. Unknown body properties
+    become the marker; allowing a parent never implicitly allows its children.
+    Unknown resource families deny all body fields. Arbitrary metadata, scripts,
+    templates, provider options and headers are not body-allowlisted.
+
+Further frozen contracts and evidence gaps:
+
+- Global log page search accepts exactly one `search_engine=v3` as a local
+  supported selector, retaining the existing bounded query semantics. Other
+  values and duplicates return `400 invalid_query_string`; checkpoint mode
+  still ignores it along with all parameters except `from`/`take`. The
+  [independent 2026-11-01 observation](observations/2026-11-01-logs-search-selector.md)
+  confirms acceptance on the documented endpoint with bounded pagination and
+  with `q`/totals. It establishes neither engine selection semantics nor broader
+  v3 parity. Rejection of other values is the local strict policy, not an
+  observed upstream rule. This extension is limited to `/api/v2/logs`; user-log
+  routes retain their own parameter allowlist.
+- [Search logs](https://auth0.com/docs/api/management/v2/logs/get-logs)
+  explicitly says `from` overrides `q` and that checkpoint mode ignores every
+  parameter except `from`/`take`. This governs the implementation, superseding
+  any interpretation of Plan 31 Task 7 that filters checkpoint requests.
+  Presence of `take` alone selects recent settled events in local ascending
+  sequence order. Date ordering is not guaranteed. `per_page` and `take` have
+  maximum 100 and local minimum 1/default 50. Page mode rejects
+  `(page+1)*per_page > 1000`. Lookup of a malformed or cross-tenant log ID is
+  404; a malformed checkpoint cursor is 400. A well-formed cursor need not
+  reference a retained row.
+- The same public page's prose names `q`, while its embedded OpenAPI labels
+  the search parameter `search`; the frozen wire parameter is `q`, as used by
+  the existing pinned clients. No `search` alias is promised. Public scope
+  lists contain `read:logs` and `read:logs_users` without resolving whether
+  these are alternatives. The spec policy stands: global log reads require
+  `read:logs`; user log reads require both. A missing/deleted user's specific
+  log route gives 404 locally; its retained events remain globally searchable.
+- [Search syntax](https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax)
+  lists 16 searchable fields and seven bare-term fields. All are frozen in
+  `Fields()`, with physical columns or explicit JSON extraction paths. The
+  bounded local subset permits AND/OR/NOT, grouping, exact phrases, trailing
+  wildcards and date ranges; leading/infix wildcards, fuzzy matching, regex,
+  unknown fields and `.raw` are rejected. Public syntax allows broader
+  wildcards. Local bounds reuse organization search: 4,000 bytes, 1,000 runes,
+  16 levels, five terms. Page totals use matching count capped at 1,000 locally;
+  the upstream search-v3 total semantics are not fully established here.
+- [Create stream](https://auth0.com/docs/api/management/v2/log-streams/post-log-streams)
+  returns 200 and accepts `startFrom` as an ISO 8601 datetime, not a log ID.
+  It is create-only and omitted on reads. Store `StartFrom time.Time`
+  internally in the memory/SQL/protobuf models. Choose the initial checkpoint
+  immediately before the lowest retained sequence whose Date is at or after
+  that instant, or the latest committed sequence if no event matches. The
+  worker additionally skips events older than StartFrom while advancing the
+  checkpoint. This preserves the timestamp boundary when Date and Seq differ.
+  Omission begins after the latest committed sequence. The exact Go zero
+  instant (`0001-01-01T00:00:00Z`, including equivalent offsets) is rejected
+  with 400 because storage reserves it for omission; other representable
+  RFC3339 instants, including year 0000, remain supported (local boundary).
+- Create requires type/sink and does not accept status. PATCH permits name,
+  status, sink, filters, isPriority and pii_config; type/startFrom are immutable.
+  Unknown fields, null for nonnullable values and sink fields for another type
+  are rejected. Filters use `type:category` with the documented category enum;
+  empty means all. Local PII defaults are mask/xxhash. Secret fields are sealed
+  at rest and returned as the marker; omitted PATCH secrets remain. A marker
+  on PATCH preserves an existing secret for editor/import round trips; creates
+  reject the marker as a credential. Sumo source URLs and all custom-header
+  arrays are entirely secret, even when their names do not look sensitive.
+- The exact field schemas and region enums for all eight sink types come from
+  the public create reference. Vendor delivery mappings are local adapters
+  informed by the vendors' public request contracts, not claims about Auth0's
+  private adapters. The inventory cites
+  [Datadog](https://docs.datadoghq.com/api/latest/logs/#send-logs),
+  [Splunk](https://help.splunk.com/en/splunk-enterprise/get-data-in/get-started-with-getting-data-in/9.3/get-data-with-http-event-collector/format-events-for-http-event-collector),
+  [Sumo Logic](https://help.sumologic.com/docs/send-data/hosted-collectors/http-source/logs-metrics/upload-logs/),
+  [Segment](https://www.twilio.com/docs/segment/connections/sources/catalog/libraries/server/http-api)
+  and [Mixpanel](https://developer.mixpanel.com/reference/import-events).
+  Read sink schemas restrict secret values to the marker, including a marker
+  string in place of the entire custom-header array. Input retains its typed
+  header array. HTTP endpoint schemas admit HTTP only to express the deployment
+  opt-in; runtime defaults still enforce HTTPS. HTTP item format is `{log_id,data}`, with JSONARRAY, JSONLINES (local default)
+  or one-request-per-item JSONOBJECT. Vendor credentials and response bodies
+  never appear in delivery diagnostics. No live vendor account was contacted.
+- [Daily stats](https://auth0.com/docs/api/management/v2/stats/get-daily)
+  documents inclusive YYYYMMDD bounds but no range maximum/default in the
+  reviewed material. Locally the default is seven UTC calendar days including
+  today, maximum 366 inclusive days, missing bounds default independently,
+  reversed/invalid dates are 400, and missing days return zero counters. The
+  `date` is RFC3339 midnight UTC; synthetic rows use that same midnight for
+  `created_at` and `updated_at` (local deterministic timestamps). Local
+  stats mapping is `s`/`ssa`/`sepft` to logins, `ss` to signups, and each
+  password-breach code to leaked_passwords. A flow chooses its matching login
+  success code once; subsequent code/refresh exchanges do not double-count.
+  [Active users](https://auth0.com/docs/api/management/v2/stats/get-active-users)
+  returns an integer and uses existing users' successful last_login within
+  30 days. Its scope and daily stats scope are `read:stats`.
+- Exact undocumented error codes are not claimed. The inventory freezes local
+  `invalid_query_string`, `invalid_body`, `invalid_operation`, `not_found`,
+  `invalid_token`, `insufficient_scope`, `too_many_requests`, `conflict`, and
+  capability error `logs_unavailable`. Existing ManagementError envelopes and
+  tenant/operator authorization conventions apply.
+- The Management log object uses `isMobile`; newer catalog examples also show
+  `is_mobile` and `environment_name`, which are not synthesized. Optional
+  `security_context` requires trustworthy signals. No GeoIP or invented values
+  are added; the recorder omits fields with no value.
+- The provisional spec examples `du` and `ubr` are corrected to documented
+  `sdu` and `ublkdu`. `scpn` means phone change; current user validation rejects
+  phone-number changes, so it and `fcpn` remain deferred to Plan 34. No published
+  generic notification-success `sn` or password-notification code is established;
+  those outcomes remain safe server-log records. The generic `fc` means an
+  enterprise connector failure and must not label the implemented OAuth/OIDC
+  social-provider errors. Pending device polling is not a failed exchange.
+- Legacy Hook failures `fpurh`/`fcph` remain deferred for retired-surface
+  reassessment. Actions job failures use `actions_execution_failed`, not Hook
+  codes, even when their trigger names resemble the old Hooks.
+- Explicit remaining emitter gaps are machine-readable: `w` and `fco` have no
+  frozen safe source classification yet and are deferred within Plan 31;
+  deprecation notices and general Authentication API rate limiting remain
+  Plan 45. Existing tenant Management 429 outcomes can emit `api_limit` from
+  the shared middleware. No per-code emission integration tests or runtime
+  endpoint, store, delivery, console or E2E claims are made by Task 1.
+
+The console's local `GET /api/system/tenants/{tenant}/log-streams/status`
+extension exposes only stream ID, status, failure count, safe error class,
+last-success and next-attempt timestamps (unset timestamps omitted). It requires
+an operator with a current grant for the path tenant and `read:log_streams`;
+missing Logs v1 returns `501 logs_unavailable`. It never exposes sink settings,
+sealed credentials or lease ownership. This keeps delivery diagnostics out of
+the Auth0-compatible public log-stream shape.

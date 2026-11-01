@@ -119,7 +119,7 @@ func (h *Handlers) CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *h
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "create organization discovery domain", "id", id, "domain_id", d.ID)
+	logDetails(r, "create organization discovery domain", "id", id, "domain_id", d.ID)
 	writeJSON(w, 201, discoveryDomainView(d))
 }
 func (h *Handlers) getDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string, byName bool) {
@@ -181,7 +181,7 @@ func (h *Handlers) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *h
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "update organization discovery domain", "id", id, "domain_id", key)
+	logDetails(r, "update organization discovery domain", "id", id, "domain_id", key)
 	writeJSON(w, 200, discoveryDomainView(out))
 }
 func (h *Handlers) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
@@ -196,6 +196,6 @@ func (h *Handlers) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *h
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "delete organization discovery domain", "id", id, "domain_id", key)
+	logDetails(r, "delete organization discovery domain", "id", id, "domain_id", key)
 	w.WriteHeader(204)
 }

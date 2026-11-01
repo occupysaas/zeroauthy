@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -45,6 +46,7 @@ func (u CreateUser) arg() map[string]any {
 // run executes one script of conn. A script the connection does not define
 // is ErrNoScript, without calling Exec.
 func (c *Client) run(ctx context.Context, conn *store.Connection, script string, args ...any) (json.RawMessage, error) {
+	ctx = credentialContext(ctx, script, args)
 	req, err := c.request(conn, script, args)
 	if err != nil {
 		return nil, err
@@ -87,13 +89,20 @@ func (c *Client) request(conn *store.Connection, script string, args []any) (Req
 // message.
 // Nothing is stored.
 func (c *Client) Try(ctx context.Context, conn *store.Connection, script string, args []any, onLogs func([]string)) (json.RawMessage, error) {
+	ctx = credentialContext(ctx, script, args)
 	req, err := c.request(conn, script, args)
 	if err != nil {
 		return nil, err
 	}
 	red := NewRedactor(req.Config)
 	if onLogs != nil {
-		req.OnLogs = func(l []string) { onLogs(red.RedactAll(l)) }
+		req.OnLogs = func(lines []string) {
+			safe := make([]string, len(lines))
+			for i, line := range lines {
+				safe[i] = red.RedactLineContext(ctx, line)
+			}
+			onLogs(safe)
+		}
 	}
 	raw, err := c.Exec.Execute(ctx, req)
 	if err != nil {
@@ -204,4 +213,22 @@ func boolResult(raw json.RawMessage, script string) (bool, error) {
 func isNull(raw json.RawMessage) bool {
 	raw = bytes.TrimSpace(raw)
 	return len(raw) == 0 || bytes.Equal(raw, []byte("null"))
+}
+
+// credentialContext covers direct script callers as well as HTTP entry points.
+func credentialContext(ctx context.Context, script string, args []any) context.Context {
+	values := []string{}
+	if (script == store.ScriptLogin || script == store.ScriptChangePassword) && len(args) > 1 {
+		if value, ok := args[1].(string); ok {
+			values = append(values, value)
+		}
+	}
+	if script == store.ScriptCreate && len(args) > 0 {
+		if object, ok := args[0].(map[string]any); ok {
+			if value, ok := object["password"].(string); ok {
+				values = append(values, value)
+			}
+		}
+	}
+	return logscrub.WithCredentials(logscrub.WithValues(ctx, values...), values...)
 }

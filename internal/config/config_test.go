@@ -459,3 +459,31 @@ func TestActionsSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestLogsConfig(t *testing.T) {
+	base := []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost}
+	cfg, err := Load("", base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Logs.Retention != 30*24*time.Hour || cfg.Logs.QueueSize != 10000 || cfg.Logs.Streams.AllowInsecureHTTP || cfg.Logs.Streams.AllowPrivateNetworks {
+		t.Fatalf("defaults %+v", cfg.Logs)
+	}
+	cfg, err = Load("", append(base, "ZEROAUTHY_LOGS__RETENTION=24h", "ZEROAUTHY_LOGS__QUEUE_SIZE=5", "ZEROAUTHY_LOGS__STREAMS__ALLOW_INSECURE_HTTP=true", "ZEROAUTHY_LOGS__STREAMS__ALLOW_PRIVATE_NETWORKS=true"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Logs.Retention != 24*time.Hour || cfg.Logs.QueueSize != 5 || !cfg.Logs.Streams.AllowInsecureHTTP || !cfg.Logs.Streams.AllowPrivateNetworks {
+		t.Fatalf("overrides %+v", cfg.Logs)
+	}
+	for _, setting := range []string{"ZEROAUTHY_LOGS__RETENTION=23h", "ZEROAUTHY_LOGS__RETENTION=0s", "ZEROAUTHY_LOGS__QUEUE_SIZE=0", "ZEROAUTHY_LOGS__QUEUE_SIZE=-1", "ZEROAUTHY_LOGS__STREAMS__ALLOW_PRIVAT_NETWORKS=true"} {
+		if _, err := Load("", append(base, setting)); err == nil {
+			t.Errorf("accepted %s", setting)
+		}
+	}
+	path := writeFile(t, "logs.yaml", "storage:\n  dsn: memory://\nserver:\n  system_host: system.localhost\nlogs:\n  retention: 48h\n  queue_size: 37\n  streams:\n    allow_insecure_http: true\n")
+	cfg, err = Load(path, nil)
+	if err != nil || cfg.Logs.Retention != 48*time.Hour || cfg.Logs.QueueSize != 37 {
+		t.Fatalf("file %+v %v", cfg, err)
+	}
+}

@@ -175,6 +175,17 @@ no execution, and pre-execution store failures may have no reference.
 Executions are retained ten days and swept hourly; expired continuation
 states are swept every minute by the jobs worker.
 
+The console's **Logs → event detail → execution** journey and **Actions logs**
+show persisted console lines (64 KiB per result) and a separate **Denial reason**
+for explicit `api.access.deny` outcomes. Denials remain normal outcomes;
+throws/timeouts retain error IDs/messages. Denial display text is scrubbed
+before bounding to 512 characters. The local operator execution endpoints
+under `/api/system/tenants/{tenant}/actions/executions` expose these optional
+fields with the tenant grant and `read:actions`. The Auth0-compatible public
+execution response keeps its existing shape. Older records have no denial
+metadata. See [tenant logs](logs.md) for Live, retention, the complete event
+inventory and the current pinned CLI acceptance limitation.
+
 The draft test endpoint returns `{payload: {commands, logs, error?,
 duration_ms, execution_id}}`. It requires a built draft (400 otherwise).
 It uses real `fetch`, records rather than applies metadata/redirects/denials,

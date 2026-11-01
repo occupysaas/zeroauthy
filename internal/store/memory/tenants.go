@@ -147,6 +147,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	delete(r.s.tenants, id)
 	delete(r.s.protection, id)
 	r.s.dropTenantFederation(id)
+	r.s.deleteTenantLogs(id)
 	s := r.s
 	purge(s.clients, id)
 	purge(s.resourceServers, id)

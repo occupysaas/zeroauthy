@@ -43,6 +43,8 @@ type Store struct {
 	orgLimits *atomic.Pointer[store.OrgLimits]
 	// orgIIClock is injectable in storage expiry boundary tests, set before use.
 	orgIIClock func() time.Time
+	// logsClock is injected before use in checkpoint and lease boundary tests.
+	logsClock func() time.Time
 }
 
 // txState is the state of one transaction shared by its nested calls.
@@ -209,7 +211,7 @@ func (s *Store) atomic(ctx context.Context, opts *sql.TxOptions, fn func(t *Stor
 			_ = tx.Rollback()
 		}
 	}()
-	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}, orgLimits: s.orgLimits, orgIIClock: s.orgIIClock}
+	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}, orgLimits: s.orgLimits, orgIIClock: s.orgIIClock, logsClock: s.logsClock}
 	if err := fn(t); err != nil {
 		return err
 	}

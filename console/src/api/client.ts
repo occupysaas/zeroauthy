@@ -102,6 +102,16 @@ export type ActionTestRequest = components['schemas']['ActionTestRequest']
 export type ActionTestResponse = components['schemas']['ActionTestResponse']
 export type ActionExecution = components['schemas']['ActionExecution']
 
+export type LogEvent = components['schemas']['LogEvent']
+export type LogItem = components['schemas']['LogEventListItem']
+export type LogPage = components['schemas']['LogEventsPage']
+export type LogStream = components['schemas']['LogStream']
+export type LogStreamCreate = components['schemas']['LogStreamCreate']
+export type LogStreamPatch = components['schemas']['LogStreamPatch']
+export type LogStat = components['schemas']['LogDailyStat']
+export type StreamStatus = components['schemas']['SystemLogStreamStatus']
+export type SystemExecution = components['schemas']['SystemActionExecution']
+
 export type Organization = components['schemas']['Organization']
 export type OrganizationCreate = components['schemas']['OrganizationCreate']
 export type OrganizationUpdate = components['schemas']['OrganizationUpdate']
@@ -793,6 +803,58 @@ export class Api {
 
   async allActionBindings(t: SystemTenant, trigger: string): Promise<ActionBinding[]> {
     return collect(page => this.listActionBindings(t, trigger, { page, per_page: ALL_PER_PAGE }).then(r => ({ items: r.bindings, total: r.total })))
+  }
+
+  listLogs(t: SystemTenant, q: { page: number; per_page: number; q?: string }): Promise<LogPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/logs', { query: { ...q, include_totals: true, sort: 'date:-1' } })
+  }
+
+  tailLogs(t: SystemTenant, from?: string): Promise<LogItem[]> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/logs', { query: { from, take: 100 } })
+  }
+
+  getLog(t: SystemTenant, id: string): Promise<LogEvent> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/logs/' + encodeURIComponent(id))
+  }
+
+  logStreamStatus(t: SystemTenant): Promise<StreamStatus[]> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/log-streams/status`)
+  }
+
+  listLogStreams(t: SystemTenant): Promise<LogStream[]> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/log-streams')
+  }
+
+  getLogStream(t: SystemTenant, id: string): Promise<LogStream> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/log-streams/' + encodeURIComponent(id))
+  }
+
+  createLogStream(t: SystemTenant, body: LogStreamCreate): Promise<LogStream> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/log-streams', { body })
+  }
+
+  updateLogStream(t: SystemTenant, id: string, body: LogStreamPatch): Promise<LogStream> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/log-streams/' + encodeURIComponent(id), { body })
+  }
+
+  deleteLogStream(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/log-streams/' + encodeURIComponent(id))
+  }
+
+  listExecutions(t: SystemTenant, q: { trigger?: string; action?: string; after?: string; take: number }): Promise<SystemExecution[]> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/actions/executions`, { query: q })
+  }
+
+  getExecution(t: SystemTenant, id: string): Promise<SystemExecution> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/actions/executions/${encodeURIComponent(id)}`)
+  }
+
+  dailyStats(t: SystemTenant, q: { from: string; to: string }): Promise<LogStat[]> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/stats/daily', { query: q })
+  }
+
+  activeUsers(t: SystemTenant): Promise<number> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/stats/active-users')
   }
 
   listTenants(): Promise<SystemTenant[]> {

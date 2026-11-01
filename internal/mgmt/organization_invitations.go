@@ -223,7 +223,7 @@ func (h *Handlers) CreateOrganizationInvitation(w http.ResponseWriter, r *http.R
 		h.orgIIError(w, r, err)
 		return
 	}
-	h.audit(r, "create organization invitation", "organization_id", id, "invitation_id", in.ID)
+	logDetails(r, "create organization invitation", "organization_id", id, "invitation_id", in.ID)
 	writeJSON(w, 200, invitationView(*in, ticket))
 }
 func invitationView(in store.OrganizationInvitation, t orglogin.InvitationTicket) map[string]any {

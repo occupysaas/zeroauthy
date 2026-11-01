@@ -257,7 +257,7 @@ func TestServerLogMasksOldValueAfterRotation(t *testing.T) {
 		t.Errorf("server log:\n%s", out)
 	}
 	// A line with no connection (an uncaught error) is masked with every value seen.
-	if got := (&proc{all: NewRedactor(map[string]string{"a": "one"}).Union(NewRedactor(map[string]string{"b": "two"}))}).redactorFor("").Redact("one two"); got != Mask+" "+Mask {
+	if got := NewRedactor(map[string]string{"a": "one"}).Union(NewRedactor(map[string]string{"b": "two"})).Redact("one two"); got != Mask+" "+Mask {
 		t.Errorf("union = %q", got)
 	}
 }

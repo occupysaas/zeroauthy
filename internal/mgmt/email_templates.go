@@ -38,7 +38,7 @@ func (h *Handlers) CreateEmailTemplate(w http.ResponseWriter, r *http.Request) {
 		h.emailWriteError(w, r, "create email template", err)
 		return
 	}
-	h.audit(r, "create email template", "template", name)
+	logDetails(r, "create email template", "template", name)
 	writeJSON(w, http.StatusOK, projectEmailTemplate(t))
 }
 
@@ -87,7 +87,7 @@ func (h *Handlers) PutEmailTemplate(w http.ResponseWriter, r *http.Request, name
 		h.emailWriteError(w, r, "put email template", err)
 		return
 	}
-	h.audit(r, "put email template", "template", name)
+	logDetails(r, "put email template", "template", name)
 	writeJSON(w, http.StatusOK, projectEmailTemplate(t))
 }
 
@@ -162,7 +162,7 @@ func (h *Handlers) PatchEmailTemplate(w http.ResponseWriter, r *http.Request, na
 			h.emailWriteError(w, r, "patch email template", e)
 			return
 		}
-		h.audit(r, "patch email template", "template", name)
+		logDetails(r, "patch email template", "template", name)
 		writeJSON(w, http.StatusOK, projectEmailTemplate(t))
 		return
 	}

@@ -6,13 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -61,6 +65,7 @@ func (e *ErrFlow) Unwrap() error { return e.Cause }
 
 // Engine runs Action flows.
 type Engine struct {
+	Recorder        logs.Recorder
 	InvitationEmail InvitationEmailDispatcher
 	Store           store.Store
 	Runner          *noderunner.Pool
@@ -139,6 +144,7 @@ type unit struct {
 
 // flow is one trigger execution in progress.
 type flow struct {
+	logCtx                               context.Context
 	jobID                                string
 	jobAttempt                           int
 	tenantID, trigger, handler, hostname string
@@ -166,9 +172,10 @@ type flow struct {
 
 // stepOut is what one Action produced, masked.
 type stepOut struct {
-	commands []command
-	logs     []string
-	red      *customdb.Redactor
+	commands     []command
+	logs         []string
+	denialReason string
+	red          *customdb.Redactor
 }
 
 // PostLogin runs the tenant's post-login flow.
@@ -305,7 +312,9 @@ func errorID(err error) string {
 // run executes f's Actions in order, then commits metadata and writes the
 // execution record. Any failure fails the whole flow closed.
 func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, error) {
+	f.logCtx = ctx
 	execID := newExecutionID()
+	logs.AddExecution(ctx, execID)
 	budget := f.remaining
 	if budget == 0 {
 		budget = e.budget()
@@ -319,7 +328,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 	for i, u := range f.units {
 		started := e.now()
 		before := f.acc.notification
-		_, err := e.step(fctx, f, u, f.event())
+		step, err := e.step(fctx, f, u, f.event())
 		switch n := f.acc.notification; {
 		case err != nil:
 			f.outcomes = append(f.outcomes, "error")
@@ -331,7 +340,13 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		default:
 			f.outcomes = append(f.outcomes, "ok")
 		}
-		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
+		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionID: u.actionID, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
+		if step != nil {
+			r.Logs = capConsole(step.logs)
+			if err == nil {
+				r.DenialReason = step.denialReason
+			}
+		}
 		if err != nil {
 			r.ErrorID, r.ErrorMsg = errorID(err), err.Error()
 			failure, failed = err, u.name
@@ -405,8 +420,19 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		e.log().Warn("actions: recording a failed execution", "tenant", f.tenantID, "execution_id", execID, "error", recordErr)
 	}
 	if failure != nil {
-		e.log().Warn("actions flow failed", "tenant", f.tenantID, "trigger", f.trigger, "action", failed,
-			"execution_id", execID, "error", failure.Error())
+		// Durable jobs emit once, only after their terminal FinishJob write. A
+		// synchronous invocation owns this completed execution failure instead.
+		if f.jobID == "" {
+			event := executionFailureEvent(f)
+			event.Date, event.ExecutionIDs = e.now(), []string{execID}
+			recorder := e.Recorder
+			if recorder == nil {
+				recorder = logs.RecorderFromContext(ctx)
+			}
+			logs.RecordEvent(f.logCtx, recorder, event)
+		}
+		e.log().WarnContext(f.logCtx, "actions flow failed", "tenant", f.tenantID, "trigger", f.trigger, "action", failed,
+			"execution_id", execID, "error", errorID(failure))
 		return nil, &ErrFlow{ExecutionID: execID, Cause: failure, Continuation: continuationOf(f)}
 	}
 	if d := f.acc.denied; d != nil {
@@ -444,6 +470,15 @@ func (e *Engine) commitMetadata(ctx context.Context, tx store.Store, tenantID st
 // step runs one Action and applies its commands to f.acc. Its errors are
 // masked with the Action's and its pinned Modules' secrets.
 func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any) (*stepOut, error) {
+	// Carry only the masks from already opened secrets back to the outcome
+	// boundary, including timeout/error returns; never reopen secrets to log.
+	defer func() {
+		if f.logCtx == nil {
+			f.logCtx = ctx
+		}
+		f.logCtx = logscrub.CopyMasks(f.logCtx, ctx)
+	}()
+
 	remaining := time.Until(f.deadline)
 	if remaining <= 0 {
 		return nil, ErrTimeout
@@ -462,9 +497,12 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		if err != nil {
 			return nil, fmt.Errorf("actions: secret %q of %q does not open", s.Name, u.name)
 		}
+		ctx = logscrub.WithCredentials(ctx, v)
+		logs.AddCredentials(ctx, v)
 		vals[s.Name] = v
 	}
 	red := customdb.NewRedactor(vals).Union(f.redactor)
+	ctx = red.WithCredentials(ctx)
 	modules := make([]wireModule, 0, len(u.modules))
 	for _, m := range u.modules {
 		mv := make(map[string]string, len(m.version.Secrets))
@@ -473,6 +511,8 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 			if err != nil {
 				return nil, fmt.Errorf("actions: secret %q of module %q does not open", s.Name, m.name)
 			}
+			ctx = logscrub.WithCredentials(ctx, v)
+			logs.AddCredentials(ctx, v)
 			mv[s.Name] = v
 		}
 		red = red.Union(customdb.NewRedactor(mv))
@@ -490,12 +530,14 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
 	}
+	var executed *procState
 	raw, err := e.Runner.CallWith(ctx, f.tenantID, req, noderunner.CallOptions{
 		// At least 1 ms: a zero Budget would mean the Pool's 20 s default.
 		Budget: max(time.Until(f.deadline), time.Millisecond),
 		Prepare: func(state any) {
 			if ps, ok := state.(*procState); ok {
-				ps.add(red)
+				executed = ps
+				ps.add(ctx)
 			}
 		},
 		LogAttrs: []any{"action", u.name},
@@ -504,31 +546,65 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	case errors.Is(err, noderunner.ErrTimeout), err != nil && ctx.Err() != nil:
 		return nil, ErrTimeout
 	case err != nil:
-		return nil, &maskedError{msg: red.RedactLine(fmt.Sprintf("actions: runner: %v", err)), err: err}
+		return nil, &maskedError{msg: red.RedactLineContext(ctx, fmt.Sprintf("actions: runner: %v", err)), err: err}
 	}
 	var resp wireResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
 		return nil, fmt.Errorf("actions: invalid runner response")
 	}
-	out := &stepOut{commands: resp.Commands, logs: red.RedactAll(resp.Logs), red: red}
+	resp.Logs = executed.capture(ctx, red, resp.Logs)
+	out := &stepOut{commands: resp.Commands, logs: resp.Logs, red: red}
 	// An unsupported call fails the flow even when the Action caught it.
 	for _, c := range resp.Commands {
 		if c.Op == "unsupported" {
 			err := f.acc.apply(c)
-			return out, &maskedError{msg: red.RedactLine(err.Error()), err: err}
+			return out, &maskedError{msg: red.RedactLineContext(ctx, err.Error()), err: err}
 		}
 	}
 	if resp.Error != nil {
-		return out, fmt.Errorf("%w: %s", ErrActionError, red.RedactLine(resp.Error.Message))
+		return out, fmt.Errorf("%w: %s", ErrActionError, red.RedactLineContext(ctx, resp.Error.Message))
 	}
 	f.acc.cache = nil
 	for _, c := range resp.Commands {
+		// Scrub display-only messages before validation truncates them. Do not
+		// mutate business commands (claims, metadata, cache or redirect URLs).
+		if c.Op == "access.deny" || c.Op == "validation.error" || strings.HasPrefix(c.Op, "notification.") {
+			start := 0
+			if c.Op == "validation.error" || (c.Op == "access.deny" && f.trigger == TriggerCredentialsExchange) {
+				start = 1
+			}
+			for i := start; i < len(c.Args); i++ {
+				raw := c.Args[i]
+				var text string
+				if json.Unmarshal(raw, &text) == nil {
+					c.Args[i], _ = json.Marshal(red.RedactLineContext(ctx, text))
+				}
+			}
+		}
+		beforeDenial := f.acc.denied
 		if err := f.acc.apply(c); err != nil {
-			return out, &maskedError{msg: red.RedactLine(err.Error()), err: err}
+			return out, &maskedError{msg: red.RedactLineContext(ctx, err.Error()), err: err}
+		}
+		if c.Op == "access.deny" && beforeDenial == nil && f.acc.denied != nil {
+			// apply receives the original-credential-masked message, before any
+			// protocol truncation. Keep only bounded operator display metadata.
+			reasonIndex := 0
+			if f.trigger == TriggerCredentialsExchange {
+				reasonIndex = 1
+			}
+			var reason string
+			if len(c.Args) > reasonIndex {
+				_ = json.Unmarshal(c.Args[reasonIndex], &reason)
+			}
+			out.denialReason = truncateChars(reason, maxErrorReasonBytes)
 		}
 	}
-	if f.acc.notification != nil && f.redactor != nil {
-		f.acc.notification.Reason = f.redactor.RedactLine(f.acc.notification.Reason)
+	if f.acc.notification != nil {
+		f.acc.notification.Reason = red.RedactLineContext(ctx, f.acc.notification.Reason)
+	}
+	if f.acc.denied != nil {
+		f.acc.denied.Reason = red.RedactLineContext(ctx, f.acc.denied.Reason)
+		f.acc.denied.UserMessage = red.RedactLineContext(ctx, f.acc.denied.UserMessage)
 	}
 	// Oversized claims fail at the Action that made them (spec §7).
 	for _, m := range []map[string]any{f.acc.eff.AccessClaims, f.acc.eff.IDClaims} {
@@ -652,7 +728,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 	var red *customdb.Redactor
 	if st != nil {
 		red = st.red
-		out.Logs = append(out.Logs, st.logs...)
+		out.Logs = append(out.Logs, capConsole(st.logs)...)
 		for _, c := range st.commands {
 			out.Commands = append(out.Commands, testCommand(c))
 		}
@@ -728,4 +804,59 @@ func (e *Engine) organizationRoleSnapshot(ctx context.Context, tid, uid, oid str
 		return nil
 	})
 	return out, err
+}
+
+// capConsole bounds the persisted UTF-8 console, including newline separators
+// and the final marker. Inputs have already been scrubbed in their original form.
+func capConsole(lines []string) []string {
+	const limit = 64 * 1024
+	const marker = "… truncated"
+	total := 0
+	for i, line := range lines {
+		size := len(line)
+		if i > 0 {
+			size++
+		}
+		if total+size > limit {
+			out := append([]string(nil), lines[:i]...)
+			for len(out) > 0 && len(strings.Join(out, "\n"))+1+len(marker) > limit {
+				out = out[:len(out)-1]
+			}
+			remaining := limit - len(strings.Join(out, "\n")) - len(marker) - 1
+			if len(out) > 0 {
+				remaining--
+			}
+			if remaining > 0 {
+				fragment := line[:min(len(line), remaining)]
+				for !utf8.ValidString(fragment) {
+					fragment = fragment[:len(fragment)-1]
+				}
+				out = append(out, fragment)
+			}
+			return append(out, marker)
+		}
+		total += size
+	}
+	return append([]string(nil), lines...)
+}
+
+// Project only fixed metadata keys from the engine-built canonical event.
+// No Action output, exception, request body, or provider payload is retained.
+func executionFailureEvent(f *flow) logs.Event {
+	source := f.event()
+	field := func(object, key string) string {
+		objectValue, _ := source[object].(map[string]any)
+		value, _ := objectValue[key].(string)
+		return value
+	}
+	event := logs.Event{TenantID: f.tenantID, Type: "actions_execution_failed", Hostname: f.hostname,
+		ClientID: field("client", "client_id"), ClientName: field("client", "name"),
+		ConnectionID: field("connection", "id"), Connection: field("connection", "name"), Strategy: field("connection", "strategy"),
+		OrganizationID: field("organization", "id"), OrganizationName: field("organization", "name"),
+		Details: map[string]any{"trigger": f.trigger}}
+	event.StrategyType = logs.StrategyType(event.Strategy)
+	if f.trigger != TriggerPreUserRegistration {
+		event.UserID = field("user", "user_id")
+	}
+	return event
 }

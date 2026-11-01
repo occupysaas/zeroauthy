@@ -69,7 +69,7 @@ func (h *Handlers) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {
 		h.emailWriteError(w, r, "create email provider", err)
 		return
 	}
-	h.audit(r, "create email provider", "provider", p.Name)
+	logDetails(r, "create email provider", "provider", p.Name)
 	writeJSON(w, http.StatusCreated, emailrules.ProjectProvider(p))
 }
 
@@ -110,7 +110,7 @@ func (h *Handlers) PatchEmailProvider(w http.ResponseWriter, r *http.Request) {
 			h.emailWriteError(w, r, "update email provider", e)
 			return
 		}
-		h.audit(r, "update email provider", "provider", p.Name)
+		logDetails(r, "update email provider", "provider", p.Name)
 		writeJSON(w, http.StatusOK, emailrules.ProjectProvider(p))
 		return
 	}
@@ -140,7 +140,7 @@ func (h *Handlers) DeleteEmailProvider(w http.ResponseWriter, r *http.Request) {
 			h.emailWriteError(w, r, "delete email provider", err)
 			return
 		}
-		h.audit(r, "delete email provider", "provider", p.Name)
+		logDetails(r, "delete email provider", "provider", p.Name)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}

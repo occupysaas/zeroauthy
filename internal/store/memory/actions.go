@@ -58,6 +58,9 @@ func cloneBuild(b *store.Build) *store.Build {
 func cloneExecution(e *store.Execution) *store.Execution {
 	c := *e
 	c.Results = slices.Clone(e.Results)
+	for i := range c.Results {
+		c.Results[i].Logs = slices.Clone(e.Results[i].Logs)
+	}
 	return &c
 }
 func cloneContinue(v *store.ContinueState) *store.ContinueState {
@@ -170,7 +173,9 @@ func (r actionsRepo) UpdateAction(_ context.Context, a *store.Action) error {
 			}
 			return pins, nil
 		},
-		func(refs []store.ModuleRef) ([]store.ModuleRef, error) { return r.s.resolveModuleRefs(c.TenantID, refs) })
+		func(refs []store.ModuleRef) ([]store.ModuleRef, error) {
+			return r.s.resolveModuleRefs(c.TenantID, refs)
+		})
 	if err != nil {
 		return err
 	}
@@ -542,4 +547,43 @@ func (s *Store) deleteActionsTenant(id string) {
 
 func deleteTenantKeys[V any](m map[key]V, tenant string) {
 	maps.DeleteFunc(m, func(k key, _ V) bool { return k.tenant == tenant })
+}
+
+func (r actionsRepo) ListExecutions(_ context.Context, tid string, f store.ExecutionFilter) ([]store.Execution, error) {
+	r.s.readLock()
+	defer r.s.readUnlock()
+	var after *store.Execution
+	if f.After != "" {
+		after = r.s.executions[key{tid, f.After}]
+		if after == nil {
+			return nil, store.ErrNotFound
+		}
+	}
+	out := []store.Execution{}
+	for k, ex := range r.s.executions {
+		if k.tenant != tid {
+			continue
+		}
+		if f.Trigger != "" && ex.Trigger != f.Trigger {
+			continue
+		}
+		if f.Action != "" && !slices.ContainsFunc(ex.Results, func(r store.ExecutionResult) bool { return r.ActionID == f.Action }) {
+			continue
+		}
+		if after != nil && (ex.CreatedAt.Before(after.CreatedAt) || (ex.CreatedAt.Equal(after.CreatedAt) && ex.ID <= after.ID)) {
+			continue
+		}
+		out = append(out, *cloneExecution(ex))
+	}
+	slices.SortFunc(out, func(a, b store.Execution) int {
+		c := a.CreatedAt.Compare(b.CreatedAt)
+		if c == 0 {
+			c = strings.Compare(a.ID, b.ID)
+		}
+		if after == nil {
+			return -c
+		}
+		return c
+	})
+	return out[:min(len(out), f.Limit())], nil
 }

@@ -136,6 +136,6 @@ func (h *Handlers) UpdateActionBindings(w http.ResponseWriter, r *http.Request, 
 	for _, b := range result {
 		out = append(out, bindingView(b))
 	}
-	h.audit(r, "replace Action bindings", "trigger", trigger)
+	logDetails(r, "replace Action bindings", "trigger", trigger)
 	writeJSON(w, 200, map[string]any{"bindings": out})
 }

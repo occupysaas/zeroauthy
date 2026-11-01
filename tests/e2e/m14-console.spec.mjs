@@ -98,7 +98,9 @@ test('an operator manages APIs, machine-to-machine access and operators', async 
   await page.fill('#api-identifier', IDENTIFIER);
   await page.getByRole('button', { name: 'Create API' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/apis\/[0-9a-f]{24}$/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Console API');
+  const apiDetail = page.getByRole('dialog', { name: 'Console API', exact: true });
+  await expect(apiDetail).toBeVisible();
+  await expect(apiDetail.getByRole('heading', { level: 2, name: 'Console API', exact: true })).toHaveText('Console API');
   const apiURL = page.url();
   await page.getByRole('tab', { name: 'Permissions' }).click();
   for (const [value, description] of [['read:items', 'Read items'], ['write:items', 'Write items']]) {
@@ -110,6 +112,7 @@ test('an operator manages APIs, machine-to-machine access and operators', async 
   await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
 
   // 3. Create a machine-to-machine application.
+  await apiDetail.getByRole('button', { name: 'Close', exact: true }).click();
   await nav.getByRole('link', { name: 'Applications' }).click();
   await page.getByRole('link', { name: 'Create application' }).click();
   await page.fill('#app-name', 'Console M2M');
@@ -117,7 +120,9 @@ test('an operator manages APIs, machine-to-machine access and operators', async 
   await page.getByRole('button', { name: 'Create application' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/applications\/[A-Za-z0-9]{32}$/);
   const appURL = page.url();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Console M2M');
+  const appDetail = page.getByRole('dialog', { name: 'Console M2M', exact: true });
+  await expect(appDetail).toBeVisible();
+  await expect(appDetail.getByRole('heading', { level: 2, name: 'Console M2M', exact: true })).toHaveText('Console M2M');
 
   // 4. Authorize it for the API with one permission.
   await page.getByRole('tab', { name: 'APIs', exact: true }).click();
@@ -152,9 +157,9 @@ test('an operator manages APIs, machine-to-machine access and operators', async 
   await expect(page.getByRole('button', { name: 'Remove write:items' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Remove read:items' }).click();
   await page.getByRole('button', { name: 'Save permissions' }).click();
-  const confirm = page.getByRole('dialog');
+  const confirm = page.getByRole('dialog', { name: 'Remove permissions in use?', exact: true });
   await expect(confirm).toContainText('read:items');
-  await confirm.getByRole('button').first().click();
+  await confirm.getByRole('button', { name: 'Remove and save', exact: true }).click();
   await expect(page.getByTestId('scopes-empty')).toBeVisible();
   const emptied = await runCurl(curl);
   expect(emptied.status).toBe(200);
@@ -163,7 +168,7 @@ test('an operator manages APIs, machine-to-machine access and operators', async 
   // 7. Delete the API by typing its name; its grant goes with it.
   await page.getByRole('tab', { name: 'Danger zone' }).click();
   await page.getByRole('button', { name: 'Delete API' }).click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog', { name: 'Delete this API?', exact: true });
   await expect(dialog.getByRole('button', { name: 'Delete API' })).toBeDisabled();
   await dialog.locator('#delete-confirm').fill('Console API');
   await dialog.getByRole('button', { name: 'Delete API' }).click();
@@ -176,6 +181,7 @@ test('an operator manages APIs, machine-to-machine access and operators', async 
   await expect(page.getByTestId('grant-' + IDENTIFIER)).toHaveCount(0);
 
   // 8. Invite an operator on the system tenant, then remove them.
+  await appDetail.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Switch tenant' }).click();
   await page.getByRole('menuitem', { name: /^system/ }).click();
   await nav.getByRole('link', { name: 'Operators' }).click();

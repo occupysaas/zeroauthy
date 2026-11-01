@@ -266,7 +266,12 @@ func (r protection) Blocks(ctx context.Context, tenant string, f store.Protectio
 	return
 }
 func (r protection) Clear(ctx context.Context, tenant string, f store.ProtectionFilter) error {
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	_, err := r.ClearResult(ctx, tenant, f, time.Now())
+	return err
+}
+func (r protection) ClearResult(ctx context.Context, tenant string, f store.ProtectionFilter, now time.Time) (changed bool, err error) {
+	err = r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		changed = false
 		if e := tx.protectionLock(ctx, tenant); e != nil {
 			return e
 		}
@@ -276,9 +281,11 @@ func (r protection) Clear(ctx context.Context, tenant string, f store.Protection
 			return e
 		}
 		before := p.Clone()
+		changed = len(p.Blocks(f, now)) > 0
 		p.Clear(f)
 		return tx.saveProtection(ctx, tenant, before, p)
 	})
+	return
 }
 func (r protection) UseProof(ctx context.Context, hash string, now, expires time.Time) (used bool, err error) {
 	if hash == "" || !expires.After(now) {

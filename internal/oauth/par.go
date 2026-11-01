@@ -10,6 +10,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -25,6 +26,7 @@ type parResponse struct {
 
 // OauthPar implements POST /oauth/par (RFC 9126, D-0028).
 func (h *Handlers) OauthPar(w http.ResponseWriter, r *http.Request) {
+	registerOAuthAuthorization(r)
 	res, ok := tenant.FromContext(r.Context())
 	if !ok {
 		writeError(w, serverError())
@@ -32,6 +34,10 @@ func (h *Handlers) OauthPar(w http.ResponseWriter, r *http.Request) {
 	}
 	out, oerr := h.par(w, r, res)
 	if oerr != nil {
+		e := logs.FromRequest(r)
+		e.Type = "fpar"
+		e.ClientID = r.PostForm.Get("client_id")
+		logs.RecordEvent(r.Context(), h.Recorder, e)
 		writeError(w, oerr)
 		return
 	}
@@ -40,19 +46,21 @@ func (h *Handlers) OauthPar(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolved) (*parResponse, *Error) {
+	form, oerr := parsePARRequest(w, r)
+	if oerr != nil {
+		return nil, oerr
+	}
 	ctx := r.Context()
 	t := res.Tenant
 	if !t.PushedAuthorizationRequestsSupported {
 		return nil, invalidRequest("pushed authorization requests are not enabled for this tenant") // P6b
 	}
-	form, oerr := parsePARRequest(w, r)
-	if oerr != nil {
-		return nil, oerr
-	}
 	c, oerr := h.authenticateClient(ctx, r, form, t.ID)
 	if oerr != nil {
 		return nil, oerr
 	}
+	ctx = logs.WithEvent(ctx, logs.Event{ClientID: c.ClientID, ClientName: c.Name})
+	*r = *r.WithContext(ctx)
 	if c.TokenEndpointAuthMethod == store.AuthMethodNone {
 		return nil, invalidRequest("only confidential applications may push authorization requests") // P3b
 	}
@@ -110,6 +118,8 @@ func parStatus(code string) int {
 // repeated parameters (P2d, P2e). An oversized body is 413
 // payload_too_large, as on Auth0.
 func parsePARRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error) {
+	registerOAuthAuthorization(r)
+	defer func() { registerOAuthForm(r, r.PostForm) }()
 	r.Body = http.MaxBytesReader(w, r.Body, maxPARRequestBytes)
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || mediaType != "application/x-www-form-urlencoded" {

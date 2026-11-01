@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -33,6 +34,7 @@ var confirmedFields = []string{"id_token_hint", "logout_hint", "client_id", "pos
 // changes; without a hint that matches the browser's session the user is
 // asked to confirm.
 func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
+	maskLogoutCredentials(r)
 	ctx := r.Context()
 	res, ok := tenant.FromContext(ctx)
 	if !ok {
@@ -48,6 +50,8 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := r.Form
+	maskLogoutCredentials(r, p.Get("id_token_hint"), p.Get("logout_hint"), p.Get("csrf"))
+	ctx = r.Context()
 	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, p.Get("ui_locales")))
 	fail := func(status int, key string) { ui.RenderError(w, status, view, view.L.T(key)) }
 	confirmed := r.Method == http.MethodPost && p.Get("confirm") == "yes"
@@ -89,6 +93,7 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		allowed = c.AllowedLogoutURLs
+		*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{ClientID: c.ClientID, ClientName: c.Name}))
 	}
 	target := p.Get("post_logout_redirect_uri")
 	if target != "" && !authz.AllowedURL(allowed, target) {
@@ -98,6 +103,7 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 
 	sess, err := h.Sessions.Lookup(ctx, r, res.Tenant)
 	if err != nil {
+		h.recordLogout(r, nil, "flo")
 		h.log().ErrorContext(ctx, "load session", "tenant", res.Tenant.ID, "err", err)
 		fail(http.StatusInternalServerError, i18n.KeyErrServer)
 		return
@@ -110,6 +116,9 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 	if confirmed {
 		http.SetCookie(w, &http.Cookie{Name: logoutCSRFCookie, Value: "", Path: "/oidc/logout", MaxAge: -1,
 			HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
+	}
+	if sess != nil {
+		*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: sess.UserID, Connection: sess.Connection}))
 	}
 	if !h.endSession(w, r, res, view) {
 		return

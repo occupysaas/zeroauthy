@@ -18,6 +18,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -113,6 +115,19 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 			view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
 		}
 	}
+	// Register request credentials before organization policy or later outcomes
+	// can record already-resolved names that happen to contain their values.
+	values := []string{req.Invitation}
+	for name, fields := range q {
+		if logscrub.SensitiveKey(name) || name == "request_uri" {
+			values = append(values, fields...)
+		}
+	}
+	if cookie, err := r.Cookie(session.CookieName); err == nil {
+		values = append(values, cookie.Value)
+	}
+	ctx = logscrub.WithCredentials(ctx, values...)
+	*r = *r.WithContext(ctx)
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
@@ -122,6 +137,22 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		h.deny(w, r, res, client, req, verr)
 		return
 	}
+	// Observe only the actual resolved and validated request (including PAR).
+	// A silent request cannot continue on a hosted screen. Completion is marked
+	// only after issuance; every other returned outcome is a silent refusal.
+	if slices.Contains(req.Prompts(), "none") {
+		outcome := &silentAuthorizationOutcome{}
+		*r = *r.WithContext(context.WithValue(r.Context(), silentAuthorizationKey{}, outcome))
+		defer func() {
+			if outcome.completed {
+				return
+			}
+			event := logs.FromRequest(r)
+			event.Type, event.ClientID, event.ClientName = "fsa", client.ClientID, client.Name
+			event.OrganizationID, event.Audience, event.Scope = req.OrgID, req.Audience, req.Scope
+			logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
+		}()
+	}
 	fr := flowReq{Request: req}
 
 	sess, err := h.ActiveSession(ctx, r, res)
@@ -130,11 +161,14 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		h.deny(w, r, res, client, req, errServer())
 		return
 	}
+	if sess != nil {
+		*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: sess.UserID, Connection: sess.Connection}))
+	}
 	// A reusable session still passes organization connection and membership
 	// checks below before it can satisfy this authorization request.
 	login := h.needsLogin(req, sess) || req.invitationBinding[orglogin.InvitationIDParam] != ""
 	if !login {
-		login, err = h.connectionDisabled(ctx, res, client, sess)
+		login, err = h.connectionDisabled(r, res, client, sess)
 		if err != nil {
 			h.log().ErrorContext(ctx, "load session connection", "tenant", res.Tenant.ID, "err", err)
 			h.deny(w, r, res, client, req, errServer())
@@ -231,14 +265,15 @@ func (h *Handlers) needsLogin(req Request, sess *store.LoginSession) bool {
 
 // connectionDisabled reports whether the session's connection is missing or
 // not enabled for the client, in which case the session must not be reused.
-func (h *Handlers) connectionDisabled(ctx context.Context, res tenant.Resolved, client *store.Client, sess *store.LoginSession) (bool, error) {
-	conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, sess.Connection)
+func (h *Handlers) connectionDisabled(r *http.Request, res tenant.Resolved, client *store.Client, sess *store.LoginSession) (bool, error) {
+	conn, err := h.Store.Connections().GetByName(r.Context(), res.Tenant.ID, sess.Connection)
 	if errors.Is(err, store.ErrNotFound) {
 		return true, nil
 	}
 	if err != nil {
 		return false, err
 	}
+	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)}))
 	return !access.ConnectionUsable(client, conn), nil
 }
 
@@ -271,6 +306,7 @@ func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tena
 	params := fr.params()
 	params[ParamStage] = stageConsent
 	params[sessionKey] = sess.ID
+	params["za_log_executions"] = strings.Join(logs.Enrich(r.Context(), logs.Event{}).ExecutionIDs, ",")
 	var prepare func(string, map[string]string) error
 	if eff != nil {
 		prepare = func(txnID string, params map[string]string) error {
@@ -370,6 +406,7 @@ func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.
 		h.deny(w, r, res, client, req, errServer())
 		return
 	}
+	h.loginSucceeded(r, res, client, flowReq{Request: req}, sess)
 	params := url.Values{"code": {code}}
 	if req.State != "" {
 		params.Set("state", req.State)
@@ -585,7 +622,7 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 	login := sess.ID != txn.Params[sessionKey]
 	if !login {
 		var err error
-		if login, err = h.connectionDisabled(ctx, res, client, sess); err != nil {
+		if login, err = h.connectionDisabled(r, res, client, sess); err != nil {
 			h.log().ErrorContext(ctx, "load session connection", "tenant", res.Tenant.ID, "err", err)
 			h.refuse(w, r, res, client, fr, errServer())
 			return
@@ -601,6 +638,9 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 		h.log().ErrorContext(ctx, "open Action effects", "tenant", res.Tenant.ID, "err", err)
 		h.refuse(w, r, res, client, fr, errServer())
 		return
+	}
+	for _, id := range strings.Split(txn.Params["za_log_executions"], ",") {
+		logs.AddExecution(r.Context(), id)
 	}
 	h.finish(w, r, res, client, fr, sess, eff, true, true)
 }
@@ -660,3 +700,6 @@ func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *st
 	}
 	return v, nil
 }
+
+type silentAuthorizationKey struct{}
+type silentAuthorizationOutcome struct{ completed bool }

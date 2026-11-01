@@ -142,3 +142,19 @@ them. Never print the token or provider credentials in logs.
 General Authentication API rate limiting, device activation counters and
 custom-script Try limits remain separate follow-ups; Plan 19 does not claim
 to make those limits shared.
+
+## Tenant log evidence
+
+Use the console's **Logs** page to inspect committed protection decisions.
+`limit_wc`, `limit_sul` and `limit_mu` record applicable denied admissions;
+`pwd_leak`, `signup_pwd_leak` and `reset_pwd_leak` record the corresponding
+confirmed breach outcomes. `ublkdu` records an actual unblock write. Existing
+members/cleared blocks and rolled-back changes do not manufacture events;
+older plugins without optional mutation-outcome reporting omit uncertain
+outcomes. Management 429 responses can emit `api_limit`.
+
+The [logging guide](logs.md) documents privacy, the bounded failure-only
+window, retention and the complete code inventory. Recording is asynchronous
+and can drop events under queue/storage pressure, so absent log evidence is
+not proof that an enforcement decision did not occur. Logs do not change
+protection enforcement, counter reservations or notification availability.

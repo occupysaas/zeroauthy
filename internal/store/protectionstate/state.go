@@ -1,9 +1,11 @@
 package protectionstate
 
 import (
-	"github.com/zeroauthy/zeroauthy/internal/store"
+	"slices"
 	"sort"
 	"time"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 type Receipt struct {
@@ -56,6 +58,9 @@ func (s *State) Reserve(ls []store.ProtectionLimit, ids []string, receipt, gener
 		bs[i] = b
 		if retry := b.RetryAt(now); !retry.IsZero() {
 			a.Allowed = false
+			if !slices.Contains(a.DeniedKinds, l.Key.Kind) {
+				a.DeniedKinds = append(a.DeniedKinds, l.Key.Kind)
+			}
 			if retry.After(a.RetryAt) {
 				a.RetryAt = retry
 			}

@@ -1,0 +1,3969 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-10-30",
+  "decision": "D-0057",
+  "marker": "[REDACTED]",
+  "id_pattern": "^[0-9]{56}$",
+  "limits": {
+    "per_page_max": 100,
+    "per_page_default": 50,
+    "take_max": 100,
+    "take_default": 50,
+    "page_results_max": 1000,
+    "id_digits": 56,
+    "stats_default_days": 7,
+    "stats_max_days": 366,
+    "active_users_days": 30,
+    "query_bytes_max": 4000,
+    "query_runes_max": 1000,
+    "query_depth_max": 16,
+    "query_terms_max": 5,
+    "retention_default_days": 30,
+    "retention_min_days": 1,
+    "settle_seconds": 2,
+    "stream_batch_max": 100,
+    "stream_timeout_seconds": 10,
+    "stream_backoff_min_seconds": 1,
+    "stream_backoff_max_seconds": 300,
+    "stream_suspend_failure_hours": 24,
+    "action_console_bytes_max": 65536,
+    "action_console_retention_days": 10,
+    "memory_events_per_tenant": 10000
+  },
+  "categories": [
+    "auth.login.fail",
+    "auth.login.notification",
+    "auth.login.success",
+    "auth.logout.fail",
+    "auth.logout.success",
+    "auth.signup.fail",
+    "auth.signup.success",
+    "auth.silent_auth.fail",
+    "auth.silent_auth.success",
+    "auth.token_exchange.fail",
+    "auth.token_exchange.success",
+    "management.fail",
+    "management.success",
+    "scim.event",
+    "system.notification",
+    "user.fail",
+    "user.notification",
+    "user.success",
+    "actions",
+    "other"
+  ],
+  "codes": [
+    {
+      "type": "acls_summary",
+      "description": "A reporting window summarized network access policy matches.",
+      "category": "other",
+      "emitted": false,
+      "plan": 45,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/acls-summary",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "actions_execution_failed",
+      "description": "An Action stopped with an execution error.",
+      "category": "actions",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/actions/actions-execution-failed",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/actions/jobs.go",
+          "function": "RunJob",
+          "when": "Terminal asynchronous Action failure; never relabel Actions with the legacy Hook codes fpurh/fcph."
+        },
+        {
+          "file": "internal/actions/engine.go",
+          "function": "run",
+          "when": "Synchronous Action execution threw or timed out, not api.access.deny."
+        }
+      ]
+    },
+    {
+      "type": "acul_sdk_notice",
+      "description": "The advanced login SDK produced a diagnostic notice.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 44,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/acul-sdk-notice",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "admin_update_launch",
+      "description": "A platform update was announced.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 47,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "Auth0-operated platform notice; hosted-platform follow-up, never synthesize it locally.",
+      "triggers": []
+    },
+    {
+      "type": "api_limit",
+      "description": "An API request exhausted its rate budget.",
+      "category": "system.notification",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/api-limit",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/auth.go",
+          "function": "Auth",
+          "when": "Single Management middleware observes a 429 returned by a tenant Management endpoint; no separate general Authentication limiter is added."
+        }
+      ]
+    },
+    {
+      "type": "api_limit_warning",
+      "description": "API request traffic approached its rate budget.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 45,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/api-limit-warning",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "appi",
+      "description": "An API peak-traffic performance interval began.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 45,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/appi",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "ciba_exchange_failed",
+      "description": "A CIBA token request was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/ciba-exchange-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "ciba_exchange_succeeded",
+      "description": "A CIBA token request issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/ciba-exchange-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "ciba_start_failed",
+      "description": "A CIBA authentication request could not begin.",
+      "category": "other",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/ciba-start-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "ciba_start_succeeded",
+      "description": "A CIBA authentication request began.",
+      "category": "other",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/ciba-start-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "cls",
+      "description": "A passwordless sign-in message containing a link or code was dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 34,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/cls",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "coff",
+      "description": "An AD/LDAP connector became unavailable.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 36,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "con",
+      "description": "An AD/LDAP connector became available.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 36,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "connected_accounts_connection_failed",
+      "description": "A third-party account could not be connected.",
+      "category": "user.fail",
+      "emitted": false,
+      "plan": 43,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/connected-accounts-connection-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "connected_accounts_connection_succeeded",
+      "description": "A third-party account was connected.",
+      "category": "user.success",
+      "emitted": false,
+      "plan": 43,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/connected-accounts-connection-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "connected_accounts_delete_failed",
+      "description": "A third-party account connection could not be removed.",
+      "category": "user.fail",
+      "emitted": false,
+      "plan": 43,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/connected-accounts-delete-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "connected_accounts_delete_succeeded",
+      "description": "A third-party account connection was removed.",
+      "category": "user.success",
+      "emitted": false,
+      "plan": 43,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/connected-accounts-delete-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "cs",
+      "description": "A passwordless sign-in code was dispatched.",
+      "category": "user.notification",
+      "emitted": false,
+      "plan": 34,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-notification/cs",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "custom_domain_verification_failed",
+      "description": "A custom-domain ownership check failed.",
+      "category": "system.notification",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/custom-domain-verification-failed",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/custom_domains.go",
+          "function": "VerifyCustomDomain",
+          "when": "A domain proof check actually failed, excluding unavailable/disabled service and rate-limit errors."
+        }
+      ]
+    },
+    {
+      "type": "depnote",
+      "description": "A request exercised a deprecated feature.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 45,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/depnote",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "directory_sync_completed",
+      "description": "A directory synchronization run completed.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 36,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/directory-sync-completed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "directory_sync_failed",
+      "description": "A directory synchronization run stopped with an error.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 36,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/directory-sync-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "directory_sync_started",
+      "description": "A directory synchronization run began.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 36,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/directory-sync-started",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "f",
+      "description": "Authentication was refused for a reason without a more specific login code.",
+      "category": "auth.login.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-fail/f",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/authz/actions.go",
+          "function": "postLoginResult",
+          "when": "Post-login Action denial; attach execution ID and safe reason."
+        },
+        {
+          "file": "internal/login/login.go",
+          "function": "authenticateLogin",
+          "when": "Authentication failure other than a known password/identifier mismatch."
+        },
+        {
+          "file": "internal/login/social.go",
+          "function": "socialFailure",
+          "when": "Federated authentication failed; social OAuth/OIDC is not the AD/LDAP connector code fc."
+        },
+        {
+          "file": "internal/oauth/grant_password.go",
+          "function": "resourceOwner",
+          "when": "Generic resource-owner authentication failure without a specific fp/fu code."
+        }
+      ]
+    },
+    {
+      "type": "failed_on_behalf_of_token_exchange",
+      "description": "An on-behalf-of grant could not issue tokens.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 35,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/failed-on-behalf-of-token-exchange",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fapi",
+      "description": "A Management mutation failed (local legacy compatibility code).",
+      "category": "management.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "local-legacy-spec",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/auth.go",
+          "function": "Auth",
+          "when": "Task 8 attaches the single downstream log middleware here; successful/failed writes or successful secret-bearing read only."
+        }
+      ]
+    },
+    {
+      "type": "fc",
+      "description": "An enterprise connector authentication failed.",
+      "category": "auth.login.fail",
+      "emitted": false,
+      "plan": 36,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fce",
+      "description": "An account email update failed.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fce",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "Only changed supported profile field outcomes, one event per actual change."
+        }
+      ]
+    },
+    {
+      "type": "fco",
+      "description": "The application origin policy refused a request.",
+      "category": "other",
+      "emitted": false,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/fco",
+      "origin": "public-catalog",
+      "note": "Deferred within Plan 31: no single documented safe trigger frozen yet; remains server-log-only until evidence is added.",
+      "triggers": []
+    },
+    {
+      "type": "fcoa",
+      "description": "The cross-origin authentication flow did not complete.",
+      "category": "auth.login.fail",
+      "emitted": false,
+      "plan": 44,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-fail/fcoa",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fcp",
+      "description": "An account password update failed.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fcp",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/reset.go",
+          "function": "ResetPasswordSubmit",
+          "when": "Password reset completion or breach refusal; never capture the password."
+        },
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "Only changed supported profile field outcomes, one event per actual change."
+        }
+      ]
+    },
+    {
+      "type": "fcph",
+      "description": "An asynchronous password-change hook ended with an error.",
+      "category": "user.fail",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fcph",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "fcpn",
+      "description": "An account phone update failed.",
+      "category": "user.fail",
+      "emitted": false,
+      "plan": 34,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fcpn",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fcpr",
+      "description": "A password-reset initiation failed.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fcpr",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/dbconn/change_password.go",
+          "function": "ChangePassword",
+          "when": "Password-reset initiation outcome, preserving account enumeration resistance."
+        },
+        {
+          "file": "internal/login/reset.go",
+          "function": "ResetRequestSubmit",
+          "when": "Hosted password-reset initiation outcome."
+        }
+      ]
+    },
+    {
+      "type": "fcpro",
+      "description": "An AD/LDAP connector could not be provisioned.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 36,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/fcpro",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fcu",
+      "description": "An account username update failed.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fcu",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "Only changed supported profile field outcomes, one event per actual change."
+        }
+      ]
+    },
+    {
+      "type": "fd",
+      "description": "A delegation credential could not be created.",
+      "category": "user.fail",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fd",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "fdeac",
+      "description": "A device activation could not complete.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/fdeac",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/device.go",
+          "function": "DeviceConfirmSubmit",
+          "when": "User refusal or terminal activation failure, respectively."
+        }
+      ]
+    },
+    {
+      "type": "fdeaz",
+      "description": "A device authorization request was refused.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fdeaz",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/device.go",
+          "function": "deviceCode",
+          "when": "Device authorization issuance failed."
+        }
+      ]
+    },
+    {
+      "type": "fdecc",
+      "description": "The user declined the device authorization prompt.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fdecc",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/device.go",
+          "function": "DeviceConfirmSubmit",
+          "when": "User refusal or terminal activation failure, respectively."
+        }
+      ]
+    },
+    {
+      "type": "fdeleacft",
+      "description": "A delegated authorization code could not issue tokens.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fdeleacft",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "fdelsa",
+      "description": "Delegated authentication without interaction was refused.",
+      "category": "auth.silent_auth.fail",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-silent-auth-fail/fdelsa",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "fdu",
+      "description": "An account removal failed.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fdu",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "DeleteUser",
+          "when": "User deletion outcome."
+        }
+      ]
+    },
+    {
+      "type": "feacft",
+      "description": "An authorization code could not issue tokens.",
+      "category": "auth.token_exchange.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/feacft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_authorization_code.go",
+          "function": "authorizationCode",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "feccft",
+      "description": "A client-credentials request could not issue tokens.",
+      "category": "auth.token_exchange.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/feccft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_client_credentials.go",
+          "function": "clientCredentials",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "fecte",
+      "description": "A custom token grant could not issue tokens.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 35,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fecte",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fede",
+      "description": "A device-code grant could not issue tokens.",
+      "category": "auth.token_exchange.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fede",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_device_code.go",
+          "function": "deviceCodeGrant",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "federated_logout_failed",
+      "description": "The external identity provider could not complete sign-out.",
+      "category": "auth.logout.fail",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/federated-logout-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fens",
+      "description": "A native social provider exchange was refused.",
+      "category": "auth.login.fail",
+      "emitted": false,
+      "plan": 44,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-fail/fens",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "feoobft",
+      "description": "A password grant with an out-of-band challenge was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/feoobft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "feotpft",
+      "description": "A password grant with a one-time challenge was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/feotpft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fepft",
+      "description": "A resource-owner password grant was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fepft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_password.go",
+          "function": "resourceOwner",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "fepotpft",
+      "description": "A passwordless one-time grant was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 34,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fepotpft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fercft",
+      "description": "A password grant with an MFA recovery credential was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fercft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "ferrt",
+      "description": "A rotating refresh credential was rejected, including reuse detection.",
+      "category": "auth.token_exchange.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/ferrt",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_refresh_token.go",
+          "function": "logRefreshReuse",
+          "when": "Refresh family replay was detected."
+        }
+      ]
+    },
+    {
+      "type": "fertft",
+      "description": "A refresh credential could not issue tokens.",
+      "category": "auth.token_exchange.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fertft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_refresh_token.go",
+          "function": "refreshToken",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "feta",
+      "description": "Token Vault could not exchange the supplied credential.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 43,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/feta",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fi",
+      "description": "An organization invitation could not be accepted.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/fi",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/orglogin/invitations.go",
+          "function": "AcceptInvitation",
+          "when": "Invitation acceptance outcome; membership event only on actual insertion."
+        }
+      ]
+    },
+    {
+      "type": "flo",
+      "description": "The requested local sign-out could not complete.",
+      "category": "auth.logout.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/flo",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oidc/logout.go",
+          "function": "Logout",
+          "when": "Validated local logout outcome."
+        },
+        {
+          "file": "internal/oidc/rp_logout.go",
+          "function": "OidcLogout",
+          "when": "RP-initiated logout outcome after confirmation and validation."
+        }
+      ]
+    },
+    {
+      "type": "flows_execution_completed",
+      "description": "A configured Flow reached completion.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/flows-execution-completed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "flows_execution_failed",
+      "description": "A configured Flow stopped with an error.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/flows-execution-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fn",
+      "description": "An email notification could not be dispatched.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fn",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/email/service.go",
+          "function": "Send",
+          "when": "Non-verification email dispatch failure; no published generic success code is invented."
+        }
+      ]
+    },
+    {
+      "type": "forms_submission_failed",
+      "description": "A submitted Form was refused or failed.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/forms-submission-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "forms_submission_succeeded",
+      "description": "A submitted Form was processed.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/forms-submission-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fp",
+      "description": "The supplied password did not validate.",
+      "category": "auth.login.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-fail/fp",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/login.go",
+          "function": "authenticateLogin",
+          "when": "Known credential mismatch or breach result; choose the matching specific code."
+        },
+        {
+          "file": "internal/oauth/grant_password.go",
+          "function": "resourceOwner",
+          "when": "Known credential mismatch or breach result; choose the matching specific code."
+        }
+      ]
+    },
+    {
+      "type": "fpar",
+      "description": "A pushed authorization request was refused.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/fpar",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/par.go",
+          "function": "OauthPar",
+          "when": "Pushed authorization request failed."
+        }
+      ]
+    },
+    {
+      "type": "fpurh",
+      "description": "An asynchronous registration hook ended with an error.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/fpurh",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "fs",
+      "description": "Account registration was refused or failed.",
+      "category": "auth.signup.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-signup-fail/fs",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/login.go",
+          "function": "SignupSubmit",
+          "when": "Hosted registration outcome or breach refusal."
+        },
+        {
+          "file": "internal/dbconn/signup.go",
+          "function": "Signup",
+          "when": "Direct registration outcome or breach refusal."
+        }
+      ]
+    },
+    {
+      "type": "fsa",
+      "description": "Authentication without interaction was refused.",
+      "category": "auth.silent_auth.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-silent-auth-fail/fsa",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/authz/handlers.go",
+          "function": "Authorize",
+          "when": "prompt=none outcome; successful authorization is counted once, not also as s."
+        }
+      ]
+    },
+    {
+      "type": "fscim",
+      "description": "A SCIM provisioning operation failed.",
+      "category": "scim.event",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/scim-event/fscim",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "fu",
+      "description": "No valid account matched the supplied login identifier.",
+      "category": "auth.login.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-fail/fu",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/login.go",
+          "function": "authenticateLogin",
+          "when": "Known credential mismatch or breach result; choose the matching specific code."
+        },
+        {
+          "file": "internal/oauth/grant_password.go",
+          "function": "resourceOwner",
+          "when": "Known credential mismatch or breach result; choose the matching specific code."
+        }
+      ]
+    },
+    {
+      "type": "fui",
+      "description": "A background account import failed.",
+      "category": "system.notification",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/fui",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/jobs/importer.go",
+          "function": "Run",
+          "when": "Import job reached failed or completed terminal state."
+        }
+      ]
+    },
+    {
+      "type": "fv",
+      "description": "A verification email could not be dispatched.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fv",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/verify.go",
+          "function": "Send",
+          "when": "Verification email dispatch failed."
+        }
+      ]
+    },
+    {
+      "type": "fvr",
+      "description": "A verification-email initiation failed.",
+      "category": "user.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/fvr",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/jobs.go",
+          "function": "CreateVerificationEmailJob",
+          "when": "Verification-email request failed or was accepted into the background queue."
+        }
+      ]
+    },
+    {
+      "type": "gd_auth_email_verification",
+      "description": "The MFA email verification step completed.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-email-verification",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_auth_failed",
+      "description": "An MFA challenge did not validate.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_auth_rejected",
+      "description": "The user declined an MFA push challenge.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-rejected",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_auth_succeed",
+      "description": "An MFA challenge validated.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-succeed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_email_settings_update",
+      "description": "The MFA email factor configuration changed.",
+      "category": "management.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/management-success/gd-email-settings-update",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_enrollment_complete",
+      "description": "An account completed its first MFA enrollment.",
+      "category": "user.notification",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-enrollment-complete",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_otp_rate_limit_exceed",
+      "description": "Too many incorrect MFA one-time codes triggered throttling.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-otp-rate-limit-exceed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_phone_settings_update",
+      "description": "The MFA phone factor configuration changed.",
+      "category": "management.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/management-success/gd-phone-settings-update",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_recovery_failed",
+      "description": "An MFA recovery credential did not validate.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-recovery-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_recovery_succeed",
+      "description": "An MFA recovery credential validated.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-recovery-succeed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_email",
+      "description": "An MFA challenge email was dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-email",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_email_verification",
+      "description": "An MFA enrollment verification email was dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-email-verification",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_pn",
+      "description": "An MFA push challenge was dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-pn",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_pn_failure",
+      "description": "An MFA push challenge could not be dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-pn-failure",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_sms",
+      "description": "An MFA text challenge was dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_sms_failure",
+      "description": "An MFA text challenge could not be dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms-failure",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_voice",
+      "description": "An MFA voice challenge was dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_send_voice_failure",
+      "description": "An MFA voice challenge could not be dispatched.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice-failure",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_start_auth",
+      "description": "An MFA authentication challenge began.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-start-auth",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_start_enroll",
+      "description": "An MFA enrollment began.",
+      "category": "user.notification",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-start-enroll",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_start_enroll_failed",
+      "description": "An MFA enrollment could not complete.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-start-enroll-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_tenant_update",
+      "description": "Tenant MFA configuration changed.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-tenant-update",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_unenroll",
+      "description": "A second-factor device registration was removed.",
+      "category": "user.notification",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-unenroll",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_update_device_account",
+      "description": "A second-factor device registration changed.",
+      "category": "user.notification",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-update-device-account",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_webauthn_challenge_failed",
+      "description": "The browser could not complete a WebAuthn assertion.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-webauthn-challenge-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "gd_webauthn_enrollment_failed",
+      "description": "The browser could not complete WebAuthn registration.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/gd-webauthn-enrollment-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "idjag_exchange_failed",
+      "description": "An identity assertion authorization grant was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 35,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/idjag-exchange-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "idjag_exchange_succeeded",
+      "description": "An identity assertion authorization grant issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 35,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/idjag-exchange-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "jwt_bearer_exchange_failed",
+      "description": "A JWT assertion grant was refused.",
+      "category": "auth.token_exchange.fail",
+      "emitted": false,
+      "plan": 35,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/jwt-bearer-exchange-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "kms_key_management_failure",
+      "description": "A managed encryption-key operation failed.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/kms-key-management-failure",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "kms_key_management_success",
+      "description": "A managed encryption-key operation completed.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/kms-key-management-success",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "kms_key_state_changed",
+      "description": "An encryption key moved to another lifecycle state.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/kms-key-state-changed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "limit_delegation",
+      "description": "Delegation request traffic exhausted its rate budget.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-delegation",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "limit_mu",
+      "description": "An IP triggered suspicious authentication or registration throttling.",
+      "category": "system.notification",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-mu",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/protection/service.go",
+          "function": "Begin",
+          "when": "Actual configured throttle/block decision, not monitoring-only signal."
+        }
+      ]
+    },
+    {
+      "type": "limit_phone",
+      "description": "Phone challenge traffic exhausted its send budget.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 34,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-phone",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "limit_signup_otp",
+      "description": "Signup verification traffic exhausted its identifier send budget.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 34,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-signup-otp",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "limit_sul",
+      "description": "An account-and-IP login frequency budget was exhausted.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/limit-sul",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/protection/service.go",
+          "function": "Begin",
+          "when": "Actual configured throttle/block decision, not monitoring-only signal."
+        }
+      ]
+    },
+    {
+      "type": "limit_wc",
+      "description": "Repeated bad credentials triggered an account block.",
+      "category": "system.notification",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-wc",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/protection/service.go",
+          "function": "Begin",
+          "when": "Actual configured throttle/block decision, not monitoring-only signal."
+        }
+      ]
+    },
+    {
+      "type": "mfar",
+      "description": "The flow requested a second authentication factor.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/mfar",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "mgmt_api_read",
+      "description": "An authorized Management read returned protected credential data.",
+      "category": "management.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/management-success/mgmt-api-read",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/auth.go",
+          "function": "Auth",
+          "when": "Task 8 attaches the single downstream log middleware here; successful/failed writes or successful secret-bearing read only."
+        }
+      ]
+    },
+    {
+      "type": "my_account_authentication_method_failed",
+      "description": "A My Account authentication-method operation failed.",
+      "category": "user.fail",
+      "emitted": false,
+      "plan": 42,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/my-account-authentication-method-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "my_account_authentication_method_succeeded",
+      "description": "A My Account authentication-method operation completed.",
+      "category": "user.success",
+      "emitted": false,
+      "plan": 42,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/my-account-authentication-method-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "oidc_backchannel_logout_failed",
+      "description": "An OIDC logout notification could not be delivered.",
+      "category": "auth.logout.fail",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/oidc-backchannel-logout-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "oidc_backchannel_logout_succeeded",
+      "description": "An OIDC logout notification was delivered.",
+      "category": "auth.logout.success",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/oidc-backchannel-logout-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "organization_access_denied",
+      "description": "Application policy refused the requested organization.",
+      "category": "auth.login.fail",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-fail/organization-access-denied",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/authz/organization.go",
+          "function": "ResolveOrganization",
+          "when": "Application entitlement disallowed the organization."
+        }
+      ]
+    },
+    {
+      "type": "organization_member_added",
+      "description": "An account gained membership in an organization.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/organization-member-added",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/orglogin/invitations.go",
+          "function": "AcceptInvitation",
+          "when": "Invitation acceptance outcome; membership event only on actual insertion."
+        },
+        {
+          "file": "internal/mgmt/organization_members.go",
+          "function": "AddOrganizationMembers",
+          "when": "New explicit member insertion, not an idempotent no-op."
+        },
+        {
+          "file": "internal/orglogin/organization.go",
+          "function": "EnsureMembership",
+          "when": "Auto-membership inserted a new member; no event for an existing membership."
+        }
+      ]
+    },
+    {
+      "type": "passkey_challenge_failed",
+      "description": "A native passkey assertion could not complete.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/passkey-challenge-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "passkey_challenge_started",
+      "description": "A native passkey assertion challenge began.",
+      "category": "other",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/passkey-challenge-started",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "pla",
+      "description": "Bot-detection signals were sampled before authentication.",
+      "category": "other",
+      "emitted": false,
+      "plan": 40,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/pla",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "pwd_leak",
+      "description": "A login presented a password found in a breach corpus.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "leaked_passwords",
+      "source": "https://auth0.com/docs/tenant-logs/other/pwd-leak",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/login.go",
+          "function": "authenticateLogin",
+          "when": "Known credential mismatch or breach result; choose the matching specific code."
+        },
+        {
+          "file": "internal/oauth/grant_password.go",
+          "function": "resourceOwner",
+          "when": "Known credential mismatch or breach result; choose the matching specific code."
+        }
+      ]
+    },
+    {
+      "type": "reset_pwd_leak",
+      "description": "A reset presented a password found in a breach corpus.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "leaked_passwords",
+      "source": "https://auth0.com/docs/tenant-logs/other/reset-pwd-leak",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/reset.go",
+          "function": "ResetPasswordSubmit",
+          "when": "Password reset completion or breach refusal; never capture the password."
+        },
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "checkPassword",
+          "when": "A Management pre-change-password breach check confirmed a leaked value, including monitor-only policies; details.blocked records whether admission was refused."
+        }
+      ]
+    },
+    {
+      "type": "resource_cleanup",
+      "description": "Limit enforcement removed excess stored resources.",
+      "category": "other",
+      "emitted": false,
+      "plan": 45,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/resource-cleanup",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "rich_consents_access_error",
+      "description": "A rich-consent record could not be read.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/rich-consents-access-error",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "s",
+      "description": "An interactive authentication completed.",
+      "category": "auth.login.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "logins",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/s",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/authz/handlers.go",
+          "function": "finish",
+          "when": "Successful interactive authorization after Actions and policy checks; not a token exchange."
+        }
+      ]
+    },
+    {
+      "type": "sapi",
+      "description": "A Management mutation completed successfully.",
+      "category": "management.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/management-success/sapi",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/auth.go",
+          "function": "Auth",
+          "when": "Task 8 attaches the single downstream log middleware here; successful/failed writes or successful secret-bearing read only."
+        }
+      ]
+    },
+    {
+      "type": "sce",
+      "description": "An account email address changed.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/sce",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "Only changed supported profile field outcomes, one event per actual change."
+        }
+      ]
+    },
+    {
+      "type": "scoa",
+      "description": "The cross-origin authentication flow completed.",
+      "category": "auth.login.success",
+      "emitted": false,
+      "plan": 44,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/scoa",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "scp",
+      "description": "An account password changed.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/scp",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/reset.go",
+          "function": "ResetPasswordSubmit",
+          "when": "Password reset completion or breach refusal; never capture the password."
+        },
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "Only changed supported profile field outcomes, one event per actual change."
+        }
+      ]
+    },
+    {
+      "type": "scpn",
+      "description": "An account phone number changed.",
+      "category": "user.success",
+      "emitted": false,
+      "plan": 34,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/scpn",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "scpr",
+      "description": "A password-reset request was accepted.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/scpr",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/dbconn/change_password.go",
+          "function": "ChangePassword",
+          "when": "Password-reset initiation outcome, preserving account enumeration resistance."
+        },
+        {
+          "file": "internal/login/reset.go",
+          "function": "ResetRequestSubmit",
+          "when": "Hosted password-reset initiation outcome."
+        }
+      ]
+    },
+    {
+      "type": "scu",
+      "description": "An account username changed.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/scu",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "Only changed supported profile field outcomes, one event per actual change."
+        }
+      ]
+    },
+    {
+      "type": "scv",
+      "description": "The submitted credential passed validation.",
+      "category": "auth.login.notification",
+      "emitted": false,
+      "plan": 40,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-notification/scv",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sd",
+      "description": "A delegation credential was created.",
+      "category": "user.success",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/sd",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "sdel",
+      "description": "A delegated sign-in completed.",
+      "category": "auth.login.success",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/sdel",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "sdeleacft",
+      "description": "A delegated authorization code issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sdeleacft",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "sdelsa",
+      "description": "Delegated authentication without interaction completed.",
+      "category": "auth.silent_auth.success",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-silent-auth-success/sdelsa",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "sdu",
+      "description": "An account was removed.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/sdu",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "DeleteUser",
+          "when": "User deletion outcome."
+        }
+      ]
+    },
+    {
+      "type": "seacft",
+      "description": "An authorization code issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seacft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_authorization_code.go",
+          "function": "authorizationCode",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "seccft",
+      "description": "A client-credentials request issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seccft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_client_credentials.go",
+          "function": "clientCredentials",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "secte",
+      "description": "A custom token grant issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 35,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/secte",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sede",
+      "description": "A device-code grant issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sede",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_device_code.go",
+          "function": "deviceCodeGrant",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "sens",
+      "description": "A native social provider exchange completed.",
+      "category": "auth.login.success",
+      "emitted": false,
+      "plan": 44,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/sens",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "seoobft",
+      "description": "A password grant passed an out-of-band challenge.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seoobft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "seotpft",
+      "description": "A password grant passed a one-time challenge.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seotpft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sepft",
+      "description": "A resource-owner password grant issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "logins",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_password.go",
+          "function": "resourceOwner",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "sepkoobft",
+      "description": "A passkey grant passed an out-of-band challenge.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkoobft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sepkotpft",
+      "description": "A passkey grant passed a one-time challenge.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkotpft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sepkrcft",
+      "description": "A passkey grant passed an MFA recovery challenge.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkrcft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sercft",
+      "description": "A password grant passed an MFA recovery challenge.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 33,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sercft",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sertft",
+      "description": "A refresh credential issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sertft",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_refresh_token.go",
+          "function": "refreshToken",
+          "when": "Final matching grant outcome; pending device polling is not a failure."
+        }
+      ]
+    },
+    {
+      "type": "seta",
+      "description": "Token Vault exchanged the supplied credential.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 43,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seta",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "si",
+      "description": "An organization invitation was accepted.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/si",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/orglogin/invitations.go",
+          "function": "AcceptInvitation",
+          "when": "Invitation acceptance outcome; membership event only on actual insertion."
+        }
+      ]
+    },
+    {
+      "type": "signup_pwd_leak",
+      "description": "A registration presented a password found in a breach corpus.",
+      "category": "other",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "leaked_passwords",
+      "source": "https://auth0.com/docs/tenant-logs/other/signup-pwd-leak",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/login.go",
+          "function": "SignupSubmit",
+          "when": "Hosted registration outcome or breach refusal."
+        },
+        {
+          "file": "internal/dbconn/signup.go",
+          "function": "Signup",
+          "when": "Direct registration outcome or breach refusal."
+        }
+      ]
+    },
+    {
+      "type": "slo",
+      "description": "The local sign-out completed.",
+      "category": "auth.logout.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/slo",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oidc/logout.go",
+          "function": "Logout",
+          "when": "Validated local logout outcome."
+        },
+        {
+          "file": "internal/oidc/rp_logout.go",
+          "function": "OidcLogout",
+          "when": "RP-initiated logout outcome after confirmation and validation."
+        }
+      ]
+    },
+    {
+      "type": "srrt",
+      "description": "A refresh credential was revoked.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/srrt",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/revoke.go",
+          "function": "revoke",
+          "when": "An existing refresh credential was actually revoked."
+        }
+      ]
+    },
+    {
+      "type": "ss",
+      "description": "A new account was registered.",
+      "category": "auth.signup.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "signups",
+      "source": "https://auth0.com/docs/tenant-logs/auth-signup-success/ss",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/login.go",
+          "function": "SignupSubmit",
+          "when": "Hosted registration outcome or breach refusal."
+        },
+        {
+          "file": "internal/dbconn/signup.go",
+          "function": "Signup",
+          "when": "Direct registration outcome or breach refusal."
+        }
+      ]
+    },
+    {
+      "type": "ss_sso_failure",
+      "description": "A self-service SSO operation failed.",
+      "category": "user.fail",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-fail/ss-sso-failure",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "ss_sso_info",
+      "description": "A self-service SSO operation produced informational output.",
+      "category": "user.notification",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-notification/ss-sso-info",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "ss_sso_success",
+      "description": "A self-service SSO operation completed.",
+      "category": "user.success",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/ss-sso-success",
+      "origin": "public-catalog",
+      "note": "Legacy or self-service/delegated surface not implemented; Plan 38 reassesses, not a delivery promise.",
+      "triggers": []
+    },
+    {
+      "type": "ssa",
+      "description": "Authentication without interaction completed.",
+      "category": "auth.silent_auth.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "logins",
+      "source": "https://auth0.com/docs/tenant-logs/auth-silent-auth-success/ssa",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/authz/handlers.go",
+          "function": "Authorize",
+          "when": "prompt=none outcome; successful authorization is counted once, not also as s."
+        }
+      ]
+    },
+    {
+      "type": "sscim",
+      "description": "A SCIM provisioning operation completed.",
+      "category": "scim.event",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/scim-event/sscim",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "success_on_behalf_of_token_exchange",
+      "description": "An on-behalf-of grant issued tokens.",
+      "category": "auth.token_exchange.success",
+      "emitted": false,
+      "plan": 35,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/success-on-behalf-of-token-exchange",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "sui",
+      "description": "A background account import completed.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/sui",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/jobs/importer.go",
+          "function": "Run",
+          "when": "Import job reached failed or completed terminal state."
+        }
+      ]
+    },
+    {
+      "type": "sv",
+      "description": "An email-verification bearer was consumed.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/sv",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/login/verify.go",
+          "function": "EmailVerificationPage",
+          "when": "Verification ticket consumed successfully."
+        }
+      ]
+    },
+    {
+      "type": "svr",
+      "description": "A verification-email request was queued.",
+      "category": "user.success",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-success/svr",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/jobs.go",
+          "function": "CreateVerificationEmailJob",
+          "when": "Verification-email request failed or was accepted into the background queue."
+        }
+      ]
+    },
+    {
+      "type": "sys_os_update_end",
+      "description": "A platform operating-system update finished.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 47,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "Auth0-operated platform notice; hosted-platform follow-up, never synthesize it locally.",
+      "triggers": []
+    },
+    {
+      "type": "sys_os_update_start",
+      "description": "A platform operating-system update began.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 47,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "Auth0-operated platform notice; hosted-platform follow-up, never synthesize it locally.",
+      "triggers": []
+    },
+    {
+      "type": "sys_update_end",
+      "description": "A platform application update finished.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 47,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "Auth0-operated platform notice; hosted-platform follow-up, never synthesize it locally.",
+      "triggers": []
+    },
+    {
+      "type": "sys_update_start",
+      "description": "A platform application update began.",
+      "category": "system.notification",
+      "emitted": false,
+      "plan": 47,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/customize/log-streams/event-filters",
+      "origin": "legacy-filter-table",
+      "note": "Auth0-operated platform notice; hosted-platform follow-up, never synthesize it locally.",
+      "triggers": []
+    },
+    {
+      "type": "ublkdu",
+      "description": "An automatic account block was removed.",
+      "category": "user.notification",
+      "emitted": true,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/user-notification/ublkdu",
+      "origin": "public-catalog",
+      "note": "Plan 31 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/user_blocks.go",
+          "function": "UserBlocks",
+          "when": "An automatic user block was successfully cleared."
+        }
+      ]
+    },
+    {
+      "type": "universal_logout_failed",
+      "description": "A universal sign-out operation could not complete.",
+      "category": "auth.logout.fail",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/universal-logout-failed",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "universal_logout_succeeded",
+      "description": "A universal sign-out operation completed.",
+      "category": "auth.logout.success",
+      "emitted": false,
+      "plan": 41,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/universal-logout-succeeded",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "w",
+      "description": "Authentication completed a step with a warning.",
+      "category": "auth.login.notification",
+      "emitted": false,
+      "plan": 31,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-notification/w",
+      "origin": "public-catalog",
+      "note": "Deferred within Plan 31: no single documented safe trigger frozen yet; remains server-log-only until evidence is added.",
+      "triggers": []
+    },
+    {
+      "type": "wn",
+      "description": "A general warning notification was produced.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/wn",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    },
+    {
+      "type": "wum",
+      "description": "A user-management operation produced a warning.",
+      "category": "other",
+      "emitted": false,
+      "plan": 38,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/tenant-logs/other/wum",
+      "origin": "public-catalog",
+      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "triggers": []
+    }
+  ],
+  "fields": [
+    {
+      "name": "client_id",
+      "column": "client_id",
+      "storage": "column",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "client_name",
+      "column": "body.client_name",
+      "storage": "json-string",
+      "type": "string",
+      "bare": true,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "connection",
+      "column": "body.connection",
+      "storage": "json-string",
+      "type": "string",
+      "bare": true,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "connection_id",
+      "column": "connection_id",
+      "storage": "column",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "description",
+      "column": "body.description",
+      "storage": "json-string",
+      "type": "string",
+      "bare": true,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "date",
+      "column": "date",
+      "storage": "column",
+      "type": "date",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "hostname",
+      "column": "body.hostname",
+      "storage": "json-string",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "ip",
+      "column": "ip",
+      "storage": "column",
+      "type": "string",
+      "bare": true,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "log_id",
+      "column": "log_id",
+      "storage": "column",
+      "type": "string",
+      "bare": true,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "organization_id",
+      "column": "organization_id",
+      "storage": "column",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "user_id",
+      "column": "user_id",
+      "storage": "column",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "user_name",
+      "column": "body.user_name",
+      "storage": "json-string",
+      "type": "string",
+      "bare": true,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "user_agent",
+      "column": "body.user_agent",
+      "storage": "json-string",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "strategy",
+      "column": "body.strategy",
+      "storage": "json-string",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "strategy_type",
+      "column": "body.strategy_type",
+      "storage": "json-string",
+      "type": "string",
+      "bare": false,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    },
+    {
+      "name": "type",
+      "column": "type",
+      "storage": "column",
+      "type": "string",
+      "bare": true,
+      "source": "https://auth0.com/docs/deploy-monitor/logs/log-search-query-syntax"
+    }
+  ],
+  "log_fields": [
+    {
+      "name": "log_id",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "_id",
+      "type": "string",
+      "source": "https://auth0.com/docs/secure/security-guidance/incident-response-using-logs",
+      "omission": "optional authoritative alias of log_id"
+    },
+    {
+      "name": "date",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "client_id",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "client_name",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "connection",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "connection_id",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "strategy",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "strategy_type",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "user_id",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "user_name",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "audience",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "scope",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "ip",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "hostname",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "user_agent",
+      "type": "string",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "isMobile",
+      "type": "boolean",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "organization_id",
+      "type": "string",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/s",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "organization_name",
+      "type": "string",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/s",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "tenant_name",
+      "type": "string",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/s",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "details",
+      "type": "object",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "$event_schema",
+      "type": "object",
+      "source": "https://auth0.com/docs/tenant-logs/auth-login-success/s",
+      "omission": "omit when unavailable"
+    },
+    {
+      "name": "security_context",
+      "type": "object",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "omission": "omit when unavailable"
+    }
+  ],
+  "allowlists": {
+    "default": [],
+    "clients": [
+      "client_id",
+      "name",
+      "app_type",
+      "description",
+      "callbacks",
+      "allowed_logout_urls",
+      "web_origins",
+      "grant_types",
+      "oidc_conformant",
+      "is_first_party",
+      "organization_usage",
+      "organization_require_behavior"
+    ],
+    "users": [
+      "user_id",
+      "email",
+      "email_verified",
+      "username",
+      "name",
+      "given_name",
+      "family_name",
+      "nickname",
+      "picture",
+      "phone_number",
+      "phone_verified",
+      "blocked",
+      "connection",
+      "created_at",
+      "updated_at"
+    ],
+    "connections": [
+      "id",
+      "name",
+      "display_name",
+      "strategy",
+      "enabled_clients",
+      "is_domain_connection",
+      "realms"
+    ],
+    "resource-servers": [
+      "id",
+      "name",
+      "identifier",
+      "scopes",
+      "scopes[].value",
+      "scopes[].description",
+      "signing_alg",
+      "enforce_policies",
+      "token_dialect",
+      "skip_consent_for_verifiable_first_party_clients"
+    ],
+    "client-grants": [
+      "id",
+      "client_id",
+      "audience",
+      "scope",
+      "organization_usage",
+      "allow_any_organization"
+    ],
+    "organizations": [
+      "id",
+      "name",
+      "display_name",
+      "branding",
+      "branding.logo_url",
+      "branding.colors",
+      "branding.colors.primary",
+      "branding.colors.page_background",
+      "user_id",
+      "members",
+      "roles",
+      "connection_id",
+      "enabled_connections",
+      "enabled_connections[].connection_id",
+      "enabled_connections[].assign_membership_on_login"
+    ],
+    "actions": [
+      "id",
+      "name",
+      "supported_triggers",
+      "supported_triggers[].id",
+      "supported_triggers[].version",
+      "runtime",
+      "status",
+      "deployed",
+      "created_at",
+      "updated_at"
+    ],
+    "email-templates": [
+      "template",
+      "enabled",
+      "from",
+      "subject",
+      "syntax",
+      "resultUrl",
+      "urlLifetimeInSeconds",
+      "includeEmailInRedirect"
+    ],
+    "emails": [
+      "name",
+      "enabled"
+    ],
+    "tickets": [
+      "user_id",
+      "client_id",
+      "connection_id",
+      "email",
+      "ttl_sec",
+      "mark_email_as_verified",
+      "includeEmailInRedirect"
+    ],
+    "jobs": [
+      "id",
+      "type",
+      "status",
+      "connection_id",
+      "external_id",
+      "upsert",
+      "send_completion_email",
+      "created_at"
+    ],
+    "tenants": [
+      "friendly_name",
+      "support_email",
+      "support_url",
+      "default_directory",
+      "enabled_locales",
+      "session_lifetime",
+      "idle_session_lifetime"
+    ],
+    "log-streams": [
+      "id",
+      "name",
+      "type",
+      "status",
+      "isPriority",
+      "filters",
+      "filters[].type",
+      "filters[].name",
+      "pii_config",
+      "pii_config.log_fields",
+      "pii_config.method",
+      "pii_config.algorithm",
+      "startFrom"
+    ],
+    "roles": [
+      "id",
+      "name",
+      "description",
+      "permissions",
+      "permissions[].permission_name",
+      "permissions[].resource_server_identifier"
+    ],
+    "branding": [
+      "logo_url",
+      "favicon_url",
+      "colors",
+      "colors.primary",
+      "colors.page_background"
+    ],
+    "prompts": [
+      "universal_login_experience",
+      "identifier_first",
+      "webauthn_platform_first_factor"
+    ],
+    "attack-protection": [
+      "enabled",
+      "shields",
+      "allowlist",
+      "mode",
+      "brute_force_threshold",
+      "max_attempts"
+    ],
+    "user-blocks": [
+      "identifier",
+      "blocked_for",
+      "blocked_for[].identifier",
+      "blocked_for[].connection"
+    ],
+    "sessions": [
+      "id",
+      "user_id",
+      "client_id",
+      "created_at",
+      "updated_at",
+      "expires_at"
+    ],
+    "grants": [
+      "id",
+      "user_id",
+      "clientID",
+      "audience",
+      "scope"
+    ],
+    "keys": [
+      "kid",
+      "alg",
+      "use",
+      "kty"
+    ],
+    "custom-domains": [
+      "id",
+      "domain",
+      "type",
+      "status",
+      "primary",
+      "verification",
+      "verification.methods",
+      "verification.methods[].name",
+      "verification.methods[].record"
+    ],
+    "rules": [],
+    "hooks": [],
+    "stats": [],
+    "logs": []
+  },
+  "privacy": {
+    "allowlist_rule": "Resolve known resource routes to the family above, default deny for all others. Apply the same paths to request and response bodies, including arrays and JSON-in-string bodies. Unknown keys become the marker at any depth. Parent permission is not wildcard permission; arbitrary metadata, code, scripts, HTML, templates, URLs carrying bearers, provider options and all headers are never body-allowlisted. Query keys are separately allowlisted: page,per_page,include_totals,sort,fields,include_fields; all other query values are masked. Never log raw request URLs.",
+    "secret_read_rule": "mgmt_api_read only for a successful GET whose authorized serializer returned credential material: clients client_secret; connections options credentials; actions secrets; emails credentials; keys private material (if ever supported); user identities access_token/refresh_token. Detection precedes scrubbing; no read event for the logs APIs or redacted-only results.",
+    "marker_evidence": "Local marker: reviewed public sources do not establish one universal Auth0 marker; no live observation.",
+    "sink_secrets": "Seal all fields marked secret; read substitutes marker. Omitted PATCH field preserves existing secret; literal marker on PATCH preserves a previously configured secret (local import/edit convention). New creates reject the marker as a secret. Endpoint URLs/headers are never included in delivery diagnostics."
+  },
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v2/logs",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs",
+      "scopes": [
+        "read:logs"
+      ],
+      "scope_match": "all",
+      "parameters": [
+        {
+          "name": "page",
+          "type": "integer",
+          "in": "query",
+          "rule": "0-based; default 0; nonnegative; (page+1)*per_page <= 1000"
+        },
+        {
+          "name": "per_page",
+          "type": "integer",
+          "in": "query",
+          "rule": "1..100; default 50 (local consistent lower bound)"
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "in": "query",
+          "rule": "date:1 or date:-1; default date:-1"
+        },
+        {
+          "name": "fields",
+          "type": "string",
+          "in": "query",
+          "rule": "Comma-separated log object fields; empty means all; unknown fields rejected locally"
+        },
+        {
+          "name": "include_fields",
+          "type": "boolean",
+          "in": "query",
+          "rule": "default true; fields projection applies in page mode"
+        },
+        {
+          "name": "include_totals",
+          "type": "boolean",
+          "in": "query",
+          "rule": "default false; true returns {logs,start,limit,length,total}; total is matching count capped at 1000 locally"
+        },
+        {
+          "name": "q",
+          "type": "string",
+          "in": "query",
+          "rule": "Lucene subset; max 4000 bytes/1000 runes, depth 16, 5 terms; ignored in checkpoint mode"
+        },
+        {
+          "name": "search_engine",
+          "type": "string",
+          "in": "query",
+          "rule": "Local supported page selector: exactly one v3 value; existing bounded search subset unchanged; ignored in checkpoint mode. Acceptance independently observed 2026-11-01, not full search-engine parity."
+        },
+        {
+          "name": "from",
+          "type": "string",
+          "in": "query",
+          "rule": "56 decimal digits; checkpoint is exclusive, ascending sequence; malformed=400; valid absent ID still an opaque cursor"
+        },
+        {
+          "name": "take",
+          "type": "integer",
+          "in": "query",
+          "rule": "1..100; default 50; from or presence of take selects checkpoint mode; take alone returns latest settled events ascending"
+        }
+      ],
+      "envelope": "Page: Log[] or {logs,start,limit,length,total}; checkpoint: Log[] only. Checkpoint ignores every parameter except from/take. Stable ascending seq in checkpoint, date ordering not promised.",
+      "success_status": 200,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: malformed cursor, query, projection or pagination limit (local code)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/logs/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/logs/get-logs-by-id",
+      "scopes": [
+        "read:logs"
+      ],
+      "scope_match": "all",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "in": "path",
+          "rule": "Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404"
+        }
+      ],
+      "envelope": "Log object; malformed ID is not_found, not invalid_query_string.",
+      "success_status": 200,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: unsupported query; malformed/missing log ID uses 404 instead (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)",
+        "404": "not_found (including cross-tenant and malformed log ID on GET /logs/{id})"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/users/{id}/logs",
+      "source": "https://auth0.com/docs/api/management/v2/users/get-logs-by-user",
+      "scopes": [
+        "read:logs",
+        "read:logs_users"
+      ],
+      "scope_match": "all",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "in": "path",
+          "rule": "Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404"
+        },
+        {
+          "name": "page",
+          "type": "integer",
+          "in": "query",
+          "rule": "0-based; default 0; nonnegative; (page+1)*per_page <= 1000"
+        },
+        {
+          "name": "per_page",
+          "type": "integer",
+          "in": "query",
+          "rule": "1..100; default 50 (local consistent lower bound)"
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "in": "query",
+          "rule": "date:1 or date:-1; default date:-1"
+        },
+        {
+          "name": "include_totals",
+          "type": "boolean",
+          "in": "query",
+          "rule": "default false; true returns {logs,start,limit,length,total}; total is matching count capped at 1000 locally"
+        }
+      ],
+      "envelope": "Log[] or {logs,start,limit,length,total}; only the referenced tenant user. Missing/deleted user=404 locally; historical events remain searchable globally.",
+      "success_status": 200,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: invalid page/per_page/sort/totals; invalid_uri for malformed user ID (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)",
+        "404": "not_found (including cross-tenant and malformed log ID on GET /logs/{id})"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/log-streams",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/get-log-streams",
+      "scopes": [
+        "read:log_streams"
+      ],
+      "scope_match": "all",
+      "parameters": [],
+      "envelope": "LogStream[]; sink secret values replaced with marker",
+      "success_status": 200,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: unsupported query parameters (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/log-streams",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "scopes": [
+        "create:log_streams"
+      ],
+      "scope_match": "all",
+      "parameters": [],
+      "envelope": "LogStream object; sink secret values replaced with marker",
+      "success_status": 200,
+      "body": "LogStreamCreate; required type/sink; status is not a create property",
+      "errors": {
+        "400": "invalid_body: malformed/unknown/null fields, invalid typed sink/filter/PII/startFrom configuration (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)",
+        "409": "conflict (duplicate stream name or concurrent update, local)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/log-streams/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/get-log-streams-by-id",
+      "scopes": [
+        "read:log_streams"
+      ],
+      "scope_match": "all",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "in": "path",
+          "rule": "Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404"
+        }
+      ],
+      "envelope": "LogStream object; sink secret values replaced with marker",
+      "success_status": 200,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: unsupported query parameters (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)",
+        "404": "not_found (including cross-tenant and malformed log ID on GET /logs/{id})"
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/log-streams/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/patch-log-streams-by-id",
+      "scopes": [
+        "update:log_streams"
+      ],
+      "scope_match": "all",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "in": "path",
+          "rule": "Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404"
+        }
+      ],
+      "envelope": "LogStream object; sink secret values replaced with marker",
+      "success_status": 200,
+      "body": "LogStreamPatch; name/status/sink/filters/isPriority/pii_config; type and startFrom forbidden; omitted secret retains value",
+      "errors": {
+        "400": "invalid_body for malformed/unknown/null properties or sink/filter/PII types; invalid_operation for immutable type/startFrom or cloud status transition (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)",
+        "404": "not_found (including cross-tenant and malformed log ID on GET /logs/{id})",
+        "409": "conflict (duplicate stream name or concurrent update, local)"
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/log-streams/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/delete-log-streams-by-id",
+      "scopes": [
+        "delete:log_streams"
+      ],
+      "scope_match": "all",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "in": "path",
+          "rule": "Tenant-scoped opaque resource ID; a log ID is exactly 56 decimal digits; missing/cross-tenant=404"
+        }
+      ],
+      "envelope": "empty",
+      "success_status": 204,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: unsupported query parameters (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)",
+        "404": "not_found (including cross-tenant and malformed log ID on GET /logs/{id})"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/stats/daily",
+      "source": "https://auth0.com/docs/api/management/v2/stats/get-daily",
+      "scopes": [
+        "read:stats"
+      ],
+      "scope_match": "all",
+      "parameters": [
+        {
+          "name": "from",
+          "type": "string",
+          "in": "query",
+          "rule": "YYYYMMDD inclusive UTC day; default today minus 6 days; max inclusive range 366 days (local)"
+        },
+        {
+          "name": "to",
+          "type": "string",
+          "in": "query",
+          "rule": "YYYYMMDD inclusive UTC day; default today; from <= to; fill absent days with zero counters and midnight UTC created_at/updated_at (local)"
+        }
+      ],
+      "envelope": "DailyStat[] with date at RFC3339 midnight UTC, logins, signups, leaked_passwords, created_at, updated_at; UTC RFC3339 timestamps",
+      "success_status": 200,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: invalid calendar date, reversed range, unsupported query or range >366 inclusive UTC days (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/stats/active-users",
+      "source": "https://auth0.com/docs/api/management/v2/stats/get-active-users",
+      "scopes": [
+        "read:stats"
+      ],
+      "scope_match": "all",
+      "parameters": [],
+      "envelope": "JSON integer; distinct existing users with last_login >= now minus 30 days",
+      "success_status": 200,
+      "body": "none",
+      "errors": {
+        "400": "invalid_query_string: unsupported query parameters (local)",
+        "401": "invalid_token",
+        "403": "insufficient_scope",
+        "429": "too_many_requests",
+        "501": "logs_unavailable (local plugin capability)"
+      }
+    }
+  ],
+  "sinks": [
+    {
+      "type": "http",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://auth0.com/docs/customize/log-streams/custom-log-streams",
+      "delivery": "POST configured httpEndpoint; configured content type (default application/json local); Authorization verbatim; custom header/value entries. JSONARRAY sends [item,...], JSONLINES sends one item per LF-terminated line, JSONOBJECT sends one item/request. item={log_id,data}; default JSONLINES locally.",
+      "delivered": true,
+      "fields": [
+        {
+          "name": "httpAuthorization",
+          "type": "string",
+          "required": false,
+          "secret": true
+        },
+        {
+          "name": "httpContentFormat",
+          "type": "string",
+          "required": false,
+          "secret": false,
+          "values": [
+            "JSONARRAY",
+            "JSONLINES",
+            "JSONOBJECT"
+          ]
+        },
+        {
+          "name": "httpContentType",
+          "type": "string",
+          "required": false,
+          "secret": false
+        },
+        {
+          "name": "httpEndpoint",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "pattern": "^https?://.*",
+          "source_pattern": "^https://.*",
+          "local_rule": "HTTP requires logs.streams.allow_insecure_http; otherwise HTTPS only."
+        },
+        {
+          "name": "httpCustomHeaders",
+          "type": "array",
+          "required": false,
+          "secret": true,
+          "items": {
+            "type": "object",
+            "required": [
+              "header",
+              "value"
+            ],
+            "properties": {
+              "header": "string",
+              "value": "string"
+            }
+          }
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    },
+    {
+      "type": "datadog",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://docs.datadoghq.com/api/latest/logs/#send-logs",
+      "delivery": "POST https://http-intake.logs.{datadoghq.com|datadoghq.eu|us3.datadoghq.com|us5.datadoghq.com}/api/v2/logs with DD-API-KEY; application/json array of {message:JSON(item),ddsource:auth0,service:zeroauthy}. Item wrapping and tags are local adapter choices.",
+      "delivered": true,
+      "fields": [
+        {
+          "name": "datadogApiKey",
+          "type": "string",
+          "required": true,
+          "secret": true
+        },
+        {
+          "name": "datadogRegion",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "values": [
+            "us",
+            "eu",
+            "us3",
+            "us5"
+          ]
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    },
+    {
+      "type": "splunk",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://help.splunk.com/en/splunk-enterprise/get-data-in/get-started-with-getting-data-in/9.3/get-data-with-http-event-collector/format-events-for-http-event-collector",
+      "delivery": "POST https://splunkDomain:splunkPort/services/collector/event with Authorization Splunk <token>; concatenated JSON objects {event:item,time:unix_seconds}. splunkSecure controls TLS certificate verification upstream; locally always verify TLS and use HTTPS unless explicitly configured for insecure HTTP.",
+      "delivered": true,
+      "fields": [
+        {
+          "name": "splunkDomain",
+          "type": "string",
+          "required": true,
+          "secret": false
+        },
+        {
+          "name": "splunkPort",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "pattern": "^[0-9]*$"
+        },
+        {
+          "name": "splunkToken",
+          "type": "string",
+          "required": true,
+          "secret": true
+        },
+        {
+          "name": "splunkSecure",
+          "type": "boolean",
+          "required": true,
+          "secret": false
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    },
+    {
+      "type": "sumo",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://help.sumologic.com/docs/send-data/hosted-collectors/http-source/logs-metrics/upload-logs/",
+      "delivery": "POST sumoSourceAddress with application/json; LF-separated JSON items; source URL contains credential material and is entirely secret.",
+      "delivered": true,
+      "fields": [
+        {
+          "name": "sumoSourceAddress",
+          "type": "string",
+          "required": true,
+          "secret": true
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    },
+    {
+      "type": "segment",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://www.twilio.com/docs/segment/connections/sources/catalog/libraries/server/http-api",
+      "delivery": "POST https://api.segment.io/v1/batch with HTTP Basic writeKey: and {batch:[{type:track,event:log.type,userId:log.user_id or anonymousId:log_id,timestamp:log.date,messageId:log_id,properties:item}]}; local adapter mapping, vendor batch <=100 events.",
+      "delivered": true,
+      "fields": [
+        {
+          "name": "segmentWriteKey",
+          "type": "string",
+          "required": true,
+          "secret": true
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    },
+    {
+      "type": "mixpanel",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://developer.mixpanel.com/reference/import-events",
+      "delivery": "POST https://{api.mixpanel.com|api-eu.mixpanel.com}/import?strict=1&project_id=<id> with HTTP Basic service-account credentials; array of {event:log.type,properties:{...item,time:unix_seconds,distinct_id:log.user_id or log_id,$insert_id:log_id}}. Mapping is local.",
+      "delivered": true,
+      "fields": [
+        {
+          "name": "mixpanelRegion",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "values": [
+            "us",
+            "eu"
+          ]
+        },
+        {
+          "name": "mixpanelProjectId",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "pattern": "^\\d+$"
+        },
+        {
+          "name": "mixpanelServiceAccountUsername",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "pattern": "^[^:]+$"
+        },
+        {
+          "name": "mixpanelServiceAccountPassword",
+          "type": "string",
+          "required": true,
+          "secret": true,
+          "pattern": "^[^:]+$"
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    },
+    {
+      "type": "eventbridge",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery": "Stored only; always suspended; no delivery or active transition.",
+      "delivered": false,
+      "fields": [
+        {
+          "name": "awsAccountId",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "pattern": "^\\d{12}$"
+        },
+        {
+          "name": "awsRegion",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "values": [
+            "af-south-1",
+            "ap-east-1",
+            "ap-east-2",
+            "ap-northeast-1",
+            "ap-northeast-2",
+            "ap-northeast-3",
+            "ap-south-1",
+            "ap-south-2",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ap-southeast-3",
+            "ap-southeast-4",
+            "ap-southeast-5",
+            "ap-southeast-6",
+            "ap-southeast-7",
+            "ca-central-1",
+            "ca-west-1",
+            "eu-central-1",
+            "eu-central-2",
+            "eu-north-1",
+            "eu-south-1",
+            "eu-south-2",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-west-3",
+            "il-central-1",
+            "me-central-1",
+            "me-south-1",
+            "mx-central-1",
+            "sa-east-1",
+            "us-gov-east-1",
+            "us-gov-west-1",
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2"
+          ]
+        },
+        {
+          "name": "awsPartnerEventSource",
+          "type": "string",
+          "required": false,
+          "secret": false
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    },
+    {
+      "type": "eventgrid",
+      "source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery_source": "https://auth0.com/docs/api/management/v2/log-streams/post-log-streams",
+      "delivery": "Stored only; always suspended; no delivery or active transition.",
+      "delivered": false,
+      "fields": [
+        {
+          "name": "azureSubscriptionId",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        {
+          "name": "azureRegion",
+          "type": "string",
+          "required": true,
+          "secret": false,
+          "values": [
+            "australiacentral",
+            "australiaeast",
+            "australiasoutheast",
+            "brazilsouth",
+            "canadacentral",
+            "canadaeast",
+            "centralindia",
+            "centralus",
+            "eastasia",
+            "eastus",
+            "eastus2",
+            "francecentral",
+            "germanywestcentral",
+            "japaneast",
+            "japanwest",
+            "koreacentral",
+            "koreasouth",
+            "northcentralus",
+            "northeurope",
+            "norwayeast",
+            "southafricanorth",
+            "southcentralus",
+            "southeastasia",
+            "southindia",
+            "swedencentral",
+            "switzerlandnorth",
+            "uaenorth",
+            "uksouth",
+            "ukwest",
+            "westcentralus",
+            "westeurope",
+            "westindia",
+            "westus",
+            "westus2"
+          ]
+        },
+        {
+          "name": "azureResourceGroup",
+          "type": "string",
+          "required": true,
+          "secret": false
+        },
+        {
+          "name": "azurePartnerTopic",
+          "type": "string",
+          "required": false,
+          "secret": false
+        }
+      ],
+      "unknown_fields": "reject",
+      "secret_read": "marker",
+      "secret_patch_omitted": "retain"
+    }
+  ],
+  "stream_contract": {
+    "create_fields": [
+      "name",
+      "type",
+      "sink",
+      "filters",
+      "isPriority",
+      "pii_config",
+      "startFrom"
+    ],
+    "patch_fields": [
+      "name",
+      "status",
+      "sink",
+      "filters",
+      "isPriority",
+      "pii_config"
+    ],
+    "response_fields": [
+      "id",
+      "name",
+      "type",
+      "status",
+      "sink",
+      "filters",
+      "isPriority",
+      "pii_config"
+    ],
+    "filter_type": [
+      "category"
+    ],
+    "filter_names": [
+      "auth.login.fail",
+      "auth.login.notification",
+      "auth.login.success",
+      "auth.logout.fail",
+      "auth.logout.success",
+      "auth.signup.fail",
+      "auth.signup.success",
+      "auth.silent_auth.fail",
+      "auth.silent_auth.success",
+      "auth.token_exchange.fail",
+      "auth.token_exchange.success",
+      "management.fail",
+      "management.success",
+      "scim.event",
+      "system.notification",
+      "user.fail",
+      "user.notification",
+      "user.success",
+      "actions",
+      "other"
+    ],
+    "pii_fields": [
+      "first_name",
+      "last_name",
+      "username",
+      "email",
+      "phone",
+      "address"
+    ],
+    "pii_methods": [
+      "mask",
+      "hash"
+    ],
+    "pii_algorithms": [
+      "xxhash"
+    ],
+    "pii_default_method": "mask (local)",
+    "pii_default_algorithm": "xxhash (local)",
+    "start_from": "ISO8601 RFC3339 datetime, create-only. Omitted=latest committed seq. Present=exclusive sequence before first retained event with Date >= supplied instant; persist internal StartFrom time.Time and skip Date<StartFrom in the worker while advancing checkpoint because Date and Seq may differ (local); if no match exists choose latest seq. Never parse as log ID.",
+    "status_transitions": {
+      "create": "active; eventbridge/eventgrid suspended",
+      "active": "paused or suspended",
+      "paused": "active or suspended",
+      "suspended": "active or paused; cloud types may only remain suspended"
+    },
+    "failure_policy": "2xx acknowledges batch; all other responses and transport failures retry without bodies in diagnostics; 1s exponential to 300s; suspend after 24h continuously failing; resume retains checkpoint. Workers must skip filtered rows without stalling.",
+    "validation": "Reject unknown top-level/nested fields and null for nonnullable properties; type and startFrom immutable; validate sink by stream type; HTTPS/public-address dial guard; no redirect following (local); invalid configuration=400."
+  },
+  "gaps": [
+    "Reviewed documentation only, no live tenant observation or copied SDK implementation.",
+    "Public event table URL redirects to /docs/tenant-logs; 171 catalog entries plus 8 older filter-table entries and local legacy fapi form the frozen 180-row union. Future plans are owners for review, not commitments to implement Auth0-operated or retired features.",
+    "Current catalog categorizes fco as other although older filters say auth.login.fail; catalog wins. fapi has no current code row: retained solely for explicit spec middleware requirement; management.fail is a documented category.",
+    "Global logs public scope list includes read:logs and read:logs_users without resolving alternative/conjunctive meaning; local spec uses read:logs globally and both for a user route.",
+    "Public page body calls the Lucene parameter q but embedded OpenAPI labels it search; local wire parameter remains q for pinned SDK/CLI compatibility. search is not an accepted alias.",
+    "Checkpoint from overrides q and ignores projection/totals/sort/page as explicitly documented. take-only recent mode is local, ascending sequence. Two-second settlement is local and cannot by itself prove commit-order safety; stores must serialize assignment and commit visibility.",
+    "No universal upstream redaction marker, per-resource body allowlist, sink-secret read marker or PATCH marker semantics proven; all frozen as conservative local behavior.",
+    "Daily default 7 days inclusive and max 366 days, empty-day rows and totals count capped at 1000 are local bounds; upstream max/default not stated in reviewed docs. Stats codes count s/ssa/sepft once per successful login, ss once per registration, each breach code once. Token exchanges do not double-count logins.",
+    "startFrom is an ISO8601 datetime in public API, not a log ID. Persist internal StartFrom time.Time in storage/SQL/protobuf; worker skips older Date rows while advancing checkpoint. Public reads omit startFrom. This extends the shared storage model for exact replay under Date/Seq skew.",
+    "Public vendor APIs establish accepted requests, not Auth0 private adapter mappings. Exact envelope/tag mappings above are local and need mock verification; no vendor accounts were called.",
+    "Current log object may contain security_context; omitted unless trustworthy signals exist. location_info intentionally omitted. New catalog fields such as environment_name/is_mobile are not synthesized; Management Log uses isMobile.",
+    "Log ID 56 decimal digits and sequence encoding, query subset bounds, cloud suspension, and runtime policies are local compatibility choices, not claims about Auth0 internals.",
+    "No published generic notification-success code sn or password-notification code established; such outcomes remain server-log-only. No du/ubr aliases; canonical deletion sdu, unblock ublkdu, scpn means phone change.",
+    "fpurh/fcph are legacy Hook failures, not Action failures; they remain deferred. Phone-number changes remain unsupported by userrules.CheckPatch; scpn/fcpn are deferred to Plan 34 despite the provisional spec example. Codes marked emitted are Plan 31 emission targets at existing trigger functions, not a claim recording exists in Task 1. Current generic s success is interactive authorization, silent uses ssa and password grant uses sepft. social failures use f, not connector fc (no AD/LDAP connector)."
+  ]
+}

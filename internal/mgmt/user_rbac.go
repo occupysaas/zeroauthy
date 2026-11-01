@@ -25,7 +25,7 @@ func (h *Handlers) userRoles(w http.ResponseWriter, r *http.Request, id string, 
 		h.rbacError(w, r, err)
 		return
 	}
-	h.audit(r, "change user roles", "id", id)
+	logDetails(r, "change user roles", "id", id)
 	w.WriteHeader(204)
 }
 func (h *Handlers) PostUserRoles(w http.ResponseWriter, r *http.Request, id string) {
@@ -57,7 +57,7 @@ func (h *Handlers) userPermissions(w http.ResponseWriter, r *http.Request, id st
 		h.rbacError(w, r, err)
 		return
 	}
-	h.audit(r, "change user permissions", "id", id)
+	logDetails(r, "change user permissions", "id", id)
 	w.WriteHeader(status)
 }
 func (h *Handlers) PostUserPermissions(w http.ResponseWriter, r *http.Request, id string) {

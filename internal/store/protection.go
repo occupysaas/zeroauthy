@@ -117,9 +117,12 @@ type ProtectionLimit struct {
 }
 type ProtectionReceipt struct{ TenantID, ID string }
 type ProtectionAdmission struct {
-	Allowed bool
-	Receipt ProtectionReceipt
-	RetryAt time.Time
+	// DeniedKinds identifies only budgets that actually refused this admission.
+	// Optional for older plugins; an absent value never changes the decision.
+	DeniedKinds []string
+	Allowed     bool
+	Receipt     ProtectionReceipt
+	RetryAt     time.Time
 }
 type ProtectionBlock struct {
 	Key          ProtectionKey
@@ -199,4 +202,17 @@ func ValidateProtectionSecrets(c CAPTCHAPolicy) error {
 		}
 	}
 	return nil
+}
+
+// ProtectionClearer optionally reports whether clearing removed a live block.
+// Older plugins retain clear behavior but omit uncertain event attribution.
+type ProtectionClearer interface {
+	ClearResult(context.Context, string, ProtectionFilter, time.Time) (bool, error)
+}
+
+func ClearProtectionResult(ctx context.Context, repository Protection, tenantID string, filter ProtectionFilter, now time.Time) (bool, error) {
+	if writer, ok := repository.(ProtectionClearer); ok {
+		return writer.ClearResult(ctx, tenantID, filter, now)
+	}
+	return false, repository.Clear(ctx, tenantID, filter)
 }

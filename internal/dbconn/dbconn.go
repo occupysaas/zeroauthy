@@ -15,6 +15,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -25,6 +27,7 @@ const maxBodyBytes = 64 << 10
 
 // Handlers serves the /dbconnections endpoints.
 type Handlers struct {
+	Recorder          logs.Recorder
 	Actions           *actions.Engine
 	Protection        *protection.Service
 	Store             store.Store
@@ -95,6 +98,15 @@ func parseBody(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 		if _, err := dec.Token(); err != io.EOF {
 			return bad("the request body must be a single JSON object")
 		}
+		values := []string{}
+		for k, v := range m {
+			if logscrub.SensitiveKey(k) {
+				if str, ok := v.(string); ok {
+					values = append(values, str)
+				}
+			}
+		}
+		*r = *r.WithContext(logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...))
 		return m, true
 	case "application/x-www-form-urlencoded":
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
@@ -108,6 +120,15 @@ func parseBody(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 			}
 			m[k] = v[0]
 		}
+		values := []string{}
+		for k, v := range m {
+			if logscrub.SensitiveKey(k) {
+				if str, ok := v.(string); ok {
+					values = append(values, str)
+				}
+			}
+		}
+		*r = *r.WithContext(logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...))
 		return m, true
 	}
 	return bad("content type must be application/json or application/x-www-form-urlencoded")
@@ -117,5 +138,5 @@ func (h *Handlers) protectionService() *protection.Service {
 	if h.Protection != nil {
 		return h.Protection
 	}
-	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log}
+	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log, Recorder: h.Recorder}
 }

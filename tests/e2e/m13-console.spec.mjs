@@ -37,6 +37,9 @@ test('an operator manages applications in the console', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Account' })).toContainText(EMAIL);
   await expect(page.getByText('The seed file defines this tenant')).toBeVisible();
 
+  // Resource details open in a named route dialog over the section list.
+  const detail = page.getByRole('dialog', { name: 'Console app', exact: true });
+
   // 3. Create an application.
   await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Applications' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/applications$/);
@@ -46,7 +49,8 @@ test('an operator manages applications in the console', async ({ page }) => {
   await page.getByRole('radio', { name: /Regular web app/ }).check();
   await page.getByRole('button', { name: 'Create application' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/applications\/[A-Za-z0-9]{32}$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Console app');
+  await expect(detail).toBeVisible();
+  await expect(detail.getByRole('heading', { level: 2, name: 'Console app', exact: true })).toHaveText('Console app');
   const detailURL = page.url();
   // A new application opens on its Quick start; the settings are a tab.
   await page.getByRole('tab', { name: 'Settings' }).click();
@@ -66,7 +70,7 @@ test('an operator manages applications in the console', async ({ page }) => {
   const before = await secret.textContent();
   await page.getByRole('tab', { name: 'Danger zone' }).click();
   await page.getByRole('button', { name: 'Rotate secret' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Rotate secret' }).click();
+  await page.getByRole('dialog', { name: 'Rotate the secret?', exact: true }).getByRole('button', { name: 'Rotate secret' }).click();
   await expect(page.getByRole('tab', { name: 'Settings' })).toHaveAttribute('data-state', 'active');
   await page.getByRole('button', { name: 'Reveal' }).click();
   await expect(secret).toHaveText(/^[A-Za-z0-9]{64}$/);
@@ -76,14 +80,15 @@ test('an operator manages applications in the console', async ({ page }) => {
   //    and signs in again silently.
   await page.reload();
   await page.waitForURL(detailURL);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Console app');
+  await expect(detail).toBeVisible();
+  await expect(detail.getByRole('heading', { level: 2, name: 'Console app', exact: true })).toHaveText('Console app');
   await page.getByRole('tab', { name: 'Settings' }).click();
   await expect(page.locator('#app-callbacks')).toHaveValue('https://console-app.e2e.test/callback');
 
   // 7. Delete it by typing its name.
   await page.getByRole('tab', { name: 'Danger zone' }).click();
   await page.getByRole('button', { name: 'Delete application' }).click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog', { name: 'Delete this application?', exact: true });
   await expect(dialog.getByRole('button', { name: 'Delete application' })).toBeDisabled();
   await dialog.locator('#delete-confirm').fill('Console app');
   await dialog.getByRole('button', { name: 'Delete application' }).click();

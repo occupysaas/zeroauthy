@@ -175,8 +175,8 @@ func executionToPB(e *store.Execution) *storev1.ActionExecutionMsg {
 	pb := &storev1.ActionExecutionMsg{TenantId: e.TenantID, Id: e.ID, Trigger: e.Trigger, Status: e.Status,
 		CreatedAt: tsToPB(e.CreatedAt), UpdatedAt: tsToPB(e.UpdatedAt)}
 	for _, r := range e.Results {
-		pb.Results = append(pb.Results, &storev1.ActionExecutionResultMsg{JobId: r.JobID, JobAttempt: int32(r.JobAttempt), ActionName: r.ActionName, ErrorId: r.ErrorID,
-			ErrorMsg: r.ErrorMsg, StartedAt: tsToPB(r.StartedAt), EndedAt: tsToPB(r.EndedAt)})
+		pb.Results = append(pb.Results, &storev1.ActionExecutionResultMsg{JobId: r.JobID, JobAttempt: int32(r.JobAttempt), ActionId: r.ActionID, ActionName: r.ActionName, DenialReason: r.DenialReason, ErrorId: r.ErrorID,
+			Logs: append([]string(nil), r.Logs...), ErrorMsg: r.ErrorMsg, StartedAt: tsToPB(r.StartedAt), EndedAt: tsToPB(r.EndedAt)})
 	}
 	return pb
 }
@@ -188,8 +188,8 @@ func executionFromPB(e *storev1.ActionExecutionMsg) *store.Execution {
 	out := &store.Execution{TenantID: e.TenantId, ID: e.Id, Trigger: e.Trigger, Status: e.Status,
 		CreatedAt: tsFromPB(e.CreatedAt), UpdatedAt: tsFromPB(e.UpdatedAt)}
 	for _, r := range e.Results {
-		out.Results = append(out.Results, store.ExecutionResult{JobID: r.GetJobId(), JobAttempt: int(r.GetJobAttempt()), ActionName: r.GetActionName(), ErrorID: r.GetErrorId(),
-			ErrorMsg: r.GetErrorMsg(), StartedAt: tsFromPB(r.GetStartedAt()), EndedAt: tsFromPB(r.GetEndedAt())})
+		out.Results = append(out.Results, store.ExecutionResult{JobID: r.GetJobId(), JobAttempt: int(r.GetJobAttempt()), ActionID: r.GetActionId(), ActionName: r.GetActionName(), DenialReason: r.GetDenialReason(), ErrorID: r.GetErrorId(),
+			Logs: append([]string(nil), r.GetLogs()...), ErrorMsg: r.GetErrorMsg(), StartedAt: tsFromPB(r.GetStartedAt()), EndedAt: tsFromPB(r.GetEndedAt())})
 	}
 	return out
 }
@@ -739,6 +739,32 @@ func (srv *Server) ActionsPurgeContinue(ctx context.Context, q *storev1.ActionsR
 	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error {
 		n, err := a.PurgeContinue(ctx, tsFromPB(q.Time))
 		o.Count = int64(n)
+		return err
+	}), nil
+}
+
+func (r clientActions) ListExecutions(ctx context.Context, tid string, f store.ExecutionFilter) ([]store.Execution, error) {
+	q := r.req(tid)
+	q.AfterExecution = f.After
+	q.Trigger = f.Trigger
+	q.ActionId = f.Action
+	q.PerPage = int64(f.Limit())
+	v, err := r.call("ListExecutions", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsListExecutions(ctx, q) })
+	if err != nil {
+		return nil, err
+	}
+	out := []store.Execution{}
+	for _, ex := range v.Executions {
+		out = append(out, *executionFromPB(ex))
+	}
+	return out, nil
+}
+func (srv *Server) ActionsListExecutions(ctx context.Context, q *storev1.ActionsRequest) (*storev1.ActionsResponse, error) {
+	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error {
+		v, err := a.ListExecutions(ctx, q.TenantId, store.ExecutionFilter{After: q.AfterExecution, Trigger: q.Trigger, Action: q.ActionId, Take: int(q.PerPage)})
+		for i := range v {
+			o.Executions = append(o.Executions, executionToPB(&v[i]))
+		}
 		return err
 	}), nil
 }

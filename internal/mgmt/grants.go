@@ -56,7 +56,7 @@ func (h *Handlers) DeleteGrant(w http.ResponseWriter, r *http.Request, id string
 		return
 	}
 	if err == nil {
-		h.audit(r, "delete grant", "grant_id", id)
+		logDetails(r, "delete grant", "grant_id", id)
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
@@ -79,7 +79,7 @@ func (h *Handlers) DeleteGrantsByUser(w http.ResponseWriter, r *http.Request) {
 		Fail(w, internalError(h, r, "delete grants", err))
 		return
 	}
-	h.audit(r, "delete user grants", "user_id", userID, "grants", n)
+	logDetails(r, "delete user grants", "user_id", userID, "grants", n)
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }

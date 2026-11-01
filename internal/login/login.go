@@ -21,6 +21,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -37,6 +39,7 @@ var errTxn = errors.New("login: invalid or expired transaction")
 var errOrganizationConnection = errors.New("login: connection is not enabled for the organization")
 
 type Handlers struct {
+	Recorder   logs.Recorder
 	Actions    *actions.Engine
 	Protection *protection.Service
 	Store      store.Store
@@ -316,6 +319,7 @@ func (h *Handlers) postedTxn(w http.ResponseWriter, r *http.Request) (*flow, boo
 		h.fail(w, r, errTxn, nil)
 		return nil, false
 	}
+	h.maskRequest(r)
 	f, err := h.loadTxn(r, r.PostForm.Get("state"))
 	if err != nil {
 		h.fail(w, r, err, f)
@@ -375,6 +379,8 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *flow, login string) {
+	h.withFlowEvent(r, f)
+	*r = *r.WithContext(logscrub.WithCredentials(r.Context(), identity.EffectivePassword(f.conn, r.PostForm.Get("password"))))
 	ctx := r.Context()
 	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f), ForgotURL: h.forgotURL(f), RedirectURI: f.txn.Params["redirect_uri"]}
 
@@ -424,10 +430,14 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 		}
 	}
 	var breachErr error
+	var breachHit bool
 	user, err := h.Database.LoginWithCheckAndCommit(ctx, f.conn, login, r.PostForm.Get("password"), func(ctx context.Context) error {
-		breachErr = svc.CheckPasswordForUser(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password")), decision.SubjectID)
+		breachHit, breachErr = svc.CheckPasswordForUserResult(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password")), decision.SubjectID)
 		return breachErr
 	}, commit)
+	if breachHit {
+		h.event(r, f, "pwd_leak", &store.User{UserID: decision.SubjectID})
+	}
 	outcome := protection.CredentialOutcome(err)
 	if breachErr != nil {
 		// Credentials were proved before the policy refusal.
@@ -457,6 +467,19 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 		data.Error = f.view.L.T(key)
 		h.renderLoginStage(w, r, status, f, data)
 		return
+	}
+	if err != nil {
+		code := "f"
+		if errors.Is(err, identity.ErrInvalidCredentials) {
+			code = "fu"
+			if identity.IsCustom(f.conn) {
+				code = "f"
+			}
+			if decision.SubjectID != "" {
+				code = "fp"
+			}
+		}
+		h.event(r, f, code, &store.User{UserID: decision.SubjectID})
 	}
 	var ue *identity.UnauthorizedError
 	switch {
@@ -517,6 +540,11 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	*r = *r.WithContext(logscrub.WithCredentials(r.Context(), identity.EffectivePassword(f.conn, r.PostForm.Get("password"))))
+	h.withFlowEvent(r, f)
+	code := "fs"
+	var eventUser *store.User
+	defer func() { h.event(r, f, code, eventUser) }()
 	if !organizationSignupAllowed(f) {
 		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
 		return
@@ -581,7 +609,11 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := svc.CheckPassword(r.Context(), f.res.Tenant, "pre-user-registration", identity.EffectivePassword(f.conn, r.PostForm.Get("password"))); err != nil {
+	hit, checkErr := svc.CheckPasswordForUserResult(r.Context(), f.res.Tenant, "pre-user-registration", identity.EffectivePassword(f.conn, r.PostForm.Get("password")), "")
+	if hit {
+		h.event(r, f, "signup_pwd_leak", nil)
+	}
+	if err := checkErr; err != nil {
 		if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
 			h.fail(w, r, riskErr, f)
 			return
@@ -689,12 +721,15 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
+	code = "ss"
+	eventUser = user
 	h.sendSignupVerification(f, user)
 	h.complete(w, r, f, user)
 }
 
 // complete starts the session and hands back to /authorize processing.
 func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, user *store.User) {
+	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: user.UserID, UserName: user.Name}))
 	ctx := r.Context()
 	now := h.now()
 	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now)
@@ -745,7 +780,7 @@ func (h *Handlers) protectionService() *protection.Service {
 	if h.Protection != nil {
 		return h.Protection
 	}
-	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log}
+	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log, Recorder: h.Recorder}
 }
 
 // These availability/error choices are local A5 compatibility fallbacks.

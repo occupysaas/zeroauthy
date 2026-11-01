@@ -10,6 +10,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -51,6 +52,7 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	if oerr != nil {
 		return nil, oerr
 	}
+	*r = *r.WithContext(logs.WithRecorder(r.Context(), h.Recorder))
 	grantType := form.Get("grant_type")
 	if grantType == "" {
 		return nil, invalidRequest("grant_type is required")
@@ -75,5 +77,11 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	ip := h.endUserIP(r, client)
 	ctx := withClientIP(r.Context(), ip)
 	ctx = withRequestInfo(ctx, r, ip, form)
+	e := logs.FromRequest(r)
+	e.ClientID = client.ClientID
+	e.ClientName = client.Name
+	e.Audience = form.Get("audience")
+	e.Scope = form.Get("scope")
+	ctx = logs.WithEvent(ctx, e)
 	return grant(h, ctx, res, client, form)
 }

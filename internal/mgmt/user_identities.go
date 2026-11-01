@@ -329,7 +329,7 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 		h.failTx(w, r, "link user identity", err)
 		return
 	}
-	h.audit(r, "link user identity", "user_id", id, "secondary", secondary)
+	logDetails(r, "link user identity", "user_id", id, "secondary", secondary)
 	writeJSON(w, http.StatusCreated, linkIdentitiesJSON(out))
 }
 
@@ -419,7 +419,7 @@ func (h *Handlers) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 	if changed {
-		h.audit(r, "unlink user identity", "user_id", id, "secondary", secondary)
+		logDetails(r, "unlink user identity", "user_id", id, "secondary", secondary)
 	}
 	writeJSON(w, http.StatusOK, linkIdentitiesJSON(out))
 }

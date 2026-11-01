@@ -37,7 +37,7 @@ func TestCustomSigningKeysAPI(t *testing.T) {
 	if del.Code != 204 {
 		t.Fatalf("delete: %d %s", del.Code, del.Body)
 	}
-	if !strings.Contains(logs.String(), "tenant=acme") || !strings.Contains(logs.String(), "actor=m2m") || !strings.Contains(logs.String(), "custom1") {
+	if !strings.Contains(logs.String(), "tenant_id="+e.tn.ID) || !strings.Contains(logs.String(), "client_id:m2m") || !strings.Contains(logs.String(), "custom1") {
 		t.Fatalf("successful writes missing audit metadata: %s", logs.String())
 	}
 }

@@ -19,6 +19,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -241,7 +243,10 @@ func ParseCallback(rawQuery string) (CallbackParams, error) {
 
 // CompleteInput is one callback.
 type CompleteInput struct {
-	Tenant *store.Tenant
+	// OnResolved observes only immutable attribution already established by the flow.
+	// It receives no configuration, credentials, transaction or profile objects.
+	OnResolved func(logs.Event)
+	Tenant     *store.Tenant
 	// Origin is the request's resolved public origin; it must equal the
 	// attempt's.
 	Origin      string
@@ -271,6 +276,7 @@ type Completion struct {
 // provider identity and commits identity, tokens, attempt and session in one
 // transaction.
 func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completion, error) {
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code), in.Params.Code)
 	if in.CookieValue == "" || in.Tenant == nil {
 		return nil, ErrCallbackRejected
 	}
@@ -284,10 +290,15 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	case err != nil:
 		return nil, err
 	}
-	conn, txn, _, err := s.eligible(ctx, s.Store, a)
+	conn, txn, client, err := s.eligible(ctx, s.Store, a)
 	if err != nil {
 		_ = s.Store.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash)
 		return nil, err
+	}
+	actor := logs.Event{TenantID: a.TenantID, ClientID: txn.ClientID, ClientName: client.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy), OrganizationID: txn.Params[store.TxnParamOrgID]}
+	ctx = logs.WithEvent(ctx, actor)
+	if in.OnResolved != nil {
+		in.OnResolved(actor)
 	}
 	if in.Params.Error != "" {
 		_ = s.Store.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash)
@@ -329,7 +340,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	}
 	var out *Completion
 	commit := func() error {
-		return s.Store.WithTx(ctx, func(tx store.Store) error {
+		return orglogin.WithMembershipEvents(ctx, s.Store, func(ctx context.Context, tx store.Store) error {
 			cur, err := tx.Federation().GetAttempt(ctx, a.TenantID, a.StateHash)
 			if err != nil || cur.Status != store.AttemptClaimed || cur.Superseded {
 				return ErrAttemptStale
@@ -366,6 +377,9 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 			})
 			if err != nil {
 				return err
+			}
+			if in.OnResolved != nil {
+				in.OnResolved(logs.Enrich(ctx, logs.Event{UserID: user.UserID, UserName: user.Name}))
 			}
 			if created && txn.Params[orglogin.InvitationIDParam] != "" {
 				txn.Params[orglogin.InvitationSignupParam] = "1"

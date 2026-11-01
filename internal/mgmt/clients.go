@@ -24,6 +24,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -45,6 +47,10 @@ const (
 
 // Handlers serves the Management API and the system API.
 type Handlers struct {
+	// LogsConfig carries deployment-wide stream transport policy.
+	LogsConfig logs.Config
+
+	Recorder logs.Recorder
 	// Actions runs draft tests and queues and recovers dependency builds.
 	Actions    *actions.Engine
 	Protection *protection.Service
@@ -94,24 +100,9 @@ func (h *Handlers) now() time.Time {
 
 func (h *Handlers) log() *slog.Logger {
 	if h.Log != nil {
-		return h.Log
+		return slog.New(logscrub.Handler(h.Log.Handler()))
 	}
-	return slog.Default()
-}
-
-// audit logs a Management API write with its actor (design §6).
-func (h *Handlers) audit(r *http.Request, action string, args ...any) {
-	c, _ := CallerFrom(r.Context())
-	res, _ := tenant.FromContext(r.Context())
-	actor := c.ClientID
-	if c.Kind == Operator {
-		actor = c.UserID
-	}
-	tn := ""
-	if res.Tenant != nil {
-		tn = res.Tenant.Name
-	}
-	h.log().InfoContext(r.Context(), "management API: "+action, append([]any{"tenant", tn, "actor", actor}, args...)...)
+	return slog.New(logscrub.Handler(slog.Default().Handler()))
 }
 
 func badBody(format string, args ...any) *Error {
@@ -259,7 +250,7 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		Fail(w, internalError(h, r, "create client", err))
 		return
 	}
-	h.audit(r, "create client", "client_id", c.ClientID)
+	logDetails(r, "create client", "client_id", c.ClientID)
 	writeJSON(w, http.StatusCreated, h.clientView(r.Context(), tn, c, callerHas(r, "read:client_keys")))
 }
 
@@ -334,7 +325,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		h.failTx(w, r, "update client", err)
 		return
 	}
-	h.audit(r, "update client", "client_id", id)
+	logDetails(r, "update client", "client_id", id)
 	writeJSON(w, http.StatusOK, h.clientView(r.Context(), tn, out, callerHas(r, "read:client_keys")))
 }
 
@@ -376,7 +367,7 @@ func (h *Handlers) DeleteClient(w http.ResponseWriter, r *http.Request, id strin
 		return
 	}
 	if deleted {
-		h.audit(r, "delete client", "client_id", id)
+		logDetails(r, "delete client", "client_id", id)
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
@@ -413,7 +404,7 @@ func (h *Handlers) RotateClientSecret(w http.ResponseWriter, r *http.Request, id
 		h.failTx(w, r, "rotate client secret", err)
 		return
 	}
-	h.audit(r, "rotate client secret", "client_id", id)
+	logDetails(r, "rotate client secret", "client_id", id)
 	writeJSON(w, http.StatusOK, h.clientView(r.Context(), tn, out, true))
 }
 
@@ -579,6 +570,16 @@ func decodeObject(r *http.Request) (map[string]json.RawMessage, error) {
 	if err := json.Unmarshal(data, &body); err != nil || body == nil {
 		return nil, badBody("the body must be a JSON object")
 	}
+	// The public decoder owns its original limits and validation. Register
+	// credentials from its validated result before scripts or other business work,
+	// including valid bodies larger than the logging capture budget.
+	ctx := r.Context()
+	for key, raw := range body {
+		if value, ok := decodeManagementCapture(raw); ok {
+			ctx = registerManagementCredentials(ctx, value, key == "sink" || key == "options" || logscrub.SensitiveKey(key) || strings.Contains(strings.ToLower(key), "hash"))
+		}
+	}
+	*r = *r.WithContext(ctx)
 	return body, nil
 }
 

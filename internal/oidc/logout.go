@@ -8,6 +8,9 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -16,6 +19,7 @@ import (
 // Logout implements GET /v2/logout (D-0014). The request is validated
 // before the session ends; an invalid request changes nothing.
 func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
+	maskLogoutCredentials(r)
 	ctx := r.Context()
 	res, ok := tenant.FromContext(ctx)
 	if !ok {
@@ -38,6 +42,7 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		allowed = c.AllowedLogoutURLs
+		*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{ClientID: c.ClientID, ClientName: c.Name}))
 		if returnTo == "" {
 			returnTo = firstConcrete(allowed)
 		}
@@ -103,10 +108,12 @@ func (h *Handlers) endSession(w http.ResponseWriter, r *http.Request, res tenant
 	ctx := r.Context()
 	s, err := h.Sessions.End(ctx, w, r, res.Tenant)
 	if err != nil {
+		h.recordLogout(r, nil, "flo")
 		h.log().ErrorContext(ctx, "end session", "tenant", res.Tenant.ID, "err", err)
 		ui.RenderError(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer))
 		return false
 	}
+	h.recordLogout(r, s, "slo")
 	if s != nil {
 		h.log().InfoContext(ctx, "logged out", "tenant", res.Tenant.ID, "session", s.ID, "user_id", s.UserID)
 	}
@@ -116,4 +123,23 @@ func (h *Handlers) endSession(w http.ResponseWriter, r *http.Request, res tenant
 func redirect(w http.ResponseWriter, r *http.Request, to string) {
 	w.Header().Set("Cache-Control", "no-store")
 	http.Redirect(w, r, to, http.StatusFound)
+}
+
+// A validated local completion is idempotent: no active session is still a
+// completed logout. Confirmation pages and invalid targets never reach here.
+func (h *Handlers) recordLogout(r *http.Request, session *store.LoginSession, code string) {
+	event := logs.FromRequest(r)
+	event.Type = code
+	event.Date = h.now()
+	if session != nil {
+		event.UserID, event.Connection = session.UserID, session.Connection
+	}
+	logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), event)
+}
+
+func maskLogoutCredentials(r *http.Request, values ...string) {
+	if cookie, err := r.Cookie(session.CookieName); err == nil {
+		values = append(values, cookie.Value)
+	}
+	*r = *r.WithContext(logscrub.WithCredentials(r.Context(), values...))
 }

@@ -25,6 +25,7 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	ctx = r.Context()
 	fields := map[string]string{}
 	if v, present := body["organization"]; present && (v == nil || v == "") {
 		writeErr(w, http.StatusBadRequest, "invalid_request", "invalid organization")
@@ -64,6 +65,8 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "load connection", err)
 		return
 	}
+	code := "fcpr"
+	defer func() { h.event(r, code, fields["client_id"], conn, nil) }()
 	if id := fields["client_id"]; id != "" && !slices.Contains(conn.EnabledClients, id) {
 		writeErr(w, http.StatusBadRequest, "invalid_request", "the connection is not enabled for this application")
 		return
@@ -96,6 +99,7 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "find user", err)
 		return
 	}
+	code = "scpr"
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("A password reset link has been sent to the email address."))

@@ -278,28 +278,82 @@ func (r jobs) ReadFile(ctx context.Context, tenantID, id string, fn func(chunk [
 }
 
 func (r jobs) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	total := 0
+	for {
+		n, _, more, err := r.DeleteExpiredResult(ctx, before, store.JobSweepBatch)
+		total += n
+		if err != nil || !more {
+			return total, err
+		}
+	}
+}
+
+// jobSweepEligible takes (runtime cutoff, max attempts, lease cutoff). Selecting
+// only mutation keys and type bounds memory independently of import input size.
+const jobSweepEligible = `status = 'processing' AND ((first_claimed_at > 0 AND first_claimed_at < ?) OR (attempts >= ? AND lease_until < ?))`
+
+func (r jobs) DeleteExpiredResult(ctx context.Context, before time.Time, limit int) (int, []store.JobOutcome, bool, error) {
+	if limit < 1 || limit > store.JobSweepBatch {
+		return 0, nil, false, store.ErrInvalid
+	}
 	var n int
-	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) (err error) {
-		fail := `UPDATE jobs SET status = 'failed', status_details = ?, updated_at = ?, lease_owner = '', lease_until = 0, input = NULL
- WHERE status = 'processing' AND `
-		if _, err := tx.exec(ctx, fail+`first_claimed_at > 0 AND first_claimed_at < ?`,
-			store.JobDetailTimedOut, micros(before), micros(before.Add(-store.JobMaxRuntime))); err != nil {
+	var outcomes []store.JobOutcome
+	var more bool
+	cutoff := micros(before.Add(-store.JobMaxRuntime))
+	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) error {
+		n, outcomes, more = 0, nil, false // discard reports from an aborted retry
+		rows, err := tx.query(ctx, `SELECT tenant_id, id, type FROM jobs WHERE `+jobSweepEligible+`
+ ORDER BY tenant_id`+tx.d.byteOrder+`, id`+tx.d.byteOrder+` LIMIT ?`+tx.d.forUpdate,
+			cutoff, store.JobMaxAttempts, micros(before), limit)
+		if err != nil {
 			return err
 		}
-		if _, err := tx.exec(ctx, fail+`attempts >= ? AND lease_until < ?`,
-			store.JobDetailWorkerLost, micros(before), store.JobMaxAttempts, micros(before)); err != nil {
+		candidates := make([]store.JobOutcome, 0, limit)
+		for rows.Next() {
+			var outcome store.JobOutcome
+			if err := rows.Scan(&outcome.TenantID, &outcome.ID, &outcome.Type); err != nil {
+				rows.Close()
+				return err
+			}
+			candidates = append(candidates, outcome)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
 			return err
 		}
+		more = len(candidates) == limit
+		for _, outcome := range candidates {
+			changed, err := affected(tx.exec(ctx, `UPDATE jobs SET status = 'failed',
+ status_details = CASE WHEN first_claimed_at > 0 AND first_claimed_at < ? THEN ? ELSE ? END,
+ updated_at = ?, lease_owner = '', lease_until = 0, input = NULL
+ WHERE tenant_id = ? AND id = ? AND `+jobSweepEligible,
+				cutoff, store.JobDetailTimedOut, store.JobDetailWorkerLost, micros(before), outcome.TenantID, outcome.ID,
+				cutoff, store.JobMaxAttempts, micros(before)))
+			if err != nil {
+				return err
+			}
+			if changed > 0 {
+				outcome.Status, outcome.UpdatedAt = store.JobFailed, before
+				outcomes = append(outcomes, outcome)
+			}
+		}
+		// Eligible rows beyond this batch must first receive a reported failure.
+		expired := `expires_at < ? AND NOT (` + jobSweepEligible + `)`
 		for _, table := range []string{"job_errors", "job_files"} {
-			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE EXISTS (SELECT 1 FROM jobs j
- WHERE j.tenant_id = `+table+`.tenant_id AND j.id = `+table+`.job_id AND j.expires_at < ?)`, micros(before)); err != nil {
+			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE EXISTS (SELECT 1 FROM jobs
+ WHERE jobs.tenant_id = `+table+`.tenant_id AND jobs.id = `+table+`.job_id AND `+expired+`)`,
+				micros(before), cutoff, store.JobMaxAttempts, micros(before)); err != nil {
 				return err
 			}
 		}
-		n, err = affected(tx.exec(ctx, `DELETE FROM jobs WHERE expires_at < ?`, micros(before)))
+		n, err = affected(tx.exec(ctx, `DELETE FROM jobs WHERE `+expired, micros(before), cutoff, store.JobMaxAttempts, micros(before)))
 		return err
 	})
-	return n, err
+	if err != nil {
+		return 0, nil, false, err
+	}
+	return n, outcomes, more, nil
 }
 
 func scanJob(row scanner) (*store.Job, error) {

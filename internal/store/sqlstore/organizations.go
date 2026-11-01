@@ -539,10 +539,16 @@ func (r organizations) Members(ctx context.Context, tid, orgID string, p store.O
 }
 
 func (r organizations) AddMembers(ctx context.Context, tid, orgID string, userIDs []string) error {
+	_, err := r.AddMembersResult(ctx, tid, orgID, userIDs)
+	return err
+}
+func (r organizations) AddMembersResult(ctx context.Context, tid, orgID string, userIDs []string) ([]string, error) {
 	if len(userIDs) == 0 {
-		return store.ErrInvalid
+		return nil, store.ErrInvalid
 	}
-	return r.atomic(ctx, tid, func(t organizations) error {
+	var inserted []string
+	err := r.atomic(ctx, tid, func(t organizations) error {
+		inserted = nil // atomicRetry may restart the entire write.
 		if err := t.orgExists(ctx, tid, orgID); err != nil {
 			return err
 		}
@@ -557,12 +563,26 @@ func (r organizations) AddMembers(ctx context.Context, tid, orgID string, userID
 			}
 		}
 		for _, id := range userIDs {
-			if err := t.insertIgnore(ctx, `organization_members (tenant_id,organization_id,user_id) VALUES (?,?,?)`, tid, orgID, id); err != nil {
+			// Tenant policy locking already serializes membership writers. This
+			// reports actual INSERT rows, independent of MySQL clientFoundRows.
+			result, err := t.s.exec(ctx, `INSERT INTO organization_members (tenant_id,organization_id,user_id) SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM organization_members WHERE tenant_id=? AND organization_id=? AND user_id=?)`, tid, orgID, id, tid, orgID, id)
+			if err != nil {
 				return err
+			}
+			count, err := result.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if count > 0 {
+				inserted = append(inserted, id)
 			}
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return inserted, nil
 }
 
 func (r organizations) RemoveMembers(ctx context.Context, tid, orgID string, userIDs []string) error {

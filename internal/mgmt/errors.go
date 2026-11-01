@@ -52,6 +52,9 @@ func Fail(w http.ResponseWriter, err error) {
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
+	if observer, ok := w.(interface{ observeManagementJSON(any) }); ok {
+		observer.observeManagementJSON(v)
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)

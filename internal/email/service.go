@@ -12,6 +12,8 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	xhtml "golang.org/x/net/html"
 
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
@@ -41,6 +43,7 @@ type ActionsQueue interface {
 	RunEmailNow(context.Context, actions.EmailInput) (actions.EmailOutcome, error)
 }
 type Service struct {
+	Recorder    logs.Recorder
 	Actions     ActionsQueue
 	Store       store.Store
 	Wrapper     keys.Wrapper
@@ -120,7 +123,20 @@ func (s *Service) providerSnapshot(ctx context.Context, tenantID string) (*store
 	return p, nil
 }
 
-func (s *Service) deliver(ctx context.Context, tenantID string, msg Message, p *store.EmailProvider) error {
+func (s *Service) deliver(ctx context.Context, tenantID string, msg Message, p *store.EmailProvider) (err error) {
+	// One dispatch boundary serves stored and legacy notifications. Synthetic
+	// sends have no business message type; verification has its own fv outcome.
+	defer func() {
+		if err == nil || msg.Type == "" || msg.Type == "verify_email" || msg.Type == "try_provider_configuration_email" {
+			return
+		}
+		recorder := s.Recorder
+		if recorder == nil {
+			recorder = logs.RecorderFromContext(ctx)
+		}
+		logs.RecordEvent(ctx, recorder, logs.Event{TenantID: tenantID, Type: "fn", UserID: msg.UserID, ClientID: msg.ClientID, OrganizationID: msg.OrganizationID, Date: s.clock(), Details: map[string]any{"notification_type": msg.Type}})
+	}()
+
 	if p == nil {
 		if s.Fallback == nil {
 			return ErrServiceUnavailable
@@ -199,6 +215,23 @@ func (s *Service) deliver(ctx context.Context, tenantID string, msg Message, p *
 	if err = json.Unmarshal(plain, &credentials); err != nil {
 		return ErrProviderConfiguration
 	}
+	// Register credentials before any delivery failure can reach an event sink.
+	var register func(any)
+	register = func(value any) {
+		switch value := value.(type) {
+		case string:
+			ctx = logscrub.WithCredentials(ctx, value)
+		case map[string]any:
+			for _, nested := range value {
+				register(nested)
+			}
+		case []any:
+			for _, nested := range value {
+				register(nested)
+			}
+		}
+	}
+	register(credentials)
 	settings := cloneConfigMap(p.PublicConfig)
 	for k, v := range settings {
 		if _, exists := credentials[k]; !exists {

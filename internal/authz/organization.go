@@ -3,11 +3,12 @@ package authz
 import (
 	"context"
 	"errors"
-	"github.com/zeroauthy/zeroauthy/internal/access"
-	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"net/http"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -84,11 +85,23 @@ func ResolveOrganization(ctx context.Context, st store.Store, t tenant.Resolved,
 	if e != nil {
 		return OrgDecision{}, e
 	}
+	recordDenial := func() {
+		logs.RecordEvent(ctx, logs.RecorderFromContext(ctx), logs.Event{TenantID: t.Tenant.ID, Type: "organization_access_denied", ClientID: c.ClientID, ClientName: c.Name, OrganizationID: org.ID, OrganizationName: org.Name, Hostname: t.Host})
+	}
 	if !c.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
+		recordDenial()
 		return OrgDecision{}, errAccessDenied("the organization does not admit third-party applications")
 	}
 	if err := orglogin.CheckMemberClient(ctx, st, t.Tenant.ID, org.ID, c.ClientID); err != nil {
-		return OrgDecision{}, errAccessDenied("the organization does not admit this application")
+		switch {
+		case errors.Is(err, orglogin.ErrNotMember):
+			recordDenial()
+			return OrgDecision{}, errAccessDenied("the organization does not admit this application")
+		case errors.Is(err, store.ErrNotFound):
+			return OrgDecision{}, errInvalidRequest("the organization does not exist")
+		default:
+			return OrgDecision{}, errServer()
+		}
 	}
 	return OrgDecision{OrgID: org.ID, Mode: OrgFixed}, nil
 }
@@ -192,7 +205,7 @@ func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, r
 		return false, errLoginRequired()
 	}
 	emptyPicker := false
-	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+	err = orglogin.WithMembershipEvents(r.Context(), h.Store, func(ctx context.Context, tx store.Store) error {
 		fresh, e := tx.Clients().Get(r.Context(), res.Tenant.ID, c.ClientID)
 		if e != nil {
 			return e
@@ -223,7 +236,7 @@ func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, r
 		if e != nil {
 			return e
 		}
-		return orglogin.EnsureMembership(r.Context(), tx, oc, sess.UserID, conn.ID)
+		return orglogin.EnsureMembership(logs.WithEvent(ctx, logs.Event{ClientID: c.ClientID, ClientName: c.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)}), tx, oc, sess.UserID, conn.ID)
 	})
 	if errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, store.ErrNotFound) {
 		if fr.OrgMode == OrgPickAfter {

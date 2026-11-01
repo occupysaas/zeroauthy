@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -53,6 +54,7 @@ type Processor interface {
 
 // Runner is a pool of workers.
 type Runner struct {
+	Recorder   logs.Recorder
 	Store      store.Store
 	Processors map[store.JobType]Processor
 	// Workers is how many jobs run at once; 0 runs none.
@@ -119,6 +121,7 @@ type Sweep struct {
 }
 
 func (r *Runner) sweep(ctx context.Context, s Sweep) {
+	ctx = logs.WithRecorder(ctx, r.Recorder)
 	every := s.Every
 	if every <= 0 {
 		every = time.Hour
@@ -253,6 +256,14 @@ func (r *Runner) process(ctx context.Context, owner string, j *store.Job) {
 			return
 		}
 		r.log().Error("jobs: finish a job", "err", err, "tenant", j.TenantID, "job", j.ID)
+		return
+	}
+	if j.Type == store.JobUsersImport {
+		code := "sui"
+		if status == store.JobFailed {
+			code = "fui"
+		}
+		logs.RecordEvent(fctx, r.Recorder, logs.Event{TenantID: j.TenantID, Type: code, Date: r.now(), Details: map[string]any{"job_id": j.ID}})
 	}
 }
 

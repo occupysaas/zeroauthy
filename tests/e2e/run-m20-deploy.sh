@@ -48,6 +48,8 @@ export ZEROAUTHY_SECURITY__MASTER_KEY="$(openssl rand -base64 32)"
 export ZEROAUTHY_EMAIL__DIR="$work/mail"
 export ZEROAUTHY_SEED_MODE=create_only
 export NODE_EXTRA_CA_CERTS="$work/cert.pem"
+export E2E_M31_STREAM_HTTP_SECRET="m31-private-stream-http-auth"
+export E2E_M31_STREAM_DATADOG_SECRET="m31-private-stream-datadog-key"
 export E2E_M20_CONFIG="$PWD/tests/e2e/deploy-cli/config.json"
 export E2E_M20_BINARY="$work/zeroauthy"
 serve() {
@@ -79,7 +81,7 @@ for mode in "${modes[@]}"; do
     export E2E_M20_TARGET_DSN="sqlite://$E2E_M20_WORK/target.db"
     export E2E_M20_SOURCE_SEED="$E2E_M20_WORK/source-seed.yaml"
     export E2E_M20_TARGET_SEED="$E2E_M20_WORK/target-seed.yaml"
-    node --input-type=module -e 'import fs from "node:fs"; import yaml from "./tests/e2e/node_modules/js-yaml/index.js"; const fixture=yaml.load(fs.readFileSync("tests/e2e/deploy-cli/seed.yaml","utf8")); fs.writeFileSync(process.env.E2E_M20_SOURCE_SEED,yaml.dump({tenants:[fixture.tenants[0]]})); fs.writeFileSync(process.env.E2E_M20_TARGET_SEED,yaml.dump({tenants:[fixture.tenants[1]]}));'
+    node --input-type=module -e 'import fs from "node:fs"; import yaml from "./tests/e2e/node_modules/js-yaml/index.js"; const fixture=yaml.load(fs.readFileSync("tests/e2e/deploy-cli/seed.yaml","utf8")); const streams=JSON.parse(fs.readFileSync("tests/e2e/deploy-cli/fixtures/log-streams.json","utf8")); fixture.tenants[0].log_streams=streams.map(s=>({...s,sink:{...s.sink,...(s.type==="http"?{httpAuthorization:"${E2E_M31_STREAM_HTTP_SECRET}"}:{datadogApiKey:"${E2E_M31_STREAM_DATADOG_SECRET}"})}})); fs.writeFileSync(process.env.E2E_M20_SOURCE_SEED,yaml.dump({tenants:[fixture.tenants[0]]})); fs.writeFileSync(process.env.E2E_M20_TARGET_SEED,yaml.dump({tenants:[fixture.tenants[1]]}));'
     export ZEROAUTHY_STORAGE__DSN="$E2E_M20_SOURCE_DSN" ZEROAUTHY_SEED="$E2E_M20_SOURCE_SEED" ZEROAUTHY_SERVER__LISTEN=:8443
     serve_port=8443
     serve
