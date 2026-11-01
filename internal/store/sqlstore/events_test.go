@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http/httptest"
 	"runtime"
 	"slices"
 	"strings"
@@ -13,7 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/pkg/storetest"
 )
 
@@ -459,4 +462,139 @@ func (g *eventPurgeReplacement) QueryRowContext(ctx context.Context, q string, a
 		})
 	}
 	return g.querier.QueryRowContext(ctx, q, args...)
+}
+
+// A count used to enforce a tenant stream quota must serialize with other
+// transactional quota checks, including while the first stream table is empty.
+func TestEventStreamCountSerializesCreateQuota(t *testing.T) {
+	for name, fresh := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := fresh(t)
+			ctx := t.Context()
+			mustEvent(t, s.Tenants().Create(ctx, &store.Tenant{ID: "quota", Name: "quota"}))
+			counted := make(chan struct{})
+			release := make(chan struct{})
+			first := make(chan error, 1)
+			go func() {
+				first <- s.WithTx(ctx, func(tx store.Store) error {
+					n, err := tx.Events().CountEventStreams(ctx, "quota")
+					if err != nil {
+						return err
+					}
+					if n != 0 {
+						return store.ErrInvalid
+					}
+					close(counted)
+					<-release
+					return tx.Events().CreateEventStream(ctx, &store.EventStream{TenantID: "quota", ID: "one", Name: "one", Status: "enabled", DestType: "action", Config: map[string]any{}})
+				})
+			}()
+			select {
+			case <-counted:
+			case err := <-first:
+				t.Fatal(err)
+			case <-time.After(10 * time.Second):
+				t.Fatal("first quota check did not start")
+			}
+			second := make(chan error, 1)
+			go func() {
+				second <- s.WithTx(ctx, func(tx store.Store) error {
+					n, err := tx.Events().CountEventStreams(ctx, "quota")
+					if err != nil {
+						return err
+					}
+					if n >= 1 {
+						return store.ErrConflict
+					}
+					return tx.Events().CreateEventStream(ctx, &store.EventStream{TenantID: "quota", ID: "two", Name: "two", Status: "enabled", DestType: "action", Config: map[string]any{}})
+				})
+			}()
+			var early error
+			completed := false
+			select {
+			case early = <-second:
+				completed = true
+			case <-time.After(150 * time.Millisecond):
+			}
+			close(release)
+			mustEvent(t, <-first)
+			if completed {
+				t.Fatalf("quota check did not wait for tenant transaction: %v", early)
+			}
+			if err := <-second; !errors.Is(err, store.ErrConflict) {
+				t.Fatalf("quota must reject second create: %v", err)
+			}
+			n, err := s.Events().CountEventStreams(ctx, "quota")
+			mustEvent(t, err)
+			if n != 1 {
+				t.Fatalf("quota exceeded: %d", n)
+			}
+		})
+	}
+}
+
+// Exercise the actual Management handler against an append whose commit is
+// delayed. Once enabling succeeds, that disabled-period event must be skipped;
+// a later append must still be eligible for delivery.
+func TestEventStreamEnableCheckpointSerializesAppend(t *testing.T) {
+	for name, fresh := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := fresh(t)
+			ctx := t.Context()
+			tn := &store.Tenant{ID: "resume", Name: "resume"}
+			mustEvent(t, s.Tenants().Create(ctx, tn))
+			id := "est_1234567890123456789012"
+			mustEvent(t, s.Events().CreateEventStream(ctx, &store.EventStream{TenantID: tn.ID, ID: id, Name: "Resume", Status: "disabled", DestType: "webhook", Config: map[string]any{"webhook_endpoint": "https://collector.example.test/events", "webhook_authorization": map[string]any{"method": "bearer"}}, ConsecutiveFailures: 8, TotalFailures: 42}))
+			appended := make(chan struct{})
+			release := make(chan struct{})
+			appendDone := make(chan error, 1)
+			go func() {
+				appendDone <- s.WithTx(ctx, func(tx store.Store) error {
+					if err := tx.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: tn.ID, ID: "before-enable", Time: time.Now()}}); err != nil {
+						return err
+					}
+					close(appended)
+					<-release
+					return nil
+				})
+			}()
+			select {
+			case <-appended:
+			case err := <-appendDone:
+				t.Fatal(err)
+			case <-time.After(10 * time.Second):
+				t.Fatal("append did not start")
+			}
+			h := &mgmt.Handlers{Store: s}
+			r := httptest.NewRequest("PATCH", "/api/v2/event-streams/"+id, strings.NewReader(`{"status":"enabled"}`))
+			r = r.WithContext(tenant.WithResolved(ctx, tenant.Resolved{Tenant: tn, Host: "example.test"}))
+			w := httptest.NewRecorder()
+			done := make(chan struct{})
+			go func() { h.UpdateEventStream(w, r, id); close(done) }()
+			select {
+			case <-done:
+				close(release)
+				mustEvent(t, <-appendDone)
+				t.Fatal("enable passed uncommitted append", w.Code, w.Body)
+			case <-time.After(150 * time.Millisecond):
+			}
+			close(release)
+			mustEvent(t, <-appendDone)
+			<-done
+			if w.Code != 200 {
+				t.Fatal(w.Code, w.Body)
+			}
+			stream, err := s.Events().GetEventStream(ctx, tn.ID, id)
+			mustEvent(t, err)
+			if stream.Checkpoint != 1 || stream.ConsecutiveFailures != 0 || stream.TotalFailures != 42 {
+				t.Fatalf("disabled history retained: %+v", stream)
+			}
+			mustEvent(t, s.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: tn.ID, ID: "after-enable", Time: time.Now()}}))
+			events, err := s.Events().EventsAfter(ctx, tn.ID, stream.Checkpoint, nil, 10, time.Now().Add(time.Hour))
+			mustEvent(t, err)
+			if len(events) != 1 || events[0].ID != "after-enable" {
+				t.Fatalf("eligibility after enabling: %+v", events)
+			}
+		})
+	}
 }

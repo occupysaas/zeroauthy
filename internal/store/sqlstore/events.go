@@ -325,6 +325,13 @@ func (r events) ListEventStreams(ctx context.Context, tid, after string, take in
 	return out, next, nil
 }
 func (r events) CountEventStreams(ctx context.Context, tid string) (int, error) {
+	// A transactional count is a quota check: serialize it with create/update
+	// before reading even an empty stream table, holding the tenant lock to commit.
+	if r.s.tx != nil {
+		if err := r.s.lockRBAC(ctx, tid); err != nil {
+			return 0, err
+		}
+	}
 	var n int
 	err := r.s.queryRow(ctx, `SELECT COUNT(*) FROM event_streams WHERE tenant_id=?`, tid).Scan(&n)
 	return n, err

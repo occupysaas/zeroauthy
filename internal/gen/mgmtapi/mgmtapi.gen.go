@@ -7113,7 +7113,10 @@ type EventsEventStreamActionResponseContent struct {
 	Name          *string                             `json:"name,omitempty"`
 	Status        *EventsEventStreamStatusEnum        `json:"status,omitempty"`
 	Subscriptions *[]EventsEventStreamSubscription    `json:"subscriptions,omitempty"`
-	UpdatedAt     *time.Time                          `json:"updated_at,omitempty"`
+
+	// TotalFailures Local console extension reporting extant failed deliveries; not observed Auth0 parity.
+	TotalFailures *int       `json:"total_failures,omitempty"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 }
 
 // EventsEventStreamCloudEvent CloudEvent validated against internal/eventrules/catalog.json.
@@ -7177,7 +7180,10 @@ type EventsEventStreamEventBridgeResponseContent struct {
 	Name          *string                                  `json:"name,omitempty"`
 	Status        *EventsEventStreamStatusEnum             `json:"status,omitempty"`
 	Subscriptions *[]EventsEventStreamSubscription         `json:"subscriptions,omitempty"`
-	UpdatedAt     *time.Time                               `json:"updated_at,omitempty"`
+
+	// TotalFailures Local console extension reporting extant failed deliveries; not observed Auth0 parity.
+	TotalFailures *int       `json:"total_failures,omitempty"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 }
 
 // EventsEventStreamEventTypeEnum defines model for EventsEventStreamEventTypeEnum.
@@ -7336,7 +7342,10 @@ type EventsEventStreamWebhookResponseContent struct {
 	Name          *string                              `json:"name,omitempty"`
 	Status        *EventsEventStreamStatusEnum         `json:"status,omitempty"`
 	Subscriptions *[]EventsEventStreamSubscription     `json:"subscriptions,omitempty"`
-	UpdatedAt     *time.Time                           `json:"updated_at,omitempty"`
+
+	// TotalFailures Local console extension reporting extant failed deliveries; not observed Auth0 parity.
+	TotalFailures *int       `json:"total_failures,omitempty"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 }
 
 // EventsGetEventStreamDeliveryHistoryResponseContent defines model for EventsGetEventStreamDeliveryHistoryResponseContent.

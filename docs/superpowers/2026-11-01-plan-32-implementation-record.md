@@ -557,3 +557,138 @@ codec precision/copies and preservation of common atomic reference checks.
 No broad Go/full SQL matrix/browser/E2E suite was run; those remain Task 14 and
 are not claimed passing. No new upstream observation or external source used.
 Task commit: `feat: add Events storage plugin capability` (containing entry).
+
+## Task 6 — Event streams Management API
+
+Base `1e4f990`, branch `implement-plan-32`, isolated worktree
+`/mnt/nvme2/code/zeroauthy-plan32`. Go toolchain `go1.26.7` throughout.
+
+Implemented scoped list/create/get/PATCH/delete using the generated route
+signatures. Lists default to 50 and cap at 100, with last-seen stream-ID cursors.
+Unknown/repeated parameters and invalid cursors are rejected. Request validation
+rejects unknown nested fields, null/malformed values and duplicate JSON keys;
+names/subscriptions/destination fields follow the frozen contract. Destination
+type is immutable; EventBridge is forced disabled and its configuration cannot
+be patched. Tenant Actions must have the `event-stream` trigger. Trigger
+activation, workers, test deliveries, delivery endpoints and SSE remain later
+Tasks 7–10; generated Unimplemented declarations are intact.
+
+Webhook password/token/header_value are sealed with tenant/stream/type-bound
+`event-stream/v1` envelopes in `internal/eventstream/secrets.go`, ready for Task 7.
+Public projections omit all credential fields. Omitted same-method credentials
+survive PATCH; changing methods requires and retains only the new credential.
+Both `sapi` and plain server operation logs use Plan 31's deny-all body
+projection and retain redaction markers. Existing credential registration is
+reused; no logging body allowlist was widened.
+
+Creation performs a transactional quota/name check and starts at the latest
+committed sequence. SQL transactional CountEventStreams locks the tenant before
+the count, including an empty stream table. PATCH locks the tenant before
+reading stream/checkpoint state, retries optimistic conflicts up to three times
+and rolls back invalid/conflicting candidates. Re-enabling below 5,000 extant
+failures clears consecutive failures, starts at the latest sequence, clears old
+lease ownership, and preserves the extant failure count; 5,000 rejects enabling.
+
+Integration rulings approved by the controller, recorded in D-0058/matrix:
+
+- E8 remains unobserved. The read-only local partner-source placeholder is
+  `aws.partner/zeroauthy/<stream-id>`; it does not register an AWS source.
+- Endpoint URL credentials/query/fragment and custom transport/framing headers
+  are rejected to prevent secret reflection and request-integrity failures.
+  Cost: stricter URL/header acceptance than the documented shape pending evidence.
+- `total_failures` is a read-only nonnegative local console extension, reporting
+  extant failed deliveries maintained by the worker, never lifetime attempt count.
+  Added to all three source YAML response variants and regenerated with
+  `make generate`; clients cannot PATCH it. Cost: a local response field, explicitly
+  not observed Auth0 parity. Console types will regenerate with Task 12.
+- Positive Action validation uses a tenant-scoped test-only GetAction adapter
+  because the real Actions inventory intentionally rejects the deferred trigger
+  until Task 8. Wrong-trigger validation uses the real memory Actions store;
+  production availability was not changed.
+- The SQL exception is narrow: two concurrency regressions on all three drivers,
+  not a broad SQL suite. Per-tenant count/startpoint locking adds brief contention.
+
+Verification evidence:
+
+- Initial test-harness attempt exit1: CreateAction correctly rejected the still
+  deferred trigger. Corrected the fixture with the approved test-only adapter.
+  The authoritative RED rerun then failed because Management handlers were missing:
+  `go test ./internal/mgmt -run 'EventStream|EventBridge' -count=1`, exit1,
+  `/tmp/plan32-task6-red.log`, session54613 (initial fixture session72514).
+- Server RED: same focused selector on `./internal/server`, exit1,
+  `/tmp/plan32-task6-server-red.log`, session18418: routes returned Unimplemented
+  501 and seed rejected missing Management scopes.
+- Additional RED regressions: duplicate JSON fields accepted201 (exit1,
+  `/tmp/plan32-task6-strict-red.log`, session62460); missing failure-count response
+  (exit1, `/tmp/plan32-task6-summary-red.log`, session21472).
+- SQL quota RED: `./scripts/test-sql.sh ./internal/store/sqlstore -run
+  '^TestEventStreamCountSerializesCreateQuota$' -v -timeout=10m`, exit1,
+  `/tmp/plan32-task6-sql-red.log` and `.exit`, session39632. SQLite passed;
+  PostgreSQL/MySQL allowed the second quota transaction through. GREEN after
+  locking: exit0, all3 drivers, `/tmp/plan32-task6-sql-green.log` and `.exit`,
+  session36431, Go4.707s.
+- SQL enable/append RED: actual Management UpdateEventStream invoked while an
+  append commit is delayed. Temporarily removed only the pre-read tenant lock;
+  `./scripts/test-sql.sh ./internal/store/sqlstore -run
+  '^TestEventStreamEnableCheckpointSerializesAppend$' -v -timeout=10m`, exit1,
+  `/tmp/plan32-task6-enable-red.log` and `.exit`, session49063. SQLite passed;
+  PostgreSQL/MySQL retained checkpoint0 and would replay disabled-period history.
+  Restored lock; combined focused SQL run exit0, all6 leaves/0skips/0races,
+  `/tmp/plan32-task6-sql-final.log` and `.exit`, session72963, Go9.034s.
+- Focused race GREEN: `go test -race ./internal/mgmt ./internal/server -run
+  'EventStream|EventBridge' -count=1 -v`, exit0, 25passed nodes/24passed leaves,
+  0failures/0skips/0race reports. `/tmp/plan32-task6-final-focused-v2.log` and
+  `.exit`, session7760; mgmt6.376s/server3.676s. Includes all named Task 6 cases,
+  real route/M2M scopes and scope discovery, live operator revocation, config
+  wiring, all webhook methods and replacement/binding, paging defaults/max,
+  transient capability recovery, atomic failed PATCH and optimistic retries.
+- `make generate`, exit0, `/tmp/plan32-task6-generate.log` and `.exit`, session65122.
+- `go test ./api ./internal/eventrules -count=1`, exit0,
+  `/tmp/plan32-task6-contract.log` and `.exit`, session7311,0.890s/0.353s.
+- Affected compile only: `go test ./internal/app ./internal/eventstream
+  ./internal/tenantsetup ./internal/store/sqlstore ./internal/store/grpcstore
+  ./internal/seed ./internal/deploymigration -run '^$'`, exit0,
+  `/tmp/plan32-task6-compile.log` and `.exit`, session64292. These compile results
+  are not database tests or claims that deferred runtime suites passed.
+
+Self-review checked strict allowlists, error masking, tenant/transaction scope,
+create/enable ordering, rollback, optimistic state refresh, secret method changes,
+M2M/operator gates, deployment config propagation, generated interface signatures,
+and preservation of future-task endpoints. No new dependency or upstream
+observation. Full Go/SQL/conformance/browser/E2E coverage remains Task 14.
+
+Final self-review corrections and snapshot verification:
+
+- Validation errors now use the frozen `invalid_request` code, including malformed
+  bodies and generated collection-query binding errors. The prior reuse of
+  `badBody`/the generic router emitted `invalid_body`/`invalid_query_string`;
+  explicit RED assertions failed (exit1,
+  `/tmp/plan32-task6-error-codes-red.log` and `.exit`, session94551). Fixed with a
+  stream-specific generic error and collection-route query normalization.
+- Full-tenant quota checks must not mask invalid bodies. RED
+  TestEventStreamLimitsAndNames observed409 for an unknown body field (exit1,
+  `/tmp/plan32-task6-quota-validation-red.log` and `.exit`, session31630).
+  Validation now occurs under the acquired count lock before the quota rejection.
+- Final focused race run after those changes: same command above, exit0,
+  27passed nodes/26passed leaves,0failures/0skips/0race reports;
+  `/tmp/plan32-task6-final-focused-v4.log` and `.exit`, session75885,
+  mgmt8.979s/server4.351s. This supersedes intermediate GREEN counts; it adds
+  handler and real-route error-code assertions and full-quota input validation.
+- Final SQL snapshot: same combined focused race selector above, exit0,
+  all6 leaves (two per SQLite/PostgreSQL/MySQL),0failures/0skips/0race reports,
+  `/tmp/plan32-task6-sql-final-v3.log` and `.exit`, session53901, Go8.992s.
+  Free host ports56861/50837; script containers were removed on completion.
+  Earlier final-v2 snapshot also passed9.059s (session62113), before final
+  validation-code changes. Repeated verification was tied to source changes,
+  never silence or elapsed runtime.
+- Final affected compile-only command above: exit0,
+  `/tmp/plan32-task6-compile-final.log` and `.exit`, session63108. Cached
+  no-test compile results remain compile-only claims.
+- Final implementation source tree (before this report-only record amendment):
+  `34d75fab904bdb62db013a914a7e994f95ee0968`,
+  `/tmp/plan32-task6-implementation-tree.txt`. No implementation/test source
+  changed after the final focused/SQL/compile runs. `git diff --check` and
+  cached check passed, exit0. All run handles have completed; no run remains active.
+
+Task commit: `feat: manage event streams` (containing entry). Detailed builder
+report: `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-6-report.md`.

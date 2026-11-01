@@ -161,3 +161,12 @@ See [D-0057](decisions.md#d-0057--tenant-logs-streams-and-statistics-contract-20
 ### Plan 32 — Event streams (implementation in progress)
 
 The public catalog 0.13.6 contract is frozen in `internal/eventrules`. Runtime support and acceptance remain in progress; this row is not a passing claim. Group events are deferred to Plan 38. D-0058 records local outbox/retention, update-boundary, webhook timeout, test-delivery, retry/disable, stream/SSE quota and cadence, disabled EventBridge, empty geo and outbound-network rulings. E1–E8 lack separate observer evidence.
+
+Task 6 implements scoped stream CRUD, tenant isolation, strict destination and
+subscription validation, write-only encrypted webhook credentials, checkpoint
+start/resume rules, atomic quotas/names and capability-unavailable responses.
+EventBridge remains disabled; E8's partner-source string is a deterministic local
+placeholder. Read-only `total_failures` is a local console extension for extant
+failed-delivery count, not observed Auth0 parity. Endpoint query/fragment and
+custom transport-header restrictions are local hardening (D-0058). Worker,
+deliveries, SSE, Actions trigger activation and console acceptance remain pending.

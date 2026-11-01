@@ -10172,6 +10172,11 @@ components:
       type: object
       additionalProperties: false
       properties:
+        total_failures:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Local console extension reporting extant failed deliveries; not observed Auth0 parity.
         id:
           type: string
           minLength: 26
@@ -10292,6 +10297,11 @@ components:
       type: object
       additionalProperties: false
       properties:
+        total_failures:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Local console extension reporting extant failed deliveries; not observed Auth0 parity.
         id:
           type: string
           minLength: 26
@@ -10389,6 +10399,11 @@ components:
       type: object
       additionalProperties: false
       properties:
+        total_failures:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Local console extension reporting extant failed deliveries; not observed Auth0 parity.
         id:
           type: string
           minLength: 26

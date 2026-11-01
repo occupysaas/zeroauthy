@@ -898,3 +898,19 @@ func (a mgmtAPI) DeleteLogStream(w http.ResponseWriter, r *http.Request, id stri
 func (a mgmtAPI) GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request, name string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTenantLogStreamStatus(w, r, name) }, "read:log_streams")
 }
+
+func (a mgmtAPI) ListEventStreams(w http.ResponseWriter, r *http.Request, _ mgmtapi.ListEventStreamsParams) {
+	scopedAll(w, r, a.h.ListEventStreams, "read:event_streams")
+}
+func (a mgmtAPI) CreateEventStream(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.CreateEventStream, "create:event_streams")
+}
+func (a mgmtAPI) GetEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetEventStream(w, r, id) }, "read:event_streams")
+}
+func (a mgmtAPI) UpdateEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateEventStream(w, r, id) }, "update:event_streams")
+}
+func (a mgmtAPI) DeleteEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteEventStream(w, r, id) }, "delete:event_streams")
+}

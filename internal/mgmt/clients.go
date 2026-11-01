@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -48,7 +49,8 @@ const (
 // Handlers serves the Management API and the system API.
 type Handlers struct {
 	// LogsConfig carries deployment-wide stream transport policy.
-	LogsConfig logs.Config
+	LogsConfig   logs.Config
+	EventsConfig events.Config
 
 	Recorder logs.Recorder
 	// Actions runs draft tests and queues and recovers dependency builds.

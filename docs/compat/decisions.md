@@ -2087,3 +2087,38 @@ accept leaks. The compatibility cost is rejecting arbitrary profileData fields
 that the published schema permits. Customer `app_metadata` and `user_metadata`
 remain open and unchanged. Subscription items require a catalog `event_type`;
 unknown or omitted types are invalid for create and PATCH.
+
+Task 6 Management API rulings (local, 2026-11-01):
+
+- EventBridge's read-only `aws_partner_event_source` is
+  `aws.partner/zeroauthy/<stream-id>`, a deterministic local identifier, not an
+  AWS partner source registration. E8 remains unobserved; all such streams are
+  forced disabled and PATCH cannot replace their configuration.
+- A transactional stream-count check locks the tenant before counting, including
+  an empty stream table. Stream creation and re-enabling read their starting
+  event sequence while holding the same tenant lock as event appends. This adds
+  brief per-tenant contention, preventing quota overflow and replay of events
+  committed while a stream was disabled. Optimistic versions still fence stale
+  updates; failed validation/conflicts roll back the whole candidate.
+- Webhook endpoint URLs reject embedded credentials, query strings and fragments;
+  otherwise these public response fields could expose credentials. HTTPS is
+  required unless `events.allow_insecure_http` is explicitly set. Header names
+  must be valid HTTP tokens and values cannot inject new headers. Custom headers
+  cannot override transport/framing headers (Host, Content-Length, Content-Type,
+  Connection, Transfer-Encoding, Trailer, TE, Upgrade, Proxy-Authorization or
+  Proxy-Connection). This deliberately narrows the documented URL/header shape
+  for privacy and transport integrity; a later observer-backed ruling may refine it.
+  Unknown/repeated query parameters, malformed JSON and duplicate object keys at
+  any depth are rejected rather than silently ignored.
+- Stream summaries include read-only, nonnegative `total_failures`: the count of
+  extant failed deliveries maintained by the worker. This is an explicit local
+  console extension needed for the Plan 32 failure-count display, not cumulative
+  attempts or observed Auth0 parity. Clients cannot write it. No checkpoint,
+  lease, optimistic version or encrypted credentials are returned.
+- Plan 31's default-deny logging body projection remains in force for the new
+  resource family. Both server operation logs and `sapi` records retain redaction
+  markers while suppressing the entire credential-bearing destination subtree.
+  No public-body logging allowlist expansion is needed for CRUD.
+
+The `event-stream` Actions trigger remains deferred until Task 8; Task 6 validates
+an existing Action's tenant and trigger without changing trigger availability.
