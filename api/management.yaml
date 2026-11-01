@@ -10595,6 +10595,11 @@ components:
       maxLength: 6
       enum:
       - failed
+    EventsEventStreamAttemptStatusEnum:
+      type: string
+      enum:
+      - failed
+      - success
     EventsEventStreamDeliveryEventTypeEnum:
       type: string
       maxLength: 33
@@ -10632,7 +10637,7 @@ components:
       - timestamp
       properties:
         status:
-          $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+          $ref: '#/components/schemas/EventsEventStreamAttemptStatusEnum'
         timestamp:
           type: string
           format: date-time
@@ -10759,7 +10764,7 @@ components:
           format: event-stream-id
           pattern: ^est_[A-Za-z0-9]{22}$
         status:
-          $ref: '#/components/schemas/EventsEventStreamDeliveryStatusEnum'
+          $ref: '#/components/schemas/EventsEventStreamAttemptStatusEnum'
         event_type:
           $ref: '#/components/schemas/EventsEventStreamDeliveryEventTypeEnum'
         attempts:

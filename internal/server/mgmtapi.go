@@ -914,3 +914,19 @@ func (a mgmtAPI) UpdateEventStream(w http.ResponseWriter, r *http.Request, id st
 func (a mgmtAPI) DeleteEventStream(w http.ResponseWriter, r *http.Request, id string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteEventStream(w, r, id) }, "delete:event_streams")
 }
+
+func (a mgmtAPI) TestEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.TestEventStream(w, r, id) }, "update:event_streams")
+}
+func (a mgmtAPI) ListEventDeliveries(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListEventDeliveriesParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListDeliveries(w, r, id) }, "read:event_streams", "read:event_deliveries")
+}
+func (a mgmtAPI) GetEventDelivery(w http.ResponseWriter, r *http.Request, id, eid string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetDelivery(w, r, id, eid) }, "read:event_deliveries")
+}
+func (a mgmtAPI) RedeliverEvents(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.Redeliver(w, r, id) }, "update:event_deliveries")
+}
+func (a mgmtAPI) RedeliverEvent(w http.ResponseWriter, r *http.Request, id, eid string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RedeliverOne(w, r, id, eid) }, "update:event_deliveries")
+}

@@ -1037,3 +1037,64 @@ capacity ownership/release, context/watchdog clamping, live-process shutdown and
 cache behavior. I1 has no unresolved finding; M1/M2 remain deferred. All runs
 finished. Full task report:
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-8-fix1-report.md`.
+
+### Task 9 — Immediate tests, failure inspection and redelivery
+
+Base `90f5693`; task commit recorded by the controller after review.
+Implemented Management handlers and generated-route adapters for synchronous test
+send, failure list/get and single/batch redelivery. The application injects the
+same worker used for background processing, including its durable Actions runner;
+no alternate transport/client or undurable runner is created by a handler.
+Default transports retain guarded dialing. Focused tests inject a trusted
+RoundTripper through the worker's existing constructor.
+
+Validation covers strict duplicate/unknown bodies and queries, catalog types,
+failed-only statuses, 50/100 default/maximum paging, anchored IDs, inclusive/exclusive
+dates, non-fractional RFC3339 with published maximum20, 404 tenant/event/stream
+boundaries, and 409 no-match/already-queued/not-failed conflicts. Queue selection
+uses the repository's atomic all-or-nothing operation. Disabled streams accept
+redelivery and reject test sends. Public attempts expose duration, status, safe
+error class and UTC timestamp; no queue/lease/sealed-secret internals are exposed.
+
+All25 default catalog types pass strict event validation, including deferred
+group types with a test-fixture-only valid group-ID substitution. Frozen catalog
+constraints and invalid caller-provided group IDs remain unchanged. Test sends
+never append outbox/failure records or change stream counters. Given data is
+validated before generating trusted tenant context. See D-0058 clarification;
+E4 remains unobserved. Corrected Task1's failed-only schema reference on immediate
+test outcomes/attempts, preserving failed-only storage/filter enums, then ran
+`GOTOOLCHAIN=go1.26.7 make generate`; exit0. Generated files were not hand edited.
+
+Initial RED `go test ./internal/mgmt -run 'SendTestEvent|Deliver|Redeliver' -count=1`
+failed exit1 because handlers/dependency were missing. Route RED separately
+confirmed unimplemented routes bypassed scope checks. Later focused REDs pinned
+unknown nested tenant fields, API success-response schema, missing generated
+tenant context and overlong/invalid date offsets. One intermediate minimal-data
+fixture omitted catalog-required user fields and was corrected before recording
+the intended context RED; the failed intermediate run is retained, not claimed
+passing. Full commands, sessions, logs, actual exits and final verification are
+in `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-9-report.md`.
+
+Focused non-race combined API/eventrules/Management/server run passed87leaves,
+0failures/skips (`/tmp/plan32-task9-focused2.log`, exit0). Affected app/Management/
+server/generated API compile passed (no tests run). Final race command/results
+are recorded below after completion. No database tests, broad suites, Node
+runtime suites or console build were run for this handler-only task; final
+Plan32 acceptance remains Task14.
+
+Task9 final verification: `GOTOOLCHAIN=go1.26.7 go test -race ./api
+./internal/eventrules ./internal/mgmt ./internal/server -run
+'SendTestEvent|Deliver|Redeliver|EventStream|EventsInventory|SpecsAreValid'
+-count=1 -v`, exit0,88passed leaves,0skips/failures/races. API7.288s,
+eventrules2.773s, Management27.781s, server6.905s; UTC20:29:26–20:30:12.
+Log `/tmp/plan32-task9-final.log`, `.exit`, session77779; sole task monitor,
+all commands finished. Includes real server successful test delivery, live
+operator revocation, receiver404→204 worker recovery while disabled, full retry
+attempt schedule, strict event privacy and actual202 response schema validation.
+Expected Management operation fixture INFO/ERROR diagnostics remain visible;
+privacy tests check request logs, sapi/fapi records, responses and payloads.
+`git diff --check` passed. No outstanding self-review finding; controller review
+is still required before Task9 is marked complete in the ledger.
+
+Task9 implementation tree before final documentation-only additions:
+`2888495f7b5ae4da9fa4c1776aafdf8173981252` (`/tmp/plan32-task9-implementation.tree`).

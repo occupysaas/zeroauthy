@@ -1716,6 +1716,24 @@ func (e EventsEventStreamActionDestinationTypeEnum) Valid() bool {
 	}
 }
 
+// Defines values for EventsEventStreamAttemptStatusEnum.
+const (
+	EventsEventStreamAttemptStatusEnumFailed  EventsEventStreamAttemptStatusEnum = "failed"
+	EventsEventStreamAttemptStatusEnumSuccess EventsEventStreamAttemptStatusEnum = "success"
+)
+
+// Valid indicates whether the value is a known member of the EventsEventStreamAttemptStatusEnum enum.
+func (e EventsEventStreamAttemptStatusEnum) Valid() bool {
+	switch e {
+	case EventsEventStreamAttemptStatusEnumFailed:
+		return true
+	case EventsEventStreamAttemptStatusEnumSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EventsEventStreamDeliveryEventTypeEnum.
 const (
 	EventsEventStreamDeliveryEventTypeEnumConnectionCreated              EventsEventStreamDeliveryEventTypeEnum = "connection.created"
@@ -7080,7 +7098,7 @@ type EventsCreateEventStreamTestEventResponseContent struct {
 	EventStreamId string                                 `json:"event_stream_id"`
 	EventType     EventsEventStreamDeliveryEventTypeEnum `json:"event_type"`
 	Id            string                                 `json:"id"`
-	Status        EventsEventStreamDeliveryStatusEnum    `json:"status"`
+	Status        EventsEventStreamAttemptStatusEnum     `json:"status"`
 }
 
 // EventsCreateEventStreamWebHookRequestContent defines model for EventsCreateEventStreamWebHookRequestContent.
@@ -7119,6 +7137,9 @@ type EventsEventStreamActionResponseContent struct {
 	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 }
 
+// EventsEventStreamAttemptStatusEnum defines model for EventsEventStreamAttemptStatusEnum.
+type EventsEventStreamAttemptStatusEnum string
+
 // EventsEventStreamCloudEvent CloudEvent validated against internal/eventrules/catalog.json.
 type EventsEventStreamCloudEvent map[string]interface{}
 
@@ -7136,10 +7157,10 @@ type EventsEventStreamDelivery struct {
 
 // EventsEventStreamDeliveryAttempt defines model for EventsEventStreamDeliveryAttempt.
 type EventsEventStreamDeliveryAttempt struct {
-	Duration     *float32                            `json:"duration,omitempty"`
-	ErrorMessage *string                             `json:"error_message,omitempty"`
-	Status       EventsEventStreamDeliveryStatusEnum `json:"status"`
-	Timestamp    time.Time                           `json:"timestamp"`
+	Duration     *float32                           `json:"duration,omitempty"`
+	ErrorMessage *string                            `json:"error_message,omitempty"`
+	Status       EventsEventStreamAttemptStatusEnum `json:"status"`
+	Timestamp    time.Time                          `json:"timestamp"`
 }
 
 // EventsEventStreamDeliveryEventTypeEnum defines model for EventsEventStreamDeliveryEventTypeEnum.

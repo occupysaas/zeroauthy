@@ -40,8 +40,9 @@ import (
 
 type Deps struct {
 	// LogsConfig carries the secure stream defaults and deployment opt-ins.
-	LogsConfig   logs.Config
-	EventsConfig events.Config
+	LogsConfig     logs.Config
+	EventsConfig   events.Config
+	EventDeliverer mgmt.EventDeliverer
 
 	Recorder   logs.Recorder
 	Protection *protection.Service
@@ -291,11 +292,12 @@ func New(d Deps) http.Handler {
 	}
 	mr := chi.NewRouter()
 	mh := &mgmt.Handlers{
-		LogsConfig:   d.LogsConfig,
-		EventsConfig: d.EventsConfig,
-		Actions:      d.Actions,
-		Recorder:     d.Recorder,
-		Store:        d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
+		LogsConfig:     d.LogsConfig,
+		EventsConfig:   d.EventsConfig,
+		EventDeliverer: d.EventDeliverer,
+		Actions:        d.Actions,
+		Recorder:       d.Recorder,
+		Store:          d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify, EmailService: d.EmailService,
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
@@ -309,7 +311,7 @@ func New(d Deps) http.Handler {
 	mgmtapi.HandlerWithOptions(mgmtAPI{h: mh}, mgmtapi.ChiServerOptions{
 		BaseRouter: mr,
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-			if r.URL.Path == "/api/v2/event-streams" {
+			if r.URL.Path == "/api/v2/event-streams" || strings.HasPrefix(r.URL.Path, "/api/v2/event-streams/") {
 				mgmt.WriteError(w, http.StatusBadRequest, "invalid_request", "Invalid event stream query")
 				return
 			}

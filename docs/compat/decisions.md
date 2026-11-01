@@ -2164,3 +2164,20 @@ request sent before termination cannot be recalled. The10s delivery budget still
 bounds the execution/watchdog and the adapter's wait; shutdown/reaping is not a
 real-time OS guarantee. Minor review M1 setup-timeout classification and M2
 expected fixture diagnostics remain deferred.
+
+Task 9 test delivery clarification (local, 2026-11-01): all 25 catalog types
+can be sent as synchronous tests, including deferred group types. The default
+test fixture alone substitutes `grp_123456789abcdefg` for the published invalid
+`grp_01949dad80fc7d56` wherever referenced; the frozen catalog and validator are
+unchanged, and supplying the invalid original data still returns 400. This is a
+synthetic fixture repair, not evidence about upstream test generation. E4 remains
+unobserved. Caller data is validated before trusted tenant context is generated.
+
+The Task 1 API schema incorrectly reused the stored-failure-only status enum for
+attempts and immediate test responses. Those two fields now permit `failed` or
+`success`, matching the documented delivery outcome; stored failure records and
+filter enums remain `failed` only. An actual successful 202 response is validated
+against the API response schema. Delivery date validation retains the published
+OpenAPI's explicit `maxLength: 20`, as well as its prohibition of sub-second
+precision: `YYYY-MM-DDTHH:MM:SSZ` is accepted, and longer numeric-offset RFC3339
+values are rejected. Calendar/time validation still uses the RFC3339 parser.
