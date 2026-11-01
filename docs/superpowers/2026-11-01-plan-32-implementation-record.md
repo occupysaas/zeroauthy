@@ -1132,3 +1132,63 @@ final log/exit/snapshot prefix `/tmp/plan32-task9-fix1-final`.
 
 Task9fix1 implementation tree before final documentation-only additions:
 `f67de8555729c2e9def7c75925e5d693cc169206` (`/tmp/plan32-task9-fix1-implementation.tree`).
+
+### Task 10 — Events API SSE
+
+Base `0dfaf16`; generated SubscribeEvents adapter now enforces `read:events`.
+GET `/api/v2/events` bypasses Management response capture and clears the real
+HTTP write deadline. A tenant-local semaphore defaults to4; public403 wording
+comes from the frozen public OAS `/events` GET403. Existing Auth/live operator
+checks run at connect; no extra midstream authorization policy was introduced.
+
+One-second polls read unfiltered settled sequence pages (2s window) in short
+transactions with the existing tenant mutation lock, then release before any
+network write. Type and inclusive timestamp filters apply during traversal;
+progress offsets describe only rows already processed. Timestamp floor remains
+active across all pages/future commits, including earlier event-time arrivals.
+Connected/retry2000, CloudEvent frames without a0stream/a0purpose, heartbeat15s,
+offset-only30s, cycle5min, disconnect/error/timer cleanup are covered. Progress
+checks between replay rows prevent heartbeat starvation. Fixed public errors
+alone reach responses/diagnostics, including failed capability probes; RED
+privacy regressions demonstrated why the generic raw backend error logger
+cannot be reused for this route.
+
+Rulings: canonical unpadded base64url decimal nonnegative int64 offsets, max1024;
+valid future offsets wait. Last-Event-ID wins over from or timestamp, while the
+forbidden from+from_timestamp query pair always400. Timestamp is strict20-character
+UTC RFC3339 seconds (including valid Go-zero-time year0001 via an explicit flag).
+Expire only when oldest>0 and cursor<oldest-1. Existing repositories have no
+watermark when every retained event was purged: explicit cursor validation is
+then deferred until a new retained oldest proves expiry (controller accepted;
+cost: delayed410). Fresh default/timestamp starts with initially empty retention
+bootstrap to first observed oldest-1 because globally allocated sequences may
+start above1 for that tenant; events created and fully purged before first
+observation cannot be diagnosed without a persisted watermark. No repository
+interface or SQL production change was added.
+
+TDD initial missing-handler compile RED exit1; later focused REDs reproduced
+raw store/probe diagnostic leakage, zero-time timestamp collision, replay
+heartbeat starvation, and fresh-empty tenant false expiry. Intermediate fixture
+failures and all failed outputs are preserved in task report. The stronger real
+writer assertion caught a test fixture mistakenly requesting `/`; corrected
+request `/api/v2/events` verifies capture bypass, immediate flush, delivery after
+a50ms server write timeout, and actual response-body disconnect slot release.
+Two concurrent append writers are held/serialized beyond settle time and the
+Last-Event-ID reconnect returns the second commit once without replaying first.
+
+Final `GOTOOLCHAIN=go1.26.7 go test ./internal/mgmt -run SSE -count=1 -v`
+PASS44leaves (exit0,1.371s); race count3 PASS132leaf executions (exit0,8.310s,
+0failures/skips/races). Focused server scopes/live-grant/middleware race checks
+PASS4leaves (exit0,3.690s); affected app/Management/server/generated compile
+PASS with no tests selected. Final race UTC20:49:19–20:49:41, server through
+20:49:35, compile through20:49:26. Logs/actual exits/timestamps prefix
+`/tmp/plan32-task10-ready-{race,server,compile}`, focused log
+`/tmp/plan32-task10-ready-focused.log`; sessions40815/52896/8060/16867 completed,
+sole task monitor. Implementation tree before documentation-only additions:
+`78d43765fc913ed55f36ddc01fb8bf42f2f89390`.
+
+No DB-backed/broad/Node/E2E/console suite was run; final acceptance remains Task14.
+No new dependency or manual generated edit. `git diff --check` passed. Full
+commands, failures, skips/rulings and self-review report:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-10-report.md`.
+Controller review is pending; no active test run remains.

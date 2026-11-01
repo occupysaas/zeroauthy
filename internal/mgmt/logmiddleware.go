@@ -23,6 +23,11 @@ func (h *Handlers) LogMiddleware(next http.Handler) http.Handler { return h.logM
 
 func (h *Handlers) logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Streaming responses must reach the network directly, without capture.
+		if r.Method == http.MethodGet && r.URL.Path == "/api/v2/events" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		caller, authenticated := CallerFrom(r.Context())
 		if !authenticated {
 			next.ServeHTTP(w, r)

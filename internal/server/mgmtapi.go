@@ -19,6 +19,10 @@ type mgmtAPI struct {
 
 var _ mgmtapi.ServerInterface = mgmtAPI{}
 
+func (a mgmtAPI) SubscribeEvents(w http.ResponseWriter, r *http.Request, _ mgmtapi.SubscribeEventsParams) {
+	scopedAll(w, r, a.h.SubscribeEvents, "read:events")
+}
+
 func (a mgmtAPI) GetBranding(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.GetBranding, "read:branding")
 }

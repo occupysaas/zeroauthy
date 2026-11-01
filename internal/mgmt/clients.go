@@ -92,6 +92,11 @@ type Handlers struct {
 
 	tryOnce     sync.Once
 	tryThrottle *identity.Throttle
+
+	sseMu          sync.Mutex
+	sseConnections map[string]int
+	// Tests inject ticks alongside Now; production uses one second ticks.
+	sseTicks func() (<-chan time.Time, func())
 }
 
 func (h *Handlers) now() time.Time {

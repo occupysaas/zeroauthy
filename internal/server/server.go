@@ -311,7 +311,7 @@ func New(d Deps) http.Handler {
 	mgmtapi.HandlerWithOptions(mgmtAPI{h: mh}, mgmtapi.ChiServerOptions{
 		BaseRouter: mr,
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-			if r.URL.Path == "/api/v2/event-streams" || strings.HasPrefix(r.URL.Path, "/api/v2/event-streams/") {
+			if r.URL.Path == "/api/v2/events" || r.URL.Path == "/api/v2/event-streams" || strings.HasPrefix(r.URL.Path, "/api/v2/event-streams/") {
 				mgmt.WriteError(w, http.StatusBadRequest, "invalid_request", "Invalid event stream query")
 				return
 			}
