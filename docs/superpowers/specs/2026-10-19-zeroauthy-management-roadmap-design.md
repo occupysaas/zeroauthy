@@ -311,9 +311,7 @@ My Organization API/self-service organization administration Plan 42.
 
 ### Plan 32 — Event streams
 
-**Draft design and plan (2026-11-01):** [standalone spec](2026-11-01-zeroauthy-event-streams-design.md) and [implementation plan](../plans/2026-11-01-zeroauthy-plan-32-event-streams.md). Follows Auth0's current documentation: webhook (basic, bearer, custom header), `action` (the `event-stream` trigger) and stored-only `eventbridge` destinations; user, organization and catalog enterprise-connection events captured in the business transaction; test, deliveries, redelivery and auto-disable; and the SSE Events API (`GET /api/v2/events`). Group events wait for Plan 38. Not implemented yet.
-
-`/api/v2/event-streams` (CRUD, `test`, `/deliveries`, `/redeliver`) for `webhook` and `eventbridge` destinations; Auth0's CloudEvents payloads for `user.created`, `user.updated`, `user.deleted` and any event types added by build time; signed webhook delivery with retries, sharing Plan 31's delivery machinery. The `event-stream` Action trigger (deferred by Plan 28) ships here if Auth0 documents it at build time. **Short.**
+**Implementation in progress (2026-11-01):** [spec](2026-11-01-zeroauthy-event-streams-design.md), [plan](../plans/2026-11-01-zeroauthy-plan-32-event-streams.md), [record](../2026-11-01-plan-32-implementation-record.md), [operator guide](../../event-streams.md). Tasks 1–13 implement transactional catalog events, sealed write-only webhook authorization, webhook/Action destinations, failure recovery, SSE resume, memory/SQL/Events-v1 plugin storage, console, seed and Deploy CLI. EventBridge remains stored disabled; groups wait for Plan 38. No signature header is invented. Task 14 adds a local HTTPS browser/SDK/CLI/SSE acceptance lane; final broad regression and whole-branch review remain pending. Separate Auth0 observer evidence E1–E8 is unavailable; local choices remain documented in D-0058.
 
 ### Plan 33 — MFA I (full design)
 

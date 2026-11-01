@@ -446,3 +446,12 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `w` | Authentication completed a step with a warning. | Plan 31 |
 | `wn` | A general warning notification was produced. | Plan 38 |
 | `wum` | A user-management operation produced a warning. | Plan 38 |
+
+## Resource changes and event streams
+
+Operational logs and resource-change CloudEvents serve separate purposes.
+[Event streams](event-streams.md) capture user, organization and supported
+enterprise-connection changes in the business transaction, then deliver them to
+an HTTPS webhook or `event-stream` Action. Their failed-delivery records and SSE
+Events API live under `/event-streams` and `/events`. Action destinations retain
+execution IDs and masked diagnostics in the existing Actions logs.

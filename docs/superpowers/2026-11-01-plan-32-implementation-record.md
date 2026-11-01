@@ -1460,3 +1460,87 @@ header rejections remain explicit. EventBridge delivery is unavailable. The
 full repository race/SQL/browser acceptance matrix belongs to Task 14 and was
 not run here. Complete commands, intermediate failures and artifact paths are
 in workspace `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-13-report.md`.
+
+### Task 14 phase 1 — acceptance fixtures and operator documentation
+
+Task 14 remains in progress. This phase adds `make e2e-events` and local production
+SQLite fixtures for the pinned node-auth0 7.4.0, Auth0 CLI 1.37.0 and Playwright.
+It does not complete final repository regression or whole-branch review.
+
+The lane first creates a subscription, then performs browser signup, a real
+Management API metadata update and deletion. A local HTTPS receiver checks the
+configured bearer authorization in memory and exports bodies without exporting
+the credential-bearing header. Every received body and stored outbox body goes
+through a small Go executable calling the actual `eventrules.ValidateEvent` and
+its frozen catalog, with no mirrored schema. Console creation/test, a 500
+receiver's four attempts and spacing, failed-delivery inspection and repair,
+throwing/fixed Action execution and masked logs, SDK/CLI CRUD/test/delivery
+recovery, and SSE `Last-Event-ID` resume are asserted by the fixture.
+
+Privacy ruling: an unqualified raw database negative grep for a real password
+hash conflicts with legitimate credential storage. The fixture reads the actual
+source user's stored argon2id hash before deletion, then scans **every column**
+of `tenant_events`, `event_streams` and `event_deliveries` (`SELECT *`), including
+sealed configuration, plus receiver bodies, server logs, relevant console JSON
+responses, CLI output and captured SDK/SSE responses. The exact source hash and
+actual Management token, along with representative passwords, provider token,
+webhook and Action secrets and their common encodings, must be absent. Customer
+`metadata.password` contains an ordinary customer value and remains intact.
+Credential provisioning inputs and protected user/token storage remain private;
+this exclusion does not remove any event-table column.
+
+A helper uses the real SQL store and `federation.SealTokens`, `PutTokens`,
+`GetTokens` and `OpenTokens` to seed and positively verify a protected provider
+token for a canonical secondary identity. This is local source setup, not an
+upstream provider OAuth round trip, and intentionally runs before the next
+captured Management write. An earlier fixture tried placing a token in arbitrary
+`ProfileData`, which bypassed supported storage semantics; it was replaced with
+actual protected token storage. No Management identity-projection change or
+privacy assertion waiver was made. The Action runtime's existing eight-block
+mask is asserted explicitly; general monitoring redaction uses `[REDACTED]`.
+
+Client method/command spellings were checked in the pinned installed SDK and
+CLI help as test-client integration, under CLEAN_ROOM.md. No undocumented SDK
+behavior was added to the server and no Auth0 tenant was accessed. The operator
+guide, API/Actions/logs links, roadmap and matrix retain local differences and
+E1–E8 evidence gaps. SQLite browser acceptance complements earlier focused
+memory/three-SQL/plugin tests and Task 13's Deploy round trips; it is not reported
+as a four-store browser run.
+
+Phase 1 results (2026-11-01):
+
+- Required initial `make e2e-events` RED: exit **2**, UTC 23:43:41, missing target.
+  `/tmp/plan32-task14-missing.{log,exit,start,end,head}`; HEAD `b13466c`.
+- First fully passing lane: `E2E_KEEP_WORK=1 GOTOOLCHAIN=go1.26.7 make e2e-events`,
+  exit **0**, UTC 23:54:12–23:55:45. Browser **1 pass, 0 skips**, SDK, CLI, SSE
+  and privacy passed. `/tmp/plan32-task14-events-retry9.*`, artifacts
+  `/tmp/plan32-rkwT5P`, source-manifest SHA-256
+  `07e21069f5841a2f3f801c4abf1d6e41d8cb0499c8832063cc68a6f66ee7116f`.
+- Self-review strengthened the Actions logs list assertions for both failed and
+  repaired executions and collected every actual Management token issued to the
+  SDK/browser fixtures. The final-source rerun passed, exit **0**, UTC
+  23:56:07–23:57:43, browser **1 pass, 0 skips** (32.6s), all SDK/CLI/SSE stages
+  passed. Privacy scanned **12 artifacts / 547,229 bytes**, one actual source
+  credential hash, five distinct actual Management tokens and representative
+  passwords, provider token, webhook/Action secrets. All event-table columns and
+  every receiver/outbox body were covered. `/tmp/plan32-task14-events-final.*`,
+  artifacts `/tmp/plan32-A3mfXJ`, source-manifest SHA-256
+  `d0d858aef8e576a1e3d340f1debd10d34f758320e2073f9ad6e912ebbb37cd59`.
+- Original fixture failures remain recorded in `/tmp/plan32-task14-events.*` and
+  `-retry1` through `-retry8`: SQL column/JSON capitalization, invalid synthetic
+  identity/provider-token setup, absent Go receiver CA trust, capture of HTML/
+  OPTIONS rather than relevant JSON, ambiguous table locator, Action mask
+  spelling, and SDK delivery method spelling (`getHistory`). These were fixture
+  fixes; no production code or payload/privacy assertion was weakened.
+- Final Node syntax checks for all three files, shell syntax and `git diff
+  --check` passed. Go helper and shipped app compiled in the lane. Actual tools:
+  Go **1.26.7**, Node **26.8.1**, node-auth0 **7.4.0**, Auth0 CLI **1.37.0**.
+  No new dependencies or generated files. One agent monitored each invocation
+  using blocking waits; no duplicate process/log polling or quiet-run reruns.
+
+Not run in this phase: full Go race, full three-driver SQL matrix, console/source
+checks, other required E2E lanes, conformance and whole-branch review. These
+remain Task 14 phase 2. No suite is labeled passing from fixture implementation
+alone. Detailed commands, individual failures, snapshot identities and private
+artifact exclusions are in workspace
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-14-implementation-report.md`.

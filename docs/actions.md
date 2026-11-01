@@ -461,3 +461,14 @@ Phone/SMS triggers remain for Plan 34, custom token exchange for Plan 35 and
 event streams for Plan 32. Password-hash migration and identifier/credential
 validation triggers also remain deferred. MFA and Forms APIs await their own
 plans; the seven-trigger catalogue does not claim those runtimes.
+
+## Event-stream destination
+
+An `event-stream` Action receives the CloudEvent as `event.message`, with
+`event.secrets` and `api.cache`, through `exports.onExecuteEventStream`. Returning
+succeeds; throwing causes stream retries and, after exhaustion, a failed delivery
+that the operator can redeliver after repairing and deploying the Action. Runs
+use the durable queue and appear in Actions execution logs. Each attempt uses a
+bounded isolated Node process; globals do not persist, while `api.cache` does.
+See [Event streams](event-streams.md) for the ten-second delivery budget and
+failure recovery.

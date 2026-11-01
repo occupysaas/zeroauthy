@@ -604,3 +604,14 @@ surfaces while existing plugin functionality remains usable. Pinned CLI
 filtered list/tail acceptance is currently failing on its undocumented
 `search_engine` page selector; this is tracked, with assertions retained,
 in the guide and implementation record.
+
+## Event streams and Events API
+
+`/api/v2/event-streams` supports scoped CRUD, synchronous `/test`, paginated
+`/deliveries` and single/batch `/redeliver`. `GET /api/v2/events` is the SSE
+Events API (`read:events`), with opaque resume offsets and `Last-Event-ID` support.
+Webhook credentials are encrypted and write-only; `total_failures` is a read-only
+local console extension. Failed deliveries remain until successful redelivery or
+retention expiry. EventBridge configuration is stored disabled. See
+[Event streams](event-streams.md) for scopes, payload/privacy, retry semantics,
+Actions, retention, local differences and client examples.
