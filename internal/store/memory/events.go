@@ -425,6 +425,28 @@ func (r events) RecordEventDelivery(ctx context.Context, tid, id, owner string, 
 	if o.Checkpoint < s.Checkpoint {
 		return store.ErrPrecondition
 	}
+	// Purge/eviction can remove an event after a worker reads it. Resolve all
+	// references while holding the mutation lock before touching any outcome
+	// state; foreign tenant IDs are indistinguishable from missing events.
+	referenced := make(map[string]bool, len(o.Succeeded)+1)
+	if o.Failed != nil {
+		referenced[o.Failed.EventID] = false
+	}
+	for _, eid := range o.Succeeded {
+		referenced[eid] = false
+	}
+	if len(referenced) > 0 {
+		r.s.tenantEvents[tid].each(func(e storedEvent) {
+			if _, ok := referenced[e.event.ID]; ok {
+				referenced[e.event.ID] = true
+			}
+		})
+		for _, found := range referenced {
+			if !found {
+				return store.ErrNotFound
+			}
+		}
+	}
 	s.Checkpoint = o.Checkpoint
 	s.ConsecutiveFailures = o.ConsecutiveFailures
 	s.TotalFailures = o.TotalFailures

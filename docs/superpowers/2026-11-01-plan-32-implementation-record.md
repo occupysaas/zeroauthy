@@ -286,3 +286,79 @@ All commands below exported `GOTOOLCHAIN=go1.26.7`. Tests use memory/mocks only.
   Full focused/race/internal compilation above covered the final production
   snapshot before these test-only guard/assertion refinements; no production
   file changed afterward.
+
+## Task 3 Important review fixes — round 1 (base fd772fa)
+
+- Verified the active-edge finding against `RBAC.DeleteRole`: memory and SQL
+  drivers remove organization-member-role assignments internally. Added an RBAC
+  repository view that intercepts only DeleteRole, reads the role and pages the
+  tenant's organizations and each organization's active RoleMembers inside the
+  business transaction, then emits organization.member.role.deleted after the
+  successful delete. Other RBAC methods and the store's optional RBAC capability
+  probe continue to delegate. Missing Events still bypasses capture.
+- No new event type or dormant-edge API was added. Global user-role assignments
+  have no catalog event here; retained assignments of nonmembers remain outside
+  RoleMembers visibility and generate no invented removal event on role deletion,
+  consistent with the existing dormant-edge ruling.
+- Verified the reference finding: RecordEventDelivery accepted an EventID that
+  existed only in another tenant, never existed, or had been purged after reading.
+  It now resolves **all** Failed.EventID and Succeeded IDs against the lease
+  tenant's ring while holding the same mutation lock, before changing checkpoint,
+  counters, status, timestamps/version, failure records or success removals.
+- **Contract clarification:** a missing/foreign/purged/evicted event reference
+  returns ErrNotFound, including Succeeded IDs. The entire outcome is rejected
+  atomically. Existing ErrInvalid for malformed Failed tenant/stream/status and
+  ErrPrecondition for a lost lease/backwards checkpoint remain. A successful
+  delivery needs a retained tenant event, but need not have a prior failed record.
+  Success deletes only the caller's tenant/stream failure key and does not change
+  other tenants' or streams' records/counters.
+- Added shared EventDeliveryReferences conformance cases so future SQL/gRPC
+  drivers inherit foreign/missing/purged Failed and Succeeded rejection, full-state
+  atomicity (including committing after catching an error inside WithTx), and
+  tenant/stream success isolation. No new Store interface or wire sentinel.
+
+All fix commands exported `GOTOOLCHAIN=go1.26.7`; memory/mocks only:
+
+- Role RED:
+  `go test ./internal/events -run 'TestDecoratorRoleDelete' -count=1 -v`
+  failed, exit 1, on missing committed role-edge events and 0/105 paged edges.
+  Rollback/unsupported behavior already passed. `/tmp/plan32-task3-fix-role-red.log`.
+- Role GREEN:
+  `go test ./internal/events -run 'TestDecoratorRoleDelete|TestDecoratorForwardsCapabilities' -count=1 -v`
+  passed, exit 0, 0.270s; `/tmp/plan32-task3-fix-role-green.log`.
+  Final focused coverage also includes 105 members within one org, 105 orgs,
+  actual active-edge payload/catalog validation, dormant/global exclusion,
+  missing-role no-op, explicit rollback and an outbox failure rolling back the role.
+- Reference RED:
+  `go test ./internal/store/memory -run '^TestEvents/Events/EventDeliveryReferences' -count=1 -v`
+  failed, exit 1, because all six invalid-reference cases returned nil. The regex
+  also selected existing memory ring tests, which passed.
+  `/tmp/plan32-task3-fix-reference-red.log`.
+- Reference GREEN:
+  `go test ./internal/store/memory -run '^TestEvents$/^Events$/^EventDeliveryReferences' -count=1 -v`
+  passed, exit 0, 0.007s; `/tmp/plan32-task3-fix-reference-green.log`.
+- Final focused:
+  `go test ./internal/store/memory ./internal/events -run 'Events|EventStream|EventDeliver|QueueRedelivery|Decorator' -count=1 -v`
+  passed, exit 0; memory 0.022s/events 1.022s; no skips.
+  `/tmp/plan32-task3-fix-focused.log`. Existing normal latency guard also passed:
+  baseline 299.081µs/captured 479.430113ms, ratio 1603.01x. The relative 10% target
+  remains explicitly unmet; no new performance claim.
+- Minor declaration-formatting finding in store/store.go and store/events.go is
+  deferred per controller instruction. Those files are not edited in this fix.
+  No broad, database-backed, SQL/gRPC persistence, browser or E2E tests run.
+- Final focused race:
+  `go test -race ./internal/store/memory ./internal/events -run 'Events|EventStream|EventDeliver|QueueRedelivery|Decorator' -count=1 -v`
+  passed, exit 0; memory 1.179s/events 10.667s; no race reports or skips.
+  `/tmp/plan32-task3-fix-race.log`, session 82485, monitored only by this builder.
+  Instrumented latency: baseline 2.877861ms/captured 4.381350132s, ratio 1522.43x;
+  approved 30s instrumentation guard passed, not a runtime SLO.
+- Internal compile after the RBAC view addition:
+  `go test ./internal/... -run '^$' -count=1` passed, exit 0, **no tests selected**.
+  `/tmp/plan32-task3-fix-compile.log`, session 25647, monitored by this builder.
+  Existing SQL GetRole already holds lockRBAC inside a transaction, preserving
+  the prior-read/delete boundary without a new repository method.
+- `git diff --check` passed, exit 0. Self-review confirmed all reference checks
+  occur before the first state mutation and the role wrapper delegates unchanged
+  methods/capability behavior. Both Important findings addressed; independent
+  scoped re-review remains. Fix commit: `fix: capture role cascades and validate delivery references`
+  (containing this entry). No unrelated Minor fix or broad/database run included.
