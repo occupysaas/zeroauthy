@@ -159,7 +159,7 @@ func TestEventStreamCRUD(t *testing.T) {
 				t.Fatalf("accepted bad body: %d %s", w.Code, w.Body)
 			}
 		}
-		for _, endpoint := range []string{"http://collector.example.test", "https://user:EVENT_SECRET@collector.example.test", "https://", "https://collector.example.test/#secret", "https://collector.example.test/?token=secret", "https://collector.example.test:bad/"} {
+		for _, endpoint := range []string{"http://collector.example.test", "https://user:EVENT_SECRET@collector.example.test", "https://", "https://collector.example.test/#secret", "https://collector.example.test:bad/"} {
 			b := eventStreamBody("Bad", "webhook")
 			b["destination"].(map[string]any)["configuration"].(map[string]any)["webhook_endpoint"] = endpoint
 			w, _ := eventStreamCall(t, e, "POST", "", b)
@@ -581,5 +581,63 @@ func TestEventStreamValidationErrorCodes(t *testing.T) {
 		if w.Code != 400 || out.(map[string]any)["errorCode"] != "invalid_request" {
 			t.Fatal(w.Code, w.Body)
 		}
+	}
+}
+
+func TestEventStreamWebhookRoutingQuery(t *testing.T) {
+	for _, endpoint := range []string{
+		"https://collector.example.test/events?tenant=acme",
+		"https://collector.example.test/events?format=cloudevents&tenant=acme",
+		"https://collector.example.test/events?",
+	} {
+		t.Run(endpoint, func(t *testing.T) {
+			e := newClientsEnv(t)
+			body := eventStreamBody("Routing query", "webhook")
+			destination := body["destination"].(map[string]any)
+			config := destination["configuration"].(map[string]any)
+			config["webhook_endpoint"] = endpoint
+			w, out := eventStreamCall(t, e, "POST", "", body)
+			if w.Code != 201 {
+				t.Fatalf("create routing endpoint: %d %s", w.Code, w.Body)
+			}
+			id := out.(map[string]any)["id"].(string)
+			check := func(w *httptest.ResponseRecorder, out any, wantEndpoint string) {
+				t.Helper()
+				public := out.(map[string]any)["destination"].(map[string]any)["configuration"].(map[string]any)
+				auth := public["webhook_authorization"].(map[string]any)
+				if public["webhook_endpoint"] != wantEndpoint || auth["method"] != "bearer" || len(auth) != 1 || strings.Contains(w.Body.String(), "EVENT_SECRET") {
+					t.Fatal("public endpoint or credential projection", w.Body)
+				}
+				saved, err := e.st.Events().GetEventStream(t.Context(), e.tn.ID, id)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if saved.Config["webhook_endpoint"] != wantEndpoint || len(saved.SealedSecret) == 0 {
+					t.Fatal("endpoint not preserved with sealed credentials")
+				}
+				raw, err := keys.OpenBound(e.w, "event-stream/v1", []string{e.tn.ID, id, "webhook"}, saved.SealedSecret)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var private map[string]any
+				if json.Unmarshal(raw, &private) != nil || len(private) != 1 || private["token"] != "EVENT_SECRET_SENTINEL" {
+					t.Fatal("authorization credential lost")
+				}
+			}
+			check(w, out, endpoint)
+			patchEndpoint := endpoint
+			if strings.HasSuffix(endpoint, "?") {
+				patchEndpoint = "https://collector.example.test/updated?"
+			} else {
+				patchEndpoint = strings.Replace(endpoint, "/events?", "/updated?", 1)
+			}
+			config["webhook_endpoint"] = patchEndpoint
+			delete(config["webhook_authorization"].(map[string]any), "token")
+			w, out = eventStreamCall(t, e, "PATCH", id, map[string]any{"destination": destination})
+			if w.Code != 200 {
+				t.Fatalf("patch routing endpoint: %d %s", w.Code, w.Body)
+			}
+			check(w, out, patchEndpoint)
+		})
 	}
 }

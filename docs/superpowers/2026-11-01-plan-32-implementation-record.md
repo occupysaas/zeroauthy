@@ -593,9 +593,11 @@ Integration rulings approved by the controller, recorded in D-0058/matrix:
 
 - E8 remains unobserved. The read-only local partner-source placeholder is
   `aws.partner/zeroauthy/<stream-id>`; it does not register an AWS source.
-- Endpoint URL credentials/query/fragment and custom transport/framing headers
+- Endpoint URL embedded credentials/fragments and custom transport/framing headers
   are rejected to prevent secret reflection and request-integrity failures.
-  Cost: stricter URL/header acceptance than the documented shape pending evidence.
+  Ordinary endpoint query strings, including empty queries, are preserved
+  (Task 6 review fix I1). Authorization credentials remain separately sealed.
+  Cost: stricter userinfo/fragment/header acceptance pending evidence.
 - `total_failures` is a read-only nonnegative local console extension, reporting
   extant failed deliveries maintained by the worker, never lifetime attempt count.
   Added to all three source YAML response variants and regenerated with
@@ -692,3 +694,37 @@ Final self-review corrections and snapshot verification:
 
 Task commit: `feat: manage event streams` (containing entry). Detailed builder
 report: `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-6-report.md`.
+
+### Task 6 review fix I1 — Preserve webhook endpoint query strings
+
+Base `810c23d381d4583f2149efce255b565e470466cb`. The review correctly found that
+blanket `RawQuery`/`ForceQuery` rejection narrowed the frozen HTTPS webhook
+contract. Removed only those checks. Ordinary queries and empty queries are
+preserved exactly through create and PATCH in public destination configuration.
+Embedded userinfo, fragments, control characters, invalid ports and framing/header
+protections remain enforced. Authorization password/token/header_value remain
+separately sealed and omitted from public representations; no query-key secrecy
+classification or query credential schema was introduced. Corrected D-0058 and
+the matrix to distinguish endpoint queries from Management API list parameters.
+
+- RED: added real-handler create/PATCH coverage for `?tenant=acme`,
+  `?format=cloudevents&tenant=acme`, and empty `?`. Before the fix all three
+  creation cases failed400; `go test ./internal/mgmt -run
+  '^TestEventStreamWebhookRoutingQuery$' -count=1 -v`, exit1,
+  `/tmp/plan32-task6-fix1-red.log` and `.exit`, session13529.
+- GREEN: `go test -race ./internal/mgmt ./internal/server ./internal/eventstream
+  -run 'EventStream|EventBridge' -count=1 -v`, exit0,
+  `/tmp/plan32-task6-fix1-green.log` and `.exit`, session8500. 31passed nodes,
+  29passed leaves,0failures/0skips/0race reports; mgmt7.046s/server3.955s.
+  `internal/eventstream` has no direct test files; the Management tests exercise
+  its configuration/secret helpers through actual handlers. The new test checks
+  exact URL preservation after both create and PATCH, same-method omitted-token
+  preservation, stored envelope contents and absence of credentials from public
+  authorization configuration and responses. Existing invalid URL/header cases
+  and log privacy cases also passed.
+- Implementation tree before this documentation-only amendment:
+  `428dfc23daba90a7f24e3c116bcf26cd3a6ab905`,
+  `/tmp/plan32-task6-fix1-implementation-tree.txt`. All commands used
+  `GOTOOLCHAIN=go1.26.7`. No SQL source changed, so the SQL matrix was not rerun.
+  No broad suite or subagents. No process remains active. Minor M1 application-log
+  noise remains deferred as directed. `git diff --check` and cached check pass.

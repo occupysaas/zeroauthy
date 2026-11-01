@@ -2100,16 +2100,17 @@ Task 6 Management API rulings (local, 2026-11-01):
   brief per-tenant contention, preventing quota overflow and replay of events
   committed while a stream was disabled. Optimistic versions still fence stale
   updates; failed validation/conflicts roll back the whole candidate.
-- Webhook endpoint URLs reject embedded credentials, query strings and fragments;
-  otherwise these public response fields could expose credentials. HTTPS is
-  required unless `events.allow_insecure_http` is explicitly set. Header names
+- Webhook endpoint URLs permit ordinary query strings, including an empty query,
+  and preserve them in public configuration. Embedded credentials and fragments
+  are rejected. Authorization credentials remain separate write-only fields.
+  HTTPS is required unless `events.allow_insecure_http` is explicitly set. Header names
   must be valid HTTP tokens and values cannot inject new headers. Custom headers
   cannot override transport/framing headers (Host, Content-Length, Content-Type,
   Connection, Transfer-Encoding, Trailer, TE, Upgrade, Proxy-Authorization or
   Proxy-Connection). This deliberately narrows the documented URL/header shape
   for privacy and transport integrity; a later observer-backed ruling may refine it.
-  Unknown/repeated query parameters, malformed JSON and duplicate object keys at
-  any depth are rejected rather than silently ignored.
+  Unknown/repeated Management API query parameters, malformed JSON and duplicate
+  object keys at any depth are rejected rather than silently ignored.
 - Stream summaries include read-only, nonnegative `total_failures`: the count of
   extant failed deliveries maintained by the worker. This is an explicit local
   console extension needed for the Plan 32 failure-count display, not cumulative

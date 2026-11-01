@@ -167,6 +167,7 @@ subscription validation, write-only encrypted webhook credentials, checkpoint
 start/resume rules, atomic quotas/names and capability-unavailable responses.
 EventBridge remains disabled; E8's partner-source string is a deterministic local
 placeholder. Read-only `total_failures` is a local console extension for extant
-failed-delivery count, not observed Auth0 parity. Endpoint query/fragment and
-custom transport-header restrictions are local hardening (D-0058). Worker,
+failed-delivery count, not observed Auth0 parity. Webhook endpoint query strings
+(including an empty query) are preserved; embedded credentials/fragments and
+custom transport-header restrictions remain local hardening (D-0058). Worker,
 deliveries, SSE, Actions trigger activation and console acceptance remain pending.

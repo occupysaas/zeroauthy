@@ -205,7 +205,7 @@ func Configure(s *store.EventStream, raw map[string]json.RawMessage, create, all
 }
 func validEndpoint(text string, allowHTTP bool) bool {
 	u, err := url.Parse(text)
-	if err != nil || u.Opaque != "" || u.User != nil || u.Hostname() == "" || u.Fragment != "" || u.RawQuery != "" || u.ForceQuery || strings.ContainsAny(text, "\r\n\t ") {
+	if err != nil || u.Opaque != "" || u.User != nil || u.Hostname() == "" || u.Fragment != "" || strings.ContainsAny(text, "\r\n\t ") {
 		return false
 	}
 	if u.Scheme != "https" && !(allowHTTP && u.Scheme == "http") {
