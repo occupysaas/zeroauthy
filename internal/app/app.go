@@ -23,6 +23,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/federation/script"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -183,6 +184,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
+	st = events.Wrap(st, events.Config{Retention: cfg.Events.Retention, MaxStreams: cfg.Events.MaxStreams, MaxConnections: cfg.Events.MaxConnections, AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP})
 	km := keys.NewManager(st.SigningKeys(), wrapper)
 
 	systemHost := tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)

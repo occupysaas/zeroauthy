@@ -487,3 +487,26 @@ func TestLogsConfig(t *testing.T) {
 		t.Fatalf("file %+v %v", cfg, err)
 	}
 }
+
+func TestEventsConfig(t *testing.T) {
+	cfg, err := Load("", []string{sysHost, "ZEROAUTHY_STORAGE__DSN=memory://"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Events.Retention != 7*24*time.Hour || cfg.Events.MaxStreams != 10 || cfg.Events.MaxConnections != 4 {
+		t.Fatalf("defaults=%+v", cfg.Events)
+	}
+	path := writeFile(t, "events.yaml", "storage:\n  dsn: memory://\nserver:\n  system_host: system.localhost\nevents:\n  retention: 48h\n  max_streams: 3\n  max_connections: 2\n  allow_insecure_http: true\n  allow_private_networks: true\n")
+	cfg, err = Load(path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Events.Retention != 48*time.Hour || cfg.Events.MaxStreams != 3 || cfg.Events.MaxConnections != 2 || !cfg.Events.AllowInsecureHTTP || !cfg.Events.AllowPrivateNetworks {
+		t.Fatalf("loaded=%+v", cfg.Events)
+	}
+	for _, v := range []string{"ZEROAUTHY_EVENTS__RETENTION=23h", "ZEROAUTHY_EVENTS__MAX_STREAMS=0", "ZEROAUTHY_EVENTS__MAX_CONNECTIONS=0"} {
+		if _, err := Load("", []string{sysHost, "ZEROAUTHY_STORAGE__DSN=memory://", v}); err == nil {
+			t.Fatalf("accepted %s", v)
+		}
+	}
+}

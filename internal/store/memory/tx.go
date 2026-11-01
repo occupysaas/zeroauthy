@@ -46,6 +46,20 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 				}
 			}
 		}
+		for _, ring := range s.tenantEvents {
+			committed := now
+			for _, e := range ring.events {
+				if !e.pending && e.committed.After(committed) {
+					committed = e.committed
+				}
+			}
+			for i := range ring.events {
+				if ring.events[i].pending {
+					ring.events[i].committed = committed
+					ring.events[i].pending = false
+				}
+			}
+		}
 		s.mu.Unlock()
 	}
 	return err
@@ -87,6 +101,7 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		tenantEvents: cloneEventRings(s.tenantEvents), eventStreams: cloneMap(s.eventStreams, cloneEventStream), eventDeliveries: cloneMap(s.eventDeliveries, cloneEventDelivery), eventSeq: s.eventSeq,
 		logEvents: cloneLogRings(s.logEvents), logStreams: cloneMap(s.logStreams, cloneLogStream), logStats: cloneMap(s.logStats, cloneValue[store.DailyStat]), logSeq: s.logSeq,
 		modules: cloneMap(s.modules, cloneModule), moduleVersions: cloneMap(s.moduleVersions, cloneModuleVersion), actionJobs: cloneMap(s.actionJobs, cloneActionJob),
 		actions: cloneMap(s.actions, cloneAction), actionVersions: cloneMap(s.actionVersions, cloneActionVersion), builds: cloneMap(s.builds, cloneBuild),
@@ -140,6 +155,7 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.tenantEvents, s.eventStreams, s.eventDeliveries, s.eventSeq = snap.tenantEvents, snap.eventStreams, snap.eventDeliveries, snap.eventSeq
 	s.logEvents, s.logStreams, s.logStats, s.logSeq = snap.logEvents, snap.logStreams, snap.logStats, snap.logSeq
 	s.actions, s.actionVersions, s.builds, s.artifacts = snap.actions, snap.actionVersions, snap.builds, snap.artifacts
 	s.modules, s.moduleVersions, s.actionJobs = snap.modules, snap.moduleVersions, snap.actionJobs

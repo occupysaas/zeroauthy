@@ -40,6 +40,7 @@ type Config struct {
 	Actions  Actions  `koanf:"actions"`
 	Jobs     Jobs     `koanf:"jobs"`
 	Logs     Logs     `koanf:"logs"`
+	Events   Events   `koanf:"events"`
 	// Bootstrap creates the first console operator on an empty install.
 	Bootstrap Bootstrap `koanf:"bootstrap"`
 	// Seed is an optional path to a declarative seed file applied at startup.
@@ -48,6 +49,14 @@ type Config struct {
 	// defines at every start) or "create_only" (it only creates what is
 	// missing, so edits made in the console survive a restart).
 	SeedMode string `koanf:"seed_mode"`
+}
+
+type Events struct {
+	Retention            time.Duration `koanf:"retention"`
+	MaxStreams           int           `koanf:"max_streams"`
+	MaxConnections       int           `koanf:"max_connections"`
+	AllowPrivateNetworks bool          `koanf:"allow_private_networks"`
+	AllowInsecureHTTP    bool          `koanf:"allow_insecure_http"`
 }
 
 type Logs struct {
@@ -266,6 +275,7 @@ func defaults() *Config {
 		},
 		Jobs:     Jobs{Workers: 2, Lease: time.Minute},
 		Logs:     Logs{Retention: 30 * 24 * time.Hour, QueueSize: 10000},
+		Events:   Events{Retention: 7 * 24 * time.Hour, MaxStreams: 10, MaxConnections: 4},
 		CustomDB: CustomDB{Node: "node", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute},
 		Actions: Actions{
 			Node: "node", Registry: "https://registry.npmjs.org/", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute,
@@ -494,6 +504,15 @@ func (c *Config) validate() error {
 	errs = append(errs, c.Actions.validate()...)
 	if c.Jobs.Workers < 0 {
 		errs = append(errs, fmt.Errorf("jobs.workers %d must not be negative", c.Jobs.Workers))
+	}
+	if c.Events.Retention < 24*time.Hour {
+		errs = append(errs, fmt.Errorf("events.retention %s must be at least 24h", c.Events.Retention))
+	}
+	if c.Events.MaxStreams < 1 {
+		errs = append(errs, fmt.Errorf("events.max_streams must be positive"))
+	}
+	if c.Events.MaxConnections < 1 {
+		errs = append(errs, fmt.Errorf("events.max_connections must be positive"))
 	}
 	if c.Logs.Retention < 24*time.Hour {
 		errs = append(errs, fmt.Errorf("logs.retention %s must be at least 24h", c.Logs.Retention))

@@ -164,3 +164,125 @@ Additional TDD evidence:
   covering regression. Misplaced test import Minor is deferred by instruction.
   No database or broad suites run. Fix base: 98eac76.
 - Commit: `fix: require prior snapshots for updated events` (containing entry).
+
+## Task 3 — Events repository, memory store and transactional capture
+
+Base `686bc80`; branch `implement-plan-32`; required toolchain verified as
+`go1.26.7 linux/amd64`. Added the frozen Events models/repository/public aliases,
+fail-closed SQL/gRPC placeholders, memory outbox/streams/deliveries, configuration
+and application wrapping before seed/runtime handlers. SQL persistence and Events
+v1 RPC negotiation remain Tasks 4/5 and are not claimed implemented here.
+
+Capture opens or joins the business transaction, uses Users.GetForUpdate for
+prior user snapshots, preserves the original full prior snapshot across repeated
+updates, reads final state before AppendEvents, and appends just before commit.
+Organization/connection prior reads use their existing transaction-aware Get
+methods (SQL already obtains its policy lock there). All store capability probes
+and organization membership write-result reporting remain available. Missing
+Events capability bypasses capture; transient capability errors prevent an
+unrecorded mutation. RecordLogin, BumpVersion and imported-hash upgrades bypass
+capture. Federation identity writes and password/CAS writes are intercepted.
+
+Memory provides a per-tenant 10,000-event ring, deep-copy boundaries, monotonic
+sequence/commit visibility, outer-commit timestamps, rollback snapshots and
+bounded purge. Eviction/purge remove dependent deliveries. Stream CRUD/name
+uniqueness/version checks, leases, atomic outcomes/counters, filtering/paging and
+redelivery are tenant-scoped. Tenant deletion purges all state and discards any
+same-transaction buffered events rather than resurrecting the outbox.
+
+### Task 3 rulings and limitations
+
+- **Latency ruling (controller):** the plan's relative 10% target was **not met**.
+  Initial evidence: 1,000 standalone minimal memory user creates took 1.430932ms
+  undecorated versus 496.367975ms captured (346.88x). Required transactions use the
+  existing deep-snapshot memory implementation, plus JSON/outbox work; the demo
+  store's microsecond baseline cannot accommodate that inside 10%. Replace that
+  target with recorded baseline/capture timings and a five-second context/deadline
+  regression guard for 1,000 normal creates. This is not a runtime SLO. Final
+  focused evidence: 282.625µs baseline, 475.39915ms captured, ratio 1682.08x.
+  No destination or worker call occurs in capture; Task 7 must separately prove a
+  hanging receiver cannot block signups. Cost: memory overhead can be noticeable
+  at high volume; no broad memory transaction optimization was attempted.
+- **Race allowance (controller):** focused race evidence was 3.344647ms baseline,
+  4.249374588s captured, ratio 1270.50x, close to the normal five-second guard.
+  Test-only `race`/`!race` build-tag constants allow 30s under instrumentation and
+  retain 5s normally. The test and all assertions still run; this is not a skipped
+  test or production switch. Full-suite CPU contention must not turn race
+  instrumentation into a claimed runtime latency SLO.
+- **Cascade ruling (controller):** capture observable changes made internally by
+  drivers. A connection deletion, including an auth0/social connection, captures
+  owned-user deletion, surviving linked-identity changes and affected membership
+  and enabled-connection removals. User/organization deletion captures active
+  member-role and membership removals; organization deletion captures its enabled
+  connections too. Reads occur inside the same transaction, with bounded paging;
+  ordinary create/update paths do not snapshot the whole tenant. Cost: additional
+  documented-type cascade events may differ from future upstream observations.
+- **Dormant-role limitation (controller):** RemoveMembers deliberately keeps role
+  assignments. It emits member.deleted but no false role.deleted. Later user/org
+  deletion cannot enumerate retained roles of nonmembers: MemberRoles rejects
+  nonmembers and RoleMembers exposes only current members. No separate role.deleted
+  event is invented for those inaccessible dormant rows. Consumers retaining
+  dormant roles must reconcile after member deletion; a future result API or
+  observer evidence may refine this. Active observable role removals are captured.
+
+### Task 3 verification evidence
+
+All commands below exported `GOTOOLCHAIN=go1.26.7`. Tests use memory/mocks only.
+
+- Initial RED:
+  `go test ./internal/store/memory ./internal/events -run 'Events|EventStream|EventDeliver|QueueRedelivery|Decorator' -count=1`
+  failed, actual test exit 1, on missing Store.Events/Wrap/Config. The initial
+  shell wrapper printed the log and returned 0; the recorded test result is FAIL.
+  `/tmp/plan32-task3-red.log`. First implementation run also failed (test exit 1;
+  wrapper 0) on an invalid org fixture ID and the original 10% latency assertion;
+  the fixture was corrected and the latency ruling above was obtained.
+  `/tmp/plan32-task3-first.log`.
+- Configuration RED: `go test ./internal/config -run TestEventsConfig -count=1`
+  failed, test exit 1 (wrapper 0), on missing Config.Events;
+  `/tmp/plan32-task3-config-red.log`. Final focused run includes its GREEN result.
+- Additional observed RED/GREEN regressions: nested-panic buffer rollback
+  (`/tmp/plan32-task3-edge-{red,green}.log`); normalized initial organization
+  connection state (`/tmp/plan32-task3-normalize-{red,green}.log`); cascade capture
+  (`/tmp/plan32-task3-cascade-{red,green}.log`); ring delivery eviction
+  (`/tmp/plan32-task3-ring-{red,green}.log`); tenant-delete buffer cancellation
+  (`/tmp/plan32-task3-tenant-{red,green}.log`); unadvertised unavailable repository
+  (`/tmp/plan32-task3-noprobe-{red,green}.log`). RED commands exited 1 and final
+  GREEN commands exited 0. Early fixture mistakes (connection field/IDs and
+  catalog tenant/connection fields) were corrected before valid payload assertions.
+- Final focused command:
+  `go test ./internal/store/memory ./internal/events ./internal/config -run 'Events|EventStream|EventDeliver|QueueRedelivery|Decorator' -count=1 -v`
+  passed, exit 0; memory 0.016s, events 0.727s, config 0.003s; no skips.
+  `/tmp/plan32-task3-final-focused.log`. Includes all ten named conformance cases,
+  six named decorator cases, deep copies/ring/commit/clock-skew/cascades,
+  post-update uniqueness rollback, savepoint error/panic, failed outbox rollback,
+  password/imported-hash behavior, identity writes, optional capabilities,
+  normalized payloads validated against the catalog and 105-member cascade paging.
+- Focused race:
+  `go test -race ./internal/store/memory ./internal/events -run 'Events|EventStream|EventDeliver|QueueRedelivery|Decorator' -count=1 -v`
+  passed, exit 0; memory 1.116s, events 7.328s; no race reports or skips.
+  `/tmp/plan32-task3-final-race.log`.
+- Final internal compile:
+  `go test ./internal/... -run '^$' -count=1` passed, exit 0; **no tests selected**.
+  `/tmp/plan32-task3-final-compile.log`. Earlier compile also passed at the initial
+  implementation snapshot, session 42445, `/tmp/plan32-task3-compile.log`; final
+  compile session 3258 was monitored once by the Task 3 builder.
+- Self-review found and fixed the buffer/default/cascade/eviction/tenant-delete
+  regressions above. `git diff --check` passed, exit 0. No database-backed test,
+  broad/full suite, SQL/gRPC persistence test, browser test or E2E lane was run.
+  Those deferred checks are not labelled passing. No dependencies, upstream
+  observations, generated API or protobuf changes were introduced in this task.
+- Commit: `feat: capture tenant events in the business transaction` (containing
+  this entry); independent scoped review follows the builder report.
+- Post-ruling race guard verification:
+  `go test -race ./internal/events -run '^TestDecoratorAddsLittleLatency$' -count=1 -v`
+  passed, exit 0, events 5.876s; baseline 2.108828ms, captured 4.263093384s,
+  ratio 2021.55x. `/tmp/plan32-task3-race-latency-final.log`. This verifies the
+  test-only 30s race allowance; the plan's 10% target remains unmet.
+- Final test-only refinement verification:
+  `go test ./internal/events -run '^TestDecorator(AddsLittleLatency|CollapsesUpdates)$' -count=1 -v`
+  passed, exit 0, events 0.604s; normal baseline 294.678µs, captured 484.743866ms,
+  ratio 1645.00x. `/tmp/plan32-task3-normal-latency-final.log`. The normal 5s guard
+  remains, and collapse now asserts original name/email/user_id explicitly.
+  Full focused/race/internal compilation above covered the final production
+  snapshot before these test-only guard/assertion refinements; no production
+  file changed afterward.

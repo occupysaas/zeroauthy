@@ -352,3 +352,18 @@ type OrganizationMembershipWriter = store.OrganizationMembershipWriter
 func AddMembersResult(ctx context.Context, repository Organizations, tenantID, orgID string, userIDs []string) ([]string, error) {
 	return store.AddMembersResult(ctx, repository, tenantID, orgID, userIDs)
 }
+
+// Events v1 storage contracts.
+type (
+	TenantEvent         = store.TenantEvent
+	EventStream         = store.EventStream
+	DeliveryAttempt     = store.DeliveryAttempt
+	EventDelivery       = store.EventDelivery
+	DeliveryFilter      = store.DeliveryFilter
+	DeliveryOutcome     = store.DeliveryOutcome
+	Events              = store.Events
+	EventsSupporter     = store.EventsSupporter
+	UnimplementedEvents = store.UnimplementedEvents
+)
+
+var ErrEventsUnavailable = store.ErrEventsUnavailable
