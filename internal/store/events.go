@@ -68,10 +68,13 @@ type Events interface {
 	GetEventStream(ctx context.Context, tid, id string) (*EventStream, error)
 	ListEventStreams(ctx context.Context, tid, after string, take int) ([]EventStream, string, error) // next cursor
 	CountEventStreams(ctx context.Context, tid string) (int, error)
-	UpdateEventStream(ctx context.Context, s *EventStream, version int) error                       // ErrConflict on version mismatch
-	DeleteEventStream(ctx context.Context, tid, id string) error                                    // deletes its deliveries
-	LeaseEventStream(ctx context.Context, owner string, now, until time.Time) (*EventStream, error) // enabled with new events or queued redeliveries; ErrNotFound if none due
-	RecordEventDelivery(ctx context.Context, tid, id, owner string, o DeliveryOutcome) error        // ErrPrecondition if lease lost
+	UpdateEventStream(ctx context.Context, s *EventStream, version int) error // ErrConflict on version mismatch
+	DeleteEventStream(ctx context.Context, tid, id string) error              // deletes its deliveries
+	// LeaseEventStream selects the eligible due stream with the earliest expiry,
+	// then tenant/ID. Enabled new events or queued redeliveries qualify. Renewals
+	// advance expiry by at least 1ns; ErrNotFound means no eligible stream is due.
+	LeaseEventStream(ctx context.Context, owner string, now, until time.Time) (*EventStream, error)
+	RecordEventDelivery(ctx context.Context, tid, id, owner string, o DeliveryOutcome) error // ErrPrecondition if lease lost
 
 	ListDeliveries(ctx context.Context, tid, streamID string, f DeliveryFilter, after string, take int) ([]EventDelivery, string, error)
 	GetDelivery(ctx context.Context, tid, streamID, eventID string) (*EventDelivery, error)

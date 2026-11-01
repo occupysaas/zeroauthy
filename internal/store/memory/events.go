@@ -382,6 +382,10 @@ func (r events) LeaseEventStream(ctx context.Context, owner string, now, until t
 		keys = append(keys, k)
 	}
 	sort.Slice(keys, func(i, j int) bool {
+		left, right := r.s.eventStreams[keys[i]], r.s.eventStreams[keys[j]]
+		if !left.LeaseUntil.Equal(right.LeaseUntil) {
+			return left.LeaseUntil.Before(right.LeaseUntil)
+		}
 		if keys[i].tenant != keys[j].tenant {
 			return keys[i].tenant < keys[j].tenant
 		}
@@ -409,8 +413,18 @@ func (r events) LeaseEventStream(ctx context.Context, owner string, now, until t
 		if !due {
 			continue
 		}
+		// Reuse the persisted expiry as the fair scheduling key. Advance even
+		// under an identical clock/request, so equal expiries cannot pin the
+		// lexicographically first stream after an initial round of claims.
+		leaseUntil := until
+		if !leaseUntil.After(s.LeaseUntil) {
+			leaseUntil = s.LeaseUntil.Add(time.Nanosecond)
+			if leaseUntil.Year() > 9999 {
+				return nil, store.ErrInvalid
+			}
+		}
 		s.LeaseOwner = owner
-		s.LeaseUntil = until
+		s.LeaseUntil = leaseUntil
 		return cloneEventStream(s), nil
 	}
 	return nil, store.ErrNotFound

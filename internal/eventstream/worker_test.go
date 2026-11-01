@@ -722,3 +722,75 @@ func TestBlockedAddressesDNSRebinding(t *testing.T) {
 		}
 	}
 }
+
+// Both streams must continue receiving turns when the first never stops being
+// due. A fixed clock also catches equal-expiry ties after the initial rotation.
+func TestWorkerStreamFairness(t *testing.T) {
+	for _, mode := range []string{"continuous", "unsettled-tail"} {
+		t.Run(mode, func(t *testing.T) {
+			w, _, first := testWorker(t, 204)
+			at := time.Now().Add(time.Minute)
+			st := memory.NewWithClock(func() time.Time { return at })
+			ctx := context.Background()
+			if err := st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t", CanonicalHost: "t.example"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := st.Events().CreateEventStream(ctx, first); err != nil {
+				t.Fatal(err)
+			}
+			second := *first
+			second.ID, second.Name = "z", "z"
+			second.Subscriptions = []string{"user.updated"}
+			var err error
+			second.SealedSecret, err = SealSecrets(w.keys, &second, map[string]any{"token": "second-private-value"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = st.Events().CreateEventStream(ctx, &second); err != nil {
+				t.Fatal(err)
+			}
+			w.st = st
+			w.now = func() time.Time { return at }
+			var sent []string
+			w.client.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Fatal(err)
+				}
+				sent = append(sent, body["a0stream"].(string))
+				return response(204), nil
+			})
+			if mode == "continuous" {
+				for i := 0; i < 6; i++ {
+					// Keep both streams backlogged while every acquisition uses the
+					// same now/until values. The records are already settled.
+					at = at.Add(-10 * time.Second)
+					appendEvent(t, st, fmt.Sprintf("first-%d", i), "user.created")
+					appendEvent(t, st, fmt.Sprintf("second-%d", i), "user.updated")
+					at = at.Add(10 * time.Second)
+					if !w.runOne(ctx) {
+						t.Fatal("backlogged stream made no progress")
+					}
+				}
+				if !reflect.DeepEqual(sent, []string{"s", "z", "s", "z", "s", "z"}) {
+					t.Fatalf("stream turns = %v", sent)
+				}
+			} else {
+				at = at.Add(-10 * time.Second)
+				appendEvent(t, st, "settled-second", "user.updated")
+				at = at.Add(10 * time.Second)
+				appendEvent(t, st, "unsettled-first", "user.created")
+				for range 4 {
+					w.runOne(ctx)
+				}
+				if !reflect.DeepEqual(sent, []string{"z"}) {
+					t.Fatalf("unsettled first stream starved settled second: sent %v", sent)
+				}
+			}
+			state, err := st.Events().GetEventStream(ctx, "t", "z")
+			if err != nil || state.Checkpoint == 0 {
+				t.Fatalf("second checkpoint=%+v err=%v", state, err)
+			}
+		})
+	}
+}

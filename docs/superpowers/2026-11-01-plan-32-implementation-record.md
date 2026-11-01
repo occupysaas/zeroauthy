@@ -817,3 +817,72 @@ retention/redelivery counter races, endpoint query preservation, redirect and DN
 SSRF protections, and diagnostics. No unresolved Task 7 finding. No new dependency
 or generated source changed. All runs have completed. Full execution report:
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-7-report.md`.
+
+### Task 7 review fix I1 — Fair lease scheduling
+
+Base `493f5b86686bd481dc455f832172c4eb5ba8d73f`. The worker's stable owner could
+repeatedly reacquire the lexicographically first due stream, starving every later
+stream when the first retained a backlog or an unsettled tail. Fixed the shared
+memory/SQL lease selection policy; the worker's bounded event handling and final
+ownership/version fences remain in place. gRPC delegates this operation to those
+repositories; no RPC, schema or migration changed.
+
+Ruling: persist fairness through the existing `LeaseUntil` scheduling key. Select
+eligible due streams by ascending lease expiry, then tenant/ID. A renewed expiry
+is `max(requestedUntil, previousLeaseUntil + 1ns)`, ensuring equal/frozen-clock
+requests rotate after the first round. This policy was approved by the controller.
+The owner/expiry eligibility predicate and SQL conditional update/locking are
+unchanged. Cost if wrong: renewal under a frozen/backward clock or a shorter
+requested lease can retain and slightly extend the previous deadline, instead of
+shortening it. A monotonic bump past year9999 returns `ErrInvalid` before mutation.
+The returned expiry is the actual persisted value. All three SQL backends retain
+the nanosecond increments through their existing fixed-width text timestamps.
+
+- RED: new `TestWorkerStreamFairness` failed with turns `[s s s s s s]` under
+  continuous traffic and no second-stream delivery under an unsettled first tail.
+  Shared `EventStreamFairLease` failed on its second acquisition (`a`, expected
+  `b`). Exact combined command: `go test ./internal/eventstream
+  ./internal/store/memory -run
+  '^TestWorkerStreamFairness$|^TestEvents$/^Events$/^EventStreamFairLease$'
+  -count=1 -v`, exit1, `/tmp/plan32-task7-fix1-red.log`, `.exit`, session26269.
+  RED tree `8ec29539e92401c84b47994924a0e37a43fc0ad5` is saved in
+  `/tmp/plan32-task7-fix1-red-tree.txt`.
+- GREEN: same focused command exit0, three passed leaves,
+  `/tmp/plan32-task7-fix1-green.log`, `.exit`, session46042.
+- Final `go test ./internal/eventstream ./internal/events -count=1 -v`: exit0,
+  118 passed leaves,0fail/skip; eventstream5.433s/events3.798s.
+  `/tmp/plan32-task7-fix1-focused.log`, `.exit`, session16022.
+- Final `go test -race ./internal/eventstream -count=3 -v`: exit0,
+  111 leaf executions,0fail/skip/race reports;52.188s.
+  `/tmp/plan32-task7-fix1-race.log`, `.exit`, session92265.
+- Memory Events conformance plus ring-eviction counter regression under race:
+  exit0,21 passed leaves,0fail/skip/races;1.104s.
+  `/tmp/plan32-task7-fix1-memory.log`, `.exit`, session9370. Existing purge-counter
+  assertions remain and passed.
+- Focused shared fair-lease case on SQLite/PostgreSQL/MySQL through
+  `scripts/test-sql.sh`: exit0,3 passed leaves,0fail/skip/races;6.203s.
+  `/tmp/plan32-task7-fix1-sql.log`, `.exit`, session75916. Selection was only
+  `^TestEventsConformance$/^(sqlite|postgres|mysql)$/^Events$/^EventStreamFairLease$`
+  with `-v`; the script supplies `-race -count=1`. Temporary container ports are
+  saved in `/tmp/plan32-task7-fix1-sql-ports`; containers were removed on exit.
+- Affected app/grpcstore/sqlstore compile: exit0 with `-run '^$'`, no runtime/DB
+  test claim. `/tmp/plan32-task7-fix1-compile.log`, `.exit`, session64444.
+- Every Go command exported `GOTOOLCHAIN=go1.26.7`; each log records explicit UTC
+  START/END timestamps and a separate actual exit file. One monitor, no reruns of
+  quiet processes, no broad SQL/full suites, and no subagents. All runs finished.
+
+The shared regression pins repeated fixed-clock rotation across tenants, exact
+persisted nanosecond increments, exclusion of competing owners from live leases,
+takeover after expiry and rejection of the stale owner's record, fair eligibility
+for disabled queued work, removal of eligibility once that queue clears, and safe
+maximum-time overflow. Worker regressions pin repeated two-stream progress and a
+settled second stream receiving while the first retains an unsettled tail.
+
+Final implementation tree before this documentation-only record addition:
+`8c2398c413aab403ed50ca69d8aa344ed823df9e`, saved in
+`/tmp/plan32-task7-fix1-implementation-tree.txt`. Self-review of the changed
+selection and update paths found no unresolved I1 issue. Minor M1 expected TLS
+fixture diagnostics remain deferred as directed. The prior relative10% capture
+overhead target remains explicitly **not met**. Full fix report with exact
+commands, timestamps and limits:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-7-fix1-report.md`.

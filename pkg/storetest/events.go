@@ -10,6 +10,7 @@ import (
 )
 
 func testEvents(t *testing.T, newStore Factory) {
+	t.Run("EventStreamFairLease", func(t *testing.T) { testEventStreamFairLease(t, newStore) })
 	t.Run("EventsPurgeFailureCounters", func(t *testing.T) { testEventsPurgeFailureCounters(t, newStore) })
 	for name, fn := range map[string]func(*testing.T, Factory){"EventStreamCRUDAndNameConflict": testEventStreamCRUDAndNameConflict, "EventStreamLease": testEventStreamLease, "EventDeliveriesFilterPage": testEventDeliveriesFilterPage, "QueueRedeliveryRules": testQueueRedeliveryRules, "EventsPurge": testEventsPurge, "EventsDeleteTenant": testEventsDeleteTenant, "EventDeliveryReferences": testEventDeliveryReferences} {
 		t.Run(name, func(t *testing.T) { fn(t, newStore) })
@@ -96,6 +97,88 @@ func testEvents(t *testing.T, newStore Factory) {
 			t.Fatal(seq)
 		}
 	})
+}
+
+func testEventStreamFairLease(t *testing.T, newStore Factory) {
+	s := eventsStore(t, newStore)
+	ctx := context.Background()
+	r := s.Events()
+	now := time.Now().UTC()
+	until := now.Add(time.Minute)
+	for _, tid := range []string{"a", "b"} {
+		mustNoErr(t, r.CreateEventStream(ctx, &store.EventStream{TenantID: tid, ID: "s", Name: "s", Status: "enabled"}))
+		mustNoErr(t, r.AppendEvents(ctx, []store.TenantEvent{{TenantID: tid, ID: "e", Type: "user.created", Time: now, Body: []byte(`{}`)}}))
+	}
+	// No checkpoints advance, so both streams remain due throughout all turns.
+	// Identical input times exercise the persisted nanosecond tie breaker.
+	for i, tid := range []string{"a", "b", "a", "b", "a", "b"} {
+		leased, err := r.LeaseEventStream(ctx, "worker", now, until)
+		mustNoErr(t, err)
+		if leased.TenantID != tid {
+			t.Fatalf("turn %d leased %s, want %s", i, leased.TenantID, tid)
+		}
+		want := until.Add(time.Duration(i/2) * time.Nanosecond)
+		if !leased.LeaseUntil.Equal(want) {
+			t.Fatalf("turn %d expiry=%s, want %s", i, leased.LeaseUntil, want)
+		}
+		persisted, err := r.GetEventStream(ctx, tid, "s")
+		mustNoErr(t, err)
+		if !persisted.LeaseUntil.Equal(leased.LeaseUntil) {
+			t.Fatal("returned expiry differs from stored expiry")
+		}
+	}
+	if _, err := r.LeaseEventStream(ctx, "other", now, until); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("another worker stole a live lease", err)
+	}
+	// Once expired, the next owner can take over; the prior owner cannot record.
+	newNow := now.Add(2 * time.Minute)
+	stolen, err := r.LeaseEventStream(ctx, "other", newNow, newNow.Add(time.Minute))
+	mustNoErr(t, err)
+	if stolen.TenantID != "a" || stolen.LeaseOwner != "other" {
+		t.Fatalf("takeover=%+v", stolen)
+	}
+	if err := r.RecordEventDelivery(ctx, "a", "s", "worker", store.DeliveryOutcome{}); !errors.Is(err, store.ErrPrecondition) {
+		t.Fatal("stale owner recorded", err)
+	}
+	// A never-leased disabled stream is eligible only after redelivery is queued.
+	disabled := &store.EventStream{TenantID: "a", ID: "disabled", Name: "disabled", Status: "disabled", LeaseOwner: "seed", LeaseUntil: until}
+	mustNoErr(t, r.CreateEventStream(ctx, disabled))
+	mustNoErr(t, r.RecordEventDelivery(ctx, "a", "disabled", "seed", store.DeliveryOutcome{TotalFailures: 1, Failed: &store.EventDelivery{TenantID: "a", StreamID: "disabled", EventID: "e", Status: "failed"}}))
+	_, err = r.QueueRedelivery(ctx, "a", "disabled", []string{"e"}, nil)
+	mustNoErr(t, err)
+	disabled, err = r.GetEventStream(ctx, "a", "disabled")
+	mustNoErr(t, err)
+	disabled.LeaseOwner, disabled.LeaseUntil = "", time.Time{}
+	mustNoErr(t, r.UpdateEventStream(ctx, disabled, disabled.Version))
+	queued, err := r.LeaseEventStream(ctx, "worker", now, until)
+	mustNoErr(t, err)
+	if queued.ID != "disabled" || queued.Status != "disabled" {
+		t.Fatalf("queued disabled stream did not get its fair turn: %+v", queued)
+	}
+	mustNoErr(t, r.RecordEventDelivery(ctx, "a", "disabled", "worker", store.DeliveryOutcome{Succeeded: []string{"e"}}))
+	eligible, err := r.LeaseEventStream(ctx, "worker", now, until)
+	mustNoErr(t, err)
+	if eligible.TenantID != "b" || eligible.ID != "s" {
+		t.Fatalf("disabled stream without queue remained eligible: %+v", eligible)
+	}
+	// A maximum representable expiry cannot be advanced; fail without changing
+	// ownership/state rather than wrapping or truncating the persisted timestamp.
+	for _, tid := range []string{"a", "b"} {
+		stream, err := r.GetEventStream(ctx, tid, "s")
+		mustNoErr(t, err)
+		stream.Status = "disabled"
+		mustNoErr(t, r.UpdateEventStream(ctx, stream, stream.Version))
+	}
+	maximum := time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+	mustNoErr(t, r.CreateEventStream(ctx, &store.EventStream{TenantID: "b", ID: "maximum", Name: "maximum", Status: "enabled", LeaseOwner: "worker", LeaseUntil: maximum}))
+	if _, err := r.LeaseEventStream(ctx, "worker", now, until); !errors.Is(err, store.ErrInvalid) {
+		t.Fatal("maximum-time renewal did not fail safely", err)
+	}
+	unchanged, err := r.GetEventStream(ctx, "b", "maximum")
+	mustNoErr(t, err)
+	if unchanged.LeaseOwner != "worker" || !unchanged.LeaseUntil.Equal(maximum) {
+		t.Fatal("overflow changed stored lease")
+	}
 }
 
 func testEventsPurgeFailureCounters(t *testing.T, newStore Factory) {

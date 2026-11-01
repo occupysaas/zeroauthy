@@ -401,11 +401,20 @@ func (r events) LeaseEventStream(ctx context.Context, owner string, now, until t
 		// Queueing is independent of stream status: disabled streams may redeliver.
 		due := `((status='enabled' AND EXISTS (SELECT 1 FROM tenant_events e WHERE e.tenant_id=event_streams.tenant_id AND e.seq>event_streams.checkpoint)) OR EXISTS (SELECT 1 FROM event_deliveries d WHERE d.tenant_id=event_streams.tenant_id AND d.stream_id=event_streams.id AND d.queued=true))`
 		available := `(lease_until<=? OR lease_owner=? OR lease_owner='')`
-		v, err := scanEventStream(t.queryRow(ctx, `SELECT `+eventStreamCols+` FROM event_streams WHERE `+available+` AND `+due+` ORDER BY tenant_id,id LIMIT 1`+t.d.forUpdate, logTime(now), owner))
+		v, err := scanEventStream(t.queryRow(ctx, `SELECT `+eventStreamCols+` FROM event_streams WHERE `+available+` AND `+due+` ORDER BY lease_until,tenant_id,id LIMIT 1`+t.d.forUpdate, logTime(now), owner))
 		if err != nil {
 			return err
 		}
-		res, err := t.exec(ctx, `UPDATE event_streams SET lease_owner=?,lease_until=? WHERE tenant_id=? AND id=? AND `+available, owner, logTime(until), v.TenantID, v.ID, logTime(now), owner)
+		// Fixed-width logTime text retains nanoseconds on all three drivers.
+		// Strict advancement also rotates equal/frozen-clock claims fairly.
+		leaseUntil := until
+		if !leaseUntil.After(v.LeaseUntil) {
+			leaseUntil = v.LeaseUntil.Add(time.Nanosecond)
+			if leaseUntil.Year() > 9999 {
+				return store.ErrInvalid
+			}
+		}
+		res, err := t.exec(ctx, `UPDATE event_streams SET lease_owner=?,lease_until=? WHERE tenant_id=? AND id=? AND `+available, owner, logTime(leaseUntil), v.TenantID, v.ID, logTime(now), owner)
 		if err != nil {
 			return err
 		}
@@ -413,7 +422,7 @@ func (r events) LeaseEventStream(ctx context.Context, owner string, now, until t
 			return err
 		}
 		v.LeaseOwner = owner
-		v.LeaseUntil = until
+		v.LeaseUntil = leaseUntil
 		out = v
 		return nil
 	})
