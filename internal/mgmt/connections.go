@@ -20,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -236,33 +237,8 @@ func (h *Handlers) connectionView(c *store.Connection, withClients bool) (map[st
 		}
 		spec.Options.Configuration = blobs
 	}
-	raw, err := json.Marshal(spec)
-	if err != nil {
-		return nil, err
-	}
-	var m map[string]any
-	if err := json.Unmarshal(raw, &m); err != nil {
-		return nil, err
-	}
-	m["id"] = c.ID
-	if !withClients {
-		delete(m, "enabled_clients")
-	}
-	if spec.Federated() {
-		// Database options mean nothing here, and provider secrets are
-		// write-only: never returned, not even as placeholders.
-		if opts, ok := m["options"].(map[string]any); ok {
-			for _, k := range federatedHiddenOptions {
-				delete(opts, k)
-			}
-		}
-	}
-	return m, nil
+	return resourceview.Connection(spec, c.ID, withClients)
 }
-
-// federatedHiddenOptions are left out of a federated connection's options.
-var federatedHiddenOptions = []string{"client_secret", "disable_signup", "requires_username",
-	"enabledDatabaseCustomization", "import_mode", "password_options", "brute_force_protection", "validation"}
 
 // applyFederated finishes a federated write (sealing, immutable bindings,
 // revision) and maps its validation failures to 400s.

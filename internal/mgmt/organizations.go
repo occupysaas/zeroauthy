@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
+	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -76,27 +77,7 @@ func loadOrg(r *http.Request, orgs store.Organizations, id string) (*store.Organ
 	return o, err
 }
 
-func orgView(o store.Organization) map[string]any {
-	out := map[string]any{
-		"id": o.ID, "name": o.Name, "display_name": o.DisplayName,
-		"third_party_client_access": o.ThirdPartyClientAccess,
-		"is_app_entitlement_active": o.IsAppEntitlementActive,
-	}
-	if b := o.Branding; b != nil {
-		branding := map[string]any{}
-		if b.LogoURL != nil {
-			branding["logo_url"] = *b.LogoURL
-		}
-		if b.Colors != nil {
-			branding["colors"] = map[string]any{"primary": b.Colors.Primary, "page_background": b.Colors.PageBackground}
-		}
-		out["branding"] = branding
-	}
-	if len(o.Metadata) > 0 {
-		out["metadata"] = o.Metadata
-	}
-	return out
-}
+func orgView(o store.Organization) map[string]any { return resourceview.Organization(o) }
 
 // orgQuery reads the pagination of an organization list. allowed names the
 // accepted parameters; another one is 400. It returns the page and whether

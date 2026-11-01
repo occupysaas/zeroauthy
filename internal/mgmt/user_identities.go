@@ -14,9 +14,9 @@ import (
 	"github.com/go-jose/go-jose/v4/jwt"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation"
-	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -49,13 +49,7 @@ const linkWithLeeway = time.Minute
 
 // identityJSON renders one identity of a user. A linked identity carries its
 // profileData; the user's own does not (GET /users/{id}, U7).
-func identityJSON(id *store.Identity) map[string]any {
-	m := map[string]any{"connection": id.Connection, "user_id": id.UserID, "provider": id.Provider, "isSocial": rules.IsSocial(id.Provider)}
-	if id.Linked() {
-		m["profileData"] = id.ProfileData
-	}
-	return m
-}
+func identityJSON(id *store.Identity) map[string]any { return resourceview.Identity(id) }
 
 // linkIdentitiesJSON renders u's identities as the link and unlink
 // responses do: every identity with profileData, the user's own built from

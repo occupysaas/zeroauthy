@@ -23,6 +23,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -130,48 +131,7 @@ func insufficientScope(scope string) *Error {
 // UserJSON renders u in Auth0's shape (U1). Fields without a value are left
 // out; blocked appears only when true and the login fields only after the
 // first login. Password hashes never appear.
-func UserJSON(u *store.User) map[string]any {
-	m := map[string]any{"user_id": u.UserID, "created_at": userTime(u.CreatedAt), "updated_at": userTime(u.UpdatedAt)}
-	if u.Email != "" {
-		m["email"] = u.Email
-		m["email_verified"] = u.EmailVerified
-	}
-	for k, v := range map[string]string{"username": u.Username, "name": u.Name, "nickname": u.Nickname, "picture": u.Picture,
-		"given_name": u.GivenName, "family_name": u.FamilyName} {
-		if v != "" {
-			m[k] = v
-		}
-	}
-	if u.PhoneNumber != "" {
-		m["phone_number"] = u.PhoneNumber
-		m["phone_verified"] = u.PhoneVerified
-	}
-	// blocked appears only when true. Auth0 shows blocked:false once it has
-	// been set, but the store cannot tell "set to false" from "never set";
-	// a logged deviation (D-0043).
-	if u.Blocked {
-		m["blocked"] = true
-	}
-	if u.UserMetadata != nil {
-		m["user_metadata"] = u.UserMetadata
-	}
-	if u.AppMetadata != nil {
-		m["app_metadata"] = u.AppMetadata
-	}
-	ids := make([]map[string]any, len(u.Identities))
-	for i := range u.Identities {
-		ids[i] = identityJSON(&u.Identities[i])
-	}
-	m["identities"] = ids
-	if u.LastLogin != nil {
-		m["last_login"] = userTime(*u.LastLogin)
-		m["logins_count"] = u.LoginsCount
-		if u.LastIP != "" {
-			m["last_ip"] = u.LastIP
-		}
-	}
-	return m
-}
+func UserJSON(u *store.User) map[string]any { return resourceview.User(u) }
 
 // userTime is Auth0's timestamp: RFC 3339 in UTC with milliseconds.
 func userTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }

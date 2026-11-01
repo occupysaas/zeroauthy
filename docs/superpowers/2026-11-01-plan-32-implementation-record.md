@@ -105,3 +105,39 @@ Additional TDD evidence:
 - `git diff --check` passed, exit 0. No broad suites or database tests run.
 - Fix commit: `fix: tighten event privacy and subscription contracts` (the commit
   containing this entry). No runtime implementation or minor review fix added.
+
+## Task 2 — CloudEvent builder
+
+- Added events Build, request Context, cryptographic event/stream IDs and Stamp.
+  All emitted catalog examples validate after building; nested dotted allowlists
+  remove identity/ProfileData tokens and hashes, while customer metadata remains
+  open (including app_metadata.password). Source uses CanonicalHost, independently
+  of request/custom domain, and times use UTC milliseconds.
+- Extracted the existing user, identity, organization and connection response
+  functions into internal/resourceview; existing Management API wrappers delegate
+  there. Connection configuration sealing stays in the handler, and event build
+  never decrypts sealed configuration. This avoids an events/mgmt import cycle
+  for Task 8 without duplicating serializer logic.
+- Prerequisite ruling: added only store.TenantEvent from Task 3's frozen contract;
+  Task 3 extends internal/store/events.go. No Events interface was introduced.
+- Request ruling: FromRequest uses httpx.ClientIP(r, false), which honors an
+  authenticated boundary's recorded client IP but ignores untrusted forwarding
+  headers. Resolved request host identifies a custom domain; source remains the
+  tenant canonical host. Missing request/client/connection context is omitted.
+- RED: `go test ./internal/events -run 'Build|IDFormats|Stamp' -count=1`
+  failed with exit 1 before implementation: undefined Build, ErrNotEmitted,
+  FromRequest, WithContext, NewEventID, NewStreamID and Stamp. Nine named task
+  tests were written before production code. Log: /tmp/plan32-task2-red.log.
+  Initial shell default was go1.27.3-X:nodwarf5; final verification uses required
+  Go 1.26.7 explicitly.
+- GREEN: `GOTOOLCHAIN=go1.26.7 go test ./internal/events -run 'Build|IDFormats|Stamp' -count=1`
+  passed, exit 0, 0.273s. Log: /tmp/plan32-task2-green-1.26.log. Additional
+  coverage exercises every emitted catalog example, invalid input, organization
+  serialization, resolved custom domains and normal/invalid Stamp behavior.
+- Compile: `GOTOOLCHAIN=go1.26.7 go test ./internal/mgmt ./internal/app -run '^$' -count=1`
+  passed, exit 0, no tests selected. Log: /tmp/plan32-task2-compile.log.
+- Self-review: checked serializer extraction equivalence and recursive projection;
+  fixed import grouping and stored model time to UTC. `git diff --check` passed.
+  No database, integration, broad or full suites run; these remain deferred to
+  Task 14. No upstream observations and no dependencies added.
+- Commit: `feat: build Auth0 CloudEvents` (this entry's containing commit).
