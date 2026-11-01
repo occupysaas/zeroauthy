@@ -784,6 +784,8 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, err)
 		return
 	}
+	ctx = events.Enrich(ctx, nil, conn)
+	*r = *r.WithContext(ctx)
 	eventConnection = conn
 	if errs := userrules.CheckPatch(conn, u, in); len(errs) > 0 {
 		Fail(w, fieldError(errs[0]))
@@ -994,6 +996,10 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		return
 	}
 	conn, ident, err := h.userConnection(r, u, "")
+	if err == nil {
+		ctx = events.Enrich(ctx, nil, conn)
+		*r = *r.WithContext(ctx)
+	}
 	eventConnection = conn
 	switch {
 	case errors.Is(err, errUserConnection), errors.Is(err, errNoDatabaseIdentity):

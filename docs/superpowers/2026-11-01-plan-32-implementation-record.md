@@ -1284,3 +1284,30 @@ commands, RED/GREEN stages, initial failures and fixes, skips and source hashes:
 No active run remains; controller review pending. Full non-short/E2E/console
 acceptance remains for later tasks, and earlier capture-overhead/cursor/lease
 limitations remain explicitly recorded.
+
+### Task 11 fix round 1 — Management update/delete connection attribution
+
+Base `346cc2b`; Important I1 addressed. UpdateUser/DeleteUser already resolved a
+database connection but passed the original context to their mutations. Both now
+enrich the local context and request immediately after successful resolution,
+before helper/script calls and writes; trusted caller/request fields are retained,
+and missing/no-database delete paths receive no invented connection.
+
+Two actual decorated-store PATCH/DELETE regressions first failed with missing
+connection (RED exit1), then passed (GREEN exit0). PATCH includes password/profile
+updates, full prior profile assertions and retained profile metadata/identity;
+DELETE checks the complete final profile plus deletion timestamp. Both assert
+calling app, connection, trusted IP/custom domain/method/user-agent and tenant,
+and inspect emitted JSON for submitted-password/hash exclusion.
+
+Final Management context/event/user-mutation race checks PASS79leaves/0skips/
+races (exit0, package19.557s); affected Management/server/app/generated compile
+PASS (exit0, no tests selected). UTC2026-11-01T21:38:19–21:38:48, compile through
+21:38:23; sessions92794/59257 completed. Logs/actual exits/timestamps prefix
+`/tmp/plan32-task11-fix1-{race,compile}`; source manifestSHA256
+`10d60bf1864b8db49e2497872e7d59dc91cb58f1b2ba909f523e1fc07bf4fc7c`.
+`git diff --check` passed. No DB/broad/E2E rerun or API/generated/dependency change.
+Prior full short evidence/limitations remain tied to their original snapshot.
+Exact commands, RED/GREEN and limits:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-11-fix1-report.md`.
+No active run or remaining self-review finding; controller review pending.
