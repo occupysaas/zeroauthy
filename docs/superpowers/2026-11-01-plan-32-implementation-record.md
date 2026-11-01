@@ -74,3 +74,34 @@ Additional TDD evidence:
   runtime acceptance are not run or claimed by Task 1.
 - Task 1 commit: `docs: freeze Plan 32 event streams contracts` (the commit
   containing this entry). Controller review follows this implementation report.
+
+### Task 1 important review fixes (base 10705b3)
+
+- Closed all 30 user identity profileData schema branches across object and
+  previous_object. **Ruling:** this is deliberately stricter than the published
+  open schema, following the spec's recursive privacy allowlist. Cost: arbitrary
+  undocumented profileData values are rejected. Customer app_metadata and
+  user_metadata stay open, including arbitrary customer keys resembling secrets.
+- Required subscription.event_type and reused the 25-type catalog enum. Tests
+  exercise valid, absent and unknown types through actual create/PATCH schemas.
+- Minor aws_partner_event_source readOnly annotation intentionally deferred by
+  controller instruction; not included in this fix.
+- RED: focused nested-privacy/subscription command failed, exit 1. All 60 nested
+  secret combinations were accepted and four malformed create/PATCH subscription
+  cases were accepted. `/tmp/plan32-review-red.log`.
+- GREEN: same focused command passed, exit 0 (eventrules 0.139s/API 0.116s).
+  `/tmp/plan32-review-green.log`. All five identity provider branches, both object
+  roots and all three user types are covered; metadata openness is checked before
+  injecting each prohibited nested field.
+- `GOTOOLCHAIN=go1.26.7 make generate` passed, exit 0;
+  `/tmp/plan32-review-generate.log`. Generated subscription.EventType is now a
+  required catalog enum rather than an optional arbitrary string.
+- Final `GOTOOLCHAIN=go1.26.7 go test ./api ./internal/eventrules -count=1`
+  passed, exit 0 (API 0.777s/eventrules 0.178s), `/tmp/plan32-review-tests.log`.
+- Generated-consumer compile command:
+  `GOTOOLCHAIN=go1.26.7 go test ./internal/server ./internal/orgrules ./internal/mgmt ./internal/app -run '^$'`
+  passed, exit 0 (server 0.042s, others cached; no tests selected),
+  `/tmp/plan32-review-compile.log`.
+- `git diff --check` passed, exit 0. No broad suites or database tests run.
+- Fix commit: `fix: tighten event privacy and subscription contracts` (the commit
+  containing this entry). No runtime implementation or minor review fix added.

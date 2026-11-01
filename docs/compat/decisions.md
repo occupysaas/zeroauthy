@@ -2077,3 +2077,13 @@ are alternatives. Route provenance uses the fetched canonical OpenAPI URL.
 The published deferred group examples contain IDs rejected by the catalog's own
 `grp_` pattern; examples are preserved and schema constraints remain intact.
 They are an evidence gap, not accepted fixtures or passing validation claims.
+
+Task 1 review ruling (2026-11-01): the privacy validator closes every user
+identity `profileData` branch in both `object` and `previous_object` to its
+recursive catalog allowlist. This deliberately tightens the published schema's
+open profileData boundary: undocumented profile fields (including provider
+tokens and hashes) are rejected, so future runtime/E2E checks cannot silently
+accept leaks. The compatibility cost is rejecting arbitrary profileData fields
+that the published schema permits. Customer `app_metadata` and `user_metadata`
+remain open and unchanged. Subscription items require a catalog `event_type`;
+unknown or omitted types are invalid for create and PATCH.

@@ -120,3 +120,30 @@ func TestEventStreamCredentialContracts(t *testing.T) {
 		}
 	}
 }
+
+func TestEventStreamSubscriptionRequests(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"EventsCreateEventStreamWebHookRequestContent", "EventsUpdateEventStreamRequestContent"} {
+		schema := doc.Components.Schemas[name].Value
+		for _, tc := range []struct {
+			name         string
+			subscription map[string]any
+			valid        bool
+		}{
+			{"known", map[string]any{"event_type": "user.created"}, true},
+			{"missing", map[string]any{}, false},
+			{"unknown", map[string]any{"event_type": "user.invented"}, false},
+		} {
+			t.Run(name+"/"+tc.name, func(t *testing.T) {
+				body := map[string]any{"name": "sync", "subscriptions": []any{tc.subscription}, "destination": map[string]any{"type": "webhook", "configuration": map[string]any{"webhook_endpoint": "https://example.com/events", "webhook_authorization": map[string]any{"method": "bearer", "token": "secret"}}}}
+				err := schema.VisitJSON(body)
+				if (err == nil) != tc.valid {
+					t.Fatalf("valid=%v, error=%v", tc.valid, err)
+				}
+			})
+		}
+	}
+}

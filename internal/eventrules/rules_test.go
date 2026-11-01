@@ -120,3 +120,36 @@ func TestCatalogRejectsInvalidEvents(t *testing.T) {
 		}
 	}
 }
+
+func TestCatalogIdentityProfileDataBoundary(t *testing.T) {
+	for _, typ := range []string{"user.created", "user.updated", "user.deleted"} {
+		for _, objectKey := range []string{"object", "previous_object"} {
+			for _, provider := range []string{"custom", "auth0", "oidc", "email", "google-oauth2"} {
+				for _, secret := range []string{"access_token", "password_hash"} {
+					t.Run(typ+"/"+objectKey+"/"+provider+"/"+secret, func(t *testing.T) {
+						var event map[string]any
+						if err := json.Unmarshal(Example(typ), &event); err != nil {
+							t.Fatal(err)
+						}
+						object := event["data"].(map[string]any)[objectKey].(map[string]any)
+						identity := object["identities"].([]any)[0].(map[string]any)
+						identity["provider"] = provider
+						identity["isSocial"] = provider == "google-oauth2"
+						// Customer-owned metadata may carry arbitrary customer keys.
+						object["app_metadata"] = map[string]any{"password_hash": "customer value"}
+						object["user_metadata"] = map[string]any{"access_token": "customer value"}
+						body, _ := json.Marshal(event)
+						if err := ValidateEvent(body); err != nil {
+							t.Fatalf("valid identity and metadata rejected: %v", err)
+						}
+						identity["profileData"].(map[string]any)[secret] = "must not escape"
+						body, _ = json.Marshal(event)
+						if ValidateEvent(body) == nil {
+							t.Fatal("accepted secret outside profileData allowlist")
+						}
+					})
+				}
+			}
+		}
+	}
+}

@@ -7202,7 +7202,7 @@ type EventsEventStreamSubscribeEventsResponseContent = string
 
 // EventsEventStreamSubscription defines model for EventsEventStreamSubscription.
 type EventsEventStreamSubscription struct {
-	EventType *string `json:"event_type,omitempty"`
+	EventType EventsEventStreamEventTypeEnum `json:"event_type"`
 }
 
 // EventsEventStreamTestEventTypeEnum defines model for EventsEventStreamTestEventTypeEnum.
