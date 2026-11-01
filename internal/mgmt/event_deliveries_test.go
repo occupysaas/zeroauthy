@@ -585,3 +585,113 @@ func TestRedeliverReceiverFixedWhileDisabled(t *testing.T) {
 		t.Fatal(s.Status, s.TotalFailures)
 	}
 }
+
+// Synthetic tests obey the catalog's optional previous_object contract. Real
+// capture keeps its stronger requirement for a prior update snapshot.
+func TestSendTestEventUpdatedData(t *testing.T) {
+	for _, tc := range []struct {
+		typ    string
+		object map[string]any
+	}{
+		{"user.updated", map[string]any{"user_id": "auth0|local", "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z", "identities": []any{}}},
+		{"organization.updated", map[string]any{"id": "org_1234567890abcdef"}},
+		{"connection.updated", map[string]any{"id": "con_1234567890abcdef", "name": "local-oidc", "strategy": "oidc"}},
+	} {
+		t.Run(tc.typ, func(t *testing.T) {
+			e := newClientsEnv(t)
+			id := eventStreamCreate(t, e, "Updated test", "webhook")
+			before, err := e.st.Events().GetEventStream(t.Context(), e.tn.ID, id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var received []byte
+			deliveryWorker(t, e, func(r *http.Request) (*http.Response, error) {
+				received, _ = io.ReadAll(r.Body)
+				return deliveryResponse(204), nil
+			})
+			for _, withPrior := range []bool{false, true} {
+				t.Run(fmt.Sprint(withPrior), func(t *testing.T) {
+					data := map[string]any{"object": tc.object}
+					var prior map[string]any
+					if withPrior {
+						prior = map[string]any{}
+						for k, v := range tc.object {
+							prior[k] = v
+						}
+						switch tc.typ {
+						case "user.updated":
+							prior["user_id"] = "auth0|prior"
+						case "organization.updated":
+							prior["id"] = "org_abcdef1234567890"
+						case "connection.updated":
+							prior["name"] = "previous-oidc"
+						}
+						data["previous_object"] = prior
+					}
+					fixture := map[string]any{"specversion": "1.0", "id": "evt_1234567890123456789012", "type": tc.typ, "source": "urn:auth0:fixture.example.test", "time": "2026-01-01T00:00:00Z", "a0tenant": "my-tenant", "data": data}
+					raw, err := json.Marshal(fixture)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err = eventrules.ValidateEvent(raw); err != nil {
+						t.Fatalf("invalid fixture: %v", err)
+					}
+					w, out := deliveryCall(t, e, e.tn, "test", id, "", "", map[string]any{"event_type": tc.typ, "data": data})
+					if w.Code != 202 {
+						t.Fatalf("valid updated test data: %d %s", w.Code, w.Body)
+					}
+					if out.(map[string]any)["status"] != "success" {
+						t.Fatal(out)
+					}
+					if err = eventrules.ValidateEvent(received); err != nil {
+						t.Fatal(err)
+					}
+					var sent map[string]any
+					if err = json.Unmarshal(received, &sent); err != nil {
+						t.Fatal(err)
+					}
+					if sent["a0purpose"] != "test" || sent["a0tenant"] != e.tn.ID || sent["a0stream"] != id {
+						t.Fatal(sent)
+					}
+					sentData := sent["data"].(map[string]any)
+					if !reflect.DeepEqual(sentData["object"], tc.object) {
+						t.Fatal("supplied object changed", sentData)
+					}
+					if withPrior {
+						if !reflect.DeepEqual(sentData["previous_object"], prior) {
+							t.Fatal("supplied previous object changed", sentData)
+						}
+					} else if _, exists := sentData["previous_object"]; exists {
+						t.Fatal("invented previous object", sentData)
+					}
+					if sentData["context"].(map[string]any)["tenant"].(map[string]any)["id"] != e.tn.ID {
+						t.Fatal(sentData)
+					}
+				})
+			}
+			t.Run("unknown nested field", func(t *testing.T) {
+				body := map[string]any{"event_type": tc.typ, "data": map[string]any{"object": tc.object, "context": map[string]any{"tenant": map[string]any{"id": "my-tenant", "password": "NESTED_SECRET_SENTINEL"}}}}
+				prior := append([]byte(nil), received...)
+				w, _ := deliveryCall(t, e, e.tn, "test", id, "", "", body)
+				if w.Code != 400 || !bytes.Equal(prior, received) {
+					t.Fatal("unknown nested data sent", w.Code, w.Body)
+				}
+			})
+			seq, err := e.st.Events().LatestEventSeq(t.Context(), e.tn.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows, _, err := e.st.Events().ListDeliveries(t.Context(), e.tn.ID, id, store.DeliveryFilter{}, "", 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			after, err := e.st.Events().GetEventStream(t.Context(), e.tn.ID, id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if seq != 0 || len(rows) != 0 || !reflect.DeepEqual(before, after) {
+				t.Fatal("test persisted or changed stream")
+			}
+		})
+	}
+}

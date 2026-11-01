@@ -1098,3 +1098,37 @@ is still required before Task9 is marked complete in the ledger.
 
 Task9 implementation tree before final documentation-only additions:
 `2888495f7b5ae4da9fa4c1776aafdf8173981252` (`/tmp/plan32-task9-implementation.tree`).
+
+### Task 9 fix round 1 — Catalog-valid supplied update test data
+
+Base `002dc0a`; Important I1 addressed. Synthetic test events now construct their
+fresh envelope independently from the catalog fixture and supplied data, then
+strictly validate and stamp it. They no longer invoke `events.Build`, whose
+capture-time mandatory-prior requirement incorrectly rejected catalog-valid
+user.updated, organization.updated and connection.updated object-only data.
+Absent caller prior stays absent; a valid supplied previous_object is preserved.
+The production capture builder and frozen catalog/validator are unchanged.
+
+TDD regression `TestSendTestEventUpdatedData` covers all3 types with literal
+schema-valid minimal objects, optional valid prior preservation, actual sent
+catalog-valid body/trusted tenant stamps, nested unknown-field400 without a send,
+and no outbox/failure/counter mutation. RED focused new test exit1 reproduced
+all3 unexpected400s;6valid-prior/strict-rejection cases passed. GREEN same command
+exit0,9passed leaves. Logs `/tmp/plan32-task9-fix1-{red,green}.log`, sessions41156
+and14417, actual exit files retained.
+
+Final `GOTOOLCHAIN=go1.26.7 go test -race ./api ./internal/eventrules
+./internal/events ./internal/mgmt ./internal/server -run
+'SendTestEvent|Deliver|Redeliver|EventStream|EventsInventory|SpecsAreValid|^TestBuild'
+-count=1 -v` passed143leaves,0failures/skips/races, exit0. API6.957s,
+eventrules2.536s, events2.846s, Management27.539s, server6.977s;
+UTC20:35:25–20:36:07. Session35662 finished, sole task monitor. All25 default
+types and existing capture Build prior-state regressions passed. No DB/broad/
+Node-runtime/console suite, dependency or generated file change. Minor M1
+expected fixture log noise remains deferred. No additional self-review finding;
+controller review pending. Full report
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-9-fix1-report.md`;
+final log/exit/snapshot prefix `/tmp/plan32-task9-fix1-final`.
+
+Task9fix1 implementation tree before final documentation-only additions:
+`f67de8555729c2e9def7c75925e5d693cc169206` (`/tmp/plan32-task9-fix1-implementation.tree`).

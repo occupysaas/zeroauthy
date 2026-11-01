@@ -196,20 +196,11 @@ func (h *Handlers) TestEventStream(w http.ResponseWriter, r *http.Request, id st
 			return
 		}
 	}
+	// Synthetic tests follow the catalog data contract, which permits updates
+	// without previous_object. Capture-time Build preconditions do not apply.
 	at := h.now().UTC()
 	eid := events.NewEventID()
-	if rule.Emitted {
-		ev, err := events.Build(r.Context(), resolved(r), typ, data["object"], data["previous_object"], at)
-		if err != nil {
-			h.eventStreamError(w, r, store.ErrInvalid)
-			return
-		}
-		if json.Unmarshal(ev.Body, &envelope) != nil {
-			h.eventStreamError(w, r, store.ErrInvalid)
-			return
-		}
-		eid = ev.ID
-	}
+
 	envelope["id"] = eid
 	envelope["type"] = typ
 	envelope["source"] = "urn:auth0:" + resolved(r).CanonicalHost
