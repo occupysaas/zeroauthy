@@ -199,7 +199,8 @@ func (r events) PurgeEvents(ctx context.Context, before time.Time, limit int) (i
 			return err
 		}
 		slices.Sort(tenants)
-		for _, tid := range slices.Compact(tenants) {
+		tenants = slices.Compact(tenants)
+		for _, tid := range tenants {
 			if err := t.lockRBAC(ctx, tid); err != nil && !errors.Is(err, store.ErrNotFound) {
 				return err
 			}
@@ -220,6 +221,15 @@ func (r events) PurgeEvents(ctx context.Context, before time.Time, limit int) (i
 					return err
 				}
 				n += int(k)
+			}
+		}
+		// Deleting a retained failure changes the stream's extant count, but
+		// does not reset its consecutive failure streak. Tenant locks fence
+		// workers and management updates across this count and the deletion.
+		for _, tid := range tenants {
+			count := `(SELECT COUNT(*) FROM event_deliveries d WHERE d.tenant_id=event_streams.tenant_id AND d.stream_id=event_streams.id)`
+			if _, err := t.exec(ctx, `UPDATE event_streams SET total_failures=`+count+`,version=version+1,updated_at=? WHERE tenant_id=? AND total_failures<>`+count, logTime(t.eventNow()), tid); err != nil {
+				return err
 			}
 		}
 		return nil

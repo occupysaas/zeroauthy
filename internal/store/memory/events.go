@@ -113,11 +113,7 @@ func (r events) AppendEvents(ctx context.Context, es []store.TenantEvent) error 
 		}
 		if len(ring.events) == eventCapacity && len(r.s.eventDeliveries) > 0 {
 			evicted := ring.events[ring.start].event.ID
-			for k := range r.s.eventDeliveries {
-				if k.tenant == e.TenantID && k.event == evicted {
-					delete(r.s.eventDeliveries, k)
-				}
-			}
+			r.removeEventDeliveries(e.TenantID, evicted)
 		}
 		ring.append(storedEvent{event: cloneEvent(e), committed: stamp, pending: r.s.tx})
 	}
@@ -213,11 +209,7 @@ func (r events) PurgeEvents(ctx context.Context, before time.Time, limit int) (i
 		ring.each(func(e storedEvent) {
 			if n < limit && e.event.Time.Before(before) {
 				n++
-				for k := range r.s.eventDeliveries {
-					if k.tenant == tid && k.event == e.event.ID {
-						delete(r.s.eventDeliveries, k)
-					}
-				}
+				r.removeEventDeliveries(tid, e.event.ID)
 			} else {
 				next.append(e)
 			}
@@ -225,6 +217,23 @@ func (r events) PurgeEvents(ctx context.Context, before time.Time, limit int) (i
 		r.s.tenantEvents[tid] = next
 	}
 	return n, nil
+}
+
+// Caller holds the mutation lock, including the transaction snapshot lock.
+// Retention and ring eviction remove extant failures without resetting the
+// consecutive failure streak (only a successful delivery resets that streak).
+func (r events) removeEventDeliveries(tid, eid string) {
+	for k := range r.s.eventDeliveries {
+		if k.tenant != tid || k.event != eid {
+			continue
+		}
+		delete(r.s.eventDeliveries, k)
+		if s := r.s.eventStreams[key{tid, k.stream}]; s != nil {
+			s.TotalFailures = max(0, s.TotalFailures-1)
+			s.Version++
+			s.UpdatedAt = r.s.now().UTC()
+		}
+	}
 }
 func (s *Store) deleteTenantEvents(tid string) {
 	delete(s.tenantEvents, tid)

@@ -16,6 +16,40 @@ func TestEvents(t *testing.T) {
 	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "Events")
 }
 
+func TestEventEvictionFailureCount(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Events().CreateEventStream(ctx, &store.EventStream{TenantID: "t", ID: "s", Name: "s", Status: "enabled"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: "t", ID: "old", Time: time.Now()}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Events().LeaseEventStream(ctx, "owner", time.Now(), time.Now().Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Events().RecordEventDelivery(ctx, "t", "s", "owner", store.DeliveryOutcome{TotalFailures: 1, Failed: &store.EventDelivery{TenantID: "t", StreamID: "s", EventID: "old", Status: "failed"}}); err != nil {
+		t.Fatal(err)
+	}
+	batch := make([]store.TenantEvent, 10000)
+	for i := range batch {
+		batch[i] = store.TenantEvent{TenantID: "t", ID: fmt.Sprint(i), Time: time.Now()}
+	}
+	if err := st.Events().AppendEvents(ctx, batch); err != nil {
+		t.Fatal(err)
+	}
+	s, err := st.Events().GetEventStream(ctx, "t", "s")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.TotalFailures != 0 {
+		t.Fatalf("evicted failure still counted: %d", s.TotalFailures)
+	}
+	if _, err := st.Events().GetDelivery(ctx, "t", "s", "old"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal(err)
+	}
+}
+
 func TestEventsRingAndCommitVisibility(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)

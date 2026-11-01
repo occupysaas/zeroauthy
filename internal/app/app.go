@@ -24,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/events"
+	"github.com/zeroauthy/zeroauthy/internal/eventstream"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/federation/script"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -48,20 +49,22 @@ import (
 )
 
 type App struct {
-	cfg        *config.Config
-	log        *slog.Logger
-	store      store.Store
-	runner     *customdb.NodeRunner
-	builds     *actionsbuild.Manager // Actions dependency builds
-	actions    *noderunner.Pool      // Actions flow processes
-	profiles   *script.Runner        // nil when profile scripts cannot run
-	actionJobs *actions.Worker
-	jobs       *jobs.Runner
-	logs       *logs.AsyncRecorder
-	logPurge   *logs.Purger
-	logStreams *logstream.Worker
-	handler    http.Handler
-	breachFile *protection.FileChecker
+	cfg          *config.Config
+	log          *slog.Logger
+	store        store.Store
+	runner       *customdb.NodeRunner
+	builds       *actionsbuild.Manager // Actions dependency builds
+	actions      *noderunner.Pool      // Actions flow processes
+	profiles     *script.Runner        // nil when profile scripts cannot run
+	actionJobs   *actions.Worker
+	jobs         *jobs.Runner
+	logs         *logs.AsyncRecorder
+	logPurge     *logs.Purger
+	logStreams   *logstream.Worker
+	eventPurge   *events.Purger
+	eventStreams *eventstream.Worker
+	handler      http.Handler
+	breachFile   *protection.FileChecker
 	// tls serves certificates when ACME is on; nil keeps static or
 	// externally terminated TLS exactly as configured.
 	tls *certificates.Manager
@@ -370,22 +373,24 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	sec := cfg.Security
 	buildsOwned = true
 	return &App{
-		profiles:   profiles,
-		tls:        tlsManager,
-		acme:       acmeWorker,
-		domains:    domains,
-		cfg:        cfg,
-		log:        log,
-		store:      st,
-		runner:     runner,
-		builds:     builds,
-		actions:    actionsRunner,
-		actionJobs: &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
-		jobs:       jobRunner,
-		logs:       recorder,
-		logPurge:   logs.NewPurger(st, logsConfig, log),
-		logStreams: logstream.NewWorker(st, wrapper, logsConfig, nil, log),
-		breachFile: breachFile,
+		profiles:     profiles,
+		tls:          tlsManager,
+		acme:         acmeWorker,
+		domains:      domains,
+		cfg:          cfg,
+		log:          log,
+		store:        st,
+		runner:       runner,
+		builds:       builds,
+		actions:      actionsRunner,
+		actionJobs:   &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
+		jobs:         jobRunner,
+		logs:         recorder,
+		logPurge:     logs.NewPurger(st, logsConfig, log),
+		logStreams:   logstream.NewWorker(st, wrapper, logsConfig, nil, log),
+		eventPurge:   events.NewPurger(st, events.Config{Retention: cfg.Events.Retention}, log),
+		eventStreams: eventstream.NewWorker(st, wrapper, events.Config{AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP}, nil, nil, log),
+		breachFile:   breachFile,
 		handler: server.New(server.Deps{
 			LogsConfig:   logsConfig,
 			EventsConfig: events.Config{Retention: cfg.Events.Retention, MaxStreams: cfg.Events.MaxStreams, MaxConnections: cfg.Events.MaxConnections, AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP},
@@ -627,6 +632,18 @@ func (a *App) Serve(ctx context.Context) error {
 		purgeCtx, stopPurge := context.WithCancel(ctx)
 		done := make(chan struct{})
 		go func() { defer close(done); a.logPurge.Run(purgeCtx) }()
+		defer func() { stopPurge(); <-done }()
+	}
+	if a.eventStreams != nil {
+		streamCtx, stopStreams := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); a.eventStreams.Run(streamCtx) }()
+		defer func() { stopStreams(); <-done }()
+	}
+	if a.eventPurge != nil {
+		purgeCtx, stopPurge := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); a.eventPurge.Run(purgeCtx) }()
 		defer func() { stopPurge(); <-done }()
 	}
 	useTLS := a.cfg.Server.TLSCertFile != "" || a.tls != nil

@@ -10,6 +10,7 @@ import (
 )
 
 func testEvents(t *testing.T, newStore Factory) {
+	t.Run("EventsPurgeFailureCounters", func(t *testing.T) { testEventsPurgeFailureCounters(t, newStore) })
 	for name, fn := range map[string]func(*testing.T, Factory){"EventStreamCRUDAndNameConflict": testEventStreamCRUDAndNameConflict, "EventStreamLease": testEventStreamLease, "EventDeliveriesFilterPage": testEventDeliveriesFilterPage, "QueueRedeliveryRules": testQueueRedeliveryRules, "EventsPurge": testEventsPurge, "EventsDeleteTenant": testEventsDeleteTenant, "EventDeliveryReferences": testEventDeliveryReferences} {
 		t.Run(name, func(t *testing.T) { fn(t, newStore) })
 	}
@@ -95,6 +96,91 @@ func testEvents(t *testing.T, newStore Factory) {
 			t.Fatal(seq)
 		}
 	})
+}
+
+func testEventsPurgeFailureCounters(t *testing.T, newStore Factory) {
+	s := eventsStore(t, newStore)
+	ctx := context.Background()
+	r := s.Events()
+	now := time.Now()
+	for _, tid := range []string{"a", "b"} {
+		stream := &store.EventStream{TenantID: tid, ID: "s", Name: "s", Status: "enabled"}
+		mustNoErr(t, r.CreateEventStream(ctx, stream))
+		for _, id := range []string{"old", "new"} {
+			at := now
+			if tid == "a" && id == "old" {
+				at = now.Add(-8 * 24 * time.Hour)
+			}
+			mustNoErr(t, r.AppendEvents(ctx, []store.TenantEvent{{TenantID: tid, ID: id, Time: at, Body: []byte(`{}`)}}))
+		}
+	}
+	for i, tid := range []string{"a", "b"} {
+		leased, err := r.LeaseEventStream(ctx, tid, now, now.Add(time.Minute))
+		mustNoErr(t, err)
+		if leased.TenantID != tid {
+			t.Fatalf("lease %d: %+v", i, leased)
+		}
+		for j, id := range []string{"old", "new"} {
+			mustNoErr(t, r.RecordEventDelivery(ctx, tid, "s", tid, store.DeliveryOutcome{ConsecutiveFailures: j + 1, TotalFailures: j + 1, Failed: &store.EventDelivery{TenantID: tid, StreamID: "s", EventID: id, Status: "failed"}}))
+		}
+	}
+	abort := errors.New("abort purge")
+	err := s.WithTx(ctx, func(tx store.Store) error {
+		n, err := tx.Events().PurgeEvents(ctx, now.Add(-7*24*time.Hour), 1)
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			t.Fatalf("purged=%d", n)
+		}
+		a, err := tx.Events().GetEventStream(ctx, "a", "s")
+		if err != nil {
+			return err
+		}
+		if a.TotalFailures != 1 {
+			t.Fatalf("in-tx failure count=%d, want 1", a.TotalFailures)
+		}
+		return abort
+	})
+	if !errors.Is(err, abort) {
+		t.Fatal(err)
+	}
+	a, err := r.GetEventStream(ctx, "a", "s")
+	mustNoErr(t, err)
+	if a.TotalFailures != 2 {
+		t.Fatalf("rollback count=%d", a.TotalFailures)
+	}
+	n, err := r.PurgeEvents(ctx, now.Add(-7*24*time.Hour), 1)
+	mustNoErr(t, err)
+	if n != 1 {
+		t.Fatalf("purged=%d", n)
+	}
+	a, err = r.GetEventStream(ctx, "a", "s")
+	mustNoErr(t, err)
+	b, err := r.GetEventStream(ctx, "b", "s")
+	mustNoErr(t, err)
+	if a.TotalFailures != 1 || b.TotalFailures != 2 {
+		t.Fatalf("counts a=%d b=%d", a.TotalFailures, b.TotalFailures)
+	}
+	if a.ConsecutiveFailures != 2 || b.ConsecutiveFailures != 2 || a.Version != 4 || b.Version != 3 {
+		t.Fatalf("purge changed streak or failed to fence counters: a=%+v b=%+v", a, b)
+	}
+	if _, err := r.GetDelivery(ctx, "a", "s", "old"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("purged failure retained", err)
+	}
+	if _, err := r.GetDelivery(ctx, "b", "s", "old"); err != nil {
+		t.Fatal("foreign tenant failure removed", err)
+	}
+	n, err = r.PurgeEvents(ctx, now.Add(-7*24*time.Hour), 1)
+	mustNoErr(t, err)
+	if n != 0 {
+		t.Fatal(n)
+	}
+	a, err = r.GetEventStream(ctx, "a", "s")
+	mustNoErr(t, err)
+	if a.TotalFailures != 1 {
+		t.Fatal("second sweep decremented again")
+	}
 }
 
 func eventStreamFixture(t *testing.T, newStore Factory) (store.Store, context.Context, *store.EventStream) {

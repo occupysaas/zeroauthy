@@ -728,3 +728,92 @@ the matrix to distinguish endpoint queries from Management API list parameters.
   `GOTOOLCHAIN=go1.26.7`. No SQL source changed, so the SQL matrix was not rerun.
   No broad suite or subagents. No process remains active. Minor M1 application-log
   noise remains deferred as directed. `git diff --check` and cached check pass.
+
+### Task 7 — Webhook delivery worker and event retention
+
+Base `48066e381a0124fd143faac00d55c7875a275d09`. Added
+`eventstream.NewWorker`, `Run` and reusable `Deliver`, the future durable
+`ActionRunner` interface, guarded webhook transport, exponential retry intervals,
+and an hourly fenced event purger. App construction and shutdown now own both
+background workers. Task 8 still owns the durable Action adapter and trigger
+activation; this change does not activate that trigger.
+
+Each webhook POST sends a stamped copy of the persisted CloudEvent, JSON content
+type, configured basic/bearer/custom authorization, and the complete endpoint
+query. Each attempt has a 10-second context and client timeout. Every normal HTTP
+transport uses the existing guarded dialer, with proxy/custom TLS-dial bypasses
+removed. Redirects are refused for every authorization method. Diagnostics contain
+only the specified safe classes and status codes; response bodies are closed
+without reading, and Action messages pass through the Plan 31 redactor.
+
+Queued redeliveries precede new events, including on disabled streams. Failures
+advance the checkpoint atomically with their record and counters. Successful
+redelivery removes its failure record and reduces the count; a failed redelivery
+does not add a second failure record. Success resets the consecutive streak.
+Streams disable at 500 consecutive failed events or 5,000 extant failed records.
+
+Ruling: bound each lease iteration to one event and reacquire before the next —
+four attempts consume at most 47 seconds, so draining 100 under an unchanged
+60-second lease is unsafe. Preprocessing, delivery and recording share an earlier
+deadline; sending requires 52 seconds of remaining lease budget. Ownership and
+configuration version are checked before sending and again under the transaction's
+existing tenant lock, with the repository's final ownership fence. Cost if wrong:
+more repository reads and lower throughput than a batched renewal design.
+
+Ruling: `total_failures` counts current failed records, including after retention
+and memory-ring eviction — otherwise stale counts incorrectly prevent re-enable.
+The worker counts records under the tenant transaction lock before each outcome;
+memory purge/eviction and SQL purge update cached counts and increment the stream
+version atomically with deletion. Purge preserves consecutive failures and disabled
+status. The controller authorized this narrow memory/SQL correction and the
+three-driver focused regression. Cost if wrong: extra count/pagination work per
+record and purge batch.
+
+Ruling: refuse redirects and classify 3xx as `connection_error` under the frozen
+safe error classes — following even same-host redirects can forward custom
+credentials and adds another SSRF surface. Cost if wrong: receivers must configure
+the final endpoint instead of a redirecting URL.
+
+Verification used `GOTOOLCHAIN=go1.26.7`. Final implementation tree before this
+documentation-only record addition:
+`18c0d75d93831ddbcb7da2593fb91f6deec1f11c`, saved in
+`/tmp/plan32-task7-implementation-tree.txt`.
+
+| Check | Actual result | Evidence |
+| --- | --- | --- |
+| Initial `go test ./internal/eventstream ./internal/events -count=1` | RED exit1: missing Worker/NewWorker/NewPurger | `/tmp/plan32-task7-red.log`, `.exit` |
+| Memory purge-counter regression | RED exit1: in-transaction count2 instead of1; then GREEN exit0 | `/tmp/plan32-task7-purge-red.log`, `.exit`, session46296; `/tmp/plan32-task7-purge-green.log`, `.exit` |
+| Memory ring-eviction regression | RED exit1: removed failure still counted1; then GREEN exit0 | `/tmp/plan32-task7-eviction-red.log`, `.exit`, session81282; final memory run below |
+| `go test ./internal/eventstream ./internal/events -count=1 -v` | exit0;116 passed leaves,0fail/skip; eventstream2.039s/events1.483s | `/tmp/plan32-task7-focused-final.log`, `.exit`, session36398 |
+| `go test -race ./internal/eventstream -count=3 -v` | exit0;105 leaf executions across3 runs,0fail/skip/race reports;52.197s | `/tmp/plan32-task7-race-final.log`, `.exit`, session62442 |
+| Focused memory Events/ring tests under race | exit0;21 passed leaves,0fail/skip/races;1.186s | `/tmp/plan32-task7-memory-final.log`, `.exit`, session81826 |
+| Existing guarded-dialer/rebinding and Events-config tests under race | exit0;10 passed leaves,0fail/skip/races | `/tmp/plan32-task7-network-config-final.log`, `.exit`, session18740 |
+| Focused SQL purge-counter regression via `scripts/test-sql.sh` | exit0;3 passed leaves,one each SQLite/PostgreSQL/MySQL;0fail/skip/races;5.701s | `/tmp/plan32-task7-sql-final.log`, `.exit`, session58989 |
+| Affected app/eventstream/events/mgmt/server/grpcstore/sqlstore compile | exit0;7 packages,`-run '^$'`,no runtime-test claim | `/tmp/plan32-task7-compile-final.log`, `.exit`, session77487 |
+| Whitespace checks | `git diff --check` and cached check exit0 | command transcript |
+
+The SQL command selected only
+`^TestEventsConformance$/^(sqlite|postgres|mysql)$/^Events$/^EventsPurgeFailureCounters$`,
+with `-race -count=1 -v` supplied by the script, free ports recorded in
+`/tmp/plan32-task7-sql-final-ports`, and temporary containers removed on exit. The
+shared case covers bounded deletion, identical event IDs in separate tenants,
+transaction rollback, count/version changes, preserved consecutive streaks, and
+an idempotent second sweep. No broad SQL suite or full application suite ran.
+
+All named Task 7 tests ran, plus cancellation, configuration changes during sends,
+concurrent lease holders, expired/preprocessing lease boundaries, purge during
+delivery, queued-first ordering, redirect credentials, Action error masking,
+unsupported plugin shutdown and real DNS rebinding tests. Local TLS fixtures emit
+expected certificate-rejection diagnostics; these contain no credentials.
+
+1,000 captured memory signups took653.050ms normally and621.450ms while a receiver
+remained blocked. Race runs measured5.564s/5.709s,4.404s/4.690s and4.362s/4.575s
+(normal/blocked). This demonstrates originating writes remain independent of the
+receiver. The earlier Task 3 relative10% capture-overhead target remains **not met**;
+this check does not replace or claim that target.
+
+Self-review checked lease/checkpoint fencing, subscription settle ordering,
+retention/redelivery counter races, endpoint query preservation, redirect and DNS
+SSRF protections, and diagnostics. No unresolved Task 7 finding. No new dependency
+or generated source changed. All runs have completed. Full execution report:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-7-report.md`.
