@@ -217,29 +217,31 @@ func (h *Handlers) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 		ssePreflightError(w, err)
 		return
 	}
+
+	started := h.now()
+	transport := &sseTransport{controller: rc, started: started, realDeadline: time.Now().Add(sseCycle), now: h.now}
+	if err = transport.prepare(); err != nil {
+		ssePreflightError(w, err)
+		return
+	}
+	streamCtx, polls, cleanup := h.sseLifetime(r.Context(), transport)
+	defer cleanup()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Accel-Buffering", "no")
 	send := func(message string) error {
+		if err := transport.prepare(); err != nil {
+			return err
+		}
 		if _, e := fmt.Fprint(w, message); e != nil {
 			return e
 		}
 		return rc.Flush()
 	}
 	terminal := func(err error) { _ = send("event: error\ndata: {\"code\":\"" + sseErrorCode(err) + "\"}\n\n") }
-	started := h.now()
 	if send(":connected\n\nretry: 2000\n\n") != nil {
 		return
 	}
-	var ticks <-chan time.Time
-	var stop func()
-	if h.sseTicks != nil {
-		ticks, stop = h.sseTicks()
-	} else {
-		ticker := time.NewTicker(time.Second)
-		ticks, stop = ticker.C, ticker.Stop
-	}
-	defer stop()
 	heartbeat, offset := started, started
 
 	// Progress frames describe only rows already examined. Check between rows
@@ -261,7 +263,7 @@ func (h *Handlers) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 		return nil
 	}
 	for {
-		if h.now().Sub(started) >= 5*time.Minute {
+		if h.now().Sub(started) >= sseCycle {
 			return
 		}
 		if err := progress(h.now()); err != nil {
@@ -270,13 +272,13 @@ func (h *Handlers) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 		// Drain bounded snapshots. Time and cancellation remain checked even under
 		// sustained backlog; a slow client never holds the append/purge lock.
 		for _, e := range rows {
-			if err := r.Context().Err(); err != nil {
+			if err := streamCtx.Err(); err != nil {
 				if errors.Is(err, context.DeadlineExceeded) {
 					terminal(err)
 				}
 				return
 			}
-			if h.now().Sub(started) >= 5*time.Minute {
+			if h.now().Sub(started) >= sseCycle {
 				return
 			}
 			if err := progress(h.now()); err != nil {
@@ -310,7 +312,7 @@ func (h *Handlers) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 			p.seq = e.Seq
 		}
 		if len(rows) == 100 {
-			rows, err = h.sseSnapshot(r.Context(), tid, &p, false)
+			rows, err = h.sseSnapshot(streamCtx, tid, &p, false)
 			if err != nil {
 				terminal(err)
 				return
@@ -318,25 +320,21 @@ func (h *Handlers) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		select {
-		case <-r.Context().Done():
+		case <-streamCtx.Done():
 			if errors.Is(r.Context().Err(), context.DeadlineExceeded) {
 				terminal(r.Context().Err())
 			}
 			return
-		case _, ok := <-ticks:
-			if !ok {
-				return
-			}
+		case <-polls:
 			now := h.now()
-			if now.Sub(started) >= 5*time.Minute {
+			if now.Sub(started) >= sseCycle {
 				return
 			}
-			rows, err = h.sseSnapshot(r.Context(), tid, &p, false)
+			rows, err = h.sseSnapshot(streamCtx, tid, &p, false)
 			if err != nil {
 				terminal(err)
 				return
 			}
-
 		}
 	}
 }

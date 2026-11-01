@@ -40,7 +40,7 @@ type sseTestWriter struct {
 	fail     bool
 	flushErr atomic.Bool
 	onFlush  func(string)
-	deadline bool
+	deadline atomic.Bool
 }
 
 func (w *sseTestWriter) Header() http.Header { return w.header }
@@ -66,7 +66,12 @@ func (w *sseTestWriter) FlushError() error {
 	w.pending.Reset()
 	return nil
 }
-func (w *sseTestWriter) SetWriteDeadline(d time.Time) error { w.deadline = d.IsZero(); return nil }
+func (w *sseTestWriter) SetWriteDeadline(d time.Time) error {
+	if d.IsZero() {
+		w.deadline.Store(true)
+	}
+	return nil
+}
 func sseEnv(t *testing.T) (*Handlers, *memory.Store, *sseTestClock) {
 	t.Helper()
 	c := &sseTestClock{ticks: make(chan time.Time, 10)}
@@ -120,8 +125,8 @@ func sseMessage(t *testing.T, w *sseTestWriter) string {
 func sseConnected(t *testing.T, w *sseTestWriter) {
 	t.Helper()
 	m := sseMessage(t, w)
-	if !strings.Contains(m, ":connected\n\n") || !strings.Contains(m, "retry: 2000\n\n") || !w.deadline {
-		t.Fatalf("connect %q deadline %v", m, w.deadline)
+	if !strings.Contains(m, ":connected\n\n") || !strings.Contains(m, "retry: 2000\n\n") || !w.deadline.Load() {
+		t.Fatalf("connect %q deadline %v", m, w.deadline.Load())
 	}
 }
 func sseOffset(n int64) string { return base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprint(n))) }

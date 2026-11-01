@@ -1192,3 +1192,52 @@ No new dependency or manual generated edit. `git diff --check` passed. Full
 commands, failures, skips/rulings and self-review report:
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-10-report.md`.
 Controller review is pending; no active test run remains.
+
+### Task 10 fix round 1 — Bound blocked transport writes
+
+Base `287a5a7`; Important I1 addressed. Clearing the server write deadline left
+synchronous Write/Flush unbounded, so a stalled reader could prevent cycle or
+cancellation cleanup and retain its tenant slot. The handler still lifts the
+original server deadline, then installs the remaining five-minute cycle deadline
+before any SSE I/O. Each send uses the minimum of the original real cycle bound
+and translated remaining logical lifetime; no shorter normal-reader timeout was
+introduced, and frozen/backward injected clocks cannot extend the real bound.
+
+One watcher owns polling and cycle/cancellation signals while serving is blocked.
+It immediately expires the transport deadline and cancels the stream context;
+subsequent snapshots use that context. A mutex serializes deadline preparation
+with permanent interruption, so a concurrent send cannot undo cancellation.
+Deferred cleanup joins the watcher and stops both timers before returning or
+releasing the semaphore, preventing a deadline hook from racing response reuse.
+In-process nonblocking recorders may lack deadline support; standard net/http
+transports provide the required ResponseController capability.
+
+TDD RED `go test ./internal/mgmt -run
+'SSE(BlockedTransport|DeadlineHookJoinedBeforeReturn|StalledTCPReaderCycle)'
+-count=1 -v` with Go1.26.7 exit1 reproduced all6 regression leaves: blocked
+Write/Flush survive both cycle and cancellation, deadline hook absent, real TCP
+stalled reader survives cycle. GREEN same command exit0,6 leaves/0skips.
+Real net.Pipe regressions verify403 while blocked and capacity reuse after
+interruption. Hook-join test holds SetWriteDeadline after the actual write is
+interrupted and proves ServeHTTP cannot return until the watcher exits. Actual
+HTTP/TCP small-window4MiB replay stalls after headers, then injected cycle expiry
+returns the handler/releases resources while the client socket remains open.
+Independent native-time regression proves real cycle expiry with backward/frozen
+logical clock. Existing50ms server WriteTimeout/later event test remains passing.
+
+Final `GOTOOLCHAIN=go1.26.7 go test ./internal/mgmt -run SSE -count=1 -v`
+PASS51leaves (exit0,1.856s); race count3 PASS153leaf executions (exit0,7.503s,
+0failures/skips/races). Focused server scopes/live-grant/middleware race checks
+PASS4leaves (exit0,2.859s); affected app/Management/server/generated compile PASS
+with no tests selected. UTC20:59:37–20:59:55 race, server through20:59:50,
+focused/compile through20:59:44. Logs/actual exits/timestamps prefix
+`/tmp/plan32-task10-fix1-{focused-final,race,server,compile}`; sessions79419,
+97951,84077,43960 completed, sole task monitor, no active process. Implementation
+tree before documentation-only additions:
+`9cc280bdce8aa562641c3a7dc19d30fcbb5036ae`.
+
+No DB-backed/broad/Node/E2E/console suite or production SQL/API/generated/dependency
+change. Prior cursor rulings remain unchanged. `git diff --check` passed.
+Full commands, RED/GREEN, resource/clock tests and actual verification results:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-10-fix1-report.md`.
+No remaining self-review finding; controller review pending.
