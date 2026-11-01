@@ -320,6 +320,13 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		budget = e.budget()
 	}
 	f.deadline = time.Now().Add(budget)
+	// Event streams carry a sealed delivery deadline. Both Go cancellation and
+	// the independent Node watchdog must enforce that earlier boundary.
+	if f.trigger == TriggerEventStream {
+		if deadline, ok := ctx.Deadline(); ok && deadline.Before(f.deadline) {
+			f.deadline = deadline
+		}
+	}
 	fctx, cancel := context.WithDeadline(ctx, f.deadline)
 	defer cancel()
 	ex := &store.Execution{TenantID: f.tenantID, ID: execID, Trigger: f.trigger, Status: "final", CreatedAt: e.now()}
@@ -533,7 +540,8 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	var executed *procState
 	raw, err := e.Runner.CallWith(ctx, f.tenantID, req, noderunner.CallOptions{
 		// At least 1 ms: a zero Budget would mean the Pool's 20 s default.
-		Budget: max(time.Until(f.deadline), time.Millisecond),
+		Budget:   max(time.Until(f.deadline), time.Millisecond),
+		Isolated: f.trigger == TriggerEventStream,
 		Prepare: func(state any) {
 			if ps, ok := state.(*procState); ok {
 				executed = ps

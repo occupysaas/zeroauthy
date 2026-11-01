@@ -966,3 +966,74 @@ target remains explicitly **not met**; no broad suites were repeated to fill
 waiting time. All runs finished; one sole monitor. Exact commands, failures,
 limits and snapshots are retained in
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-8-report.md`.
+
+### Task 8 review fix I1 — Terminate cancelled Node executions
+
+Base `956a1b67321e2a74f8299a5fe07371669e978345`. Review correctly found that the
+original cancellation test established only a prompt Go return. The runner's
+ordinary `CallWith` intentionally left JavaScript running under its watchdog,
+whose budget could still be20s rather than the sealed10s delivery deadline.
+The original Task8 report's claim that this test proved Node stopped was too
+strong. The review overlay and the permanent regressions below demonstrated late
+HTTP side effects. This entry corrects that earlier evidence/claim.
+
+Controller-approved repair: additive `CallOptions.Isolated`, enabled only for
+`event-stream`. A private one-call Node process is killed and reaped on every
+return, including success (detached timers), error, cancellation and timeout.
+Shared `CallWith` cancellation and shared tenant processes retain their previous
+behavior. The event-stream flow/watchdog is capped by the remaining sealed
+context deadline, including capacity wait/startup. Admission allows one isolated
+call per tenant and64 per Pool; ref-counted tenant slots are removed after owners
+and waiters finish. Isolated children join the Pool's existing live tracking and
+Close drain. `api.cache` remains host-managed across jobs; JS globals reset.
+
+Cost/limits: per-attempt Node startup and same-tenant event-stream serialization.
+OS process kill/reaping is scheduled work, so waiting for guaranteed exit can add
+a small interval after the execution deadline. This is not a real-time wall-clock
+guarantee. No JS survives the call's return, but an already-sent network request
+cannot be recalled. D-0058 records this local runtime policy. M1 setup-timeout
+classification and M2 fixture log noise remain deferred as directed.
+
+- RED: permanent `TestEventStreamExecutionStopsNodeSideEffects` reproduced late
+  HTTP requests in all four modes: persisted cancellation, sealed deadline,
+  failed storage cancellation, successful return with detached timer. Command
+  `ZA_REQUIRE_NODE=1 go test ./internal/actions -run
+  '^TestEventStreamExecutionStopsNodeSideEffects$' -count=1 -v`, exit1,
+  `/tmp/plan32-task8-fix1-red.log`, `.exit`, session50743. Reviewer overlay RED
+  remains `/tmp/plan32-task8-review-late-side-effect.log`, `.exit`.
+- Runner RED: `ZA_REQUIRE_NODE=1 go test ./internal/noderunner -run
+  '^TestIsolatedCall' -count=1 -v`, exit1 because Isolated option did not exist;
+  `/tmp/plan32-task8-fix1-runner-red.log`, `.exit`; completed in initial call.
+- Initial GREEN: same permanent side-effect tests plus `TestIsolatedCall`
+  selection across Actions/runner, exit0,7 passed leaves,0skips;
+  `/tmp/plan32-task8-fix1-green1.log`, `.exit`, session24206.
+- Focused race: `ZA_REQUIRE_NODE=1 go test -race ./internal/noderunner
+  ./internal/actions ./internal/eventstream -run
+  'IsolatedCall|EventStream|ActionDestination|ActionSecrets|ActionExecutionLogged'
+  -count=1 -v`, exit0,24 passed leaves,0skips/race reports;
+  `/tmp/plan32-task8-fix1-race.log`, `.exit`, session94060. Covers actual late HTTP
+  side effects, following job recovery, cache persistence/fresh JS globals,
+  concurrent shared call preservation, unchanged default cancellation, tenant
+  and global capacity, queued cancellation, Close drain, destination masking and
+  failed deliveries. Global saturation is tested through production permits to
+  avoid spawning64 Node processes just to test admission.
+- Required full suites, started once after final production edits:
+  `ZA_REQUIRE_NODE=1 go test ./internal/actions ./internal/noderunner -count=1 -v`,
+  exit0,240 passed leaves,0skips/failures; Actions37.249s, runner22.040s.
+  `/tmp/plan32-task8-fix1-full.log`, `.exit`, session41386;
+  UTC20:17:54–20:18:34. One sole monitor, blocking wait, no repeated quiet run.
+  Existing expected invalid-envelope warning and sandbox fixture diagnostics
+  remain visible; no new secret-bearing diagnostic was introduced.
+- Every Go command exported `GOTOOLCHAIN=go1.26.7`; Node26.8.1 was required,
+  with no fallback. Storage/protocol source did not change; no database or broad
+  conformance suite was rerun. `git diff --cached --check` passed.
+
+Final implementation tree before documentation-only additions:
+`2f51723b66673d8513a923d45e325b47dc4e62db`
+(`/tmp/plan32-task8-fix1-implementation.tree`). Full-run source/status preserved
+at `/tmp/plan32-task8-fix1-full.snapshot.patch`, `.snapshot.status`.
+Self-review checked return/termination boundaries, shared-call isolation,
+capacity ownership/release, context/watchdog clamping, live-process shutdown and
+cache behavior. I1 has no unresolved finding; M1/M2 remain deferred. All runs
+finished. Full task report:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-8-fix1-report.md`.

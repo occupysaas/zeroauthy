@@ -2143,3 +2143,24 @@ tenth, capped at 100ms); storage cancellation failure still leaves the sealed
 deadline as the execution fence. Cost if wrong: additional queue polling and a
 small reduction in available Action execution time; external plugins must add the
 two RPCs to support this destination.
+
+Task8 review fix: cancelling a Go waiter alone did not terminate its already
+running JavaScript. Event-stream calls now opt into a private one-call Node
+process in the existing runner Pool. The process is killed and reaped before
+returning after success, error, cancellation or timeout, so detached timers do not
+outlive a completed job. Its watchdog is capped by the remaining sealed deadline,
+including admission/startup time. Shared calls retain their existing semantics
+and processes; cancelling an isolated call cannot kill concurrent login Actions.
+Admission permits one isolated call per tenant and at most64 isolated processes
+per Pool. Every isolated child is tracked by the Pool's normal shutdown/drain.
+The host cache persists across event-stream jobs; JS module globals do not.
+
+This is an explicit local runtime policy, not claimed Auth0 process parity. Cost:
+Node startup for each attempt, bounded serialization of simultaneous same-tenant
+event-stream runs, and no reuse of JS globals. Process kill/reaping relies on OS
+scheduling and can take a small additional interval after the execution deadline;
+waiting for exit is necessary to guarantee no JS remains after return. A network
+request sent before termination cannot be recalled. The10s delivery budget still
+bounds the execution/watchdog and the adapter's wait; shutdown/reaping is not a
+real-time OS guarantee. Minor review M1 setup-timeout classification and M2
+expected fixture diagnostics remain deferred.

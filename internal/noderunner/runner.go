@@ -82,6 +82,12 @@ type Config struct {
 // CallOptions tune one call.
 type CallOptions struct {
 	Budget time.Duration // 0: the Pool's Budget
+	// Isolated uses a private process for this call, kills it on every return
+	// (including success), and waits for process exit. Cancellation cannot leave
+	// JS running or interrupt other calls. Its budget includes queue/startup time
+	// and is capped by ctx's deadline. One isolated call per tenant and at most
+	// maxInFlight isolated processes per Pool may run at once.
+	Isolated bool
 	// Prepare runs once the request is registered with a process, before it
 	// is written, with that process's OnStart state.
 	Prepare  func(state any)
@@ -94,10 +100,12 @@ type Pool struct {
 	log *slog.Logger
 	dir string // 0700 temp dir holding the script
 
-	mu     sync.Mutex
-	procs  map[string]*proc   // by tenant ID; the processes taking new requests
-	live   map[*proc]struct{} // every started process until it has exited
-	closed bool
+	mu                sync.Mutex
+	procs             map[string]*proc   // by tenant ID; the processes taking new requests
+	live              map[*proc]struct{} // every started process until it has exited
+	closed            bool
+	isolated          map[string]*isolationSlot
+	isolationCapacity chan struct{}
 
 	probeOnce sync.Once
 	probeErr  error
@@ -142,6 +150,7 @@ func New(cfg Config, log *slog.Logger) (*Pool, error) {
 	}
 	p := &Pool{
 		cfg: cfg, log: log, dir: dir,
+		isolated: map[string]*isolationSlot{}, isolationCapacity: make(chan struct{}, maxInFlight),
 		procs: map[string]*proc{}, live: map[*proc]struct{}{}, stop: make(chan struct{}), reaperDone: make(chan struct{}),
 	}
 	go p.reaper()
@@ -157,6 +166,13 @@ func (p *Pool) Probe() error {
 		p.probeErr, p.allowNet = err, rt.AllowNet
 	})
 	return p.probeErr
+}
+
+// isolationSlot counts both its owner and waiters, so completed tenant slots
+// do not accumulate indefinitely in a long-lived Pool.
+type isolationSlot struct {
+	refs int
+	sem  chan struct{}
 }
 
 // proc is one tenant's process.
@@ -202,7 +218,8 @@ func (p *Pool) Call(ctx context.Context, tenantID string, req any) (json.RawMess
 // ctx.Err() but the request stays pending, still bounded by the budget:
 // the process is killed if the script does not answer in time. Exceeding
 // the budget kills the tenant's process, failing its other in-flight calls,
-// and returns ErrTimeout.
+// and returns ErrTimeout. With Isolated, a private process is instead killed
+// and reaped on every return; no request is handed to a watcher.
 func (p *Pool) CallWith(ctx context.Context, tenantID string, req any, opts CallOptions) (json.RawMessage, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -232,6 +249,19 @@ func (p *Pool) CallWith(ctx context.Context, tenantID string, req any, opts Call
 	budget := opts.Budget
 	if budget <= 0 {
 		budget = p.cfg.Budget
+	}
+
+	if opts.Isolated {
+		if deadline, ok := ctx.Deadline(); ok {
+			budget = min(budget, time.Until(deadline))
+		}
+		if budget <= 0 {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, ErrTimeout
+		}
+		return p.callIsolated(ctx, tenantID, body, opts, budget)
 	}
 
 	// The timer is owned by await, which may hand it to a watcher.
@@ -270,10 +300,90 @@ func (p *Pool) CallWith(ctx context.Context, tenantID string, req any, opts Call
 			opts.Prepare(pr.state)
 		}
 		line := withID(body, id)
-		return p.await(ctx, pr, id, line, ch, timer, opts.LogAttrs)
+		return p.await(ctx, pr, id, line, ch, timer, opts.LogAttrs, false)
 	}
 	timer.Stop()
 	return nil, fmt.Errorf("%w: runner process keeps exiting", ErrUnavailable)
+}
+
+// callIsolated owns a private process and never hands execution to a watcher.
+// kill + done ensures no user JS survives this call, even after a response
+// that left detached timers behind. Process exit is an OS scheduling boundary;
+// waiting for reaping can add a small delay after the JS execution deadline.
+func (p *Pool) callIsolated(ctx context.Context, tenant string, body []byte, opts CallOptions, budget time.Duration) (json.RawMessage, error) {
+	timer := time.NewTimer(budget)
+	defer timer.Stop()
+	p.mu.Lock()
+	if p.closed {
+		p.mu.Unlock()
+		return nil, fmt.Errorf("%w: runner closed", ErrUnavailable)
+	}
+	slot := p.isolated[tenant]
+	if slot == nil {
+		slot = &isolationSlot{sem: make(chan struct{}, 1)}
+		p.isolated[tenant] = slot
+	}
+	slot.refs++
+	p.mu.Unlock()
+	defer func() {
+		p.mu.Lock()
+		slot.refs--
+		if slot.refs == 0 {
+			delete(p.isolated, tenant)
+		}
+		p.mu.Unlock()
+	}()
+	select {
+	case slot.sem <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-p.stop:
+		return nil, fmt.Errorf("%w: runner closed", ErrUnavailable)
+	case <-timer.C:
+		return nil, ErrTimeout
+	}
+	defer func() { <-slot.sem }()
+	select {
+	case p.isolationCapacity <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-p.stop:
+		return nil, fmt.Errorf("%w: runner closed", ErrUnavailable)
+	case <-timer.C:
+		return nil, ErrTimeout
+	}
+	defer func() { <-p.isolationCapacity }()
+	// Check again after queued capacity: a cancelled waiter must never spawn.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	select {
+	case <-timer.C:
+		return nil, ErrTimeout
+	default:
+	}
+	p.mu.Lock()
+	if p.closed {
+		p.mu.Unlock()
+		return nil, fmt.Errorf("%w: runner closed", ErrUnavailable)
+	}
+	pr, err := p.start(tenant)
+	p.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { p.kill(pr); <-pr.done }()
+	pr.sem <- struct{}{}
+	pr.mu.Lock()
+	pr.nextID++
+	id := pr.nextID
+	ch := make(chan []byte, 1)
+	pr.pending[id] = ch
+	pr.mu.Unlock()
+	if opts.Prepare != nil {
+		opts.Prepare(pr.state)
+	}
+	return p.await(ctx, pr, id, withID(body, id), ch, timer, opts.LogAttrs, true)
 }
 
 // withID returns the object body with "id":id as its first member, newline
@@ -292,8 +402,9 @@ func withID(body []byte, id int64) []byte {
 
 // await waits for the response to a registered request. It owns pr's
 // semaphore slot and timer; if the caller leaves early, a watcher takes them
-// over so the request stays bounded by the budget.
-func (p *Pool) await(ctx context.Context, pr *proc, id int64, line []byte, ch chan []byte, timer *time.Timer, attrs []any) (json.RawMessage, error) {
+// over so the request stays bounded by the budget. Isolated calls keep ownership
+// and let callIsolated kill/reap the process before returning.
+func (p *Pool) await(ctx context.Context, pr *proc, id int64, line []byte, ch chan []byte, timer *time.Timer, attrs []any, isolated bool) (json.RawMessage, error) {
 	handedOff := false
 	defer func() {
 		if !handedOff {
@@ -323,6 +434,9 @@ func (p *Pool) await(ctx context.Context, pr *proc, id int64, line []byte, ch ch
 				return nil, fmt.Errorf("%w: runner process exited", ErrUnavailable)
 			}
 		case <-ctx.Done():
+			if isolated {
+				return nil, ctx.Err()
+			}
 			// The script keeps running: leave it pending (the reaper must not
 			// retire its process) and still enforce the deadline.
 			handedOff = true
