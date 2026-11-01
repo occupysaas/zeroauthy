@@ -311,6 +311,8 @@ My Organization API/self-service organization administration Plan 42.
 
 ### Plan 32 — Event streams
 
+**Draft design and plan (2026-11-01):** [standalone spec](2026-11-01-zeroauthy-event-streams-design.md) and [implementation plan](../plans/2026-11-01-zeroauthy-plan-32-event-streams.md). Follows Auth0's current documentation: webhook (basic, bearer, custom header), `action` (the `event-stream` trigger) and stored-only `eventbridge` destinations; user, organization and catalog enterprise-connection events captured in the business transaction; test, deliveries, redelivery and auto-disable; and the SSE Events API (`GET /api/v2/events`). Group events wait for Plan 38. Not implemented yet.
+
 `/api/v2/event-streams` (CRUD, `test`, `/deliveries`, `/redeliver`) for `webhook` and `eventbridge` destinations; Auth0's CloudEvents payloads for `user.created`, `user.updated`, `user.deleted` and any event types added by build time; signed webhook delivery with retries, sharing Plan 31's delivery machinery. The `event-stream` Action trigger (deferred by Plan 28) ships here if Auth0 documents it at build time. **Short.**
 
 ### Plan 33 — MFA I (full design)
