@@ -161,9 +161,16 @@ claims, metadata or redirect values. Arbitrary secrets freshly fetched by user
 code are not automatically known free-text credentials: do not print them.
 IP, user agent and user identity are personal data; only present trusted
 signals are recorded. No GeoIP data or invented location/security signals are
-added. The production bootstrap setup-link diagnostic is a separate open
-privacy audit item tracked in the implementation record; this guide does not
-claim that its existing server-log output has already been repaired.
+added.
+
+Automatic first-operator bootstrap delivers its one-hour setup link in a unique
+0600 file in the server host's temporary directory. Server logs contain only the
+`setup_file` path, operator email and validity. This private credential-delivery
+file is separate from logging sinks: read it on the host and delete it after use.
+Server shutdown preserves it so delivery remains possible. Later starts against
+the same persistent operator create no new file. The explicit `admin create`
+CLI stdout link and authenticated operator-invitation response remain private
+delivery channels; do not forward them into logging systems.
 
 ## Streams and delivery
 

@@ -2481,3 +2481,60 @@ escapes it. Canonical public response remains exact. SQL/Go/plugin copies and
 all generated outputs were inspected. The operating guide names current losses,
 limits and deferred codes, rather than claiming full Auth0 equivalence or Plan31
 completion. No new dependency, upstream selector assumption or bootstrap change.
+
+## Task 16d — Private automatic bootstrap delivery (2026-10-31)
+
+Closed the automatic bootstrap `setup_url` server-log privacy item left open in
+Task16c. `app.bootstrapOperator` now writes the real setup link and one-hour
+validity/cleanup guidance to a unique `os.CreateTemp` file (0600) in the host's
+OS temporary directory. Only its `setup_file` path, operator email and validity
+are announced in server logs. Create/write/close failures return the same safe
+error, without filesystem errors or link contents; failed writes/close remove
+the partial file. Successful files remain after server shutdown for operator
+delivery. No configuration/API or test-only production controls were added.
+The explicit `admin create` stdout channel is unchanged. The authenticated
+operator invitation also remains usable; its actual server audit body masks
+`setup_url` with `[REDACTED]`.
+
+Replaced the old `TestBootstrapAdminEmailOnce` link-in-log expectation with a
+real 0600 artifact, valid setup-page GET, absence of its ticket from captured
+server logs, survival after app Close, and no new artifact on second/third
+persistent starts. Added in-memory startup and creation-failure coverage. A
+Linux-only test subprocess sets its own `RLIMIT_FSIZE=0` after normal in-memory
+app initialization, exercising real file write failure and partial-file cleanup
+without production fault injection. Tests keep artifacts under their temporary
+directories and remove them during cleanup. README, Management and logs guides
+now describe private-file delivery, cleanup and persistent CLI recovery.
+
+All Go commands below used `GOTOOLCHAIN=go1.26.7`. Actual scratch evidence is
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-16d-*`.
+
+| Actual command / evidence | Result |
+| --- | --- |
+| `go test ./internal/app -run '^TestBootstrapAdminEmail(Once\|Memory)$' -count=1`, red | RED: both tests fail because server log has no private setup artifact path. |
+| Creation-failure test initial attempt (before targeting bootstrap directly) | FAIL for an earlier Node temporary-directory initialization error, rather than bootstrap. Corrected test to initialize the real memory app before selecting a missing TMPDIR. |
+| `go test ./internal/app -run '^TestBootstrapAdminEmailArtifactCreationFailure$' -count=1`, create-red | RED: actual bootstrap returned nil instead of a safe artifact error. |
+| `go test ./internal/app -run '^TestBootstrapAdminEmailArtifactWriteFailure$' -count=1`, write-red | RED: limited-write subprocess reports actual bootstrap returned nil. |
+| `go test ./internal/app -run '^TestBootstrapAdminEmail' -count=1`, green | PASS0.816s: persistent/memory delivery and actual creation/write failure paths. |
+| `go test -race ./internal/app -run '^TestBootstrapAdminEmail\|^TestNewScrubsServerLogger$\|^TestNewEnsuresSystemTenant$' -count=1`, race | PASS6.654s. |
+| `go test ./cmd/zeroauthy -run '^TestAdminCreate$' -count=1`, cli-admin | PASS0.324s: actual persistent CLI still prints the one-hour setup link. |
+| `go test -race ./internal/server -run '^TestSystemAPIOperators$' -count=1`, operator-route | PASS1.558s: actual route retains private response link; server audit contains Marker, no link/ticket. |
+| `go test -race ./internal/app ./internal/server -run '^TestBootstrapAdminEmail\|^TestNewScrubsServerLogger$\|^TestNewEnsuresSystemTenant$\|^TestSystemAPIOperators$' -count=1`, final-focused | PASS: app6.148s, server1.684s on final source/test edits. |
+| `go vet ./internal/app ./internal/server ./cmd/zeroauthy`, vet | PASS. |
+| `git diff --check` | PASS. |
+
+Ruling (controller's explicit Task16d decision): the setup file is an intentional
+private credential-delivery artifact, separate from logging sinks. Do not delete
+it automatically on app Close. Cost: operators must read a host-local file and
+remove it after use; expired files can remain until operator/OS cleanup. A
+persisted operator whose delivery fails can recover with `admin create` for the
+same email. Memory initialization failure does not persist its operator.
+
+Self-review: CreateTemp provides safe unique names and restrictive permissions;
+write and close outcomes are both checked before success logging; failed files
+are removed; underlying errors and setup URLs never enter the failure message.
+No unrelated private delivery channel changed. The close-error branch is checked
+in source but was not independently fault-injected; actual create and write
+failures were exercised. No all-driver SQL, full gRPC, broad final regression,
+CLI selector repair or E2E lane was run in this focused stage. Final regression
+and the pending CLI selector decision remain the controller's next work.

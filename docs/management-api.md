@@ -506,6 +506,16 @@ for operator tokens only (D-0040). Auth0 has no equivalent.
 The system tenant cannot be changed or deleted here. Tenants created through
 this API are never touched by the seed.
 
+For automated first-operator setup, set `ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL`.
+When no operator exists, startup writes a one-hour setup link to a unique,
+owner-only (0600) file in the server host's temporary directory. Logs announce
+only its `setup_file` path, email and validity. Read that private file on the
+host and delete it after use; server shutdown preserves it for delivery. With
+persistent storage, later starts create no new file. If delivery fails after
+creation, run `zeroauthy admin create --email <same-address> --config <file>` to
+issue a fresh link. That CLI command continues to print its link explicitly to
+stdout; operator invitations above continue to return the link in the response.
+
 ## Signing keys and deploy migration (Plan 20)
 
 Signing-key endpoints use `read:signing_keys`, `create:signing_keys`, and

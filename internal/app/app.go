@@ -417,14 +417,27 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 }
 
 // bootstrapOperator creates the first operator from bootstrap.admin_email
-// when the system tenant has none, and logs its one-time setup link.
+// when the system tenant has none, and delivers its setup link in a private file.
 func bootstrapOperator(ctx context.Context, st store.Store, email string, log *slog.Logger) error {
 	link, err := system.Bootstrap(ctx, st, email)
 	if err != nil || link == "" {
 		return err
 	}
-	log.Warn("created the first console operator from bootstrap.admin_email; open the one-time setup link within an hour to choose a password",
-		"email", email, "setup_url", link, "expires_in", system.SetupLinkLifetime.String())
+	// The link is a credential, so keep it out of every server-log sink.
+	// CreateTemp gives each bootstrap a unique owner-only (0600) file.
+	file, err := os.CreateTemp("", "zeroauthy-operator-setup-*")
+	if err != nil {
+		return errors.New("app: could not save private operator setup file")
+	}
+	_, writeErr := fmt.Fprintf(file, "Open this one-time operator setup link within 1 hour to choose a password:\n%s\n\nKeep this file private and delete it after use.\n", link)
+	closeErr := file.Close()
+	if writeErr != nil || closeErr != nil {
+		_ = os.Remove(file.Name())
+		return errors.New("app: could not save private operator setup file")
+	}
+	// Keep the file after server shutdown: the operator may still need delivery.
+	log.Warn("created the first console operator from bootstrap.admin_email; read the private setup file within an hour and delete it after use",
+		"email", email, "setup_file", file.Name(), "expires_in", system.SetupLinkLifetime.String())
 	return nil
 }
 

@@ -165,10 +165,13 @@ ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL=you@example.com \
   ./bin/zeroauthy serve --config tests/e2e/config.yaml
 ```
 
-The server logs a one-time setup link (valid for one hour). Open it, choose a
-password of at least 12 characters, then sign in at
-`https://system.localhost:8443/admin/`. Memory storage is lost on restart, and
-so is the operator; the next start logs a new link.
+The server writes the one-time setup link to an owner-only (0600) file in the
+host's temporary directory and logs its path as `setup_file`, plus the operator
+email and one-hour validity. Read that private file on the server, open the link,
+and choose a password of at least 12 characters. Delete the file after use, then
+sign in at `https://system.localhost:8443/admin/`. Server shutdown leaves the
+file available for delivery. Memory storage is lost on restart, and so is the
+operator; the next start creates a new private setup file.
 
 `zeroauthy admin create --email you@example.com --config <file>` does the same
 from another terminal, but only with persistent storage (SQLite, PostgreSQL,
@@ -270,8 +273,12 @@ or that host. Create an operator with
 which prints a one-time setup link (valid for one hour) where the operator
 chooses a password. Automated installs may set
 `ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL` instead: on a start that finds no
-operator, the server creates that one and logs the link once. No password is
-ever taken from configuration. Operators sign in to the
+operator, the server creates that one and writes its one-hour setup link to a
+private 0600 file in the host's temporary directory. The server log contains only
+the `setup_file` path, email and validity. Read the file on the server and delete
+it after use; shutdown does not remove it. If file delivery fails after the
+operator was persisted, use `admin create` for that email to issue a fresh link.
+No password is ever taken from configuration. Operators sign in to the
 [admin console](docs/console.md) at `/admin/` on that host.
 
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
