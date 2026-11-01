@@ -123,6 +123,8 @@ func errToPB(err error) *storev1.Error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, store.ErrEventsUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_EVENTS_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrLogsUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_LOGS_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrActionsUnavailable):
@@ -163,6 +165,8 @@ func errFromPB(e *storev1.Error) error {
 		return nil
 	}
 	switch e.Kind {
+	case storev1.Error_KIND_EVENTS_UNAVAILABLE:
+		return store.ErrEventsUnavailable
 	case storev1.Error_KIND_LOGS_UNAVAILABLE:
 		return store.ErrLogsUnavailable
 	case storev1.Error_KIND_ACTIONS_UNAVAILABLE:

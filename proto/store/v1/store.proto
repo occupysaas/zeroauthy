@@ -30,7 +30,8 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 //   (session_lifetime, token_lifetime, leeway, ...). The one exception is
 //   RefreshTokensRotateRequest.leeway and ProtectionLimit intervals use
 //   google.protobuf.Duration. Instants
-//   are google.protobuf.Timestamp with nanosecond precision.
+//   are google.protobuf.Timestamp with nanosecond precision, except Logs and
+//   Events canonical UTC timestamp strings documented below.
 //
 // JSON fields
 //   custom_text_json is a JSON object: prompt -> language -> screen -> key ->
@@ -58,6 +59,29 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 service StoreService {
+  // Events v1 is negotiated independently of Logs, RBAC and Organizations.
+  rpc EventsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc AppendEvents(EventsRequest) returns (EventsResponse);
+  rpc GetEvent(EventsRequest) returns (EventsResponse);
+  rpc EventsAfter(EventsRequest) returns (EventsResponse);
+  rpc EventsFromTime(EventsRequest) returns (EventsResponse);
+  rpc LatestEventSeq(EventsRequest) returns (EventsResponse);
+  rpc OldestEventSeq(EventsRequest) returns (EventsResponse);
+  rpc PurgeEvents(EventsRequest) returns (EventsResponse);
+  rpc DeleteTenantEvents(EventsRequest) returns (EventsResponse);
+  rpc CreateEventStream(EventsRequest) returns (EventsResponse);
+  rpc GetEventStream(EventsRequest) returns (EventsResponse);
+  rpc ListEventStreams(EventsRequest) returns (EventsResponse);
+  rpc CountEventStreams(EventsRequest) returns (EventsResponse);
+  rpc UpdateEventStream(EventsRequest) returns (EventsResponse);
+  rpc DeleteEventStream(EventsRequest) returns (EventsResponse);
+  rpc LeaseEventStream(EventsRequest) returns (EventsResponse);
+  rpc RecordEventDelivery(EventsRequest) returns (EventsResponse);
+  rpc ListDeliveries(EventsRequest) returns (EventsResponse);
+  rpc GetDelivery(EventsRequest) returns (EventsResponse);
+  rpc QueueRedelivery(EventsRequest) returns (EventsResponse);
+  rpc QueuedDeliveries(EventsRequest) returns (EventsResponse);
+
   // Logs v1 is independent of every earlier storage capability.
   rpc LogsCapabilities(PingRequest) returns (LogsCapabilitiesResult);
   rpc AppendLogs(LogsRequest) returns (LogsResponse);
@@ -430,6 +454,7 @@ message Error {
     KIND_PRECONDITION = 11; // store.ErrPrecondition
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
     KIND_ORGANIZATIONS_II_UNAVAILABLE = 13; // store.ErrOrganizationsIIUnavailable
+    KIND_EVENTS_UNAVAILABLE = 15; // store.ErrEventsUnavailable
     KIND_LOGS_UNAVAILABLE = 14; // store.ErrLogsUnavailable
     KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
   }
@@ -1400,4 +1425,53 @@ message LogsResponse {
  Error error = 1; LogEventMsg event = 2; repeated LogEventMsg events = 3;
  int64 total = 4; int64 count = 5; LogStreamMsg stream = 6;
  repeated LogStreamMsg streams = 7; repeated DailyStatMsg stats = 8;
+}
+
+// Events timestamps use canonical UTC text with nine fractional digits, as Logs
+// timestamps do. Config JSON numbers MUST be decoded losslessly (not float64).
+// Optional bytes and list wrappers preserve absent versus explicitly empty.
+// AppendEvents and every repository call participate in tx_id's transaction.
+// AppendEvents returns the input events with assigned Seq values; create/update
+// stream return the input stream with its assigned Version. The host copies only
+// those assigned fields back to the caller after successful responses.
+// Every event reference, including Failed/Succeeded outcome IDs, is resolved in
+// tenant_id before any outcome mutation; reject missing references atomically.
+message EventsCapabilitiesResult { uint32 version = 1; Error error = 2; }
+message TenantEventMsg {
+ string tenant_id = 1; string id = 2; string type = 3; int64 seq = 4;
+ string time = 5; optional bytes body = 6;
+}
+message EventStreamMsg {
+ string tenant_id = 1; string id = 2; string name = 3; string status = 4; string dest_type = 5;
+ StringList subscriptions = 6; bytes config_json = 7; optional bytes sealed_secret = 8;
+ int64 checkpoint = 9; string lease_owner = 10; string lease_until = 11;
+ int64 consecutive_failures = 12; int64 total_failures = 13; int64 version = 14;
+ string created_at = 15; string updated_at = 16;
+}
+message DeliveryAttemptMsg {
+ string status = 1; string timestamp = 2; string error_message = 3; double duration_ms = 4;
+}
+message DeliveryAttemptsMsg { repeated DeliveryAttemptMsg values = 1; }
+message EventDeliveryMsg {
+ string tenant_id = 1; string stream_id = 2; string event_id = 3; string event_type = 4;
+ string status = 5; DeliveryAttemptsMsg attempts = 6; bool queued = 7;
+ string event_time = 8; string updated_at = 9;
+}
+message DeliveryFilterMsg { StringList statuses = 1; StringList event_types = 2; string from = 3; string to = 4; }
+message DeliveryOutcomeMsg {
+ int64 checkpoint = 1; EventDeliveryMsg failed = 2; StringList succeeded = 3;
+ int64 consecutive_failures = 4; int64 total_failures = 5; bool disable = 6;
+}
+message EventsRequest {
+ string tx_id = 1; string tenant_id = 2; string id = 3;
+ repeated TenantEventMsg events = 4; int64 after_seq = 5; StringList types = 6;
+ int64 take = 7; string settled = 8; string from = 9; string before = 10; int64 limit = 11;
+ EventStreamMsg stream = 12; int64 version = 13; string after = 14;
+ string owner = 15; string now = 16; string until = 17; DeliveryOutcomeMsg outcome = 18;
+ DeliveryFilterMsg filter = 19; string event_id = 20; StringList event_ids = 21;
+}
+message EventsResponse {
+ Error error = 1; TenantEventMsg event = 2; repeated TenantEventMsg events = 3;
+ int64 seq = 4; int64 count = 5; EventStreamMsg stream = 6; repeated EventStreamMsg streams = 7;
+ string next = 8; EventDeliveryMsg delivery = 9; repeated EventDeliveryMsg deliveries = 10;
 }

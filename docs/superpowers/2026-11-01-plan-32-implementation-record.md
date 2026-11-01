@@ -447,3 +447,113 @@ per-tenant append serialization may contend with business/RBAC writes and has
 not been throughput-benchmarked here. No claim of a SQL performance SLO is made.
 Task commit: `feat: persist events, streams and deliveries in SQL` (containing
 this entry). Independent scoped review remains with the controller.
+
+## Task 5 — Events v1 storage plugin capability (2026-11-01)
+
+Base `e11fb071caf567534917a1c3e8537b8bbc2c32ec`; isolated worktree
+`/mnt/nvme2/code/zeroauthy-plan32`, branch `implement-plan-32`. Added independent
+Events v1 negotiation, all 20 Events repository RPCs and an additive Events
+unavailable wire sentinel. Generated protobuf/Go files came only from
+`make generate`; no dependency or existing field/RPC renumbering was introduced.
+The existing public pkg/store aliases already cover the complete Events contract.
+
+Every repository request carries the remote transaction handle. AppendEvents
+returns assigned sequences, and stream create/update return assigned versions,
+so the client preserves those caller-visible repository mutations. Transactions
+share the capability cache; explicit operations re-probe to observe upgrades and
+downgrades. Only Unimplemented, version zero and the domain unavailable sentinel
+are definitive. Transient transport failures retain their errors and allow a
+subsequent successful probe, rather than permanently negative-caching support.
+The server consults backend declarations and recognizes both value and pointer
+UnimplementedEvents stubs without acquiring a backing repository lock.
+
+Codecs preserve int64 sequences/checkpoints, float64 attempt durations, exact
+Config JSON numbers via UseNumber, nanosecond UTC timestamps including year0000,
+Go zero and Unix epoch, arbitrary sealed/body bytes, and nil/empty nested lists,
+maps and bytes. Protocol boundaries clone mutable slices/bytes and marshal/decode
+nested maps. Invalid time/config/attempt messages are rejected before repository
+writes. The backend's tenant-scoped outcome validation remains authoritative;
+the full shared reference regression runs through both gRPC backends.
+
+Integration review confirmed that capture.available already calls the explicit
+CheckEventsSupport before its cheap predicate: only ErrEventsUnavailable skips
+capture. No wrapper adjustment was needed. Real gRPC tests prove a transient
+negotiation failure prevents an uncaptured user mutation, recovery records the
+user event, old plugins still permit the user mutation without capture, and an
+AppendEvents transport/unknown-method failure rolls the business write back.
+Callback failure and nested savepoint tests independently verify business/outbox
+rollback and successful commit on both memory and SQLite.
+
+Verification (all commands exported GOTOOLCHAIN=go1.26.7; actual logs/statuses):
+
+- Initial RED: `go test ./internal/store/grpcstore -run Events -count=1 -v`,
+  exit 1, 8.859s, `/tmp/plan32-task5-red.log`, status `.exit`, session99698.
+  V1/shared Events conformance/remote rollback failed on the unavailable stub;
+  the full pre-Events prior-feature compatibility suite passed (7.51s).
+- Assigned-field RED:
+  `go test ./internal/store/grpcstore -run '^TestEventsAssignedFields$' -count=1 -v`,
+  exit 1, 0.081s, memory/SQLite unavailable stubs;
+  `/tmp/plan32-task5-assigned-red.log`, status `.exit`, session95449.
+- `make generate` passed, exit 0, `/tmp/plan32-task5-generate.log`, session16973;
+  final regeneration also passed, exit 0,
+  `/tmp/plan32-task5-generate-final.log`, status `.exit`, session32628.
+- First GREEN: the initial RED command passed, exit 0, 9.574s;
+  `/tmp/plan32-task5-first-green.log`, status `.exit`, session61762. Includes
+  every shared Events case on memory/SQLite, callback rollback and assigned
+  sequence/version assertions, plus every prior-feature suite on an old plugin.
+- Extended GREEN:
+  `go test ./internal/store/grpcstore -run '^TestEvents' -count=1 -v`, exit 0,
+  7.842s, `/tmp/plan32-task5-extended-fixed.log`, status `.exit`, session8920.
+  Adds backend declarations, capability version changes, lossless transport and
+  capture negotiation. The preceding attempt failed to compile because the test
+  fixture used User.ID rather than UserID (exit1,
+  `/tmp/plan32-task5-extended.log`); corrected before behavioral validation.
+- Final normal focused command: same extended command, exit 0, 7.836s;
+  `/tmp/plan32-task5-final-focused-fixed.log`, status `.exit`, session51982.
+  Adds direct codec copy/malformed-message checks, malformed-batch no-partial-write,
+  append-failure capture rollback and nested remote rollback. The preceding
+  cleanup attempt failed to compile on `:=` with an already declared error
+  (exit1, `/tmp/plan32-task5-final-focused.log`); corrected to assignment.
+- Initial combined race/conformance:
+  `go test -race ./internal/store/grpcstore -run '^(TestEvents.*|TestConformance(SQLite)?)$' -count=1 -v`,
+  exit 1, 600.734s: Go's default ten-minute suite timeout fired in
+  TestConformanceSQLite/RefreshTokens/RotateUnknownAndConflict during a fresh
+  SQLite fixture's migration14/Commit. `/tmp/plan32-task5-conformance-race.log`,
+  status `.exit`, session88753. TestConformance (memory) completed PASS56.84s.
+  No assertion failure, skip or race report preceded the timeout. SQLite had
+  executed Events and reached RefreshTokens; the incomplete SQLite parent and
+  not-yet-started top-level Events tests are **not** claimed passing by this run.
+- **Timeout ruling (controller):** preserve the original timeout as FAIL. Prior
+  Plan31 evidence records approximately14min for SQL-race SQLite even without
+  RPC overhead; retry SQLite alone with an explicit90m timeout using the same
+  assertions, race instrumentation and implementation snapshot. Do not rerun
+  completed memory conformance. Cost: a slower real verification lane and wider
+  hang timeout; no assertion, backend or race instrumentation is removed.
+- Focused Events race:
+  `go test -race ./internal/store/grpcstore -run '^TestEvents' -count=1 -timeout=90m -v`,
+  exit 0, 106.826s; `/tmp/plan32-task5-focused-race.log`, status `.exit`,
+  session11456. All new tests plus the prior-feature old-plugin suite and explicit
+  memory/SQLite shared Events conformance completed; no failures/skips/race reports.
+  Source is unchanged from the recorded final implementation tree.
+- SQLite-only full gRPC conformance race retry:
+  `go test -race ./internal/store/grpcstore -run '^TestConformanceSQLite$' -count=1 -timeout=90m -v`,
+  exit 0, 943.084s (parent941.28s; Events37.55s),604 passed nodes/555 passed
+  leaves,0 failures/skips/race reports. `/tmp/plan32-task5-sqlite-conformance-race.log`,
+  status `.exit`, session18136. Memory full conformance's earlier56.84s pass
+  likewise has604 nodes/555 leaves. Focused Events race has675 nodes/612 leaves,
+  including18 shared Events leaves per backend (20 nodes each).
+- Tested source identity: Go1.26.7 linux/amd64; base as above, staged
+  implementation tree `b991e0dee20da82fb42d355cf66ca0491eec9e7c`,
+  `/tmp/plan32-task5-final-snapshot.txt`. No implementation/test source changed
+  between the timed-out run, focused race and SQLite retry; only this record and
+  the builder report changed. Each run started once with its own retained log,
+  actual exit status and session; only this builder monitored. Blocking process
+  waits and filesystem completion notifications avoided routine log polling.
+  No run remains active. `git diff --check` and cached check passed, exit0.
+
+Self-review checked additive protocol evolution, all method/tenant/transaction
+arguments, assigned field propagation, capability recovery/old-plugin behavior,
+codec precision/copies and preservation of common atomic reference checks.
+No broad Go/full SQL matrix/browser/E2E suite was run; those remain Task 14 and
+are not claimed passing. No new upstream observation or external source used.
+Task commit: `feat: add Events storage plugin capability` (containing entry).

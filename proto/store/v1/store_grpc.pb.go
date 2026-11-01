@@ -19,6 +19,27 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	StoreService_EventsCapabilities_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EventsCapabilities"
+	StoreService_AppendEvents_FullMethodName                            = "/zeroauthy.store.v1.StoreService/AppendEvents"
+	StoreService_GetEvent_FullMethodName                                = "/zeroauthy.store.v1.StoreService/GetEvent"
+	StoreService_EventsAfter_FullMethodName                             = "/zeroauthy.store.v1.StoreService/EventsAfter"
+	StoreService_EventsFromTime_FullMethodName                          = "/zeroauthy.store.v1.StoreService/EventsFromTime"
+	StoreService_LatestEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/LatestEventSeq"
+	StoreService_OldestEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/OldestEventSeq"
+	StoreService_PurgeEvents_FullMethodName                             = "/zeroauthy.store.v1.StoreService/PurgeEvents"
+	StoreService_DeleteTenantEvents_FullMethodName                      = "/zeroauthy.store.v1.StoreService/DeleteTenantEvents"
+	StoreService_CreateEventStream_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CreateEventStream"
+	StoreService_GetEventStream_FullMethodName                          = "/zeroauthy.store.v1.StoreService/GetEventStream"
+	StoreService_ListEventStreams_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ListEventStreams"
+	StoreService_CountEventStreams_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CountEventStreams"
+	StoreService_UpdateEventStream_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UpdateEventStream"
+	StoreService_DeleteEventStream_FullMethodName                       = "/zeroauthy.store.v1.StoreService/DeleteEventStream"
+	StoreService_LeaseEventStream_FullMethodName                        = "/zeroauthy.store.v1.StoreService/LeaseEventStream"
+	StoreService_RecordEventDelivery_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RecordEventDelivery"
+	StoreService_ListDeliveries_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ListDeliveries"
+	StoreService_GetDelivery_FullMethodName                             = "/zeroauthy.store.v1.StoreService/GetDelivery"
+	StoreService_QueueRedelivery_FullMethodName                         = "/zeroauthy.store.v1.StoreService/QueueRedelivery"
+	StoreService_QueuedDeliveries_FullMethodName                        = "/zeroauthy.store.v1.StoreService/QueuedDeliveries"
 	StoreService_LogsCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/LogsCapabilities"
 	StoreService_AppendLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/AppendLogs"
 	StoreService_GetLog_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/GetLog"
@@ -352,7 +373,8 @@ const (
 //	(session_lifetime, token_lifetime, leeway, ...). The one exception is
 //	RefreshTokensRotateRequest.leeway and ProtectionLimit intervals use
 //	google.protobuf.Duration. Instants
-//	are google.protobuf.Timestamp with nanosecond precision.
+//	are google.protobuf.Timestamp with nanosecond precision, except Logs and
+//	Events canonical UTC timestamp strings documented below.
 //
 // JSON fields
 //
@@ -383,6 +405,28 @@ const (
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceClient interface {
+	// Events v1 is negotiated independently of Logs, RBAC and Organizations.
+	EventsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	AppendEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	GetEvent(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	EventsAfter(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	EventsFromTime(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	LatestEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	OldestEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	PurgeEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	DeleteTenantEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	CreateEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	GetEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	ListEventStreams(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	CountEventStreams(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	UpdateEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	DeleteEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	LeaseEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	RecordEventDelivery(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	ListDeliveries(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	GetDelivery(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	QueueRedelivery(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	QueuedDeliveries(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	// Logs v1 is independent of every earlier storage capability.
 	LogsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*LogsCapabilitiesResult, error)
 	AppendLogs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogsResponse, error)
@@ -719,6 +763,216 @@ type storeServiceClient struct {
 
 func NewStoreServiceClient(cc grpc.ClientConnInterface) StoreServiceClient {
 	return &storeServiceClient{cc}
+}
+
+func (c *storeServiceClient) EventsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_EventsCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) AppendEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_AppendEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) GetEvent(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_GetEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EventsAfter(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_EventsAfter_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EventsFromTime(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_EventsFromTime_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) LatestEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_LatestEventSeq_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OldestEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OldestEventSeq_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PurgeEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_PurgeEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeleteTenantEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_DeleteTenantEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CreateEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_CreateEventStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) GetEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_GetEventStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ListEventStreams(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ListEventStreams_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CountEventStreams(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_CountEventStreams_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UpdateEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_UpdateEventStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeleteEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_DeleteEventStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) LeaseEventStream(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_LeaseEventStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RecordEventDelivery(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_RecordEventDelivery_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ListDeliveries(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ListDeliveries_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) GetDelivery(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_GetDelivery_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) QueueRedelivery(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_QueueRedelivery_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) QueuedDeliveries(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_QueuedDeliveries_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *storeServiceClient) LogsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*LogsCapabilitiesResult, error) {
@@ -3791,7 +4045,8 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 //	(session_lifetime, token_lifetime, leeway, ...). The one exception is
 //	RefreshTokensRotateRequest.leeway and ProtectionLimit intervals use
 //	google.protobuf.Duration. Instants
-//	are google.protobuf.Timestamp with nanosecond precision.
+//	are google.protobuf.Timestamp with nanosecond precision, except Logs and
+//	Events canonical UTC timestamp strings documented below.
 //
 // JSON fields
 //
@@ -3822,6 +4077,28 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceServer interface {
+	// Events v1 is negotiated independently of Logs, RBAC and Organizations.
+	EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	AppendEvents(context.Context, *EventsRequest) (*EventsResponse, error)
+	GetEvent(context.Context, *EventsRequest) (*EventsResponse, error)
+	EventsAfter(context.Context, *EventsRequest) (*EventsResponse, error)
+	EventsFromTime(context.Context, *EventsRequest) (*EventsResponse, error)
+	LatestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error)
+	OldestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error)
+	PurgeEvents(context.Context, *EventsRequest) (*EventsResponse, error)
+	DeleteTenantEvents(context.Context, *EventsRequest) (*EventsResponse, error)
+	CreateEventStream(context.Context, *EventsRequest) (*EventsResponse, error)
+	GetEventStream(context.Context, *EventsRequest) (*EventsResponse, error)
+	ListEventStreams(context.Context, *EventsRequest) (*EventsResponse, error)
+	CountEventStreams(context.Context, *EventsRequest) (*EventsResponse, error)
+	UpdateEventStream(context.Context, *EventsRequest) (*EventsResponse, error)
+	DeleteEventStream(context.Context, *EventsRequest) (*EventsResponse, error)
+	LeaseEventStream(context.Context, *EventsRequest) (*EventsResponse, error)
+	RecordEventDelivery(context.Context, *EventsRequest) (*EventsResponse, error)
+	ListDeliveries(context.Context, *EventsRequest) (*EventsResponse, error)
+	GetDelivery(context.Context, *EventsRequest) (*EventsResponse, error)
+	QueueRedelivery(context.Context, *EventsRequest) (*EventsResponse, error)
+	QueuedDeliveries(context.Context, *EventsRequest) (*EventsResponse, error)
 	// Logs v1 is independent of every earlier storage capability.
 	LogsCapabilities(context.Context, *PingRequest) (*LogsCapabilitiesResult, error)
 	AppendLogs(context.Context, *LogsRequest) (*LogsResponse, error)
@@ -4160,6 +4437,69 @@ type StoreServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedStoreServiceServer struct{}
 
+func (UnimplementedStoreServiceServer) EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EventsCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) AppendEvents(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AppendEvents not implemented")
+}
+func (UnimplementedStoreServiceServer) GetEvent(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEvent not implemented")
+}
+func (UnimplementedStoreServiceServer) EventsAfter(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EventsAfter not implemented")
+}
+func (UnimplementedStoreServiceServer) EventsFromTime(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EventsFromTime not implemented")
+}
+func (UnimplementedStoreServiceServer) LatestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LatestEventSeq not implemented")
+}
+func (UnimplementedStoreServiceServer) OldestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OldestEventSeq not implemented")
+}
+func (UnimplementedStoreServiceServer) PurgeEvents(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PurgeEvents not implemented")
+}
+func (UnimplementedStoreServiceServer) DeleteTenantEvents(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTenantEvents not implemented")
+}
+func (UnimplementedStoreServiceServer) CreateEventStream(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateEventStream not implemented")
+}
+func (UnimplementedStoreServiceServer) GetEventStream(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEventStream not implemented")
+}
+func (UnimplementedStoreServiceServer) ListEventStreams(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListEventStreams not implemented")
+}
+func (UnimplementedStoreServiceServer) CountEventStreams(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CountEventStreams not implemented")
+}
+func (UnimplementedStoreServiceServer) UpdateEventStream(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateEventStream not implemented")
+}
+func (UnimplementedStoreServiceServer) DeleteEventStream(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteEventStream not implemented")
+}
+func (UnimplementedStoreServiceServer) LeaseEventStream(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LeaseEventStream not implemented")
+}
+func (UnimplementedStoreServiceServer) RecordEventDelivery(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RecordEventDelivery not implemented")
+}
+func (UnimplementedStoreServiceServer) ListDeliveries(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDeliveries not implemented")
+}
+func (UnimplementedStoreServiceServer) GetDelivery(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDelivery not implemented")
+}
+func (UnimplementedStoreServiceServer) QueueRedelivery(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method QueueRedelivery not implemented")
+}
+func (UnimplementedStoreServiceServer) QueuedDeliveries(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method QueuedDeliveries not implemented")
+}
 func (UnimplementedStoreServiceServer) LogsCapabilities(context.Context, *PingRequest) (*LogsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method LogsCapabilities not implemented")
 }
@@ -5085,6 +5425,384 @@ func RegisterStoreServiceServer(s grpc.ServiceRegistrar, srv StoreServiceServer)
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&StoreService_ServiceDesc, srv)
+}
+
+func _StoreService_EventsCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EventsCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EventsCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EventsCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_AppendEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).AppendEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_AppendEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).AppendEvents(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_GetEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).GetEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_GetEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).GetEvent(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EventsAfter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EventsAfter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EventsAfter_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EventsAfter(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EventsFromTime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EventsFromTime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EventsFromTime_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EventsFromTime(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_LatestEventSeq_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).LatestEventSeq(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_LatestEventSeq_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).LatestEventSeq(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OldestEventSeq_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OldestEventSeq(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OldestEventSeq_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OldestEventSeq(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PurgeEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PurgeEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PurgeEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PurgeEvents(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeleteTenantEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeleteTenantEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeleteTenantEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeleteTenantEvents(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CreateEventStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CreateEventStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CreateEventStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CreateEventStream(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_GetEventStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).GetEventStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_GetEventStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).GetEventStream(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ListEventStreams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ListEventStreams(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ListEventStreams_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ListEventStreams(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CountEventStreams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CountEventStreams(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CountEventStreams_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CountEventStreams(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UpdateEventStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UpdateEventStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UpdateEventStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UpdateEventStream(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeleteEventStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeleteEventStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeleteEventStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeleteEventStream(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_LeaseEventStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).LeaseEventStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_LeaseEventStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).LeaseEventStream(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RecordEventDelivery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RecordEventDelivery(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RecordEventDelivery_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RecordEventDelivery(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ListDeliveries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ListDeliveries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ListDeliveries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ListDeliveries(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_GetDelivery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).GetDelivery(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_GetDelivery_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).GetDelivery(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_QueueRedelivery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).QueueRedelivery(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_QueueRedelivery_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).QueueRedelivery(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_QueuedDeliveries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).QueuedDeliveries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_QueuedDeliveries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).QueuedDeliveries(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_LogsCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -10505,6 +11223,90 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "zeroauthy.store.v1.StoreService",
 	HandlerType: (*StoreServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "EventsCapabilities",
+			Handler:    _StoreService_EventsCapabilities_Handler,
+		},
+		{
+			MethodName: "AppendEvents",
+			Handler:    _StoreService_AppendEvents_Handler,
+		},
+		{
+			MethodName: "GetEvent",
+			Handler:    _StoreService_GetEvent_Handler,
+		},
+		{
+			MethodName: "EventsAfter",
+			Handler:    _StoreService_EventsAfter_Handler,
+		},
+		{
+			MethodName: "EventsFromTime",
+			Handler:    _StoreService_EventsFromTime_Handler,
+		},
+		{
+			MethodName: "LatestEventSeq",
+			Handler:    _StoreService_LatestEventSeq_Handler,
+		},
+		{
+			MethodName: "OldestEventSeq",
+			Handler:    _StoreService_OldestEventSeq_Handler,
+		},
+		{
+			MethodName: "PurgeEvents",
+			Handler:    _StoreService_PurgeEvents_Handler,
+		},
+		{
+			MethodName: "DeleteTenantEvents",
+			Handler:    _StoreService_DeleteTenantEvents_Handler,
+		},
+		{
+			MethodName: "CreateEventStream",
+			Handler:    _StoreService_CreateEventStream_Handler,
+		},
+		{
+			MethodName: "GetEventStream",
+			Handler:    _StoreService_GetEventStream_Handler,
+		},
+		{
+			MethodName: "ListEventStreams",
+			Handler:    _StoreService_ListEventStreams_Handler,
+		},
+		{
+			MethodName: "CountEventStreams",
+			Handler:    _StoreService_CountEventStreams_Handler,
+		},
+		{
+			MethodName: "UpdateEventStream",
+			Handler:    _StoreService_UpdateEventStream_Handler,
+		},
+		{
+			MethodName: "DeleteEventStream",
+			Handler:    _StoreService_DeleteEventStream_Handler,
+		},
+		{
+			MethodName: "LeaseEventStream",
+			Handler:    _StoreService_LeaseEventStream_Handler,
+		},
+		{
+			MethodName: "RecordEventDelivery",
+			Handler:    _StoreService_RecordEventDelivery_Handler,
+		},
+		{
+			MethodName: "ListDeliveries",
+			Handler:    _StoreService_ListDeliveries_Handler,
+		},
+		{
+			MethodName: "GetDelivery",
+			Handler:    _StoreService_GetDelivery_Handler,
+		},
+		{
+			MethodName: "QueueRedelivery",
+			Handler:    _StoreService_QueueRedelivery_Handler,
+		},
+		{
+			MethodName: "QueuedDeliveries",
+			Handler:    _StoreService_QueuedDeliveries_Handler,
+		},
 		{
 			MethodName: "LogsCapabilities",
 			Handler:    _StoreService_LogsCapabilities_Handler,
