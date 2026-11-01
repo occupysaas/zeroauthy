@@ -2678,3 +2678,18 @@ the controller's e7127d6 broad baseline. Self-review confirmed the minimal
 runtime change, unchanged checkpoint/user-route boundaries, matching generated
 contracts, and honest pending acceptance status. Commit subject:
 `fix(plan31): accept confirmed v3 log page selector`.
+
+
+## Task 16 final closure — 2026-11-01
+
+Plan 31 Tasks 1–16 are complete locally. The earlier pending/failed entries above are historical, not the final status. Runtime snapshot cc853d1 follows the reviewed privacy/form fixes e7127d6; protocol-only14f3faa and fixture-only4b51288 do not change production runtime.
+
+- [Final validation](2026-11-01-plan-31-final-validation.md): every exact command, source identity, actual exit code, original failure, retry, skip and conformance outcome.
+- [Final review and rulings](2026-11-01-plan-31-final-review.md): Important findings resolved, scoped approval, clean-room selector evidence, all ledger rulings and explicit deferred minors/costs.
+- Full Go race passed on e7127d6; the subsequent five-line selector runtime delta passed full affected Management API/logrules race and mounted server checks. Final SQL matrix, required E2Es and conformance used cc853d1 runtime. No redundant broad Go rerun was performed after covered changes.
+- Console build passed74files572tests. Final source check passed after a transient existing RFC link failure. Logs E2E passed the complete CLI/browser/SDK/stream restart/statistics/privacy fixture;17artifacts/8representative secrets were scanned.
+- Original SQL30min timeout retainedFAIL; unchanged-coverage120min retry passed SQLite/PostgreSQL/MySQL in34m10s. Original baseline4browserfailures were stale modal locators from an earlier redesign; only four specs changed,83focusedcomponenttests passed, and all24enabled baseline browsertests passed on rerun.56lane-gated browsertests remain skips.
+- BroadGo has4explicit test skips. Conformance command exits0 with46passed,12warning,16review,8skipped and0failed modules; non-pass outcomes are not labeledpasses. Upstream Deploy lane and tool-unsupported families remain unavailable/excluded.
+- AGENTS.md now requires one monitoring agent and at most15-minute polling for full suites. Completion/actionable failure notifications remain immediate.
+
+No merge or push was performed. Branch plan-31-logs-streams-stats remains available for integration. Raw evidence is retained at /tmp/zeroauthy-plan31-evidence-2026-11-01/; committed summaries above are the durable review record.

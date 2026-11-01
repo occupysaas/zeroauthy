@@ -233,8 +233,7 @@ requests included `search_engine=v3`. A separate permitted
 [independent observation](compat/observations/2026-11-01-logs-search-selector.md)
 now confirms upstream acceptance of that value, and global tenant-log page mode
 accepts it locally with the existing bounded query semantics. Tail polls log-ID
-range pages rather than checkpoint mode. Final CLI/E2E acceptance remains pending
-its rerun; the earlier failed result is retained in the implementation record.
+range pages rather than checkpoint mode. The final CLI/E2E rerun passed filtered list/tail and stream CRUD; the earlier failed result is retained in the implementation record. See the [final validation record](superpowers/2026-11-01-plan-31-final-validation.md) for actual results and skips.
 
 The local primary-source contract and code catalog do not assert complete
 Auth0 equivalence. The implementer used only the sanitized independent selector observation; no

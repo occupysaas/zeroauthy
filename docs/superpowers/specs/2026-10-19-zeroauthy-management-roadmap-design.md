@@ -36,15 +36,14 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done / implemented locally** | 26 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I and II (Plans 27–28), Organizations I (Plan 29) |
+| **Done / implemented locally** | 29 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I and II (Plans 27–28), Organizations I (Plan 29); logs, log streams and stats (Plan 31) |
 | **Planned, short design** | 4 | organizations II, event streams, client credentials / token exchange, enterprise OIDC |
-| **Implemented, acceptance open** | 3 | logs, log streams, stats (Plan 31) |
 | **Planned, full design** | 5 | guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
 The future Additional social providers plan is deferred without an assigned number and is not an extra counted resource group here.
 
-Read as the roadmap's resource groupings, about 60% is implemented. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as the roadmap's resource groupings, about 70% is implemented. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 
@@ -300,15 +299,15 @@ Token quotas and default M2M organization selection remain Plan 35, groups and
 inherited roles Plan 38, SAML/WS-Fed organization login Plan 37, and the
 My Organization API/self-service organization administration Plan 42.
 
-### Plan 31 — Logs, log streams, stats (implementation; acceptance open)
+### Plan 31 — Logs, log streams, stats (complete locally)
 
-**In progress (2026-10-31):** [spec](2026-10-30-zeroauthy-logs-streams-stats-design.md), [implementation plan](../plans/2026-10-30-zeroauthy-plan-31-logs-streams-stats.md), [record](../2026-10-30-plan-31-implementation-record.md), and [operating guide](../../logs.md). Tasks 1–15 and acceptance repairs are implemented. Task 16 remains open: pinned CLI filtered list/tail rejects its undocumented selector, the production bootstrap setup-link diagnostic requires its separate privacy follow-up, and full regression/whole-branch review are pending.
+**Complete locally (2026-11-01):** [spec](2026-10-30-zeroauthy-logs-streams-stats-design.md), [implementation plan](../plans/2026-10-30-zeroauthy-plan-31-logs-streams-stats.md), [record](../2026-10-30-plan-31-implementation-record.md), and [operating guide](../../logs.md). Tasks 1–16, bootstrap privacy repair, final review fixes and local acceptance are complete. [Final validation](../2026-11-01-plan-31-final-validation.md) records exact source identities, retries, skips and conformance outcomes; [review and decisions](../2026-11-01-plan-31-final-review.md) records the remaining local limitations.
 
 **Runtime:** tenant logs/page/checkpoint/user reads, streams CRUD and stats; asynchronous scrubbed recording, memory/SQL/gRPC persistence, retention, bounded Lucene queries and six delivery adapters. EventBridge/EventGrid configurations stay suspended without delivery. The frozen inventory lists 60 emitted targets and 120 deferred codes; the [source/event-test audit](../2026-10-31-plan-31-task-16a2-audit.md) maps all 60, without claiming fresh execution of every test. Recording may drop events without failing the initiating request; daily counters follow persisted batches.
 
 **Console:** Logs search/detail and unfiltered Live, bounded failure-only view, Actions logs/execution console and explicit denial reason, Log streams/health, daily activity and active users on Home. Operator diagnostics are local extensions; public execution shape remains unchanged.
 
-**Acceptance:** the production SQLite fixture exercises the deny/fix/retry Action journey, modern/bundled legacy node-auth0 reads/stats, all HTTP stream formats, restart replay and representative-secret sink scanning. The denial display gap has a focused repair. Pinned CLI unfiltered list and stream CRUD work; filtered list/tail assertions remain enabled and failing pending an evidence/ruling decision. Final full regression belongs to the next stage; no Plan 31 completion is claimed here.
+**Acceptance:** the production SQLite fixture exercises the deny/fix/retry Action journey, modern/bundled legacy node-auth0 reads/stats, all HTTP stream formats, restart replay and representative-secret sink scanning. The deny/fix/retry journey and pinned CLI filtered/unfiltered list, tail and stream CRUD passed. Final Go race, three-backend SQL, console/source checks, required E2E and conformance commands passed with recorded skips and warning/review outcomes; the initial timeout and stale browser fixture failures remain visible in the record.
 
 ### Plan 32 — Event streams
 
