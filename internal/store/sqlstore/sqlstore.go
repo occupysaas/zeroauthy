@@ -45,6 +45,8 @@ type Store struct {
 	orgIIClock func() time.Time
 	// logsClock is injected before use in checkpoint and lease boundary tests.
 	logsClock func() time.Time
+	// eventsClock is injected before use in event ordering and lease tests.
+	eventsClock func() time.Time
 }
 
 // txState is the state of one transaction shared by its nested calls.
@@ -211,7 +213,7 @@ func (s *Store) atomic(ctx context.Context, opts *sql.TxOptions, fn func(t *Stor
 			_ = tx.Rollback()
 		}
 	}()
-	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}, orgLimits: s.orgLimits, orgIIClock: s.orgIIClock, logsClock: s.logsClock}
+	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}, orgLimits: s.orgLimits, orgIIClock: s.orgIIClock, logsClock: s.logsClock, eventsClock: s.eventsClock}
 	if err := fn(t); err != nil {
 		return err
 	}

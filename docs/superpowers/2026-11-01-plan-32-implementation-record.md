@@ -362,3 +362,88 @@ All fix commands exported `GOTOOLCHAIN=go1.26.7`; memory/mocks only:
   methods/capability behavior. Both Important findings addressed; independent
   scoped re-review remains. Fix commit: `fix: capture role cascades and validate delivery references`
   (containing this entry). No unrelated Minor fix or broad/database run included.
+
+## Task 4 — SQL event persistence (2026-11-01)
+
+Implemented the Events repository on SQLite, PostgreSQL and MySQL; migration
+0031 follows the previous maximum 0030. The migration creates immutable tenant
+outbox rows, stream configuration with sealed secret bytes and worker state,
+and failed delivery records with attempts JSON and queue flags. It adds the
+sequence/type/time, delivery-filter/queue and purge indexes. MySQL uses the
+existing resumable DDL path. The existing LatestVersion expectation now says 31.
+Tenant deletion removes all three new tables' tenant rows.
+
+AppendEvents joins the caller's transaction and runs within a repository
+savepoint. It acquires the established lockRBAC tenant lock in sorted tenant
+order, holds it through the outermost commit, and clamps committed_at against
+the preceding sequence using a locking read. This prevents a delayed lower
+sequence or a backwards writer clock from being skipped by checkpoint readers.
+It introduces no second lock namespace; business operations retain their
+existing locking/transaction behavior. As with existing repository operations,
+a caller's explicit WithTx is not automatically retried: a database deadlock
+returns an error and cannot leave a committed business change without its event.
+
+Stream CRUD enforces tenant-scoped names and versions, returns copies through
+JSON decoding, and uses byte order for both cursor comparisons and ordering.
+Leases use row locks plus conditional updates, permit owner renewal, ignore idle
+streams and disabled new-event work, and permit queued disabled redelivery.
+RecordEventDelivery validates lease ownership/expiry after locks, rejects stale
+checkpoints and malformed failed identities, and resolves every failed/succeeded
+event reference in the same tenant before any mutation. Missing, foreign and
+purged references leave counters/checkpoint/status/deliveries unchanged, including
+when the caller catches the error and commits its surrounding transaction.
+Failure counters are the supplied outcome state, consistent with the shared
+memory contract; the worker owns calculation of extant failures. Queue validation
+is all-or-nothing. Purge selects a bounded batch, locks tenant IDs in append order,
+and matches the selected sequence before removing that event's deliveries; a
+stale batch cannot erase a replacement event's records.
+
+Verification (all shell commands exported GOTOOLCHAIN=go1.26.7):
+
+- RED: `go test ./internal/store/sqlstore -run Events -count=1 -v`, exit 1,
+  0.962s; 21 SQLite leaf failures, capability unavailable / missing migration.
+  `/tmp/plan32-task4-red.log`, session 84921. PostgreSQL/MySQL were not selected
+  in this local RED run; they are explicitly covered by both matrices below.
+- Initial SQLite GREEN: same command, exit 0, 1.135s, 21 leaf cases; then the
+  extended version passed exit 0, 1.362s, 25 leaf cases. Logs:
+  `/tmp/plan32-task4-sqlite-green.log` (session 70093),
+  `/tmp/plan32-task4-sqlite-extended.log` (session 24825).
+- First three-backend matrix:
+  `ZEROAUTHY_TEST_PG_PORT=40499 ZEROAUTHY_TEST_MYSQL_PORT=52417 ./scripts/test-sql.sh -run Events -count=1 -v ./internal/store/sqlstore/...`,
+  exit 0, 84.578s, race enabled by the script; 75 leaf cases / 92 passed test
+  nodes, 0 failures, 0 skips. `/tmp/plan32-task4-sql-matrix.log`, actual status
+  `/tmp/plan32-task4-sql-matrix.exit`, session 64082.
+- Self-review metadata RED/GREEN:
+  `go test ./internal/store/sqlstore -run '^TestLatestVersion$' -count=1 -v`,
+  exit 1 then exit 0, 0.012s final; one test covering all dialect metadata.
+  `/tmp/plan32-task4-version-{red,green}.log`, GREEN session 80774.
+- Self-review stale-purge RED/GREEN:
+  `go test ./internal/store/sqlstore -run '^TestEventsPurgeStaleCandidate$' -count=1 -v`,
+  exit 1 because a replacement delivery was deleted; then exit 0, 0.078s.
+  `/tmp/plan32-task4-purge-{red,green}.log`, sessions 91938 / 4244.
+- Final three-backend matrix: same script command and ports above, exit 0,
+  85.708s, race enabled; **78 leaf cases / 96 passed nodes, 0 failures, 0 skips**.
+  SQLite, PostgreSQL and MySQL each passed 26 leaf cases / 29 nodes, including
+  the explicit TestEventsConformance parent. Its common conformance subtree
+  passed on SQLite (34.82s), PostgreSQL (3.31s), MySQL (17.59s).
+  `/tmp/plan32-task4-sql-matrix-final.log`, status
+  `/tmp/plan32-task4-sql-matrix-final.exit`, session 5376. Tested code snapshot:
+  base 3e9a4270bbcb642e04c0ee32cd9c725913dcbb60; staged implementation tree
+  7fa688dab0f3b822ced0c5179033988d71c83e81, recorded in
+  `/tmp/plan32-task4-final-snapshot.txt`. Only this builder monitored each run;
+  each command was started once and awaited through its retained session.
+- Required named coverage: TestEventsMigrationFrom30,
+  TestEventsConcurrentWritersSettled, TestEventsAppendInBusinessTx; additional
+  tests cover backwards clocks, lease/counter/disabled delivery guards, tenant
+  deletion and bounded purge, expiry after transaction wait, and stale purge
+  candidates. Actual user and event inserts commit/roll back together; a caught
+  partial append conflict also rolls back the append savepoint while allowing
+  an unrelated user insert to commit.
+- `git diff --check` and `git diff --cached --check` passed, exit 0.
+  No broad SQL, full Go, browser, or E2E suite run; those remain Task 14.
+
+Self-review completed. No outstanding Task 4 implementation concern identified;
+per-tenant append serialization may contend with business/RBAC writes and has
+not been throughput-benchmarked here. No claim of a SQL performance SLO is made.
+Task commit: `feat: persist events, streams and deliveries in SQL` (containing
+this entry). Independent scoped review remains with the controller.
