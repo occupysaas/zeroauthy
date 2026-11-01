@@ -172,9 +172,10 @@ type flow struct {
 
 // stepOut is what one Action produced, masked.
 type stepOut struct {
-	commands []command
-	logs     []string
-	red      *customdb.Redactor
+	commands     []command
+	logs         []string
+	denialReason string
+	red          *customdb.Redactor
 }
 
 // PostLogin runs the tenant's post-login flow.
@@ -342,6 +343,9 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionID: u.actionID, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
 		if step != nil {
 			r.Logs = capConsole(step.logs)
+			if err == nil {
+				r.DenialReason = step.denialReason
+			}
 		}
 		if err != nil {
 			r.ErrorID, r.ErrorMsg = errorID(err), err.Error()
@@ -577,8 +581,22 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 				}
 			}
 		}
+		beforeDenial := f.acc.denied
 		if err := f.acc.apply(c); err != nil {
 			return out, &maskedError{msg: red.RedactLineContext(ctx, err.Error()), err: err}
+		}
+		if c.Op == "access.deny" && beforeDenial == nil && f.acc.denied != nil {
+			// apply receives the original-credential-masked message, before any
+			// protocol truncation. Keep only bounded operator display metadata.
+			reasonIndex := 0
+			if f.trigger == TriggerCredentialsExchange {
+				reasonIndex = 1
+			}
+			var reason string
+			if len(c.Args) > reasonIndex {
+				_ = json.Unmarshal(c.Args[reasonIndex], &reason)
+			}
+			out.denialReason = truncateChars(reason, maxErrorReasonBytes)
 		}
 	}
 	if f.acc.notification != nil {

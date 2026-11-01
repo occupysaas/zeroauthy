@@ -11,7 +11,7 @@ const en = {
     unavailable: 'This storage provider does not support logs, streams or statistics. Ask an administrator to enable Logs v1 support.',
     empty: 'No matching log events on this page.', time: 'Time (UTC)', description: 'Description', total: '{total} matching events (maximum 1,000)',
     backLogs: 'Back to logs', logDetail: 'Log detail', related: 'Related resources', json: 'Event JSON', redaction: 'Sensitive values are replaced with [REDACTED] before storage. Raw credentials cannot be recovered here.',
-    trigger: 'Trigger ID', actionID: 'Action ID', console: 'Console output', noConsole: 'No captured console lines.', timing: 'Started: {start} · Ended: {end}', noExecutions: 'No matching executions.',
+    trigger: 'Trigger ID', actionID: 'Action ID', console: 'Console output', noConsole: 'No captured console lines.', denialReason: 'Denial reason: {reason}', timing: 'Started: {start} · Ended: {end}', noExecutions: 'No matching executions.',
     executionLiveHint: 'Newest executions appear first. Live checks persisted executions every 2 seconds.',
     name: 'Name', status: 'Status', delivery: 'Delivery', controls: 'Controls', createStream: 'Create log stream', editStream: 'Edit log stream',
     healthFailed: 'Delivery health could not be loaded.', lastSuccess: 'Last successful delivery (UTC)', nextAttempt: 'Next attempt (UTC)', neverDelivered: 'No successful delivery yet', notScheduled: 'No attempt scheduled', failedAttempts: '{count} failed attempts', lastError: 'Last error class', notDelivered: 'Stored only; not delivered', workerDelivery: 'Background delivery', deliveryHint: 'Delivery follows each stream’s stored checkpoint. Resuming preserves the checkpoint and retries delivery.',

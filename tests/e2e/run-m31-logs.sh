@@ -4,6 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 export GOTOOLCHAIN=go1.26.7
+# Playwright sets FORCE_COLOR in its workers; omit NO_COLOR to avoid conflicts.
+unset NO_COLOR
+export FORCE_COLOR=0
 for tool in node go openssl curl flock python3 setsid; do
  command -v "$tool" >/dev/null || { echo "e2e-logs unavailable: missing $tool" >&2; exit 1; }
 done

@@ -20,18 +20,20 @@ func ExecutionConsole(t *testing.T, st store.Store) {
 	}
 	a := st.Actions()
 	for _, id := range []string{"A", "a", "b", "c"} {
-		ex := &store.Execution{TenantID: "exec-t1", ID: id, Trigger: "post-login", Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{ActionID: "deleted-action", ActionName: "old-name", Logs: []string{"safe"}}}}
+		ex := &store.Execution{TenantID: "exec-t1", ID: id, Trigger: "post-login", Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{ActionID: "deleted-action", ActionName: "old-name", Logs: []string{"safe"}, DenialReason: "Blocked [REDACTED]"}}}
 		if err := a.CreateExecution(ctx, ex); err != nil {
 			t.Fatal(err)
 		}
 		ex.Results[0].Logs[0] = "bad"
+		ex.Results[0].DenialReason = "mutated"
 		got, err := a.GetExecution(ctx, "exec-t1", id)
-		if err != nil || got.Results[0].Logs[0] != "safe" {
+		if err != nil || got.Results[0].Logs[0] != "safe" || got.Results[0].DenialReason != "Blocked [REDACTED]" {
 			t.Fatalf("immutable input=%+v %v", got, err)
 		}
 		got.Results[0].Logs[0] = "bad"
+		got.Results[0].DenialReason = "mutated"
 		got, _ = a.GetExecution(ctx, "exec-t1", id)
-		if got.Results[0].Logs[0] != "safe" {
+		if got.Results[0].Logs[0] != "safe" || got.Results[0].DenialReason != "Blocked [REDACTED]" {
 			t.Fatal("mutable read")
 		}
 	}

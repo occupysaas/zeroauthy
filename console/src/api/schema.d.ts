@@ -1887,7 +1887,7 @@ export interface paths {
         };
         /**
          * List tenant Action executions with console output
-         * @description Local operator extension. Lists newest first, or ascending after an execution ID cursor. Action filters use immutable Action IDs; older records without IDs do not match.
+         * @description Local operator extension. Lists newest first, or ascending after an execution ID cursor. Includes bounded scrubbed denial_reason display metadata for explicit access.deny outcomes, separately from runtime errors (see docs/actions.md). Action filters use immutable Action IDs; older records without IDs do not match.
          */
         get: operations["getTenantActionExecutions"];
         put?: never;
@@ -1910,7 +1910,7 @@ export interface paths {
         };
         /**
          * Read a tenant Action execution with console output
-         * @description Local operator extension containing immutable scrubbed console lines.
+         * @description Local operator extension containing immutable scrubbed console lines and bounded denial_reason display metadata for explicit access.deny outcomes, separately from runtime errors (see docs/actions.md).
          */
         get: operations["getTenantActionExecution"];
         put?: never;
@@ -3111,6 +3111,8 @@ export interface components {
                 started_at: string;
                 /** Format: date-time */
                 ended_at: string;
+                /** @description Local operator display metadata for an explicit access.deny command, scrubbed before bounding; absent for success or runtime errors. */
+                denial_reason?: string;
                 logs: string[];
                 job_id?: string;
                 job_attempt?: number;

@@ -307,3 +307,54 @@ func TestActionConsoleEscapedCredentialStderr(t *testing.T) {
 		}
 	}
 }
+
+// Missing denial metadata must fail without converting a normal deny to an error.
+func TestActionExecutionDenialReason(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, want string
+		failure          bool
+	}{
+		{"deny", `api.access.deny('Blocked by policy')`, "Blocked by policy", false},
+		{"request short", `api.access.deny('z')`, "[REDACTED]", false},
+		{"bounded", `api.access.deny('X'.repeat(600))`, strings.Repeat("X", 512), false},
+		{"nested secret", `api.access.deny(JSON.stringify({password:'unknown'}))`, `{"password":"[REDACTED]"}`, false},
+		{"short and overlap", `api.access.deny('q prefix-middle-suffix')`, "■■■■■■■■ [REDACTED]", false},
+		{"before bound", `api.access.deny('X'.repeat(500)+'prefix-middle-suffix')`, strings.Repeat("X", 500) + "[REDACTED]", false},
+		{"throw", `throw Error('failure')`, "", true},
+		{"deny then throw", `api.access.deny('must not persist'); throw Error('failure')`, "", true},
+		{"success", ``, "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newHarness(t)
+			m, v := moduleFixture(t, h, "t1", "mask", `exports.noop=()=>{};`, map[string]string{"KEY": "middle"})
+			a := h.action("t1", trigLogin, "denier", `exports.onExecutePostLogin=(event,api)=>{`+tc.body+`};`, map[string]string{"SHORT": "q"}, false)
+			pinModule(t, h, a, m, v)
+			h.bind("t1", trigLogin, a)
+			out, err := h.eng.PostLogin(logscrub.WithCredentials(context.Background(), "prefix-middle-suffix", "z"), h.loginInput("t1"))
+			id := ""
+			if tc.failure {
+				var fe *actions.ErrFlow
+				if !errors.As(err, &fe) {
+					t.Fatalf("expected runtime error: %v", err)
+				}
+				id = fe.ExecutionID
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				id = out.ExecutionID
+			}
+			ex := h.execution("t1", id)
+			reason := ex.Results[0].DenialReason
+			if ex.Results[0].ActionID != a.ID || ex.Results[0].ActionName != a.Name {
+				t.Fatalf("lost Action provenance: %+v", ex.Results[0])
+			}
+			if reason != tc.want {
+				t.Fatalf("denial reason = %q, want %q", reason, tc.want)
+			}
+			if (ex.Results[0].ErrorID != "") != tc.failure {
+				t.Fatalf("error conflated with denial: %+v", ex.Results[0])
+			}
+		})
+	}
+}

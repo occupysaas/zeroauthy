@@ -107,8 +107,10 @@ type ExecutionResult struct {
 	JobID                                   string
 	JobAttempt                              int
 	ActionID, ActionName, ErrorID, ErrorMsg string
-	Logs                                    []string
-	StartedAt, EndedAt                      time.Time
+	// DenialReason is scrubbed operator display metadata, distinct from runtime errors.
+	DenialReason       string
+	Logs               []string
+	StartedAt, EndedAt time.Time
 }
 
 // ContinueState is the single-use state behind a post-login redirect.

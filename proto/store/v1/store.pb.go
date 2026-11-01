@@ -16364,6 +16364,7 @@ type ActionExecutionResultMsg struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Logs          []string               `protobuf:"bytes,8,rep,name=logs,proto3" json:"logs,omitempty"`
 	ActionId      string                 `protobuf:"bytes,9,opt,name=action_id,json=actionId,proto3" json:"action_id,omitempty"`
+	DenialReason  string                 `protobuf:"bytes,10,opt,name=denial_reason,json=denialReason,proto3" json:"denial_reason,omitempty"`
 	JobId         string                 `protobuf:"bytes,6,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	JobAttempt    int32                  `protobuf:"varint,7,opt,name=job_attempt,json=jobAttempt,proto3" json:"job_attempt,omitempty"`
 	ActionName    string                 `protobuf:"bytes,1,opt,name=action_name,json=actionName,proto3" json:"action_name,omitempty"`
@@ -16415,6 +16416,13 @@ func (x *ActionExecutionResultMsg) GetLogs() []string {
 func (x *ActionExecutionResultMsg) GetActionId() string {
 	if x != nil {
 		return x.ActionId
+	}
+	return ""
+}
+
+func (x *ActionExecutionResultMsg) GetDenialReason() string {
+	if x != nil {
+		return x.DenialReason
 	}
 	return ""
 }
@@ -21434,10 +21442,12 @@ const file_store_proto_rawDesc = "" +
 	"\x0eActionBoundMsg\x12>\n" +
 	"\abinding\x18\x01 \x01(\v2$.zeroauthy.store.v1.ActionBindingMsgR\abinding\x125\n" +
 	"\x06action\x18\x02 \x01(\v2\x1d.zeroauthy.store.v1.ActionMsgR\x06action\x12>\n" +
-	"\aversion\x18\x03 \x01(\v2$.zeroauthy.store.v1.ActionVersionMsgR\aversion\"\xce\x02\n" +
+	"\aversion\x18\x03 \x01(\v2$.zeroauthy.store.v1.ActionVersionMsgR\aversion\"\xf3\x02\n" +
 	"\x18ActionExecutionResultMsg\x12\x12\n" +
 	"\x04logs\x18\b \x03(\tR\x04logs\x12\x1b\n" +
-	"\taction_id\x18\t \x01(\tR\bactionId\x12\x15\n" +
+	"\taction_id\x18\t \x01(\tR\bactionId\x12#\n" +
+	"\rdenial_reason\x18\n" +
+	" \x01(\tR\fdenialReason\x12\x15\n" +
 	"\x06job_id\x18\x06 \x01(\tR\x05jobId\x12\x1f\n" +
 	"\vjob_attempt\x18\a \x01(\x05R\n" +
 	"jobAttempt\x12\x1f\n" +

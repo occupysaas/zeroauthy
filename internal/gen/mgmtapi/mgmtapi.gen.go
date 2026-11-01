@@ -8452,10 +8452,13 @@ type SystemActionExecution struct {
 	CreatedAt time.Time `json:"created_at"`
 	Id        string    `json:"id"`
 	Results   []struct {
-		ActionId   *string   `json:"action_id,omitempty"`
-		ActionName string    `json:"action_name"`
-		EndedAt    time.Time `json:"ended_at"`
-		Error      *struct {
+		ActionId   *string `json:"action_id,omitempty"`
+		ActionName string  `json:"action_name"`
+
+		// DenialReason Local operator display metadata for an explicit access.deny command, scrubbed before bounding; absent for success or runtime errors.
+		DenialReason *string   `json:"denial_reason,omitempty"`
+		EndedAt      time.Time `json:"ended_at"`
+		Error        *struct {
 			Id      string `json:"id"`
 			Message string `json:"message"`
 		} `json:"error,omitempty"`

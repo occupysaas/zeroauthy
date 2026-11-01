@@ -30,7 +30,7 @@ func TestSystemExecutionsList(t *testing.T) {
 	e.handler = tenant.NewResolver(e.st.Tenants(), base, false).Middleware(auth(mgmt.RequireOperator(routes)))
 	ctx := context.Background()
 	for _, id := range []string{"a", "b", "c"} {
-		if err := e.st.Actions().CreateExecution(ctx, &store.Execution{TenantID: e.ids["acme"], ID: id, Trigger: "post-login", Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{ActionID: "immutable-id", ActionName: "renamed", Logs: []string{"safe"}}}}); err != nil {
+		if err := e.st.Actions().CreateExecution(ctx, &store.Execution{TenantID: e.ids["acme"], ID: id, Trigger: "post-login", Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{ActionID: "immutable-id", ActionName: "renamed", Logs: []string{"safe"}, DenialReason: "Blocked [REDACTED]"}}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -63,6 +63,13 @@ func TestSystemExecutionsList(t *testing.T) {
 			t.Fatalf("GET %s: %d %s", tc.path, rec.Code, rec.Body)
 		}
 	}
+	recDetail := operatorRequest(e, "GET", path+"/a", raw, nil)
+	var detail struct {
+		Results []map[string]any `json:"results"`
+	}
+	if json.Unmarshal(recDetail.Body.Bytes(), &detail) != nil || len(detail.Results) != 1 || detail.Results[0]["denial_reason"] != "Blocked [REDACTED]" || detail.Results[0]["action_id"] != "immutable-id" || detail.Results[0]["error"] != nil {
+		t.Fatalf("operator denial projection: %s", recDetail.Body)
+	}
 	limited := e.mint(t, operator("https://"+systemHost+"/", []string{"globex"}))
 	if rec := operatorRequest(e, "GET", path, limited, nil); rec.Code != 403 {
 		t.Fatalf("tenant grant=%d", rec.Code)
@@ -82,7 +89,7 @@ func TestPublicExecutionShapeUnchanged(t *testing.T) {
 	e := newEnv(t)
 	ctx := context.Background()
 	h := &mgmt.Handlers{Store: e.st}
-	ex := &store.Execution{TenantID: e.ids["acme"], ID: "private-console", Trigger: "post-login", Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{ActionID: "secret-id", ActionName: "named", Logs: []string{"private console"}, JobID: "job", JobAttempt: 2, StartedAt: now, EndedAt: now}}}
+	ex := &store.Execution{TenantID: e.ids["acme"], ID: "private-console", Trigger: "post-login", Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{ActionID: "secret-id", ActionName: "named", Logs: []string{"private console"}, DenialReason: "private reason", JobID: "job", JobAttempt: 2, StartedAt: now, EndedAt: now}}}
 	if err := e.st.Actions().CreateExecution(ctx, ex); err != nil {
 		t.Fatal(err)
 	}

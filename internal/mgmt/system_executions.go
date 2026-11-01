@@ -14,6 +14,9 @@ func systemExecutionJSON(ex *store.Execution) map[string]any {
 	for _, v := range ex.Results {
 		lines := append([]string{}, v.Logs...)
 		result := map[string]any{"action_name": v.ActionName, "started_at": v.StartedAt, "ended_at": v.EndedAt, "logs": lines}
+		if v.DenialReason != "" {
+			result["denial_reason"] = v.DenialReason
+		}
 		if v.ActionID != "" {
 			result["action_id"] = v.ActionID
 		}

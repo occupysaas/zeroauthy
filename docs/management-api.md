@@ -566,3 +566,31 @@ Local system-host `/api/system/operators/{id}` PATCH sets tenant grants.
 opening the system API to tenant-only operators. Last-system-admin protection
 also covers deleting, blocking and linking the administrator's user identity.
 These local endpoints have no Auth0 counterpart.
+
+## Tenant logs, streams and statistics
+
+The [tenant logging guide](logs.md) covers the complete emitted/deferred code
+inventory, privacy, retention, stream delivery and Actions troubleshooting.
+`GET /api/v2/logs[/{id}]` requires `read:logs`; user log reads also need
+`read:logs_users`. `q` selects the bounded Lucene page search; page results and
+totals are limited to 1,000. Checkpoint `from` overrides everything except
+`take` and returns settled events in ascending sequence. `_id` is an optional
+authoritative alias of the opaque 56-digit `log_id`. Page size/take default
+to 50 and cap at 100.
+
+`/api/v2/log-streams` supports create/read/update/delete scopes named
+`create:log_streams`, `read:log_streams`, `update:log_streams` and
+`delete:log_streams`. Create returns 200; credentials are sealed and returned
+as `[REDACTED]`. Six sink types deliver; eventbridge/eventgrid remain stored
+and suspended. The guide documents HTTPS/public-address defaults and opt-ins.
+`GET /api/v2/stats/daily` and `/stats/active-users` need `read:stats`; daily
+bounds are inclusive YYYYMMDD, default seven UTC days, maximum 366, zero-filled.
+Active users returns an integer for the preceding 30 days.
+
+The operator-only execution and stream-health endpoints are local console
+extensions; they do not add fields to the public execution or stream shapes.
+Missing Logs v1 plugin capability returns `501 logs_unavailable` on these
+surfaces while existing plugin functionality remains usable. Pinned CLI
+filtered list/tail acceptance is currently failing on its undocumented
+`search_engine` page selector; this is tracked, with assertions retained,
+in the guide and implementation record.

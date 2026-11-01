@@ -175,7 +175,7 @@ func executionToPB(e *store.Execution) *storev1.ActionExecutionMsg {
 	pb := &storev1.ActionExecutionMsg{TenantId: e.TenantID, Id: e.ID, Trigger: e.Trigger, Status: e.Status,
 		CreatedAt: tsToPB(e.CreatedAt), UpdatedAt: tsToPB(e.UpdatedAt)}
 	for _, r := range e.Results {
-		pb.Results = append(pb.Results, &storev1.ActionExecutionResultMsg{JobId: r.JobID, JobAttempt: int32(r.JobAttempt), ActionId: r.ActionID, ActionName: r.ActionName, ErrorId: r.ErrorID,
+		pb.Results = append(pb.Results, &storev1.ActionExecutionResultMsg{JobId: r.JobID, JobAttempt: int32(r.JobAttempt), ActionId: r.ActionID, ActionName: r.ActionName, DenialReason: r.DenialReason, ErrorId: r.ErrorID,
 			Logs: append([]string(nil), r.Logs...), ErrorMsg: r.ErrorMsg, StartedAt: tsToPB(r.StartedAt), EndedAt: tsToPB(r.EndedAt)})
 	}
 	return pb
@@ -188,7 +188,7 @@ func executionFromPB(e *storev1.ActionExecutionMsg) *store.Execution {
 	out := &store.Execution{TenantID: e.TenantId, ID: e.Id, Trigger: e.Trigger, Status: e.Status,
 		CreatedAt: tsFromPB(e.CreatedAt), UpdatedAt: tsFromPB(e.UpdatedAt)}
 	for _, r := range e.Results {
-		out.Results = append(out.Results, store.ExecutionResult{JobID: r.GetJobId(), JobAttempt: int(r.GetJobAttempt()), ActionID: r.GetActionId(), ActionName: r.GetActionName(), ErrorID: r.GetErrorId(),
+		out.Results = append(out.Results, store.ExecutionResult{JobID: r.GetJobId(), JobAttempt: int(r.GetJobAttempt()), ActionID: r.GetActionId(), ActionName: r.GetActionName(), DenialReason: r.GetDenialReason(), ErrorID: r.GetErrorId(),
 			Logs: append([]string(nil), r.GetLogs()...), ErrorMsg: r.GetErrorMsg(), StartedAt: tsFromPB(r.GetStartedAt()), EndedAt: tsFromPB(r.GetEndedAt())})
 	}
 	return out

@@ -245,3 +245,12 @@ it('Actions logs reenables Live during an initial read without overlapping reque
  await w.get('input[type=checkbox]').setValue(false); w.unmount(); replies[1]!(ok([execution('stale')])); await flushPromises()
  await vi.advanceTimersByTimeAsync(4000); expect(calls).toHaveLength(2)
 })
+
+it('execution displays a normal denial reason as escaped text separately from errors', async () => {
+ const reason = 'Blocked <img src=x onerror=alert(1)> [REDACTED]'
+ const ex = { ...execution(), status: 'final', results: [{ action_id: 'a1', action_name: 'Welcome', started_at: '', ended_at: '', logs: [], denial_reason: reason }] }
+ const { wrapper: w } = await setup('execution-view', '/t/acme/actions/executions/ex1', () => ok(ex))
+ expect(w.text()).toContain('Denial reason: '+reason)
+ expect(w.find('img').exists()).toBe(false)
+ expect(w.find('[role=alert]').exists()).toBe(false)
+})

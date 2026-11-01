@@ -38,7 +38,8 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 |---|---|---|
 | **Done / implemented locally** | 26 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I and II (Plans 27–28), Organizations I (Plan 29) |
 | **Planned, short design** | 4 | organizations II, event streams, client credentials / token exchange, enterprise OIDC |
-| **Planned, full design** | 8 | logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
+| **Implemented, acceptance open** | 3 | logs, log streams, stats (Plan 31) |
+| **Planned, full design** | 5 | guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
 The future Additional social providers plan is deferred without an assigned number and is not an extra counted resource group here.
@@ -299,21 +300,15 @@ Token quotas and default M2M organization selection remain Plan 35, groups and
 inherited roles Plan 38, SAML/WS-Fed organization login Plan 37, and the
 My Organization API/self-service organization administration Plan 42.
 
-### Plan 31 — Logs, log streams, stats (full design)
+### Plan 31 — Logs, log streams, stats (implementation; acceptance open)
 
-**Design (2026-10-30):** [spec](2026-10-30-zeroauthy-logs-streams-stats-design.md) and [implementation plan](../plans/2026-10-30-zeroauthy-plan-31-logs-streams-stats.md). Follows Auth0 throughout (maintainer ruling); Actions troubleshooting is the first acceptance journey; secret- and password-named properties are scrubbed at every sink. Not started.
+**In progress (2026-10-31):** [spec](2026-10-30-zeroauthy-logs-streams-stats-design.md), [implementation plan](../plans/2026-10-30-zeroauthy-plan-31-logs-streams-stats.md), [record](../2026-10-30-plan-31-implementation-record.md), and [operating guide](../../logs.md). Tasks 1–15 and acceptance repairs are implemented. Task 16 remains open: pinned CLI filtered list/tail rejects its undocumented selector, the production bootstrap setup-link diagnostic requires its separate privacy follow-up, and full regression/whole-branch review are pending.
 
-**Endpoints:** `GET /api/v2/logs` (Lucene `q`, paging, checkpoint `from`/`take`), `GET /api/v2/logs/{id}`, `GET /api/v2/users/{id}/logs`; `/api/v2/log-streams` (CRUD) for types `http`, `datadog`, `splunk`, `sumo`, `segment`, `mixpanel`, `eventbridge`, `eventgrid` (the two cloud-account types stored, not enforced, unless the design finds a clean way); `GET /api/v2/stats/active-users`, `GET /api/v2/stats/daily`.
+**Runtime:** tenant logs/page/checkpoint/user reads, streams CRUD and stats; asynchronous scrubbed recording, memory/SQL/gRPC persistence, retention, bounded Lucene queries and six delivery adapters. EventBridge/EventGrid configurations stay suspended without delivery. The frozen inventory lists 60 emitted targets and 120 deferred codes; the [source/event-test audit](../2026-10-31-plan-31-task-16a2-audit.md) maps all 60, without claiming fresh execution of every test. Recording may drop events without failing the initiating request; daily counters follow persisted batches.
 
-**Runtime:** every Authentication API, hosted-page and Management API event writes an Auth0-typed log event (`s`, `f`, `fp`, `fu`, `ss`, `fs`, `scp`, `sapi`, `seccft`, `limit_wc`, … per Auth0's documented event-type codes), replacing "Management writes go to the server log" (management design §6); tenant retention as configured; streams deliver with retries and filters; stats aggregate from logs.
+**Console:** Logs search/detail and unfiltered Live, bounded failure-only view, Actions logs/execution console and explicit denial reason, Log streams/health, daily activity and active users on Home. Operator diagnostics are local extensions; public execution shape remains unchanged.
 
-**Full design questions:** storage volume and retention per driver, the query engine (reuse of the Plan 17 query tree), delivery guarantees for streams (reuse Plan 28's durable job queue and lease rather than a second one), privacy (IP and user agent handling).
-
-**Carried in:** the tenant log for Management API writes (Plan 13 follow-up); Action execution failures and job outcomes (Plans 27–28) as log events; administrator notices for blocked accounts and breached passwords (Plan 19 follow-up), which Auth0 delivers through logs.
-
-**Console:** Logs (search, detail), Log streams, stats on Home.
-
-**E2E:** auth0-cli `logs list/tail` and `logs streams`; an `http` stream received by a test server.
+**Acceptance:** the production SQLite fixture exercises the deny/fix/retry Action journey, modern/bundled legacy node-auth0 reads/stats, all HTTP stream formats, restart replay and representative-secret sink scanning. The denial display gap has a focused repair. Pinned CLI unfiltered list and stream CRUD work; filtered list/tail assertions remain enabled and failing pending an evidence/ruling decision. Final full regression belongs to the next stage; no Plan 31 completion is claimed here.
 
 ### Plan 32 — Event streams
 

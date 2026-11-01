@@ -4559,7 +4559,7 @@ paths:
       operationId: getTenantActionExecutions
       tags: [system]
       summary: List tenant Action executions with console output
-      description: Local operator extension. Lists newest first, or ascending after an execution ID cursor. Action filters use immutable Action IDs; older records without IDs do not match.
+      description: Local operator extension. Lists newest first, or ascending after an execution ID cursor. Includes bounded scrubbed denial_reason display metadata for explicit access.deny outcomes, separately from runtime errors (see docs/actions.md). Action filters use immutable Action IDs; older records without IDs do not match.
       x-source: [https://auth0.com/docs/api/management/v2/actions/get-execution]
       security: [{operatorToken: []}]
       parameters:
@@ -4586,7 +4586,7 @@ paths:
       operationId: getTenantActionExecution
       tags: [system]
       summary: Read a tenant Action execution with console output
-      description: Local operator extension containing immutable scrubbed console lines.
+      description: Local operator extension containing immutable scrubbed console lines and bounded denial_reason display metadata for explicit access.deny outcomes, separately from runtime errors (see docs/actions.md).
       x-source: [https://auth0.com/docs/api/management/v2/actions/get-execution]
       security: [{operatorToken: []}]
       responses:
@@ -9378,6 +9378,10 @@ components:
               action_name: {type: string}
               started_at: {type: string, format: date-time}
               ended_at: {type: string, format: date-time}
+              denial_reason:
+                type: string
+                maxLength: 512
+                description: Local operator display metadata for an explicit access.deny command, scrubbed before bounding; absent for success or runtime errors.
               logs: {type: array, items: {type: string}}
               job_id: {type: string}
               job_attempt: {type: integer}

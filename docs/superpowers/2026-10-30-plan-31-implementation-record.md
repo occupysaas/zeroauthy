@@ -2383,3 +2383,101 @@ Complete actual commands, RED/GREEN, development failures, decisions/costs,
 audited sinks and gaps: [Task16b report](2026-10-31-plan-31-task-16b-report.md).
 Scratch report/logs share `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/`.
 Commit subject: `test: add Plan 31 production logs acceptance fixtures`.
+
+## Task 16c — explicit denial diagnostics and operating guide
+
+Base `77da223`; focused follow-up before the controller's full regression.
+Task 16 / Plan 31 remain incomplete. The commit for this stage has subject
+`fix: show scrubbed Action denials and document Plan 31 logging`.
+
+An explicit `api.access.deny` previously produced a valid denied flow but no
+persisted display reason. `ExecutionResult.DenialReason` now captures only the
+first applied explicit deny for that Action, from the original credential-masked
+command arguments, bounded to 512 characters. Runtime throws/errors stay in
+ErrorID/ErrorMsg and do not manufacture denial metadata. Action/module/request
+masks are composed before bounding; immutable Action ID/name provenance is kept.
+The local operator execution projection includes optional `denial_reason`; the
+public Management GET execution shape is unchanged. An additive protobuf field
+10 and its codec carry the value. Memory copies the value with the result;
+SQL already persists results as JSON, so no query/schema/migration change was
+needed. Older records or peers can omit the optional metadata.
+
+The console renders the localized denial label separately from error alerts,
+using escaped text. Go/protobuf and TypeScript definitions were generated;
+`make console` rebuilt committed dist. The production fixture keeps the strict
+actual-reason assertion, CLI tail/list assertions and all privacy checks enabled.
+Its runner now omits NO_COLOR and sets FORCE_COLOR=0 because Playwright supplies
+FORCE_COLOR in workers; the first attempted opposite normalization still warned,
+and the final acceptance run confirms that warning is absent.
+
+`docs/logs.md` covers the operator journey, endpoint scopes/search/checkpoint
+rules, daily/active stats, retention and queue loss, leases/replay/network policy,
+privacy and bounded mask lifetimes, six delivering/two suspended stream types,
+all 60 emitted targets and all 120 deferred inventory rows. It links the Task16a2
+source/event-test audit without claiming fresh execution of every mapped test.
+Actions, Management, protection, roadmap and matrix docs link it and record the
+actual CLI acceptance limitation and pending final stage.
+
+### Actual verification
+
+All Go/make commands use `GOTOOLCHAIN=go1.26.7`. Node is 26.8.1.
+Scratch logs use `task-16c-*` in this plan's SDD workspace.
+
+| Command / log | Actual result |
+| --- | --- |
+| `go test ./internal/actions -run '^TestActionExecutionDenialReason$' -count=1`, engine-red | RED: ordinary deny, short/overlapping credentials and mask-before-bound returned empty metadata. Throw/success negatives did not fail. |
+| `npm test -- src/pages/logs-monitoring.test.ts`, ui-red | RED: actual denial reason missing; 42 existing cases passed, one new case failed. |
+| `go test ./internal/mgmt -run 'TestSystemExecutionsList\|TestPublicExecutionShapeUnchanged' -count=1`, projection-red | RED: operator detail omitted denial_reason; exact public projection remained unchanged. |
+| First engine-green attempt | FAIL: short configured Action secret uses the existing solid-block mask then protocol sanitization; changed display capture to retain already-masked original command text before protocol sanitization. Corrected expected configured-mask style. |
+| `make generate`; console `npm run gen && npm run typecheck` | PASS, generated definitions only; no hand edits. |
+| `go test -race ./internal/actions ./internal/mgmt ./internal/store/memory ./internal/store/grpcstore -run 'TestActionExecutionDenialReason\|TestActionConsole\|TestSynchronousActionFailureEvents\|TestSystemExecutions\|TestPublicExecutionShapeUnchanged\|TestExecutionConsole\|TestActionsPluginRoundTrip' -count=1`, focused | PASS: actions9.790s, mgmt2.771s, memory1.085s, gRPC1.497s. Covers normal deny/error distinction, short/module overlap masks, public shape, operator projection, persistence and immutable copies. |
+| Console focused monitoring suite, ui-green | PASS: 43 tests. Actual reason and HTML-as-text assertions included. |
+| `ZEROAUTHY_TEST_PG_PORT=58432 ZEROAUTHY_TEST_MYSQL_PORT=58306 ./scripts/test-sql.sh -timeout=10m -run '^TestExecutionConsole$' -v ./internal/store/sqlstore/...`, sql | PASS5.927s: SQLite3.07s, PostgreSQL17 0.28s, MySQL8.4 1.49s. Existing result JSON preserves reason and immutable input/read copies. No SQL schema/query changed. |
+| `go test -race ./internal/actions -count=1`, actions | PASS135.995s (full Actions package with original six denial cases). Expanded denial cases were subsequently checked separately below. |
+| `go test -race ./internal/server -run 'Test.*Execution' -count=1`, system-routes | PASS1.723s. |
+| Expanded denial test first run, denial-final | FAIL: nested sensitive property safely yielded `{"password":"[REDACTED]"}` instead of an assumed whole-object marker. Corrected the test expectation to the actual safe structural behavior; production was unchanged. |
+| `ZA_REQUIRE_NODE=1 go test -race ./internal/actions -run '^TestActionExecutionDenialReason$' -count=1`, denial-green-final | PASS2.642s, including added bound, short request value, nested key and immutable provenance assertions. |
+| `make console`, console | PASS: lint/typecheck, 74 files / 569 tests, production build. Existing >500kB bundle advisory remains. |
+| `go vet ./internal/actions ./internal/mgmt ./internal/store/memory ./internal/store/grpcstore`, vet | PASS. |
+| `E2E_KEEP_WORK=1 make e2e-logs`, acceptance | FAIL: denial assertion passed; browser failed only retained CLI tail selector; filtered CLI list also failed. All remaining SDK/stream/stats/privacy steps completed. First NO_COLOR approach still warned. |
+| Fresh `E2E_KEEP_WORK=1 make e2e-logs`, acceptance-final | **FAIL**: same CLI tail and filtered-list400 search_engine failures, no denial assertion failure and no NO_COLOR warning. Modern/legacy SDK, stream CRUD, all HTTP formats, restart replay, daily counts and representative-secret audit complete. Artifacts `/tmp/plan31-z1hvaS`. |
+| Local Markdown link existence check; `git diff --check` | PASS for all changed guides and whitespace. |
+
+Final fixture audit scans 17 logging/monitoring sinks, 477744 bytes, with eight
+representative secrets absent. Its scope/exclusions remain explicit: private
+credentials/configuration/application DB are not logging sinks; log/execution
+rows are exported and audited; Playwright trace is disabled and failure-only
+form artifacts excluded. Browser network response contains actual
+`denial_reason: "Plan31 troubleshooting denied"`, immutable Action ID/name and
+scrubbed console, without an error object. Three login increments, zero signups/
+leaked-passwords and two active users agree with the produced events. All three
+stream formats deliver retained target IDs after restart; duplicates are allowed.
+
+### Rulings, concerns and checks not run
+
+- Ruling: keep deny metadata separate from errors and capture original masked
+  text before protocol truncation/sanitization. This preserves normal Action
+  outcomes, valid localized display and complete credential masking. Cost if
+  wrong: revisit only the local display contract, not business denial behavior.
+- Ruling: reuse result JSON, struct copy and additive proto field; no new SQL
+  migration/capability revision. All-three-driver focused round trips prove the
+  persistence assumption. Older peers may omit optional diagnostics.
+- The CLI `search_engine` page selector was **not implemented**: the controller
+  is awaiting an explicit evidence/maintainer decision. Actual filtered list
+  and tail remain FAIL; no assertion was disabled, skipped or gated. Tail uses
+  log-ID range page polling, not checkpoint polling.
+- Production bootstrap `setup_url` logging remains an explicit open privacy
+  item, assigned by the controller to sequential Task16d. This stage does not
+  modify bootstrap or claim its sink is repaired. The production acceptance
+  fixture avoids that path and keeps its explicit CLI setup link private.
+- Full `./...` race, full SQL regression, remaining E2E/conformance lanes,
+  check-sources and whole-branch review were **not run in this focused stage**;
+  the controller owns the next sequential final regression/review. The earlier
+  Task16b check-sources RFC redirect failures remain recorded, not relabeled.
+
+Self-review: first-denial provenance belongs to the applied Action, not inferred
+from an execution status; arbitrary text is scrubbed before bounding, then Vue
+escapes it. Canonical public response remains exact. SQL/Go/plugin copies and
+all generated outputs were inspected. The operating guide names current losses,
+limits and deferred codes, rather than claiming full Auth0 equivalence or Plan31
+completion. No new dependency, upstream selector assumption or bootstrap change.
