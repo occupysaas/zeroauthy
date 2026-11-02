@@ -322,3 +322,25 @@ func TestUserMultifactorLinkingKeepsPrimaryMethods(t *testing.T) {
 		t.Fatal("secondary factors survived linking", other, err)
 	}
 }
+
+func TestAuthMethodsZeroPageSize(t *testing.T) {
+	e, uid := mfaUser(t)
+	r, _ := mfaCall(t, e.clientsEnv, "CreateAuthenticationMethods", uid, "", map[string]any{"type": "email", "email": "mfa@example.test"}, "")
+	if r.Code != 201 {
+		t.Fatal(r.Body)
+	}
+	for _, totals := range []bool{false, true} {
+		r, out := mfaCall(t, e.clientsEnv, "GetAuthenticationMethods", uid, "", nil, fmt.Sprintf("?page=2&per_page=0&include_totals=%t", totals))
+		if r.Code != 200 {
+			t.Fatalf("zero page size rejected: %d %s", r.Code, r.Body)
+		}
+		if totals {
+			m := out.(map[string]any)
+			if m["limit"] != float64(0) || m["start"] != float64(0) || m["total"] != float64(1) || len(m["authenticators"].([]any)) != 0 {
+				t.Fatal(m)
+			}
+		} else if len(out.([]any)) != 0 {
+			t.Fatal(out)
+		}
+	}
+}

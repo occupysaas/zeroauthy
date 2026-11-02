@@ -125,7 +125,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 			writeJSON(w, 200, out)
 			return
 		}
-		page, per, totals, e := Page(r)
+		page, per, totals, e := pageWithMinimum(r, 0)
 		if e != nil {
 			Fail(w, e)
 			return

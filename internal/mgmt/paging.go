@@ -25,6 +25,11 @@ func badQuery(format string, args ...any) *Error {
 // DefaultPerPage) and include_totals. A malformed or out-of-range value is
 // a *Error, 400 invalid_query_string.
 func Page(r *http.Request) (page, perPage int, includeTotals bool, err error) {
+	return pageWithMinimum(r, 1)
+}
+
+// pageWithMinimum lets routes retain their own frozen lower page-size bound.
+func pageWithMinimum(r *http.Request, minPerPage int) (page, perPage int, includeTotals bool, err error) {
 	q := r.URL.Query()
 	page, perPage = 0, DefaultPerPage
 	if v := q.Get("page"); v != "" {
@@ -36,8 +41,8 @@ func Page(r *http.Request) (page, perPage int, includeTotals bool, err error) {
 	}
 	if v := q.Get("per_page"); v != "" {
 		n, err := strconv.Atoi(v)
-		if err != nil || n < 1 || n > MaxPerPage {
-			return 0, 0, false, badQuery("Query validation error: per_page must be an integer from 1 to %d", MaxPerPage)
+		if err != nil || n < minPerPage || n > MaxPerPage {
+			return 0, 0, false, badQuery("Query validation error: per_page must be an integer from %d to %d", minPerPage, MaxPerPage)
 		}
 		perPage = n
 	}

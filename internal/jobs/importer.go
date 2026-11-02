@@ -10,6 +10,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"io"
 	"log/slog"
 	"maps"
 	"math"
@@ -906,8 +907,22 @@ func Recipients(ctx context.Context, st store.Store, name string) ([]string, err
 // importMFA runs inside the import's transaction; validation occurs before any
 // user write. Upsert replaces supplied factor types and preserves other types.
 func (p Importer) importMFA(ctx context.Context, tx store.Store, u *store.User, f *fields) error {
-	if !f.hasMFAFactors {
+	if !f.hasMFAFactors || len(f.mfaFactors) == 0 {
 		return nil
+	}
+	// update already holds the user lock; initial insert owns the new user in
+	// this transaction. Invalidate once if any supplied type replaces a method.
+	existing, err := tx.MFA().ListAuthenticators(ctx, u.TenantID, u.UserID)
+	if err != nil {
+		return err
+	}
+	replacing := false
+	for _, a := range existing {
+		for _, factor := range f.mfaFactors {
+			if a.Type == factor.typ {
+				replacing = true
+			}
+		}
 	}
 	for _, factor := range f.mfaFactors {
 		a := &store.Authenticator{TenantID: u.TenantID, UserID: u.UserID, ID: factor.typ + "|dev_" + secrets.RandomString(20), Type: factor.typ, Confirmed: true, LastStep: -1, CreatedAt: p.now()}
@@ -929,6 +944,9 @@ func (p Importer) importMFA(ctx context.Context, tx store.Store, u *store.User, 
 		if err := tx.MFA().CreateAuthenticator(ctx, a); err != nil {
 			return err
 		}
+	}
+	if replacing {
+		return tx.MFA().BumpRememberEpoch(ctx, u.TenantID, u.UserID)
 	}
 	return nil
 }
@@ -955,30 +973,89 @@ func importMFAMasks(ctx context.Context, obj map[string]any) context.Context {
 func maskImportMFAErrors(obj map[string]any, items []store.JobErrorItem) []store.JobErrorItem {
 	ctx := importMFAMasks(context.Background(), obj)
 	for i := range items {
-		items[i].Message = logscrub.MaskText(ctx, items[i].Message)
-		items[i].Path = logscrub.MaskText(ctx, items[i].Path)
+		items[i].Message = maskImportMFAValue(ctx, items[i].Message).(string)
+		items[i].Path = maskImportMFAValue(ctx, items[i].Path).(string)
 	}
 	return items
 }
 
-// Only replace registered factor material here. The import error contract's
-// existing password/hash masks and surrounding public structure stay intact.
+const maxImportMFAEchoDepth = 32
+const maxImportMFAEchoBytes = 1 << 20
+
+// Credential-only masking preserves the import contract's established password
+// hash masks. Decode JSON strings before matching, as logscrub does, so escaping
+// cannot hide credentials. Bound total visited bytes/nodes and nesting; bounds
+// fail closed rather than returning unprocessed aliases.
 func maskImportMFAValue(ctx context.Context, v any) any {
+	hasCredentials := false
+	for range logscrub.MaskValues(ctx) {
+		hasCredentials = true
+		break
+	}
+	if !hasCredentials {
+		return v
+	}
+	m := importMFAEchoMasker{ctx: ctx, remaining: maxImportMFAEchoBytes}
+	return m.value(v, 0)
+}
+
+type importMFAEchoMasker struct {
+	ctx       context.Context
+	remaining int
+}
+
+func (m *importMFAEchoMasker) value(v any, depth int) any {
+	m.remaining--
+	if depth >= maxImportMFAEchoDepth || m.remaining < 0 {
+		return logscrub.Marker
+	}
 	switch x := v.(type) {
 	case string:
-		return logscrub.MaskText(ctx, x)
+		return m.text(x, depth)
 	case map[string]any:
 		out := make(map[string]any, len(x))
 		for k, v := range x {
-			out[logscrub.MaskText(ctx, k)] = maskImportMFAValue(ctx, v)
+			key := m.text(k, depth+1)
+			if _, exists := out[key]; exists {
+				out[key] = logscrub.Marker
+			} else {
+				out[key] = m.value(v, depth+1)
+			}
 		}
 		return out
 	case []any:
 		out := make([]any, len(x))
 		for i, v := range x {
-			out[i] = maskImportMFAValue(ctx, v)
+			out[i] = m.value(v, depth+1)
 		}
 		return out
 	}
 	return v
+}
+func (m *importMFAEchoMasker) text(value string, depth int) string {
+	m.remaining -= len(value)
+	if depth >= maxImportMFAEchoDepth || m.remaining < 0 {
+		return logscrub.Marker
+	}
+	masked := logscrub.MaskText(m.ctx, value)
+	// A credential can itself be valid JSON text. Preserve a complete original
+	// match before decoding could remove quotes that belong to the credential.
+	if masked == logscrub.Marker {
+		return masked
+	}
+	trimmed := strings.TrimSpace(value)
+	if len(trimmed) > 0 && (trimmed[0] == '{' || trimmed[0] == '[' || trimmed[0] == '"') {
+		dec := json.NewDecoder(strings.NewReader(trimmed))
+		dec.UseNumber()
+		var decoded, extra any
+		if dec.Decode(&decoded) == nil && dec.Decode(&extra) == io.EOF {
+			safe := m.value(decoded, depth+1)
+			encoded, err := json.Marshal(safe)
+			if err != nil {
+				return logscrub.Marker
+			}
+			return logscrub.MaskText(m.ctx, string(encoded))
+		}
+	}
+	return masked
 }
