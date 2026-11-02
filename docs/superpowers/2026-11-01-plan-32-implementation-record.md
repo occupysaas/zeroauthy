@@ -4,7 +4,7 @@ Plan: `docs/superpowers/plans/2026-11-01-zeroauthy-plan-32-event-streams.md`.
 Base: `17d749c`. Branch: `implement-plan-32`.
 Worktree: `/mnt/nvme2/code/zeroauthy-plan32`.
 
-Implementation in progress. No completed-plan or full-regression claim.
+Completed locally on 2026-11-02. Tasks 1–14, whole-branch review, the consolidated correctness fix wave and scoped re-review are complete. The fresh post-fix matrix ran on `474cf753`; all twelve commands exited 0. Actual skips, conformance warning/review outcomes and compatibility limitations remain explicit. Branch is ready for integration; it has not been merged or pushed.
 
 ## Evidence and decisions
 
@@ -1631,3 +1631,16 @@ SSE run failed only the superseded delayed-empty-ring-expiry test; its assertion
 now requires immediate410. An initial new fault-stub pointer compile error was
 corrected; final compile passed. No fullGo/fullSQL/E2E command ran in this wave;
 scoped re-review and the sole validator's fixed-commit matrix remain pending.
+
+
+## Final completion — 2026-11-02
+
+All fourteen tasks are complete. The whole-branch review identified three Important integration defects: false expiry of a server-issued empty-tenant cursor, a test-delivery response exceeding the server write timeout, and seed ignoring configured stream quotas. Commit `474cf753` addresses all three. The scoped re-review found them addressed with no new Critical or Important findings. Migration 0032 persists tenant purge history; its pre-upgrade unknown-history limitation is documented.
+
+Fresh fixed-commit verification: all twelve commands exited 0. Full uncached Go race: 9,798 passing leaves and four actual skips. Full SQL race: 2,816 passing leaves, zero skips, all three drivers. Console: 604 tests. Every required local E2E lane and source check passed; baseline browser has 57 lane-gated skips. Conformance: 46 passed, 12 warnings, 16 review, eight skipped, zero failed. These categories are not all passes. Earlier failures, corrections and snapshot identities remain in their reports. No runtime code changed after the validated commit; final changes are completion records only.
+
+- [Fresh post-fix validation](2026-11-02-plan-32-postfix-validation.md)
+- [Whole-branch review and scoped repair approval](2026-11-02-plan-32-final-review.md)
+- [All controller rulings and deferred minors](2026-11-02-plan-32-decisions.md)
+
+Remaining limitations: E1–E8 upstream observations unavailable; EventBridge stored disabled; group capture deferred to Plan 38; client metadata follows D-0039; dormant role edges have the documented visibility limit; the original 10% memory capture-overhead target was not met. Minor findings M1–M9 are deferred. No Critical or Important finding remains open.

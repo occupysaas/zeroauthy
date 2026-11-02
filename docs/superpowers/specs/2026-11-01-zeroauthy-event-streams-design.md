@@ -1,6 +1,6 @@
 # Plan 32 — Event streams
 
-**Date:** 2026-11-01. **Status:** specification; implementation not started.
+**Date:** 2026-11-01. **Status:** implemented and locally verified 2026-11-02; see the [completion record](../2026-11-01-plan-32-implementation-record.md) for actual results, deviations and limitations.
 
 **Predecessor:** [Logs, log streams, stats](2026-10-30-zeroauthy-logs-streams-stats-design.md),
 merged as `03a8d7a` on main. Roadmap entry: [management roadmap §3, Plan 32](2026-10-19-zeroauthy-management-roadmap-design.md).

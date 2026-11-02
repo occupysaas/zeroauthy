@@ -172,7 +172,7 @@ resolving their secret environment references again. The pinned
 Deploy CLI exports/imports public `eventStreams` in YAML and directory format;
 credentials must be supplied again on the target. Events and deliveries are never
 exported. See [the implementation record](superpowers/2026-11-01-plan-32-implementation-record.md)
-for actual acceptance coverage and remaining verification.
+for actual acceptance coverage, completed validation and remaining limitations.
 
 `eventbridge` configuration is accepted for tool round trips but always disabled:
 zeroauthy cannot create Auth0's AWS partner source. Its partner-source string is a

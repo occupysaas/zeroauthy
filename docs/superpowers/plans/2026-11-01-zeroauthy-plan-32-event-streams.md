@@ -22,6 +22,8 @@ Playwright. No new Go module dependency.
 **Spec:** [Event streams design](../specs/2026-11-01-zeroauthy-event-streams-design.md).
 Read it before executing any task. Section numbers below (§) refer to it.
 
+**Completion:** implemented and locally verified 2026-11-02. All fourteen tasks and final reviews are complete under the recorded rulings; observer E1–E8 remain unavailable. See [the completion record](../2026-11-01-plan-32-implementation-record.md), [post-fix results](../2026-11-02-plan-32-postfix-validation.md), and [rulings/deferred minors](../2026-11-02-plan-32-decisions.md). Original steps below are preserved as the planned contract rather than rewritten as claims that every upstream observation occurred.
+
 ## Global Constraints
 
 - Use Go 1.26.7 and Node >=22.13; retain repository dependency pins; add no Go module.

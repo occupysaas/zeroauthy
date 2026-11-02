@@ -86,7 +86,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full (done) | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | full (final verification in progress) | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |
-| 32 | Event streams | short | 31 |
+| 32 | Event streams | full (done; documented local limitations) | 31 |
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full | 21, 27 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full | 33 |
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
@@ -311,7 +311,7 @@ My Organization API/self-service organization administration Plan 42.
 
 ### Plan 32 — Event streams
 
-**Implementation in progress (2026-11-01):** [spec](2026-11-01-zeroauthy-event-streams-design.md), [plan](../plans/2026-11-01-zeroauthy-plan-32-event-streams.md), [record](../2026-11-01-plan-32-implementation-record.md), [operator guide](../../event-streams.md). Tasks 1–13 implement transactional catalog events, sealed write-only webhook authorization, webhook/Action destinations, failure recovery, SSE resume, memory/SQL/Events-v1 plugin storage, console, seed and Deploy CLI. EventBridge remains stored disabled; groups wait for Plan 38. No signature header is invented. Task 14 adds a local HTTPS browser/SDK/CLI/SSE acceptance lane; final broad regression and whole-branch review remain pending. Separate Auth0 observer evidence E1–E8 is unavailable; local choices remain documented in D-0058.
+**Done locally (2026-11-02):** [spec](2026-11-01-zeroauthy-event-streams-design.md), [plan](../plans/2026-11-01-zeroauthy-plan-32-event-streams.md), [record](../2026-11-01-plan-32-implementation-record.md), [operator guide](../../event-streams.md). Tasks 1–13 implement transactional catalog events, sealed write-only webhook authorization, webhook/Action destinations, failure recovery, SSE resume, memory/SQL/Events-v1 plugin storage, console, seed and Deploy CLI. EventBridge remains stored disabled; groups wait for Plan 38. No signature header is invented. Task 14 local HTTPS browser/SDK/CLI/SSE acceptance, whole-branch review, correctness fixes and fresh final regression are complete. All twelve commands exited 0 on fixed source; [actual skips and conformance warning/review outcomes](../2026-11-02-plan-32-postfix-validation.md) remain explicit. Separate Auth0 observer evidence E1–E8 is unavailable; local choices remain documented in D-0058.
 
 ### Plan 33 — MFA I (full design)
 

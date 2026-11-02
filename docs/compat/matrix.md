@@ -158,7 +158,7 @@ See [D-0057](decisions.md#d-0057--tenant-logs-streams-and-statistics-contract-20
 | Stats | read:stats; daily default seven inclusive UTC days, local max 366 with zero-filled dates; active users within 30 days from existing last_login. Login counters use one matching s/ssa/sepft event per flow. |
 | Evidence | Public primary documentation plus the sanitized independent [selector acceptance observation](observations/2026-11-01-logs-search-selector.md); implementer made no tenant contact and used no UI capture, credentials or proprietary source. Unknown upstream marker/error/default/adapter behavior is labeled local. Per-code source/event-test audit is recorded. Production SQLite browser/SDK/stream restart fixture runs with representative secret scanning; prior pinned CLI filtered list/tail failure is recorded; selector fix acceptance and final regression passed within the explicitly recorded skips, conformance outcomes and unavailable upstream lanes. |
 
-### Plan 32 — Event streams (final verification in progress)
+### Plan 32 — Event streams (implemented; local verification complete)
 
 The public catalog 0.13.6 is frozen in `internal/eventrules`. Tasks 1–13 implement
 transactional capture; stream CRUD with sealed write-only credentials; guarded
@@ -174,13 +174,15 @@ D-0058 records local retention, update-boundary, timeout/retry interpretation,
 test-delivery, quota/cadence, empty geo, outbound guard and disabled-cloud rulings.
 Read-only `total_failures` reports extant failed deliveries, a local console
 extension. Ordinary webhook query strings are preserved; embedded credentials,
-fragments, redirects and unsafe transport headers are refused. An entirely purged
-SSE ring delays expiry detection until a new oldest retained sequence exists.
+fragments, redirects and unsafe transport headers are refused. Migration 0032 persists tenant-local purge watermarks for cursor expiry, including
+fully purged sets. Unknown history removed before that migration cannot be inferred.
 Action attempts use isolated bounded Node processes with persistent host cache.
 The original relative 10% memory capture-overhead target was not met; the record
 retains the measured result and replacement coarse guard.
 
-Task 14's local acceptance lane and final broad regression/whole-branch review
-are in progress. Fixture implementation alone is not verification. E1–E8 lack
-separate observer evidence, and no upstream parity pass is claimed. Actual test
-results and skips are in the [implementation record](../superpowers/2026-11-01-plan-32-implementation-record.md).
+Task 14 local acceptance, whole-branch review, correctness fixes and fresh final
+regression are complete. All twelve commands exited 0 on the fixed source; actual
+skips and conformance warning/review outcomes remain distinct from passes. E1–E8
+lack separate observer evidence, and no upstream parity pass is claimed. See the
+[post-fix validation](../superpowers/2026-11-02-plan-32-postfix-validation.md) and
+[implementation record](../superpowers/2026-11-01-plan-32-implementation-record.md).
