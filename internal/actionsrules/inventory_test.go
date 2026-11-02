@@ -255,6 +255,10 @@ func TestActionsInventory(t *testing.T) {
 
 func wantSupport(trigger, name string) string {
 	switch name {
+	case "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny", "multifactor.enable":
+		return "supported"
+	}
+	switch name {
 	case "groups.getUserGroups", "groups.hasGroupMembership", "rules.wasExecuted":
 		return "empty"
 	}

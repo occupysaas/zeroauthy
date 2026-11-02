@@ -31,6 +31,7 @@ type resetContinuePayload struct {
 	Input                   ResetChallengeInput
 	Units                   []continueUnit
 	ResultURL               string
+	MFA                     *MFAEffects
 	Position, RedirectCount int
 	Remaining               time.Duration
 }
@@ -58,6 +59,7 @@ func (e *Engine) ResetPostChallenge(ctx context.Context, in ResetChallengeInput)
 	}
 	f := &flow{tenantID: tenantID, trigger: TriggerResetPostChallenge, handler: handlerFor(TriggerResetPostChallenge), hostname: in.Tenant.Host,
 		units: pinned(bound), acc: newAccum(TriggerResetPostChallenge, nil, nil, in.CanRedirect), cache: e.caches.get(tenantID, TriggerResetPostChallenge), reset: &in}
+	f.acc.customizeMFA, _ = in.Tenant.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
 	f.event = func() map[string]any { return resetChallengeEvent(&in, f.acc) }
 	return e.run(ctx, f, nil)
 }
@@ -70,7 +72,7 @@ func (e *Engine) suspendReset(ctx context.Context, st store.Store, f *flow, inde
 	if err := suspendable(f); err != nil {
 		return nil, err
 	}
-	p := resetContinuePayload{Input: *in, ResultURL: f.acc.resultURL, Position: f.position + index, RedirectCount: f.redirectCount + 1, Remaining: f.remaining}
+	p := resetContinuePayload{Input: *in, MFA: f.acc.eff.MFA, ResultURL: f.acc.resultURL, Position: f.position + index, RedirectCount: f.redirectCount + 1, Remaining: f.remaining}
 	var err error
 	if p.Units, err = continueUnits(ctx, st, f, index); err != nil {
 		return nil, err
@@ -114,12 +116,14 @@ func (e *Engine) ContinueResetChallenge(ctx context.Context, tenantID, state, ti
 	f := &flow{tenantID: tenantID, trigger: TriggerResetPostChallenge, handler: triggerSpecs[TriggerResetPostChallenge].ContinueHandler, hostname: in.Tenant.Host, reset: in,
 		acc: newAccum(TriggerResetPostChallenge, nil, nil, in.CanRedirect), cache: e.caches.get(tenantID, TriggerResetPostChallenge), redirectCount: p.RedirectCount, position: p.Position, state: state, remaining: p.Remaining}
 	f.acc.resultURL = p.ResultURL
+	f.acc.eff.MFA = p.MFA
 	for _, u := range p.Units {
 		if len(u.ModuleVersions) != len(u.Modules) {
 			return nil, ErrInvalidContinue
 		}
 		f.units = append(f.units, unit{name: u.Name, actionID: u.ActionID, versionKey: u.VersionKey, code: u.Code, buildID: u.BuildID, secrets: u.Secrets, moduleRefs: u.Modules, moduleVersions: u.ModuleVersions})
 	}
+	f.acc.customizeMFA, _ = in.Tenant.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
 	f.event = func() map[string]any { return resetChallengeEvent(in, f.acc) }
 	return e.run(ctx, f, nil)
 }

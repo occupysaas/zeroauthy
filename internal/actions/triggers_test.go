@@ -57,7 +57,7 @@ func TestTriggerAPIs(t *testing.T) {
 			}
 		})
 	}
-	for _, member := range []string{"authentication.challengeWith", "authentication.challengeWithAny", "prompt.render"} {
+	for _, member := range []string{"prompt.render"} {
 		t.Run("caught_"+member, func(t *testing.T) {
 			_, out, err := triggerTestRun(t, e, buildID, "password-reset-post-challenge", "onExecutePostChallenge", `try { api.`+member+`({type:'otp'}); } catch(e) {}`)
 			if errorID(err) != "unsupported_api" || out == nil || len(out.commands) != 1 || out.commands[0].Op != "unsupported" {
@@ -263,6 +263,10 @@ func TestTriggerEvents(t *testing.T) {
 		{"email", emailEvent(&EmailInput{Tenant: "t", TenantInfo: ten, Client: reg.Client, User: user, Connection: conn, Request: req, Message: EmailMessage{From: "sender@test", To: "u@example.test", Subject: "Welcome", HTML: "<p>Hello</p>", Text: "Hello", Locale: "de", Type: "welcome_email"}}, a), `{"client":{"client_id":"app","metadata":{},"name":"App"},` + connJSON + `,"notification":{"from":"sender@test","html":"<p>Hello</p>","locale":"de","message_type":"welcome_email","subject":"Welcome","text":"Hello","to":"u@example.test"},` + strings.Replace(requestJSON, `"hostname":"login.example.test"`, `"hostname":"tenant.test"`, 1) + `,"tenant":{"friendly_name":"Example","id":"t","support_email":"support@example.test","support_url":"https://help.test/"},"user":` + canonicalUser + `}`},
 	}
 	for _, tc := range cases {
+		if tc.name == "post-login" {
+			tc.want = strings.Replace(tc.want, `{"authorization":`, `{"authentication":{"methods":[]},"authorization":`, 1)
+			tc.want = strings.Replace(tc.want, `"user":{`, `"user":{"enrolledFactors":[],`, 1)
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			var want any
 			if err := json.Unmarshal([]byte(tc.want), &want); err != nil {
@@ -275,7 +279,7 @@ func TestTriggerEvents(t *testing.T) {
 				t.Errorf("event = %s\nwant = %s", got, tc.want)
 			}
 			for _, forbidden := range []string{"SECRET", `"geoip"`, `"security_context"`, `"authentication"`} {
-				if strings.Contains(got, forbidden) {
+				if strings.Contains(got, forbidden) && !(tc.name == "post-login" && forbidden == `"authentication"`) {
 					t.Errorf("event leaked %s", forbidden)
 				}
 			}

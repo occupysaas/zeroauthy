@@ -358,7 +358,7 @@ func TestEngineFailClosed(t *testing.T) {
 		"throw":            `throw new Error("boom");`,
 		"timeout":          `await new Promise((r) => setTimeout(r, 10000));`,
 		"session.revoke":   `try { api.session.revoke("x"); } catch (e) {}`,
-		"multifactor":      `api.multifactor.enable("any");`,
+		"multifactor":      `api.multifactor.enable("unknown");`,
 		"prompt.render":    `try { api.prompt.render("p"); } catch (e) {}`,
 		"samlResponse":     `api.samlResponse.setAttribute("a", "b");`,
 		"refreshToken":     `try { api.refreshToken.revoke("r"); } catch (e) {}`,
@@ -397,7 +397,7 @@ func TestEngineFailClosed(t *testing.T) {
 				t.Fatalf("execution = %+v", e)
 			}
 			wantID := map[string]string{"throw": "runtime_error", "timeout": "timeout", "session.revoke": "unsupported_api",
-				"multifactor": "unsupported_api", "bad scope": "invalid_api_call", "no redirect": "redirect_not_allowed",
+				"multifactor": "invalid_api_call", "bad scope": "invalid_api_call", "no redirect": "redirect_not_allowed",
 				"validation code": "invalid_api_call",
 				"huge claims":     "claims_too_large", "unknown method": "runtime_error"}[name]
 			if wantID != "" && e.Results[0].ErrorID != wantID {

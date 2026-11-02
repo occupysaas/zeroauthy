@@ -163,6 +163,12 @@ func (e *Engine) ContinuePostLoginValidated(ctx context.Context, tenantID, state
 	f := &flow{tenantID: tenantID, trigger: TriggerPostLogin, handler: "onContinuePostLogin", hostname: p.Input.Tenant.Host, input: &p.Input,
 		roles: p.Roles, acc: newAccum(TriggerPostLogin, p.Target, nil, true), cache: e.caches.get(tenantID, TriggerPostLogin), redirectCount: p.RedirectCount, position: p.Position, state: state, remaining: p.Remaining}
 	f.acc.eff = p.Effects
+	f.acc.customizeMFA, _ = p.Input.Tenant.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
+	p.Input.EnrolledFactors, err = e.enrolledFactors(ctx, tenantID, p.Input.User.UserID)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, u := range p.Units {
 		// A continuation must be self-contained. Missing snapshots cannot
 		// silently fall back to mutable store lifetime/retention decisions.

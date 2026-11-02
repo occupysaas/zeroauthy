@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -27,15 +28,19 @@ const mfaPendingKey = "za_mfa_pending"
 
 // MFAPending is authenticated, sealed state for Task 8's pages. Only IDs and
 // requirements belong here; enrollment secrets/codes must never be persisted.
-// A page must accept proof only for Requirement.Factors, then MarkMFA and call
-// MFAComplete. MFAComplete reloads this state rather than trusting caller edits.
+// Pages accept proof only for Requirement.Factors. Login-purpose completion
+// marks its session then calls MFAComplete; reset and ticket purposes never do.
+// Completion reloads this state rather than trusting caller edits.
 type MFAPending struct {
-	Requirement         mfa.Requirement
-	Effects             actions.Effects
-	SessionID, UserID   string
-	PreviousMFAAt       time.Time
-	RememberEpoch       int
-	TicketAllowMultiple bool
+	Requirement                                                mfa.Requirement
+	Effects                                                    actions.Effects
+	SessionID, UserID                                          string
+	PreviousMFAAt                                              time.Time
+	RememberEpoch                                              int
+	TicketAllowMultiple                                        bool
+	ResetTicketHash, ResetPageHash, ResetResultURL, ResetEmail string
+	ResetUserVersion                                           int64
+	ResetEmailVerified                                         bool
 }
 
 type mfaCompletedKey struct{}
@@ -153,13 +158,18 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 	if err != nil || secrets.HashToken(cookie.Value) != stored.CookieHash {
 		return nil, invalid
 	}
-	current, err := h.ActiveSession(ctx, r, res)
-	if err != nil {
-		return nil, err
-	}
 	ticket := stored.ClientID == "" && stored.Params["za_mfa_ticket"] == "1"
+	reset := stored.ClientID == "" && stored.Params["za_mfa_reset"] == "1"
+	if ticket && reset {
+		return nil, invalid
+	}
 	sid := ""
-	if !ticket {
+	var current *store.LoginSession
+	if !ticket && !reset {
+		current, err = h.ActiveSession(ctx, r, res)
+		if err != nil {
+			return nil, err
+		}
 		if sess == nil || current == nil || current.ID != sess.ID || current.ID != stored.Params[sessionKey] {
 			return nil, invalid
 		}
@@ -174,7 +184,7 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 		return nil, invalid
 	}
 	var pending MFAPending
-	if json.Unmarshal(plain, &pending) != nil || !pending.Requirement.Required || pending.SessionID != sid || (!ticket && pending.UserID != current.UserID) || (ticket && pending.Requirement.Reason != "ticket") {
+	if json.Unmarshal(plain, &pending) != nil || !pending.Requirement.Required || pending.SessionID != sid || (!ticket && !reset && pending.UserID != current.UserID) || (ticket && pending.Requirement.Reason != "ticket") || (reset && (pending.Requirement.Reason != "reset" || pending.Requirement.Enroll || pending.Requirement.AllowRemember)) || (!reset && pending.Requirement.Reason == "reset") {
 		return nil, invalid
 	}
 	u, err := h.Store.Users().Get(ctx, res.Tenant.ID, pending.UserID)
@@ -184,6 +194,27 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 	if u.Blocked || u.RememberBrowserEpoch != pending.RememberEpoch {
 		return nil, invalid
 	}
+	if reset {
+		if pending.ResetTicketHash == "" || u.Version != pending.ResetUserVersion || u.Email != pending.ResetEmail || u.EmailVerified != pending.ResetEmailVerified {
+			return nil, invalid
+		}
+		page, e := r.Cookie("za_reset")
+		bearer, b := r.Cookie("za_reset_mfa")
+		if e != nil || b != nil || secrets.HashToken(page.Value) != pending.ResetPageHash || secrets.HashToken(bearer.Value) != pending.ResetTicketHash {
+			return nil, invalid
+		}
+		tk, e := h.Store.PasswordResetTickets().GetByTokenHash(ctx, res.Tenant.ID, pending.ResetTicketHash)
+		if e != nil || tk.UserID != pending.UserID || tk.UsedAt != nil || tk.ChallengePassedAt != nil || !h.now().Before(tk.ExpiresAt) {
+			return nil, invalid
+		}
+		conn, e := h.Store.Connections().GetByName(ctx, res.Tenant.ID, tk.Connection)
+		if e != nil || conn.Strategy != store.StrategyDatabase {
+			return nil, invalid
+		}
+		if _, e = orglogin.PasswordResetContext(ctx, h.Store, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn); e != nil {
+			return nil, invalid
+		}
+	}
 	return &pending, nil
 }
 
@@ -192,6 +223,10 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) {
 	pending, err := h.PendingMFA(r.Context(), r, res, txn, sess)
 	if err != nil {
+		h.invalidMFA(w, r, res)
+		return
+	}
+	if pending.Requirement.Reason == "reset" {
 		h.invalidMFA(w, r, res)
 		return
 	}
@@ -283,4 +318,65 @@ func (h *Handlers) mfaTicketResult(w http.ResponseWriter, r *http.Request, res t
 		ui.ApplyPartials(&view, out)
 	}
 	ui.RenderMFA(w, http.StatusOK, view, "mfa_result", ui.MFAData{})
+}
+
+// StartMFAReset creates proof-only authority for an existing unspent password
+// reset ticket. It never creates a login session or accepts enrollment proof.
+// The bearer stays in an HttpOnly browser cookie, only its hash enters storage.
+func (h *Handlers) StartMFAReset(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, tk *store.PasswordResetTicket, page string, req mfa.Requirement, resultURL string) error {
+	if u == nil || tk == nil || u.TenantID != res.Tenant.ID || tk.TenantID != res.Tenant.ID || !req.Required || req.Enroll || tk.UserID != u.UserID || page == "" {
+		return store.ErrInvalid
+	}
+	req.Reason, req.AllowRemember = "reset", false
+	pending := MFAPending{Requirement: req, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, ResetTicketHash: tk.TokenHash, ResetPageHash: secrets.HashToken(page), ResetResultURL: resultURL, ResetUserVersion: u.Version, ResetEmail: u.Email, ResetEmailVerified: u.EmailVerified}
+	p := map[string]string{ParamStage: StageMFA, "za_mfa_reset": "1"}
+	txn, err := h.createTxn(w, r, res, "", p, "/u", func(id string, p map[string]string) error {
+		plain, e := json.Marshal(pending)
+		if e != nil {
+			return e
+		}
+		sealed, e := keys.SealBound(h.Wrapper, "hosted-mfa/v1", []string{res.Tenant.ID, id, "", "", res.Origin()}, plain)
+		if e == nil {
+			p[mfaPendingKey] = base64.RawURLEncoding.EncodeToString(sealed)
+		}
+		return e
+	})
+	if err != nil {
+		return err
+	}
+	http.Redirect(w, r, "/u/mfa?"+url.Values{"state": {txn.ID}}.Encode(), http.StatusSeeOther)
+	return nil
+}
+
+// CompleteMFAReset is called only by the hosted pages after successful service
+// proof (and recovery acknowledgement). It consumes the browser-bound reset
+// authority and marks the ticket's challenge pass in one user-locked transaction.
+// Ordinary MFAComplete rejects reset authority, so no OAuth/SSO path is reachable.
+func (h *Handlers) CompleteMFAReset(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction) error {
+	pending, err := h.PendingMFA(r.Context(), r, res, txn, nil)
+	if err != nil || pending.Requirement.Reason != "reset" {
+		return store.ErrInvalid
+	}
+	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		// Lock before every transactional authority read; this also avoids a
+		// stale repeatable-read snapshot after a concurrent password change.
+		if _, e := tx.Users().GetForUpdate(r.Context(), res.Tenant.ID, pending.UserID); e != nil {
+			return e
+		}
+		local := *h
+		local.Store = tx
+		current, e := local.PendingMFA(r.Context(), r, res, txn, nil)
+		if e != nil {
+			return e
+		}
+		pending = current
+		if e = tx.PasswordResetTickets().MarkChallengePassed(r.Context(), res.Tenant.ID, pending.ResetTicketHash, h.now(), pending.ResetResultURL); e != nil {
+			return e
+		}
+		return tx.AuthTransactions().Delete(r.Context(), res.Tenant.ID, txn.ID)
+	})
+	if err == nil {
+		h.clearTxnCookie(w, txn)
+	}
+	return err
 }

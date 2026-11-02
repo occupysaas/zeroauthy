@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -255,7 +257,7 @@ func TestResetPostChallenge(t *testing.T) {
 		}
 	})
 
-	t.Run("challengeWith fails closed", func(t *testing.T) {
+	t.Run("challengeWith requires tenant flag", func(t *testing.T) {
 		re := newResetActionsEnv(t)
 		re.bind(t, `exports.onExecutePostChallenge=(event,api)=>{try{api.authentication.challengeWith({type:'otp'});}catch(e){}};`)
 		ticket := re.issueTicket(t, "alice@acme.test", time.Hour)
@@ -433,5 +435,239 @@ func TestPostChangePasswordQueueFailure(t *testing.T) {
 				t.Fatalf("unexpected jobs %+v", jobs)
 			}
 		})
+	}
+}
+
+func TestResetPostChallengeChallengeWith(t *testing.T) {
+	for _, call := range []string{`challengeWith({type:'otp'})`, `challengeWithAny([{type:'otp'}])`, `challengeWithAny([{type:'otp'},{type:'email'}])`} {
+		t.Run(call, func(t *testing.T) {
+			f := newMFAFixture(t)
+			f.policy(t, "otp", "email")
+			secret := f.enrolled(t, "otp", false)
+			f.enrolled(t, "email", false)
+			ctx := context.Background()
+			tn, _ := f.st.Tenants().Get(ctx, f.tn.ID)
+			tn.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+			if err := f.st.Tenants().Update(ctx, tn); err != nil {
+				t.Fatal(err)
+			}
+			a := actionstest.NewOffline(t, f.st, f.h.Authz.Wrapper)
+			f.h.Actions = a.Engine
+			a.Bind(t, tn.ID, actions.TriggerResetPostChallenge, a.Deploy(t, tn.ID, actions.TriggerResetPostChallenge, "reset-mfa", `exports.onExecutePostChallenge=(event,api)=>{api.authentication.`+call+`;api.transaction.setResultUrl('https://app.acme.test/done');};`))
+			var existing *store.LoginSession
+			if strings.Contains(call, "Any") {
+				rr := httptest.NewRequest("GET", "https://acme.example.test/", nil)
+				rr = rr.WithContext(tenant.WithResolved(ctx, tenant.Resolved{Tenant: tn, Host: "acme.example.test"}))
+				ww := httptest.NewRecorder()
+				var err error
+				existing, err = f.h.Sessions.Start(ctx, ww, rr, tn, f.uid, "Username-Password-Authentication", *f.clock)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, c := range ww.Result().Cookies() {
+					f.b.cookies[c.Name] = c
+				}
+				*f.clock = f.clock.Add(time.Minute)
+			}
+			raw := f.issueTicket(t, aliceLogin, time.Hour)
+			rec := f.b.do(t, "GET", "/u/reset-password?ticket="+raw, nil)
+			loc, _ := url.Parse(rec.Header().Get("Location"))
+			if rec.Code != 303 || loc.Path != "/u/mfa" {
+				t.Fatalf("MFA not required: %d %s %s", rec.Code, loc, rec.Body)
+			}
+			f.state = loc.Query().Get("state")
+			tk, _ := f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
+			if tk.ChallengePassedAt != nil || tk.UsedAt != nil {
+				t.Fatal("reset passed before proof")
+			}
+			page := f.page(t, "/u/mfa")
+			if strings.Contains(call, "email") {
+				if !strings.Contains(page.Body.String(), `name="factor"`) {
+					t.Fatalf("challengeWithAny did not show factor selector")
+				}
+				choice := f.post(t, "/u/mfa", url.Values{"factor": {"otp"}})
+				if choice.Code != 303 {
+					t.Fatalf("choose factor %d", choice.Code)
+				}
+				f.page(t, "/u/mfa-otp-challenge")
+			}
+			bad := f.post(t, "/u/mfa-otp-challenge", url.Values{"code": {"000000"}})
+			if bad.Code != 400 {
+				t.Fatalf("bad proof %d", bad.Code)
+			}
+			f.page(t, "/u/mfa-otp-challenge")
+			proof := f.post(t, "/u/mfa-otp-challenge", url.Values{"code": {otpAt(secret, *f.clock)}})
+			loc, _ = url.Parse(proof.Header().Get("Location"))
+			if proof.Code != 303 || loc.Path != "/u/reset-password" {
+				t.Fatalf("proof %d %s %s", proof.Code, loc, proof.Body)
+			}
+			tk, _ = f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
+			if tk.ChallengePassedAt == nil || tk.UsedAt != nil {
+				t.Fatalf("ticket=%+v", tk)
+			}
+			for _, c := range proof.Result().Cookies() {
+				if c.Name == "za_session" {
+					t.Fatal("reset proof established SSO")
+				}
+			}
+			req := httptest.NewRequest("GET", "https://acme.example.test/", nil)
+			for _, c := range f.b.cookies {
+				req.AddCookie(c)
+			}
+			sess, err := f.h.Sessions.Lookup(ctx, req, tn)
+			if err != nil || existing == nil && sess != nil {
+				t.Fatalf("reset proof logged in: %+v %v", sess, err)
+			}
+			if existing != nil && (sess == nil || sess.ID != existing.ID || !sess.MFAAt.IsZero() || !sess.LastInteractedAt.Equal(existing.LastInteractedAt)) {
+				t.Fatalf("reset proof changed existing SSO: before=%+v after=%+v", existing, sess)
+			}
+			page = f.b.do(t, "GET", loc.RequestURI(), nil)
+			done := submit(t, f.b, page, raw, "new password 123")
+			if done.Code != 302 || done.Header().Get("Location") != "https://app.acme.test/done" {
+				t.Fatalf("reset %d %s", done.Code, done.Body)
+			}
+		})
+	}
+}
+
+// All changes occur after reset authority is issued. None may turn that
+// proof-only authority into a reset pass, SSO session, or new enrollment.
+func TestResetPostChallengeChallengeWithBoundaries(t *testing.T) {
+	for _, change := range []string{"password", "epoch", "email", "blocked", "expired", "used", "cookie", "browser", "no-factor"} {
+		t.Run(change, func(t *testing.T) {
+			f := newMFAFixture(t)
+			f.policy(t, "otp")
+			secret := f.enrolled(t, "otp", false)
+			ctx := context.Background()
+			tn, _ := f.st.Tenants().Get(ctx, f.tn.ID)
+			tn.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+			if err := f.st.Tenants().Update(ctx, tn); err != nil {
+				t.Fatal(err)
+			}
+			a := actionstest.NewOffline(t, f.st, f.h.Authz.Wrapper)
+			f.h.Actions = a.Engine
+			a.Bind(t, tn.ID, actions.TriggerResetPostChallenge, a.Deploy(t, tn.ID, actions.TriggerResetPostChallenge, "bound-reset-mfa", `exports.onExecutePostChallenge=(event,api)=>api.authentication.challengeWith({type:'otp'});`))
+			if change == "no-factor" {
+				if err := f.st.MFA().DeleteUserAuthenticators(ctx, tn.ID, f.uid, nil); err != nil {
+					t.Fatal(err)
+				}
+			}
+			raw := f.issueTicket(t, aliceLogin, time.Hour)
+			rec := f.b.do(t, "GET", "/u/reset-password?ticket="+raw, nil)
+			loc, _ := url.Parse(rec.Header().Get("Location"))
+			if change == "no-factor" {
+				if rec.Code != 400 {
+					t.Fatalf("reset enrolled instead of requiring proof %d", rec.Code)
+				}
+				aa, _ := f.st.MFA().ListAuthenticators(ctx, tn.ID, f.uid)
+				if len(aa) != 0 {
+					t.Fatal("reset created authenticator")
+				}
+				return
+			}
+			if rec.Code != 303 {
+				t.Fatalf("start %d %s", rec.Code, rec.Body)
+			}
+			f.state = loc.Query().Get("state")
+			f.page(t, "/u/mfa")
+			// A direct password form submit cannot skip proof, even with the reset CSRF.
+			direct := f.b.do(t, "POST", "/u/reset-password", url.Values{"ticket": {raw}, "csrf": {f.b.cookies[resetCookie].Value}, "password": {"new password 123"}, "password_confirm": {"new password 123"}})
+			if direct.Code != 400 {
+				t.Fatalf("direct bypass %d", direct.Code)
+			}
+			u, _ := f.st.Users().Get(ctx, tn.ID, f.uid)
+			switch change {
+			case "password":
+				_, _ = f.st.Users().BumpVersion(ctx, tn.ID, f.uid)
+			case "epoch":
+				_ = f.st.MFA().BumpRememberEpoch(ctx, tn.ID, f.uid)
+			case "email":
+				u.Email = "changed@example.test"
+				_ = f.st.Users().Update(ctx, u)
+			case "blocked":
+				u.Blocked = true
+				_ = f.st.Users().Update(ctx, u)
+			case "expired":
+				*f.clock = f.clock.Add(2 * time.Hour)
+			case "used":
+				_, _ = f.st.PasswordResetTickets().Consume(ctx, tn.ID, secrets.HashToken(raw), *f.clock)
+			case "cookie":
+				f.b.cookies[resetCookie].Value = "other-page"
+			case "browser":
+				f.b = f.browser(f.b.host)
+			}
+			proof := f.post(t, "/u/mfa-otp-challenge", url.Values{"code": {otpAt(secret, *f.clock)}})
+			if proof.Code == 200 || strings.Contains(proof.Header().Get("Location"), "/u/reset-password?ticket=") {
+				t.Fatalf("stale authority accepted %d %s", proof.Code, proof.Header().Get("Location"))
+			}
+			tk, _ := f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
+			if tk.ChallengePassedAt != nil {
+				t.Fatal("stale authority passed ticket")
+			}
+		})
+	}
+}
+
+func TestResetPostChallengeMFACookieIngressPrivacy(t *testing.T) {
+	f := newMFAFixture(t)
+	bearer := "reset-cookie-bearer-must-be-masked"
+	output := &syncBuffer{}
+	logger := slog.New(logscrub.Handler(slog.NewJSONHandler(output, nil)))
+	handler := tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.h.MFAPage(w, r)
+		// Probe the real sink at the rejected request boundary; no production
+		// event is emitted for an invalid hosted transaction.
+		logger.InfoContext(r.Context(), "rejected MFA page boundary", "user_agent", r.UserAgent())
+	}))
+	req := httptest.NewRequest("GET", "https://acme.example.test/u/mfa?state=invalid", nil)
+	req.AddCookie(&http.Cookie{Name: "za_reset_mfa", Value: bearer})
+	req.Header.Set("User-Agent", "client "+bearer)
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+	if strings.Contains(output.String(), bearer) || !strings.Contains(output.String(), "client ") {
+		t.Fatalf("MFA ingress leaked bearer %s", output.String())
+	}
+}
+
+func TestResetPostChallengeChallengeWithRedirect(t *testing.T) {
+	f := newMFAFixture(t)
+	f.policy(t, "otp")
+	secret := f.enrolled(t, "otp", false)
+	ctx := context.Background()
+	tn, _ := f.st.Tenants().Get(ctx, f.tn.ID)
+	tn.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+	if err := f.st.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	a := actionstest.NewOffline(t, f.st, f.h.Authz.Wrapper)
+	f.h.Actions = a.Engine
+	f.h.Authz.Actions = a.Engine
+	f.h.Authz.ResetContinue = f.h.ResetContinue
+	a.Bind(t, tn.ID, actions.TriggerResetPostChallenge, a.Deploy(t, tn.ID, actions.TriggerResetPostChallenge, "reset-mfa-redirect", `exports.onExecutePostChallenge=(event,api)=>{api.authentication.challengeWith({type:'otp'});api.redirect.sendUserTo('https://ext.example.test/');};exports.onContinuePostChallenge=(event,api)=>api.transaction.setResultUrl('https://app.acme.test/done');`))
+	old := f.srv
+	cont := tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(f.h.Authz.Continue))
+	f.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/continue" {
+			cont.ServeHTTP(w, r)
+		} else {
+			old.ServeHTTP(w, r)
+		}
+	})
+	raw := f.issueTicket(t, aliceLogin, time.Hour)
+	state := redirectState(t, f.b, raw)
+	rec := f.b.do(t, "GET", "/continue?state="+state, nil)
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	if rec.Code != 303 || loc.Path != "/u/mfa" {
+		t.Fatalf("redirect lost MFA effect %d %s", rec.Code, loc)
+	}
+	f.state = loc.Query().Get("state")
+	f.page(t, "/u/mfa")
+	rec = f.post(t, "/u/mfa-otp-challenge", url.Values{"code": {otpAt(secret, *f.clock)}})
+	loc, _ = url.Parse(rec.Header().Get("Location"))
+	if rec.Code != 303 || loc.Path != "/u/reset-password" {
+		t.Fatalf("proof %d %s", rec.Code, loc)
+	}
+	tk, _ := f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
+	if tk.ChallengePassedAt == nil || tk.UsedAt != nil || tk.ChallengeResultURL != "https://app.acme.test/done" {
+		t.Fatalf("redirect result not preserved: %+v", tk)
 	}
 }

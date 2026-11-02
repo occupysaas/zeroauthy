@@ -529,7 +529,9 @@
         "transaction",
         "user",
         "session",
-        "refresh_token"
+        "refresh_token",
+        "user.enrolledFactors",
+        "authentication.methods"
       ],
       "api": [
         {
@@ -746,27 +748,27 @@
         },
         {
           "name": "authentication.challengeWith",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
         },
         {
           "name": "authentication.challengeWithAny",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
         },
         {
           "name": "authentication.enrollWith",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
         },
         {
           "name": "authentication.enrollWithAny",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
         },
         {
           "name": "authentication.recordMethod",
@@ -782,9 +784,9 @@
         },
         {
           "name": "multifactor.enable",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
         },
         {
           "name": "prompt.render",
@@ -1019,15 +1021,15 @@
         },
         {
           "name": "authentication.challengeWith",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed (D-0054)"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
         },
         {
           "name": "authentication.challengeWithAny",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed (D-0054)"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
         },
         {
           "name": "redirect.sendUserTo",

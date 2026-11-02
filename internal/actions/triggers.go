@@ -27,7 +27,7 @@ type triggerSpec struct {
 
 // The frozen inventory is authoritative for handlers and API capabilities.
 // In particular reset redirect.canRedirect is a local helper (D-0054), while
-// challengeWith/challengeWithAny and prompt.render deliberately fail closed.
+// MFA members enforce the frozen Plan 33 contract; prompt.render fails closed.
 var triggerSpecs = func() map[string]triggerSpec {
 	out := map[string]triggerSpec{}
 	for _, t := range actionsrules.Inventory().Triggers {

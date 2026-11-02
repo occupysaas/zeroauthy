@@ -195,6 +195,12 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	if in.User != nil {
+		in.EnrolledFactors, err = e.enrolledFactors(ctx, tenantID, in.User.UserID)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+	}
 	ctx = eventcontext.Enrich(ctx, in.Client, in.Connection)
 	// Resolve only the bound ID; caller-provided snapshots cannot select a
 	// different organization. The input is sealed unchanged on suspension.
@@ -233,6 +239,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		}
 		f.acc.eff.RBAC = &RBACSnapshot{Audience: in.ResourceServer.Identifier, Permissions: append([]string{}, snapshot.Permissions...)}
 	}
+	f.acc.customizeMFA, _ = in.Tenant.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
 	f.event = func() map[string]any { return postLoginEvent(&in, names, f.acc) }
 	return e.run(ctx, f, in.User)
 }
@@ -567,9 +574,19 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	out := &stepOut{commands: resp.Commands, logs: resp.Logs, red: red}
 	// An unsupported call fails the flow even when the Action caught it.
 	for _, c := range resp.Commands {
-		if c.Op == "unsupported" {
+		if c.Op == "unsupported" || c.Op == "invalid_api_call" {
 			err := f.acc.apply(c)
 			return out, &maskedError{msg: red.RedactLineContext(ctx, err.Error()), err: err}
+		}
+	}
+	// Validate MFA calls even if later Action code threw. Invalid arguments
+	// have the protocol's invalid_api_call classification, and cannot be hidden.
+	trial := *f.acc
+	for _, c := range resp.Commands {
+		if mfaSchemas[c.Op] != nil {
+			if err := trial.apply(c); err != nil {
+				return out, &maskedError{msg: red.RedactLineContext(ctx, err.Error()), err: err}
+			}
 		}
 	}
 	if resp.Error != nil {

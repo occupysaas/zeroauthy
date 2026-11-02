@@ -101,7 +101,8 @@ func TestCommandsRejectUnknown(t *testing.T) {
 		ok                bool
 	}{
 		{TriggerPostLogin, "access.foo", `[]`, false},
-		{TriggerPostLogin, "multifactor.enable", `["any"]`, false},
+		{TriggerPostLogin, "multifactor.enable", `["any"]`, true},
+		{TriggerPostLogin, "multifactor.enable", `["unknown"]`, false},
 		{TriggerPostLogin, "unsupported", `["session.revoke"]`, false},
 		{TriggerPostLogin, "accessToken.addScope", `["x"]`, true},
 		{TriggerPostLogin, "accessToken.addScope", `["x y"]`, false},

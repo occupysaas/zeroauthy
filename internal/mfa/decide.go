@@ -13,6 +13,7 @@ type Requirement struct {
 	Required, Enroll, AlwaysPrompt, AllowRemember bool
 	Factors                                       []string
 	Reason                                        string
+	SelectFactor                                  bool
 }
 type DecideInput struct {
 	Settings                   *store.GuardianSettings
@@ -47,6 +48,7 @@ func Decide(in DecideInput) (Requirement, error) {
 				return r, ErrNoFactor
 			}
 			r.AlwaysPrompt, r.AllowRemember, r.Enroll = true, false, e.Mode == "enroll"
+			r.SelectFactor = e.Any
 			requested = nil
 			for _, group := range e.Factors {
 				for _, f := range group {
@@ -110,11 +112,16 @@ func Decide(in DecideInput) (Requirement, error) {
 			continue
 		}
 		if f == "otp" || f == "email" {
-			enroll = append(enroll, f)
+			if e == nil || e.Mode != "enroll" || !confirmed[f] {
+				enroll = append(enroll, f)
+			}
 		}
 		if confirmed[f] {
 			usable = append(usable, f)
 		}
+	}
+	if e != nil && e.Mode == "challenge" && len(usable) == 0 {
+		return r, ErrNoFactor
 	}
 	if r.Enroll || len(usable) == 0 {
 		r.Enroll = true

@@ -221,9 +221,18 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, accessDenied("authenticator type is not permitted"))
 		return
 	}
-	enrollment, err := h.MFA.BeginEnroll(r.Context(), res.Tenant.ID, caller.uid, factor, "")
+	svc := h.MFA
+	actionEnroll := caller.request != nil && caller.request.Effects != nil && caller.request.Effects.MFA != nil && caller.request.Effects.MFA.Mode == "enroll"
+	if actionEnroll {
+		svc = svc.WithNewFactorEnrollment()
+	}
+	enrollment, err := svc.BeginEnroll(r.Context(), res.Tenant.ID, caller.uid, factor, "")
 	if err != nil {
-		writeError(w, mfaError(err))
+		if actionEnroll && errors.Is(err, mfa.ErrNoFactor) {
+			writeError(w, accessDenied("authenticator type is already enrolled"))
+		} else {
+			writeError(w, mfaError(err))
+		}
 		return
 	}
 	body := map[string]any{}

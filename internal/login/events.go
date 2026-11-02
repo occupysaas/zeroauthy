@@ -41,6 +41,9 @@ func (h *Handlers) maskRequest(r *http.Request) {
 			}
 		}
 	}
+	if cookie, err := r.Cookie("za_reset_mfa"); err == nil {
+		values = append(values, cookie.Value)
+	}
 	ctx := events.WithContext(r.Context(), events.FromRequest(r))
 	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, values...), values...)
 	*r = *r.WithContext(logs.WithRecorder(ctx, h.Recorder))

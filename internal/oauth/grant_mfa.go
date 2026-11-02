@@ -239,7 +239,7 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 				// explicit Action enroll request authorizes an additional one.
 				explicitEnroll := p.Effects != nil && p.Effects.MFA != nil && p.Effects.MFA.Mode == "enroll"
 				if explicitEnroll {
-					confirmed, err = svc.ConfirmEnroll(ctx, t.TenantID, uid, enrollment, mfa.Proof{Code: code})
+					confirmed, err = svc.WithNewFactorEnrollment().ConfirmEnroll(ctx, t.TenantID, uid, enrollment, mfa.Proof{Code: code})
 				} else {
 					confirmed, err = svc.ConfirmFirstEnroll(ctx, t.TenantID, uid, enrollment, mfa.Proof{Code: code})
 				}

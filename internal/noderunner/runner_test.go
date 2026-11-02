@@ -348,9 +348,9 @@ func TestActionsRunnerVersions(t *testing.T) {
 	if resp.Error == nil {
 		t.Fatal("missing handler did not fail")
 	}
-	// Unsupported api namespaces throw rather than being silently skipped.
+	// MFA members record commands for authoritative Go argument validation.
 	resp = callAction(t, p, "t1", actionRequest{VersionKey: "d", Code: `exports.onExecutePostLogin = async (event, api) => { api.multifactor.enable("any"); };`})
-	if resp.Error == nil || !strings.Contains(resp.Error.Message, "not supported") {
+	if resp.Error != nil || len(resp.Commands) != 1 || resp.Commands[0].Op != "multifactor.enable" {
 		t.Fatalf("multifactor: %+v", resp)
 	}
 	// console output is captured per call.
@@ -378,6 +378,20 @@ func TestCallRejectsReservedID(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), `"id"`) || time.Since(start) > time.Second {
 			t.Fatalf("err = %v after %v", err, time.Since(start))
+		}
+	}
+}
+
+func TestMultifactorMFACommands(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "t1"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	p := actionsPool(t, root)
+	for _, call := range []struct{ op, args string }{{"multifactor.enable", `'any',{allowRememberBrowser:true}`}, {"authentication.challengeWith", `{type:'otp'},{additionalFactors:[{type:'email'}]}`}, {"authentication.challengeWithAny", `[{type:'otp'},{type:'email'}]`}, {"authentication.enrollWith", `{type:'otp'}`}, {"authentication.enrollWithAny", `[{type:'otp'}]`}} {
+		resp := callAction(t, p, "t1", actionRequest{VersionKey: call.op, Code: `exports.onExecutePostLogin=(event,api)=>api.` + call.op + `(` + call.args + `);`})
+		if resp.Error != nil || len(resp.Commands) != 1 || resp.Commands[0].Op != call.op {
+			t.Fatalf("%s: %+v", call.op, resp)
 		}
 	}
 }

@@ -13,10 +13,12 @@ type RBACSnapshot struct {
 	Permissions []string `json:"permissions"`
 }
 
-// MFAEffects carries the post-login MFA instruction; the runner fills it in Task 10.
+// MFAEffects carries validated Action MFA instructions. Each Factors entry is
+// one call's ordered set of primary and alternative factors.
 type MFAEffects struct {
 	Provider             string
 	AllowRememberBrowser bool
+	Any                  bool // the Action requested an initial factor selector
 	Mode                 string
 	Factors              [][]string
 }

@@ -673,3 +673,46 @@ func TestNilEnrollmentAndChallengeProof(t *testing.T) {
 		t.Fatalf("nil challenge=%v", err)
 	}
 }
+
+func TestEnrollNewFactorConcurrent(t *testing.T) {
+	f := newServiceFixture(t)
+	svc := f.svc.WithNewFactorEnrollment()
+	a, err := svc.BeginEnroll(f.ctx, "tenant", "user", "otp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := svc.BeginEnroll(f.ctx, "tenant", "user", "otp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcomes := make(chan error, 2)
+	for _, e := range []*Enrollment{a, b} {
+		go func(e *Enrollment) {
+			_, err := svc.ConfirmEnroll(f.ctx, "tenant", "user", e, Proof{Code: codeAt(t, e.Secret, f.now)})
+			outcomes <- err
+		}(e)
+	}
+	successes := 0
+	for range 2 {
+		err := <-outcomes
+		if err == nil {
+			successes++
+		} else if !errors.Is(err, ErrInvalidCode) {
+			t.Fatal(err)
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("same-type Action enroll successes=%d", successes)
+	}
+	if _, err = svc.BeginEnroll(f.ctx, "tenant", "user", "otp", ""); !errors.Is(err, ErrNoFactor) {
+		t.Fatalf("same-type association %v", err)
+	}
+	// Existing ticket-purpose callers retain allow-multiple behavior.
+	extra, err := f.svc.BeginEnroll(f.ctx, "tenant", "user", "otp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.svc.ConfirmEnroll(f.ctx, "tenant", "user", extra, Proof{Code: codeAt(t, extra.Secret, f.now)}); err != nil {
+		t.Fatalf("ordinary explicit multiple enrollment %v", err)
+	}
+}

@@ -84,8 +84,9 @@ type cacheOp struct {
 // accum accumulates a flow's effects from validated commands. Nothing the
 // runner sends is used before it passes apply.
 type accum struct {
-	trigger     string
-	canRedirect bool
+	trigger      string
+	canRedirect  bool
+	customizeMFA bool
 
 	eff          Effects
 	target       []string // current target scopes
@@ -162,6 +163,10 @@ func argScope(c command, i int) (string, error) {
 // apply validates one command against the trigger's api and accumulates it.
 // Unknown ops, unsupported members and invalid arguments are errors.
 func (a *accum) apply(c command) error {
+	if c.Op == "invalid_api_call" {
+		member, _ := optString(c, 0, "member")
+		return invalid(member, "arguments must be JSON values")
+	}
 	if c.Op == "unsupported" {
 		member, _ := optString(c, 0, "member")
 		return fmt.Errorf("%w: api.%s", ErrUnsupported, member)
@@ -170,6 +175,8 @@ func (a *accum) apply(c command) error {
 		return invalid(c.Op, "not available in the %s trigger", a.trigger)
 	}
 	switch c.Op {
+	case "multifactor.enable", "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny":
+		return a.applyMFA(c)
 	case "access.deny":
 		return a.deny(c)
 	case "validation.error":

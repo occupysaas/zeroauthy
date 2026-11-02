@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -328,6 +329,44 @@ func (h *Handlers) resetOutcome(w http.ResponseWriter, r *http.Request, res tena
 		return false
 	case result.ExecutionID == "":
 		return true // nothing bound
+	}
+	if result.Effects.MFA != nil {
+		if h.MFA == nil || h.Authz == nil || h.Authz.Wrapper == nil {
+			http.Error(w, "mfa_unavailable", 501)
+			return false
+		}
+		tk, e := h.Store.PasswordResetTickets().GetByTokenHash(ctx, res.Tenant.ID, secrets.HashToken(raw))
+		if e != nil {
+			h.fail(w, r, e, nil)
+			return false
+		}
+		u, e := h.Store.Users().Get(ctx, res.Tenant.ID, tk.UserID)
+		if e != nil || u.Blocked {
+			h.renderResetError(w, view, resetInvalid)
+			return false
+		}
+		g, e := h.Store.MFA().GetGuardian(ctx, res.Tenant.ID)
+		if e != nil {
+			h.fail(w, r, e, nil)
+			return false
+		}
+		aa, e := h.Store.MFA().ListAuthenticators(ctx, res.Tenant.ID, u.UserID)
+		if e != nil {
+			h.fail(w, r, e, nil)
+			return false
+		}
+		customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
+		req, e := mfa.Decide(mfa.DecideInput{Settings: g, Effects: result.Effects.MFA, Authenticators: aa, CustomizeInActions: customize})
+		if e != nil || !req.Required || req.Enroll {
+			h.renderResetError(w, view, resetInvalid)
+			return false
+		}
+		http.SetCookie(w, &http.Cookie{Name: "za_reset_mfa", Value: raw, Path: "/u", MaxAge: 900, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		if e = h.Authz.StartMFAReset(w, r, res, u, tk, page, req, result.ResultURL); e != nil {
+			h.fail(w, r, e, nil)
+		}
+		return false
 	}
 	err = h.Store.PasswordResetTickets().MarkChallengePassed(ctx, res.Tenant.ID, secrets.HashToken(raw), h.now(), result.ResultURL)
 	switch {

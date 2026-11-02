@@ -776,19 +776,9 @@ func TestMFAForcedEnrollmentRejectsExistingMethod(t *testing.T) {
 	u, _ := f.st.Users().Get(ctx, tid, f.aliceID(t))
 	conn, _ := f.st.Connections().GetByName(ctx, tid, "Username-Password-Authentication")
 	required := f.h.passwordMFA(ctx, tenant.Resolved{Tenant: tn, Host: acmeHost}, c, u, conn, acmeAPI, []string{"openid"}, []string{"openid"}, &actions.Effects{MFA: &actions.MFAEffects{Mode: "enroll", Factors: [][]string{{"otp"}}}}, f.h.now())
-	if required == nil || required.MFAToken == "" {
-		t.Fatalf("forced enrollment=%v", required)
+	if required == nil || required.Code != "access_denied" || required.MFAToken != "" {
+		t.Fatalf("already-enrolled Action type accepted: %v", required)
 	}
-	tok = required.MFAToken
-	w, b := f.call(t, false, tokenCall{host: acmeHost, form: mfaForm(otpGrant, tok, "otp", otpAt(old, f.h.now()))})
-	if w.Code != 400 || b["error"] != "invalid_grant" {
-		t.Fatalf("existing method bypassed enrollment=%d %v", w.Code, b)
-	}
-	w, b = f.mfaAPI(t, "POST", "/mfa/associate", tok, `{"authenticator_types":["otp"]}`)
-	if w.Code != 200 || b["recovery_codes"] != nil {
-		t.Fatalf("second enrollment recovery redisplay=%d %v", w.Code, b)
-	}
-	f.proveOTP(t, tok, b["secret"].(string))
 }
 
 func TestMFAGrantHonorsCurrentClientGrant(t *testing.T) {
@@ -854,5 +844,47 @@ func TestMFAUnavailableActionSkip(t *testing.T) {
 	}
 	if e := f.h.passwordMFA(ctx, res, c, u, conn, acmeAPI, nil, nil, &actions.Effects{MFA: &actions.MFAEffects{Provider: "any"}}, f.h.now()); e == nil || e.Status != 501 {
 		t.Fatalf("required unavailable MFA=%v", e)
+	}
+}
+
+func TestMFAActionEnrollStaleTypeFailsClosed(t *testing.T) {
+	f, _ := mfaFixture(t)
+	ctx := context.Background()
+	tid := f.tenantID(t, "acme")
+	tn, _ := f.st.Tenants().Get(ctx, tid)
+	tn.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+	c, _ := f.st.Clients().Get(ctx, tid, "ropg")
+	u, _ := f.st.Users().Get(ctx, tid, f.aliceID(t))
+	conn, _ := f.st.Connections().GetByName(ctx, tid, "Username-Password-Authentication")
+	required := f.h.passwordMFA(ctx, tenant.Resolved{Tenant: tn, Host: acmeHost}, c, u, conn, acmeAPI, []string{"openid"}, []string{"openid"}, &actions.Effects{MFA: &actions.MFAEffects{Mode: "enroll", Factors: [][]string{{"otp"}}}}, f.h.now())
+	if required == nil || required.MFAToken == "" {
+		t.Fatal(required)
+	}
+	token := required.MFAToken
+	secret, _ := f.associateOTP(t, token)
+	other, err := f.h.MFA.BeginEnroll(ctx, tid, u.UserID, "otp", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.h.MFA.ConfirmEnroll(ctx, tid, u.UserID, other, mfa.Proof{Code: otpAt(other.Secret, f.h.now())}); err != nil {
+		t.Fatal(err)
+	}
+	w, b := f.mfaAPI(t, "POST", "/mfa/associate", token, `{"authenticator_types":["otp"]}`)
+	if w.Code != 403 || b["error"] != "access_denied" {
+		t.Errorf("stale Action associated enrolled type: %d %v", w.Code, b)
+	}
+	w, b = f.call(t, false, tokenCall{host: acmeHost, form: mfaForm(otpGrant, token, "otp", otpAt(secret, f.h.now()))})
+	if w.Code == 200 || b["access_token"] != nil {
+		t.Fatalf("stale Action enrolled existing type: %d %v", w.Code, b)
+	}
+	aa, _ := f.st.MFA().ListAuthenticators(ctx, tid, u.UserID)
+	confirmed := 0
+	for _, a := range aa {
+		if a.Type == "totp" && a.Confirmed {
+			confirmed++
+		}
+	}
+	if confirmed != 1 {
+		t.Fatalf("confirmed OTP count=%d", confirmed)
 	}
 }

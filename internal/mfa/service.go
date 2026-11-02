@@ -38,13 +38,14 @@ type EmailSender interface {
 // Service is shared by hosted login and OAuth grants. No proof/replay state is
 // process-local. Recorder may be set explicitly; otherwise use the request sink.
 type Service struct {
-	Recorder    logs.Recorder
-	st          store.Store
-	sealer      keys.Wrapper
-	mail        EmailSender
-	th          Throttle
-	now         func() time.Time
-	proofCommit func(store.Store) error
+	Recorder      logs.Recorder
+	st            store.Store
+	sealer        keys.Wrapper
+	mail          EmailSender
+	th            Throttle
+	now           func() time.Time
+	proofCommit   func(store.Store) error
+	newFactorOnly bool
 }
 
 // NewService uses the repository's master-key wrapper and atomic protection
@@ -154,7 +155,29 @@ func (s *Service) BeginEnroll(ctx context.Context, tid, uid, factor, rpID string
 		}
 		a.Email = user.Email
 	}
-	if err = s.st.MFA().CreateAuthenticator(ctx, a); err != nil {
+	create := func(tx store.Store) error {
+		if s.newFactorOnly {
+			if _, e := tx.Users().GetForUpdate(ctx, tid, uid); e != nil {
+				return e
+			}
+			list, e := tx.MFA().ListAuthenticators(ctx, tid, uid)
+			if e != nil {
+				return e
+			}
+			for _, other := range list {
+				if other.Confirmed && other.Type == typ {
+					return ErrNoFactor
+				}
+			}
+		}
+		return tx.MFA().CreateAuthenticator(ctx, a)
+	}
+	if s.newFactorOnly {
+		err = s.st.WithTx(ctx, create)
+	} else {
+		err = create(s.st)
+	}
+	if err != nil {
 		return nil, err
 	}
 	c, err := s.beginChallenge(ctx, tid, uid, a)
@@ -301,13 +324,13 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 			proofErr = ErrInvalidCode
 			return nil
 		}
-		if enroll && firstOnly {
+		if enroll && (firstOnly || s.newFactorOnly) {
 			list, e := tx.MFA().ListAuthenticators(ctx, tid, uid)
 			if e != nil {
 				return e
 			}
 			for _, other := range list {
-				if other.Confirmed && other.Type != "recovery-code" {
+				if other.Confirmed && (firstOnly && other.Type != "recovery-code" || s.newFactorOnly && other.Type == current.Type) {
 					return ErrInvalidCode
 				}
 			}
@@ -565,4 +588,14 @@ func (s *Service) BeginOTPChallenge(ctx context.Context, tid, uid, code string, 
 		return nil, ErrNoFactor
 	}
 	return s.BeginChallenge(ctx, tid, uid, chosen.ID, "")
+}
+
+// WithNewFactorEnrollment returns a request-local view for Actions enrollWith*.
+// Both association and confirmation reject an already-confirmed method of the
+// requested type under the same per-user lock used by every enrollment proof.
+// Enrollment tickets with allow_multiple_enrollments must use the ordinary view.
+func (s *Service) WithNewFactorEnrollment() *Service {
+	local := *s
+	local.newFactorOnly = true
+	return &local
 }

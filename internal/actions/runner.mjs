@@ -254,7 +254,15 @@ const cloneInto = (parse, v) => parse(JSON.stringify(v));
 function buildApi(req, commands, event, parse) {
   const api = {};
   const selected = {};
-  const record = (op, args) => { commands.push({ op, args: json(op, args) }); return selected; };
+  const record = (op, args) => {
+    try { commands.push({ op, args: json(op, args) }); }
+    catch (error) {
+      // A caught serialization error must not silently drop an MFA request.
+      if (op === 'multifactor.enable' || op.startsWith('authentication.')) commands.push({ op: 'invalid_api_call', args: [op] });
+      throw error;
+    }
+    return selected;
+  };
   const method = (ns, name) => (...args) => record(ns + '.' + name, args);
   const ns = (name, methods) => Object.fromEntries(methods.map((m) => [m, method(name, m)]));
   const unsupported = (name) => new Proxy({}, {
@@ -417,6 +425,9 @@ function buildApi(req, commands, event, parse) {
   api.groups = { getUserGroups: () => out({ groups: [] }), hasGroupMembership: () => Promise.resolve(false) };
   api.rules = { wasExecuted: () => false };
   for (const name of unsupportedNamespaces) api[name] = unsupported(name);
+  api.multifactor = ns('multifactor', ['enable']);
+  api.authentication = ns('authentication', ['challengeWith', 'challengeWithAny', 'enrollWith', 'enrollWithAny']);
+
   // Only capabilities sent by the server are exposed. The same frozen
   // inventory drives Go's command allowlist; helper/read methods are local.
   const unsupportedMembers = new Set(req.unsupported_api ?? []);

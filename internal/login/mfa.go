@@ -39,6 +39,7 @@ func (h *Handlers) mfaInvalid(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/authorize/resume?error=invalid_request", http.StatusSeeOther)
 }
 func (h *Handlers) loadMFA(w http.ResponseWriter, r *http.Request, post bool) *mfaFlow {
+	h.maskRequest(r)
 	var f *flow
 	var err error
 	if post {
@@ -58,10 +59,14 @@ func (h *Handlers) loadMFA(w http.ResponseWriter, r *http.Request, post bool) *m
 		http.Error(w, "mfa_unavailable", http.StatusNotImplemented)
 		return nil
 	}
-	sess, err := h.Authz.ActiveSession(r.Context(), r, f.res)
-	if err != nil {
-		h.mfaInvalid(w, r)
-		return nil
+	var sess *store.LoginSession
+	isolated := f.txn.ClientID == "" && (f.txn.Params["za_mfa_ticket"] == "1" || f.txn.Params["za_mfa_reset"] == "1")
+	if !isolated {
+		sess, err = h.Authz.ActiveSession(r.Context(), r, f.res)
+		if err != nil {
+			h.mfaInvalid(w, r)
+			return nil
+		}
 	}
 	pending, err := h.Authz.PendingMFA(r.Context(), r, f.res, f.txn, sess)
 	if err != nil {
@@ -206,7 +211,11 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 	if factor != "recovery-code" {
 		if f.pending.Requirement.Enroll {
 			var e *mfa.Enrollment
-			e, err = h.MFA.BeginEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, factor, r.Host)
+			svc := h.MFA
+			if f.pending.Requirement.Reason == "action" {
+				svc = svc.WithNewFactorEnrollment()
+			}
+			e, err = svc.BeginEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, factor, r.Host)
 			if err == nil {
 				f.page.AuthenticatorID = e.AuthenticatorID
 				f.page.ChallengeID = e.ChallengeID
@@ -272,7 +281,7 @@ func (h *Handlers) MFAPage(w http.ResponseWriter, r *http.Request) {
 			v, _ := show["mfa_show_factor_list_on_enrollment"].(bool)
 			flag = flag || v
 		}
-		if r.URL.Query().Get("action") == "another" || f.pending.Requirement.Enroll && (len(f.pending.Requirement.Factors) > 1 || flag && f.pending.Requirement.Reason != "action") {
+		if r.URL.Query().Get("action") == "another" || f.pending.Requirement.SelectFactor && len(f.pending.Requirement.Factors) > 1 || f.pending.Requirement.Enroll && f.pending.Requirement.Reason != "action" && (len(f.pending.Requirement.Factors) > 1 || flag) {
 			f.page.Factor = ""
 			h.renderMFA(w, r, 200, f, "", "")
 			return
@@ -417,7 +426,11 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if f.pending.Requirement.Enroll {
 		var result *mfa.Confirmed
-		confirm := h.MFA.ConfirmEnroll
+		svc := h.MFA
+		if f.pending.Requirement.Reason == "action" {
+			svc = svc.WithNewFactorEnrollment()
+		}
+		confirm := svc.ConfirmEnroll
 		if f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple {
 			confirm = h.MFA.ConfirmFirstEnroll
 		}
@@ -465,6 +478,21 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) finishMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow) {
 	if !f.page.Proven {
 		h.fail(w, r, errTxn, f.flow)
+		return
+	}
+	if f.pending.Requirement.Reason == "reset" {
+		if err := h.Authz.CompleteMFAReset(w, r, f.res, f.txn); err != nil {
+			h.fail(w, r, errTxn, f.flow)
+			return
+		}
+		cookie, err := r.Cookie("za_reset_mfa")
+		if err != nil {
+			h.fail(w, r, errTxn, f.flow)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{Name: "za_reset_mfa", Value: "", Path: "/u", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		http.Redirect(w, r, "/u/reset-password?"+url.Values{"ticket": {cookie.Value}}.Encode(), http.StatusSeeOther)
 		return
 	}
 	if f.pending.Requirement.Reason != "ticket" {

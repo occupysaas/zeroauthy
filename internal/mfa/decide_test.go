@@ -84,3 +84,21 @@ func TestDecideEnrollWhenNoConfirmedFactor(t *testing.T) {
 		t.Fatalf("got %+v %v", got, err)
 	}
 }
+
+func TestDecideActionChallengeNeverEnrolls(t *testing.T) {
+	_, err := Decide(DecideInput{Settings: &store.GuardianSettings{Factors: map[string]bool{"otp": true}}, Effects: &actionresult.MFAEffects{Mode: "challenge", Factors: [][]string{{"otp"}}}, CustomizeInActions: true})
+	if !errors.Is(err, ErrNoFactor) {
+		t.Fatalf("challenge with no enrolled factor accepted: %v", err)
+	}
+}
+func TestDecideActionEnrollExcludesEnrolledType(t *testing.T) {
+	in := DecideInput{Settings: &store.GuardianSettings{Factors: map[string]bool{"otp": true, "email": true}}, Effects: &actionresult.MFAEffects{Mode: "enroll", Factors: [][]string{{"otp", "email"}}}, Authenticators: []store.Authenticator{{Type: "totp", Confirmed: true}}, CustomizeInActions: true}
+	got, err := Decide(in)
+	if err != nil || !reflect.DeepEqual(got.Factors, []string{"email"}) {
+		t.Fatalf("already enrolled type eligible: %+v %v", got, err)
+	}
+	in.Effects.Factors = [][]string{{"otp"}}
+	if _, err = Decide(in); !errors.Is(err, ErrNoFactor) {
+		t.Fatalf("enroll with no new type accepted: %v", err)
+	}
+}

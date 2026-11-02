@@ -110,6 +110,7 @@ type PostLoginInput struct {
 	Client          *store.Client
 	User            *store.User
 	Connection      *store.Connection
+	EnrolledFactors []map[string]any
 	Session         *store.LoginSession
 	Request         RequestInfo
 	Transaction     TransactionInfo
@@ -303,6 +304,18 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 			"metadata": obj(a.eff.TxnMetadata),
 		},
 	}
+	if user, ok := ev["user"].(map[string]any); ok && user != nil {
+		factors := in.EnrolledFactors
+		if factors == nil {
+			factors = []map[string]any{}
+		}
+		user["enrolledFactors"] = factors
+	}
+	methods := []any{}
+	if in.Session != nil && !in.Session.MFAAt.IsZero() {
+		methods = append(methods, map[string]any{"name": "mfa", "timestamp": rfc3339(in.Session.MFAAt)})
+	}
+	ev["authentication"] = map[string]any{"methods": methods}
 	if in.Organization != nil {
 		ev["organization"] = organizationEvent(in.Organization)
 	}
