@@ -33,7 +33,7 @@ export const sections: Section[] = [
   { key: 'roles', label: 'nav.roles', group: 'navGroup.userManagement', path: 'roles', status: 'live' },
   { key: 'organizations', label: 'nav.organizations', group: 'navGroup.userManagement', path: 'organizations', status: 'live' },
   { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: 'live' },
-  { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: { planned: 'later', api: ['/api/v2/guardian/*'] } },
+  { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: 'live' },
   { key: 'actions', label: 'nav.actions', group: 'navGroup.actions', path: 'actions', status: 'live' },
   { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: 'live' },
   { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: 'live' },

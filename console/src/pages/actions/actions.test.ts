@@ -247,3 +247,14 @@ it('allows only one Action bound to custom-email-provider', async () => {
  await click(w, 'Save bindings'); await flushPromises()
  expect(calls.find(c => c.method === 'PATCH')!.body).toMatchObject({ bindings: [{ ref: { value: 'a' } }] })
 })
+
+it.each(['post-login', 'password-reset-post-challenge'])('shows implemented MFA type hints for %s', async trigger => {
+  const { wrapper: w } = await setup('action-editor', '/t/acme/actions/a', () => ok(action('a', { supported_triggers: [{ id: trigger }] })))
+  const hints = w.get('[data-mfa-hints]').text()
+  expect(hints).toContain('challengeWith('); expect(hints).toContain('challengeWithAny(')
+  expect(hints).toContain('additionalFactors?'); expect(hints).toContain('event.user.enrolledFactors')
+  if(trigger === 'post-login') {
+    expect(hints).toContain('enrollWith('); expect(hints).toContain('enrollWithAny(')
+    expect(hints).toContain('allowRememberBrowser?'); expect(hints).toContain('name: "mfa"')
+  } else expect(hints).not.toContain('enrollWith(')
+})

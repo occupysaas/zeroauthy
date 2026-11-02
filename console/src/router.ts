@@ -53,6 +53,7 @@ import UserImportExport from './pages/users/ImportExport.vue'
 import { plannedPages } from './pages/planned'
 import Settings from './pages/settings/TenantSettings.vue'
 import AttackProtection from './pages/attack-protection/AttackProtection.vue'
+import Mfa from './pages/security/Mfa.vue'
 import Branding from './pages/branding/Branding.vue'
 import EmailSettings from './pages/emails/Emails.vue'
 import Root from './pages/Root.vue'
@@ -136,6 +137,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/actions/executions/:id', name: 'execution-view', component: ExecutionView },
   { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },
   { path: '/t/:tenant/settings', name: 'settings', component: Settings },
+  { path: '/t/:tenant/mfa', name: 'mfa', component: Mfa },
   { path: '/t/:tenant/attack-protection', name: 'attack-protection', component: AttackProtection },
   { path: '/t/:tenant/emails', name: 'emails', component: EmailSettings },
   { path: '/t/:tenant/branding', name: 'branding', component: Branding },

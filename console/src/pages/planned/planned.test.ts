@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { defineComponent, h } from 'vue'
 import PlannedPage from './PlannedPage.vue'
 import PreviewTable from './PreviewTable.vue'
@@ -10,11 +10,13 @@ import { isPlanned, sections } from '../../layout/sections'
 import { mountAt } from '../../test/mount'
 
 const never = () => ({ status: 500, body: {} })
+afterEach(() => { const index = sections.findIndex(s => s.key === 'test-planned'); if(index >= 0) sections.splice(index, 1) })
 
 describe('PlannedPage slots', () => {
   it('shows slots and breadcrumb, hiding the placeholder', async () => {
+    sections.push({ key: 'test-planned', label: 'nav.mfa', group: 'navGroup.security', path: 'test-planned', status: { planned: 'later', api: ['/api/v2/example'] } })
     const page = defineComponent({
-      render: () => h(PlannedPage, { sectionKey: 'mfa' }, { default: () => h('p', 'preview body'), actions: () => h('button', { disabled: true }, 'Create user') }),
+      render: () => h(PlannedPage, { sectionKey: 'test-planned' }, { default: () => h('p', 'preview body'), actions: () => h('button', { disabled: true }, 'Create user') }),
     })
     const { wrapper } = await mountAt(page, '/t/acme/mfa', never)
     expect(wrapper.text()).toContain('Security')
@@ -59,7 +61,8 @@ describe('assertPreviewInert', () => {
 })
 
 it('keeps only sections that are still planned', () => {
-  expect(Object.keys(plannedPages).sort()).toEqual(['mfa'])
+  expect(Object.keys(plannedPages).sort()).toEqual([])
+  expect(isPlanned(sections.find(s => s.key === 'mfa')!)).toBe(false)
   expect(isPlanned(sections.find(s => s.key === 'emails')!)).toBe(false)
   for (const key of ['settings', 'attack-protection', 'organizations']) expect(isPlanned(sections.find(s => s.key === key)!)).toBe(false)
 })

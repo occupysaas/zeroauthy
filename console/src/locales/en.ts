@@ -2,6 +2,26 @@ import logInventory from '../../../internal/logrules/inventory.json'
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+  mfa: {
+    userTab: 'MFA', factors: 'Factors', policy: 'Require MFA', never: 'Never', always: 'Always', adaptive: 'Adaptive',
+    adaptiveNote: 'Local rule until Plan 40: Adaptive challenges devices not seen for this user in the last 30 days.',
+    showList: 'Show factor list on enrollment', customize: 'Customize MFA in post-login Actions',
+    enforced: 'Available at login', stored33b: 'Stored for Plan 33b; not offered at login.', stored34: 'Stored for Plan 34; not offered at login.',
+    notPlanned: 'Not planned; stored, not offered at login.', notAvailable: 'Not available; configuration is stored only and is not offered at login.',
+    trialExpired: 'Trial expired', unavailable: 'This storage provider does not support MFA.', storedSettings: 'Stored provider and template settings',
+    secretHint: 'Credentials are write-only. Leave blank to keep the stored credential. New credentials are cleared when submitted.',
+    saved: 'Settings saved.', choose: 'Choose a provider', noMethods: 'No authentication methods enrolled.',
+    type: 'Type', name: 'Name', enrolled: 'Enrolled', lastUsed: 'Last used', deleteOne: 'Delete method', deleteAll: 'Delete all methods',
+    regenerate: 'Regenerate recovery code', invalidate: 'Invalidate remember browser', invite: 'Send enrollment invitation',
+    invitationSent: 'Invitation sent.', browserInvalidated: 'Remember-browser sessions invalidated.', proceed: 'Continue',
+    recoveryTitle: 'New recovery code', recoveryHint: 'Save this code securely. It is shown only once and replaces the previous recovery code.', recoveryDone: 'I saved this code',
+    confirm: { delete: 'Delete authentication method?', all: 'Delete all authentication methods?', recovery: 'Replace recovery code?', invalidate: 'Invalidate remembered browsers?' },
+    confirmBody: { delete: 'This removes the selected authentication method.', all: 'This removes all enrolled methods and invalidates remembered browsers.', recovery: 'The old recovery code will stop working. The replacement will be shown once.', invalidate: 'Remembered browsers will require MFA again.' },
+    factorNames: { 'push-notification': 'Push notification', sms: 'SMS', email: 'Email', duo: 'Duo', otp: 'Authenticator app (TOTP)', 'webauthn-roaming': 'WebAuthn security keys', 'webauthn-platform': 'WebAuthn device biometrics', 'recovery-code': 'Recovery code' },
+    configTitles: { smsTwilio: 'SMS · Twilio', phoneTwilio: 'Phone · Twilio', smsTemplates: 'SMS templates', phoneTemplates: 'Phone templates', smsProvider: 'SMS provider', phoneProvider: 'Phone provider', phoneMessages: 'Phone message types', phoneSettings: 'Phone code settings', apns: 'Push · APNs', fcm: 'Push · FCM', fcmv1: 'Push · FCM v1', sns: 'Push · SNS', pushProvider: 'Push provider', duo: 'Duo settings' },
+    fields: { from: 'Sender', messaging_service_sid: 'Messaging service SID', sid: 'Account SID', auth_token: 'Auth token', enrollment_message: 'Enrollment message', verification_message: 'Verification message', provider: 'Provider', message_types: 'Message types (sms or voice, one per line)', otp_length: 'Code length', otp_expiration_time: 'Code lifetime (seconds)', sandbox: 'Sandbox', bundle_id: 'Bundle ID', p12: 'P12 certificate', server_key: 'Server key', server_credentials: 'Server credentials', aws_access_key_id: 'AWS access key ID', aws_secret_access_key: 'AWS secret access key', aws_region: 'AWS region', sns_apns_platform_application_arn: 'APNs platform application ARN', sns_gcm_platform_application_arn: 'GCM platform application ARN', ikey: 'Integration key', skey: 'Secret key', host: 'API hostname' },
+    actionHints: 'MFA types and API reference', actionHintNote: 'challengeWith and enrollWith require Customize MFA in post-login Actions and cannot be combined with multifactor.enable. Challenges require an enabled enrolled factor; enrollment excludes existing factor types. Only OTP, email and recovery codes are available; phone, push and WebAuthn requests fail as unavailable. Recovery codes cannot be the first or only factor. The guardian provider excludes email, and Duo is unavailable. allowRememberBrowser defaults to false. The MFA authentication method appears on later logins and redirect continuations after proof.',
+  },
   events: {
     title: 'Event streams', create: 'Create event stream', edit: 'Edit event stream', back: 'Back to event streams', backStream: 'Back to stream', name: 'Name', destination: 'Destination', status: 'Status', failures: 'Failed deliveries', controls: 'Controls',
     listHint: 'Subscribe to tenant changes and deliver them to a webhook or Action. Failure counts include retained failed deliveries only.',
@@ -405,7 +425,7 @@ const en = {
     roles: 'Roles',
     organizations: 'Organizations',
     attackProtection: 'Attack protection',
-    mfa: 'Multi-factor',
+    mfa: 'Multi-factor auth',
     actions: 'Actions',
     branding: 'Universal Login',
     emails: 'Email templates',

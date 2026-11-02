@@ -3219,10 +3219,1349 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/guardian/enrollments/ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * CreateGuardianEnrollmentTicket
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        post: operations["CreateGuardianEnrollmentTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/enrollments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianEnrollment
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianEnrollment"];
+        put?: never;
+        post?: never;
+        /**
+         * DeleteGuardianEnrollment
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        delete: operations["DeleteGuardianEnrollment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactors
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/duo/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsDuoSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsDuoSettings"];
+        /**
+         * SetGuardianFactorsDuoSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsDuoSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * UpdateGuardianFactorsDuoSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        patch: operations["UpdateGuardianFactorsDuoSettings"];
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/email/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsEmailSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsEmailSettings"];
+        /**
+         * SetGuardianFactorsEmailSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsEmailSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/phone/message-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPhoneMessageTypes
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPhoneMessageTypes"];
+        /**
+         * SetGuardianFactorsPhoneMessageTypes
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPhoneMessageTypes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/phone/providers/twilio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPhoneProvidersTwilio
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPhoneProvidersTwilio"];
+        /**
+         * SetGuardianFactorsPhoneProvidersTwilio
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPhoneProvidersTwilio"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/phone/selected-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPhoneSelectedProvider
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPhoneSelectedProvider"];
+        /**
+         * SetGuardianFactorsPhoneSelectedProvider
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPhoneSelectedProvider"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/phone/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPhoneSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPhoneSettings"];
+        /**
+         * SetGuardianFactorsPhoneSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPhoneSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/phone/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPhoneTemplates
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPhoneTemplates"];
+        /**
+         * SetGuardianFactorsPhoneTemplates
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPhoneTemplates"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/push-notification/providers/apns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPushNotificationProvidersApns
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPushNotificationProvidersApns"];
+        /**
+         * SetGuardianFactorsPushNotificationProvidersApns
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPushNotificationProvidersApns"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * UpdateGuardianFactorsPushNotificationProvidersApns
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        patch: operations["UpdateGuardianFactorsPushNotificationProvidersApns"];
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/push-notification/providers/fcm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * SetGuardianFactorsPushNotificationProvidersFcm
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPushNotificationProvidersFcm"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * UpdateGuardianFactorsPushNotificationProvidersFcm
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        patch: operations["UpdateGuardianFactorsPushNotificationProvidersFcm"];
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/push-notification/providers/fcmv1": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * SetGuardianFactorsPushNotificationProvidersFcmv1
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPushNotificationProvidersFcmv1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * UpdateGuardianFactorsPushNotificationProvidersFcmv1
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        patch: operations["UpdateGuardianFactorsPushNotificationProvidersFcmv1"];
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/push-notification/providers/sns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPushNotificationProvidersSns
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPushNotificationProvidersSns"];
+        /**
+         * SetGuardianFactorsPushNotificationProvidersSns
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPushNotificationProvidersSns"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * UpdateGuardianFactorsPushNotificationProvidersSns
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        patch: operations["UpdateGuardianFactorsPushNotificationProvidersSns"];
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/push-notification/selected-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsPushNotificationSelectedProvider
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsPushNotificationSelectedProvider"];
+        /**
+         * SetGuardianFactorsPushNotificationSelectedProvider
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsPushNotificationSelectedProvider"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/sms/providers/twilio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsSmsProvidersTwilio
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsSmsProvidersTwilio"];
+        /**
+         * SetGuardianFactorsSmsProvidersTwilio
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsSmsProvidersTwilio"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/sms/selected-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsSmsSelectedProvider
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsSmsSelectedProvider"];
+        /**
+         * SetGuardianFactorsSmsSelectedProvider
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsSmsSelectedProvider"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/sms/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianFactorsSmsTemplates
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianFactorsSmsTemplates"];
+        /**
+         * SetGuardianFactorsSmsTemplates
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactorsSmsTemplates"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/factors/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * SetGuardianFactor
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianFactor"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianPolicies
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianPolicies"];
+        /**
+         * SetGuardianPolicies
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianPolicies"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/guardian/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetGuardianSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetGuardianSettings"];
+        /**
+         * SetGuardianSettings
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetGuardianSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/authentication-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetAuthenticationMethods
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetAuthenticationMethods"];
+        /**
+         * SetAuthenticationMethods
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        put: operations["SetAuthenticationMethods"];
+        /**
+         * CreateAuthenticationMethods
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        post: operations["CreateAuthenticationMethods"];
+        /**
+         * DeleteAuthenticationMethods
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        delete: operations["DeleteAuthenticationMethods"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/authentication-methods/{authentication_method_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetAuthenticationMethod
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetAuthenticationMethod"];
+        put?: never;
+        post?: never;
+        /**
+         * DeleteAuthenticationMethod
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        delete: operations["DeleteAuthenticationMethod"];
+        options?: never;
+        head?: never;
+        /**
+         * UpdateAuthenticationMethod
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        patch: operations["UpdateAuthenticationMethod"];
+        trace?: never;
+    };
+    "/api/v2/users/{id}/authenticators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DeleteUserAuthenticators
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        delete: operations["DeleteUserAuthenticators"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetUserEnrollments
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        get: operations["GetUserEnrollments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/multifactor/actions/invalidate-remember-browser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * CreateUserRememberBrowser
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        post: operations["CreateUserRememberBrowser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/multifactor/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DeleteUserMultifactor
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        delete: operations["DeleteUserMultifactor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/recovery-code-regeneration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * CreateUserRecoveryCode
+         * @description Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets are never returned.
+         */
+        post: operations["CreateUserRecoveryCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        MFACreateGuardianEnrollmentTicketResponse: {
+            /** @default u2x2-u2x2-u2x2-u2x2-u2x2-u2x2 */
+            ticket_id?: string;
+            /** Format: url */
+            ticket_url?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        MFACreateGuardianEnrollmentTicketRequest: {
+            /** Format: user-id */
+            user_id: string;
+            /** Format: email */
+            email?: string;
+            send_mail?: boolean;
+            email_locale?: string;
+            /** @enum {string} */
+            factor?: "push-notification" | "phone" | "email" | "otp" | "webauthn-roaming" | "webauthn-platform";
+            allow_multiple_enrollments?: boolean;
+        };
+        MFAGetGuardianEnrollmentResponse: {
+            /** @default dev_0000000000000001 */
+            id: string;
+            /**
+             * @default pending
+             * @enum {string}
+             */
+            status?: "pending" | "confirmed";
+            name?: string;
+            /** @default 76dc-a90c-a88c-a90c-a88c-a88c-a90c */
+            identifier?: string;
+            /** @default +1 999999999999 */
+            phone_number?: string;
+            /** @default 2016-07-12T17:56:26.804Z */
+            enrolled_at?: string;
+            /** @default 2016-07-12T17:56:26.804Z */
+            last_auth?: string;
+        };
+        MFAGetGuardianFactorsResponse: {
+            /** @default true */
+            enabled: boolean;
+            /** @default true */
+            trial_expired?: boolean;
+            /**
+             * @default sms
+             * @enum {string}
+             */
+            name?: "push-notification" | "sms" | "email" | "duo" | "otp" | "webauthn-roaming" | "webauthn-platform" | "recovery-code";
+            settings?: {
+                /** @default 6 */
+                otp_length?: number;
+                /** @default 300 */
+                otp_expiration_time?: number;
+            } & {
+                [key: string]: unknown;
+            };
+        }[];
+        MFAGetGuardianFactorsDuoSettingsResponse: {
+            ikey?: string;
+            host?: string;
+        };
+        MFAUpdateGuardianFactorsDuoSettingsResponse: {
+            ikey?: string;
+            host?: string;
+        };
+        MFAUpdateGuardianFactorsDuoSettingsRequest: {
+            ikey?: string;
+            /** Format: non-empty-string */
+            skey?: string;
+            host?: string;
+        };
+        MFASetGuardianFactorsDuoSettingsResponse: {
+            ikey?: string;
+            host?: string;
+        };
+        MFASetGuardianFactorsDuoSettingsRequest: {
+            ikey?: string;
+            /** Format: non-empty-string */
+            skey?: string;
+            host?: string;
+        };
+        MFAGetGuardianFactorsEmailSettingsResponse: {
+            /** @default 6 */
+            otp_length: number;
+            /** @default 300 */
+            otp_expiration_time: number;
+        };
+        MFASetGuardianFactorsEmailSettingsResponse: {
+            /** @default 6 */
+            otp_length: number;
+            /** @default 300 */
+            otp_expiration_time: number;
+        };
+        MFASetGuardianFactorsEmailSettingsRequest: {
+            /** @default 6 */
+            otp_length: number;
+            /** @default 300 */
+            otp_expiration_time: number;
+        };
+        MFAGetGuardianFactorsPhoneMessageTypesResponse: {
+            message_types?: ("sms" | "voice")[];
+        };
+        MFASetGuardianFactorsPhoneMessageTypesResponse: {
+            message_types?: ("sms" | "voice")[];
+        };
+        MFASetGuardianFactorsPhoneMessageTypesRequest: {
+            message_types: ("sms" | "voice")[];
+        };
+        MFAGetGuardianFactorsPhoneProvidersTwilioResponse: {
+            /** @default +1223323 */
+            from?: string | null;
+            /** @default 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq */
+            messaging_service_sid?: string | null;
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            sid?: string | null;
+        };
+        MFASetGuardianFactorsPhoneProvidersTwilioResponse: {
+            /** @default +1223323 */
+            from?: string | null;
+            /** @default 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq */
+            messaging_service_sid?: string | null;
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            sid?: string | null;
+        };
+        MFASetGuardianFactorsPhoneProvidersTwilioRequest: {
+            /** @default +1223323 */
+            from?: string | null;
+            /** @default 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq */
+            messaging_service_sid?: string | null;
+            /** @default zw5Ku6z2sxhd0ZVXto5SDHX6KPDByJPU */
+            auth_token?: string | null;
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            sid?: string | null;
+        };
+        MFAGetGuardianFactorsPhoneSelectedProviderResponse: {
+            /** @enum {string} */
+            provider?: "auth0" | "twilio" | "phone-message-hook";
+        };
+        MFASetGuardianFactorsPhoneSelectedProviderResponse: {
+            /** @enum {string} */
+            provider?: "auth0" | "twilio" | "phone-message-hook";
+        };
+        MFASetGuardianFactorsPhoneSelectedProviderRequest: {
+            /** @enum {string} */
+            provider: "auth0" | "twilio" | "phone-message-hook";
+        };
+        MFAGetGuardianFactorsPhoneSettingsResponse: {
+            /** @default 6 */
+            otp_length: number;
+            /** @default 300 */
+            otp_expiration_time: number;
+        };
+        MFASetGuardianFactorsPhoneSettingsResponse: {
+            /** @default 6 */
+            otp_length: number;
+            /** @default 300 */
+            otp_expiration_time: number;
+        };
+        MFASetGuardianFactorsPhoneSettingsRequest: {
+            /** @default 6 */
+            otp_length: number;
+            /** @default 300 */
+            otp_expiration_time: number;
+        };
+        MFAGetGuardianFactorsPhoneTemplatesResponse: {
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment. */
+            enrollment_message: string;
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}} */
+            verification_message: string;
+        };
+        MFASetGuardianFactorsPhoneTemplatesResponse: {
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment. */
+            enrollment_message: string;
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}} */
+            verification_message: string;
+        };
+        MFASetGuardianFactorsPhoneTemplatesRequest: {
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment. */
+            enrollment_message: string;
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}} */
+            verification_message: string;
+        };
+        MFAGetGuardianFactorsPushNotificationProvidersApnsResponse: {
+            bundle_id?: string | null;
+            sandbox?: boolean;
+            enabled?: boolean;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse: {
+            sandbox?: boolean;
+            bundle_id?: string | null;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest: {
+            sandbox?: boolean;
+            bundle_id?: string | null;
+            p12?: string | null;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersApnsResponse: {
+            sandbox?: boolean;
+            bundle_id?: string | null;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersApnsRequest: {
+            sandbox?: boolean;
+            bundle_id?: string | null;
+            p12?: string | null;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse: {
+            [key: string]: unknown;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest: {
+            server_key?: string | null;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersFcmResponse: {
+            [key: string]: unknown;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersFcmRequest: {
+            server_key?: string | null;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response: {
+            [key: string]: unknown;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request: {
+            server_credentials?: string | null;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersFcmv1Response: {
+            [key: string]: unknown;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersFcmv1Request: {
+            server_credentials?: string | null;
+        };
+        MFAGetGuardianFactorsPushNotificationProvidersSnsResponse: {
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            aws_access_key_id?: string | null;
+            /** @default us-west-1 */
+            aws_region?: string | null;
+            sns_apns_platform_application_arn?: string | null;
+            /** @default urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP */
+            sns_gcm_platform_application_arn?: string | null;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse: {
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            aws_access_key_id?: string | null;
+            /** @default us-west-1 */
+            aws_region?: string | null;
+            sns_apns_platform_application_arn?: string | null;
+            /** @default urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP */
+            sns_gcm_platform_application_arn?: string | null;
+        };
+        MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest: {
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            aws_access_key_id?: string | null;
+            /** @default B1ER5JHDGJL3C4sVAKK7SBsq806R3IpL */
+            aws_secret_access_key?: string | null;
+            /** @default us-west-1 */
+            aws_region?: string | null;
+            sns_apns_platform_application_arn?: string | null;
+            /** @default urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP */
+            sns_gcm_platform_application_arn?: string | null;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersSnsResponse: {
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            aws_access_key_id?: string | null;
+            /** @default us-west-1 */
+            aws_region?: string | null;
+            sns_apns_platform_application_arn?: string | null;
+            /** @default urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP */
+            sns_gcm_platform_application_arn?: string | null;
+        };
+        MFASetGuardianFactorsPushNotificationProvidersSnsRequest: {
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            aws_access_key_id?: string | null;
+            /** @default B1ER5JHDGJL3C4sVAKK7SBsq806R3IpL */
+            aws_secret_access_key?: string | null;
+            /** @default us-west-1 */
+            aws_region?: string | null;
+            sns_apns_platform_application_arn?: string | null;
+            /** @default urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP */
+            sns_gcm_platform_application_arn?: string | null;
+        };
+        MFAGetGuardianFactorsPushNotificationSelectedProviderResponse: {
+            /** @enum {string} */
+            provider?: "guardian" | "sns" | "direct";
+        };
+        MFASetGuardianFactorsPushNotificationSelectedProviderResponse: {
+            /** @enum {string} */
+            provider?: "guardian" | "sns" | "direct";
+        };
+        MFASetGuardianFactorsPushNotificationSelectedProviderRequest: {
+            /** @enum {string} */
+            provider: "guardian" | "sns" | "direct";
+        };
+        MFAGetGuardianFactorsSmsProvidersTwilioResponse: {
+            /** @default +1223323 */
+            from?: string | null;
+            /** @default 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq */
+            messaging_service_sid?: string | null;
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            sid?: string | null;
+        };
+        MFASetGuardianFactorsSmsProvidersTwilioResponse: {
+            /** @default +1223323 */
+            from?: string | null;
+            /** @default 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq */
+            messaging_service_sid?: string | null;
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            sid?: string | null;
+        };
+        MFASetGuardianFactorsSmsProvidersTwilioRequest: {
+            /** @default +1223323 */
+            from?: string | null;
+            /** @default 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq */
+            messaging_service_sid?: string | null;
+            /** @default zw5Ku6z2sxhd0ZVXto5SDHX6KPDByJPU */
+            auth_token?: string | null;
+            /** @default wywA2BH4VqTpfywiDuyDAYZL3xQjoO40 */
+            sid?: string | null;
+        };
+        MFAGetGuardianFactorsSmsSelectedProviderResponse: {
+            /** @enum {string} */
+            provider?: "auth0" | "twilio" | "phone-message-hook";
+        };
+        MFASetGuardianFactorsSmsSelectedProviderResponse: {
+            /** @enum {string} */
+            provider?: "auth0" | "twilio" | "phone-message-hook";
+        };
+        MFASetGuardianFactorsSmsSelectedProviderRequest: {
+            /** @enum {string} */
+            provider: "auth0" | "twilio" | "phone-message-hook";
+        };
+        MFAGetGuardianFactorsSmsTemplatesResponse: {
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment. */
+            enrollment_message: string;
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}} */
+            verification_message: string;
+        };
+        MFASetGuardianFactorsSmsTemplatesResponse: {
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment. */
+            enrollment_message: string;
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}} */
+            verification_message: string;
+        };
+        MFASetGuardianFactorsSmsTemplatesRequest: {
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment. */
+            enrollment_message: string;
+            /** @default {{code}} is your verification code for {{tenant.friendly_name}} */
+            verification_message: string;
+        };
+        MFASetGuardianFactorResponse: {
+            enabled: boolean;
+        };
+        MFASetGuardianFactorRequest: {
+            enabled: boolean;
+        };
+        MFAGetGuardianPoliciesResponse: ("all-applications" | "confidence-score")[];
+        MFASetGuardianPoliciesResponse: ("all-applications" | "confidence-score")[];
+        MFASetGuardianPoliciesRequest: ("all-applications" | "confidence-score")[];
+        MFAGetGuardianSettingsResponse: {
+            /** @default true */
+            display_remember_me_checkbox: boolean;
+            /** @default false */
+            remember_me_default_value: boolean;
+            /** @default 604800 */
+            mfa_session_inactivity_timeout: number;
+            /** @default 2592000 */
+            mfa_session_overall_timeout: number;
+        };
+        MFASetGuardianSettingsResponse: {
+            /** @default true */
+            display_remember_me_checkbox: boolean;
+            /** @default false */
+            remember_me_default_value: boolean;
+            /** @default 604800 */
+            mfa_session_inactivity_timeout: number;
+            /** @default 2592000 */
+            mfa_session_overall_timeout: number;
+        };
+        MFASetGuardianSettingsRequest: {
+            /** @default true */
+            display_remember_me_checkbox: boolean;
+            /** @default false */
+            remember_me_default_value: boolean;
+            /** @default 604800 */
+            mfa_session_inactivity_timeout: number;
+            /** @default 2592000 */
+            mfa_session_overall_timeout: number;
+        };
+        MFAGetAuthenticationMethodsResponse: {
+            id: string;
+            /** @enum {string} */
+            type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "webauthn-platform" | "guardian" | "password";
+            confirmed?: boolean;
+            name?: string;
+            authentication_methods?: ({
+                /** @enum {string} */
+                type?: "totp" | "push" | "sms" | "voice";
+                /** Format: authenticator-id */
+                id?: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            link_id?: string;
+            phone_number?: string;
+            email?: string;
+            key_id?: string;
+            public_key?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            enrolled_at?: string;
+            /** Format: date-time */
+            last_auth_at?: string;
+            credential_device_type?: string;
+            credential_backed_up?: boolean;
+            identity_user_id?: string;
+            user_agent?: string;
+            user_handle?: string;
+            transports?: string[];
+            aaguid?: string;
+            relying_party_identifier?: string;
+        }[] | {
+            start?: number;
+            limit?: number;
+            total?: number;
+            authenticators?: {
+                id: string;
+                /** @enum {string} */
+                type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "webauthn-platform" | "guardian" | "password";
+                confirmed?: boolean;
+                name?: string;
+                authentication_methods?: ({
+                    /** @enum {string} */
+                    type?: "totp" | "push" | "sms" | "voice";
+                    /** Format: authenticator-id */
+                    id?: string;
+                } & {
+                    [key: string]: unknown;
+                })[];
+                /** @enum {string} */
+                preferred_authentication_method?: "voice" | "sms";
+                link_id?: string;
+                phone_number?: string;
+                email?: string;
+                key_id?: string;
+                public_key?: string;
+                /** Format: date-time */
+                created_at: string;
+                /** Format: date-time */
+                enrolled_at?: string;
+                /** Format: date-time */
+                last_auth_at?: string;
+                credential_device_type?: string;
+                credential_backed_up?: boolean;
+                identity_user_id?: string;
+                user_agent?: string;
+                user_handle?: string;
+                transports?: string[];
+                aaguid?: string;
+                relying_party_identifier?: string;
+            }[];
+        };
+        MFACreateAuthenticationMethodsResponse: {
+            /** Format: authenticator-id */
+            id?: string;
+            /** @enum {string} */
+            type: "phone" | "email" | "totp" | "webauthn-roaming";
+            name?: string;
+            phone_number?: string;
+            email?: string;
+            authentication_methods?: ({
+                /** @enum {string} */
+                type?: "totp" | "push" | "sms" | "voice";
+                /** Format: authenticator-id */
+                id?: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            key_id?: string;
+            public_key?: string;
+            aaguid?: string;
+            relying_party_identifier?: string;
+            /** @enum {string} */
+            credential_device_type?: "single_device" | "multi_device";
+            credential_backed_up?: boolean;
+            identity_user_id?: string;
+            user_agent?: string;
+            user_handle?: string;
+            transports?: string[];
+            /** Format: date-time */
+            created_at?: string;
+        };
+        MFACreateAuthenticationMethod: {
+            /** @enum {string} */
+            type: "totp" | "email" | "webauthn-roaming";
+            name?: string;
+            totp_secret?: string;
+            phone_number?: string;
+            email?: string;
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            key_id?: string;
+            public_key?: string;
+            /** Format: uuid */
+            aaguid?: string;
+            /** Format: hostname */
+            relying_party_identifier?: string;
+            /** @enum {string} */
+            credential_device_type?: "single_device" | "multi_device";
+            credential_backed_up?: boolean;
+            identity_user_id?: string;
+            user_agent?: string;
+            user_handle?: string;
+            transports?: string[];
+        };
+        MFASetAuthenticationMethodsResponse: {
+            /** Format: authenticator-id */
+            id?: string;
+            /** @enum {string} */
+            type: "phone" | "email" | "totp" | "webauthn-roaming";
+            name?: string;
+            phone_number?: string;
+            email?: string;
+            authentication_methods?: ({
+                /** @enum {string} */
+                type?: "totp" | "push" | "sms" | "voice";
+                /** Format: authenticator-id */
+                id?: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            key_id?: string;
+            public_key?: string;
+            aaguid?: string;
+            relying_party_identifier?: string;
+            /** Format: date-time */
+            created_at?: string;
+        }[];
+        MFASetAuthenticationMethodsRequest: {
+            /** @enum {string} */
+            type: "phone" | "email" | "totp";
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            name?: string;
+            phone_number?: string;
+            email?: string;
+            totp_secret?: string;
+        }[];
+        MFAGetAuthenticationMethodResponse: {
+            id: string;
+            /** @enum {string} */
+            type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "webauthn-platform" | "guardian" | "password";
+            confirmed?: boolean;
+            name?: string;
+            authentication_methods?: ({
+                /** @enum {string} */
+                type?: "totp" | "push" | "sms" | "voice";
+                /** Format: authenticator-id */
+                id?: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            link_id?: string;
+            phone_number?: string;
+            email?: string;
+            key_id?: string;
+            public_key?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            enrolled_at?: string;
+            /** Format: date-time */
+            last_auth_at?: string;
+            credential_device_type?: string;
+            credential_backed_up?: boolean;
+            identity_user_id?: string;
+            user_agent?: string;
+            user_handle?: string;
+            transports?: string[];
+            aaguid?: string;
+            relying_party_identifier?: string;
+        };
+        MFAAuthenticationMethod: {
+            id: string;
+            /** @enum {string} */
+            type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "webauthn-platform" | "guardian" | "passkey" | "password";
+            confirmed?: boolean;
+            name?: string;
+            authentication_methods?: ({
+                /** @enum {string} */
+                type?: "totp" | "push" | "sms" | "voice";
+                /** Format: authenticator-id */
+                id?: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            link_id?: string;
+            phone_number?: string;
+            email?: string;
+            key_id?: string;
+            public_key?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            enrolled_at?: string;
+            /** Format: date-time */
+            last_auth_at?: string;
+            credential_device_type?: string;
+            credential_backed_up?: boolean;
+            identity_user_id?: string;
+            user_agent?: string;
+            user_handle?: string;
+            transports?: string[];
+            aaguid?: string;
+            relying_party_identifier?: string;
+        };
+        MFAUpdateAuthenticationMethodResponse: {
+            /** Format: authenticator-id */
+            id?: string;
+            /** @enum {string} */
+            type: "phone" | "email" | "totp" | "webauthn-roaming";
+            name?: string;
+            phone_number?: string;
+            email?: string;
+            authentication_methods?: ({
+                /** @enum {string} */
+                type?: "totp" | "push" | "sms" | "voice";
+                /** Format: authenticator-id */
+                id?: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+            key_id?: string;
+            public_key?: string;
+            aaguid?: string;
+            relying_party_identifier?: string;
+            confirmed?: boolean;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        MFAUpdateAuthenticationMethodRequest: {
+            name?: string;
+            /** @enum {string} */
+            preferred_authentication_method?: "voice" | "sms";
+        };
+        MFAGetUserEnrollmentsResponse: ({
+            id?: string;
+            /** @enum {string} */
+            status?: "pending" | "confirmed";
+            type?: string;
+            name?: string;
+            identifier?: string;
+            phone_number?: string;
+            /** @enum {string} */
+            auth_method?: "authenticator" | "guardian" | "sms" | "webauthn-platform" | "webauthn-roaming";
+            /** Format: date-time */
+            enrolled_at?: string;
+            /** Format: date-time */
+            last_auth?: string;
+        } & {
+            [key: string]: unknown;
+        })[];
+        MFACreateUserRecoveryCodeResponse: {
+            recovery_code?: string;
+        } & {
+            [key: string]: unknown;
+        };
         EventsListEventStreamsResponseContent: {
             eventStreams?: components["schemas"]["EventsEventStreamResponseContent"][];
             next?: string;
@@ -6686,6 +8025,8 @@ export interface components {
          *     returned. `fields` can leave out any property.
          */
         User: {
+            /** @description Derived from confirmed non-recovery methods; local default is [guardian] (D-0059). */
+            multifactor?: string[];
             /** @description `auth0|` and 24 lowercase hex characters for generated IDs. */
             user_id?: string;
             email?: string;
@@ -17502,6 +18843,2932 @@ export interface operations {
             };
             /** @description logs_unavailable (local plugin capability) */
             501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateGuardianEnrollmentTicket: {
+        parameters: {
+            query?: never;
+            header?: {
+                "auth0-custom-domain"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFACreateGuardianEnrollmentTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFACreateGuardianEnrollmentTicketResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianEnrollmentResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteGuardianEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsDuoSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsDuoSettingsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsDuoSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsDuoSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsDuoSettingsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateGuardianFactorsDuoSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAUpdateGuardianFactorsDuoSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAUpdateGuardianFactorsDuoSettingsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsEmailSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsEmailSettingsResponse"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsEmailSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsEmailSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsEmailSettingsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPhoneMessageTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPhoneMessageTypesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPhoneMessageTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPhoneMessageTypesRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPhoneMessageTypesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPhoneProvidersTwilio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPhoneProvidersTwilioResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPhoneProvidersTwilio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPhoneProvidersTwilioRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPhoneProvidersTwilioResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPhoneSelectedProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPhoneSelectedProviderResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPhoneSelectedProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPhoneSelectedProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPhoneSelectedProviderResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPhoneSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPhoneSettingsResponse"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPhoneSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPhoneSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPhoneSettingsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPhoneTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPhoneTemplatesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPhoneTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPhoneTemplatesRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPhoneTemplatesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPushNotificationProvidersApns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPushNotificationProvidersApnsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPushNotificationProvidersApns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersApnsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersApnsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateGuardianFactorsPushNotificationProvidersApns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPushNotificationProvidersFcm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersFcmRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersFcmResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateGuardianFactorsPushNotificationProvidersFcm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPushNotificationProvidersFcmv1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersFcmv1Request"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersFcmv1Response"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateGuardianFactorsPushNotificationProvidersFcmv1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPushNotificationProvidersSns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPushNotificationProvidersSnsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPushNotificationProvidersSns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersSnsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationProvidersSnsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateGuardianFactorsPushNotificationProvidersSns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsPushNotificationSelectedProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsPushNotificationSelectedProviderResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsPushNotificationSelectedProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationSelectedProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsPushNotificationSelectedProviderResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsSmsProvidersTwilio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsSmsProvidersTwilioResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsSmsProvidersTwilio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsSmsProvidersTwilioRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsSmsProvidersTwilioResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsSmsSelectedProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsSmsSelectedProviderResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsSmsSelectedProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsSmsSelectedProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsSmsSelectedProviderResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianFactorsSmsTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsSmsTemplatesResponse"];
+                };
+            };
+            /** @description MFA operation completed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianFactorsSmsTemplatesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactorsSmsTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorsSmsTemplatesRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorsSmsTemplatesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: "push-notification" | "sms" | "email" | "duo" | "otp" | "webauthn-roaming" | "webauthn-platform" | "recovery-code";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianFactorRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianFactorResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianPoliciesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianPoliciesRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianPoliciesResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetGuardianSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetGuardianSettingsResponse"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetGuardianSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetGuardianSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetGuardianSettingsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetAuthenticationMethods: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                include_totals?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetAuthenticationMethodsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    SetAuthenticationMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFASetAuthenticationMethodsRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFASetAuthenticationMethodsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Conflicting authentication method. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateAuthenticationMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFACreateAuthenticationMethod"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFACreateAuthenticationMethodsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Conflicting authentication method. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteAuthenticationMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetAuthenticationMethod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                authentication_method_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAAuthenticationMethod"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteAuthenticationMethod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                authentication_method_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    UpdateAuthenticationMethod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                authentication_method_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MFAUpdateAuthenticationMethodRequest"];
+            };
+        };
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAUpdateAuthenticationMethodResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteUserAuthenticators: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    GetUserEnrollments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFAGetUserEnrollmentsResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateUserRememberBrowser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    DeleteUserMultifactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                provider: "duo" | "google-authenticator";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Request rate exceeded. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    CreateUserRecoveryCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description MFA operation completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MFACreateUserRecoveryCodeResponse"];
+                };
+            };
+            /** @description Invalid request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Bearer token rejected. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Permission denied. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

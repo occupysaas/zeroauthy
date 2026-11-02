@@ -141,6 +141,26 @@ export type OrganizationConnection = components['schemas']['OrganizationConnecti
 export type OrganizationConnectionUpdate = components['schemas']['OrganizationConnectionUpdate']
 export type OrganizationClientGrant = components['schemas']['OrganizationClientGrant']
 
+export type GuardianFactors = components['schemas']['MFAGetGuardianFactorsResponse']
+export type GuardianPolicies = components['schemas']['MFASetGuardianPoliciesRequest']
+export type AuthenticationMethods = components['schemas']['MFAGetAuthenticationMethodsResponse']
+export type AuthenticationMethod = Extract<AuthenticationMethods, unknown[]>[number]
+export type GuardianConfiguration = components['schemas']['MFASetGuardianFactorsSmsProvidersTwilioRequest']
+  | components['schemas']['MFASetGuardianFactorsSmsTemplatesRequest']
+  | components['schemas']['MFASetGuardianFactorsSmsSelectedProviderRequest']
+  | components['schemas']['MFASetGuardianFactorsPhoneSettingsRequest']
+  | components['schemas']['MFASetGuardianFactorsPhoneMessageTypesRequest']
+  | components['schemas']['MFASetGuardianFactorsPushNotificationProvidersApnsRequest']
+  | components['schemas']['MFASetGuardianFactorsPushNotificationProvidersFcmRequest']
+  | components['schemas']['MFASetGuardianFactorsPushNotificationProvidersFcmv1Request']
+  | components['schemas']['MFASetGuardianFactorsPushNotificationProvidersSnsRequest']
+  | components['schemas']['MFASetGuardianFactorsPushNotificationSelectedProviderRequest']
+  | components['schemas']['MFASetGuardianFactorsDuoSettingsRequest']
+export type GuardianConfigurationRoute = 'sms/templates' | 'phone/templates' | 'sms/providers/twilio' | 'phone/providers/twilio'
+  | 'sms/selected-provider' | 'phone/selected-provider' | 'phone/message-types' | 'phone/settings'
+  | 'push-notification/providers/apns' | 'push-notification/providers/fcm' | 'push-notification/providers/fcmv1'
+  | 'push-notification/providers/sns' | 'push-notification/selected-provider' | 'duo/settings'
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -214,6 +234,40 @@ export class Api {
   }
   previewTenantBranding(t: SystemTenant, body: { screen: string; language: string; overrides?: BrandingObject }): Promise<BrandingPreview> {
     return this.request(this.systemOrigin, 'POST', '/api/system/tenants/' + encodeURIComponent(t.name) + '/branding/preview', { body })
+  }
+
+  getGuardianFactors(t: SystemTenant): Promise<GuardianFactors> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/guardian/factors')
+  }
+  setGuardianFactor(t: SystemTenant, name: NonNullable<GuardianFactors[number]['name']>, enabled: boolean): Promise<components['schemas']['MFASetGuardianFactorResponse']> {
+    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/guardian/factors/' + encodeURIComponent(name), { body: { enabled } })
+  }
+  getGuardianPolicies(t: SystemTenant): Promise<GuardianPolicies> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/guardian/policies')
+  }
+  setGuardianPolicies(t: SystemTenant, body: GuardianPolicies): Promise<GuardianPolicies> {
+    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/guardian/policies', { body })
+  }
+  getGuardianConfiguration(t: SystemTenant, route: GuardianConfigurationRoute): Promise<GuardianConfiguration> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/guardian/factors/' + route)
+  }
+  setGuardianConfiguration(t: SystemTenant, route: GuardianConfigurationRoute, body: GuardianConfiguration): Promise<GuardianConfiguration> {
+    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/guardian/factors/' + route, { body })
+  }
+  getAuthenticationMethods(t: SystemTenant, id: string, page: number): Promise<AuthenticationMethods> {
+    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/authentication-methods', { query: { page, per_page: 100, include_totals: true } })
+  }
+  deleteAuthenticationMethod(t: SystemTenant, id: string, method?: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/authentication-methods' + (method ? '/' + encodeURIComponent(method) : ''))
+  }
+  regenerateRecoveryCode(t: SystemTenant, id: string): Promise<components['schemas']['MFACreateUserRecoveryCodeResponse']> {
+    return this.request(Api.tenantOrigin(t), 'POST', userPath(id) + '/recovery-code-regeneration')
+  }
+  invalidateRememberBrowser(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'POST', userPath(id) + '/multifactor/actions/invalidate-remember-browser')
+  }
+  inviteMfa(t: SystemTenant, body: components['schemas']['MFACreateGuardianEnrollmentTicketRequest']): Promise<components['schemas']['MFACreateGuardianEnrollmentTicketResponse']> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/guardian/enrollments/ticket', { body })
   }
 
   getTenantSettings(t: SystemTenant): Promise<TenantSettings> {

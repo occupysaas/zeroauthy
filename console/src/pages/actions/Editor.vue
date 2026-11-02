@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { mfaHints } from './mfaHints'
 import { useI18n } from 'vue-i18n'
 import type { ActionModule, ActionModuleRef, ActionModuleVersion, Action } from '../../api/client'
 import { errorMessage } from '../../context'
@@ -58,6 +59,7 @@ function addModule() {
         <fieldset :disabled="busy" class="stack border-0 p-0">
           <Field id="action-name" :label="t('actions.name')"><input id="action-name" v-model="name" required maxlength="128" /></Field>
           <ScriptEditor :max-bytes="100000" id="action-code" v-model="code" :label="t('actions.code')" :readonly="busy" :hint="t('actions.codeHint')" />
+          <details v-if="mfaHints(action.supported_triggers[0]?.id ?? '')" data-mfa-hints class="card stack"><summary>{{ t('mfa.actionHints') }}</summary><p class="muted">{{ t('mfa.actionHintNote') }}</p><pre class="overflow-x-auto" tabindex="0">{{ mfaHints(action.supported_triggers[0]?.id ?? '') }}</pre></details>
           <section class="card stack" :aria-label="t('actions.modules')"><h2>{{ t('actions.modules') }}</h2><p id="module-picker-hint">{{ t('actions.modulePickerHint') }}</p>
             <ul><li v-for="(m, i) in modules" :key="m.module_id">{{ m.module_name }} · {{ t('actions.versionNumber', { number: m.module_version_number }) }} <Button @click="modules.splice(i, 1)">{{ t('actions.removeModule') }}</Button></li></ul>
             <Field id="module-choice" :label="t('actions.moduleName')"><select id="module-choice" v-model="moduleChoice" aria-describedby="module-picker-hint"><option value="">—</option><option v-for="m in availableModules" :key="m.id" :value="m.id" :disabled="modules.some(r => r.module_id === m.id)">{{ m.name }}</option></select></Field>
