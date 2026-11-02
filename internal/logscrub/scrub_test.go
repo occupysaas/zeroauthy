@@ -303,3 +303,21 @@ func TestShortCredentialsMaskedWithoutChangingWithValues(t *testing.T) {
 		})
 	}
 }
+
+func TestMFAProtocolCredentialKeys(t *testing.T) {
+	for _, key := range []string{"binding_code", "BindingCode", "binding-code", "BINDING.CODE", "mfa_token", "MfaToken", "otp", "OTP", "oob_code", "OobCode", "recovery_code", "RecoveryCode"} {
+		if !logscrub.SensitiveKey(key) {
+			t.Errorf("MFA credential key %q is public", key)
+		}
+		got := logscrub.ScrubValue(map[string]any{key: "private-value", "public": "visible"}).(map[string]any)
+		if got[key] != logscrub.Marker || got["public"] != "visible" {
+			t.Errorf("MFA credential field %q not scrubbed: %v", key, got)
+		}
+	}
+	// Keep the narrow exact-name behavior that preserves unrelated dynamic keys.
+	for _, key := range []string{"binding", "binding_id", "bindingcodemap", "ticket123", "status_code", "public_code_count"} {
+		if logscrub.SensitiveKey(key) {
+			t.Errorf("unrelated key %q became sensitive", key)
+		}
+	}
+}
