@@ -132,3 +132,14 @@ func (r sessions) findByHash(tenantID, hash string) (*store.LoginSession, bool) 
 	}
 	return nil, false
 }
+
+func (r sessions) MarkMFA(_ context.Context, tid, id string, at time.Time) error {
+	r.s.lock()
+	defer r.s.unlock()
+	v := r.s.sessions[key{tid, id}]
+	if v == nil {
+		return store.ErrNotFound
+	}
+	v.MFAAt = at
+	return nil
+}

@@ -86,6 +86,7 @@ func (r users) Update(_ context.Context, u *store.User) error {
 	nu := cloneUser(u)
 	old := r.s.users[k]
 	nu.LastLogin, nu.LoginsCount, nu.LastIP = old.LastLogin, old.LoginsCount, old.LastIP
+	nu.RememberBrowserEpoch = old.RememberBrowserEpoch
 	nu.Version = old.Version
 	if (nu.Blocked && !old.Blocked) || nu.Email != old.Email {
 		nu.Version++
@@ -200,6 +201,7 @@ func (r users) Delete(_ context.Context, tenantID, userID string) error {
 func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 	s.dropFederation(tenantID, gone)
 	for id := range gone {
+		s.deleteUserMFA(tenantID, id)
 		s.cleanupRBACUser(tenantID, id)
 		s.cleanupOrgUser(tenantID, id)
 		s.deleteEmailClaims(tenantID, id)

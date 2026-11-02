@@ -147,3 +147,7 @@ func affected(res sql.Result, err error) (int, error) {
 	n, err := res.RowsAffected()
 	return int(n), err
 }
+
+func (sessions) MarkMFA(context.Context, string, string, time.Time) error {
+	return store.ErrMFAUnavailable
+}

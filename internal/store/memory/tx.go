@@ -101,6 +101,7 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		guardian: cloneMap(s.guardian, cloneGuardian), authenticators: cloneMap(s.authenticators, cloneAuthenticator), mfaTokens: cloneMap(s.mfaTokens, cloneMFAToken), challenges: cloneMap(s.challenges, cloneChallenge), tickets: cloneMap(s.tickets, cloneValue[store.EnrollmentTicket]), browsers: cloneMap(s.browsers, cloneValue[store.MFABrowser]),
 		tenantEvents: cloneEventRings(s.tenantEvents), eventStreams: cloneMap(s.eventStreams, cloneEventStream), eventDeliveries: cloneMap(s.eventDeliveries, cloneEventDelivery), eventSeq: s.eventSeq,
 		logEvents: cloneLogRings(s.logEvents), logStreams: cloneMap(s.logStreams, cloneLogStream), logStats: cloneMap(s.logStats, cloneValue[store.DailyStat]), logSeq: s.logSeq,
 		modules: cloneMap(s.modules, cloneModule), moduleVersions: cloneMap(s.moduleVersions, cloneModuleVersion), actionJobs: cloneMap(s.actionJobs, cloneActionJob),
@@ -155,6 +156,7 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.guardian, s.authenticators, s.mfaTokens, s.challenges, s.tickets, s.browsers = snap.guardian, snap.authenticators, snap.mfaTokens, snap.challenges, snap.tickets, snap.browsers
 	s.tenantEvents, s.eventStreams, s.eventDeliveries, s.eventSeq = snap.tenantEvents, snap.eventStreams, snap.eventDeliveries, snap.eventSeq
 	s.logEvents, s.logStreams, s.logStats, s.logSeq = snap.logEvents, snap.logStreams, snap.logStats, snap.logSeq
 	s.actions, s.actionVersions, s.builds, s.artifacts = snap.actions, snap.actionVersions, snap.builds, snap.artifacts

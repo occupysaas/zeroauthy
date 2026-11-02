@@ -1292,3 +1292,7 @@ func (r clientHostedLogins) Put(ctx context.Context, c *store.HostedLoginConfig,
 	}
 	return do("HostedLoginsPut", result, err)
 }
+
+func (clientSessions) MarkMFA(context.Context, string, string, time.Time) error {
+	return store.ErrMFAUnavailable
+}

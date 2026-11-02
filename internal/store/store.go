@@ -36,7 +36,8 @@ var (
 
 // Store aggregates the repositories of one storage backend.
 type Store interface {
- Events() Events
+	MFA() MFA
+	Events() Events
 	Logs() Logs
 	RBAC() RBAC
 	Organizations() Organizations
@@ -344,6 +345,7 @@ type Users interface {
 // unique within a tenant. Changes after creation are narrow atomic
 // methods, so concurrent requests cannot overwrite each other's writes.
 type Sessions interface {
+	MarkMFA(ctx context.Context, tenantID, id string, at time.Time) error
 	// Create returns ErrConflict if the ID or TokenHash exists.
 	Create(ctx context.Context, s *LoginSession) error
 	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*LoginSession, error)

@@ -15,6 +15,7 @@ type Factory func(t *testing.T) store.Store
 // Suites maps each conformance suite name to its test function. SQL drivers
 // use RunSuites to bring suites up one at a time.
 var Suites = map[string]func(t *testing.T, newStore Factory){
+	"MFA":                         MFA,
 	"Logs":                        testLogs,
 	"Events":                      testEvents,
 	"RBAC":                        testRBAC,
@@ -66,6 +67,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 
 // suiteOrder is the order Run executes the suites in.
 var suiteOrder = []string{
+	"MFA",
 	"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCap", "CustomDomainCAS", "CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",
 	"Events", "Logs", "RBAC", "Organizations", "OrganizationsII", "Protection", "Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
 	"Connections", "PasswordHistories", "Users", "UserDelete", "UserList", "UserQueryMetadataTypes", "Sessions", "AuthTransactions", "AuthCodes",

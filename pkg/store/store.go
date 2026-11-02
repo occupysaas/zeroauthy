@@ -367,3 +367,16 @@ type (
 )
 
 var ErrEventsUnavailable = store.ErrEventsUnavailable
+
+type (
+	MFA              = store.MFA
+	UnimplementedMFA = store.UnimplementedMFA
+	GuardianSettings = store.GuardianSettings
+	Authenticator    = store.Authenticator
+	MFAToken         = store.MFAToken
+	MFAChallenge     = store.MFAChallenge
+	EnrollmentTicket = store.EnrollmentTicket
+	MFABrowser       = store.MFABrowser
+)
+
+var ErrMFAUnavailable = store.ErrMFAUnavailable

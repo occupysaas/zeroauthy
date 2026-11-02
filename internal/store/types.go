@@ -746,16 +746,17 @@ func (u *User) IdentityByLogin(connection, login string) *Identity {
 
 // User is a person in a tenant. Email and Username are stored lowercase.
 type User struct {
-	TenantID      string
-	UserID        string // "<provider>|<id>", e.g. "auth0|65f0c2..."
-	Email         string
-	EmailVerified bool
-	Username      string
-	Name          string
-	Nickname      string
-	Picture       string
-	GivenName     string
-	FamilyName    string
+	RememberBrowserEpoch int
+	TenantID             string
+	UserID               string // "<provider>|<id>", e.g. "auth0|65f0c2..."
+	Email                string
+	EmailVerified        bool
+	Username             string
+	Name                 string
+	Nickname             string
+	Picture              string
+	GivenName            string
+	FamilyName           string
 	// UserMetadata is free-form, user-editable JSON (maps, slices, scalars).
 	UserMetadata map[string]any
 	// AppMetadata is free-form JSON that users cannot edit.
@@ -783,6 +784,7 @@ type User struct {
 
 // LoginSession is a browser's authenticated session with a tenant.
 type LoginSession struct {
+	MFAAt time.Time
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin string
 	// CookieMode is persisted at creation; later tenant edits do not change it.
