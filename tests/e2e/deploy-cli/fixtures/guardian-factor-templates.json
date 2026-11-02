@@ -1,0 +1,7 @@
+[
+  {
+    "name": "sms",
+    "enrollment_message": "Deploy enrollment {{code}}",
+    "verification_message": "Deploy verification {{code}}"
+  }
+]

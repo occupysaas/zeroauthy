@@ -1,0 +1,34 @@
+[
+  {
+    "name": "push-notification",
+    "enabled": true
+  },
+  {
+    "name": "sms",
+    "enabled": true
+  },
+  {
+    "name": "email",
+    "enabled": true
+  },
+  {
+    "name": "duo",
+    "enabled": false
+  },
+  {
+    "name": "otp",
+    "enabled": true
+  },
+  {
+    "name": "webauthn-roaming",
+    "enabled": false
+  },
+  {
+    "name": "webauthn-platform",
+    "enabled": true
+  },
+  {
+    "name": "recovery-code",
+    "enabled": true
+  }
+]

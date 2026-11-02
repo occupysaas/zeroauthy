@@ -72,6 +72,7 @@ type Contract struct {
 	Screens           map[string][]string
 	ActionMembers     []Member            `json:"action_members"`
 	DeployHandlers    map[string]string   `json:"deploy_handlers"`
+	DeployLimitations map[string]string   `json:"deploy_limitations"`
 	DeployRoutes      map[string][]string `json:"deploy_routes"`
 	Gaps              []string
 	Discovery         map[string]string

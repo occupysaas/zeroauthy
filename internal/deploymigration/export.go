@@ -157,7 +157,7 @@ func LoadExport(path, format string) (Export, error) {
 					return nil
 				}
 			}
-			if name == "tenant" || name == "attackProtection" || name == "branding" || name == "triggers" {
+			if name == "tenant" || name == "attackProtection" || name == "branding" || name == "triggers" || strings.HasPrefix(name, "guardian") && name != "guardianFactors" && name != "guardianFactorProviders" && name != "guardianFactorTemplates" {
 				raw, err := json.Marshal(value)
 				if err != nil {
 					return err
@@ -300,6 +300,23 @@ func checkExportReferences(value any, root string, files map[string][]byte) erro
 
 func resourceName(path string) string {
 	parts := strings.Split(filepath.ToSlash(path), "/")
+	// Pinned Deploy CLI 9.1.0 directory layout. Only configuration is
+	// portable; user authenticators and enrollment state are never loaded.
+	if len(parts) > 1 && parts[0] == "guardian" {
+		if len(parts) == 3 {
+			return map[string]string{"factors": "guardianFactors", "providers": "guardianFactorProviders", "templates": "guardianFactorTemplates"}[parts[1]]
+		}
+		if len(parts) == 2 {
+			return map[string]string{
+				"policies.json": "guardianPolicies", "settings.json": "guardianSettings",
+				"phoneFactorSelectedProvider.json": "guardianPhoneFactorSelectedProvider",
+				"phoneFactorMessageTypes.json":     "guardianPhoneFactorMessageTypes",
+				"phoneFactorSettings.json":         "guardianPhoneFactorSettings",
+				"emailFactorSettings.json":         "guardianEmailFactorSettings",
+			}[parts[1]]
+		}
+		return ""
+	}
 	base := strings.TrimSuffix(parts[len(parts)-1], filepath.Ext(parts[len(parts)-1]))
 	candidate := parts[0]
 	if len(parts) > 1 && strings.EqualFold(parts[0], "emails") {

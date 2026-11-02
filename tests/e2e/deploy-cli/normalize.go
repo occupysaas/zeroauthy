@@ -57,8 +57,8 @@ func Compare(source, target deploymigration.Export, manifest Manifest, domains D
 		if entry.Status != "included" {
 			continue
 		}
-		src, sn, se := decodeRows(source.Resources[name])
-		dst, dn, de := decodeRows(target.Resources[name])
+		src, sn, se := decodeResourceRows(name, source.Resources[name])
+		dst, dn, de := decodeResourceRows(name, target.Resources[name])
 		r.Counts = append(r.Counts, ResourceCount{name, sn, dn})
 		if se != nil || de != nil {
 			addDiff(&r, name, "$", "resource is missing or invalid")
@@ -98,6 +98,22 @@ func Compare(source, target deploymigration.Export, manifest Manifest, domains D
 }
 
 type object = map[string]any
+
+func decodeResourceRows(name string, raw json.RawMessage) ([]object, int, error) {
+	if name == "guardianPolicies" {
+		var configuration map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &configuration); err != nil {
+			return nil, 0, fmt.Errorf("missing or invalid Guardian policy configuration")
+		}
+		var policies []string
+		if err := json.Unmarshal(configuration["policies"], &policies); err != nil || policies == nil {
+			return nil, 0, fmt.Errorf("missing or invalid Guardian policy")
+		}
+		// The CLI wraps the wire array in {policies: []}. Keep every export
+		// field; [] is explicit Never, distinct from an absent configuration.
+	}
+	return decodeRows(raw)
+}
 
 func decodeRows(raw json.RawMessage) ([]object, int, error) {
 	if len(raw) == 0 {
@@ -491,7 +507,7 @@ func compareGrants(src, dst []object, clients, apis map[string]string, r *Report
 	}
 }
 func compareRecords(name string, src, dst []object, m Manifest, domains Domains, r *Report) {
-	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "organizations": "name", "actions": "name", "actionModules": "name", "triggers": "$singleton", "logStreams": "name", "eventStreams": "name"}[name]
+	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "organizations": "name", "actions": "name", "actionModules": "name", "triggers": "$singleton", "logStreams": "name", "eventStreams": "name", "guardianFactors": "name", "guardianFactorProviders": "$factor-provider", "guardianFactorTemplates": "name", "guardianPolicies": "$singleton", "guardianPhoneFactorSelectedProvider": "$singleton", "guardianPhoneFactorMessageTypes": "$singleton", "guardianPhoneFactorSettings": "$singleton", "guardianEmailFactorSettings": "$singleton", "guardianSettings": "$singleton"}[name]
 	by := map[string]object{}
 	for _, o := range src {
 		k := naturalKey(o, keyField)
@@ -573,6 +589,14 @@ func sortNamedSets(resource string, row object) {
 }
 
 func naturalKey(o object, f string) string {
+	if f == "$factor-provider" {
+		name, _ := o["name"].(string)
+		provider, _ := o["provider"].(string)
+		if name == "" || provider == "" {
+			return ""
+		}
+		return name + "/" + provider
+	}
 	if f == "$singleton" {
 		return "$singleton"
 	}

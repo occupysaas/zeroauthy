@@ -1,0 +1,6 @@
+{
+  "display_remember_me_checkbox": false,
+  "remember_me_default_value": true,
+  "mfa_session_inactivity_timeout": 7200,
+  "mfa_session_overall_timeout": 86400
+}

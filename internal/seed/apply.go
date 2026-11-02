@@ -169,6 +169,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	if !(createOnly && exists) {
+		if err := applyGuardian(ctx, st, tn.ID, &in); err != nil {
+			return fmt.Errorf("guardian: %w", err)
+		}
 		if err := applyHostedLogin(ctx, st, tn, in); err != nil {
 			return fmt.Errorf("hosted login: %w", err)
 		}

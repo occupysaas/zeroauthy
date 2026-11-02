@@ -1,0 +1,4 @@
+{
+  "otp_length": 8,
+  "otp_expiration_time": 360
+}

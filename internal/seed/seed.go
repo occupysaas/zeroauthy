@@ -48,6 +48,7 @@ type File struct {
 }
 
 type Tenant struct {
+	Guardian         *Guardian                 `yaml:"guardian"`
 	EventStreams     []map[string]any          `yaml:"event_streams"`
 	LogStreams       []map[string]any          `yaml:"log_streams"`
 	Modules          []ActionModule            `yaml:"modules"`
@@ -87,6 +88,13 @@ type Tenant struct {
 	// (https://<host>/api/v2/), which the seed does not define; checked
 	// against the server configuration by CheckManagementAPI.
 	mgmtAudiences []string
+}
+
+// Guardian patches tenant MFA configuration. Omitted factors and a nil policy
+// list are preserved; an explicit empty policies list disables enforcement.
+type Guardian struct {
+	Factors  map[string]bool `yaml:"factors"`
+	Policies []string        `yaml:"policies"`
 }
 
 // DeviceFlow shapes the user codes of the device authorization grant.

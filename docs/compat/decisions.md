@@ -2229,3 +2229,20 @@ Discovery remains unresolved: no public OIDC discovery document has been
 checked for the MFA grants. As a local rule, do not advertise those grants in
 `grant_types_supported` until verified. This is not a claim about Auth0's
 discovery response; verification remains a follow-up for the controller.
+
+
+**Task 13 provisioning evidence (2026-11-02).** The pinned
+`auth0-deploy-cli` 9.1.0 provider exporter
+(`lib/tools/auth0/handlers/guardianFactorProviders.js`) reads `provider.data`,
+while its pinned `node-auth0` 7.4.0 SDK returns the documented provider body
+directly. A real local CLI export returned `guardianFactorProviders: []`
+after successful documented configuration writes; a network-free SDK/client
+fixture reproduced the dropped fields. This is a tool limitation, not upstream
+server observation. All nine handlers retain their frozen included coverage
+classification; the required nine-handler round trip is failing, not waived.
+The controller ruled: preserve documented JSON and dependency pins, do not
+wrap server responses or adapt the SDK to manufacture a pass, retain the
+failed complete matrix, and distinguish any eight-handler diagnostic results.
+CLI policy assets use `{policies: [...]}`; the wire API and seed policy field
+remain arrays. Provider/template handler registries cover only a subset of
+the stored provider routes and are not a complete backup of them.

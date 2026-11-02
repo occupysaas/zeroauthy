@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/zeroauthy/zeroauthy/internal/mfarules"
 )
 
 func TestManifestCoverage(t *testing.T) {
@@ -39,6 +41,31 @@ func TestManifestCoverage(t *testing.T) {
 	bad.Normalizations = append(append([]Normalization{}, m.Normalizations...), Normalization{Resource: "clients", Path: "*", Rule: "drop", Reason: "broad"})
 	if err := ValidateManifest(bad, names); err == nil {
 		t.Fatal("broad normalization path accepted")
+	}
+}
+
+func TestManifestGuardianInventory(t *testing.T) {
+	m, err := LoadManifest("manifest.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, status := range mfarules.DeployHandlers() {
+		found := false
+		for _, entry := range m.Resources {
+			if entry.Name != name {
+				continue
+			}
+			found = true
+			if entry.Status != status {
+				t.Errorf("%s status=%s, frozen contract=%s", name, entry.Status, status)
+			}
+			if status == "included" && entry.Fixture == nil {
+				t.Errorf("%s has no fixture", name)
+			}
+		}
+		if !found {
+			t.Errorf("missing handler %s", name)
+		}
 	}
 }
 

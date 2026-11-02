@@ -94,66 +94,66 @@
     },
     {
       "name": "guardianFactors",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "MFA enrollment and provider state are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 33",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-factors.json"
     },
     {
       "name": "guardianFactorProviders",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "MFA provider credentials are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 34",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-factor-providers.json"
     },
     {
       "name": "guardianFactorTemplates",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "MFA message templates are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 34",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-factor-templates.json"
     },
     {
       "name": "guardianPolicies",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "MFA policies are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 33",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-policies.json"
     },
     {
       "name": "guardianPhoneFactorSelectedProvider",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "Phone MFA provider selection is outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 34",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-phone-factor-selected-provider.json"
     },
     {
       "name": "guardianPhoneFactorMessageTypes",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "Phone MFA message types are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 34",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-phone-factor-message-types.json"
     },
     {
       "name": "guardianPhoneFactorSettings",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "Phone MFA provider settings are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 34",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-phone-factor-settings.json"
     },
     {
       "name": "guardianEmailFactorSettings",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "Email MFA settings are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 33",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-email-factor-settings.json"
     },
     {
       "name": "guardianSettings",
-      "status": "excluded",
-      "owner": "roadmap: MFA milestone",
-      "reason": "MFA settings are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 33",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "fixture": "fixtures/guardian-settings.json"
     },
     {
       "name": "roles",

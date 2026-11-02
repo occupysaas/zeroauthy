@@ -46,12 +46,85 @@ const version = spawnSync(bin, ['--version'], { encoding: 'utf8' });
 assert.equal(version.status, 0); assert.equal(version.stdout.trim(), '9.1.0');
 const manifest = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/manifest.json'), 'utf8'));
 const excluded = JSON.parse(comparator(['exclusions', '--manifest', 'tests/e2e/deploy-cli/manifest.json']).stdout);
+// Explicit diagnostic lane: the required default matrix still asserts all nine.
+const guardianPartial = process.env.E2E_M33_GUARDIAN_PARTIAL === '1';
+if (guardianPartial) {
+  assert.equal(mode, 'generated');
+  assert.equal(format, 'yaml');
+  const provider = manifest.resources.find(entry => entry.name === 'guardianFactorProviders');
+  provider.status = 'tool-unsupported';
+  provider.fixture = null;
+  provider.reason = 'Diagnostic partial lane: pinned CLI9.1.0 reads an absent SDK7.4 provider.data property';
+  excluded.push(provider.name);
+  console.log('Plan 33 PARTIAL diagnostic: guardianFactorProviders excluded due to demonstrated pinned-client export bug; this is not the required nine-handler matrix.');
+}
 // These handlers require APIs outside the implemented roadmap. Their absence
 // is reported explicitly, never counted as a successful migration.
 const unavailable = manifest.resources.filter(entry => entry.status === 'tool-unsupported').map(entry => entry.name);
 sourceConfig.AUTH0_EXCLUDED = excluded;
 targetConfig.AUTH0_EXCLUDED = sourceConfig.AUTH0_EXCLUDED;
 assert.ok(unavailable.every(name => excluded.includes(name)), 'manifest must explicitly exclude unavailable handlers');
+const guardianEntries = manifest.resources.filter(entry => entry.name.startsWith('guardian'));
+const guardianIncluded = guardianEntries.filter(entry => entry.status === 'included');
+assert.equal(guardianEntries.length, 9);
+assert.equal(guardianIncluded.length, guardianPartial ? 8 : 9);
+const guardianFixtures = Object.fromEntries(await Promise.all(guardianEntries.map(async entry => [entry.name, JSON.parse(await readFile(path.join(e2e, 'deploy-cli', entry.fixture ?? 'fixtures/guardian-factor-providers.json'), 'utf8'))])));
+const guardianSingletons = {
+  guardianPolicies: ['guardian/policies', 'policies.json'],
+  guardianPhoneFactorSelectedProvider: ['guardian/factors/phone/selected-provider', 'phoneFactorSelectedProvider.json'],
+  guardianPhoneFactorMessageTypes: ['guardian/factors/phone/message-types', 'phoneFactorMessageTypes.json'],
+  guardianPhoneFactorSettings: ['guardian/factors/phone/settings', 'phoneFactorSettings.json'],
+  guardianEmailFactorSettings: ['guardian/factors/email/settings', 'emailFactorSettings.json'],
+  guardianSettings: ['guardian/settings', 'settings.json'],
+};
+async function provisionGuardian() {
+  for (const {name, ...data} of guardianFixtures.guardianFactors) await api(sourceConfig, 'PUT', `guardian/factors/${name}`, data);
+  for (const {name, provider, ...data} of guardianFixtures.guardianFactorProviders) await api(sourceConfig, 'PUT', `guardian/factors/${name}/providers/${provider}`, data);
+  for (const {name, ...data} of guardianFixtures.guardianFactorTemplates) await api(sourceConfig, 'PUT', `guardian/factors/${name}/templates`, data);
+  for (const [name, [route]] of Object.entries(guardianSingletons)) await api(sourceConfig, 'PUT', route, name === 'guardianPolicies' ? guardianFixtures[name].policies : guardianFixtures[name]);
+  // Verify the documented wire directly: the pinned tool's empty provider
+  // export is not evidence that the server lost the public configuration.
+  for (const {name, provider, ...data} of guardianFixtures.guardianFactorProviders) assert.deepEqual(await api(sourceConfig, 'GET', `guardian/factors/${name}/providers/${provider}`), data);
+}
+async function guardianExport(exportPath) {
+  if (format === 'yaml') {
+    const all = parseYaml(await readFile(exportPath, 'utf8'));
+    return Object.fromEntries(guardianIncluded.map(({name}) => [name, all[name]]));
+  }
+  const values = {};
+  for (const [name, [, file]] of Object.entries(guardianSingletons)) values[name] = JSON.parse(await readFile(path.join(exportPath, 'guardian', file), 'utf8'));
+  for (const [name, folder] of Object.entries({guardianFactors:'factors', guardianFactorProviders:'providers', guardianFactorTemplates:'templates'})) {
+    if (guardianPartial && name === 'guardianFactorProviders') continue;
+    const directory = path.join(exportPath, 'guardian', folder);
+    values[name] = await Promise.all((await readdir(directory)).filter(file => file.endsWith('.json')).map(async file => JSON.parse(await readFile(path.join(directory, file), 'utf8'))));
+  }
+  return values;
+}
+function canonicalGuardian(value) {
+  return Array.isArray(value) && value.every(item => typeof item === 'object') ? [...value].sort((a,b) => `${a.name}/${a.provider??''}`.localeCompare(`${b.name}/${b.provider??''}`)) : value;
+}
+async function assertGuardianExport(exportPath) {
+  const values = await guardianExport(exportPath);
+  for (const {name} of guardianIncluded) assert.deepEqual(canonicalGuardian(values[name]), canonicalGuardian(guardianFixtures[name]), `${name}: fixture fields were lost in actual CLI export`);
+}
+async function guardianNegatives(exportPath) {
+  // Mutate actual exported configuration, then run the production offline
+  // parser and strict comparator; no family or field may disappear silently.
+  for (const {name} of guardianIncluded) {
+    const folder = path.join(work, `guardian-negative-${name}`);
+    const input = format === 'yaml' ? path.join(folder, 'tenant.yaml') : folder;
+    await cp(format === 'yaml' ? path.dirname(exportPath) : exportPath, folder, {recursive:true});
+    if (format === 'yaml') {
+      const all = parseYaml(await readFile(input, 'utf8'));
+      delete all[name];
+      await writeFile(input, dumpYaml(all));
+    } else {
+      const folderName = {guardianFactors:'factors', guardianFactorProviders:'providers', guardianFactorTemplates:'templates'}[name];
+      await rm(path.join(folder, 'guardian', folderName ?? guardianSingletons[name][1]), {recursive:true, force:true});
+    }
+    assert.equal(checkedCompare(exportPath, input).equivalent, false, `${name}: removed configuration escaped comparison`);
+  }
+}
 await writeFile(path.join(work, 'manifest.json'), JSON.stringify(manifest), { mode: 0o600 });
 for (const [name, config] of [['source', sourceConfig], ['target', targetConfig]]) await writeFile(path.join(work, `${name}.json`), JSON.stringify(config), { mode: 0o600 });
 function deploy(command, config, input, expectedFailure) {
@@ -348,7 +421,10 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   for(const trigger of new Set(actionDeclarations.map(a=>a.supported_triggers[0].id)))await api(sourceConfig,'PATCH',`actions/triggers/${trigger}/bindings`,{bindings:actionDeclarations.filter(a=>a.supported_triggers[0].id===trigger).map(a=>({ref:{type:'action_name',value:a.name},display_name:a.name}))});
   const sourceActions=await api(sourceConfig,'GET','actions/actions');
   for(const fixture of eventStreams){const row=structuredClone(fixture);if(row.destination.type==='webhook')row.destination.configuration.webhook_authorization.token=eventSecret;else row.destination.configuration.action_id=sourceActions.actions.find(a=>a.name===row.destination.configuration.action_id).id;await api(sourceConfig,'POST','event-streams',row);}
+  await provisionGuardian();
   const sourcePublicExport = await exportTo('source', 'source-export');
+  await assertGuardianExport(sourcePublicExport);
+  await guardianNegatives(sourcePublicExport);
   await assertNoEmailSecrets(sourcePublicExport);
   await actionNegatives(sourcePublicExport);
   await logStreamNegatives(sourcePublicExport);
@@ -404,6 +480,7 @@ function assertPrivateEmailCredential() {
 assertPrivateEmailCredential();
 let targetPath = await exportTo('target', 'target-first');
 await assertPrivateLogStreamSecrets();
+await assertGuardianExport(targetPath);
 const firstReport=checkedCompare(sourcePath,targetPath);assert.equal(firstReport.equivalent,true,`first round trip differs: ${JSON.stringify(firstReport)}`);
 const migratedOrganizations=await api(targetConfig,'GET','organizations');assert.equal(migratedOrganizations.length,2,'both organizations must migrate');
 for(const org of migratedOrganizations){const links=await api(targetConfig,'GET',`organizations/${org.id}/enabled_connections`);assert.ok(links.length>0,'organization enabled connections were dropped');}
@@ -419,6 +496,9 @@ assert.equal(migratedOrgBrowser.organization_usage,'allow');assert.equal(migrate
 const imported = (await exportClients(targetConfig))[0];
 // Every migrated connection must log in through its provider on the target,
 // with canonical identities keyed by the imported connection names.
+// These existing federation runtime checks intentionally use Never while
+// Guardian configuration migration is checked before and after them.
+await api(targetConfig, 'PUT', 'guardian/policies', []);
 const browser=(await api(targetConfig,'GET','clients')).find(c=>c.name==='E2E deploy browser');
 assert.ok(browser,'browser application was not migrated');
 const expectedUsers={'google-oauth2':['deploy-google','google-oauth2|deploy-google'],'deploy-oauth':['deploy-oauth-user','oauth2|deploy-oauth|deploy-oauth-user'],'deploy-oidc':['deploy-oidc-user',null],'microsoft-personal':['outlook','windowslive|Sub-outlook'],'microsoft-directory':['work','waad|microsoft-directory|aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],'microsoft-organizations':['work','waad|microsoft-organizations|11111111-1111-4111-8111-111111111111:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']};
@@ -441,6 +521,7 @@ const rbacLogin=await federatedLogin(browser.client_id,'google-oauth2','deploy-g
 const rbacClaims=JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[1],'base64url'));
 assert.equal(rbacLogin.sub,rbacSubject);assert.ok(rbacLogin.token.scope.split(' ').includes('read:fixture'));assert.ok(!rbacLogin.token.scope.split(' ').includes('write:fixture'));
 assert.deepEqual(rbacClaims.permissions,['read:fixture']);assert.equal(rbacClaims.client_id,browser.client_id);assert.equal(JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[0],'base64url')).typ,'at+jwt');
+await api(targetConfig, 'PUT', 'guardian/policies', guardianFixtures.guardianPolicies.policies);
 console.log('Plan 28 deploy: shared module code/private secret and canonical name/version pins; all five new trigger Actions and bindings; real post-import module claim passed');
 console.log('Plan 27 deploy: Actions/code/ordered trigger bindings, private keyword replacement and all post-import login claims passed');
 console.log('Plan 26 deploy: tenant role/API fields and post-import federated RBAC code exchange passed');
@@ -461,6 +542,8 @@ const repeated = (await exportClients(targetConfig))[0];
 assert.equal(repeated.client_id, imported.client_id); assert.ok(repeated.client_secret === imported.client_secret, 'repeat import changed credential');
 targetPath = await exportTo('target', 'target-repeat');
 assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'repeat import differs');
+await assertGuardianExport(targetPath);
+console.log(`Plan 33 ${guardianPartial ? 'PARTIAL diagnostic' : 'deploy'}: ${guardianIncluded.length} Guardian configuration handlers, strict field preservation, repeat import and missing-family negatives passed; documented provider GET/PUT passed; ${guardianPartial ? 'provider export remains blocked by pinned client; required matrix is not passing' : 'all nine handler matrix passed'}; methods are never exported; deferred delivery remains stored-only.`);
 await assertPrivateLogStreamSecrets();
 await eventStreamRuntime();
 console.log('Plan 32 deploy: webhook/action public configuration, strict field-loss negatives, target Action ownership, fresh credential reinjection, explicit token rotation, omitted-secret CLI import and actual runtime delivery passed');

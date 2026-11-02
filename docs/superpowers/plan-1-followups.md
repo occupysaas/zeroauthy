@@ -438,3 +438,13 @@ behaviour only where Auth0 is shown to differ.
   error (`interaction_required` local); email factor availability;
   `/mfa/associate` and `/mfa/challenge` response details; when MFA changes
   emit `user.updated`.
+
+- **Plan 33 Deploy CLI provider export (Task 13, actual tool blocker):**
+  Pinned Deploy CLI 9.1.0 plus node-auth0 7.4.0 exports an empty
+  `guardianFactorProviders` list because the handler reads `provider.data`
+  from an already unwrapped SDK body. The nine-handler required matrix
+  actually failed; do not count this family as round-tripped. Keep the
+  documented API and pins intact. Track an upstream client correction or
+  approved future dependency change, then rerun all formats and identity
+  modes. An explicitly labeled eight-handler diagnostic is partial evidence
+  only. See D-0059 and the Plan 33 implementation record.

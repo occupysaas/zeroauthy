@@ -3,6 +3,9 @@ tenants:
   - name: e2ecli
     friendly_name: E2E deploy CLI
     domains: [cli.e2e.test]
+    guardian:
+      factors: {otp: true, email: true, recovery-code: true, webauthn-platform: true, sms: true, push-notification: true}
+      policies: [all-applications]
     resource_servers:
       - identifier: https://fixture.cli.e2e.test
         name: Deploy fixture API
@@ -115,6 +118,10 @@ tenants:
           - update:branding
           - create:branding
           - delete:branding
+          - read:guardian_factors
+          - update:guardian_factors
+          - read:mfa_policies
+          - update:mfa_policies
           - read:prompts
           - update:prompts
       - client_id: e2e-cli-fixture
@@ -214,5 +221,9 @@ tenants:
           - update:branding
           - create:branding
           - delete:branding
+          - read:guardian_factors
+          - update:guardian_factors
+          - read:mfa_policies
+          - update:mfa_policies
           - read:prompts
           - update:prompts

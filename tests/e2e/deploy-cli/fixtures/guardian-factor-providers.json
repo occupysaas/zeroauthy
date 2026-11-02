@@ -1,0 +1,16 @@
+[
+  {
+    "name": "sms",
+    "provider": "twilio",
+    "sid": "fixture-account",
+    "from": "+12025550123",
+    "messaging_service_sid": "fixture-service"
+  },
+  {
+    "name": "push-notification",
+    "provider": "sns",
+    "aws_access_key_id": "fixture-public-key",
+    "aws_region": "us-west-1",
+    "sns_gcm_platform_application_arn": "arn:aws:sns:us-west-1:000000000000:app/GCM/fixture"
+  }
+]
