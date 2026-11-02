@@ -118,3 +118,30 @@ func TestPlan33LogCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestMFAInventorySemantics(t *testing.T) {
+	for _, method := range []string{"GET", "DELETE"} {
+		r := mfarules.Route(method + " /guardian/enrollments/{id}")
+		if r.Errors["404"] == "" || r.Responses["404"] == nil {
+			t.Errorf("%s enrollment missing 404", method)
+		}
+	}
+	if got := mfarules.Route("PUT /guardian/policies").Body["maxItems"]; got != float64(1) {
+		t.Errorf("policy maxItems = %v", got)
+	}
+	for _, method := range []string{"PUT", "PATCH"} {
+		r := mfarules.Route(method + " /guardian/factors/push-notification/providers/fcmv1")
+		props, ok := r.Body["properties"].(map[string]any)
+		if !ok {
+			t.Errorf("%s missing properties", method)
+			continue
+		}
+		secret, ok := props["server_credentials"].(map[string]any)
+		if !ok || secret["writeOnly"] != true {
+			t.Errorf("%s credentials not write-only", method)
+		}
+	}
+	if got := mfarules.Inventory().Discovery["mfa_grants"]; got != "unresolved" {
+		t.Errorf("discovery must remain unresolved, got %q", got)
+	}
+}

@@ -328,7 +328,8 @@
       "errors": {
         "400": "Invalid request.",
         "401": "Bearer token rejected.",
-        "403": "Permission denied."
+        "403": "Permission denied.",
+        "404": "Resource not found."
       },
       "responses": {
         "200": {
@@ -370,6 +371,16 @@
               }
             }
           }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
         }
       }
     },
@@ -397,7 +408,8 @@
       "errors": {
         "400": "Invalid request.",
         "401": "Bearer token rejected.",
-        "403": "Permission denied."
+        "403": "Permission denied.",
+        "404": "Resource not found."
       },
       "responses": {
         "204": {
@@ -425,6 +437,16 @@
         },
         "403": {
           "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
           "content": {
             "application/json": {
               "schema": {
@@ -1978,7 +2000,8 @@
               "null"
             ],
             "minLength": 1,
-            "maxLength": 10000
+            "maxLength": 10000,
+            "writeOnly": true
           }
         }
       },
@@ -2050,7 +2073,8 @@
               "null"
             ],
             "minLength": 1,
-            "maxLength": 10000
+            "maxLength": 10000,
+            "writeOnly": true
           }
         }
       },
@@ -3122,7 +3146,8 @@
             "all-applications",
             "confidence-score"
           ]
-        }
+        },
+        "maxItems": 1
       },
       "errors": {
         "400": "Invalid request.",
@@ -5493,9 +5518,9 @@
     "M9"
   ],
   "discovery": {
-    "mfa_grants": "not_advertised",
+    "mfa_grants": "unresolved",
     "source": "https://auth0.com/docs/get-started/applications/configure-applications-with-oidc-discovery",
-    "note": "No public discovery document demonstrating these grants was supplied. Do not add them to grant_types_supported without public or separate observer evidence."
+    "note": "No public discovery document was checked. Local rule: do not advertise these grants pending verification; this is not an observed upstream fact."
   },
   "settings_semantics": "Guardian settings and email/phone factor settings round-trip as documented configuration. Fixed Plan 33 lifetimes remain local runtime defaults until later enforcement is specified.",
   "email_enrollment": "Verified email is required; explicit confirmed email methods are used. Implicit primary-email enrollment remains M7; public docs offer verified primary email automatically.",

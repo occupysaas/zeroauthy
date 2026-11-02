@@ -10201,6 +10201,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
     delete:
       operationId: DeleteGuardianEnrollment
       tags:
@@ -10238,6 +10244,12 @@ paths:
                 $ref: '#/components/schemas/ManagementError'
         '403':
           description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
           content:
             application/json:
               schema:
@@ -13306,6 +13318,7 @@ components:
           - 'null'
           minLength: 1
           maxLength: 10000
+          writeOnly: true
     MFASetGuardianFactorsPushNotificationProvidersFcmv1Response:
       type: object
       additionalProperties: true
@@ -13321,6 +13334,7 @@ components:
           - 'null'
           minLength: 1
           maxLength: 10000
+          writeOnly: true
     MFAGetGuardianFactorsPushNotificationProvidersSnsResponse:
       type: object
       additionalProperties: false
@@ -13718,6 +13732,7 @@ components:
         - confidence-score
     MFASetGuardianPoliciesRequest:
       type: array
+      maxItems: 1
       items:
         type: string
         enum:

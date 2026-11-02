@@ -168,3 +168,38 @@ func TestMFASecretBoundary(t *testing.T) {
 		t.Fatal("public methods expose totp_secret")
 	}
 }
+
+func TestMFAWireContracts(t *testing.T) {
+	auth, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := auth.Paths.Find("/oauth/token").Post.Responses.Status(403).Value.Content.Get("application/json").Schema.Value
+	if err := response.VisitJSON(map[string]any{"error": "mfa_required", "error_description": "Multifactor authentication required", "mfa_token": "token"}); err != nil {
+		t.Errorf("MFA required response rejected: %v", err)
+	}
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := doc.Components.Schemas["MFASetGuardianPoliciesRequest"].Value
+	for _, tc := range []struct {
+		body  []any
+		valid bool
+	}{{[]any{}, true}, {[]any{"all-applications"}, true}, {[]any{"all-applications", "confidence-score"}, false}} {
+		if err := policy.VisitJSON(tc.body); (err == nil) != tc.valid {
+			t.Errorf("policy %v: valid=%v, error=%v", tc.body, tc.valid, err)
+		}
+	}
+	item := doc.Paths.Find("/api/v2/guardian/enrollments/{id}")
+	for method, op := range map[string]*openapi3.Operation{"GET": item.Get, "DELETE": item.Delete} {
+		if op.Responses.Status(404) == nil {
+			t.Errorf("%s enrollment missing 404", method)
+		}
+	}
+	for _, name := range []string{"MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request", "MFASetGuardianFactorsPushNotificationProvidersFcmv1Request"} {
+		if p := doc.Components.Schemas[name].Value.Properties["server_credentials"]; p == nil || !p.Value.WriteOnly {
+			t.Errorf("%s credentials must be write-only", name)
+		}
+	}
+}

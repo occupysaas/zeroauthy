@@ -2224,3 +2224,8 @@ and function both named `Route` in one package. This is an interface naming
 ruling, with no wire effect. The published enrollment schema contains an
 incompatible default and pattern for the device name; the local API schema omits
 those invalid constraints rather than exporting an unsatisfiable schema.
+
+Discovery remains unresolved: no public OIDC discovery document has been
+checked for the MFA grants. As a local rule, do not advertise those grants in
+`grant_types_supported` until verified. This is not a claim about Auth0's
+discovery response; verification remains a follow-up for the controller.
