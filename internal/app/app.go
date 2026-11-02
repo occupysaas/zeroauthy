@@ -398,6 +398,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		eventStreams: eventDeliveryWorker,
 		breachFile:   breachFile,
 		handler: server.New(server.Deps{
+			MFA:            mfaService,
 			LogsConfig:     logsConfig,
 			EventDeliverer: eventDeliveryWorker,
 			EventsConfig:   events.Config{Retention: cfg.Events.Retention, MaxStreams: cfg.Events.MaxStreams, MaxConnections: cfg.Events.MaxConnections, AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP},

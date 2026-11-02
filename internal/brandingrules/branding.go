@@ -161,7 +161,7 @@ func ValidTextPrompt(p string) bool {
 		return true
 	}
 	switch p {
-	case "logout", "reset-password", "email-verification", "consent", "device-flow", "zeroauthy":
+	case "mfa", "mfa-otp", "mfa-email", "mfa-recovery-code", "logout", "reset-password", "email-verification", "consent", "device-flow", "zeroauthy":
 		return true
 	}
 	return false

@@ -24,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -40,6 +41,7 @@ var errTxn = errors.New("login: invalid or expired transaction")
 var errOrganizationConnection = errors.New("login: connection is not enabled for the organization")
 
 type Handlers struct {
+	MFA        *mfa.Service
 	Recorder   logs.Recorder
 	Actions    *actions.Engine
 	Protection *protection.Service

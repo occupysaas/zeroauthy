@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"github.com/zeroauthy/zeroauthy/internal/mfarules"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -46,6 +47,16 @@ func usedKeys(t *testing.T) []string {
 		}
 		return true
 	})
+	// MFA templates share a data-driven prompt/screen prefix. These suffixes
+	// occur in the shared templates or the proof/option error paths.
+	for prompt, screens := range mfarules.Screens() {
+		for _, screen := range screens {
+			for _, suffix := range []string{"title", "description", "buttonText", "codeLabel", "rememberMeText", "tryAnotherMethodText", "resendActionText", "qrCodeLabel", "manualEntryText", "acknowledgeText", "alreadyShownText", "successText", "otpText", "emailText", "recovery-codeText", "invalidCode", "tooManyAttempts"} {
+				used = append(used, prompt+"."+screen+"."+suffix)
+			}
+		}
+	}
+	used = append(used, "mfa.mfa-enroll-result.invalidTicket")
 	return used
 }
 

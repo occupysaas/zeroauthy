@@ -394,6 +394,9 @@ func RenderWebMessage(w http.ResponseWriter, targetOrigin string, response map[s
 func newNonce() string { return secrets.RandomString(22) }
 
 func promptForPage(page string) (string, string) {
+	if strings.HasPrefix(page, "mfa_") {
+		return MFAScreen(page)
+	}
 	switch page {
 	case "login_id":
 		return "login-id", "login-id"

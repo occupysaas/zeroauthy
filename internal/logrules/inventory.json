@@ -1190,14 +1190,20 @@
       "type": "gd_auth_email_verification",
       "description": "The MFA email verification step completed.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-email-verification",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 hosted MFA runtime.",
+      "triggers": [
+        {
+          "file": "internal/login/mfa.go",
+          "function": "MFASubmit",
+          "when": "Email enrollment code delivery or successful verification."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_auth_failed",
@@ -1376,14 +1382,25 @@
       "type": "gd_send_email_verification",
       "description": "An MFA enrollment verification email was dispatched.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-email-verification",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 hosted MFA runtime.",
+      "triggers": [
+        {
+          "file": "internal/login/mfa.go",
+          "function": "startMFAMethod",
+          "when": "Email enrollment code delivered on opening the hosted screen."
+        },
+        {
+          "file": "internal/login/mfa.go",
+          "function": "MFASubmit",
+          "when": "Email enrollment code delivery or successful verification."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_send_pn",
@@ -1759,14 +1776,20 @@
       "type": "mfar",
       "description": "The flow requested a second authentication factor.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/mfar",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 hosted MFA runtime.",
+      "triggers": [
+        {
+          "file": "internal/authz/mfa.go",
+          "function": "requireMFA",
+          "when": "Pending hosted MFA gate."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "mgmt_api_read",

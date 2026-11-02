@@ -6,15 +6,20 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"slices"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/ui"
 )
 
 const StageMFA = "mfa"
@@ -25,11 +30,12 @@ const mfaPendingKey = "za_mfa_pending"
 // A page must accept proof only for Requirement.Factors, then MarkMFA and call
 // MFAComplete. MFAComplete reloads this state rather than trusting caller edits.
 type MFAPending struct {
-	Requirement       mfa.Requirement
-	Effects           actions.Effects
-	SessionID, UserID string
-	PreviousMFAAt     time.Time
-	RememberEpoch     int
+	Requirement         mfa.Requirement
+	Effects             actions.Effects
+	SessionID, UserID   string
+	PreviousMFAAt       time.Time
+	RememberEpoch       int
+	TicketAllowMultiple bool
 }
 
 type mfaCompletedKey struct{}
@@ -110,6 +116,7 @@ func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant
 	if eff != nil {
 		pending.Effects = *eff
 	}
+	logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), logs.Event{TenantID: res.Tenant.ID, UserID: sess.UserID, Type: "mfar", Date: h.now()})
 	params := fr.params()
 	params[ParamStage] = StageMFA
 	params[sessionKey] = sess.ID
@@ -132,7 +139,7 @@ func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant
 // for every MFA page request; it does not consume the transaction.
 func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) (*MFAPending, error) {
 	invalid := errors.New("authz: invalid MFA transaction")
-	if txn == nil || sess == nil || h.Wrapper == nil {
+	if txn == nil || h.Wrapper == nil {
 		return nil, invalid
 	}
 	stored, err := h.Store.AuthTransactions().Get(ctx, res.Tenant.ID, txn.ID)
@@ -150,26 +157,31 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 	if err != nil {
 		return nil, err
 	}
-	if current == nil || current.ID != sess.ID || current.ID != stored.Params[sessionKey] {
-		return nil, invalid
+	ticket := stored.ClientID == "" && stored.Params["za_mfa_ticket"] == "1"
+	sid := ""
+	if !ticket {
+		if sess == nil || current == nil || current.ID != sess.ID || current.ID != stored.Params[sessionKey] {
+			return nil, invalid
+		}
+		sid = current.ID
 	}
 	sealed, err := base64.RawURLEncoding.DecodeString(stored.Params[mfaPendingKey])
 	if err != nil {
 		return nil, invalid
 	}
-	plain, err := keys.OpenBound(h.Wrapper, "hosted-mfa/v1", []string{res.Tenant.ID, stored.ID, current.ID, stored.ClientID, res.Origin()}, sealed)
+	plain, err := keys.OpenBound(h.Wrapper, "hosted-mfa/v1", []string{res.Tenant.ID, stored.ID, sid, stored.ClientID, res.Origin()}, sealed)
 	if err != nil {
 		return nil, invalid
 	}
 	var pending MFAPending
-	if json.Unmarshal(plain, &pending) != nil || !pending.Requirement.Required || pending.SessionID != current.ID || pending.UserID != current.UserID {
+	if json.Unmarshal(plain, &pending) != nil || !pending.Requirement.Required || pending.SessionID != sid || (!ticket && pending.UserID != current.UserID) || (ticket && pending.Requirement.Reason != "ticket") {
 		return nil, invalid
 	}
-	u, err := h.Store.Users().Get(ctx, res.Tenant.ID, current.UserID)
+	u, err := h.Store.Users().Get(ctx, res.Tenant.ID, pending.UserID)
 	if err != nil {
 		return nil, err
 	}
-	if u.RememberBrowserEpoch != pending.RememberEpoch {
+	if u.Blocked || u.RememberBrowserEpoch != pending.RememberEpoch {
 		return nil, invalid
 	}
 	return &pending, nil
@@ -181,6 +193,16 @@ func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenan
 	pending, err := h.PendingMFA(r.Context(), r, res, txn, sess)
 	if err != nil {
 		h.invalidMFA(w, r, res)
+		return
+	}
+	if pending.Requirement.Reason == "ticket" {
+		if err := h.Store.AuthTransactions().Delete(r.Context(), res.Tenant.ID, txn.ID); err != nil {
+			h.invalidMFA(w, r, res)
+			return
+		}
+		h.clearTxnCookie(w, txn)
+		h.mfaTicketResult(w, r, res)
+
 		return
 	}
 	stored, err := h.Store.AuthTransactions().Get(r.Context(), res.Tenant.ID, txn.ID)
@@ -218,4 +240,47 @@ func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenan
 }
 func (h *Handlers) invalidMFA(w http.ResponseWriter, r *http.Request, res tenant.Resolved) {
 	h.invalidTxn(w, r, res, &store.AuthTransaction{Params: map[string]string{}})
+}
+
+// StartMFATicket establishes enrollment-only authority, without an SSO session.
+func (h *Handlers) StartMFATicket(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, factors []string, allowMultiple bool) error {
+	p := map[string]string{ParamStage: StageMFA, "za_mfa_ticket": "1"}
+	pending := MFAPending{Requirement: mfa.Requirement{Required: true, Enroll: true, Factors: factors, Reason: "ticket"}, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, TicketAllowMultiple: allowMultiple}
+	txn, err := h.createTxn(w, r, res, "", p, "/u", func(id string, p map[string]string) error {
+		plain, e := json.Marshal(pending)
+		if e != nil {
+			return e
+		}
+		sealed, e := keys.SealBound(h.Wrapper, "hosted-mfa/v1", []string{res.Tenant.ID, id, "", "", res.Origin()}, plain)
+		if e == nil {
+			p[mfaPendingKey] = base64.RawURLEncoding.EncodeToString(sealed)
+		}
+		return e
+	})
+	if err != nil {
+		return err
+	}
+	http.Redirect(w, r, "/u/mfa?"+url.Values{"state": {txn.ID}}.Encode(), http.StatusSeeOther)
+	return nil
+}
+
+func (h *Handlers) mfaTicketResult(w http.ResponseWriter, r *http.Request, res tenant.Resolved) {
+	config, err := (hostedlogin.Service{Store: h.Store}).Load(r.Context(), res.Tenant.ID)
+	if err != nil {
+		h.invalidMFA(w, r, res)
+		return
+	}
+	t := hostedlogin.LocalizedTenant(res.Tenant, config)
+	req := r.WithContext(hostedlogin.WithConfiguration(r.Context(), config))
+	view := ui.RequestTenant(req, t, i18n.ForRequest(t, r, ""))
+	out, err := hostedlogin.RenderPartials(r.Context(), config.Partials["mfa"]["mfa-enroll-result"], map[string]any{
+		"tenant":      map[string]any{"name": view.Name, "support_url": view.SupportURL, "support_email": view.SupportEmail},
+		"application": map[string]any{"name": ""}, "locale": map[string]any{"language": view.L.Lang()},
+		"prompt":   map[string]any{"name": "mfa", "screen": map[string]any{"name": "mfa-enroll-result", "text": view.L.ScreenText("mfa", "mfa-enroll-result")}},
+		"branding": map[string]any{"logo_url": view.LogoURL, "primary_color": view.PrimaryColor},
+	}, nil, "")
+	if err == nil {
+		ui.ApplyPartials(&view, out)
+	}
+	ui.RenderMFA(w, http.StatusOK, view, "mfa_result", ui.MFAData{})
 }

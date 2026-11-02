@@ -29,6 +29,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
@@ -39,6 +40,7 @@ import (
 )
 
 type Deps struct {
+	MFA *mfa.Service
 	// LogsConfig carries the secure stream defaults and deployment opt-ins.
 	LogsConfig     logs.Config
 	EventsConfig   events.Config
@@ -205,6 +207,7 @@ func New(d Deps) http.Handler {
 		Verification: verification,
 	}
 	lg := &login.Handlers{
+		MFA:      d.MFA,
 		Recorder: d.Recorder,
 		Store:    d.Store, Sessions: d.Sessions, Authz: az,
 		Database:          db,
@@ -253,6 +256,11 @@ func New(d Deps) http.Handler {
 		tr.Options("/dbconnections/change_password", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
+		for _, path := range []string{"/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
+			tr.Get(path, lg.MFAPage)
+			tr.Post(path, lg.MFASubmit)
+		}
+		tr.Get("/u/mfa-enroll-ticket", lg.MFATicket)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
 		tr.Get("/u/login/password", lg.LoginPasswordGet)

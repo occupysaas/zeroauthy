@@ -222,6 +222,15 @@ func verifiedEmail(ctx context.Context, st store.Store, tid, uid string, a *stor
 }
 
 func (s *Service) ConfirmEnroll(ctx context.Context, tid, uid string, e *Enrollment, proof Proof) (*Confirmed, error) {
+	return s.confirmEnroll(ctx, tid, uid, e, proof, false)
+}
+
+// ConfirmFirstEnroll atomically forbids an additional confirmed primary method.
+// Enrollment-only tickets without allow_multiple_enrollments use this variant.
+func (s *Service) ConfirmFirstEnroll(ctx context.Context, tid, uid string, e *Enrollment, proof Proof) (*Confirmed, error) {
+	return s.confirmEnroll(ctx, tid, uid, e, proof, true)
+}
+func (s *Service) confirmEnroll(ctx context.Context, tid, uid string, e *Enrollment, proof Proof, firstOnly bool) (*Confirmed, error) {
 	ctx = s.operationContext(ctx, proof.Code)
 	if e == nil {
 		return nil, ErrInvalidCode
@@ -229,7 +238,7 @@ func (s *Service) ConfirmEnroll(ctx context.Context, tid, uid string, e *Enrollm
 	ctx = s.operationContext(ctx, e.ChallengeID)
 	c := &Challenge{ID: e.ChallengeID, AuthenticatorID: e.AuthenticatorID}
 	result := &Confirmed{AuthenticatorID: e.AuthenticatorID}
-	err := s.check(ctx, tid, uid, c, proof, true, result)
+	err := s.check(ctx, tid, uid, c, proof, true, result, firstOnly)
 	if err != nil {
 		s.emit(ctx, tid, uid, "gd_start_enroll_failed")
 		return nil, err
@@ -242,7 +251,7 @@ func (s *Service) Verify(ctx context.Context, tid, uid string, c *Challenge, pro
 	if c != nil {
 		ctx = s.operationContext(ctx, c.ID)
 	}
-	err := s.check(ctx, tid, uid, c, proof, false, nil)
+	err := s.check(ctx, tid, uid, c, proof, false, nil, false)
 	if err != nil {
 		s.emit(ctx, tid, uid, "gd_auth_failed")
 	} else {
@@ -251,7 +260,7 @@ func (s *Service) Verify(ctx context.Context, tid, uid string, c *Challenge, pro
 	return err
 }
 
-func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proof Proof, enroll bool, result *Confirmed) error {
+func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proof Proof, enroll bool, result *Confirmed, firstOnly bool) error {
 	if c == nil {
 		return ErrInvalidCode
 	}
@@ -282,6 +291,17 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 		if current.Type != a.Type || current.Confirmed == enroll {
 			proofErr = ErrInvalidCode
 			return nil
+		}
+		if enroll && firstOnly {
+			list, e := tx.MFA().ListAuthenticators(ctx, tid, uid)
+			if e != nil {
+				return e
+			}
+			for _, other := range list {
+				if other.Confirmed && other.Type != "recovery-code" {
+					return ErrInvalidCode
+				}
+			}
 		}
 		if e = enabled(ctx, tx, tid, current.Type); e != nil {
 			return e
