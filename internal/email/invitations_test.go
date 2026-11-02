@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -36,7 +38,7 @@ func invitationFixture(t *testing.T) (*Service, *actions.Engine, *store.Organiza
 		t.Fatal(err)
 	}
 	s := &Service{Store: st, Wrapper: w, Renderer: renderer, Fallback: mail, DefaultFrom: "sender@example.test", Now: func() time.Time { return now }}
-	e := &actions.Engine{Store: st, Secrets: w, Now: func() time.Time { return now }, InvitationEmail: s}
+	e := &actions.Engine{Store: st, Secrets: w, Now: func() time.Time { return now }, InvitationEmail: s, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 	return s, e, in, mail, &now
 }
 func enqueueInvitation(t *testing.T, e *actions.Engine) *store.ActionJob {
@@ -135,7 +137,7 @@ func TestInvitationEmailRestartAfterSend(t *testing.T) {
 	if len(jobs) != 1 {
 		t.Fatal("lease not recovered")
 	}
-	restarted := &actions.Engine{Store: e.Store, Secrets: e.Secrets, Now: e.Now, InvitationEmail: e.InvitationEmail}
+	restarted := &actions.Engine{Store: e.Store, Secrets: e.Secrets, Now: e.Now, InvitationEmail: e.InvitationEmail, Log: e.Log}
 	if n := restarted.RunJob(context.Background(), &jobs[0]); n.Status != "done" {
 		t.Fatal(n)
 	}

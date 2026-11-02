@@ -226,6 +226,7 @@ func (s *Service) ConfirmEnroll(ctx context.Context, tid, uid string, e *Enrollm
 	if e == nil {
 		return nil, ErrInvalidCode
 	}
+	ctx = s.operationContext(ctx, e.ChallengeID)
 	c := &Challenge{ID: e.ChallengeID, AuthenticatorID: e.AuthenticatorID}
 	result := &Confirmed{AuthenticatorID: e.AuthenticatorID}
 	err := s.check(ctx, tid, uid, c, proof, true, result)
@@ -238,6 +239,9 @@ func (s *Service) ConfirmEnroll(ctx context.Context, tid, uid string, e *Enrollm
 }
 func (s *Service) Verify(ctx context.Context, tid, uid string, c *Challenge, proof Proof) error {
 	ctx = s.operationContext(ctx, proof.Code)
+	if c != nil {
+		ctx = s.operationContext(ctx, c.ID)
+	}
 	err := s.check(ctx, tid, uid, c, proof, false, nil)
 	if err != nil {
 		s.emit(ctx, tid, uid, "gd_auth_failed")

@@ -573,3 +573,103 @@ func TestNoSecretsInEnrichedRecorder(t *testing.T) {
 		}
 	}
 }
+
+// unavailableMFALogs forces the real recorder's slog fallback, so the same
+// request-mask guarantee is checked at both persisted and operational sinks.
+type unavailableMFALogs struct{ store.Store }
+
+func (s unavailableMFALogs) Logs() store.Logs { return store.UnimplementedLogs{} }
+
+func TestNoSecretsIncomingChallengeFreshContext(t *testing.T) {
+	for _, sink := range []string{"store", "slog"} {
+		for _, operation := range []string{"confirm", "verify"} {
+			for _, valid := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/%s/success=%t", sink, operation, valid), func(t *testing.T) {
+					f := newServiceFixture(t)
+					var e *Enrollment
+					var ch *Challenge
+					var err error
+					if operation == "confirm" {
+						e, err = f.svc.BeginEnroll(f.ctx, "tenant", "user", "otp", "")
+						if err != nil {
+							t.Fatal(err)
+						}
+						ch = &Challenge{ID: e.ChallengeID, AuthenticatorID: e.AuthenticatorID}
+					} else {
+						e, _ = f.enroll(t)
+						f.now = f.now.Add(30 * time.Second)
+						ch, err = f.svc.BeginChallenge(f.ctx, "tenant", "user", e.AuthenticatorID, "")
+						if err != nil {
+							t.Fatal(err)
+						}
+					}
+					var recorderStore store.Store = f.st
+					if sink == "slog" {
+						recorderStore = unavailableMFALogs{Store: f.st}
+					}
+					recorder := logs.NewRecorder(recorderStore, logs.Config{Now: func() time.Time { return f.now }}, slog.New(slog.NewJSONHandler(&f.output, nil)))
+					f.svc.Recorder = recorder
+					// Deliberately separate from the context that generated the handle.
+					fresh := logs.WithEvent(context.Background(), logs.Event{UserName: "incoming=" + ch.ID, UserAgent: "challenge=" + ch.ID})
+					code := "bad"
+					if valid {
+						code = codeAt(t, e.Secret, f.now)
+					}
+					if operation == "confirm" {
+						_, err = f.svc.ConfirmEnroll(fresh, "tenant", "user", e, Proof{Code: code})
+					} else {
+						err = f.svc.Verify(fresh, "tenant", "user", ch, Proof{Code: code})
+					}
+					if valid && err != nil || !valid && !errors.Is(err, ErrInvalidCode) {
+						t.Fatalf("proof result=%v", err)
+					}
+					if err = recorder.Flush(context.Background()); err != nil {
+						t.Fatal(err)
+					}
+					var output string
+					if sink == "store" {
+						rows, _, readErr := f.st.Logs().SearchLogs(context.Background(), "tenant", nil, store.LogPage{PerPage: 100})
+						if readErr != nil {
+							t.Fatal(readErr)
+						}
+						if len(rows) != 1 {
+							t.Fatalf("recorded events=%d", len(rows))
+						}
+						output = string(rows[0].Body)
+					} else {
+						output = f.output.String()
+						if output == "" {
+							t.Fatal("slog fallback did not record outcome")
+						}
+					}
+					expected := "gd_auth_failed"
+					if operation == "confirm" {
+						expected = "gd_start_enroll_failed"
+					}
+					if valid {
+						expected = "gd_auth_succeed"
+						if operation == "confirm" {
+							expected = "gd_enrollment_complete"
+						}
+					}
+					if strings.Contains(output, ch.ID) {
+						t.Fatal("incoming challenge handle leaked into enriched outcome")
+					}
+					if !strings.Contains(output, expected) || !strings.Contains(output, "incoming=") || !strings.Contains(output, logscrub.Marker) {
+						t.Fatal("outcome or enriched scrubbed attribution missing")
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestNilEnrollmentAndChallengeProof(t *testing.T) {
+	f := newServiceFixture(t)
+	if _, err := f.svc.ConfirmEnroll(context.Background(), "tenant", "user", nil, Proof{Code: "bad"}); !errors.Is(err, ErrInvalidCode) {
+		t.Fatalf("nil enrollment=%v", err)
+	}
+	if err := f.svc.Verify(context.Background(), "tenant", "user", nil, Proof{Code: "bad"}); !errors.Is(err, ErrInvalidCode) {
+		t.Fatalf("nil challenge=%v", err)
+	}
+}
