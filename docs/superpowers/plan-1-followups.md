@@ -412,3 +412,29 @@ application-enabled connection outside their organization are already refused
 in the hosted step. A future core-authentication fix should move the generic
 error timing with focused regression coverage; callers depending on the later
 upstream error currently receive an earlier `invalid_request`.
+
+## Plan 32 and Plan 33 observation follow-ups (not 1.0 blockers)
+
+Maintainer ruling (2026-11-02): these do not need observation for a good
+1.0. The documented-evidence local rulings (D-0058, D-0059) ship as they
+are. Observe later, one firewalled observer session per group, and change
+behaviour only where Auth0 is shown to differ.
+
+- **Plan 32 event streams (E1–E8, unobserved):** webhook request headers
+  and timeout (10 s local); which user changes emit `user.updated` and
+  whether `previous_object` is partial; delivery ID format and the failure
+  record after a successful redelivery; whether test events are synchronous
+  and stored, and the disabled-stream response; the meaning of the "three
+  consecutive attempts" auto-disable bullet; the stream limit (10 local),
+  duplicate names and PATCH of the destination; SSE heartbeat/cycle/cursor
+  validity and the connection limit (4 local); the EventBridge
+  `aws_partner_event_source` value.
+- **Plan 33 MFA (M1–M9, observation optional):** authentication method and
+  enrollment ID formats and the `multifactor` value; `PUT
+  /guardian/factors` for push/Duo/SMS without providers; enrolment ticket
+  lifetime and reuse (7 days local); `mfa_token`, email code and
+  remember-browser lifetimes (10 min / 5 min / 30 days local) and code
+  lengths; the wrong-code throttle (10 per 15 min local); the `prompt=none`
+  error (`interaction_required` local); email factor availability;
+  `/mfa/associate` and `/mfa/challenge` response details; when MFA changes
+  emit `user.updated`.

@@ -228,8 +228,7 @@ only that task's files. Run commands from the worktree root.
 ### Task 1: Observation, wire contracts and decisions
 
 **Files:** create `internal/mfarules/{inventory.json,rules.go,rules_test.go}`,
-`docs/compat/observations/mfa.md` (observer session only), the
-implementation record. Modify `api/management.yaml`, `api/authentication.yaml`,
+the implementation record. Modify `api/management.yaml`, `api/authentication.yaml`,
 `docs/compat/decisions.md` (D-0059), `docs/compat/matrix.md` and the
 roadmap's Plan 33 entry.
 
@@ -240,9 +239,12 @@ Status `enforced|stored|not_planned`, in Auth0's order), `mfarules.Route(op stri
 `mfarules.DeployHandlers() map[string]string` (handler → `included`|`Plan 34`|`not_planned`), and
 `mfarules.Limits` holding the Global Constraints numbers.
 
-- [ ] The maintainer runs a separate observer session for M1–M9 (§2) on the
-  dev tenant and commits `docs/compat/observations/mfa.md`. Implementers do
-  not observe. Unanswered points keep the §9 local rulings and are listed as gaps.
+- [ ] Do not wait for observation. The maintainer ruled on 2026-11-02 that
+  M1–M9 are not 1.0 blockers, and they are listed in
+  `docs/superpowers/plan-1-followups.md`. The §9 local rulings ship and
+  D-0059 lists each point as a gap. Implementers never observe.
+  `docs/compat/observations/mfa.md` is created only if an observer session
+  happens later.
 - [ ] Write `TestMFAInventory`. Every §3 and §7 route has a source URL,
   scopes, parameters, body schema and errors. There are eight factors in
   Auth0's order, with `otp`, `email`, `recovery-code`, `webauthn-roaming` and

@@ -149,9 +149,11 @@ observe the same area. Observation points:
 - **M9** When `user.updated` fires for MFA changes (catalog events): on
   enrolment, deletion and recovery-code regeneration.
 
-If no evidence is available, the local rulings below stand and the gap is
-recorded. Plan 32 shows that observer sessions may not happen; the plan does
-not depend on them.
+**Maintainer ruling (2026-11-02):** observation is not needed for a good
+1.0. The local rulings below ship, and each open point is listed as a gap in
+D-0059 and in the follow-ups file
+(`docs/superpowers/plan-1-followups.md`). Observation may happen later; it
+changes behaviour only where Auth0 is shown to differ.
 
 General rules hold. Every ID is tenant-scoped, and cross-tenant references
 behave as missing. Keep Management API authentication, live operator grant
