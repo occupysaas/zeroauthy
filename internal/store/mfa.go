@@ -82,8 +82,14 @@ type MFA interface {
 
 	CreateChallenge(ctx context.Context, c *MFAChallenge) error
 	GetChallenge(ctx context.Context, tid, id string, now time.Time) (*MFAChallenge, error)
+	// FailChallenge atomically increments attempts up to five. Missing or consumed
+	// challenges return ErrNotFound; exhausted challenges return ErrPrecondition.
+	// Rejected failures do not mutate the challenge.
 	FailChallenge(ctx context.Context, tid, id string) (attempts int, err error)
-	ConsumeChallenge(ctx context.Context, tid, id string, now time.Time) error // ErrPrecondition if consumed or expired
+	// ConsumeChallenge atomically consumes an unexpired challenge. Email and oob
+	// challenges also require Attempts < 5. ErrPrecondition means missing, consumed,
+	// expired, or an exhausted email/oob challenge.
+	ConsumeChallenge(ctx context.Context, tid, id string, now time.Time) error
 
 	CreateTicket(ctx context.Context, t *EnrollmentTicket) error
 	ConsumeTicket(ctx context.Context, tid, hash string, now time.Time) (*EnrollmentTicket, error)

@@ -307,30 +307,58 @@ func (r mfa) GetChallenge(ctx context.Context, tid, id string, now time.Time) (*
 func (r mfa) FailChallenge(ctx context.Context, tid, id string) (int, error) {
 	var n int
 	err := r.s.atomicRetry(ctx, nil, func(s *Store) error {
-		res, err := s.exec(ctx, `UPDATE mfa_challenges SET attempts=attempts+1 WHERE tenant_id=? AND id=?`, tid, id)
+		res, err := s.exec(ctx, `UPDATE mfa_challenges SET attempts=attempts+1 WHERE tenant_id=? AND id=? AND attempts<5`, tid, id)
 		if err != nil {
 			return err
 		}
-		if err = expectRow(res); err != nil {
+		affected, err := res.RowsAffected()
+		if err != nil {
 			return err
+		}
+		if affected == 0 {
+			var attempts int
+			if err := s.queryRow(ctx, `SELECT attempts FROM mfa_challenges WHERE tenant_id=? AND id=?`, tid, id).Scan(&attempts); err != nil {
+				return mfaMissing(err)
+			}
+			return store.ErrPrecondition
 		}
 		return s.queryRow(ctx, `SELECT attempts FROM mfa_challenges WHERE tenant_id=? AND id=?`, tid, id).Scan(&n)
 	})
 	return n, err
 }
 func (r mfa) ConsumeChallenge(ctx context.Context, tid, id string, now time.Time) error {
-	res, err := r.s.write(ctx, nil, `DELETE FROM mfa_challenges WHERE tenant_id=? AND id=? AND expires_at>?`, tid, id, micros(now))
-	if err != nil {
-		return err
-	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if n == 0 {
-		return store.ErrPrecondition
-	}
-	return nil
+	return r.s.atomicRetry(ctx, nil, func(s *Store) error {
+		// Kind is stored in data. Lock the record while inspecting it, and keep
+		// the attempt predicate on the delete that decides which proof wins.
+		var raw string
+		err := s.queryRow(ctx, `SELECT data FROM mfa_challenges WHERE tenant_id=? AND id=? AND expires_at>?`+s.d.forUpdate, tid, id, micros(now)).Scan(&raw)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrPrecondition
+		}
+		if err != nil {
+			return err
+		}
+		var v store.MFAChallenge
+		if err := fromJSON(raw, &v); err != nil {
+			return err
+		}
+		q := `DELETE FROM mfa_challenges WHERE tenant_id=? AND id=? AND expires_at>?`
+		if v.Kind == "email" || v.Kind == "oob" {
+			q += ` AND attempts<5`
+		}
+		res, err := s.exec(ctx, q, tid, id, micros(now))
+		if err != nil {
+			return err
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return store.ErrPrecondition
+		}
+		return nil
+	})
 }
 func (r mfa) CreateTicket(ctx context.Context, v *store.EnrollmentTicket) error {
 	return r.createJSON(ctx, "mfa_tickets", "hash", v.TenantID, v.Hash, v.UserID, "", v, v.ExpiresAt)

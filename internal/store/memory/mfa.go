@@ -282,6 +282,9 @@ func (r mfa) FailChallenge(_ context.Context, tid, id string) (int, error) {
 	if v == nil {
 		return 0, store.ErrNotFound
 	}
+	if v.Attempts >= 5 {
+		return 0, store.ErrPrecondition
+	}
 	v.Attempts++
 	return v.Attempts, nil
 }
@@ -290,7 +293,7 @@ func (r mfa) ConsumeChallenge(_ context.Context, tid, id string, now time.Time) 
 	defer r.s.unlock()
 	k := key{tid, id}
 	v := r.s.challenges[k]
-	if v == nil || !now.Before(v.ExpiresAt) {
+	if v == nil || !now.Before(v.ExpiresAt) || ((v.Kind == "email" || v.Kind == "oob") && v.Attempts >= 5) {
 		return store.ErrPrecondition
 	}
 	delete(r.s.challenges, k)

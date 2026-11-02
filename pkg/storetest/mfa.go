@@ -3,6 +3,7 @@ package storetest
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"regexp"
 	"testing"
@@ -216,6 +217,95 @@ func MFA(t *testing.T, factory Factory) {
 		mustErrIs(t, s.MFA().ConsumeChallenge(ctx, "a", "id", v.ExpiresAt), store.ErrPrecondition)
 		mustNoErr(t, s.MFA().ConsumeChallenge(ctx, "a", "id", now))
 		mustErrIs(t, s.MFA().ConsumeChallenge(ctx, "a", "id", now), store.ErrPrecondition)
+	})
+	t.Run("MFAChallengeAttemptBudget", func(t *testing.T) {
+		for _, kind := range []string{"email", "oob"} {
+			t.Run(kind, func(t *testing.T) {
+				s := setup(t)
+				mustNoErr(t, s.MFA().CreateChallenge(ctx, &store.MFAChallenge{TenantID: "a", ID: "id", UserID: "u", Kind: kind, ExpiresAt: now.Add(time.Minute)}))
+				for want := 1; want <= 5; want++ {
+					n, err := s.MFA().FailChallenge(ctx, "a", "id")
+					mustNoErr(t, err)
+					mustEqual(t, n, want)
+				}
+				_, err := s.MFA().FailChallenge(ctx, "a", "id")
+				mustErrIs(t, err, store.ErrPrecondition)
+				mustErrIs(t, s.MFA().ConsumeChallenge(ctx, "a", "id", now), store.ErrPrecondition)
+				got, err := s.MFA().GetChallenge(ctx, "a", "id", now)
+				mustNoErr(t, err)
+				mustEqual(t, got.Attempts, 5)
+			})
+		}
+	})
+	t.Run("MFAChallengeConsumedRejectsFailure", func(t *testing.T) {
+		s := setup(t)
+		mustNoErr(t, s.MFA().CreateChallenge(ctx, &store.MFAChallenge{TenantID: "a", ID: "id", UserID: "u", Kind: "email", ExpiresAt: now.Add(time.Minute)}))
+		mustNoErr(t, s.MFA().ConsumeChallenge(ctx, "a", "id", now))
+		_, err := s.MFA().FailChallenge(ctx, "a", "id")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.MFA().GetChallenge(ctx, "a", "id", now)
+		mustErrIs(t, err, store.ErrNotFound)
+	})
+	t.Run("MFAChallengeExhaustedRejectsConsumption", func(t *testing.T) {
+		for _, kind := range []string{"email", "oob"} {
+			t.Run(kind, func(t *testing.T) {
+				s := setup(t)
+				mustNoErr(t, s.MFA().CreateChallenge(ctx, &store.MFAChallenge{TenantID: "a", ID: "id", UserID: "u", Kind: kind, Attempts: 5, ExpiresAt: now.Add(time.Minute)}))
+				mustErrIs(t, s.MFA().ConsumeChallenge(ctx, "a", "id", now), store.ErrPrecondition)
+				got, err := s.MFA().GetChallenge(ctx, "a", "id", now)
+				mustNoErr(t, err)
+				mustEqual(t, got.Attempts, 5)
+			})
+		}
+	})
+	t.Run("MFAChallengeNonCodeConsumption", func(t *testing.T) {
+		s := setup(t)
+		mustNoErr(t, s.MFA().CreateChallenge(ctx, &store.MFAChallenge{TenantID: "a", ID: "id", UserID: "u", Kind: "webauthn", Attempts: 5, ExpiresAt: now.Add(time.Minute)}))
+		mustNoErr(t, s.MFA().ConsumeChallenge(ctx, "a", "id", now))
+	})
+	t.Run("MFAChallengeAttemptBoundaryConcurrent", func(t *testing.T) {
+		for _, kind := range []string{"email", "oob"} {
+			t.Run(kind, func(t *testing.T) {
+				s := setup(t)
+				for trial := range 12 {
+					id := fmt.Sprintf("boundary-%d", trial)
+					mustNoErr(t, s.MFA().CreateChallenge(ctx, &store.MFAChallenge{TenantID: "a", ID: id, UserID: "u", Kind: kind, Attempts: 4, ExpiresAt: now.Add(time.Minute)}))
+					var attempts int
+					errs := parallel(2, func(i int) error {
+						if i == 0 {
+							return s.MFA().ConsumeChallenge(ctx, "a", id, now)
+						}
+						var err error
+						attempts, err = s.MFA().FailChallenge(ctx, "a", id)
+						return err
+					})
+					if errs[0] == nil {
+						mustErrIs(t, errs[1], store.ErrNotFound)
+						_, err := s.MFA().GetChallenge(ctx, "a", id, now)
+						mustErrIs(t, err, store.ErrNotFound)
+					} else {
+						mustErrIs(t, errs[0], store.ErrPrecondition)
+						mustNoErr(t, errs[1])
+						mustEqual(t, attempts, 5)
+						// Once failure wins the last attempt, neither a correct nor
+						// another incorrect proof may change the exhausted record.
+						errs = parallel(2, func(i int) error {
+							if i == 0 {
+								return s.MFA().ConsumeChallenge(ctx, "a", id, now)
+							}
+							_, err := s.MFA().FailChallenge(ctx, "a", id)
+							return err
+						})
+						for _, err := range errs {
+							mustErrIs(t, err, store.ErrPrecondition)
+						}
+						got, err := s.MFA().GetChallenge(ctx, "a", id, now)
+						mustNoErr(t, err)
+						mustEqual(t, got.Attempts, 5)
+					}
+				}
+			})
+		}
 	})
 	t.Run("MFATicketSingleUse", func(t *testing.T) {
 		s := setup(t)
