@@ -1,6 +1,9 @@
 # Plan 33 — MFA I
 
-**Date:** 2026-11-02. **Status:** design; not implemented.
+**Date:** 2026-11-02. **Status:** design; not implemented. **Trimmed for v1.0**
+(maintainer, 2026-11-02; [v1 scope](2026-11-02-zeroauthy-v1-release-scope.md)):
+WebAuthn MFA moves to Plan 33b with passkeys. §6 is kept as Plan 33b's
+starting design.
 
 **Predecessor:** [Event streams](2026-11-01-zeroauthy-event-streams-design.md),
 done locally on main. Roadmap entry: [management roadmap §3, Plan 33](2026-10-19-zeroauthy-management-roadmap-design.md).
@@ -55,9 +58,8 @@ for cross-platform second factors.
 
 Included:
 
-- Factors `otp`, `email`, `recovery-code`, `webauthn-roaming` and
-  `webauthn-platform` (WebAuthn with a platform authenticator as a second
-  factor), enforced end to end.
+- Factors `otp`, `email` and `recovery-code`, enforced end to end.
+  `webauthn-roaming` and `webauthn-platform` are stored only (Plan 33b).
 - Policies `all-applications`, `confidence-score` and never (`[]`).
 - `/api/v2/guardian/*`: factors, policies, enrollments, enrollment tickets,
   and the SMS/phone/push/Duo configuration endpoints. Those are stored and
@@ -68,7 +70,7 @@ Included:
   `POST /users/{id}/multifactor/actions/invalidate-remember-browser`, and
   `multifactor` on the user object.
 - Hosted login MFA prompts (`mfa`, `mfa-otp`, `mfa-email`,
-  `mfa-recovery-code`, `mfa-webauthn`), enrolment tickets and remember-browser.
+  `mfa-recovery-code`), enrolment tickets and remember-browser.
 - Authentication API: `mfa_required`, `/mfa/associate`, `/mfa/challenge`,
   `GET`/`DELETE /mfa/authenticators`, the `mfa-otp`, `mfa-oob` and
   `mfa-recovery-code` grants, and the MFA API audience.
@@ -88,13 +90,13 @@ Excluded:
 - `push-notification` (needs Auth0's Guardian app) and `duo` (needs a vendor
   contract) are not planned (roadmap §5). They can be stored and enabled, but
   the server never offers them.
-- **Passkeys as a first factor:** the database connection's
-  `authentication_methods.passkey`, `passkey_options`, and passkey signup
-  and login screens. The roadmap put them in Plan 33. This spec moves them
-  to a follow-up, **Plan 33b — Passkeys**, because of size (roadmap §6). Plan
-  33b reuses this plan's WebAuthn verifier and storage. Until then the
-  options stay stored-only, as in D-0042. **This needs the maintainer's
-  agreement**; see §9.
+- **WebAuthn and passkeys (Plan 33b, after 1.0; maintainer agreed
+  2026-11-02):** WebAuthn second factors (security keys, device
+  biometrics) and passkeys as a first factor. Passkeys as a first factor
+  means the database connection's `authentication_methods.passkey`,
+  `passkey_options`, and passkey signup and login screens. §6 is Plan 33b's
+  starting design. This plan's storage already has the credential columns.
+  Until Plan 33b the options stay stored-only, as in D-0042.
 - `acr_values` and the `acr` claim go to Plan 41. The My Account API goes to
   Plan 42. Real risk signals for `confidence-score` go to Plan 40 (§5).
 
@@ -159,9 +161,7 @@ General rules hold. Every ID is tenant-scoped, and cross-tenant references
 behave as missing. Keep Management API authentication, live operator grant
 checks, strict body parsing and pagination conventions. Publish `x-source`
 entries and regenerate the API, protobuf and console outputs. Use Go 1.26.7
-and Node >=22.13, and keep dependency pins. **No new Go module:** CBOR and
-COSE decoding for WebAuthn is a small in-tree package (§6). TOTP uses
-`crypto/hmac`.
+and Node >=22.13, and keep dependency pins. **No new Go module:** TOTP uses `crypto/hmac`.
 
 ## 3. Factors, policies and the Management API
 
@@ -177,8 +177,7 @@ returns `{enabled}`.
 | `otp` | enforced: TOTP, RFC 6238, SHA-1, 6 digits, 30 s step, ±1 step accepted, a used step cannot be reused; works with any authenticator app |
 | `email` | enforced: a 6-digit code sent with the `mfa_oob_code` template; requires a verified email |
 | `recovery-code` | enforced: one active code per user, 24 uppercase alphanumerics, stored hashed, replaced on use |
-| `webauthn-roaming` | enforced: security keys (cross-platform authenticators) |
-| `webauthn-platform` | enforced: device biometrics (platform authenticators), offered only after the browser reports a user-verifying platform authenticator |
+| `webauthn-roaming`, `webauthn-platform` | stored; Plan 33b (after 1.0) |
 | `sms` | stored; Plan 34 |
 | `push-notification`, `duo` | stored, not planned; never offered |
 
@@ -241,8 +240,8 @@ An authentication method has Auth0's shape: `id`, `type`, `confirmed`,
 `public_key` and `relying_party_identifier` (WebAuthn). `POST` accepts the
 documented creatable types for this plan: `totp` with `totp_secret`, `email`
 with `email`, and `webauthn-roaming` with `key_id`, `public_key` and
-`relying_party_identifier`. `phone` is stored for Plan 34 and never used
-for a challenge. Methods created through the API are `confirmed`. A
+`relying_party_identifier`. `webauthn-roaming` is stored for Plan 33b and
+`phone` for Plan 34; neither is used for a challenge. Methods created through the API are `confirmed`. A
 `totp_secret` is write-only. IDs follow M1; the local default is
 `<type>|dev_<20 alphanumerics>` (for example `totp|dev_…`), with
 enrollment IDs `dev_<20 alphanumerics>`.
@@ -309,11 +308,10 @@ custom text and partials apply to them:
 
 | Prompt | Screens |
 | --- | --- |
-| `mfa` | `mfa-detect-browser-capabilities`, `mfa-begin-enroll-options`, `mfa-enroll-result`, `mfa-login-options` |
+| `mfa` | `mfa-begin-enroll-options`, `mfa-enroll-result`, `mfa-login-options` |
 | `mfa-otp` | `mfa-otp-enrollment-qr`, `mfa-otp-enrollment-code`, `mfa-otp-challenge` |
 | `mfa-email` | `mfa-email-challenge`, `mfa-email-list` |
 | `mfa-recovery-code` | `mfa-recovery-code-enrollment`, `mfa-recovery-code-challenge` |
-| `mfa-webauthn` | `mfa-webauthn-roaming-enrollment`, `mfa-webauthn-platform-enrollment`, `mfa-webauthn-roaming-challenge`, `mfa-webauthn-platform-challenge`, `mfa-webauthn-error`, `mfa-webauthn-not-available-error` |
 
 Behaviour:
 
@@ -346,7 +344,7 @@ store-backed throttle. **Local ruling (pending M5):** after 10 failures in
 limited to 5 per user per 15 minutes. Each email code lives 5 minutes
 (local, pending M4) and allows at most 5 attempts.
 
-## 6. WebAuthn
+## 6. WebAuthn (Plan 33b design; not built in Plan 33)
 
 `internal/webauthn` verifies registrations and assertions. It contains:
 
@@ -427,9 +425,9 @@ browser would.
 - `api.authentication.challengeWith(factor, {additionalFactors?})`,
   `challengeWithAny(factors)`, `enrollWith(factor, {additionalFactors?})`
   and `enrollWithAny(factors)`. Factor objects are `{type}` with
-  `otp`, `email`, `recovery-code`, `webauthn-roaming`,
-  `webauthn-platform`, and `phone`/`push-notification` (which fail the login
-  as unavailable). These members require tenant
+  `otp`, `email` and `recovery-code`. `webauthn-roaming`,
+  `webauthn-platform`, `phone` and `push-notification` fail the login as
+  unavailable. These members require tenant
   `customize_mfa_in_postlogin_action: true` (stored since Plan 19). Without
   it they fail with Auth0's message. They cannot be mixed with
   `multifactor.enable` in the same execution.
@@ -442,13 +440,13 @@ browser would.
 
 **Logs.** These codes move from deferred to emitted in the frozen log
 inventory: `gd_start_auth`, `gd_auth_succeed`, `gd_auth_failed`,
-`gd_auth_rejected` (WebAuthn cancel), `gd_start_enroll`,
+`gd_start_enroll`,
 `gd_start_enroll_failed`, `gd_enrollment_complete`, `gd_unenroll`,
 `gd_update_device_account`, `gd_recovery_succeed`, `gd_recovery_failed`,
 `gd_send_email`, `gd_send_email_verification`, `gd_auth_email_verification`,
 `gd_otp_rate_limit_exceed`, `gd_tenant_update`, `gd_email_settings_update`,
-`gd_webauthn_challenge_failed`, `gd_webauthn_enrollment_failed`, `mfar`,
-and the grant failures listed in §7. `gd_send_sms*`, `gd_send_voice*` and
+`mfar`, and the grant failures listed in §7. `gd_auth_rejected` and
+`gd_webauthn_*` are re-deferred to Plan 33b. `gd_send_sms*`, `gd_send_voice*` and
 `gd_phone_settings_update` are re-deferred to Plan 34.
 `gd_send_pn*` are not planned. Secrets never enter a log line. Plan 31's
 key-name scrubber gains `otp`, `totp_secret`, `secret`, `recovery_code`,
@@ -506,17 +504,14 @@ their owner as Plan 34. Authentication methods are never exported.
    marked extension (maintainer ruling 2026-11-02, §1). MFA and reset email
    uses any configured Plan 21 email provider.
 2. `confidence-score` uses a 30-day new-device signal until Plan 40.
-3. Lifetimes: `mfa_token` 10 min; email code 5 min with 5 attempts; WebAuthn
-   challenge 5 min; enrollment ticket 7 days; remember browser 30 days.
+3. Lifetimes: `mfa_token` 10 min; email code 5 min with 5 attempts; enrollment ticket 7 days; remember browser 30 days.
 4. Throttle: 10 wrong codes per user and factor per 15 min; 5 emails per 15 min.
 5. Recovery code: 24 uppercase alphanumerics, one active, replaced on use.
-6. WebAuthn attestation `none`; ES256, RS256, EdDSA; RP ID = serving host.
+6. WebAuthn is stored only until Plan 33b (§6 holds its proposed rulings).
 7. Required MFA with no enabled enforced factor fails closed (`access_denied`).
 8. `prompt=none` with unsatisfied MFA returns `interaction_required`.
 9. ID formats `<type>|dev_<20>` and `dev_<20>`; `multifactor: ["guardian"]`.
-10. Passkeys as a first factor are split out to Plan 33b (**maintainer
-    confirmation required**; if declined, Plan 33 gains a passkey task
-    group before acceptance and the WebAuthn verifier is already shared).
+10. WebAuthn MFA and passkeys are Plan 33b, after 1.0 (maintainer, 2026-11-02).
 
 ## 10. Acceptance and completion
 
@@ -527,10 +522,8 @@ their owner as Plan 34. Authentication methods are never exported.
   is not challenged on the next login. The operator invalidates remember
   browser and the next login challenges again. The ID token has `amr:
   ["mfa"]`.
-- WebAuthn roaming and platform enrolment and challenge pass with
-  Playwright's virtual authenticator (CDP). A custom-domain credential is not
-  offered on the canonical domain. A cloned authenticator (lower sign count)
-  is rejected.
+- Enabling `webauthn-roaming` stores the flag and the hosted flow never
+  offers it.
 - Email factor: the code arrives at the test mailbox and validates. A wrong
   code ×10 triggers throttling and `gd_otp_rate_limit_exceed`. The
   recovery code logs in once, a new one is shown, and the old one fails.

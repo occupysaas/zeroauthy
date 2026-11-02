@@ -315,7 +315,7 @@ My Organization API/self-service organization administration Plan 42.
 
 ### Plan 33 — MFA I (full design)
 
-**Designed 2026-11-02:** [spec](2026-11-02-zeroauthy-mfa-design.md), [plan](../plans/2026-11-02-zeroauthy-plan-33-mfa.md) (16 tasks, D-0059, migration 0033). The spec proposes splitting passkeys as a first factor out to Plan 33b, which awaits maintainer confirmation.
+**Designed 2026-11-02:** [spec](2026-11-02-zeroauthy-mfa-design.md), [plan](../plans/2026-11-02-zeroauthy-plan-33-mfa.md) (14 tasks, D-0059, migration 0033). Trimmed for v1.0 on 2026-11-02: WebAuthn MFA and passkeys move to Plan 33b, after 1.0. **v1.0 scope:** [release scope](2026-11-02-zeroauthy-v1-release-scope.md) (accepted 2026-11-02) sets what ships before 1.0 and reorders the remaining plans.
 
 **Endpoints:** `/api/v2/guardian/factors` (`GET`, `PUT /{name}`), `/guardian/policies`, `/guardian/enrollments/{id}`, `POST /guardian/enrollments/ticket`, `/guardian/factors/sms|phone/...` templates and providers stored for Plan 34; user endpoints `/users/{id}/authentication-methods` (CRUD), `/users/{id}/enrollments`, `DELETE /users/{id}/multifactor/{provider}`, `POST /users/{id}/recovery-code-regeneration`, `POST /users/{id}/multifactor/actions/invalidate-remember-browser`.
 

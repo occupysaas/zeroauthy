@@ -1,6 +1,8 @@
 # zeroauthy v1.0 — Release scope proposal
 
-**Date:** 2026-11-02. **Status:** proposal for the maintainer; nothing here is decided until confirmed.
+**Date:** 2026-11-02. **Status:** accepted by the maintainer 2026-11-02 (three tiers as written,
+including WebAuthn after 1.0). Target: release within days. §6 items 2–4
+are still open.
 
 **Why now:** the project is getting public attention (maintainer, 2026-11-02),
 so v1.0 should ship soon. Plans 33–47 in the
