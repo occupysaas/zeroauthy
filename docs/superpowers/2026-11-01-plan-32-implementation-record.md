@@ -1544,3 +1544,53 @@ remain Task 14 phase 2. No suite is labeled passing from fixture implementation
 alone. Detailed commands, individual failures, snapshot identities and private
 artifact exclusions are in workspace
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-14-implementation-report.md`.
+
+### Task 14 Go validation fix 1 — Retry-safe hanging receiver fixture
+
+Base `a9ca2ed8a110a893fe87d02e4fd6a4ef8d42d527`. The fixed-snapshot full Go race
+command `go test -json -race -timeout=50m ./...` failed exit1 after29m43.021s:
+`TestSlowReceiverDoesNotBlockSignups` panicked at worker_test.go:501 when a second
+delivery attempt closed its already-closed entry signal. The original monitor's
+command started2026-11-02T00:01:40.973015Z and ended00:31:23.993759Z, PID10776;
+eventstream package failed after54.766s. Its summary preserves9756passed leaves,
+4skipped leaves,82passed packages and1failed package. The panic produced a package
+failure rather than a normal failed-test event; zero normal failed-test events
+does not imply success. Original evidence:
+`/tmp/zeroauthy-plan32-validation-wco4isyf/01-go-race/{output.log,eventstream-output.log,summary.json,command.json}`.
+The validation monitor stopped before the subsequent SQL stage.
+
+The fixture assumed the1,000signup burst finished before the first10second attempt
+deadline. Under race/CPU contention the request timed out and delivery correctly
+retried, exposing the fixture's incorrect channel ownership. Extracted the existing
+blocking callback into test-only `hangingReceiverTransport`; `sync.Once` now owns
+the first-entry channel close. Every attempt still blocks until its request
+context ends. The original1,000signup baseline/blocked comparison,30second coarse
+ceiling and assertion that the worker remains blocked through the writes are
+unchanged. No production code changed.
+
+Added `TestHangingReceiverRetries`, exercising the real Worker.Deliver and the
+same hanging callback with1ms derived request deadlines and injected backoff clock.
+It forces all4attempts without10second sleeps/full-suite load and requires each
+attempt to fail as timeout. RED reproduced `close of closed channel` on callback2
+before the `sync.Once` correction; GREEN verifies the shared callback across all4.
+
+| Exact command | Actual result | Evidence |
+| --- | --- | --- |
+| `go test -race ./internal/eventstream -run '^TestHangingReceiverRetries$' -count=1 -v` before fix | RED exit1,deterministic close-of-closed-channel panic;package0.656s | `/tmp/plan32-task14-go-fix1-red.log`, `.exit`,session28618 |
+| `go test -race ./internal/eventstream -run '^Test(HangingReceiverRetries\|SlowReceiverDoesNotBlockSignups)$' -count=1 -v` | exit0;2passed leaves,0fail/skip/races;10.821s | `/tmp/plan32-task14-go-fix1-focused.log`, `.exit`,session97834 |
+| `go test -race ./internal/eventstream -count=3 -v` | exit0;150leaf executions,0fail/skip/race reports;51.999s | `/tmp/plan32-task14-go-fix1-race.log`, `.exit`,session10427 |
+
+All Go commands exported `GOTOOLCHAIN=go1.26.7`; each retained log contains explicit
+UTC START/END stamps and its adjacent exit file. RED tree
+`2fbdfdc20114b37dbd7cce51503bac6132d245df` and corrected implementation tree before
+documentation `c137f0ad9e4f47fb98e0591a8cdf3a03f6acd008` are saved in
+`/tmp/plan32-task14-go-fix1-{red,implementation}-tree.txt`. Only this fix agent
+monitored these commands. No SQL, E2E, full Go rerun, production audit or subagent.
+The designated validation monitor owns the full-suite rerun after this commit.
+`tests/e2e/node_modules` remains untouched and untracked.
+
+Focused signup times were normal4.548s/blocked4.578s. The earlier relative10%
+capture-overhead target remains explicitly not met. Self-review confirms only the
+fixture entry signal gained one-time ownership and retries remain hanging until
+their context cancels. Full command/timestamp report:
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-14-go-fix1-report.md`.

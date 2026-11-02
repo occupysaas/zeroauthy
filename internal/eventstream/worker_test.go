@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -481,6 +482,45 @@ func TestActionErrorMaskedAndCancellation(t *testing.T) {
 	}
 }
 
+// shared by the signup-independence fixture and its controlled retry regression.
+func hangingReceiverTransport(entered chan struct{}) roundTripFunc {
+	var firstEntry sync.Once
+	return func(r *http.Request) (*http.Response, error) {
+		firstEntry.Do(func() { close(entered) })
+		<-r.Context().Done()
+		return nil, r.Context().Err()
+	}
+}
+
+func TestHangingReceiverRetries(t *testing.T) {
+	w, _, stream := testWorker(t, 204)
+	entered := make(chan struct{})
+	receiver := hangingReceiverTransport(entered)
+	requests := 0
+	w.client.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		requests++
+		// Accelerate each attempt's timeout while still running the exact
+		// blocking callback used during the 1,000-signup independence check.
+		ctx, cancel := context.WithTimeout(r.Context(), time.Millisecond)
+		defer cancel()
+		return receiver.RoundTrip(r.WithContext(ctx))
+	})
+	got := w.Deliver(context.Background(), stream, []byte(`{}`))
+	if requests != 4 || len(got) != 4 {
+		t.Fatalf("requests=%d attempts=%v", requests, got)
+	}
+	for _, attempt := range got {
+		if attempt.Status != "failed" || attempt.ErrorMessage != "timeout" {
+			t.Fatalf("receiver did not block until attempt timeout: %+v", attempt)
+		}
+	}
+	select {
+	case <-entered:
+	default:
+		t.Fatal("first entry was not signaled")
+	}
+}
+
 func TestSlowReceiverDoesNotBlockSignups(t *testing.T) {
 	_, baselineStore, _ := testWorker(t, 204)
 	baselineCaptured := events.Wrap(baselineStore, events.Config{})
@@ -497,11 +537,7 @@ func TestSlowReceiverDoesNotBlockSignups(t *testing.T) {
 	entered := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	w.client.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		close(entered)
-		<-r.Context().Done()
-		return nil, r.Context().Err()
-	})
+	w.client.Transport = hangingReceiverTransport(entered)
 	done := make(chan struct{})
 	go func() { defer close(done); w.runOne(ctx) }()
 	<-entered
