@@ -32,19 +32,21 @@ import (
 // Exercise a real server and transport, selectively making Events methods look
 // like an older or restarting plugin without replacing any earlier feature.
 type eventsFaults struct {
-	mfaMissing      bool
-	mfaProbe        atomic.Int32
-	mfaOperation    atomic.Int32
-	mfaMark         atomic.Int32
-	mfaBlock        atomic.Bool
-	mfaProbeEntered chan struct{}
-	mfaProbeRelease chan struct{}
-	appendCode      atomic.Int32
-	versionZero     atomic.Bool
-	missing         bool
-	probeCode       atomic.Int32
-	operationCode   atomic.Int32
-	missingFloor    bool
+	mfaDomainOperation atomic.Bool
+	mfaDomainMark      atomic.Bool
+	mfaMissing         bool
+	mfaProbe           atomic.Int32
+	mfaOperation       atomic.Int32
+	mfaMark            atomic.Int32
+	mfaBlock           atomic.Bool
+	mfaProbeEntered    chan struct{}
+	mfaProbeRelease    chan struct{}
+	appendCode         atomic.Int32
+	versionZero        atomic.Bool
+	missing            bool
+	probeCode          atomic.Int32
+	operationCode      atomic.Int32
+	missingFloor       bool
 }
 
 func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) *Client {
@@ -65,11 +67,17 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 			}
 		}
 		if name == "SessionsMarkMFA" {
+			if faults.mfaDomainMark.Swap(false) {
+				return &storev1.Result{Error: errToPB(store.ErrMFAUnavailable)}, nil
+			}
 			if code := codes.Code(faults.mfaMark.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "mark failure")
 			}
 		}
 		if name == "MFAGetGuardian" {
+			if faults.mfaDomainOperation.Swap(false) {
+				return &storev1.MFAGetGuardianResponse{Error: errToPB(store.ErrMFAUnavailable)}, nil
+			}
 			if code := codes.Code(faults.mfaOperation.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "operation failure")
 			}

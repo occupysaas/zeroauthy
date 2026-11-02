@@ -74,7 +74,11 @@ func mfaRPCError(c *Client, err error, e *storev1.Error) error {
 		}
 		return rpcErr("MFA", err)
 	}
-	return errFromPB(e)
+	err = errFromPB(e)
+	if errors.Is(err, store.ErrMFAUnavailable) {
+		c.mfaCap.v.Store(2)
+	}
+	return err
 }
 
 // copyMFA maps the explicitly defined protobuf record fields to their store counterparts.
@@ -127,19 +131,39 @@ func copyMFAValue(d, s reflect.Value) error {
 		if s.Kind() != reflect.Struct {
 			return store.ErrInvalid
 		}
+		// Both records must have the same exported fields; protobuf runtime internals are unexported.
+		matched := make(map[int]bool)
 		for i := 0; i < d.NumField(); i++ {
 			f := d.Type().Field(i)
-			if !d.Field(i).CanSet() {
+			if f.PkgPath != "" {
 				continue
 			}
 			name := strings.ReplaceAll(strings.ToLower(f.Name), "_", "")
+			found := false
 			for j := 0; j < s.NumField(); j++ {
-				if strings.ReplaceAll(strings.ToLower(s.Type().Field(j).Name), "_", "") == name {
+				sf := s.Type().Field(j)
+				if sf.PkgPath != "" {
+					continue
+				}
+				if strings.ReplaceAll(strings.ToLower(sf.Name), "_", "") == name {
+					if matched[j] {
+						return store.ErrInvalid
+					}
+					matched[j] = true
+					found = true
 					if err := copyMFAValue(d.Field(i), s.Field(j)); err != nil {
 						return err
 					}
 					break
 				}
+			}
+			if !found {
+				return fmt.Errorf("MFA: missing field %s: %w", f.Name, store.ErrInvalid)
+			}
+		}
+		for j := 0; j < s.NumField(); j++ {
+			if s.Type().Field(j).PkgPath == "" && !matched[j] {
+				return fmt.Errorf("MFA: extra field %s: %w", s.Type().Field(j).Name, store.ErrInvalid)
 			}
 		}
 		return nil

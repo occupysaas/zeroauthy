@@ -3,6 +3,7 @@ package grpcstore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/pkg/storetest"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -265,5 +266,55 @@ func TestMFAConcurrentProbeCannotClearUnsupported(t *testing.T) {
 	}
 	if c.MFASupported() {
 		t.Fatal("concurrent probe cleared latch")
+	}
+}
+
+func TestMFADomainUnavailableLatches(t *testing.T) {
+	for _, mark := range []bool{false, true} {
+		t.Run(fmt.Sprint(mark), func(t *testing.T) {
+			ctx := context.Background()
+			f := &eventsFaults{mfaProbeEntered: make(chan struct{}, 1), mfaProbeRelease: make(chan struct{})}
+			c := serveEventsFaults(t, memory.New(), f)
+			f.mfaBlock.Store(true)
+			result := make(chan error, 1)
+			go func() { result <- c.CheckMFASupport(ctx) }()
+			<-f.mfaProbeEntered
+			var err error
+			if mark {
+				f.mfaDomainMark.Store(true)
+				err = c.Sessions().MarkMFA(ctx, "t", "s", time.Now())
+			} else {
+				f.mfaDomainOperation.Store(true)
+				_, err = c.MFA().GetGuardian(ctx, "t")
+			}
+			if !errors.Is(err, store.ErrMFAUnavailable) {
+				t.Fatalf("operation: %v", err)
+			}
+			close(f.mfaProbeRelease)
+			if err = <-result; !errors.Is(err, store.ErrMFAUnavailable) {
+				t.Fatalf("concurrent probe cleared latch: %v", err)
+			}
+			if c.MFASupported() {
+				t.Fatal("domain error not latched")
+			}
+			if err = c.CheckMFASupport(ctx); !errors.Is(err, store.ErrMFAUnavailable) {
+				t.Fatalf("subsequent probe: %v", err)
+			}
+		})
+	}
+}
+func TestMFAConversionRejectsUnmatchedFields(t *testing.T) {
+	type source struct {
+		TenantID      string
+		SecurityField string
+	}
+	type destination struct{ TenantID string }
+	var d destination
+	if err := copyMFA(&d, source{TenantID: "t", SecurityField: "secret"}); !errors.Is(err, store.ErrInvalid) {
+		t.Fatalf("unmatched source: %v", err)
+	}
+	var s source
+	if err := copyMFA(&s, destination{TenantID: "t"}); !errors.Is(err, store.ErrInvalid) {
+		t.Fatalf("unmatched destination: %v", err)
 	}
 }

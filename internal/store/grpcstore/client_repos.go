@@ -1299,8 +1299,9 @@ func (a clientSessions) MarkMFA(ctx context.Context, tid, id string, at time.Tim
 	}
 	r, err := a.c.rpc.SessionsMarkMFA(ctx, &storev1.TouchRequest{TxId: a.c.txID, TenantId: tid, Id: id, At: tsToPB(at)})
 	err = capabilityError(err, store.ErrMFAUnavailable)
+	err = do("SessionsMarkMFA", r, err)
 	if errors.Is(err, store.ErrMFAUnavailable) {
 		a.c.mfaCap.v.Store(2)
 	}
-	return do("SessionsMarkMFA", r, err)
+	return err
 }
