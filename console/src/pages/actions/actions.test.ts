@@ -252,9 +252,14 @@ it.each(['post-login', 'password-reset-post-challenge'])('shows implemented MFA 
   const { wrapper: w } = await setup('action-editor', '/t/acme/actions/a', () => ok(action('a', { supported_triggers: [{ id: trigger }] })))
   const hints = w.get('[data-mfa-hints]').text()
   expect(hints).toContain('challengeWith('); expect(hints).toContain('challengeWithAny(')
-  expect(hints).toContain('additionalFactors?'); expect(hints).toContain('event.user.enrolledFactors')
+  expect(hints).toContain('additionalFactors?')
   if(trigger === 'post-login') {
     expect(hints).toContain('enrollWith('); expect(hints).toContain('enrollWithAny(')
     expect(hints).toContain('allowRememberBrowser?'); expect(hints).toContain('name: "mfa"')
-  } else expect(hints).not.toContain('enrollWith(')
+    expect(hints).toContain('event.user.enrolledFactors')
+  } else {
+    expect(hints).not.toContain('enrollWith(')
+    expect(hints).not.toContain('event.user.enrolledFactors')
+    expect(hints).not.toContain('event.authentication.methods')
+  }
 })

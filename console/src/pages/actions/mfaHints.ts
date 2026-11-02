@@ -11,6 +11,5 @@ event.authentication.methods: Array<{ name: "mfa" | string; timestamp: string }>
 api.authentication.enrollWith(factor: MFAFactor, options?: MFAOptions): void;
 api.authentication.enrollWithAny(factors: MFAFactor[]): void;
 api.multifactor.enable(provider: "any" | "google-authenticator" | "guardian" | "none" | "duo", options?: { allowRememberBrowser?: boolean }): void;
-${event}` : `${factors}
-event.user.enrolledFactors: Array<{ type: string; options?: Record<string, unknown> }>;`
+${event}` : factors
 }
