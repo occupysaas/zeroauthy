@@ -78,7 +78,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	var eventConn *store.Connection
 	var eventUserID string
 	defer func() {
-		if failure != nil && (failure.Code == "authorization_pending" || failure.Code == "slow_down") {
+		if failure != nil && (failure.Code == "authorization_pending" || failure.Code == "slow_down" || failure.Code == "mfa_required") {
 			return
 		}
 		code := "sepft"
@@ -211,7 +211,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	if aud == "" {
 		aud = res.Tenant.DefaultAudience
 	}
-	if aud != "" {
+	if aud != "" && !h.isMFAAudience(ctx, tenantID, aud) {
 		// Like client_credentials: an unknown API is access_denied, not a bad grant.
 		if _, err := h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, aud); errors.Is(err, store.ErrNotFound) {
 			return nil, accessDenied("unknown audience")
@@ -250,11 +250,43 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	// The refresh family's ceiling is the issued set without the Actions'
 	// target additions (spec §7).
 	ceiling := actions.CeilingOf(scopes, before)
-	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: "password", effects: eff,
-	})
+	if required := h.passwordMFA(ctx, res, c, user, conn, aud, scopes, ceiling, eff, now); required != nil {
+		return nil, required
+	}
+	resp, write, oerr := h.preparePasswordTokens(ctx, res, c, user, rs, lifetime, aud, scopes, ceiling, eff, now, time.Time{})
 	if oerr != nil {
 		return nil, oerr
+	}
+
+	// The password was checked against the user at this Version. A reset,
+	// block or session revocation since then refuses the grant.
+	version := user.Version
+	err = h.mintTx(ctx, tenantID, user.UserID, &version, write)
+	switch {
+	case errors.Is(err, errUserBlocked):
+		return nil, invalidGrant("user is blocked")
+	case errors.Is(err, errUserChanged):
+		return nil, invalidGrant("the user is not allowed to sign in")
+	case err != nil:
+		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	if user != nil {
+		eventUserID = user.UserID
+	}
+	return resp, nil
+}
+
+// preparePasswordTokens shares the original password issuance path with its
+// MFA continuation. Signing happens outside store locks; callers return these
+// tokens only after their authorization/proof transaction commits.
+func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolved, c *store.Client, user *store.User, rs *store.ResourceServer, lifetime time.Duration, aud string, scopes, ceiling []string, eff *actions.Effects, now, mfaAt time.Time) (*authapi.TokenResponse, func(store.Store) error, *Error) {
+	tenantID := res.Tenant.ID
+	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
+		user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: "password", effects: eff, mfaAt: mfaAt,
+	})
+	if oerr != nil {
+		return nil, nil, oerr
 	}
 	var rt *store.RefreshToken
 	var raw string
@@ -270,29 +302,13 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 			audience: aud, scopes: ceiling, authTime: now, expiresAt: expiresAt,
 		})
 	}
-	// The password was checked against the user at this Version. A reset,
-	// block or session revocation since then refuses the grant.
-	version := user.Version
-	err = h.mintTx(ctx, tenantID, user.UserID, &version, func(tx store.Store) error {
+	if rt != nil {
+		resp.RefreshToken = &raw
+	}
+	return resp, func(tx store.Store) error {
 		if rt == nil {
 			return nil
 		}
 		return tx.RefreshTokens().Create(ctx, rt)
-	})
-	switch {
-	case errors.Is(err, errUserBlocked):
-		return nil, invalidGrant("user is blocked")
-	case errors.Is(err, errUserChanged):
-		return nil, invalidGrant("the user is not allowed to sign in")
-	case err != nil:
-		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
-		return nil, serverError()
-	}
-	if rt != nil {
-		resp.RefreshToken = &raw
-	}
-	if user != nil {
-		eventUserID = user.UserID
-	}
-	return resp, nil
+	}, nil
 }

@@ -12,11 +12,13 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 type Handlers struct {
+	MFA        *mfa.Service
 	Recorder   logs.Recorder
 	Protection *protection.Service
 	Store      store.Store

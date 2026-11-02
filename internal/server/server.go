@@ -231,6 +231,7 @@ func New(d Deps) http.Handler {
 		authapi.HandlerWithOptions(authAPI{
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
+				MFA:      d.MFA,
 				Recorder: d.Recorder,
 				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
 				BaseDomain:        d.BaseDomain,

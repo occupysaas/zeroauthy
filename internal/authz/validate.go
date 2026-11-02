@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -133,7 +134,7 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	if req.Audience == "" {
 		req.Audience = t.DefaultAudience
 	}
-	if req.Audience != "" {
+	if req.Audience != "" && !mfa.APIAudience(ctx, st, t.ID, req.Audience) {
 		if _, err := st.ResourceServers().GetByIdentifier(ctx, t.ID, req.Audience); errors.Is(err, store.ErrNotFound) {
 			return client, errAccessDenied("unknown audience"), true
 		} else if err != nil {

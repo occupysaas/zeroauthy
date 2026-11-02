@@ -273,6 +273,9 @@ semantics before enabling a code.
 | `feccft` | A client-credentials request could not issue tokens. |
 | `fede` | A device-code grant could not issue tokens. |
 | `fepft` | A resource-owner password grant was refused. |
+| `fercft` | A password grant with an MFA recovery credential was refused. |
+| `feotpft` | A password grant with a one-time challenge was refused. |
+| `feoobft` | A password grant with an out-of-band challenge was refused. |
 | `ferrt` | A rotating refresh credential was rejected, including reuse detection. |
 | `fertft` | A refresh credential could not issue tokens. |
 | `fi` | An organization invitation could not be accepted. |
@@ -360,10 +363,7 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `fecte` | A custom token grant could not issue tokens. | Plan 35 |
 | `federated_logout_failed` | The external identity provider could not complete sign-out. | Plan 41 |
 | `fens` | A native social provider exchange was refused. | Plan 44 |
-| `feoobft` | A password grant with an out-of-band challenge was refused. | Plan 33 |
-| `feotpft` | A password grant with a one-time challenge was refused. | Plan 33 |
 | `fepotpft` | A passwordless one-time grant was refused. | Plan 34 |
-| `fercft` | A password grant with an MFA recovery credential was refused. | Plan 33 |
 | `feta` | Token Vault could not exchange the supplied credential. | Plan 43 |
 | `flows_execution_completed` | A configured Flow reached completion. | Plan 38 |
 | `flows_execution_failed` | A configured Flow stopped with an error. | Plan 38 |

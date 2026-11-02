@@ -95,7 +95,11 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 	}
 	var rs *store.ResourceServer
 	if aud != "" {
-		rs, err = h.Store.ResourceServers().GetByIdentifier(ctx, t.ID, aud)
+		if h.isMFAAudience(ctx, t.ID, aud) {
+			rs = mfaResourceServer(t.ID, aud)
+		} else {
+			rs, err = h.Store.ResourceServers().GetByIdentifier(ctx, t.ID, aud)
+		}
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, invalidRequest("unknown audience") // D3
 		}

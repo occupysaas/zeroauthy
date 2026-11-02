@@ -47,6 +47,9 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		return nil, invalidRequest("audience is required because the tenant has no default audience")
 	}
 
+	if h.isMFAAudience(ctx, tenantID, aud) {
+		return nil, accessDenied("client_credentials cannot access the MFA API")
+	}
 	rs, err := h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, aud)
 	if errors.Is(err, store.ErrNotFound) && !res.Tenant.Reserved && aud == tenant.ManagementAPIIdentifier(res.Tenant, h.BaseDomain) {
 		// The tenant's Management API is created on first use. The system

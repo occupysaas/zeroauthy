@@ -20,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -491,7 +492,13 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 	}
 	audienceKey := res.Issuer() + "userinfo" // O2
 	if req.Audience != "" {
-		rs, err := h.Store.ResourceServers().GetByIdentifier(ctx, res.Tenant.ID, req.Audience)
+		var rs *store.ResourceServer
+		var err error
+		if mfa.APIAudience(ctx, h.Store, res.Tenant.ID, req.Audience) {
+			rs = mfa.APIResourceServer(res.Tenant.ID, req.Audience)
+		} else {
+			rs, err = h.Store.ResourceServers().GetByIdentifier(ctx, res.Tenant.ID, req.Audience)
+		}
 		if err != nil {
 			return in, "", err
 		}

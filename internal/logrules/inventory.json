@@ -783,27 +783,39 @@
       "type": "feoobft",
       "description": "A password grant with an out-of-band challenge was refused.",
       "category": "auth.token_exchange.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/feoobft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 Authentication API MFA grant failure.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "Final failed MFA grant outcome after client authentication and grant authorization."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "feotpft",
       "description": "A password grant with a one-time challenge was refused.",
       "category": "auth.token_exchange.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/feotpft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 Authentication API MFA grant failure.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "Final failed MFA grant outcome after client authentication and grant authorization."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "fepft",
@@ -839,14 +851,20 @@
       "type": "fercft",
       "description": "A password grant with an MFA recovery credential was refused.",
       "category": "auth.token_exchange.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fercft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 Authentication API MFA grant failure.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "Final failed MFA grant outcome after client authentication and grant authorization."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "ferrt",

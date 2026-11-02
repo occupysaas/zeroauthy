@@ -115,6 +115,9 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 	if aud == "" {
 		return nil, DefaultAccessTokenLifetime, nil
 	}
+	if h.isMFAAudience(ctx, tenantID, aud) {
+		return mfaResourceServer(tenantID, aud), DefaultAccessTokenLifetime, nil
+	}
 	rs, err := h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, aud)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, 0, invalidGrant("the requested audience no longer exists")
@@ -140,6 +143,7 @@ type userTokens struct {
 	nonce        string
 	sessionID    string
 	authTime     time.Time
+	mfaAt        time.Time
 	// grantType becomes the access token's gty claim; empty omits it.
 	grantType string
 	// omitAtHash leaves at_hash out of the ID token.
@@ -251,7 +255,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		if ut.omitAtHash {
 			atHashSource = ""
 		}
-		var mfaAt time.Time
+		mfaAt := ut.mfaAt
 		if ut.sessionID != "" {
 			sess, err := h.Store.Sessions().Get(ctx, tenantID, ut.sessionID)
 			if err != nil && !errors.Is(err, store.ErrNotFound) {

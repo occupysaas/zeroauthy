@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -20,17 +21,20 @@ type grantHandler func(h *Handlers, ctx context.Context, res tenant.Resolved, c 
 
 // grantHandlers maps grant_type to its implementation.
 var grantHandlers = map[string]grantHandler{
-	"authorization_code": (*Handlers).authorizationCode,
-	"client_credentials": (*Handlers).clientCredentials,
-	"refresh_token":      (*Handlers).refreshToken,
-	"password":           (*Handlers).passwordGrant,
-	GrantPasswordRealm:   (*Handlers).passwordRealmGrant,
-	GrantDeviceCode:      (*Handlers).deviceCodeGrant,
+	"authorization_code":             (*Handlers).authorizationCode,
+	"client_credentials":             (*Handlers).clientCredentials,
+	"refresh_token":                  (*Handlers).refreshToken,
+	"password":                       (*Handlers).passwordGrant,
+	GrantPasswordRealm:               (*Handlers).passwordRealmGrant,
+	GrantDeviceCode:                  (*Handlers).deviceCodeGrant,
+	clientrules.GrantMFAOTP:          (*Handlers).mfaOTPGrant,
+	clientrules.GrantMFAOOB:          (*Handlers).mfaOOBGrant,
+	clientrules.GrantMFARecoveryCode: (*Handlers).mfaRecoveryGrant,
 }
 
 // orgLessGrants never carry an organization: they ignore the organization
 // parameter, and a client that requires one may not use them (D-0055).
-var orgLessGrants = []string{"password", GrantPasswordRealm, GrantDeviceCode}
+var orgLessGrants = []string{"password", GrantPasswordRealm, GrantDeviceCode, clientrules.GrantMFAOTP, clientrules.GrantMFAOOB, clientrules.GrantMFARecoveryCode}
 
 // OauthToken implements POST /oauth/token.
 func (h *Handlers) OauthToken(w http.ResponseWriter, r *http.Request) {

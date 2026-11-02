@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -614,12 +615,15 @@ func assertOneBindingsRead(t *testing.T, without, with map[string]int) {
 // registered grant must be listed, so a new grant cannot leak its
 // credentials into event.request.body unnoticed.
 var credentialsByGrant = map[string][]string{
-	"authorization_code": {"code", "code_verifier", "client_secret", "client_assertion"},
-	"client_credentials": {"client_secret", "client_assertion"},
-	"refresh_token":      {"refresh_token", "client_secret", "client_assertion"},
-	"password":           {"password", "client_secret", "client_assertion"},
-	GrantPasswordRealm:   {"password", "client_secret", "client_assertion"},
-	GrantDeviceCode:      {"device_code", "client_secret", "client_assertion"},
+	"authorization_code":             {"code", "code_verifier", "client_secret", "client_assertion"},
+	"client_credentials":             {"client_secret", "client_assertion"},
+	"refresh_token":                  {"refresh_token", "client_secret", "client_assertion"},
+	"password":                       {"password", "client_secret", "client_assertion"},
+	GrantPasswordRealm:               {"password", "client_secret", "client_assertion"},
+	GrantDeviceCode:                  {"device_code", "client_secret", "client_assertion"},
+	clientrules.GrantMFAOTP:          {"mfa_token", "otp", "client_secret", "client_assertion"},
+	clientrules.GrantMFAOOB:          {"mfa_token", "oob_code", "binding_code", "client_secret", "client_assertion"},
+	clientrules.GrantMFARecoveryCode: {"mfa_token", "recovery_code", "client_secret", "client_assertion"},
 }
 
 func TestActionsBodyStripsEveryGrant(t *testing.T) {

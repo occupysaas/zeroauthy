@@ -38,12 +38,13 @@ type EmailSender interface {
 // Service is shared by hosted login and OAuth grants. No proof/replay state is
 // process-local. Recorder may be set explicitly; otherwise use the request sink.
 type Service struct {
-	Recorder logs.Recorder
-	st       store.Store
-	sealer   keys.Wrapper
-	mail     EmailSender
-	th       Throttle
-	now      func() time.Time
+	Recorder    logs.Recorder
+	st          store.Store
+	sealer      keys.Wrapper
+	mail        EmailSender
+	th          Throttle
+	now         func() time.Time
+	proofCommit func(store.Store) error
 }
 
 // NewService uses the repository's master-key wrapper and atomic protection
@@ -286,7 +287,7 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 		// All enrollment confirmations share the same user lock, including ordinary
 		// allow-multiple enrollment. Acquire it before any authenticator snapshot so
 		// a restricted ticket cannot race another confirmation past its predicate.
-		if enroll {
+		if enroll || s.proofCommit != nil {
 			if _, e := tx.Users().GetForUpdate(ctx, tid, uid); e != nil {
 				return e
 			}
@@ -390,6 +391,11 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 				result.RecoveryCode = recovery
 			}
 		}
+		if s.proofCommit != nil {
+			if e := s.proofCommit(tx); e != nil {
+				return e
+			}
+		}
 		outcome = "success"
 		return nil
 	})
@@ -431,6 +437,11 @@ func (s *Service) Recover(ctx context.Context, tid, uid, code string) (next stri
 	ctx = logscrub.WithCredentials(ctx, code)
 	outcome := "refund"
 	err = s.st.WithTx(ctx, func(tx store.Store) error {
+		if s.proofCommit != nil {
+			if _, e := tx.Users().GetForUpdate(ctx, tid, uid); e != nil {
+				return e
+			}
+		}
 		list, e := tx.MFA().ListAuthenticators(ctx, tid, uid)
 		if e != nil {
 			return e
@@ -471,6 +482,11 @@ func (s *Service) Recover(ctx context.Context, tid, uid, code string) (next stri
 		if e = tx.MFA().ReplaceRecoveryCode(ctx, tid, uid, hash, secrets.HashToken(next), s.now()); e != nil {
 			return e
 		}
+		if s.proofCommit != nil {
+			if e := s.proofCommit(tx); e != nil {
+				return e
+			}
+		}
 		outcome = "success"
 		return nil
 	})
@@ -499,4 +515,54 @@ func (s *Service) Unenroll(ctx context.Context, tid, uid, id string) error {
 		s.emit(ctx, tid, uid, "gd_unenroll")
 	}
 	return err
+}
+
+// WithProofCommit returns a request-local view that commits additional store
+// writes in the successful proof transaction. A callback error rolls back the
+// proof, including recovery rotation and enrollment confirmation. Shared
+// persisted throttles and delivery dependencies are retained. Callbacks must
+// only use tx and must not send responses or sign tokens under its locks.
+func (s *Service) WithProofCommit(commit func(store.Store) error) *Service {
+	c := *s
+	c.proofCommit = commit
+	return &c
+}
+
+// BeginOTPChallenge chooses an owned TOTP method by proof when multiple methods
+// exist. enroll selects pending methods; false selects confirmed methods.
+// A wrong code still reaches exactly one ordinary Verify/ConfirmEnroll
+// call, so the shared per-user throttle records one failure per submitted code.
+func (s *Service) BeginOTPChallenge(ctx context.Context, tid, uid, code string, enroll bool) (*Challenge, error) {
+	ctx = s.operationContext(ctx, code)
+	list, err := s.st.MFA().ListAuthenticators(ctx, tid, uid)
+	if err != nil {
+		return nil, err
+	}
+	var chosen *store.Authenticator
+	for _, a := range list {
+		if a.Type != "totp" || a.Confirmed == enroll {
+			continue
+		}
+		if chosen == nil {
+			v := a
+			chosen = &v
+		}
+		if s.sealer == nil {
+			return nil, errSealing
+		}
+		plain, e := s.sealer.Unwrap(a.SealedSecret, totpAAD(tid, uid, a.ID))
+		if e != nil {
+			return nil, errSealing
+		}
+		ctx = s.operationContext(ctx, string(plain))
+		if _, valid := VerifyTOTP(string(plain), code, s.now()); valid {
+			v := a
+			chosen = &v
+			break
+		}
+	}
+	if chosen == nil {
+		return nil, ErrNoFactor
+	}
+	return s.BeginChallenge(ctx, tid, uid, chosen.ID, "")
 }

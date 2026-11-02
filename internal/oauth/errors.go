@@ -13,6 +13,7 @@ type Error struct {
 	Status      int
 	Code        string
 	Description string
+	MFAToken    string
 	// basicChallenge adds WWW-Authenticate. RFC 6749 §5.2 requires it when
 	// a client that used HTTP Basic fails to authenticate.
 	basicChallenge bool
@@ -71,6 +72,10 @@ func writeError(w http.ResponseWriter, e *Error) {
 	noStore(w)
 	if e.basicChallenge {
 		w.Header().Set("WWW-Authenticate", `Basic realm="token"`)
+	}
+	if e.MFAToken != "" {
+		httpx.WriteJSON(w, e.Status, map[string]string{"error": e.Code, "error_description": e.Description, "mfa_token": e.MFAToken})
+		return
 	}
 	httpx.WriteError(w, e.Status, e.Code, e.Description)
 }
