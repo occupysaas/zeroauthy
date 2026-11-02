@@ -15,17 +15,17 @@ type sessions struct{ s *Store }
 func (s *Store) Sessions() store.Sessions { return sessions{s} }
 
 const sessionCols = `tenant_id, id, token_hash, user_id, connection, authenticated_at, client_ids, expires_at, idle_expires_at, created_at,
- updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin`
+ updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin, mfa_at`
 
 func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	clients, err := toJSON(s.ClientIDs)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		s.TenantID, s.ID, s.TokenHash, s.UserID, s.Connection, micros(s.AuthenticatedAt), clients,
 		micros(s.ExpiresAt), micros(s.IdleExpiresAt), micros(s.CreatedAt),
-		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin)
+		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin, optionalMFATime(s.MFAAt))
 	return r.s.conflict(err)
 }
 
@@ -33,14 +33,18 @@ func scanSession(row scanner) (*store.LoginSession, error) {
 	var s store.LoginSession
 	var clients string
 	var authAt, exp, idle, created, updated, interacted int64
+	var mfaAt sql.NullInt64
 	if err := row.Scan(&s.TenantID, &s.ID, &s.TokenHash, &s.UserID, &s.Connection, &authAt, &clients, &exp, &idle, &created,
-		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin); err != nil {
+		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin, &mfaAt); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(clients, &s.ClientIDs); err != nil {
 		return nil, err
 	}
 	s.AuthenticatedAt, s.ExpiresAt, s.IdleExpiresAt, s.CreatedAt = fromMicros(authAt), fromMicros(exp), fromMicros(idle), fromMicros(created)
+	if mfaAt.Valid {
+		s.MFAAt = fromMicros(mfaAt.Int64)
+	}
 	s.UpdatedAt, s.LastInteractedAt = fromMicros(updated), fromMicros(interacted)
 	return &s, nil
 }
@@ -148,6 +152,17 @@ func affected(res sql.Result, err error) (int, error) {
 	return int(n), err
 }
 
-func (sessions) MarkMFA(context.Context, string, string, time.Time) error {
-	return store.ErrMFAUnavailable
+func (r sessions) MarkMFA(ctx context.Context, tid, id string, at time.Time) error {
+	res, err := r.s.write(ctx, nil, `UPDATE sessions SET mfa_at=? WHERE tenant_id=? AND id=?`, micros(at), tid, id)
+	if err != nil {
+		return err
+	}
+	return expectRow(res)
+}
+
+func optionalMFATime(t time.Time) any {
+	if t.IsZero() {
+		return nil
+	}
+	return micros(t)
 }

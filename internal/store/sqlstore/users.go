@@ -20,7 +20,7 @@ const userColsBeforeActionsII = `tenant_id, user_id, email, email_verified, user
  user_metadata, blocked, identities, last_login, logins_count, created_at, updated_at, app_metadata,
  phone_number, phone_verified, last_ip, version`
 
-const userCols = userColsBeforeActionsII + `, last_password_reset`
+const userCols = userColsBeforeActionsII + `, last_password_reset, remember_browser_epoch`
 
 func (r users) Create(ctx context.Context, u *store.User) error {
 	args, err := userArgs(u)
@@ -28,7 +28,7 @@ func (r users) Create(ctx context.Context, u *store.User) error {
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		if err := putLogins(ctx, tx, u, false); err != nil {
@@ -330,7 +330,7 @@ func (r users) FindByEmail(ctx context.Context, tenantID, email string) ([]*stor
 
 // userDependents are the tables whose rows name a user by (tenant_id,
 // user_id), in the order deleteUser clears them; users itself goes last.
-var userDependents = []string{"organization_member_roles", "organization_members", "rbac_user_roles", "rbac_user_permissions", "sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "email_verification_tickets", "password_history",
+var userDependents = []string{"mfa_authenticators", "mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers", "organization_member_roles", "organization_members", "rbac_user_roles", "rbac_user_permissions", "sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "email_verification_tickets", "password_history",
 	"auth_codes", "device_codes", "operators", "user_logins", "users"}
 
 // deleteUser removes the user and every row that names it. Connections.Delete
@@ -398,7 +398,7 @@ func scanUser(row scanner) (*store.User, error) {
 	var created, updated int64
 	if err := row.Scan(&u.TenantID, &u.UserID, &u.Email, &u.EmailVerified, &u.Username, &u.Name, &u.Nickname, &u.Picture,
 		&u.GivenName, &u.FamilyName, &meta, &u.Blocked, &ids, &last, &u.LoginsCount, &created, &updated, &appMeta,
-		&u.PhoneNumber, &u.PhoneVerified, &u.LastIP, &u.Version, &passwordReset); err != nil {
+		&u.PhoneNumber, &u.PhoneVerified, &u.LastIP, &u.Version, &passwordReset, &u.RememberBrowserEpoch); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(appMeta, &u.AppMetadata); err != nil {
@@ -431,5 +431,5 @@ func userArgs(u *store.User) ([]any, error) {
 	}
 	return []any{u.TenantID, u.UserID, u.Email, u.EmailVerified, u.Username, u.Name, u.Nickname, u.Picture, u.GivenName,
 		u.FamilyName, meta, u.Blocked, ids, nullMicros(u.LastLogin), u.LoginsCount, micros(u.CreatedAt), micros(u.UpdatedAt), appMeta,
-		u.PhoneNumber, u.PhoneVerified, u.LastIP, int64(0), nullMicros(u.LastPasswordReset)}, nil
+		u.PhoneNumber, u.PhoneVerified, u.LastIP, int64(0), nullMicros(u.LastPasswordReset), u.RememberBrowserEpoch}, nil
 }

@@ -1,0 +1,13 @@
+ALTER TABLE users ADD COLUMN remember_browser_epoch BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE sessions ADD COLUMN mfa_at BIGINT NULL;
+CREATE TABLE mfa_guardian (tenant_id VARCHAR(255) PRIMARY KEY, data TEXT NOT NULL, version BIGINT NOT NULL);
+CREATE TABLE mfa_authenticators (tenant_id VARCHAR(255) NOT NULL, id VARCHAR(255) NOT NULL, user_id VARCHAR(255) NOT NULL, type VARCHAR(64) NOT NULL, recovery_user VARCHAR(255) NULL, credential_id BLOB NULL, name TEXT NOT NULL, confirmed BOOLEAN NOT NULL, preferred BOOLEAN NOT NULL, sealed_secret BLOB NULL, last_step BIGINT NOT NULL, code_hash TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, public_key BLOB NULL, rp_id TEXT NOT NULL, sign_count BIGINT NOT NULL, created_at BIGINT NOT NULL, last_auth_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,credential_id), UNIQUE (tenant_id,recovery_user));
+CREATE INDEX mfa_authenticators_user ON mfa_authenticators (tenant_id,user_id);
+CREATE TABLE mfa_tokens (tenant_id VARCHAR(255) NOT NULL, hash VARCHAR(255) NOT NULL, user_id VARCHAR(255) NOT NULL, client_id VARCHAR(255) NOT NULL, data TEXT NOT NULL, expires_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,hash));
+CREATE TABLE mfa_challenges (tenant_id VARCHAR(255) NOT NULL, id VARCHAR(255) NOT NULL, user_id VARCHAR(255) NOT NULL, data TEXT NOT NULL, attempts BIGINT NOT NULL, expires_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,id));
+CREATE TABLE mfa_tickets (tenant_id VARCHAR(255) NOT NULL, hash VARCHAR(255) NOT NULL, user_id VARCHAR(255) NOT NULL, data TEXT NOT NULL, expires_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,hash));
+CREATE TABLE mfa_browsers (tenant_id VARCHAR(255) NOT NULL, hash VARCHAR(255) NOT NULL, user_id VARCHAR(255) NOT NULL, data TEXT NOT NULL, expires_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,hash));
+CREATE INDEX mfa_tokens_expiry ON mfa_tokens (expires_at);
+CREATE INDEX mfa_challenges_expiry ON mfa_challenges (expires_at);
+CREATE INDEX mfa_tickets_expiry ON mfa_tickets (expires_at);
+CREATE INDEX mfa_browsers_expiry ON mfa_browsers (expires_at);
