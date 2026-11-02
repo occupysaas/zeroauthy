@@ -42,6 +42,9 @@ func ProjectVariables(value any, depth int) (any, int, error) { return projectVa
 type RenderInput struct {
 	Fields    map[string]string
 	Variables map[string]any
+	// OneTimeCode is an explicitly supplied six-digit delivery value. It is
+	// independent of projected user/provider data, whose sensitive keys stay hidden.
+	OneTimeCode string
 }
 
 type Rendered struct {
@@ -107,6 +110,12 @@ func (boundedRenderer) Render(parent context.Context, input RenderInput) (Render
 	varMap, ok := vars.(map[string]any)
 	if !ok {
 		return Rendered{}, ErrRenderSyntax
+	}
+	if input.OneTimeCode != "" {
+		if len(input.OneTimeCode) != 6 || strings.IndexFunc(input.OneTimeCode, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
+			return Rendered{}, ErrRenderSyntax
+		}
+		varMap["code"] = input.OneTimeCode
 	}
 	var total int
 	state := renderState{ctx: ctx, deadline: time.Now().Add(maxRenderTime)}

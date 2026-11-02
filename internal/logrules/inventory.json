@@ -1203,14 +1203,20 @@
       "type": "gd_auth_failed",
       "description": "An MFA challenge did not validate.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-failed",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "Verify",
+          "when": "An MFA challenge did not validate."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_auth_rejected",
@@ -1230,14 +1236,20 @@
       "type": "gd_auth_succeed",
       "description": "An MFA challenge validated.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-succeed",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "Verify",
+          "when": "An MFA challenge validated."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_email_settings_update",
@@ -1256,27 +1268,39 @@
       "type": "gd_enrollment_complete",
       "description": "An account completed its first MFA enrollment.",
       "category": "user.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-enrollment-complete",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "ConfirmEnroll",
+          "when": "An account completed its first MFA enrollment."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_otp_rate_limit_exceed",
       "description": "Too many incorrect MFA one-time codes triggered throttling.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-otp-rate-limit-exceed",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/throttle.go",
+          "function": "reserveProof",
+          "when": "Too many incorrect MFA one-time codes triggered throttling."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_phone_settings_update",
@@ -1295,40 +1319,58 @@
       "type": "gd_recovery_failed",
       "description": "An MFA recovery credential did not validate.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-recovery-failed",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "Recover",
+          "when": "An MFA recovery credential did not validate."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_recovery_succeed",
       "description": "An MFA recovery credential validated.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-recovery-succeed",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "Recover",
+          "when": "An MFA recovery credential validated."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_send_email",
       "description": "An MFA challenge email was dispatched.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-email",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/email.go",
+          "function": "sendEmail",
+          "when": "An MFA challenge email was dispatched."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_send_email_verification",
@@ -1425,40 +1467,58 @@
       "type": "gd_start_auth",
       "description": "An MFA authentication challenge began.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-start-auth",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "BeginChallenge",
+          "when": "An MFA authentication challenge began."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_start_enroll",
       "description": "An MFA enrollment began.",
       "category": "user.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-start-enroll",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "BeginEnroll",
+          "when": "An MFA enrollment began."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_start_enroll_failed",
       "description": "An MFA enrollment could not complete.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-start-enroll-failed",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "BeginEnroll",
+          "when": "An MFA enrollment could not complete."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_tenant_update",
@@ -1477,14 +1537,20 @@
       "type": "gd_unenroll",
       "description": "A second-factor device registration was removed.",
       "category": "user.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-unenroll",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 MFA service outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mfa/service.go",
+          "function": "Unenroll",
+          "when": "A second-factor device registration was removed."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_update_device_account",

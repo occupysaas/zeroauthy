@@ -255,6 +255,14 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 	if event.TenantID == "" || event.UserID == "" || event.Template == "" {
 		return store.ErrInvalid
 	}
+	var oneTimeCode string
+	if event.Template == "mfa_oob_code" {
+		oneTimeCode, _ = event.Variables["code"].(string)
+		if len(oneTimeCode) != 6 || strings.IndexFunc(oneTimeCode, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
+			return store.ErrInvalid
+		}
+		ctx = logscrub.WithCredentials(ctx, oneTimeCode)
+	}
 	provider, err := s.providerSnapshot(ctx, event.TenantID)
 	if err != nil {
 		return err
@@ -264,10 +272,19 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 		return err
 	}
 	if !policy.Enabled {
+		if event.Template == "mfa_oob_code" {
+			return ErrServiceUnavailable
+		}
 		return nil
 	}
 	if policy.Template == nil {
-		return store.ErrNotFound
+		if event.Template != "mfa_oob_code" {
+			return store.ErrNotFound
+		}
+		policy.Template = &store.EmailTemplate{TenantID: event.TenantID, Name: event.Template, Fields: map[string]any{
+			"subject": "Your verification code",
+			"body":    "<p>Your verification code is {{ code }}. It expires in 5 minutes.</p>",
+		}}
 	}
 	if s.Renderer == nil {
 		return ErrServiceUnavailable
@@ -322,7 +339,7 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 		return store.ErrInvalid
 	}
 	fields["html"] = body
-	rendered, err := s.Renderer.Render(ctx, RenderInput{Fields: fields, Variables: vars})
+	rendered, err := s.Renderer.Render(ctx, RenderInput{Fields: fields, Variables: vars, OneTimeCode: oneTimeCode})
 	if err != nil {
 		return err
 	}

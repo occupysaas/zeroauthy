@@ -34,6 +34,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/logstream"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -59,6 +60,7 @@ type App struct {
 	actionJobs   *actions.Worker
 	jobs         *jobs.Runner
 	logs         *logs.AsyncRecorder
+	mfa          *mfa.Service
 	logPurge     *logs.Purger
 	logStreams   *logstream.Worker
 	eventPurge   *events.Purger
@@ -281,6 +283,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	}
 	recorder := logs.NewRecorder(st, logsConfig, log)
 	tenantEmail := &email.Service{Recorder: recorder, Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
+	mfaService := mfa.NewService(st, wrapper, tenantEmail, st.Protection(), log, nil)
+	mfaService.Recorder = recorder
 	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
 	}
@@ -387,6 +391,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		actionJobs:   &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
 		jobs:         jobRunner,
 		logs:         recorder,
+		mfa:          mfaService,
 		logPurge:     logs.NewPurger(st, logsConfig, log),
 		logStreams:   logstream.NewWorker(st, wrapper, logsConfig, nil, log),
 		eventPurge:   events.NewPurger(st, events.Config{Retention: cfg.Events.Retention}, log),

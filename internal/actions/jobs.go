@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/events/eventcontext"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -28,11 +29,13 @@ type AsyncJob struct {
 }
 
 type jobPayload struct {
-	Kind       string              `json:",omitempty"`
-	Invitation *InvitationDelivery `json:",omitempty"`
-	Units      []continueUnit
-	Input      map[string]any
-	Deadline   time.Time `json:",omitempty"`
+	// Credential masks travel only inside the same sealed delivery envelope.
+	SensitiveValues []string            `json:",omitempty"`
+	Kind            string              `json:",omitempty"`
+	Invitation      *InvitationDelivery `json:",omitempty"`
+	Units           []continueUnit
+	Input           map[string]any
+	Deadline        time.Time `json:",omitempty"`
 }
 
 func asyncTrigger(trigger string) bool {
@@ -93,6 +96,9 @@ func (e *Engine) enqueueSnapshot(ctx context.Context, tx store.Store, j AsyncJob
 		return nil, fmt.Errorf("actions: encoding job event: %w", err)
 	}
 	p := jobPayload{Deadline: deadline}
+	if j.Trigger == TriggerCustomEmailProvider {
+		p.SensitiveValues = slices.Collect(logscrub.MaskValues(ctx))
+	}
 	if err = json.Unmarshal(raw, &p.Input); err != nil || p.Input == nil {
 		return nil, ErrInvalidPayload
 	}
@@ -179,6 +185,9 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	if runErr == nil && (err != nil || !asyncTrigger(j.Trigger) || (!invitation && json.Unmarshal(plain, &p) != nil) || len(p.Units) == 0 || p.Input == nil) {
 		runErr, corrupt = errors.New("actions: invalid job envelope"), true
 	} else if runErr == nil {
+		for i, value := range p.SensitiveValues {
+			sensitive[fmt.Sprint(i)] = value
+		}
 		if j.Trigger == TriggerEventStream {
 			state, readErr := e.Store.Actions().GetJob(ctx, j.TenantID, j.ID)
 			if readErr != nil || state.Status != "pending" || !state.LeaseUntil.Equal(j.LeaseUntil) {

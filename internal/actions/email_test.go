@@ -2,12 +2,15 @@ package actions_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"strings"
 	"testing"
 	"time"
 )
@@ -63,5 +66,44 @@ func TestCustomEmailProvider(t *testing.T) {
 	}
 	if err := svc.Send(ctx, event); !errors.Is(err, email.ErrProviderConfiguration) {
 		t.Fatalf("pending cap: %v", err)
+	}
+}
+
+// A queued tenant custom provider must regain credential masks after the
+// originating request ends, including console, exception and retry diagnostics.
+func TestMFAEmailQueuedDiagnosticsRedacted(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	u := h.user("t1")
+	a := h.action("t1", actions.TriggerCustomEmailProvider, "mfa-mail", `exports.onExecuteCustomEmailProvider=(e,a)=>{const c=e.notification.text.match(/[0-9]{6}/)[0]; console.log(c); console.error(c); a.notification.retry(c); throw Error(c)}`, nil, false)
+	h.bind("t1", a.Trigger, a)
+	if err := h.st.EmailProviders().Put(ctx, &store.EmailProvider{TenantID: "t1", Name: "custom", Enabled: true}, 0); err != nil {
+		t.Fatal(err)
+	}
+	svc := &email.Service{Store: h.st, Actions: h.eng, DefaultFrom: "from@example.test"}
+	const code = "834927"
+	sendCtx := logscrub.WithCredentials(ctx, code)
+	if err := svc.SendMessage(sendCtx, "t1", email.Message{Type: "mfa_oob_code", UserID: u.UserID, To: u.Email, Subject: "MFA", Text: "Your code is " + code}); err != nil {
+		t.Fatal(err)
+	}
+	j := claimJob(t, h)
+	raw, _ := json.Marshal(j)
+	if strings.Contains(string(raw), code) {
+		t.Fatal("MFA delivery envelope persisted in plaintext")
+	}
+	n := finishJob(t, h, &j)
+	if len(n.ExecutionIDs) != 1 {
+		t.Fatal("no execution")
+	}
+	ex, err := h.st.Actions().GetExecution(ctx, "t1", n.ExecutionIDs[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ = json.Marshal(ex)
+	if strings.Contains(string(raw), code) || strings.Contains(h.logs.String(), code) {
+		t.Fatal("queued MFA email code leaked into diagnostics")
+	}
+	if n.Status != "pending" {
+		t.Fatalf("custom provider did not execute: %s", n.Status)
 	}
 }
