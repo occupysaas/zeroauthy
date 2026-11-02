@@ -154,7 +154,7 @@ const ranEmpty = "-"
 // sealConsent seals eff for consent transaction txnID of sessionID and
 // client; a flow without effects is only marked as run.
 func (h *Handlers) sealConsent(tenantID, txnID, sessionID, clientID string, eff *actions.Effects) (string, error) {
-	if !eff.HasTokenEffects() && eff.Target == nil {
+	if !eff.HasTokenEffects() && eff.Target == nil && eff.MFA == nil {
 		return ranEmpty, nil
 	}
 	b, err := actions.SealEffects(h.Wrapper, tenantID, actions.SealConsent, eff, txnID, sessionID, clientID)

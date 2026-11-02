@@ -43,6 +43,7 @@ var (
 
 type TargetEdit = actionresult.TargetEdit
 type RBACSnapshot = actionresult.RBACSnapshot
+type MFAEffects = actionresult.MFAEffects
 type Effects = actionresult.Effects
 type Denial = actionresult.Denial
 type NotificationOutcome = actionresult.NotificationOutcome

@@ -149,3 +149,48 @@ func TestIDToken(t *testing.T) {
 		t.Fatalf("claims (-want +got):\n%s", diff)
 	}
 }
+
+func TestAMRClaim(t *testing.T) {
+	km := newTestKeys(t, "ten_a")
+	m := &Minter{Keys: km, Now: fixedNow}
+	for _, at := range []time.Time{{}, fixedNow()} {
+		raw, err := m.IDToken(context.Background(), IDTokenParams{TenantID: "ten_a", Issuer: "https://a/", ClientID: "spa", User: &store.User{UserID: "u"}, Scopes: []string{"openid"}, MFAAt: at})
+		if err != nil {
+			t.Fatal(err)
+		}
+		claims, _ := verifyToken(t, km, "ten_a", raw)
+		if at.IsZero() {
+			if _, ok := claims["amr"]; ok {
+				t.Fatal("unproved MFA claim")
+			}
+		} else if diff := cmp.Diff([]any{"mfa"}, claims["amr"]); diff != "" {
+			t.Fatal(diff)
+		}
+	}
+}
+
+func TestAMRClaimFromAuthorizationSession(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	tid := f.tenantID(t, "acme")
+	u, err := f.st.Users().FindByLogin(ctx, tid, "Username-Password-Authentication", "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &store.LoginSession{TenantID: tid, ID: "sid-1", TokenHash: "test-session-hash", UserID: u.UserID, AuthenticatedAt: fixedNow(), ExpiresAt: fixedNow().Add(time.Hour), IdleExpiresAt: fixedNow().Add(time.Hour), CreatedAt: fixedNow(), UpdatedAt: fixedNow()}
+	if err = f.st.Sessions().Create(ctx, s); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.st.Sessions().MarkMFA(ctx, tid, s.ID, fixedNow()); err != nil {
+		t.Fatal(err)
+	}
+	code := f.issueCode(t, "code-spa", "https://app.acme.test/cb", "https://api.acme.test", []string{"openid"}, pkceChallenge)
+	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, "code-spa", "https://app.acme.test/cb", pkceVerifier)})
+	if rec.Code != 200 {
+		t.Fatalf("status=%d body=%v", rec.Code, body)
+	}
+	claims, _ := verifyToken(t, f.keys, tid, body["id_token"].(string))
+	if diff := cmp.Diff([]any{"mfa"}, claims["amr"]); diff != "" {
+		t.Fatal(diff)
+	}
+}

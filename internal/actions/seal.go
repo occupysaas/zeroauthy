@@ -24,6 +24,7 @@ const (
 // scope edits. Metadata is committed (or discarded) when the flow ends and
 // transaction metadata never leaves it.
 type sealedEffects struct {
+	MFA          *MFAEffects    `json:"mfa,omitempty"`
 	RBAC         *RBACSnapshot  `json:"rbac,omitempty"`
 	AccessClaims map[string]any `json:"access_claims,omitempty"`
 	IDClaims     map[string]any `json:"id_claims,omitempty"`
@@ -43,6 +44,9 @@ func SealEffects(w keys.Wrapper, tenantID, purpose string, e *Effects, bind ...s
 	var s sealedEffects
 	if e != nil {
 		s = sealedEffects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes, RBAC: e.RBAC}
+		if purpose == SealConsent {
+			s.MFA = e.MFA
+		}
 		if e.Target != nil {
 			t := append([]string{}, e.Target.Scopes...)
 			s.Target = &t
@@ -73,7 +77,7 @@ func OpenEffects(w keys.Wrapper, tenantID, purpose string, sealed []byte, bind .
 	if err := json.Unmarshal(plain, &s); err != nil {
 		return nil, fmt.Errorf("actions: decoding effects: %w", err)
 	}
-	e := &Effects{AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes, RBAC: s.RBAC}
+	e := &Effects{MFA: s.MFA, AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes, RBAC: s.RBAC}
 	if s.Target != nil {
 		e.Target = &TargetEdit{Scopes: *s.Target}
 	}

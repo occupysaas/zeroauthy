@@ -251,9 +251,19 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		if ut.omitAtHash {
 			atHashSource = ""
 		}
+		var mfaAt time.Time
+		if ut.sessionID != "" {
+			sess, err := h.Store.Sessions().Get(ctx, tenantID, ut.sessionID)
+			if err != nil && !errors.Is(err, store.ErrNotFound) {
+				return nil, false, serverError()
+			}
+			if err == nil && sess.UserID == ut.user.UserID {
+				mfaAt = sess.MFAAt
+			}
+		}
 		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
 			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: ut.scopes,
-			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, AccessToken: atHashSource,
+			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, MFAAt: mfaAt, AccessToken: atHashSource,
 			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second, CustomClaims: idClaims,
 		})
 		if err != nil {

@@ -120,6 +120,9 @@ func (h *Handlers) flowError(w http.ResponseWriter, r *http.Request, res tenant.
 // eff are the post-login flow's effects, sealed onto the code or approval
 // for the token endpoint.
 func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, scopes []string, eff *actions.Effects) {
+	if h.requireMFA(w, r, res, client, fr, sess, eff) {
+		return
+	}
 	if !fr.device() {
 		h.issueCode(w, r, res, client, fr.Request, sess, scopes, eff)
 		return
@@ -165,7 +168,7 @@ func (h *Handlers) decideDevice(w http.ResponseWriter, r *http.Request, res tena
 		return
 	}
 	if dec.Status == store.DeviceCodeApproved {
-		h.loginSucceeded(r, res, &store.Client{ClientID: fr.ClientID}, fr, &store.LoginSession{UserID: dec.UserID})
+		h.loginSucceeded(w, r, res, &store.Client{ClientID: fr.ClientID}, fr, &store.LoginSession{UserID: dec.UserID})
 	}
 	redirect(w, r, page)
 }
@@ -173,7 +176,14 @@ func (h *Handlers) decideDevice(w http.ResponseWriter, r *http.Request, res tena
 // loginSucceeded records only a committed authorization, after Actions, access
 // policy, consent and final organization checks. Signup's ss describes the
 // separate user-creation outcome; this event counts its completed login once.
-func (h *Handlers) loginSucceeded(r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession) {
+func (h *Handlers) loginSucceeded(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession) {
+	// Record confidence only for a committed login. Unsupported old plugins
+	// retain their pre-MFA behavior; a cookie failure cannot undo issuance.
+	if u, err := h.Store.Users().Get(r.Context(), res.Tenant.ID, sess.UserID); err == nil {
+		if err = h.Sessions.SetMFABrowser(r.Context(), w, u, "device"); err != nil && !errors.Is(err, store.ErrMFAUnavailable) {
+			h.log().ErrorContext(r.Context(), "record MFA browser", "tenant", res.Tenant.ID)
+		}
+	}
 	if outcome, ok := r.Context().Value(silentAuthorizationKey{}).(*silentAuthorizationOutcome); ok {
 		outcome.completed = true
 	}

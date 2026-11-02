@@ -156,6 +156,7 @@ type IDTokenParams struct {
 	Nonce     string
 	SessionID string
 	AuthTime  time.Time
+	MFAAt     time.Time
 	// AccessToken, when set, adds at_hash (OpenID Connect Core §3.1.3.6).
 	AccessToken string
 	// Lifetime defaults to DefaultIDTokenLifetime when zero.
@@ -179,6 +180,9 @@ func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
 	c["exp"] = iat + int64(lifetime/time.Second)
 	if !p.AuthTime.IsZero() {
 		c["auth_time"] = p.AuthTime.Unix()
+	}
+	if !p.MFAAt.IsZero() {
+		c["amr"] = []string{"mfa"}
 	}
 	if p.Nonce != "" {
 		c["nonce"] = p.Nonce

@@ -13,9 +13,18 @@ type RBACSnapshot struct {
 	Permissions []string `json:"permissions"`
 }
 
+// MFAEffects carries the post-login MFA instruction; the runner fills it in Task 10.
+type MFAEffects struct {
+	Provider             string
+	AllowRememberBrowser bool
+	Mode                 string
+	Factors              [][]string
+}
+
 // Effects are a flow's validated, accumulated results. Claims are filtered
 // during minting. Metadata patches commit only when the flow completes.
 type Effects struct {
+	MFA *MFAEffects
 	// RBAC is fixed before the first Action. Management API assignments made
 	// by an Action affect the next issuance, including across redirects/code exchange.
 	RBAC                      *RBACSnapshot

@@ -406,7 +406,7 @@ func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.
 		h.deny(w, r, res, client, req, errServer())
 		return
 	}
-	h.loginSucceeded(r, res, client, flowReq{Request: req}, sess)
+	h.loginSucceeded(w, r, res, client, flowReq{Request: req}, sess)
 	params := url.Values{"code": {code}}
 	if req.State != "" {
 		params.Set("state", req.State)
