@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -40,6 +42,12 @@ func TestHostedPageTemplate(t *testing.T) {
 }
 
 func TestBrandingFailureFallback(t *testing.T) {
+	output := captureFallbackWarnings(t)
+	defer func() {
+		if !strings.Contains(output.String(), "hosted template fallback") {
+			t.Error("missing expected template fallback warning")
+		}
+	}()
 	view := brandedView(t, `<html><head>{% auth0:head %}</head><body>{% if prompt.name == 'never' %}{% auth0:widget %}{% endif %}</body></html>`)
 	rec := httptest.NewRecorder()
 	RenderLogin(rec, http.StatusBadRequest, view, LoginData{State: "s", CSRF: "c", Error: "Try again"})
@@ -96,6 +104,12 @@ func TestBrandingCSP(t *testing.T) {
 }
 
 func TestOversizedLegacyTextFallback(t *testing.T) {
+	output := captureFallbackWarnings(t)
+	defer func() {
+		if !strings.Contains(output.String(), "hosted text fallback") {
+			t.Error("missing expected text fallback warning")
+		}
+	}()
 	tenant := &store.Tenant{Name: "Acme", CustomText: store.CustomText{"login": {"en": {"login": {"title": strings.Repeat("a", 1<<20)}}}}}
 	rec := httptest.NewRecorder()
 	RenderLogin(rec, 200, TenantView(tenant, i18n.New(tenant, "en")), LoginData{State: "s", CSRF: "c"})
@@ -122,4 +136,15 @@ func TestPageTemplateApplicationContext(t *testing.T) {
 	if !strings.Contains(preview.HTML, "APP[Example application]") {
 		t.Fatalf("synthetic application context missing: %s", preview.HTML)
 	}
+}
+
+// These sequential tests intentionally exercise the global renderer fallback
+// logger. Capture and assert the diagnostics instead of emitting suite warnings.
+func captureFallbackWarnings(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var output bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&output, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	return &output
 }

@@ -283,6 +283,14 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 	outcome := "refund"
 	var proofErr error
 	err = s.st.WithTx(ctx, func(tx store.Store) error {
+		// All enrollment confirmations share the same user lock, including ordinary
+		// allow-multiple enrollment. Acquire it before any authenticator snapshot so
+		// a restricted ticket cannot race another confirmation past its predicate.
+		if enroll {
+			if _, e := tx.Users().GetForUpdate(ctx, tid, uid); e != nil {
+				return e
+			}
+		}
 		// Repeat state checks inside the proof-consumption transaction.
 		current, e := tx.MFA().GetAuthenticator(ctx, tid, uid, a.ID)
 		if e != nil {
