@@ -25,9 +25,13 @@ profiles (commit `38b4229`, October 2026). See [docs/conformance.md](docs/confor
 > are supported too, and so are Auth0's Management API for applications, APIs, client grants and database connections
 > ([docs/management-api.md](docs/management-api.md), verified with auth0-cli)
 > and an admin console ([docs/console.md](docs/console.md)). Organizations,
-> organization login and roles, and per-tenant operators are implemented
-> ([docs/organizations.md](docs/organizations.md)). See the
-> [compatibility matrix](docs/compat/matrix.md).
+> organization login and roles, invitations, application grants, discovery
+> domains, and per-tenant operators are implemented
+> ([docs/organizations.md](docs/organizations.md)). Tenant logs, log streams
+> and statistics ([docs/logs.md](docs/logs.md)), plus transactional Event
+> Streams with webhook and Action delivery and an SSE Events API
+> ([docs/event-streams.md](docs/event-streams.md)), are also available. See the
+> [compatibility matrix](docs/compat/matrix.md) for supported behavior and limits.
 
 Tenant-configurable email providers, bounded Liquid templates, previews and
 operator test sends are also available. Existing tenants can keep the
@@ -44,7 +48,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–29)
+**Done** (Plans 1–32)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -67,7 +71,7 @@ each with its console screens; the full breakdown is in the
 **Signing keys and deployment migration (Plan 20)**
 
 - Managed signing keys, stored-only custom public JWKS, and credential-preserving bootstrap are implemented.
-- The pinned Deploy CLI passes local YAML/directory imports for clients, APIs, grants and tenant settings, with generated or preserved credentials. Three handlers await future APIs; the upstream observer lane remains unavailable. See [signing keys](docs/signing-keys.md) and [Deploy CLI migration](docs/deploy-cli.md) for current limits.
+- The pinned Deploy CLI passes local YAML/directory imports with generated or preserved credentials, including organizations, Actions and event streams. Database connections remain excluded from that matrix, and attack-protection migration needs an unavailable phone-provider API; the upstream observer lane remains unavailable. See [signing keys](docs/signing-keys.md) and [Deploy CLI migration](docs/deploy-cli.md) for current limits.
 
 **Branding and Universal Login (Plan 22)**
 
@@ -94,13 +98,33 @@ each with its console screens; the full breakdown is in the
   operators. See [Organizations](docs/organizations.md) and the
   [verification record](docs/superpowers/2026-10-28-plan-29-implementation-record.md).
 
-**Later** (Plans 30–47)
+**Organizations II (Plan 30)**
+
+- Invitations, organization application grants, verified discovery domains and
+  console controls. See [Organizations](docs/organizations.md) and the
+  [implementation record](docs/superpowers/2026-10-29-plan-30-implementation-record.md).
+
+**Logs, log streams and statistics (Plan 31)**
+
+- Searchable tenant logs, live console views, Action execution logs, outbound
+  log streams, daily statistics and active-user counts. See
+  [Logs](docs/logs.md) for supported destinations and privacy controls.
+
+**Event streams (Plan 32)**
+
+- Transactional CloudEvents for user, organization and enterprise-connection
+  changes; guarded webhooks and durable `event-stream` Actions; retries,
+  failed-delivery inspection, redelivery and auto-disable; resumable SSE,
+  console controls, seed and Deploy CLI support.
+- EventBridge configurations are stored disabled, and group events await
+  Plan 38. See [Event streams](docs/event-streams.md) for payloads, retention
+  and other limits, and the [validation report](docs/superpowers/2026-11-02-plan-32-postfix-validation.md)
+  for actual results, skips and conformance outcomes.
+
+**Later** (Plans 33–47)
 
 | Plan | Area | Depth | Needs |
 |---|---|---|---|
-| 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
-| 31 | Logs, log streams, stats | full | 19 |
-| 32 | Event streams | short | 31 |
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full | 21, 27 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full | 33 |
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
@@ -223,6 +247,13 @@ services and `registry` to an HTTP(S) offline mirror when needed. See the
 [Actions operator guide](docs/actions.md) for dependency restrictions, replica
 artifacts, seed ownership, sandbox limits and hardening.
 
+**Event streams.** The `events` section configures retention (default `168h`,
+minimum `24h`), the stream quota (default 10 per tenant) and concurrent SSE
+connections (default 4 per tenant per server instance). Webhook destinations
+require HTTPS and refuse private-network targets by default. See
+[Event streams](docs/event-streams.md) for deployment settings, migration and
+plugin compatibility.
+
 **Master key.** Signing keys and client secrets are stored envelope-encrypted under a 32-byte
 master key. Generate one with `openssl rand -base64 32` and set it as
 `ZEROAUTHY_SECURITY__MASTER_KEY` (or point `security.master_key_file` at a
@@ -319,6 +350,8 @@ make test-sql       # SQL driver tests against PostgreSQL 17 and MySQL 8.4 conta
 make generate       # regenerate code from api/authentication.yaml and api/management.yaml
 make console        # lint, test and rebuild the admin console (needs Node 22+; then make build to embed it)
 make e2e            # Auth0 SDKs against a live zeroauthy on SQLite (needs Node 22+, openssl)
+make e2e-events     # Event Streams browser, SDK, CLI, SSE and privacy acceptance
+make e2e-deploy     # pinned Deploy CLI YAML/directory round trips
 make check-sources  # verify every x-source provenance link
 make conformance    # OpenID conformance suite against zeroauthy (podman or docker, Linux; ~10-20 min)
 ```
