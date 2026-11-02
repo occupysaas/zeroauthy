@@ -438,32 +438,32 @@ const (
 type StoreServiceClient interface {
 	// Events v1 is negotiated independently of Logs, RBAC and Organizations.
 	MFACapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
-	MFAGetGuardian(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAPutGuardian(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFACreateAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAGetAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAListAuthenticators(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAUpdateAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFADeleteAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFADeleteUserAuthenticators(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAAcceptTOTPStep(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAReplaceRecoveryCode(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAAcceptSignCount(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFACreateMFAToken(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAConsumeMFAToken(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAPeekMFAToken(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFACreateChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAGetChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAFailChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAConsumeChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFACreateTicket(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAConsumeTicket(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAPutBrowser(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAGetBrowser(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFABumpRememberEpoch(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFAPurgeMFA(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFADeleteUserMFA(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
-	MFADeleteTenantMFA(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error)
+	MFAGetGuardian(ctx context.Context, in *MFAGetGuardianRequest, opts ...grpc.CallOption) (*MFAGetGuardianResponse, error)
+	MFAPutGuardian(ctx context.Context, in *MFAPutGuardianRequest, opts ...grpc.CallOption) (*MFAPutGuardianResponse, error)
+	MFACreateAuthenticator(ctx context.Context, in *MFACreateAuthenticatorRequest, opts ...grpc.CallOption) (*MFACreateAuthenticatorResponse, error)
+	MFAGetAuthenticator(ctx context.Context, in *MFAGetAuthenticatorRequest, opts ...grpc.CallOption) (*MFAGetAuthenticatorResponse, error)
+	MFAListAuthenticators(ctx context.Context, in *MFAListAuthenticatorsRequest, opts ...grpc.CallOption) (*MFAListAuthenticatorsResponse, error)
+	MFAUpdateAuthenticator(ctx context.Context, in *MFAUpdateAuthenticatorRequest, opts ...grpc.CallOption) (*MFAUpdateAuthenticatorResponse, error)
+	MFADeleteAuthenticator(ctx context.Context, in *MFADeleteAuthenticatorRequest, opts ...grpc.CallOption) (*MFADeleteAuthenticatorResponse, error)
+	MFADeleteUserAuthenticators(ctx context.Context, in *MFADeleteUserAuthenticatorsRequest, opts ...grpc.CallOption) (*MFADeleteUserAuthenticatorsResponse, error)
+	MFAAcceptTOTPStep(ctx context.Context, in *MFAAcceptTOTPStepRequest, opts ...grpc.CallOption) (*MFAAcceptTOTPStepResponse, error)
+	MFAReplaceRecoveryCode(ctx context.Context, in *MFAReplaceRecoveryCodeRequest, opts ...grpc.CallOption) (*MFAReplaceRecoveryCodeResponse, error)
+	MFAAcceptSignCount(ctx context.Context, in *MFAAcceptSignCountRequest, opts ...grpc.CallOption) (*MFAAcceptSignCountResponse, error)
+	MFACreateMFAToken(ctx context.Context, in *MFACreateMFATokenRequest, opts ...grpc.CallOption) (*MFACreateMFATokenResponse, error)
+	MFAConsumeMFAToken(ctx context.Context, in *MFAConsumeMFATokenRequest, opts ...grpc.CallOption) (*MFAConsumeMFATokenResponse, error)
+	MFAPeekMFAToken(ctx context.Context, in *MFAPeekMFATokenRequest, opts ...grpc.CallOption) (*MFAPeekMFATokenResponse, error)
+	MFACreateChallenge(ctx context.Context, in *MFACreateChallengeRequest, opts ...grpc.CallOption) (*MFACreateChallengeResponse, error)
+	MFAGetChallenge(ctx context.Context, in *MFAGetChallengeRequest, opts ...grpc.CallOption) (*MFAGetChallengeResponse, error)
+	MFAFailChallenge(ctx context.Context, in *MFAFailChallengeRequest, opts ...grpc.CallOption) (*MFAFailChallengeResponse, error)
+	MFAConsumeChallenge(ctx context.Context, in *MFAConsumeChallengeRequest, opts ...grpc.CallOption) (*MFAConsumeChallengeResponse, error)
+	MFACreateTicket(ctx context.Context, in *MFACreateTicketRequest, opts ...grpc.CallOption) (*MFACreateTicketResponse, error)
+	MFAConsumeTicket(ctx context.Context, in *MFAConsumeTicketRequest, opts ...grpc.CallOption) (*MFAConsumeTicketResponse, error)
+	MFAPutBrowser(ctx context.Context, in *MFAPutBrowserRequest, opts ...grpc.CallOption) (*MFAPutBrowserResponse, error)
+	MFAGetBrowser(ctx context.Context, in *MFAGetBrowserRequest, opts ...grpc.CallOption) (*MFAGetBrowserResponse, error)
+	MFABumpRememberEpoch(ctx context.Context, in *MFABumpRememberEpochRequest, opts ...grpc.CallOption) (*MFABumpRememberEpochResponse, error)
+	MFAPurgeMFA(ctx context.Context, in *MFAPurgeMFARequest, opts ...grpc.CallOption) (*MFAPurgeMFAResponse, error)
+	MFADeleteUserMFA(ctx context.Context, in *MFADeleteUserMFARequest, opts ...grpc.CallOption) (*MFADeleteUserMFAResponse, error)
+	MFADeleteTenantMFA(ctx context.Context, in *MFADeleteTenantMFARequest, opts ...grpc.CallOption) (*MFADeleteTenantMFAResponse, error)
 	SessionsMarkMFA(ctx context.Context, in *TouchRequest, opts ...grpc.CallOption) (*Result, error)
 	EventsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	AppendEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
@@ -837,9 +837,9 @@ func (c *storeServiceClient) MFACapabilities(ctx context.Context, in *PingReques
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAGetGuardian(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAGetGuardian(ctx context.Context, in *MFAGetGuardianRequest, opts ...grpc.CallOption) (*MFAGetGuardianResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAGetGuardianResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAGetGuardian_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -847,9 +847,9 @@ func (c *storeServiceClient) MFAGetGuardian(ctx context.Context, in *MFARequest,
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAPutGuardian(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAPutGuardian(ctx context.Context, in *MFAPutGuardianRequest, opts ...grpc.CallOption) (*MFAPutGuardianResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAPutGuardianResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAPutGuardian_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -857,9 +857,9 @@ func (c *storeServiceClient) MFAPutGuardian(ctx context.Context, in *MFARequest,
 	return out, nil
 }
 
-func (c *storeServiceClient) MFACreateAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFACreateAuthenticator(ctx context.Context, in *MFACreateAuthenticatorRequest, opts ...grpc.CallOption) (*MFACreateAuthenticatorResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFACreateAuthenticatorResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFACreateAuthenticator_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -867,9 +867,9 @@ func (c *storeServiceClient) MFACreateAuthenticator(ctx context.Context, in *MFA
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAGetAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAGetAuthenticator(ctx context.Context, in *MFAGetAuthenticatorRequest, opts ...grpc.CallOption) (*MFAGetAuthenticatorResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAGetAuthenticatorResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAGetAuthenticator_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -877,9 +877,9 @@ func (c *storeServiceClient) MFAGetAuthenticator(ctx context.Context, in *MFAReq
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAListAuthenticators(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAListAuthenticators(ctx context.Context, in *MFAListAuthenticatorsRequest, opts ...grpc.CallOption) (*MFAListAuthenticatorsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAListAuthenticatorsResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAListAuthenticators_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -887,9 +887,9 @@ func (c *storeServiceClient) MFAListAuthenticators(ctx context.Context, in *MFAR
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAUpdateAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAUpdateAuthenticator(ctx context.Context, in *MFAUpdateAuthenticatorRequest, opts ...grpc.CallOption) (*MFAUpdateAuthenticatorResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAUpdateAuthenticatorResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAUpdateAuthenticator_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -897,9 +897,9 @@ func (c *storeServiceClient) MFAUpdateAuthenticator(ctx context.Context, in *MFA
 	return out, nil
 }
 
-func (c *storeServiceClient) MFADeleteAuthenticator(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFADeleteAuthenticator(ctx context.Context, in *MFADeleteAuthenticatorRequest, opts ...grpc.CallOption) (*MFADeleteAuthenticatorResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFADeleteAuthenticatorResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFADeleteAuthenticator_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -907,9 +907,9 @@ func (c *storeServiceClient) MFADeleteAuthenticator(ctx context.Context, in *MFA
 	return out, nil
 }
 
-func (c *storeServiceClient) MFADeleteUserAuthenticators(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFADeleteUserAuthenticators(ctx context.Context, in *MFADeleteUserAuthenticatorsRequest, opts ...grpc.CallOption) (*MFADeleteUserAuthenticatorsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFADeleteUserAuthenticatorsResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFADeleteUserAuthenticators_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -917,9 +917,9 @@ func (c *storeServiceClient) MFADeleteUserAuthenticators(ctx context.Context, in
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAAcceptTOTPStep(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAAcceptTOTPStep(ctx context.Context, in *MFAAcceptTOTPStepRequest, opts ...grpc.CallOption) (*MFAAcceptTOTPStepResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAAcceptTOTPStepResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAAcceptTOTPStep_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -927,9 +927,9 @@ func (c *storeServiceClient) MFAAcceptTOTPStep(ctx context.Context, in *MFAReque
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAReplaceRecoveryCode(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAReplaceRecoveryCode(ctx context.Context, in *MFAReplaceRecoveryCodeRequest, opts ...grpc.CallOption) (*MFAReplaceRecoveryCodeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAReplaceRecoveryCodeResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAReplaceRecoveryCode_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -937,9 +937,9 @@ func (c *storeServiceClient) MFAReplaceRecoveryCode(ctx context.Context, in *MFA
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAAcceptSignCount(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAAcceptSignCount(ctx context.Context, in *MFAAcceptSignCountRequest, opts ...grpc.CallOption) (*MFAAcceptSignCountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAAcceptSignCountResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAAcceptSignCount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -947,9 +947,9 @@ func (c *storeServiceClient) MFAAcceptSignCount(ctx context.Context, in *MFARequ
 	return out, nil
 }
 
-func (c *storeServiceClient) MFACreateMFAToken(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFACreateMFAToken(ctx context.Context, in *MFACreateMFATokenRequest, opts ...grpc.CallOption) (*MFACreateMFATokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFACreateMFATokenResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFACreateMFAToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -957,9 +957,9 @@ func (c *storeServiceClient) MFACreateMFAToken(ctx context.Context, in *MFAReque
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAConsumeMFAToken(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAConsumeMFAToken(ctx context.Context, in *MFAConsumeMFATokenRequest, opts ...grpc.CallOption) (*MFAConsumeMFATokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAConsumeMFATokenResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAConsumeMFAToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -967,9 +967,9 @@ func (c *storeServiceClient) MFAConsumeMFAToken(ctx context.Context, in *MFARequ
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAPeekMFAToken(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAPeekMFAToken(ctx context.Context, in *MFAPeekMFATokenRequest, opts ...grpc.CallOption) (*MFAPeekMFATokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAPeekMFATokenResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAPeekMFAToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -977,9 +977,9 @@ func (c *storeServiceClient) MFAPeekMFAToken(ctx context.Context, in *MFARequest
 	return out, nil
 }
 
-func (c *storeServiceClient) MFACreateChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFACreateChallenge(ctx context.Context, in *MFACreateChallengeRequest, opts ...grpc.CallOption) (*MFACreateChallengeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFACreateChallengeResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFACreateChallenge_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -987,9 +987,9 @@ func (c *storeServiceClient) MFACreateChallenge(ctx context.Context, in *MFARequ
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAGetChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAGetChallenge(ctx context.Context, in *MFAGetChallengeRequest, opts ...grpc.CallOption) (*MFAGetChallengeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAGetChallengeResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAGetChallenge_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -997,9 +997,9 @@ func (c *storeServiceClient) MFAGetChallenge(ctx context.Context, in *MFARequest
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAFailChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAFailChallenge(ctx context.Context, in *MFAFailChallengeRequest, opts ...grpc.CallOption) (*MFAFailChallengeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAFailChallengeResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAFailChallenge_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1007,9 +1007,9 @@ func (c *storeServiceClient) MFAFailChallenge(ctx context.Context, in *MFAReques
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAConsumeChallenge(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAConsumeChallenge(ctx context.Context, in *MFAConsumeChallengeRequest, opts ...grpc.CallOption) (*MFAConsumeChallengeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAConsumeChallengeResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAConsumeChallenge_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1017,9 +1017,9 @@ func (c *storeServiceClient) MFAConsumeChallenge(ctx context.Context, in *MFAReq
 	return out, nil
 }
 
-func (c *storeServiceClient) MFACreateTicket(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFACreateTicket(ctx context.Context, in *MFACreateTicketRequest, opts ...grpc.CallOption) (*MFACreateTicketResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFACreateTicketResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFACreateTicket_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1027,9 +1027,9 @@ func (c *storeServiceClient) MFACreateTicket(ctx context.Context, in *MFARequest
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAConsumeTicket(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAConsumeTicket(ctx context.Context, in *MFAConsumeTicketRequest, opts ...grpc.CallOption) (*MFAConsumeTicketResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAConsumeTicketResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAConsumeTicket_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1037,9 +1037,9 @@ func (c *storeServiceClient) MFAConsumeTicket(ctx context.Context, in *MFAReques
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAPutBrowser(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAPutBrowser(ctx context.Context, in *MFAPutBrowserRequest, opts ...grpc.CallOption) (*MFAPutBrowserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAPutBrowserResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAPutBrowser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1047,9 +1047,9 @@ func (c *storeServiceClient) MFAPutBrowser(ctx context.Context, in *MFARequest, 
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAGetBrowser(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAGetBrowser(ctx context.Context, in *MFAGetBrowserRequest, opts ...grpc.CallOption) (*MFAGetBrowserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAGetBrowserResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAGetBrowser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1057,9 +1057,9 @@ func (c *storeServiceClient) MFAGetBrowser(ctx context.Context, in *MFARequest, 
 	return out, nil
 }
 
-func (c *storeServiceClient) MFABumpRememberEpoch(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFABumpRememberEpoch(ctx context.Context, in *MFABumpRememberEpochRequest, opts ...grpc.CallOption) (*MFABumpRememberEpochResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFABumpRememberEpochResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFABumpRememberEpoch_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1067,9 +1067,9 @@ func (c *storeServiceClient) MFABumpRememberEpoch(ctx context.Context, in *MFARe
 	return out, nil
 }
 
-func (c *storeServiceClient) MFAPurgeMFA(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFAPurgeMFA(ctx context.Context, in *MFAPurgeMFARequest, opts ...grpc.CallOption) (*MFAPurgeMFAResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFAPurgeMFAResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAPurgeMFA_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1077,9 +1077,9 @@ func (c *storeServiceClient) MFAPurgeMFA(ctx context.Context, in *MFARequest, op
 	return out, nil
 }
 
-func (c *storeServiceClient) MFADeleteUserMFA(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFADeleteUserMFA(ctx context.Context, in *MFADeleteUserMFARequest, opts ...grpc.CallOption) (*MFADeleteUserMFAResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFADeleteUserMFAResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFADeleteUserMFA_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -1087,9 +1087,9 @@ func (c *storeServiceClient) MFADeleteUserMFA(ctx context.Context, in *MFAReques
 	return out, nil
 }
 
-func (c *storeServiceClient) MFADeleteTenantMFA(ctx context.Context, in *MFARequest, opts ...grpc.CallOption) (*MFAResponse, error) {
+func (c *storeServiceClient) MFADeleteTenantMFA(ctx context.Context, in *MFADeleteTenantMFARequest, opts ...grpc.CallOption) (*MFADeleteTenantMFAResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MFAResponse)
+	out := new(MFADeleteTenantMFAResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFADeleteTenantMFA_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -4451,32 +4451,32 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 type StoreServiceServer interface {
 	// Events v1 is negotiated independently of Logs, RBAC and Organizations.
 	MFACapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
-	MFAGetGuardian(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAPutGuardian(context.Context, *MFARequest) (*MFAResponse, error)
-	MFACreateAuthenticator(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAGetAuthenticator(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAListAuthenticators(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAUpdateAuthenticator(context.Context, *MFARequest) (*MFAResponse, error)
-	MFADeleteAuthenticator(context.Context, *MFARequest) (*MFAResponse, error)
-	MFADeleteUserAuthenticators(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAAcceptTOTPStep(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAReplaceRecoveryCode(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAAcceptSignCount(context.Context, *MFARequest) (*MFAResponse, error)
-	MFACreateMFAToken(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAConsumeMFAToken(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAPeekMFAToken(context.Context, *MFARequest) (*MFAResponse, error)
-	MFACreateChallenge(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAGetChallenge(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAFailChallenge(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAConsumeChallenge(context.Context, *MFARequest) (*MFAResponse, error)
-	MFACreateTicket(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAConsumeTicket(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAPutBrowser(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAGetBrowser(context.Context, *MFARequest) (*MFAResponse, error)
-	MFABumpRememberEpoch(context.Context, *MFARequest) (*MFAResponse, error)
-	MFAPurgeMFA(context.Context, *MFARequest) (*MFAResponse, error)
-	MFADeleteUserMFA(context.Context, *MFARequest) (*MFAResponse, error)
-	MFADeleteTenantMFA(context.Context, *MFARequest) (*MFAResponse, error)
+	MFAGetGuardian(context.Context, *MFAGetGuardianRequest) (*MFAGetGuardianResponse, error)
+	MFAPutGuardian(context.Context, *MFAPutGuardianRequest) (*MFAPutGuardianResponse, error)
+	MFACreateAuthenticator(context.Context, *MFACreateAuthenticatorRequest) (*MFACreateAuthenticatorResponse, error)
+	MFAGetAuthenticator(context.Context, *MFAGetAuthenticatorRequest) (*MFAGetAuthenticatorResponse, error)
+	MFAListAuthenticators(context.Context, *MFAListAuthenticatorsRequest) (*MFAListAuthenticatorsResponse, error)
+	MFAUpdateAuthenticator(context.Context, *MFAUpdateAuthenticatorRequest) (*MFAUpdateAuthenticatorResponse, error)
+	MFADeleteAuthenticator(context.Context, *MFADeleteAuthenticatorRequest) (*MFADeleteAuthenticatorResponse, error)
+	MFADeleteUserAuthenticators(context.Context, *MFADeleteUserAuthenticatorsRequest) (*MFADeleteUserAuthenticatorsResponse, error)
+	MFAAcceptTOTPStep(context.Context, *MFAAcceptTOTPStepRequest) (*MFAAcceptTOTPStepResponse, error)
+	MFAReplaceRecoveryCode(context.Context, *MFAReplaceRecoveryCodeRequest) (*MFAReplaceRecoveryCodeResponse, error)
+	MFAAcceptSignCount(context.Context, *MFAAcceptSignCountRequest) (*MFAAcceptSignCountResponse, error)
+	MFACreateMFAToken(context.Context, *MFACreateMFATokenRequest) (*MFACreateMFATokenResponse, error)
+	MFAConsumeMFAToken(context.Context, *MFAConsumeMFATokenRequest) (*MFAConsumeMFATokenResponse, error)
+	MFAPeekMFAToken(context.Context, *MFAPeekMFATokenRequest) (*MFAPeekMFATokenResponse, error)
+	MFACreateChallenge(context.Context, *MFACreateChallengeRequest) (*MFACreateChallengeResponse, error)
+	MFAGetChallenge(context.Context, *MFAGetChallengeRequest) (*MFAGetChallengeResponse, error)
+	MFAFailChallenge(context.Context, *MFAFailChallengeRequest) (*MFAFailChallengeResponse, error)
+	MFAConsumeChallenge(context.Context, *MFAConsumeChallengeRequest) (*MFAConsumeChallengeResponse, error)
+	MFACreateTicket(context.Context, *MFACreateTicketRequest) (*MFACreateTicketResponse, error)
+	MFAConsumeTicket(context.Context, *MFAConsumeTicketRequest) (*MFAConsumeTicketResponse, error)
+	MFAPutBrowser(context.Context, *MFAPutBrowserRequest) (*MFAPutBrowserResponse, error)
+	MFAGetBrowser(context.Context, *MFAGetBrowserRequest) (*MFAGetBrowserResponse, error)
+	MFABumpRememberEpoch(context.Context, *MFABumpRememberEpochRequest) (*MFABumpRememberEpochResponse, error)
+	MFAPurgeMFA(context.Context, *MFAPurgeMFARequest) (*MFAPurgeMFAResponse, error)
+	MFADeleteUserMFA(context.Context, *MFADeleteUserMFARequest) (*MFADeleteUserMFAResponse, error)
+	MFADeleteTenantMFA(context.Context, *MFADeleteTenantMFARequest) (*MFADeleteTenantMFAResponse, error)
 	SessionsMarkMFA(context.Context, *TouchRequest) (*Result, error)
 	EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	AppendEvents(context.Context, *EventsRequest) (*EventsResponse, error)
@@ -4843,82 +4843,82 @@ type UnimplementedStoreServiceServer struct{}
 func (UnimplementedStoreServiceServer) MFACapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFACapabilities not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAGetGuardian(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAGetGuardian(context.Context, *MFAGetGuardianRequest) (*MFAGetGuardianResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAGetGuardian not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAPutGuardian(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAPutGuardian(context.Context, *MFAPutGuardianRequest) (*MFAPutGuardianResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAPutGuardian not implemented")
 }
-func (UnimplementedStoreServiceServer) MFACreateAuthenticator(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFACreateAuthenticator(context.Context, *MFACreateAuthenticatorRequest) (*MFACreateAuthenticatorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFACreateAuthenticator not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAGetAuthenticator(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAGetAuthenticator(context.Context, *MFAGetAuthenticatorRequest) (*MFAGetAuthenticatorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAGetAuthenticator not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAListAuthenticators(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAListAuthenticators(context.Context, *MFAListAuthenticatorsRequest) (*MFAListAuthenticatorsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAListAuthenticators not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAUpdateAuthenticator(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAUpdateAuthenticator(context.Context, *MFAUpdateAuthenticatorRequest) (*MFAUpdateAuthenticatorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAUpdateAuthenticator not implemented")
 }
-func (UnimplementedStoreServiceServer) MFADeleteAuthenticator(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFADeleteAuthenticator(context.Context, *MFADeleteAuthenticatorRequest) (*MFADeleteAuthenticatorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFADeleteAuthenticator not implemented")
 }
-func (UnimplementedStoreServiceServer) MFADeleteUserAuthenticators(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFADeleteUserAuthenticators(context.Context, *MFADeleteUserAuthenticatorsRequest) (*MFADeleteUserAuthenticatorsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFADeleteUserAuthenticators not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAAcceptTOTPStep(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAAcceptTOTPStep(context.Context, *MFAAcceptTOTPStepRequest) (*MFAAcceptTOTPStepResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAAcceptTOTPStep not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAReplaceRecoveryCode(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAReplaceRecoveryCode(context.Context, *MFAReplaceRecoveryCodeRequest) (*MFAReplaceRecoveryCodeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAReplaceRecoveryCode not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAAcceptSignCount(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAAcceptSignCount(context.Context, *MFAAcceptSignCountRequest) (*MFAAcceptSignCountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAAcceptSignCount not implemented")
 }
-func (UnimplementedStoreServiceServer) MFACreateMFAToken(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFACreateMFAToken(context.Context, *MFACreateMFATokenRequest) (*MFACreateMFATokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFACreateMFAToken not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAConsumeMFAToken(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAConsumeMFAToken(context.Context, *MFAConsumeMFATokenRequest) (*MFAConsumeMFATokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAConsumeMFAToken not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAPeekMFAToken(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAPeekMFAToken(context.Context, *MFAPeekMFATokenRequest) (*MFAPeekMFATokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAPeekMFAToken not implemented")
 }
-func (UnimplementedStoreServiceServer) MFACreateChallenge(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFACreateChallenge(context.Context, *MFACreateChallengeRequest) (*MFACreateChallengeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFACreateChallenge not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAGetChallenge(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAGetChallenge(context.Context, *MFAGetChallengeRequest) (*MFAGetChallengeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAGetChallenge not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAFailChallenge(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAFailChallenge(context.Context, *MFAFailChallengeRequest) (*MFAFailChallengeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAFailChallenge not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAConsumeChallenge(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAConsumeChallenge(context.Context, *MFAConsumeChallengeRequest) (*MFAConsumeChallengeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAConsumeChallenge not implemented")
 }
-func (UnimplementedStoreServiceServer) MFACreateTicket(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFACreateTicket(context.Context, *MFACreateTicketRequest) (*MFACreateTicketResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFACreateTicket not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAConsumeTicket(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAConsumeTicket(context.Context, *MFAConsumeTicketRequest) (*MFAConsumeTicketResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAConsumeTicket not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAPutBrowser(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAPutBrowser(context.Context, *MFAPutBrowserRequest) (*MFAPutBrowserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAPutBrowser not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAGetBrowser(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAGetBrowser(context.Context, *MFAGetBrowserRequest) (*MFAGetBrowserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAGetBrowser not implemented")
 }
-func (UnimplementedStoreServiceServer) MFABumpRememberEpoch(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFABumpRememberEpoch(context.Context, *MFABumpRememberEpochRequest) (*MFABumpRememberEpochResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFABumpRememberEpoch not implemented")
 }
-func (UnimplementedStoreServiceServer) MFAPurgeMFA(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFAPurgeMFA(context.Context, *MFAPurgeMFARequest) (*MFAPurgeMFAResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAPurgeMFA not implemented")
 }
-func (UnimplementedStoreServiceServer) MFADeleteUserMFA(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFADeleteUserMFA(context.Context, *MFADeleteUserMFARequest) (*MFADeleteUserMFAResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFADeleteUserMFA not implemented")
 }
-func (UnimplementedStoreServiceServer) MFADeleteTenantMFA(context.Context, *MFARequest) (*MFAResponse, error) {
+func (UnimplementedStoreServiceServer) MFADeleteTenantMFA(context.Context, *MFADeleteTenantMFARequest) (*MFADeleteTenantMFAResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFADeleteTenantMFA not implemented")
 }
 func (UnimplementedStoreServiceServer) SessionsMarkMFA(context.Context, *TouchRequest) (*Result, error) {
@@ -5942,7 +5942,7 @@ func _StoreService_MFACapabilities_Handler(srv interface{}, ctx context.Context,
 }
 
 func _StoreService_MFAGetGuardian_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAGetGuardianRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -5954,13 +5954,13 @@ func _StoreService_MFAGetGuardian_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: StoreService_MFAGetGuardian_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAGetGuardian(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAGetGuardian(ctx, req.(*MFAGetGuardianRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAPutGuardian_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAPutGuardianRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -5972,13 +5972,13 @@ func _StoreService_MFAPutGuardian_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: StoreService_MFAPutGuardian_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAPutGuardian(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAPutGuardian(ctx, req.(*MFAPutGuardianRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFACreateAuthenticator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFACreateAuthenticatorRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -5990,13 +5990,13 @@ func _StoreService_MFACreateAuthenticator_Handler(srv interface{}, ctx context.C
 		FullMethod: StoreService_MFACreateAuthenticator_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFACreateAuthenticator(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFACreateAuthenticator(ctx, req.(*MFACreateAuthenticatorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAGetAuthenticator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAGetAuthenticatorRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6008,13 +6008,13 @@ func _StoreService_MFAGetAuthenticator_Handler(srv interface{}, ctx context.Cont
 		FullMethod: StoreService_MFAGetAuthenticator_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAGetAuthenticator(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAGetAuthenticator(ctx, req.(*MFAGetAuthenticatorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAListAuthenticators_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAListAuthenticatorsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6026,13 +6026,13 @@ func _StoreService_MFAListAuthenticators_Handler(srv interface{}, ctx context.Co
 		FullMethod: StoreService_MFAListAuthenticators_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAListAuthenticators(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAListAuthenticators(ctx, req.(*MFAListAuthenticatorsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAUpdateAuthenticator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAUpdateAuthenticatorRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6044,13 +6044,13 @@ func _StoreService_MFAUpdateAuthenticator_Handler(srv interface{}, ctx context.C
 		FullMethod: StoreService_MFAUpdateAuthenticator_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAUpdateAuthenticator(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAUpdateAuthenticator(ctx, req.(*MFAUpdateAuthenticatorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFADeleteAuthenticator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFADeleteAuthenticatorRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6062,13 +6062,13 @@ func _StoreService_MFADeleteAuthenticator_Handler(srv interface{}, ctx context.C
 		FullMethod: StoreService_MFADeleteAuthenticator_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFADeleteAuthenticator(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFADeleteAuthenticator(ctx, req.(*MFADeleteAuthenticatorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFADeleteUserAuthenticators_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFADeleteUserAuthenticatorsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6080,13 +6080,13 @@ func _StoreService_MFADeleteUserAuthenticators_Handler(srv interface{}, ctx cont
 		FullMethod: StoreService_MFADeleteUserAuthenticators_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFADeleteUserAuthenticators(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFADeleteUserAuthenticators(ctx, req.(*MFADeleteUserAuthenticatorsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAAcceptTOTPStep_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAAcceptTOTPStepRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6098,13 +6098,13 @@ func _StoreService_MFAAcceptTOTPStep_Handler(srv interface{}, ctx context.Contex
 		FullMethod: StoreService_MFAAcceptTOTPStep_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAAcceptTOTPStep(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAAcceptTOTPStep(ctx, req.(*MFAAcceptTOTPStepRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAReplaceRecoveryCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAReplaceRecoveryCodeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6116,13 +6116,13 @@ func _StoreService_MFAReplaceRecoveryCode_Handler(srv interface{}, ctx context.C
 		FullMethod: StoreService_MFAReplaceRecoveryCode_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAReplaceRecoveryCode(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAReplaceRecoveryCode(ctx, req.(*MFAReplaceRecoveryCodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAAcceptSignCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAAcceptSignCountRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6134,13 +6134,13 @@ func _StoreService_MFAAcceptSignCount_Handler(srv interface{}, ctx context.Conte
 		FullMethod: StoreService_MFAAcceptSignCount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAAcceptSignCount(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAAcceptSignCount(ctx, req.(*MFAAcceptSignCountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFACreateMFAToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFACreateMFATokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6152,13 +6152,13 @@ func _StoreService_MFACreateMFAToken_Handler(srv interface{}, ctx context.Contex
 		FullMethod: StoreService_MFACreateMFAToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFACreateMFAToken(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFACreateMFAToken(ctx, req.(*MFACreateMFATokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAConsumeMFAToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAConsumeMFATokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6170,13 +6170,13 @@ func _StoreService_MFAConsumeMFAToken_Handler(srv interface{}, ctx context.Conte
 		FullMethod: StoreService_MFAConsumeMFAToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAConsumeMFAToken(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAConsumeMFAToken(ctx, req.(*MFAConsumeMFATokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAPeekMFAToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAPeekMFATokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6188,13 +6188,13 @@ func _StoreService_MFAPeekMFAToken_Handler(srv interface{}, ctx context.Context,
 		FullMethod: StoreService_MFAPeekMFAToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAPeekMFAToken(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAPeekMFAToken(ctx, req.(*MFAPeekMFATokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFACreateChallenge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFACreateChallengeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6206,13 +6206,13 @@ func _StoreService_MFACreateChallenge_Handler(srv interface{}, ctx context.Conte
 		FullMethod: StoreService_MFACreateChallenge_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFACreateChallenge(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFACreateChallenge(ctx, req.(*MFACreateChallengeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAGetChallenge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAGetChallengeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6224,13 +6224,13 @@ func _StoreService_MFAGetChallenge_Handler(srv interface{}, ctx context.Context,
 		FullMethod: StoreService_MFAGetChallenge_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAGetChallenge(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAGetChallenge(ctx, req.(*MFAGetChallengeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAFailChallenge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAFailChallengeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6242,13 +6242,13 @@ func _StoreService_MFAFailChallenge_Handler(srv interface{}, ctx context.Context
 		FullMethod: StoreService_MFAFailChallenge_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAFailChallenge(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAFailChallenge(ctx, req.(*MFAFailChallengeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAConsumeChallenge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAConsumeChallengeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6260,13 +6260,13 @@ func _StoreService_MFAConsumeChallenge_Handler(srv interface{}, ctx context.Cont
 		FullMethod: StoreService_MFAConsumeChallenge_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAConsumeChallenge(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAConsumeChallenge(ctx, req.(*MFAConsumeChallengeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFACreateTicket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFACreateTicketRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6278,13 +6278,13 @@ func _StoreService_MFACreateTicket_Handler(srv interface{}, ctx context.Context,
 		FullMethod: StoreService_MFACreateTicket_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFACreateTicket(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFACreateTicket(ctx, req.(*MFACreateTicketRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAConsumeTicket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAConsumeTicketRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6296,13 +6296,13 @@ func _StoreService_MFAConsumeTicket_Handler(srv interface{}, ctx context.Context
 		FullMethod: StoreService_MFAConsumeTicket_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAConsumeTicket(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAConsumeTicket(ctx, req.(*MFAConsumeTicketRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAPutBrowser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAPutBrowserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6314,13 +6314,13 @@ func _StoreService_MFAPutBrowser_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: StoreService_MFAPutBrowser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAPutBrowser(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAPutBrowser(ctx, req.(*MFAPutBrowserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAGetBrowser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAGetBrowserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6332,13 +6332,13 @@ func _StoreService_MFAGetBrowser_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: StoreService_MFAGetBrowser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAGetBrowser(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAGetBrowser(ctx, req.(*MFAGetBrowserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFABumpRememberEpoch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFABumpRememberEpochRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6350,13 +6350,13 @@ func _StoreService_MFABumpRememberEpoch_Handler(srv interface{}, ctx context.Con
 		FullMethod: StoreService_MFABumpRememberEpoch_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFABumpRememberEpoch(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFABumpRememberEpoch(ctx, req.(*MFABumpRememberEpochRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFAPurgeMFA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFAPurgeMFARequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6368,13 +6368,13 @@ func _StoreService_MFAPurgeMFA_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: StoreService_MFAPurgeMFA_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFAPurgeMFA(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFAPurgeMFA(ctx, req.(*MFAPurgeMFARequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFADeleteUserMFA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFADeleteUserMFARequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6386,13 +6386,13 @@ func _StoreService_MFADeleteUserMFA_Handler(srv interface{}, ctx context.Context
 		FullMethod: StoreService_MFADeleteUserMFA_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFADeleteUserMFA(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFADeleteUserMFA(ctx, req.(*MFADeleteUserMFARequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_MFADeleteTenantMFA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MFARequest)
+	in := new(MFADeleteTenantMFARequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -6404,7 +6404,7 @@ func _StoreService_MFADeleteTenantMFA_Handler(srv interface{}, ctx context.Conte
 		FullMethod: StoreService_MFADeleteTenantMFA_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).MFADeleteTenantMFA(ctx, req.(*MFARequest))
+		return srv.(StoreServiceServer).MFADeleteTenantMFA(ctx, req.(*MFADeleteTenantMFARequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

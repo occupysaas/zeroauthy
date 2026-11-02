@@ -61,32 +61,32 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 service StoreService {
   // Events v1 is negotiated independently of Logs, RBAC and Organizations.
   rpc MFACapabilities(PingRequest) returns (EventsCapabilitiesResult);
-  rpc MFAGetGuardian(MFARequest) returns (MFAResponse);
-  rpc MFAPutGuardian(MFARequest) returns (MFAResponse);
-  rpc MFACreateAuthenticator(MFARequest) returns (MFAResponse);
-  rpc MFAGetAuthenticator(MFARequest) returns (MFAResponse);
-  rpc MFAListAuthenticators(MFARequest) returns (MFAResponse);
-  rpc MFAUpdateAuthenticator(MFARequest) returns (MFAResponse);
-  rpc MFADeleteAuthenticator(MFARequest) returns (MFAResponse);
-  rpc MFADeleteUserAuthenticators(MFARequest) returns (MFAResponse);
-  rpc MFAAcceptTOTPStep(MFARequest) returns (MFAResponse);
-  rpc MFAReplaceRecoveryCode(MFARequest) returns (MFAResponse);
-  rpc MFAAcceptSignCount(MFARequest) returns (MFAResponse);
-  rpc MFACreateMFAToken(MFARequest) returns (MFAResponse);
-  rpc MFAConsumeMFAToken(MFARequest) returns (MFAResponse);
-  rpc MFAPeekMFAToken(MFARequest) returns (MFAResponse);
-  rpc MFACreateChallenge(MFARequest) returns (MFAResponse);
-  rpc MFAGetChallenge(MFARequest) returns (MFAResponse);
-  rpc MFAFailChallenge(MFARequest) returns (MFAResponse);
-  rpc MFAConsumeChallenge(MFARequest) returns (MFAResponse);
-  rpc MFACreateTicket(MFARequest) returns (MFAResponse);
-  rpc MFAConsumeTicket(MFARequest) returns (MFAResponse);
-  rpc MFAPutBrowser(MFARequest) returns (MFAResponse);
-  rpc MFAGetBrowser(MFARequest) returns (MFAResponse);
-  rpc MFABumpRememberEpoch(MFARequest) returns (MFAResponse);
-  rpc MFAPurgeMFA(MFARequest) returns (MFAResponse);
-  rpc MFADeleteUserMFA(MFARequest) returns (MFAResponse);
-  rpc MFADeleteTenantMFA(MFARequest) returns (MFAResponse);
+  rpc MFAGetGuardian(MFAGetGuardianRequest) returns (MFAGetGuardianResponse);
+  rpc MFAPutGuardian(MFAPutGuardianRequest) returns (MFAPutGuardianResponse);
+  rpc MFACreateAuthenticator(MFACreateAuthenticatorRequest) returns (MFACreateAuthenticatorResponse);
+  rpc MFAGetAuthenticator(MFAGetAuthenticatorRequest) returns (MFAGetAuthenticatorResponse);
+  rpc MFAListAuthenticators(MFAListAuthenticatorsRequest) returns (MFAListAuthenticatorsResponse);
+  rpc MFAUpdateAuthenticator(MFAUpdateAuthenticatorRequest) returns (MFAUpdateAuthenticatorResponse);
+  rpc MFADeleteAuthenticator(MFADeleteAuthenticatorRequest) returns (MFADeleteAuthenticatorResponse);
+  rpc MFADeleteUserAuthenticators(MFADeleteUserAuthenticatorsRequest) returns (MFADeleteUserAuthenticatorsResponse);
+  rpc MFAAcceptTOTPStep(MFAAcceptTOTPStepRequest) returns (MFAAcceptTOTPStepResponse);
+  rpc MFAReplaceRecoveryCode(MFAReplaceRecoveryCodeRequest) returns (MFAReplaceRecoveryCodeResponse);
+  rpc MFAAcceptSignCount(MFAAcceptSignCountRequest) returns (MFAAcceptSignCountResponse);
+  rpc MFACreateMFAToken(MFACreateMFATokenRequest) returns (MFACreateMFATokenResponse);
+  rpc MFAConsumeMFAToken(MFAConsumeMFATokenRequest) returns (MFAConsumeMFATokenResponse);
+  rpc MFAPeekMFAToken(MFAPeekMFATokenRequest) returns (MFAPeekMFATokenResponse);
+  rpc MFACreateChallenge(MFACreateChallengeRequest) returns (MFACreateChallengeResponse);
+  rpc MFAGetChallenge(MFAGetChallengeRequest) returns (MFAGetChallengeResponse);
+  rpc MFAFailChallenge(MFAFailChallengeRequest) returns (MFAFailChallengeResponse);
+  rpc MFAConsumeChallenge(MFAConsumeChallengeRequest) returns (MFAConsumeChallengeResponse);
+  rpc MFACreateTicket(MFACreateTicketRequest) returns (MFACreateTicketResponse);
+  rpc MFAConsumeTicket(MFAConsumeTicketRequest) returns (MFAConsumeTicketResponse);
+  rpc MFAPutBrowser(MFAPutBrowserRequest) returns (MFAPutBrowserResponse);
+  rpc MFAGetBrowser(MFAGetBrowserRequest) returns (MFAGetBrowserResponse);
+  rpc MFABumpRememberEpoch(MFABumpRememberEpochRequest) returns (MFABumpRememberEpochResponse);
+  rpc MFAPurgeMFA(MFAPurgeMFARequest) returns (MFAPurgeMFAResponse);
+  rpc MFADeleteUserMFA(MFADeleteUserMFARequest) returns (MFADeleteUserMFAResponse);
+  rpc MFADeleteTenantMFA(MFADeleteTenantMFARequest) returns (MFADeleteTenantMFAResponse);
   rpc SessionsMarkMFA(TouchRequest) returns (Result);
   rpc EventsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc AppendEvents(EventsRequest) returns (EventsResponse);
@@ -1511,6 +1511,63 @@ message EventsResponse {
  string next = 8; EventDeliveryMsg delivery = 9; repeated EventDeliveryMsg deliveries = 10;
 }
 
-// MFA v1 payloads are JSON representations of the public store types.
-message MFARequest { string tx_id = 1; bytes args_json = 2; }
-message MFAResponse { Error error = 1; bytes value_json = 2; }
+// MFA v1 uses RFC3339Nano timestamps (empty denotes zero time). Bytes are opaque.
+message MFAGuardian { string tenant_id = 1; map<string,bool> factors = 2; repeated string policies = 3; map<string,bytes> stored = 4; map<string,bytes> sealed_secrets = 5; int64 version = 6; }
+message MFAAuthenticator { string tenant_id=1; string user_id=2; string id=3; string type=4; string name=5; bool confirmed=6; bool preferred=7; bytes sealed_secret=8; int64 last_step=9; string code_hash=10; string email=11; string phone=12; bytes credential_id=13; bytes public_key=14; string rp_id=15; uint32 sign_count=16; string created_at=17; string last_auth_at=18; }
+message MFATokenMsg { string tenant_id=1; string hash=2; string client_id=3; string user_id=4; string connection=5; bytes request=6; string expires_at=7; }
+message MFAChallengeMsg { string tenant_id=1; string id=2; string user_id=3; string authenticator_id=4; string kind=5; string code_hash=6; bytes challenge=7; int64 attempts=8; string expires_at=9; }
+message MFAEnrollmentTicket { string tenant_id=1; string hash=2; string user_id=3; string factor=4; bool allow_multiple=5; string expires_at=6; }
+message MFABrowserMsg { string tenant_id=1; string hash=2; string user_id=3; string kind=4; int64 epoch=5; string expires_at=6; }
+message MFAGetGuardianRequest { string tx_id = 1; string tid = 2; }
+message MFAGetGuardianResponse { Error error = 1; MFAGuardian value = 2; }
+message MFAPutGuardianRequest { string tx_id = 1; MFAGuardian v = 2; int64 version = 3; }
+message MFAPutGuardianResponse { Error error = 1;  }
+message MFACreateAuthenticatorRequest { string tx_id = 1; MFAAuthenticator v = 2; }
+message MFACreateAuthenticatorResponse { Error error = 1;  }
+message MFAGetAuthenticatorRequest { string tx_id = 1; string tid = 2; string uid = 3; string id = 4; }
+message MFAGetAuthenticatorResponse { Error error = 1; MFAAuthenticator value = 2; }
+message MFAListAuthenticatorsRequest { string tx_id = 1; string tid = 2; string uid = 3; }
+message MFAListAuthenticatorsResponse { Error error = 1; repeated MFAAuthenticator value = 2; }
+message MFAUpdateAuthenticatorRequest { string tx_id = 1; MFAAuthenticator v = 2; }
+message MFAUpdateAuthenticatorResponse { Error error = 1;  }
+message MFADeleteAuthenticatorRequest { string tx_id = 1; string tid = 2; string uid = 3; string id = 4; }
+message MFADeleteAuthenticatorResponse { Error error = 1;  }
+message MFADeleteUserAuthenticatorsRequest { string tx_id = 1; string tid = 2; string uid = 3; StringList types = 4; // absent deletes all; present empty deletes none
+ }
+message MFADeleteUserAuthenticatorsResponse { Error error = 1;  }
+message MFAAcceptTOTPStepRequest { string tx_id = 1; string tid = 2; string uid = 3; string id = 4; int64 step = 5; string at = 6; }
+message MFAAcceptTOTPStepResponse { Error error = 1;  }
+message MFAReplaceRecoveryCodeRequest { string tx_id = 1; string tid = 2; string uid = 3; string old_hash = 4; string new_hash = 5; string at = 6; }
+message MFAReplaceRecoveryCodeResponse { Error error = 1;  }
+message MFAAcceptSignCountRequest { string tx_id = 1; string tid = 2; string uid = 3; string id = 4; uint32 count = 5; string at = 6; }
+message MFAAcceptSignCountResponse { Error error = 1;  }
+message MFACreateMFATokenRequest { string tx_id = 1; MFATokenMsg v = 2; }
+message MFACreateMFATokenResponse { Error error = 1;  }
+message MFAConsumeMFATokenRequest { string tx_id = 1; string tid = 2; string hash = 3; string client_i_d = 4; string now = 5; }
+message MFAConsumeMFATokenResponse { Error error = 1; MFATokenMsg value = 2; }
+message MFAPeekMFATokenRequest { string tx_id = 1; string tid = 2; string hash = 3; string now = 4; }
+message MFAPeekMFATokenResponse { Error error = 1; MFATokenMsg value = 2; }
+message MFACreateChallengeRequest { string tx_id = 1; MFAChallengeMsg v = 2; }
+message MFACreateChallengeResponse { Error error = 1;  }
+message MFAGetChallengeRequest { string tx_id = 1; string tid = 2; string id = 3; string now = 4; }
+message MFAGetChallengeResponse { Error error = 1; MFAChallengeMsg value = 2; }
+message MFAFailChallengeRequest { string tx_id = 1; string tid = 2; string id = 3; }
+message MFAFailChallengeResponse { Error error = 1; int64 value = 2; }
+message MFAConsumeChallengeRequest { string tx_id = 1; string tid = 2; string id = 3; string now = 4; }
+message MFAConsumeChallengeResponse { Error error = 1;  }
+message MFACreateTicketRequest { string tx_id = 1; MFAEnrollmentTicket v = 2; }
+message MFACreateTicketResponse { Error error = 1;  }
+message MFAConsumeTicketRequest { string tx_id = 1; string tid = 2; string hash = 3; string now = 4; }
+message MFAConsumeTicketResponse { Error error = 1; MFAEnrollmentTicket value = 2; }
+message MFAPutBrowserRequest { string tx_id = 1; MFABrowserMsg v = 2; }
+message MFAPutBrowserResponse { Error error = 1;  }
+message MFAGetBrowserRequest { string tx_id = 1; string tid = 2; string hash = 3; string now = 4; }
+message MFAGetBrowserResponse { Error error = 1; MFABrowserMsg value = 2; }
+message MFABumpRememberEpochRequest { string tx_id = 1; string tid = 2; string uid = 3; }
+message MFABumpRememberEpochResponse { Error error = 1;  }
+message MFAPurgeMFARequest { string tx_id = 1; string before = 2; int64 limit = 3; }
+message MFAPurgeMFAResponse { Error error = 1; int64 value = 2; }
+message MFADeleteUserMFARequest { string tx_id = 1; string tid = 2; string uid = 3; }
+message MFADeleteUserMFAResponse { Error error = 1;  }
+message MFADeleteTenantMFARequest { string tx_id = 1; string tid = 2; }
+message MFADeleteTenantMFAResponse { Error error = 1;  }

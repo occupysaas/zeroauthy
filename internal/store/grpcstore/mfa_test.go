@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/pkg/storetest"
+	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
 	"google.golang.org/grpc/codes"
 	"sort"
 	"testing"
@@ -48,6 +49,29 @@ func TestMFARemoteConditionalUpdates(t *testing.T) {
 	if err := c.MFA().AcceptTOTPStep(ctx, "mfa", "u", "a", 1, time.Now()); !errors.Is(err, store.ErrPrecondition) {
 		t.Fatalf("replay: %v", err)
 	}
+
+	now := time.Now()
+	if err := c.MFA().AcceptSignCount(ctx, "mfa", "u", "a", 3, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.MFA().AcceptSignCount(ctx, "mfa", "u", "a", 3, now); !errors.Is(err, store.ErrPrecondition) {
+		t.Fatalf("sign count replay: %v", err)
+	}
+	if err := c.MFA().ReplaceRecoveryCode(ctx, "mfa", "u", "", "first", now); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.MFA().ReplaceRecoveryCode(ctx, "mfa", "u", "first", "second", now); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.MFA().ReplaceRecoveryCode(ctx, "mfa", "u", "first", "third", now); !errors.Is(err, store.ErrPrecondition) {
+		t.Fatalf("recovery replay: %v", err)
+	}
+	if err := c.MFA().DeleteUserAuthenticators(ctx, "mfa", "u", []string{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.MFA().GetAuthenticator(ctx, "mfa", "u", "a"); err != nil {
+		t.Fatalf("empty type filter deleted factor: %v", err)
+	}
 }
 
 func TestMFACapabilityCompatibility(t *testing.T) {
@@ -90,8 +114,8 @@ func TestMFACapabilityCompatibility(t *testing.T) {
 		if c.MFASupported() {
 			t.Fatal("unknown method not cached")
 		}
-		if err := c.CheckMFASupport(ctx); err != nil || !c.MFASupported() {
-			t.Fatalf("recovery: %v", err)
+		if err := c.CheckMFASupport(ctx); !errors.Is(err, store.ErrMFAUnavailable) {
+			t.Fatalf("latched: %v", err)
 		}
 	})
 }
@@ -111,4 +135,135 @@ func TestMFAPrePluginPriorFeatures(t *testing.T) {
 		}
 		return limitForwarder{c, m}
 	}, names...)
+}
+
+func TestMFAMalformedWrites(t *testing.T) {
+	s := NewServer(memory.New())
+	defer s.Close()
+	ctx := context.Background()
+	t.Run("PutGuardian", func(t *testing.T) {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("panic: %v", p)
+			}
+		}()
+		r, err := s.MFAPutGuardian(ctx, &storev1.MFAPutGuardianRequest{})
+		if err != nil || !errors.Is(errFromPB(r.GetError()), store.ErrInvalid) {
+			t.Fatalf("result=%v error=%v", r, err)
+		}
+	})
+	t.Run("CreateAuthenticator", func(t *testing.T) {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("panic: %v", p)
+			}
+		}()
+		r, err := s.MFACreateAuthenticator(ctx, &storev1.MFACreateAuthenticatorRequest{})
+		if err != nil || !errors.Is(errFromPB(r.GetError()), store.ErrInvalid) {
+			t.Fatalf("result=%v error=%v", r, err)
+		}
+	})
+	t.Run("UpdateAuthenticator", func(t *testing.T) {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("panic: %v", p)
+			}
+		}()
+		r, err := s.MFAUpdateAuthenticator(ctx, &storev1.MFAUpdateAuthenticatorRequest{})
+		if err != nil || !errors.Is(errFromPB(r.GetError()), store.ErrInvalid) {
+			t.Fatalf("result=%v error=%v", r, err)
+		}
+	})
+	t.Run("CreateMFAToken", func(t *testing.T) {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("panic: %v", p)
+			}
+		}()
+		r, err := s.MFACreateMFAToken(ctx, &storev1.MFACreateMFATokenRequest{})
+		if err != nil || !errors.Is(errFromPB(r.GetError()), store.ErrInvalid) {
+			t.Fatalf("result=%v error=%v", r, err)
+		}
+	})
+	t.Run("CreateChallenge", func(t *testing.T) {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("panic: %v", p)
+			}
+		}()
+		r, err := s.MFACreateChallenge(ctx, &storev1.MFACreateChallengeRequest{})
+		if err != nil || !errors.Is(errFromPB(r.GetError()), store.ErrInvalid) {
+			t.Fatalf("result=%v error=%v", r, err)
+		}
+	})
+	t.Run("CreateTicket", func(t *testing.T) {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("panic: %v", p)
+			}
+		}()
+		r, err := s.MFACreateTicket(ctx, &storev1.MFACreateTicketRequest{})
+		if err != nil || !errors.Is(errFromPB(r.GetError()), store.ErrInvalid) {
+			t.Fatalf("result=%v error=%v", r, err)
+		}
+	})
+	t.Run("PutBrowser", func(t *testing.T) {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Errorf("panic: %v", p)
+			}
+		}()
+		r, err := s.MFAPutBrowser(ctx, &storev1.MFAPutBrowserRequest{})
+		if err != nil || !errors.Is(errFromPB(r.GetError()), store.ErrInvalid) {
+			t.Fatalf("result=%v error=%v", r, err)
+		}
+	})
+}
+func TestMFAUnsupportedStaysLatched(t *testing.T) {
+	ctx := context.Background()
+	f := &eventsFaults{}
+	c := serveEventsFaults(t, memory.New(), f)
+	f.mfaOperation.Store(int32(codes.Unimplemented))
+	if _, err := c.MFA().GetGuardian(ctx, "t"); !errors.Is(err, store.ErrMFAUnavailable) {
+		t.Fatal(err)
+	}
+	if err := c.CheckMFASupport(ctx); !errors.Is(err, store.ErrMFAUnavailable) {
+		t.Fatalf("probe cleared unsupported: %v", err)
+	}
+	if c.MFASupported() {
+		t.Fatal("unsupported capability reset")
+	}
+}
+func TestMFAMarkUnknownMethodLatched(t *testing.T) {
+	ctx := context.Background()
+	f := &eventsFaults{}
+	c := serveEventsFaults(t, memory.New(), f)
+	f.mfaMark.Store(int32(codes.Unimplemented))
+	if err := c.Sessions().MarkMFA(ctx, "t", "s", time.Now()); !errors.Is(err, store.ErrMFAUnavailable) {
+		t.Fatal(err)
+	}
+	if err := c.CheckMFASupport(ctx); !errors.Is(err, store.ErrMFAUnavailable) {
+		t.Fatalf("probe cleared mark failure: %v", err)
+	}
+}
+
+func TestMFAConcurrentProbeCannotClearUnsupported(t *testing.T) {
+	ctx := context.Background()
+	f := &eventsFaults{mfaProbeEntered: make(chan struct{}, 1), mfaProbeRelease: make(chan struct{})}
+	c := serveEventsFaults(t, memory.New(), f)
+	f.mfaBlock.Store(true)
+	result := make(chan error, 1)
+	go func() { result <- c.CheckMFASupport(ctx) }()
+	<-f.mfaProbeEntered
+	f.mfaMark.Store(int32(codes.Unimplemented))
+	if err := c.Sessions().MarkMFA(ctx, "t", "s", time.Now()); !errors.Is(err, store.ErrMFAUnavailable) {
+		t.Fatal(err)
+	}
+	close(f.mfaProbeRelease)
+	if err := <-result; !errors.Is(err, store.ErrMFAUnavailable) {
+		t.Fatalf("concurrent probe: %v", err)
+	}
+	if c.MFASupported() {
+		t.Fatal("concurrent probe cleared latch")
+	}
 }

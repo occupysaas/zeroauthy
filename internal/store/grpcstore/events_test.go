@@ -32,15 +32,19 @@ import (
 // Exercise a real server and transport, selectively making Events methods look
 // like an older or restarting plugin without replacing any earlier feature.
 type eventsFaults struct {
-	mfaMissing    bool
-	mfaProbe      atomic.Int32
-	mfaOperation  atomic.Int32
-	appendCode    atomic.Int32
-	versionZero   atomic.Bool
-	missing       bool
-	probeCode     atomic.Int32
-	operationCode atomic.Int32
-	missingFloor  bool
+	mfaMissing      bool
+	mfaProbe        atomic.Int32
+	mfaOperation    atomic.Int32
+	mfaMark         atomic.Int32
+	mfaBlock        atomic.Bool
+	mfaProbeEntered chan struct{}
+	mfaProbeRelease chan struct{}
+	appendCode      atomic.Int32
+	versionZero     atomic.Bool
+	missing         bool
+	probeCode       atomic.Int32
+	operationCode   atomic.Int32
+	missingFloor    bool
 }
 
 func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) *Client {
@@ -49,11 +53,20 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 	gs := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		name := strings.TrimPrefix(info.FullMethod, "/zeroauthy.store.v1.StoreService/")
 		if name == "MFACapabilities" {
+			if faults.mfaBlock.Swap(false) {
+				faults.mfaProbeEntered <- struct{}{}
+				<-faults.mfaProbeRelease
+			}
 			if faults.mfaMissing {
 				return nil, status.Error(codes.Unimplemented, "pre-MFA plugin")
 			}
 			if code := codes.Code(faults.mfaProbe.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "probe failure")
+			}
+		}
+		if name == "SessionsMarkMFA" {
+			if code := codes.Code(faults.mfaMark.Swap(0)); code != codes.OK {
+				return nil, status.Error(code, "mark failure")
 			}
 		}
 		if name == "MFAGetGuardian" {
