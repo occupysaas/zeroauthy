@@ -490,6 +490,7 @@ func (h *Handlers) finishMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow)
 			h.fail(w, r, errTxn, f.flow)
 			return
 		}
+		http.SetCookie(w, &http.Cookie{Name: "za_reset_mfa_page", Value: "", Path: "/u", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 		http.SetCookie(w, &http.Cookie{Name: "za_reset_mfa", Value: "", Path: "/u", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		http.Redirect(w, r, "/u/reset-password?"+url.Values{"ticket": {cookie.Value}}.Encode(), http.StatusSeeOther)

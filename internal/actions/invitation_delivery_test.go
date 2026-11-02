@@ -6,6 +6,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
+	"log/slog"
+	"strings"
 	"testing"
 	"time"
 )
@@ -13,7 +15,8 @@ import (
 func TestOrganizationInvitationDeliveryQueue(t *testing.T) {
 	st := memory.New()
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{9}, 32))
-	e := &Engine{Store: st, Secrets: w}
+	var output bytes.Buffer
+	e := &Engine{Store: st, Secrets: w, Log: slog.New(slog.NewTextHandler(&output, nil))}
 	if err := st.Tenants().Create(context.Background(), &store.Tenant{ID: "t", Name: "queue-test"}); err != nil {
 		t.Fatal(err)
 	}
@@ -42,9 +45,13 @@ func TestInvitationEmailCorruptEnvelope(t *testing.T) {
 		t.Fatal(err)
 	}
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{9}, 32))
-	e := &Engine{Store: st, Secrets: w}
+	var output bytes.Buffer
+	e := &Engine{Store: st, Secrets: w, Log: slog.New(slog.NewTextHandler(&output, nil))}
 	j := &store.ActionJob{TenantID: "t", ID: "ajob_bad", Trigger: InvitationDeliveryTrigger, Status: "pending", Sealed: []byte("untrusted-private-ticket"), Attempts: 1}
 	n := e.RunJob(context.Background(), j)
+	if !strings.Contains(output.String(), "actions job failed") || !strings.Contains(output.String(), "invalid job envelope") || strings.Contains(output.String(), "untrusted-private-ticket") {
+		t.Fatalf("unexpected corrupt envelope diagnostic: %s", output.String())
+	}
 	if n == nil || n.Status != "failed" || len(n.ExecutionIDs) != 1 {
 		t.Fatal("corrupt envelope must fail without panic or retry")
 	}

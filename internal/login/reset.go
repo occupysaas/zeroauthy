@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -200,6 +201,14 @@ func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	csrf := secrets.RandomString(32)
+	if authz.IsMFAResetPass(tk) {
+		if _, err := h.resetMFAPass(r, res, h.Store, tk, nil); err != nil {
+			h.renderResetError(w, view, resetInvalid)
+			return
+		}
+		cookie, _ := r.Cookie(resetCookie)
+		csrf = cookie.Value
+	}
 	setResetCookie(w, csrf, 900)
 	if tk.ChallengePassedAt == nil && !h.resetChallenge(w, r, res, view, raw, tk, csrf) {
 		return
@@ -216,6 +225,14 @@ func (h *Handlers) showResetForm(w http.ResponseWriter, r *http.Request, res ten
 		return
 	}
 	tk = fresh
+	if authz.IsMFAResetPass(tk) {
+		result, e := h.resetMFAPass(r, res, h.Store, tk, nil)
+		if e != nil {
+			h.renderResetError(w, view, resetInvalid)
+			return
+		}
+		tk.ChallengeResultURL = result
+	}
 	if _, err := h.prepareCaptcha(r, res, &view, "reset", tk.ID); err != nil {
 		status, key := captchaFailure(err)
 		ui.RenderError(w, status, view, view.L.T(key))
@@ -361,6 +378,7 @@ func (h *Handlers) resetOutcome(w http.ResponseWriter, r *http.Request, res tena
 			h.renderResetError(w, view, resetInvalid)
 			return false
 		}
+		http.SetCookie(w, &http.Cookie{Name: "za_reset_mfa_page", Value: page, Path: "/u", MaxAge: 900, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 		http.SetCookie(w, &http.Cookie{Name: "za_reset_mfa", Value: raw, Path: "/u", MaxAge: 900, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		if e = h.Authz.StartMFAReset(w, r, res, u, tk, page, req, result.ResultURL); e != nil {
@@ -368,7 +386,25 @@ func (h *Handlers) resetOutcome(w http.ResponseWriter, r *http.Request, res tena
 		}
 		return false
 	}
-	err = h.Store.PasswordResetTickets().MarkChallengePassed(ctx, res.Tenant.ID, secrets.HashToken(raw), h.now(), result.ResultURL)
+	ticket, e := h.Store.PasswordResetTickets().GetByTokenHash(ctx, res.Tenant.ID, secrets.HashToken(raw))
+	if e != nil {
+		h.fail(w, r, e, nil)
+		return false
+	}
+	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, e := tx.Users().GetForUpdate(ctx, res.Tenant.ID, ticket.UserID); e != nil {
+			return e
+		}
+		fresh, e := tx.PasswordResetTickets().GetByTokenHash(ctx, res.Tenant.ID, secrets.HashToken(raw))
+		if e != nil {
+			return e
+		}
+		if authz.IsMFAResetPass(fresh) {
+			// An older ordinary flow cannot erase MFA authority.
+			return nil
+		}
+		return tx.PasswordResetTickets().MarkChallengePassed(ctx, res.Tenant.ID, secrets.HashToken(raw), h.now(), result.ResultURL)
+	})
 	switch {
 	case errors.Is(err, store.ErrAlreadyUsed):
 		h.renderResetError(w, view, resetUsed)
@@ -484,6 +520,15 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		h.renderResetError(w, view, resetInvalid)
 		return
 	}
+	mfaPass := authz.IsMFAResetPass(tk)
+	resultURL := tk.ChallengeResultURL
+	if mfaPass {
+		resultURL, err = h.resetMFAPass(r, res, h.Store, tk, nil)
+		if err != nil {
+			h.renderResetError(w, view, resetInvalid)
+			return
+		}
+	}
 	// A submit cannot skip a bound challenge, including one bound after the
 	// page loaded. The ticket stays unused.
 	if tk.ChallengePassedAt == nil {
@@ -514,7 +559,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	eventUser = &store.User{UserID: tk.UserID}
 	// 3. The new password; the ticket stays usable while it is rejected.
 	pw := r.PostForm.Get("password")
-	form := ui.ResetFormData{Ticket: raw, CSRF: csrf, RedirectURI: tk.ChallengeResultURL}
+	form := ui.ResetFormData{Ticket: raw, CSRF: csrf, RedirectURI: resultURL}
 	if err := h.submitCaptcha(r, res, &view, "reset", tk.ID, attemptID); err != nil {
 		status, key := captchaFailure(err)
 		form.Error = view.L.T(key)
@@ -598,23 +643,48 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 6. Use the ticket. On a legacy connection this comes before the
+	// 6. Use ordinary/legacy tickets. A local MFA ticket is instead consumed
+	// atomically with the password write below. On a legacy connection this comes before the
 	// change_password script (step 7), so two submits of one link run the
 	// script at most once: the second gets the used-link page. A script
 	// that then refuses or fails has spent the link; the form shows why,
 	// and the user asks for a new link.
 	now := h.now()
-	err = h.Store.WithTx(ctx, func(tx store.Store) error {
-		if _, e := orglogin.PasswordResetContext(ctx, tx, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn); e != nil {
-			if errors.Is(e, store.ErrNotFound) || errors.Is(e, orglogin.ErrNotMember) {
+	if !mfaPass || legacy {
+		err = h.Store.WithTx(ctx, func(tx store.Store) error {
+			locked, e := tx.Users().GetForUpdate(ctx, res.Tenant.ID, tk.UserID)
+			if e != nil {
+				return e
+			}
+			fresh, e := tx.PasswordResetTickets().GetByTokenHash(ctx, res.Tenant.ID, secrets.HashToken(raw))
+			if e != nil {
+				return e
+			}
+			if mfaPass && !authz.IsMFAResetPass(fresh) {
 				return errResetUnusable
 			}
+			if authz.IsMFAResetPass(fresh) {
+				resultURL, e = h.resetMFAPass(r, res, tx, fresh, locked)
+				if e != nil {
+					return errResetUnusable
+				}
+				mfaPass = true
+				if !legacy {
+					// Consume with the local password write.
+					return nil
+				}
+			}
+
+			if _, e := orglogin.PasswordResetContext(ctx, tx, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn); e != nil {
+				if errors.Is(e, store.ErrNotFound) || errors.Is(e, orglogin.ErrNotMember) {
+					return errResetUnusable
+				}
+				return e
+			}
+			tk, e = tx.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
 			return e
-		}
-		var e error
-		tk, e = tx.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
-		return e
-	})
+		})
+	}
 	switch {
 	case errors.Is(err, store.ErrAlreadyUsed):
 		h.renderResetError(w, view, resetUsed)
@@ -654,9 +724,32 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	// post-change-password and, on a local connection, set the password.
 	// Either way the user's Version changes, so a grant that checked the
 	// old password and has not minted yet is refused. A storage failure
-	// rolls this step back, but the link is already spent (and on a legacy
-	// connection the password has changed); the user should reset again.
+	// rolls this step back. Local MFA consumption rolls back with it; ordinary
+	// and legacy links were already spent (legacy password may have changed).
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if mfaPass {
+			locked, e := tx.Users().GetForUpdate(ctx, res.Tenant.ID, tk.UserID)
+			if e != nil {
+				return e
+			}
+			fresh, e := tx.PasswordResetTickets().GetByTokenHash(ctx, res.Tenant.ID, secrets.HashToken(raw))
+			if e != nil {
+				return e
+			}
+			if !authz.IsMFAResetPass(fresh) {
+				return errResetUnusable
+			}
+			if _, e = h.resetMFAPass(r, res, tx, fresh, locked); e != nil {
+				return errResetUnusable
+			}
+			if !legacy {
+				tk, e = tx.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
+				if e != nil {
+					return e
+				}
+			}
+		}
+
 		if _, e := orglogin.PasswordResetContext(ctx, tx, res.Tenant.ID, tk.OrganizationID, tk.ClientID, conn); e != nil {
 			return e
 		}
@@ -699,7 +792,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return actions.PasswordChanged(ctx, tx, h.Actions, res, changed, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
 			Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")})
 	})
-	if errors.Is(err, store.ErrNotFound) || errors.Is(err, orglogin.ErrNotMember) {
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, errResetUnusable) {
 		h.renderResetError(w, view, resetInvalid)
 		return
 	} else if err != nil {
@@ -719,13 +812,14 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 10. Clear the form and session cookies.
+	http.SetCookie(w, &http.Cookie{Name: authz.ResetMFAPassCookie, Value: "", Path: "/u/reset-password", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
 	setResetCookie(w, "", -1)
 	if _, err := h.Sessions.End(ctx, w, r, res.Tenant); err != nil {
 		h.log().WarnContext(ctx, "reset: end session", "tenant", res.Tenant.ID, "err", err)
 	}
-	if tk.ChallengeResultURL != "" {
+	if resultURL != "" {
 		w.Header().Set("Cache-Control", "no-store")
-		http.Redirect(w, r, tk.ChallengeResultURL, http.StatusFound)
+		http.Redirect(w, r, resultURL, http.StatusFound)
 		return
 	}
 	ui.RenderResetSuccess(w, view)
@@ -739,4 +833,23 @@ func recordPasswordReset(ctx context.Context, tx store.Store, tenantID, userID s
 	}
 	u.LastPasswordReset, u.UpdatedAt = &at, at
 	return tx.Users().Update(ctx, u)
+}
+
+// resetMFAPass checks only marked MFA tickets; errors always retain that
+// requirement, never downgrade it to an ordinary globally passed ticket.
+func (h *Handlers) resetMFAPass(r *http.Request, res tenant.Resolved, st store.Store, tk *store.PasswordResetTicket, u *store.User) (string, error) {
+	if !authz.IsMFAResetPass(tk) {
+		return tk.ChallengeResultURL, nil
+	}
+	if h.Authz == nil {
+		return "", errResetUnusable
+	}
+	if u == nil {
+		var e error
+		u, e = st.Users().Get(r.Context(), res.Tenant.ID, tk.UserID)
+		if e != nil {
+			return "", e
+		}
+	}
+	return h.Authz.ValidateMFAResetPass(r.Context(), r, res, st, tk, u)
 }

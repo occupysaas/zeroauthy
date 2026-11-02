@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"log/slog"
 	"net/http"
@@ -592,7 +593,7 @@ func TestResetPostChallengeChallengeWithBoundaries(t *testing.T) {
 			case "used":
 				_, _ = f.st.PasswordResetTickets().Consume(ctx, tn.ID, secrets.HashToken(raw), *f.clock)
 			case "cookie":
-				f.b.cookies[resetCookie].Value = "other-page"
+				f.b.cookies["za_reset_mfa_page"].Value = "other-page"
 			case "browser":
 				f.b = f.browser(f.b.host)
 			}
@@ -667,7 +668,247 @@ func TestResetPostChallengeChallengeWithRedirect(t *testing.T) {
 		t.Fatalf("proof %d %s", rec.Code, loc)
 	}
 	tk, _ := f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
-	if tk.ChallengePassedAt == nil || tk.UsedAt != nil || tk.ChallengeResultURL != "https://app.acme.test/done" {
+	if tk.ChallengePassedAt == nil || tk.UsedAt != nil || !strings.HasPrefix(tk.ChallengeResultURL, "za_mfa_pass:") {
 		t.Fatalf("redirect result not preserved: %+v", tk)
+	}
+}
+
+func resetMFAProven(t *testing.T, pathOnly ...bool) (*mfaFixture, string, string) {
+	t.Helper()
+	f := newMFAFixture(t)
+	f.policy(t, "otp")
+	secret := f.enrolled(t, "otp", false)
+	ctx := context.Background()
+	tn, _ := f.st.Tenants().Get(ctx, f.tn.ID)
+	tn.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+	if err := f.st.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	a := actionstest.NewOffline(t, f.st, f.h.Authz.Wrapper)
+	f.h.Actions = a.Engine
+	a.Bind(t, tn.ID, actions.TriggerResetPostChallenge, a.Deploy(t, tn.ID, actions.TriggerResetPostChallenge, "receipt-reset", `exports.onExecutePostChallenge=(event,api)=>{api.authentication.challengeWith({type:'otp'});api.transaction.setResultUrl('https://app.acme.test/done');};`))
+	raw := f.issueTicket(t, aliceLogin, time.Hour)
+	rec := f.b.do(t, "GET", "/u/reset-password?ticket="+raw, nil)
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	if rec.Code != 303 || loc.Path != "/u/mfa" {
+		t.Fatalf("start %d", rec.Code)
+	}
+	if len(pathOnly) > 0 && pathOnly[0] {
+		old := f.srv
+		f.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cookies := r.Cookies()
+			r.Header.Del("Cookie")
+			for _, c := range cookies {
+				stored := f.b.cookies[c.Name]
+				if stored != nil && (stored.Path == "" || r.URL.Path == stored.Path || strings.HasPrefix(r.URL.Path, strings.TrimSuffix(stored.Path, "/")+"/")) {
+					r.AddCookie(c)
+				}
+			}
+			old.ServeHTTP(w, r)
+		})
+	}
+	f.state = loc.Query().Get("state")
+	f.page(t, "/u/mfa")
+	rec = f.post(t, "/u/mfa-otp-challenge", url.Values{"code": {otpAt(secret, *f.clock)}})
+	loc, _ = url.Parse(rec.Header().Get("Location"))
+	if rec.Code != 303 || loc.Path != "/u/reset-password" {
+		t.Fatalf("proof %d", rec.Code)
+	}
+	return f, raw, loc.RequestURI()
+}
+
+func TestResetMFAPassFinalBindings(t *testing.T) {
+	for _, change := range []string{"unchanged", "epoch", "version", "email", "verified", "browser", "page", "missing-cookie", "expired", "purged", "missing-receipt", "tampered-receipt"} {
+		t.Run(change, func(t *testing.T) {
+			f, raw, location := resetMFAProven(t)
+			ctx := context.Background()
+			u, _ := f.st.Users().Get(ctx, f.tn.ID, f.uid)
+			// Render the final form first: mutations must be caught at commit, even
+			// when this password form was valid when it was loaded.
+			page := f.b.do(t, "GET", location, nil)
+			fields := csrfField.FindStringSubmatch(page.Body.String())
+			if fields == nil {
+				t.Fatalf("missing form %d", page.Code)
+			}
+			csrf := fields[1]
+			if strings.Contains(page.Body.String(), "za_mfa_pass:") {
+				t.Fatal("internal pass marker entered form")
+			}
+			switch change {
+			case "epoch":
+				if err := f.st.MFA().BumpRememberEpoch(ctx, f.tn.ID, f.uid); err != nil {
+					t.Fatal(err)
+				}
+			case "version":
+				if _, err := f.st.Users().BumpVersion(ctx, f.tn.ID, f.uid); err != nil {
+					t.Fatal(err)
+				}
+			case "email":
+				u.Email = "changed@example.test"
+				if err := f.st.Users().Update(ctx, u); err != nil {
+					t.Fatal(err)
+				}
+			case "verified":
+				u.EmailVerified = false
+				if err := f.st.Users().Update(ctx, u); err != nil {
+					t.Fatal(err)
+				}
+			case "browser":
+				f.b = f.browser(f.b.host)
+				p := f.b.do(t, "GET", location, nil)
+				if m := csrfField.FindStringSubmatch(p.Body.String()); m != nil {
+					csrf = m[1]
+				}
+			case "page":
+				f.b.cookies[resetCookie].Value = "changed-page"
+				csrf = "changed-page"
+			case "missing-cookie":
+				delete(f.b.cookies, "za_reset_mfa_pass")
+			case "expired", "purged":
+				*f.clock = f.clock.Add(16 * time.Minute)
+				if change == "purged" {
+					if _, err := f.st.AuthTransactions().DeleteExpired(ctx, *f.clock); err != nil {
+						t.Fatal(err)
+					}
+				}
+			case "missing-receipt", "tampered-receipt":
+				tk, _ := f.st.PasswordResetTickets().GetByTokenHash(ctx, f.tn.ID, secrets.HashToken(raw))
+				id := strings.TrimPrefix(tk.ChallengeResultURL, "za_mfa_pass:")
+				receipt, err := f.st.AuthTransactions().Get(ctx, f.tn.ID, id)
+				if err == nil {
+					if err = f.st.AuthTransactions().Delete(ctx, f.tn.ID, id); err != nil {
+						t.Fatal(err)
+					}
+					if change == "tampered-receipt" {
+						receipt.Params["za_mfa_pending"] = "invalid"
+						if err = f.st.AuthTransactions().Create(ctx, receipt); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+			}
+			done := f.b.do(t, "POST", "/u/reset-password", url.Values{"ticket": {raw}, "csrf": {csrf}, "password": {"new password 123"}, "password_confirm": {"new password 123"}})
+			if change == "unchanged" {
+				if done.Code != 302 || done.Header().Get("Location") != "https://app.acme.test/done" {
+					t.Fatalf("unchanged reset %d %s", done.Code, done.Header().Get("Location"))
+				}
+				return
+			}
+			if done.Code == 200 || done.Code == 302 {
+				t.Fatalf("stale %s reset succeeded: %d", change, done.Code)
+			}
+			tk, _ := f.st.PasswordResetTickets().GetByTokenHash(ctx, f.tn.ID, secrets.HashToken(raw))
+			if tk.UsedAt != nil {
+				t.Fatalf("stale %s consumed ticket", change)
+			}
+			current, _ := f.st.Users().Get(ctx, f.tn.ID, f.uid)
+			if len(current.Identities) > 0 && current.Identities[0].PasswordHash != u.Identities[0].PasswordHash {
+				t.Fatal("stale receipt changed password hash")
+			}
+			if current.LastPasswordReset != nil {
+				t.Fatalf("stale %s wrote password reset", change)
+			}
+		})
+	}
+}
+
+func TestResetMFACookiePaths(t *testing.T) {
+	f, raw, location := resetMFAProven(t, true)
+	page := f.b.do(t, "GET", location, nil)
+	done := submit(t, f.b, page, raw, "new password 123")
+	if done.Code != 302 || done.Header().Get("Location") != "https://app.acme.test/done" {
+		t.Fatalf("path-filtered reset %d", done.Code)
+	}
+}
+
+func TestResetMFAPassLegacyBoundary(t *testing.T) {
+	for _, stale := range []bool{false, true} {
+		t.Run(fmt.Sprint(stale), func(t *testing.T) {
+			f, raw, location := resetMFAProven(t)
+			ctx := context.Background()
+			conn := f.conn(t)
+			conn.EnabledDatabaseCustomization = true
+			conn.ImportMode = false
+			conn.CustomScripts = map[string]string{store.ScriptChangePassword: "function(email,password,callback){callback(null,true)}"}
+			if err := f.st.Connections().Update(ctx, conn); err != nil {
+				t.Fatal(err)
+			}
+			called := 0
+			f.scripts.Funcs[store.ScriptChangePassword] = func([]any) (any, error) { called++; return true, nil }
+			page := f.b.do(t, "GET", location, nil)
+			if stale {
+				if err := f.st.MFA().BumpRememberEpoch(ctx, f.tn.ID, f.uid); err != nil {
+					t.Fatal(err)
+				}
+			}
+			done := submit(t, f.b, page, raw, "new password 123")
+			if stale {
+				if done.Code != 400 || called != 0 {
+					t.Fatalf("stale legacy reset status=%d script calls=%d", done.Code, called)
+				}
+				tk, _ := f.st.PasswordResetTickets().GetByTokenHash(ctx, f.tn.ID, secrets.HashToken(raw))
+				if tk.UsedAt != nil {
+					t.Fatal("stale legacy consumed ticket")
+				}
+			} else if done.Code != 302 || called != 1 {
+				t.Fatalf("valid legacy reset status=%d script calls=%d", done.Code, called)
+			}
+		})
+	}
+}
+
+type resetPassRevocationStore struct {
+	store.Store
+	before func() error
+}
+
+func (s *resetPassRevocationStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	if s.before != nil {
+		f := s.before
+		s.before = nil
+		if err := f(); err != nil {
+			return err
+		}
+	}
+	return s.Store.WithTx(ctx, fn)
+}
+func TestResetMFAPassRecheckedAtCommit(t *testing.T) {
+	f, raw, location := resetMFAProven(t)
+	page := f.b.do(t, "GET", location, nil)
+	fired := false
+	f.h.Store = &resetPassRevocationStore{Store: f.st, before: func() error { fired = true; return f.st.MFA().BumpRememberEpoch(context.Background(), f.tn.ID, f.uid) }}
+	done := submit(t, f.b, page, raw, "new password 123")
+	if !fired || done.Code != 400 {
+		t.Fatalf("commit did not reject revocation status=%d fired=%v", done.Code, fired)
+	}
+	tk, _ := f.st.PasswordResetTickets().GetByTokenHash(context.Background(), f.tn.ID, secrets.HashToken(raw))
+	if tk.UsedAt != nil {
+		t.Fatal("commit consumed stale ticket")
+	}
+	u, _ := f.st.Users().Get(context.Background(), f.tn.ID, f.uid)
+	if u.LastPasswordReset != nil {
+		t.Fatal("commit wrote reset state")
+	}
+}
+
+func TestResetMFAPassCookieIngressPrivacy(t *testing.T) {
+	for _, name := range []string{"za_reset_mfa_pass", "za_reset_mfa_page"} {
+		t.Run(name, func(t *testing.T) {
+			f := newMFAFixture(t)
+			value := "reset-pass-cookie-must-be-masked"
+			output := &syncBuffer{}
+			logger := slog.New(logscrub.Handler(slog.NewJSONHandler(output, nil)))
+			handler := tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				f.h.MFAPage(w, r)
+				logger.InfoContext(r.Context(), "rejected pass boundary", "user_agent", r.UserAgent())
+			}))
+			req := httptest.NewRequest("GET", "https://acme.example.test/u/mfa?state=invalid", nil)
+			req.AddCookie(&http.Cookie{Name: name, Value: value})
+			req.Header.Set("User-Agent", "client "+value)
+			handler.ServeHTTP(httptest.NewRecorder(), req)
+			if strings.Contains(output.String(), value) || !strings.Contains(output.String(), "client ") {
+				t.Fatalf("pass ingress leaked %s", output.String())
+			}
+		})
 	}
 }

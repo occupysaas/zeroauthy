@@ -377,6 +377,14 @@ func TestEngineFailClosed(t *testing.T) {
 	for name, body := range cases {
 		i++
 		t.Run(name, func(t *testing.T) {
+			h := h
+			if name == "timeout" {
+				// Killing this tenant process must not race an unrelated
+				// subsequent case selected by the map's iteration order.
+				h = newHarness(t)
+				h.eng.FlowBudget = 2 * time.Second
+			}
+
 			before := h.user("t1")
 			a := h.action("t1", trigLogin, fmt.Sprintf("fail%d", i), `exports.onExecutePostLogin = async (event, api) => {
 			  api.user.setAppMetadata("partial", true);

@@ -198,7 +198,7 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 		if pending.ResetTicketHash == "" || u.Version != pending.ResetUserVersion || u.Email != pending.ResetEmail || u.EmailVerified != pending.ResetEmailVerified {
 			return nil, invalid
 		}
-		page, e := r.Cookie("za_reset")
+		page, e := r.Cookie("za_reset_mfa_page")
 		bearer, b := r.Cookie("za_reset_mfa")
 		if e != nil || b != nil || secrets.HashToken(page.Value) != pending.ResetPageHash || secrets.HashToken(bearer.Value) != pending.ResetTicketHash {
 			return nil, invalid
@@ -357,6 +357,7 @@ func (h *Handlers) CompleteMFAReset(w http.ResponseWriter, r *http.Request, res 
 	if err != nil || pending.Requirement.Reason != "reset" {
 		return store.ErrInvalid
 	}
+	browser := secrets.RandomString(43)
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		// Lock before every transactional authority read; this also avoids a
 		// stale repeatable-read snapshot after a concurrent password change.
@@ -370,13 +371,14 @@ func (h *Handlers) CompleteMFAReset(w http.ResponseWriter, r *http.Request, res 
 			return e
 		}
 		pending = current
-		if e = tx.PasswordResetTickets().MarkChallengePassed(r.Context(), res.Tenant.ID, pending.ResetTicketHash, h.now(), pending.ResetResultURL); e != nil {
+		if e = h.storeMFAResetPass(r.Context(), tx, res, txn, pending, browser); e != nil {
 			return e
 		}
 		return tx.AuthTransactions().Delete(r.Context(), res.Tenant.ID, txn.ID)
 	})
 	if err == nil {
 		h.clearTxnCookie(w, txn)
+		http.SetCookie(w, &http.Cookie{Name: ResetMFAPassCookie, Value: browser, Path: "/u/reset-password", MaxAge: int(txn.ExpiresAt.Sub(h.now()).Seconds()), HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
 	}
 	return err
 }
