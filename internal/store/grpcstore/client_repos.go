@@ -1293,6 +1293,14 @@ func (r clientHostedLogins) Put(ctx context.Context, c *store.HostedLoginConfig,
 	return do("HostedLoginsPut", result, err)
 }
 
-func (clientSessions) MarkMFA(context.Context, string, string, time.Time) error {
-	return store.ErrMFAUnavailable
+func (a clientSessions) MarkMFA(ctx context.Context, tid, id string, at time.Time) error {
+	if err := a.c.CheckMFASupport(ctx); err != nil {
+		return err
+	}
+	r, err := a.c.rpc.SessionsMarkMFA(ctx, &storev1.TouchRequest{TxId: a.c.txID, TenantId: tid, Id: id, At: tsToPB(at)})
+	err = capabilityError(err, store.ErrMFAUnavailable)
+	if errors.Is(err, store.ErrMFAUnavailable) {
+		a.c.mfaCap.v.Store(2)
+	}
+	return do("SessionsMarkMFA", r, err)
 }

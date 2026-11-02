@@ -10,6 +10,7 @@ import (
 )
 
 type (
+	MFASupporter                 = store.MFASupporter
 	OrganizationsIISupporter     = store.OrganizationsIISupporter
 	OrganizationsII              = store.OrganizationsII
 	OrganizationQuery            = store.OrganizationQuery

@@ -32,6 +32,9 @@ import (
 // Exercise a real server and transport, selectively making Events methods look
 // like an older or restarting plugin without replacing any earlier feature.
 type eventsFaults struct {
+	mfaMissing    bool
+	mfaProbe      atomic.Int32
+	mfaOperation  atomic.Int32
 	appendCode    atomic.Int32
 	versionZero   atomic.Bool
 	missing       bool
@@ -45,6 +48,19 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 	lis := bufconn.Listen(1 << 20)
 	gs := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		name := strings.TrimPrefix(info.FullMethod, "/zeroauthy.store.v1.StoreService/")
+		if name == "MFACapabilities" {
+			if faults.mfaMissing {
+				return nil, status.Error(codes.Unimplemented, "pre-MFA plugin")
+			}
+			if code := codes.Code(faults.mfaProbe.Swap(0)); code != codes.OK {
+				return nil, status.Error(code, "probe failure")
+			}
+		}
+		if name == "MFAGetGuardian" {
+			if code := codes.Code(faults.mfaOperation.Swap(0)); code != codes.OK {
+				return nil, status.Error(code, "operation failure")
+			}
+		}
 		if name == "EventsCapabilities" {
 			if faults.versionZero.Load() {
 				return &storev1.EventsCapabilitiesResult{}, nil

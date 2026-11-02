@@ -325,7 +325,7 @@ func TestConnectionEmptySealedNormalizesToNil(t *testing.T) {
 
 func TestUserRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.User{
-		TenantID: "ten", UserID: "auth0|u1", Email: "a@example.test", EmailVerified: true,
+		RememberBrowserEpoch: 3, TenantID: "ten", UserID: "auth0|u1", Email: "a@example.test", EmailVerified: true,
 		Username: "alice", Name: "Alice", Nickname: "al", Picture: "https://p.example/a.png",
 		GivenName: "A", FamilyName: "L",
 		// JSON numbers decode as float64, as in the SQL drivers (D-0020).
@@ -344,7 +344,7 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
-		Origin:   "https://login.example",
+		MFAAt: nanoTime, Origin: "https://login.example",
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,

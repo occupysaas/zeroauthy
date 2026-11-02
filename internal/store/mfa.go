@@ -52,6 +52,11 @@ type MFABrowser struct {
 	ExpiresAt                    time.Time
 }
 
+type MFASupporter interface {
+	CheckMFASupport(context.Context) error
+	MFASupported() bool
+}
+
 type MFA interface {
 	GetGuardian(ctx context.Context, tid string) (*GuardianSettings, error)  // defaults when none stored; ErrNotFound if tenant missing
 	PutGuardian(ctx context.Context, s *GuardianSettings, version int) error // ErrConflict on version mismatch; ErrNotFound if tenant missing

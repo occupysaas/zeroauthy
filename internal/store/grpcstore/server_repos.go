@@ -1290,3 +1290,10 @@ func (s *Server) AuthTransactionsCompareAndSwapHosted(ctx context.Context, r *st
 		return st.AuthTransactions().CompareAndSwapHosted(ctx, r.TenantId, r.Id, r.ExpectedRevision, next, tsFromPB(r.Now))
 	}), nil
 }
+
+func (s *Server) SessionsMarkMFA(ctx context.Context, r *storev1.TouchRequest) (*storev1.Result, error) {
+	if err := checkTS(r.At); err != nil {
+		return &storev1.Result{Error: errToPB(err)}, nil
+	}
+	return exec(s, r.TxId, func(st store.Store) error { return st.Sessions().MarkMFA(ctx, r.TenantId, r.Id, tsFromPB(r.At)) }), nil
+}

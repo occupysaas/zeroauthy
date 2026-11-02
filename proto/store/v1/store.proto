@@ -60,6 +60,34 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // `error` field; gRPC status codes mean transport or plugin failure.
 service StoreService {
   // Events v1 is negotiated independently of Logs, RBAC and Organizations.
+  rpc MFACapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc MFAGetGuardian(MFARequest) returns (MFAResponse);
+  rpc MFAPutGuardian(MFARequest) returns (MFAResponse);
+  rpc MFACreateAuthenticator(MFARequest) returns (MFAResponse);
+  rpc MFAGetAuthenticator(MFARequest) returns (MFAResponse);
+  rpc MFAListAuthenticators(MFARequest) returns (MFAResponse);
+  rpc MFAUpdateAuthenticator(MFARequest) returns (MFAResponse);
+  rpc MFADeleteAuthenticator(MFARequest) returns (MFAResponse);
+  rpc MFADeleteUserAuthenticators(MFARequest) returns (MFAResponse);
+  rpc MFAAcceptTOTPStep(MFARequest) returns (MFAResponse);
+  rpc MFAReplaceRecoveryCode(MFARequest) returns (MFAResponse);
+  rpc MFAAcceptSignCount(MFARequest) returns (MFAResponse);
+  rpc MFACreateMFAToken(MFARequest) returns (MFAResponse);
+  rpc MFAConsumeMFAToken(MFARequest) returns (MFAResponse);
+  rpc MFAPeekMFAToken(MFARequest) returns (MFAResponse);
+  rpc MFACreateChallenge(MFARequest) returns (MFAResponse);
+  rpc MFAGetChallenge(MFARequest) returns (MFAResponse);
+  rpc MFAFailChallenge(MFARequest) returns (MFAResponse);
+  rpc MFAConsumeChallenge(MFARequest) returns (MFAResponse);
+  rpc MFACreateTicket(MFARequest) returns (MFAResponse);
+  rpc MFAConsumeTicket(MFARequest) returns (MFAResponse);
+  rpc MFAPutBrowser(MFARequest) returns (MFAResponse);
+  rpc MFAGetBrowser(MFARequest) returns (MFAResponse);
+  rpc MFABumpRememberEpoch(MFARequest) returns (MFAResponse);
+  rpc MFAPurgeMFA(MFARequest) returns (MFAResponse);
+  rpc MFADeleteUserMFA(MFARequest) returns (MFAResponse);
+  rpc MFADeleteTenantMFA(MFARequest) returns (MFAResponse);
+  rpc SessionsMarkMFA(TouchRequest) returns (Result);
   rpc EventsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc AppendEvents(EventsRequest) returns (EventsResponse);
   rpc GetEvent(EventsRequest) returns (EventsResponse);
@@ -457,6 +485,7 @@ message Error {
     KIND_PRECONDITION = 11; // store.ErrPrecondition
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
     KIND_ORGANIZATIONS_II_UNAVAILABLE = 13; // store.ErrOrganizationsIIUnavailable
+    KIND_MFA_UNAVAILABLE = 16;
     KIND_EVENTS_UNAVAILABLE = 15; // store.ErrEventsUnavailable
     KIND_LOGS_UNAVAILABLE = 14; // store.ErrLogsUnavailable
     KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
@@ -769,6 +798,7 @@ message User {
   optional bytes app_metadata_json = 18; // absent = nil map
   string phone_number = 19; bool phone_verified = 20; string last_ip = 21;
   int64 version = 22;
+  int64 remember_browser_epoch = 24;
   google.protobuf.Timestamp last_password_reset = 23; // absent = nil
 }
 
@@ -781,6 +811,7 @@ message LoginSession {
   string initial_ip = 13; string initial_user_agent = 14; string last_ip = 15; string last_user_agent = 16;
   string cookie_mode = 17; // creation-time persistent/non-persistent choice
   string origin = 18;
+  google.protobuf.Timestamp mfa_at = 19;
 }
 
 message AuthTransaction {
@@ -1479,3 +1510,7 @@ message EventsResponse {
  int64 seq = 4; int64 count = 5; EventStreamMsg stream = 6; repeated EventStreamMsg streams = 7;
  string next = 8; EventDeliveryMsg delivery = 9; repeated EventDeliveryMsg deliveries = 10;
 }
+
+// MFA v1 payloads are JSON representations of the public store types.
+message MFARequest { string tx_id = 1; bytes args_json = 2; }
+message MFAResponse { Error error = 1; bytes value_json = 2; }

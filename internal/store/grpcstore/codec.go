@@ -123,6 +123,8 @@ func errToPB(err error) *storev1.Error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, store.ErrMFAUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_MFA_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrEventsUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_EVENTS_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrLogsUnavailable):
@@ -165,6 +167,8 @@ func errFromPB(e *storev1.Error) error {
 		return nil
 	}
 	switch e.Kind {
+	case storev1.Error_KIND_MFA_UNAVAILABLE:
+		return store.ErrMFAUnavailable
 	case storev1.Error_KIND_EVENTS_UNAVAILABLE:
 		return store.ErrEventsUnavailable
 	case storev1.Error_KIND_LOGS_UNAVAILABLE:
@@ -762,7 +766,7 @@ func userToPB(u *store.User) (*storev1.User, error) {
 		return nil, nil
 	}
 	pb := &storev1.User{
-		TenantId: u.TenantID, UserId: u.UserID, Email: u.Email, EmailVerified: u.EmailVerified,
+		RememberBrowserEpoch: int64(u.RememberBrowserEpoch), TenantId: u.TenantID, UserId: u.UserID, Email: u.Email, EmailVerified: u.EmailVerified,
 		Username: u.Username, Name: u.Name, Nickname: u.Nickname, Picture: u.Picture,
 		GivenName: u.GivenName, FamilyName: u.FamilyName, Blocked: u.Blocked,
 		LastPasswordReset: optTSToPB(u.LastPasswordReset), LastLogin: optTSToPB(u.LastLogin), LoginsCount: int64(u.LoginsCount),
@@ -808,7 +812,7 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 		return nil, err
 	}
 	u := &store.User{
-		TenantID: pb.TenantId, UserID: pb.UserId, Email: pb.Email, EmailVerified: pb.EmailVerified,
+		RememberBrowserEpoch: int(pb.RememberBrowserEpoch), TenantID: pb.TenantId, UserID: pb.UserId, Email: pb.Email, EmailVerified: pb.EmailVerified,
 		Username: pb.Username, Name: pb.Name, Nickname: pb.Nickname, Picture: pb.Picture,
 		GivenName: pb.GivenName, FamilyName: pb.FamilyName, Blocked: pb.Blocked,
 		LastPasswordReset: optTSFromPB(pb.LastPasswordReset), LastLogin: optTSFromPB(pb.LastLogin), LoginsCount: int(pb.LoginsCount),
@@ -851,6 +855,7 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 		return nil, nil
 	}
 	return &storev1.LoginSession{
+		MfaAt:      tsToPB(s.MFAAt),
 		Origin:     s.Origin,
 		CookieMode: s.CookieMode,
 		TenantId:   s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
@@ -866,10 +871,11 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 	if pb == nil {
 		return nil, nil
 	}
-	if err := checkTS(pb.AuthenticatedAt, pb.ExpiresAt, pb.IdleExpiresAt, pb.CreatedAt, pb.UpdatedAt, pb.LastInteractedAt); err != nil {
+	if err := checkTS(pb.MfaAt, pb.AuthenticatedAt, pb.ExpiresAt, pb.IdleExpiresAt, pb.CreatedAt, pb.UpdatedAt, pb.LastInteractedAt); err != nil {
 		return nil, err
 	}
 	return &store.LoginSession{
+		MFAAt:      tsFromPB(pb.MfaAt),
 		Origin:     pb.Origin,
 		CookieMode: pb.CookieMode,
 		TenantID:   pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,

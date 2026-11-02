@@ -20,6 +20,7 @@ type Client struct {
 	closer    func() error
 	txID      string // empty outside a transaction
 	eventsCap *orgCapState
+	mfaCap    *orgCapState
 	logsCap   *orgCapState
 	orgIICap  *orgCapState
 	orgCap    *orgCapState // Organizations capability cache, shared with transactions
@@ -29,7 +30,7 @@ var _ store.Store = (*Client)(nil)
 
 // NewClient returns a store over conn. Close calls closer, which may be nil.
 func NewClient(conn grpc.ClientConnInterface, closer func() error) *Client {
-	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer, orgCap: &orgCapState{}, orgIICap: &orgCapState{}, logsCap: &orgCapState{}, eventsCap: &orgCapState{}}
+	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer, orgCap: &orgCapState{}, orgIICap: &orgCapState{}, logsCap: &orgCapState{}, eventsCap: &orgCapState{}, mfaCap: &orgCapState{}}
 }
 
 // rpcErr wraps a transport failure so it never matches a store sentinel.
@@ -77,7 +78,7 @@ func (c *Client) WithTx(ctx context.Context, fn func(store.Store) error) (err er
 	if e := errFromPB(r.GetError()); e != nil {
 		return e
 	}
-	tx := &Client{rpc: c.rpc, txID: r.TxId, orgCap: c.orgCap, orgIICap: c.orgIICap, logsCap: c.logsCap, eventsCap: c.eventsCap}
+	tx := &Client{rpc: c.rpc, txID: r.TxId, orgCap: c.orgCap, orgIICap: c.orgIICap, logsCap: c.logsCap, eventsCap: c.eventsCap, mfaCap: c.mfaCap}
 	end := context.WithoutCancel(ctx)
 	committed, commitFailed := false, false
 	defer func() {
