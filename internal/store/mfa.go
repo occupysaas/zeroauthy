@@ -53,18 +53,23 @@ type MFABrowser struct {
 }
 
 type MFA interface {
-	GetGuardian(ctx context.Context, tid string) (*GuardianSettings, error)  // defaults when none stored
-	PutGuardian(ctx context.Context, s *GuardianSettings, version int) error // ErrConflict on version mismatch
+	GetGuardian(ctx context.Context, tid string) (*GuardianSettings, error)  // defaults when none stored; ErrNotFound if tenant missing
+	PutGuardian(ctx context.Context, s *GuardianSettings, version int) error // ErrConflict on version mismatch; ErrNotFound if tenant missing
 
-	CreateAuthenticator(ctx context.Context, a *Authenticator) error // ErrConflict on duplicate WebAuthn credential ID in tenant
+	CreateAuthenticator(ctx context.Context, a *Authenticator) error // ErrConflict on duplicate WebAuthn credential ID in tenant or another recovery-code authenticator for the user
 	GetAuthenticator(ctx context.Context, tid, uid, id string) (*Authenticator, error)
 	ListAuthenticators(ctx context.Context, tid, uid string) ([]Authenticator, error)
 	UpdateAuthenticator(ctx context.Context, a *Authenticator) error // name, preferred, confirmed
 	DeleteAuthenticator(ctx context.Context, tid, uid, id string) error
-	DeleteUserAuthenticators(ctx context.Context, tid, uid string, types []string) error            // nil = all
-	AcceptTOTPStep(ctx context.Context, tid, uid, id string, step int64, at time.Time) error        // ErrPrecondition unless step > LastStep
-	ReplaceRecoveryCode(ctx context.Context, tid, uid, oldHash, newHash string, at time.Time) error // ErrPrecondition unless current hash == oldHash ("" = none yet)
-	AcceptSignCount(ctx context.Context, tid, uid, id string, count uint32, at time.Time) error     // ErrPrecondition unless increasing (both zero allowed)
+	DeleteUserAuthenticators(ctx context.Context, tid, uid string, types []string) error     // nil = all
+	AcceptTOTPStep(ctx context.Context, tid, uid, id string, step int64, at time.Time) error // ErrPrecondition unless step > LastStep
+	// ReplaceRecoveryCode atomically replaces the existing recovery hash. An empty oldHash
+	// means no recovery authenticator exists yet; in that case create a confirmed record
+	// with ID recovery-code|dev_ plus 20 random alphanumerics and CreatedAt=at.
+	// ErrPrecondition means the old hash does not match or the presence expectation failed;
+	// ErrNotFound means the user is missing; ErrInvalid means newHash is empty.
+	ReplaceRecoveryCode(ctx context.Context, tid, uid, oldHash, newHash string, at time.Time) error
+	AcceptSignCount(ctx context.Context, tid, uid, id string, count uint32, at time.Time) error // ErrPrecondition unless increasing (both zero allowed)
 
 	CreateMFAToken(ctx context.Context, t *MFAToken) error
 	ConsumeMFAToken(ctx context.Context, tid, hash, clientID string, now time.Time) (*MFAToken, error) // ErrNotFound if missing, expired, consumed or other client

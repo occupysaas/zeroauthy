@@ -3,6 +3,8 @@ package storetest
 import (
 	"context"
 	"errors"
+	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
@@ -42,13 +44,54 @@ func MFA(t *testing.T, factory Factory) {
 		s := setup(t)
 		g, e := s.MFA().GetGuardian(ctx, "a")
 		mustNoErr(t, e)
-		if len(g.Factors) != 8 || len(g.Policies) != 0 {
+		if !reflect.DeepEqual(g.Factors, map[string]bool{"push-notification": false, "sms": false, "email": false, "duo": false, "otp": false, "webauthn-roaming": false, "webauthn-platform": false, "recovery-code": false}) || g.Policies == nil || len(g.Policies) != 0 {
 			t.Fatalf("defaults: %+v", g)
 		}
 		for k, v := range g.Factors {
 			if v {
 				t.Errorf("%s enabled", k)
 			}
+		}
+	})
+	t.Run("MFAGuardianMissingTenant", func(t *testing.T) {
+		s := setup(t)
+		_, err := s.MFA().GetGuardian(ctx, "missing")
+		mustErrIs(t, err, store.ErrNotFound)
+		mustErrIs(t, s.MFA().PutGuardian(ctx, &store.GuardianSettings{TenantID: "missing"}, 0), store.ErrNotFound)
+		mustNoErr(t, s.Tenants().Delete(ctx, "a"))
+		_, err = s.MFA().GetGuardian(ctx, "a")
+		mustErrIs(t, err, store.ErrNotFound)
+		mustErrIs(t, s.MFA().PutGuardian(ctx, &store.GuardianSettings{TenantID: "a"}, 0), store.ErrNotFound)
+	})
+	t.Run("MFARecoveryUnique", func(t *testing.T) {
+		s := setup(t)
+		a := &store.Authenticator{TenantID: "a", UserID: "u", ID: "first", Type: "recovery-code", CodeHash: "old"}
+		mustNoErr(t, s.MFA().CreateAuthenticator(ctx, a))
+		a.ID = "second"
+		a.Confirmed = true
+		mustErrIs(t, s.MFA().CreateAuthenticator(ctx, a), store.ErrConflict)
+		a.TenantID = "b"
+		mustNoErr(t, s.MFA().CreateAuthenticator(ctx, a))
+		mustNoErr(t, s.MFA().ReplaceRecoveryCode(ctx, "a", "u", "old", "new", now))
+		mustErrIs(t, s.MFA().ReplaceRecoveryCode(ctx, "a", "u", "old", "again", now), store.ErrPrecondition)
+		mustErrIs(t, s.MFA().ReplaceRecoveryCode(ctx, "a", "u", "new", "", now), store.ErrInvalid)
+	})
+	t.Run("MFARecoveryInitializeRace", func(t *testing.T) {
+		s := setup(t)
+		mustErrIs(t, s.MFA().ReplaceRecoveryCode(ctx, "a", "missing", "", "new", now), store.ErrNotFound)
+		mustErrIs(t, s.MFA().ReplaceRecoveryCode(ctx, "a", "u", "old", "new", now), store.ErrPrecondition)
+		mustErrIs(t, s.MFA().ReplaceRecoveryCode(ctx, "a", "u", "", "", now), store.ErrInvalid)
+		hashes := []string{"first", "second"}
+		errs := parallel(2, func(i int) error { return s.MFA().ReplaceRecoveryCode(ctx, "a", "u", "", hashes[i], now) })
+		oneSuccess(t, errs)
+		list, err := s.MFA().ListAuthenticators(ctx, "a", "u")
+		mustNoErr(t, err)
+		if len(list) != 1 {
+			t.Fatalf("authenticators=%+v", list)
+		}
+		a := list[0]
+		if a.Type != "recovery-code" || !a.Confirmed || !a.CreatedAt.Equal(now) || !regexp.MustCompile(`^recovery-code\|dev_[A-Za-z0-9]{20}$`).MatchString(a.ID) || (a.CodeHash != "first" && a.CodeHash != "second") {
+			t.Fatalf("initial record=%+v", a)
 		}
 	})
 	t.Run("MFAGuardianVersionConflict", func(t *testing.T) {
@@ -182,16 +225,56 @@ func MFA(t *testing.T, factory Factory) {
 	})
 	t.Run("MFADeleteUserAndTenant", func(t *testing.T) {
 		s := setup(t)
-		u := newUser("a", "u", "u@example.com", "u")
-		mustNoErr(t, s.Users().Create(ctx, u))
-		mustNoErr(t, s.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: "a", UserID: u.UserID, ID: "id"}))
-		mustNoErr(t, s.Users().Delete(ctx, "a", u.UserID))
-		_, e := s.MFA().GetAuthenticator(ctx, "a", u.UserID, "id")
-		mustErrIs(t, e, store.ErrNotFound)
-		mustNoErr(t, s.MFA().PutBrowser(ctx, &store.MFABrowser{TenantID: "a", Hash: "h", UserID: "u", ExpiresAt: now.Add(time.Minute)}))
+		seed := func(tid, uid string) {
+			mustNoErr(t, s.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: tid, UserID: uid, ID: "id", Type: "totp"}))
+			mustNoErr(t, s.MFA().CreateMFAToken(ctx, &store.MFAToken{TenantID: tid, UserID: uid, Hash: "token", ExpiresAt: now.Add(time.Hour)}))
+			mustNoErr(t, s.MFA().CreateChallenge(ctx, &store.MFAChallenge{TenantID: tid, UserID: uid, ID: "challenge", AuthenticatorID: "id", ExpiresAt: now.Add(time.Hour)}))
+			mustNoErr(t, s.MFA().CreateTicket(ctx, &store.EnrollmentTicket{TenantID: tid, UserID: uid, Hash: "ticket", ExpiresAt: now.Add(time.Hour)}))
+			mustNoErr(t, s.MFA().PutBrowser(ctx, &store.MFABrowser{TenantID: tid, UserID: uid, Hash: "browser", ExpiresAt: now.Add(time.Hour)}))
+		}
+		probe := func(tid, uid string, exists bool) {
+			want := error(nil)
+			if !exists {
+				want = store.ErrNotFound
+			}
+			_, err := s.MFA().GetAuthenticator(ctx, tid, uid, "id")
+			mustErrIs(t, err, want)
+			_, err = s.MFA().PeekMFAToken(ctx, tid, "token", now)
+			mustErrIs(t, err, want)
+			_, err = s.MFA().GetChallenge(ctx, tid, "challenge", now)
+			mustErrIs(t, err, want)
+			_, err = s.MFA().ConsumeTicket(ctx, tid, "ticket", now)
+			mustErrIs(t, err, want)
+			_, err = s.MFA().GetBrowser(ctx, tid, "browser", now)
+			mustErrIs(t, err, want)
+		}
+		for _, tid := range []string{"a", "b"} {
+			g, err := s.MFA().GetGuardian(ctx, tid)
+			mustNoErr(t, err)
+			g.Factors["otp"] = true
+			mustNoErr(t, s.MFA().PutGuardian(ctx, g, 0))
+		}
+		mustNoErr(t, s.Users().Create(ctx, &store.User{TenantID: "a", UserID: "gone"}))
+		seed("a", "gone")
+		seed("b", "u")
+		mustNoErr(t, s.Users().Delete(ctx, "a", "gone"))
+		probe("a", "gone", false)
+		g, err := s.MFA().GetGuardian(ctx, "a")
+		mustNoErr(t, err)
+		if !g.Factors["otp"] {
+			t.Fatal("user deletion removed guardian")
+		}
+		seed("a", "u")
 		mustNoErr(t, s.Tenants().Delete(ctx, "a"))
-		_, e = s.MFA().GetBrowser(ctx, "a", "h", now)
-		mustErrIs(t, e, store.ErrNotFound)
+		probe("a", "u", false)
+		_, err = s.MFA().GetGuardian(ctx, "a")
+		mustErrIs(t, err, store.ErrNotFound)
+		probe("b", "u", true)
+		g, err = s.MFA().GetGuardian(ctx, "b")
+		mustNoErr(t, err)
+		if !g.Factors["otp"] {
+			t.Fatal("other tenant changed")
+		}
 	})
 	t.Run("SessionMarkMFA", func(t *testing.T) {
 		s := setup(t)

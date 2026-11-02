@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/mfarules"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -49,6 +50,9 @@ func cloneChallenge(v *store.MFAChallenge) *store.MFAChallenge {
 func (r mfa) GetGuardian(_ context.Context, tid string) (*store.GuardianSettings, error) {
 	r.s.readLock()
 	defer r.s.readUnlock()
+	if r.s.tenants[tid] == nil {
+		return nil, store.ErrNotFound
+	}
 	if v := r.s.guardian[tid]; v != nil {
 		return cloneGuardian(v), nil
 	}
@@ -61,6 +65,9 @@ func (r mfa) GetGuardian(_ context.Context, tid string) (*store.GuardianSettings
 func (r mfa) PutGuardian(_ context.Context, v *store.GuardianSettings, version int) error {
 	r.s.lock()
 	defer r.s.unlock()
+	if r.s.tenants[v.TenantID] == nil {
+		return store.ErrNotFound
+	}
 	old := r.s.guardian[v.TenantID]
 	if old == nil && version != 0 || old != nil && old.Version != version {
 		return store.ErrConflict
@@ -81,6 +88,9 @@ func (r mfa) CreateAuthenticator(_ context.Context, a *store.Authenticator) erro
 		return store.ErrConflict
 	}
 	for _, x := range r.s.authenticators {
+		if x.TenantID == a.TenantID && x.UserID == a.UserID && x.Type == "recovery-code" && a.Type == "recovery-code" {
+			return store.ErrConflict
+		}
 		if x.TenantID == a.TenantID && len(a.CredentialID) > 0 && bytes.Equal(a.CredentialID, x.CredentialID) {
 			return store.ErrConflict
 		}
@@ -157,9 +167,15 @@ func (r mfa) AcceptTOTPStep(_ context.Context, tid, uid, id string, step int64, 
 func (r mfa) ReplaceRecoveryCode(_ context.Context, tid, uid, oldHash, newHash string, at time.Time) error {
 	r.s.lock()
 	defer r.s.unlock()
+	if newHash == "" {
+		return store.ErrInvalid
+	}
+	if r.s.users[key{tid, uid}] == nil {
+		return store.ErrNotFound
+	}
 	for _, a := range r.s.authenticators {
 		if a.TenantID == tid && a.UserID == uid && a.Type == "recovery-code" {
-			if a.CodeHash != oldHash {
+			if oldHash == "" || a.CodeHash != oldHash {
 				return store.ErrPrecondition
 			}
 			a.CodeHash = newHash
@@ -167,8 +183,20 @@ func (r mfa) ReplaceRecoveryCode(_ context.Context, tid, uid, oldHash, newHash s
 			return nil
 		}
 	}
-	return store.ErrNotFound
+	if oldHash != "" {
+		return store.ErrPrecondition
+	}
+	for {
+		id := "recovery-code|dev_" + secrets.RandomString(20)
+		k := key{tid, id}
+		if r.s.authenticators[k] != nil {
+			continue
+		}
+		r.s.authenticators[k] = &store.Authenticator{TenantID: tid, UserID: uid, ID: id, Type: "recovery-code", Confirmed: true, CodeHash: newHash, CreatedAt: at}
+		return nil
+	}
 }
+
 func (r mfa) AcceptSignCount(_ context.Context, tid, uid, id string, count uint32, at time.Time) error {
 	r.s.lock()
 	defer r.s.unlock()

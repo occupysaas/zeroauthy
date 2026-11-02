@@ -60,3 +60,9 @@ and generated package compilation are recorded in the task report.
 - Focused memory MFA command exited 0 (`/tmp/plan33-task3-focused-final.log`); bridge test exited 0 (`/tmp/plan33-task3-bridge-green.log`). No full or SQL/gRPC MFA suite was run; those drivers remain unavailable until Tasks 4–5.
 - Task 1's generated auth interface required four temporary server adapters; they return 501 `mfa_unavailable`, pending Task 9. Initial internal compile failed on those missing methods; final compile outcome is recorded in the task report.
 - Final `GOTOOLCHAIN=go1.26.7 go test ./internal/... -run '^$'` exited 0 (`/tmp/plan33-task3-compile-final.log`).
+
+### Task 3 review fix round 1
+
+- Guardian get/put now return `ErrNotFound` for missing tenants. Recovery authenticators are unique per tenant and user; atomic empty-old initialization creates a confirmed recovery record with the agreed ID and timestamp. Empty new hashes return `ErrInvalid` and stale or absent non-empty old hashes return `ErrPrecondition`.
+- Three regressions failed before the fixes (exit 1, `/tmp/plan33-task3-review-red.log`) and passed after (exit 0, `/tmp/plan33-task3-review-green.log`). Factor names, non-nil policies, all MFA record cascades across tenants, and transaction rollback of mutable state were also strengthened.
+- `GOTOOLCHAIN=go1.26.7 go test ./internal/store/memory -run 'MFA|SessionMarkMFA' -count=1` exited 0 (`/tmp/plan33-task3-review-focused-final.log`). `GOTOOLCHAIN=go1.26.7 go test ./internal/... -run '^$'` exited 0 (`/tmp/plan33-task3-review-compile.log`). No full suite run; SQL and gRPC conformance remain deferred.
