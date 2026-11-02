@@ -315,6 +315,8 @@ My Organization API/self-service organization administration Plan 42.
 
 ### Plan 33 — MFA I (full design)
 
+**Designed 2026-11-02:** [spec](2026-11-02-zeroauthy-mfa-design.md), [plan](../plans/2026-11-02-zeroauthy-plan-33-mfa.md) (16 tasks, D-0059, migration 0033). The spec proposes splitting passkeys as a first factor out to Plan 33b, which awaits maintainer confirmation.
+
 **Endpoints:** `/api/v2/guardian/factors` (`GET`, `PUT /{name}`), `/guardian/policies`, `/guardian/enrollments/{id}`, `POST /guardian/enrollments/ticket`, `/guardian/factors/sms|phone/...` templates and providers stored for Plan 34; user endpoints `/users/{id}/authentication-methods` (CRUD), `/users/{id}/enrollments`, `DELETE /users/{id}/multifactor/{provider}`, `POST /users/{id}/recovery-code-regeneration`, `POST /users/{id}/multifactor/actions/invalidate-remember-browser`.
 
 **Runtime:** factors `otp`, `email`, `recovery-code`, `webauthn-roaming`, `webauthn-platform` (passkeys as a second factor); policies (`all-applications`, `confidence-score`, never); MFA prompts on hosted login with remember-browser; the Authentication API `/mfa/associate`, `/mfa/challenge`, `/mfa/authenticators` and the `mfa-otp`, `mfa-oob`, `mfa-recovery-code` grants with `mfa_required` (the Plan 5 follow-up); `api.multifactor.enable` in post-login Actions; the MFA email templates from Plan 21. `push-notification` (needs Auth0's Guardian app) and `duo` stay stored, not enforced (§5).
@@ -327,11 +329,11 @@ My Organization API/self-service organization administration Plan 42.
 
 **Endpoints:** `/api/v2/connections` with strategies `email` and `sms` and their options (templates, OTP length and lifetime, brute force); `/api/v2/branding/phone/providers` (`twilio`, `custom`) and `/branding/phone/templates` (CRUD, test); `/guardian/factors/sms|phone` providers and templates go live.
 
-**Provider follow-up:** Ship `custom-phone-provider` with tested Action examples for Amazon SNS, Azure Communication Services and other providers alongside built-in Twilio. Native non-Twilio providers would be a scope deviation requiring maintainer agreement.
+**Provider ruling (maintainer, 2026-11-02):** behaviour should match Auth0, but zeroauthy is not tied to Twilio. Ship built-in Twilio **and native** non-Twilio SMS providers. Candidates are Amazon SNS, Vonage and Azure Communication Services; Task 1 sets the final list. Extra provider names are a marked extension, and Auth0's documented values keep their meaning. `custom-phone-provider` Actions remain for anything else. MFA and password-reset messages use the same providers. Email already supports multiple providers (Plan 21).
 
 **Runtime:** `/passwordless/start` and the `passwordless/otp` grant; code and magic-link login on hosted pages; SMS through Twilio or the `send-phone-message`/`custom-phone-provider` Actions; MFA by SMS and voice; phone-based password reset (the management design follow-up); phone numbers as identifiers (`attributes` stored since D-0042 become enforced).
 
-**Carried in:** the `send-phone-message` and `custom-phone-provider` Action triggers (deferred by Plan 28). Maintainer note (2026-10-28): users will want SMS choices beyond Twilio, such as Amazon SNS and Azure Communication Services. Auth0's answer is `custom-phone-provider`, so this plan ships tested example Actions for SNS, Azure Communication Services and Vonage; native non-Twilio providers would go beyond Auth0 and need a maintainer decision then. Also: the phone-provider-protection API (unblocks Deploy CLI's attack-protection handler, Plan 20), passwordless bot policy (Plan 19 owner), and the code-based email templates (`verify_email_by_code`, `auth_email_by_code`, `reset_email_by_code`, stored-only since Plan 21).
+**Carried in:** the `send-phone-message` and `custom-phone-provider` Action triggers (deferred by Plan 28). Maintainer note (2026-10-28): users will want SMS choices beyond Twilio, such as Amazon SNS and Azure Communication Services. Decided 2026-11-02: native providers beyond Twilio are in scope (see the provider ruling above), alongside `custom-phone-provider`. Also: the phone-provider-protection API (unblocks Deploy CLI's attack-protection handler, Plan 20), passwordless bot policy (Plan 19 owner), and the code-based email templates (`verify_email_by_code`, `auth_email_by_code`, `reset_email_by_code`, stored-only since Plan 21).
 
 ### Plan 35 — Client credentials, JAR, token exchange
 
