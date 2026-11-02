@@ -148,6 +148,27 @@ func deliveryView(d *store.EventDelivery, body []byte) map[string]any {
 	return map[string]any{"id": d.EventID, "event_stream_id": d.StreamID, "status": d.Status, "event_type": d.EventType, "attempts": attempts, "event": json.RawMessage(body)}
 }
 func (h *Handlers) TestEventStream(w http.ResponseWriter, r *http.Request, id string) {
+	// Four 10s attempts plus 1/2/4s retry delays need up to 47s. Keep
+	// processing and response writes within a finite endpoint-only 60s budget.
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+	deadline, _ := ctx.Deadline()
+	rc := http.NewResponseController(w)
+	if err := rc.SetWriteDeadline(deadline); err != nil && !errors.Is(err, http.ErrNotSupported) {
+		h.eventStreamError(w, r, err)
+		return
+	}
+
+	// Interrupt a blocked response write promptly when the client cancels.
+	// Join a running callback before net/http can reuse the ResponseWriter.
+	interrupted := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() { defer close(interrupted); _ = rc.SetWriteDeadline(time.Now()) })
+	defer func() {
+		if !stop() {
+			<-interrupted
+		}
+	}()
 	_, s, ok := h.deliveryStream(w, r, id, false)
 	if !ok {
 		return

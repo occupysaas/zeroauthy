@@ -67,7 +67,7 @@ func newSeedCmd() *cobra.Command {
 					return err
 				}
 			}
-			if err := seed.Apply(cmd.Context(), st, f, time.Now, wrapper); err != nil {
+			if err := seed.Apply(cmd.Context(), st, f, time.Now, wrapper, seed.Options{EventsMaxStreams: cfg.Events.MaxStreams}); err != nil {
 				return err
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "applied %s: %d tenant(s)\n", path, len(f.Tenants))

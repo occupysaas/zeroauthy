@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,7 +24,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/eventrules"
 	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/eventstream"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 type deliveriesAPI interface {
@@ -693,5 +697,168 @@ func TestSendTestEventUpdatedData(t *testing.T) {
 				t.Fatal("test persisted or changed stream")
 			}
 		})
+	}
+}
+
+func TestSlowTestResponseWithinServerTimeout(t *testing.T) {
+	e := newClientsEnv(t)
+	id := eventStreamCreate(t, e, "slow test", "webhook")
+	var attempts atomic.Int32
+	deliveryWorker(t, e, func(r *http.Request) (*http.Response, error) {
+		attempts.Add(1)
+		<-r.Context().Done()
+		return nil, r.Context().Err()
+	})
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := tenant.WithResolved(r.Context(), tenant.Resolved{Tenant: e.tn, Host: e.tn.CanonicalHost})
+		r = r.WithContext(mgmt.WithCaller(ctx, m2mCaller()))
+		e.h.LogMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { e.h.TestEventStream(w, r, id) })).ServeHTTP(w, r)
+	}))
+	server.Config.WriteTimeout = 30 * time.Second // internal/app.App.httpServer
+	server.Start()
+	defer server.Close()
+	client := server.Client()
+	client.Timeout = 55 * time.Second
+	response, err := client.Post(server.URL+"/api/v2/event-streams/"+id+"/test", "application/json", strings.NewReader(`{"event_type":"user.created"}`))
+	if err != nil {
+		t.Fatalf("test result lost after %d real timeout attempts under application write deadline: %v", attempts.Load(), err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 202 {
+		t.Fatalf("status %d", response.StatusCode)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body["attempts"].([]any)) != 4 {
+		t.Fatal("missing attempts")
+	}
+}
+
+type eventDeliveryFunc func(context.Context, *store.EventStream, []byte) []store.DeliveryAttempt
+
+func (f eventDeliveryFunc) Deliver(ctx context.Context, s *store.EventStream, body []byte) []store.DeliveryAttempt {
+	return f(ctx, s, body)
+}
+
+type testDeliveryBlockedWriter struct {
+	conn    net.Conn
+	header  http.Header
+	entered chan struct{}
+	once    sync.Once
+}
+
+func (w *testDeliveryBlockedWriter) Header() http.Header { return w.header }
+func (w *testDeliveryBlockedWriter) WriteHeader(int)     {}
+func (w *testDeliveryBlockedWriter) Write(body []byte) (int, error) {
+	w.once.Do(func() { close(w.entered) })
+	return w.conn.Write(body)
+}
+func (w *testDeliveryBlockedWriter) SetWriteDeadline(deadline time.Time) error {
+	if deadline.IsZero() {
+		return errors.New("unbounded write deadline")
+	}
+	return w.conn.SetWriteDeadline(deadline)
+}
+
+func TestTestDeliveryStalledClientCancellation(t *testing.T) {
+	for _, cause := range []string{"cancel", "deadline"} {
+		t.Run(cause, func(t *testing.T) {
+			e := newClientsEnv(t)
+			id := eventStreamCreate(t, e, "stalled", "webhook")
+			e.h.EventDeliverer = eventDeliveryFunc(func(ctx context.Context, _ *store.EventStream, _ []byte) []store.DeliveryAttempt {
+				deadline, ok := ctx.Deadline()
+				if !ok || time.Until(deadline) > 60*time.Second {
+					t.Error("delivery has no finite request budget")
+				}
+				return []store.DeliveryAttempt{{Status: "success"}}
+			})
+			server, client := net.Pipe()
+			defer client.Close()
+			defer server.Close()
+			var ctx context.Context
+			var cancel context.CancelFunc
+			if cause == "deadline" {
+				ctx, cancel = context.WithTimeout(t.Context(), 100*time.Millisecond)
+			} else {
+				ctx, cancel = context.WithCancel(t.Context())
+			}
+			defer cancel()
+			ctx = tenant.WithResolved(ctx, tenant.Resolved{Tenant: e.tn, Host: e.tn.CanonicalHost})
+			ctx = mgmt.WithCaller(ctx, m2mCaller())
+			req := httptest.NewRequest("POST", "/api/v2/event-streams/"+id+"/test", strings.NewReader(`{"event_type":"user.created"}`)).WithContext(ctx)
+			w := &testDeliveryBlockedWriter{conn: server, header: make(http.Header), entered: make(chan struct{})}
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				e.h.LogMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { e.h.TestEventStream(w, r, id) })).ServeHTTP(w, req)
+			}()
+			select {
+			case <-w.entered:
+			case <-time.After(time.Second):
+				t.Fatal("response never reached blocked socket")
+			}
+			if cause == "cancel" {
+				cancel()
+			}
+			select {
+			case <-done:
+			case <-time.After(time.Second):
+				server.Close()
+				<-done
+				t.Fatal("test response stayed blocked after request cancellation")
+			}
+		})
+	}
+}
+
+func TestTestDeliveryHTTPClientCancellation(t *testing.T) {
+	e := newClientsEnv(t)
+	id := eventStreamCreate(t, e, "cancel", "webhook")
+	entered := make(chan struct{})
+	var once sync.Once
+	deliveryWorker(t, e, func(r *http.Request) (*http.Response, error) {
+		once.Do(func() { close(entered) })
+		<-r.Context().Done()
+		return nil, r.Context().Err()
+	})
+	done := make(chan struct{})
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer close(done)
+		ctx := tenant.WithResolved(r.Context(), tenant.Resolved{Tenant: e.tn, Host: e.tn.CanonicalHost})
+		r = r.WithContext(mgmt.WithCaller(ctx, m2mCaller()))
+		e.h.LogMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { e.h.TestEventStream(w, r, id) })).ServeHTTP(w, r)
+	}))
+	server.Config.WriteTimeout = 30 * time.Second
+	server.Start()
+	defer server.Close()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "POST", server.URL+"/api/v2/event-streams/"+id+"/test", strings.NewReader(`{"event_type":"user.created"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := make(chan error, 1)
+	go func() {
+		res, err := server.Client().Do(req)
+		if res != nil {
+			res.Body.Close()
+		}
+		result <- err
+	}()
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("worker never started")
+	}
+	cancel()
+	if err := <-result; !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("canceled test retained delivery worker")
 	}
 }

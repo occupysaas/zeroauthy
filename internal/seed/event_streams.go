@@ -88,7 +88,7 @@ func seedEventStreamCandidate(entry map[string]any, resolve bool) (*store.EventS
 
 // The caller owns the transaction. Lock the tenant before quota, identity and
 // checkpoint reads, matching Management API creation's tenant serialization.
-func applyEventStreams(ctx context.Context, st store.Store, tid string, entries []map[string]any, now time.Time, w keys.Wrapper) error {
+func applyEventStreams(ctx context.Context, st store.Store, tid string, entries []map[string]any, now time.Time, w keys.Wrapper, options ...Options) error {
 	if len(entries) == 0 {
 		return nil
 	}
@@ -130,7 +130,11 @@ func applyEventStreams(ctx context.Context, st store.Store, tid string, entries 
 		if err != nil {
 			return err
 		}
-		if count >= eventrules.Limits.MaxStreams {
+		limit := eventrules.Limits.MaxStreams
+		if len(options) > 0 && options[0].EventsMaxStreams > 0 {
+			limit = options[0].EventsMaxStreams
+		}
+		if count >= limit {
 			return store.ErrConflict
 		}
 		s, private, err := seedEventStreamCandidate(entry, true)

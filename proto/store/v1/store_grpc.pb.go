@@ -25,6 +25,7 @@ const (
 	StoreService_EventsAfter_FullMethodName                             = "/zeroauthy.store.v1.StoreService/EventsAfter"
 	StoreService_EventsFromTime_FullMethodName                          = "/zeroauthy.store.v1.StoreService/EventsFromTime"
 	StoreService_LatestEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/LatestEventSeq"
+	StoreService_PurgedEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/PurgedEventSeq"
 	StoreService_OldestEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/OldestEventSeq"
 	StoreService_PurgeEvents_FullMethodName                             = "/zeroauthy.store.v1.StoreService/PurgeEvents"
 	StoreService_DeleteTenantEvents_FullMethodName                      = "/zeroauthy.store.v1.StoreService/DeleteTenantEvents"
@@ -414,6 +415,7 @@ type StoreServiceClient interface {
 	EventsAfter(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	EventsFromTime(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	LatestEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
+	PurgedEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	OldestEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	PurgeEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	DeleteTenantEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
@@ -823,6 +825,16 @@ func (c *storeServiceClient) LatestEventSeq(ctx context.Context, in *EventsReque
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EventsResponse)
 	err := c.cc.Invoke(ctx, StoreService_LatestEventSeq_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PurgedEventSeq(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsResponse)
+	err := c.cc.Invoke(ctx, StoreService_PurgedEventSeq_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4108,6 +4120,7 @@ type StoreServiceServer interface {
 	EventsAfter(context.Context, *EventsRequest) (*EventsResponse, error)
 	EventsFromTime(context.Context, *EventsRequest) (*EventsResponse, error)
 	LatestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error)
+	PurgedEventSeq(context.Context, *EventsRequest) (*EventsResponse, error)
 	OldestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error)
 	PurgeEvents(context.Context, *EventsRequest) (*EventsResponse, error)
 	DeleteTenantEvents(context.Context, *EventsRequest) (*EventsResponse, error)
@@ -4480,6 +4493,9 @@ func (UnimplementedStoreServiceServer) EventsFromTime(context.Context, *EventsRe
 }
 func (UnimplementedStoreServiceServer) LatestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method LatestEventSeq not implemented")
+}
+func (UnimplementedStoreServiceServer) PurgedEventSeq(context.Context, *EventsRequest) (*EventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PurgedEventSeq not implemented")
 }
 func (UnimplementedStoreServiceServer) OldestEventSeq(context.Context, *EventsRequest) (*EventsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OldestEventSeq not implemented")
@@ -5563,6 +5579,24 @@ func _StoreService_LatestEventSeq_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).LatestEventSeq(ctx, req.(*EventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PurgedEventSeq_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PurgedEventSeq(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PurgedEventSeq_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PurgedEventSeq(ctx, req.(*EventsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -11314,6 +11348,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LatestEventSeq",
 			Handler:    _StoreService_LatestEventSeq_Handler,
+		},
+		{
+			MethodName: "PurgedEventSeq",
+			Handler:    _StoreService_PurgedEventSeq_Handler,
 		},
 		{
 			MethodName: "OldestEventSeq",

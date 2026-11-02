@@ -404,6 +404,12 @@ type sseFaultEvents struct {
 	err *error
 }
 
+func (s sseFaultEvents) PurgedEventSeq(ctx context.Context, tid string) (int64, error) {
+	if *s.err != nil {
+		return 0, *s.err
+	}
+	return s.Events.PurgedEventSeq(ctx, tid)
+}
 func (s sseFaultEvents) OldestEventSeq(ctx context.Context, tid string) (int64, error) {
 	if *s.err != nil {
 		return 0, *s.err
@@ -501,14 +507,11 @@ func TestSSEEmptyRetainedRingCursor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, _, done := sseStart(t, h, "?from="+sseOffset(0), "")
-	sseConnected(t, w)
-	sseAppend(t, st, "sse", "retained", "user.created", c.now())
-	c.advance(3 * time.Second)
-	if m := sseMessage(t, w); !strings.Contains(m, "cursor_expired") {
-		t.Fatal(m)
+	w := httptest.NewRecorder()
+	h.SubscribeEvents(w, sseReq(t.Context(), "?from="+sseOffset(0), "", "sse"))
+	if w.Code != 410 || !strings.Contains(w.Body.String(), "cursor_expired") {
+		t.Fatal("empty retained set must expire immediately", w.Code, w.Body)
 	}
-	sseDone(t, done)
 }
 func TestSSEResumeConcurrentWriters(t *testing.T) {
 	h, st, c := sseEnv(t)
@@ -742,5 +745,116 @@ func TestSSEFreshEmptyTenant(t *testing.T) {
 				t.Fatal(m)
 			}
 		})
+	}
+}
+
+func TestSSEIssuedEmptyCursorResume(t *testing.T) {
+	h, st, c := sseEnv(t)
+	sseAppend(t, st, "other", "other-one", "user.created", c.now())
+	sseAppend(t, st, "other", "other-two", "user.created", c.now())
+	w, cancel, done := sseStart(t, h, "", "")
+	sseConnected(t, w)
+	c.advance(31 * time.Second)
+	sseMessage(t, w) // heartbeat
+	frame := sseMessage(t, w)
+	if !strings.Contains(frame, "event: offset-only") || !strings.Contains(frame, "id: MA\n") {
+		t.Fatal(frame)
+	}
+	cancel()
+	sseDone(t, done)
+	sseAppend(t, st, "sse", "first-own-event", "user.created", c.now())
+	c.ns.Add(int64(3 * time.Second))
+	p, err := parseSSEPosition(sseReq(t.Context(), "", "MA", "sse"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := h.sseSnapshot(t.Context(), "sse", &p, true)
+	if err != nil {
+		t.Fatalf("server-issued empty-tenant offset rejected with no purged history: %v", err)
+	}
+	if len(rows) != 1 || rows[0].ID != "first-own-event" {
+		t.Fatalf("resume lost first event: %+v", rows)
+	}
+}
+
+func TestSSEPurgeWatermarkEmptyAndGlobalGaps(t *testing.T) {
+	h, st, c := sseEnv(t)
+	sseAppend(t, st, "other", "gap1", "user.created", c.now())
+	old := sseAppend(t, st, "sse", "old", "user.created", c.now().Add(-time.Hour))
+	sseAppend(t, st, "other", "gap2", "user.created", c.now())
+	kept := sseAppend(t, st, "sse", "kept", "user.created", c.now())
+	_, err := st.Events().PurgeEvents(t.Context(), c.now().Add(-time.Minute), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.advance(3 * time.Second)
+	for _, seq := range []int64{old, old + 1} {
+		p := ssePosition{explicit: true, seq: seq}
+		rows, err := h.sseSnapshot(t.Context(), "sse", &p, true)
+		if err != nil || len(rows) != 1 || rows[0].Seq != kept {
+			t.Fatalf("valid cursor %d: rows=%v err=%v", seq, rows, err)
+		}
+	}
+	p := ssePosition{explicit: true, seq: old - 1}
+	if _, err := h.sseSnapshot(t.Context(), "sse", &p, true); !errors.Is(err, errSSEExpired) {
+		t.Fatalf("genuine gap accepted: %v", err)
+	}
+	_, err = st.Events().PurgeEvents(t.Context(), c.now().Add(time.Hour), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p = ssePosition{explicit: true, seq: old}
+	if _, err := h.sseSnapshot(t.Context(), "sse", &p, true); !errors.Is(err, errSSEExpired) {
+		t.Fatalf("empty retained set lost expiry: %v", err)
+	}
+	p = ssePosition{explicit: true, seq: kept}
+	if rows, err := h.sseSnapshot(t.Context(), "sse", &p, true); err != nil || len(rows) != 0 {
+		t.Fatal(rows, err)
+	}
+	p = ssePosition{}
+	if _, err := h.sseSnapshot(t.Context(), "sse", &p, true); err != nil || p.seq != kept {
+		t.Fatal(p, err)
+	}
+	if _, err := h.sseSnapshot(t.Context(), "sse", &p, false); err != nil {
+		t.Fatal("default starts after prior purges", err)
+	}
+}
+
+func TestSSETimestampRetainsRowsBelowPurgedSequence(t *testing.T) {
+	h, st, c := sseEnv(t)
+	retained := sseAppend(t, st, "sse", "retained", "user.created", c.now())
+	removed := sseAppend(t, st, "sse", "time-expired-high-seq", "user.created", c.now().Add(-time.Hour))
+	_, err := st.Events().PurgeEvents(t.Context(), c.now().Add(-time.Minute), 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.advance(3 * time.Second)
+	p := ssePosition{explicit: true, timestamp: true, from: c.now().Add(-time.Minute)}
+	rows, err := h.sseSnapshot(t.Context(), "sse", &p, true)
+	if err != nil || len(rows) != 1 || rows[0].Seq != retained {
+		t.Fatal("timestamp skipped retained history", rows, err)
+	}
+	p = ssePosition{explicit: true, seq: retained}
+	if _, err := h.sseSnapshot(t.Context(), "sse", &p, true); !errors.Is(err, errSSEExpired) {
+		t.Fatalf("missing higher seq %d accepted: %v", removed, err)
+	}
+}
+
+func TestSSERingEvictionExpiresCursor(t *testing.T) {
+	h, st, c := sseEnv(t)
+	batch := make([]store.TenantEvent, 10001)
+	for i := range batch {
+		batch[i] = store.TenantEvent{TenantID: "sse", ID: fmt.Sprint(i), Type: "user.created", Time: c.now(), Body: []byte(`{}`)}
+	}
+	if err := st.Events().AppendEvents(t.Context(), batch); err != nil {
+		t.Fatal(err)
+	}
+	p := ssePosition{explicit: true, seq: 0}
+	if _, err := h.sseSnapshot(t.Context(), "sse", &p, true); !errors.Is(err, errSSEExpired) {
+		t.Fatal("ring eviction did not expire", err)
+	}
+	p = ssePosition{explicit: true, seq: batch[0].Seq}
+	if _, err := h.sseSnapshot(t.Context(), "sse", &p, true); err != nil {
+		t.Fatal("floor itself must resume", err)
 	}
 }

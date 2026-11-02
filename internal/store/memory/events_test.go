@@ -156,3 +156,45 @@ func TestEventsRingEvictionRemovesDeliveries(t *testing.T) {
 		t.Fatalf("delivery retained without event: %v", err)
 	}
 }
+
+func TestEventEvictionWatermarkRollback(t *testing.T) {
+	st := memory.New()
+	ctx := t.Context()
+	type purgeFloor interface {
+		PurgedEventSeq(context.Context, string) (int64, error)
+	}
+	floor := func(repo store.Events, want int64) {
+		t.Helper()
+		f, ok := repo.(purgeFloor)
+		if !ok {
+			t.Fatal("missing tenant purge watermark")
+		}
+		got, err := f.PurgedEventSeq(ctx, "t")
+		if err != nil || got != want {
+			t.Fatalf("floor=%d want=%d err=%v", got, want, err)
+		}
+	}
+	batch := make([]store.TenantEvent, 10000)
+	for i := range batch {
+		batch[i] = store.TenantEvent{TenantID: "t", ID: fmt.Sprint(i)}
+	}
+	if err := st.Events().AppendEvents(ctx, batch); err != nil {
+		t.Fatal(err)
+	}
+	floor(st.Events(), 0)
+	abort := errors.New("abort")
+	if err := st.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: "t", ID: "evict"}}); err != nil {
+			return err
+		}
+		floor(tx.Events(), batch[0].Seq)
+		return abort
+	}); !errors.Is(err, abort) {
+		t.Fatal(err)
+	}
+	floor(st.Events(), 0)
+	if err := st.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: "t", ID: "evict"}}); err != nil {
+		t.Fatal(err)
+	}
+	floor(st.Events(), batch[0].Seq)
+}

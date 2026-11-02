@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -548,5 +549,35 @@ func TestAppServeFlushesRecorder(t *testing.T) {
 	_, total, err := a.store.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 100, IncludeTotals: true})
 	if err != nil || total != 1 {
 		t.Fatalf("serve shutdown flushed %d events: %v", total, err)
+	}
+}
+
+func TestStartupSeedConfiguredEventStreamLimit(t *testing.T) {
+	for _, tc := range []struct {
+		limit, count int
+		conflict     bool
+	}{{2, 3, true}, {20, 11, false}} {
+		t.Run(fmt.Sprint(tc.limit), func(t *testing.T) {
+			var body strings.Builder
+			body.WriteString("tenants:\n- name: acme\n  domains: [acme.example.test]\n  event_streams:\n")
+			for i := 0; i < tc.count; i++ {
+				fmt.Fprintf(&body, "  - name: Stream %d\n    subscriptions: [{event_type: user.created}]\n    destination: {type: eventbridge, configuration: {aws_account_id: '123456789012', aws_region: us-east-1}}\n", i)
+			}
+			seedPath := filepath.Join(t.TempDir(), "seed.yaml")
+			if err := os.WriteFile(seedPath, []byte(body.String()), 0600); err != nil {
+				t.Fatal(err)
+			}
+			cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Seed: seedPath, Events: config.Events{MaxStreams: tc.limit}, Actions: config.Actions{CacheDir: t.TempDir()}}
+			a, err := New(t.Context(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+			if a != nil {
+				defer a.Close()
+			}
+			if tc.conflict && !errors.Is(err, store.ErrConflict) {
+				t.Fatalf("startup bypassed configured quota: %v", err)
+			}
+			if !tc.conflict && err != nil {
+				t.Fatalf("startup rejected configured higher quota: %v", err)
+			}
+		})
 	}
 }

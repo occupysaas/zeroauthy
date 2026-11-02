@@ -221,7 +221,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := f.CheckManagementAPI(cfg.Server.BaseDomain); err != nil {
 			return nil, err
 		}
-		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}); err != nil {
+		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}, seed.Options{EventsMaxStreams: cfg.Events.MaxStreams}); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))

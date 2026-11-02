@@ -10,6 +10,7 @@ import (
 )
 
 func testEvents(t *testing.T, newStore Factory) {
+	t.Run("EventsPurgeWatermark", func(t *testing.T) { testEventsPurgeWatermark(t, newStore) })
 	t.Run("EventStreamFairLease", func(t *testing.T) { testEventStreamFairLease(t, newStore) })
 	t.Run("EventsPurgeFailureCounters", func(t *testing.T) { testEventsPurgeFailureCounters(t, newStore) })
 	for name, fn := range map[string]func(*testing.T, Factory){"EventStreamCRUDAndNameConflict": testEventStreamCRUDAndNameConflict, "EventStreamLease": testEventStreamLease, "EventDeliveriesFilterPage": testEventDeliveriesFilterPage, "QueueRedeliveryRules": testQueueRedeliveryRules, "EventsPurge": testEventsPurge, "EventsDeleteTenant": testEventsDeleteTenant, "EventDeliveryReferences": testEventDeliveryReferences} {
@@ -493,4 +494,82 @@ func eventsStore(t *testing.T, f Factory) store.Store {
 		mustNoErr(t, s.Tenants().Create(context.Background(), &store.Tenant{ID: id, Name: id, CanonicalHost: id + ".example"}))
 	}
 	return s
+}
+
+// eventPurgeFloor permits this regression to prove the pre-fix missing contract.
+type eventPurgeFloor interface {
+	PurgedEventSeq(context.Context, string) (int64, error)
+}
+
+func testEventsPurgeWatermark(t *testing.T, newStore Factory) {
+	s := eventsStore(t, newStore)
+	ctx := t.Context()
+	floor := func(repo store.Events, tid string, want int64) {
+		t.Helper()
+		f, ok := repo.(eventPurgeFloor)
+		if !ok {
+			t.Fatal("Events repository cannot distinguish global sequence gaps from purged tenant history")
+		}
+		got, err := f.PurgedEventSeq(ctx, tid)
+		mustNoErr(t, err)
+		if got != want {
+			t.Fatalf("%s purged floor=%d want %d", tid, got, want)
+		}
+	}
+	floor(s.Events(), "a", 0)
+	now := time.Now().UTC()
+	// Sequence order deliberately differs from event-time order.
+	rows := []store.TenantEvent{{TenantID: "a", ID: "newer", Time: now}, {TenantID: "b", ID: "other", Time: now}, {TenantID: "a", ID: "older", Time: now.Add(-time.Hour)}}
+	mustNoErr(t, s.Events().AppendEvents(ctx, rows))
+	floor(s.Events(), "a", 0)
+	floor(s.Events(), "b", 0)
+	abort := errors.New("rollback purge")
+	err := s.WithTx(ctx, func(tx store.Store) error {
+		n, err := tx.Events().PurgeEvents(ctx, now.Add(-time.Minute), 10)
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			t.Fatalf("purge=%d", n)
+		}
+		floor(tx.Events(), "a", rows[2].Seq)
+		return abort
+	})
+	if !errors.Is(err, abort) {
+		t.Fatal(err)
+	}
+	floor(s.Events(), "a", 0)
+	_, err = s.Events().GetEvent(ctx, "a", "older")
+	mustNoErr(t, err)
+	n, err := s.Events().PurgeEvents(ctx, now.Add(-time.Minute), 1)
+	mustNoErr(t, err)
+	if n != 1 {
+		t.Fatalf("purge=%d", n)
+	}
+	floor(s.Events(), "a", rows[2].Seq)
+	floor(s.Events(), "b", 0)
+	// No-op and later removal of a lower sequence cannot move the floor.
+	_, err = s.Events().PurgeEvents(ctx, now.Add(-time.Minute), 10)
+	mustNoErr(t, err)
+	floor(s.Events(), "a", rows[2].Seq)
+	_, err = s.Events().PurgeEvents(ctx, now.Add(time.Hour), 10)
+	mustNoErr(t, err)
+	floor(s.Events(), "a", rows[2].Seq)
+	floor(s.Events(), "b", rows[1].Seq)
+	err = s.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Events().DeleteTenantEvents(ctx, "a"); err != nil {
+			return err
+		}
+		floor(tx.Events(), "a", 0)
+		return abort
+	})
+	if !errors.Is(err, abort) {
+		t.Fatal(err)
+	}
+	floor(s.Events(), "a", rows[2].Seq)
+	mustNoErr(t, s.Events().DeleteTenantEvents(ctx, "a"))
+	floor(s.Events(), "a", 0)
+	floor(s.Events(), "b", rows[1].Seq)
+	mustNoErr(t, s.Tenants().Delete(ctx, "b"))
+	floor(s.Events(), "b", 0)
 }

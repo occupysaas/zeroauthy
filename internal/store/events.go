@@ -60,6 +60,10 @@ type Events interface {
 	EventsAfter(ctx context.Context, tid string, afterSeq int64, types []string, take int, settled time.Time) ([]TenantEvent, error)
 	EventsFromTime(ctx context.Context, tid string, from time.Time, types []string, take int, settled time.Time) ([]TenantEvent, error)
 	LatestEventSeq(ctx context.Context, tid string) (int64, error)
+	// PurgedEventSeq is the highest tenant sequence removed by retention or ring
+	// eviction; 0 means no known removal. It survives an empty retained set and
+	// clears on tenant deletion.
+	PurgedEventSeq(ctx context.Context, tid string) (int64, error)
 	OldestEventSeq(ctx context.Context, tid string) (int64, error)             // 0 when none
 	PurgeEvents(ctx context.Context, before time.Time, limit int) (int, error) // also removes their deliveries
 	DeleteTenantEvents(ctx context.Context, tid string) error
@@ -97,6 +101,9 @@ func (UnimplementedEvents) EventsFromTime(ctx context.Context, tid string, from 
 	return nil, ErrEventsUnavailable
 }
 func (UnimplementedEvents) LatestEventSeq(ctx context.Context, tid string) (int64, error) {
+	return 0, ErrEventsUnavailable
+}
+func (UnimplementedEvents) PurgedEventSeq(ctx context.Context, tid string) (int64, error) {
 	return 0, ErrEventsUnavailable
 }
 func (UnimplementedEvents) OldestEventSeq(ctx context.Context, tid string) (int64, error) {

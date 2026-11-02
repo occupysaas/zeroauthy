@@ -66,6 +66,7 @@ service StoreService {
   rpc EventsAfter(EventsRequest) returns (EventsResponse);
   rpc EventsFromTime(EventsRequest) returns (EventsResponse);
   rpc LatestEventSeq(EventsRequest) returns (EventsResponse);
+  rpc PurgedEventSeq(EventsRequest) returns (EventsResponse);
   rpc OldestEventSeq(EventsRequest) returns (EventsResponse);
   rpc PurgeEvents(EventsRequest) returns (EventsResponse);
   rpc DeleteTenantEvents(EventsRequest) returns (EventsResponse);

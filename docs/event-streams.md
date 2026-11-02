@@ -137,20 +137,38 @@ The stream sends `retry: 2000`, connected/heartbeat comments (15 seconds) and an
 `offset-only` messages. Connections cycle after five minutes. Invalid offsets
 return 400, expired retained offsets 410 and excess connections 403. Terminal
 `error` events carry the documented error codes. The default connection limit is
-four per tenant. An entirely purged event ring cannot prove cursor expiry until
-a subsequent retained event establishes a new oldest sequence; expiry can
-therefore be delayed in that case.
+four per tenant. Retention and memory-ring eviction atomically record the highest
+removed sequence for that tenant. A cursor before this watermark returns 410,
+even when no events remain; gaps allocated to other tenants do not expire it.
+Timestamp reads replay available retained events, including lower-sequence rows
+when a newer sequence was already purged out of event-time order. Resuming a row
+offset before that known purge gap can return 410; restart with a timestamp to
+replay available history. Offset-only frames wait until that gap is crossed.
+
+Synchronous test deliveries have a finite 60-second request and response budget,
+covering the four ten-second attempts and 1/2/4-second retry delays. Client
+cancellation stops delivery and interrupts blocked response writes. Ordinary
+Management routes retain their existing server timeouts and response logging.
 
 ## Storage, provisioning and local differences
 
-Memory, SQLite, PostgreSQL, MySQL and Events-v1 gRPC stores support events. Memory
+Memory, SQLite, PostgreSQL, MySQL and Events-v1 gRPC stores support events.
+SQL requires migrations `0031_event_streams.sql` and
+`0032_event_cursor_watermarks.sql`; 0032 upgrades databases already at version 31.
+Pre-upgrade purge history cannot be inferred from global sequence gaps: the new
+watermark starts at zero, so unknown earlier gaps may be accepted until a newly
+recorded removal proves expiry. New purges are durable across reopening. Memory
 keeps at most 10,000 events per tenant; configured retention defaults to seven days
 (minimum one day), with hourly bounded purges. Tenant deletion removes events and
 deliveries; user deletion preserves its event history. Older plugins without the
 separate Events capability continue working and event routes return 501
-`events_unavailable`.
+`events_unavailable`. An Events-v1 plugin that lacks the additive
+`PurgedEventSeq` RPC also fails closed with 501 on SSE instead of guessing history.
 
-Seed is create-only and reads credentials from environment references. The pinned
+Seed is create-only and reads credentials from environment references. Startup,
+the seed command and Management API creation use `events.max_streams` (default 10).
+Reapplying existing streams preserves them even after lowering the limit, without
+resolving their secret environment references again. The pinned
 Deploy CLI exports/imports public `eventStreams` in YAML and directory format;
 credentials must be supplied again on the target. Events and deliveries are never
 exported. See [the implementation record](superpowers/2026-11-01-plan-32-implementation-record.md)

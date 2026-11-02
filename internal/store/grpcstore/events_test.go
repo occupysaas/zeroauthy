@@ -8,7 +8,10 @@ import (
 	"reflect"
 
 	"github.com/zeroauthy/zeroauthy/internal/events"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"net"
+	"net/http/httptest"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -34,6 +37,7 @@ type eventsFaults struct {
 	missing       bool
 	probeCode     atomic.Int32
 	operationCode atomic.Int32
+	missingFloor  bool
 }
 
 func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) *Client {
@@ -56,6 +60,9 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 			if code := codes.Code(faults.appendCode.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "append failure")
 			}
+		}
+		if name == "PurgedEventSeq" && faults.missingFloor {
+			return nil, status.Error(codes.Unimplemented, "pre-watermark Events plugin")
 		}
 		if name == "GetEvent" {
 			if code := codes.Code(faults.operationCode.Swap(0)); code != codes.OK {
@@ -177,6 +184,7 @@ func eventsUnavailableCalls(ctx context.Context) []func(store.Events) error {
 		},
 		func(r store.Events) error { _, e := r.LatestEventSeq(ctx, "t"); return e },
 		func(r store.Events) error { _, e := r.OldestEventSeq(ctx, "t"); return e },
+		func(r store.Events) error { _, e := r.PurgedEventSeq(ctx, "t"); return e },
 		func(r store.Events) error { _, e := r.PurgeEvents(ctx, time.Now(), 1); return e },
 		func(r store.Events) error { return r.DeleteTenantEvents(ctx, "t") },
 		func(r store.Events) error { return r.CreateEventStream(ctx, &store.EventStream{}) },
@@ -598,5 +606,28 @@ func TestEventsRemoteNestedRollback(t *testing.T) {
 				t.Fatalf("nested event leaked: %v", err)
 			}
 		})
+	}
+}
+
+func TestEventsMissingWatermarkFailsClosed(t *testing.T) {
+	c := serveEventsFaults(t, memory.New(), &eventsFaults{missingFloor: true})
+	ctx := t.Context()
+	if err := c.CheckEventsSupport(ctx); err != nil {
+		t.Fatal("v1 capability remains additive", err)
+	}
+	if _, err := c.Events().PurgedEventSeq(ctx, "t"); !errors.Is(err, store.ErrEventsUnavailable) {
+		t.Fatalf("missing floor silently accepted: %v", err)
+	}
+	h := &mgmt.Handlers{Store: c}
+	req := httptest.NewRequest("GET", "/api/v2/events", nil)
+	req = req.WithContext(tenant.WithResolved(ctx, tenant.Resolved{Tenant: &store.Tenant{ID: "t"}}))
+	// A pre-watermark Events plugin still serves prior non-Events operations.
+	if err := c.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	h.SubscribeEvents(w, req)
+	if w.Code != 501 {
+		t.Fatalf("SSE accepted unavailable history: %d %s", w.Code, w.Body)
 	}
 }

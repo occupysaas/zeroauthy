@@ -373,12 +373,16 @@ ruling, matching Plan 31's cloud log streams).
 
 ## 7. Storage, console and provisioning
 
-**Storage.** SQL migration `0031_event_streams.sql` (renumber if another one
-lands first) in SQLite, PostgreSQL and MySQL adds `tenant_events` (tenant,
+**Storage.** SQL migration `0031_event_streams.sql` in SQLite, PostgreSQL and MySQL adds `tenant_events` (tenant,
 seq, event ID, type, time, body), `event_streams` (public fields, sealed
 secrets, checkpoint, lease, consecutive and total failures, version) and
 `event_deliveries` (stream, event, status, attempts JSON, queued flag,
 times), with indexes for the worker, the deliveries filters and the purge.
+Migration `0032_event_cursor_watermarks.sql` adds a durable tenant-local highest
+purged sequence, including upgrades from an already applied 0031. Memory eviction
+and all retention removals update this watermark atomically; SSE expires explicit
+cursors only below it, including an entirely purged retained set. Existing purge
+history before 0032 is unknown and starts at zero, never inferred from global gaps.
 The memory store keeps a bounded ring of 10,000 events per tenant. A
 separately negotiated **Events v1** gRPC capability carries the repository;
 without it the routes in §4 return 501 `events_unavailable`, no events are

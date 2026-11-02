@@ -35,14 +35,14 @@ func TestEventsMigrationFrom30(t *testing.T) {
 			ctx := context.Background()
 			mustEvent(t, s.Tenants().Create(ctx, &store.Tenant{ID: "legacy", Name: "legacy"}))
 			mustEvent(t, s.Migrate(ctx))
-			if s.LatestVersion() != 31 {
+			if s.LatestVersion() != 32 {
 				t.Fatalf("latest version=%d", s.LatestVersion())
 			}
 			_, err := s.Tenants().Get(ctx, "legacy")
 			mustEvent(t, err)
 			mustEvent(t, s.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: "legacy", ID: "e", Time: time.Now()}}))
 			fresh := mustOpen(t, mk(t))
-			for _, table := range []string{"tenant_events", "event_streams", "event_deliveries"} {
+			for _, table := range []string{"tenant_events", "event_streams", "event_deliveries", "event_cursor_watermarks"} {
 				if !slices.Equal(tableShape(t, s, table), tableShape(t, fresh, table)) {
 					t.Fatal("shape differs", table)
 				}
@@ -343,7 +343,7 @@ func TestEventsTenantDeletionAndBoundedPurge(t *testing.T) {
 				t.Fatalf("batch exceeded or orphaned deliveries events=%d deliveries=%d", events, deliveries)
 			}
 			mustEvent(t, s.Tenants().Delete(ctx, "a"))
-			for _, table := range []string{"tenant_events", "event_streams", "event_deliveries"} {
+			for _, table := range []string{"tenant_events", "event_streams", "event_deliveries", "event_cursor_watermarks"} {
 				var count int
 				mustEvent(t, s.queryRow(ctx, `SELECT COUNT(*) FROM `+table+` WHERE tenant_id=?`, "a").Scan(&count))
 				if count != 0 {
@@ -594,6 +594,90 @@ func TestEventStreamEnableCheckpointSerializesAppend(t *testing.T) {
 			mustEvent(t, err)
 			if len(events) != 1 || events[0].ID != "after-enable" {
 				t.Fatalf("eligibility after enabling: %+v", events)
+			}
+		})
+	}
+}
+
+func TestEventsWatermarkUpgradeFrom31(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			dsn := mk(t)
+			s := openAtVersion(t, dsn, 31)
+			ctx := t.Context()
+			mustEvent(t, s.Tenants().Create(ctx, &store.Tenant{ID: "legacy", Name: "legacy"}))
+			mustEvent(t, s.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: "legacy", ID: "before", Time: time.Now()}}))
+			mustEvent(t, s.Migrate(ctx))
+			var n int
+			err := s.queryRow(ctx, `SELECT COUNT(*) FROM event_cursor_watermarks`).Scan(&n)
+			mustEvent(t, err)
+			if n != 0 {
+				t.Fatal("migration invented missing history")
+			}
+			type floorRepo interface {
+				PurgedEventSeq(context.Context, string) (int64, error)
+			}
+			f, ok := s.Events().(floorRepo)
+			if !ok {
+				t.Fatal("missing durable floor")
+			}
+			seq, err := f.PurgedEventSeq(ctx, "legacy")
+			mustEvent(t, err)
+			if seq != 0 {
+				t.Fatal(seq)
+			}
+			row, err := s.Events().GetEvent(ctx, "legacy", "before")
+			mustEvent(t, err)
+			_, err = s.Events().PurgeEvents(ctx, time.Now().Add(time.Hour), 10)
+			mustEvent(t, err)
+			reopened, err := Open(ctx, dsn)
+			mustEvent(t, err)
+			defer reopened.Close()
+			seq, err = reopened.Events().(floorRepo).PurgedEventSeq(ctx, "legacy")
+			mustEvent(t, err)
+			if seq != row.Seq {
+				t.Fatalf("reopened floor=%d want=%d", seq, row.Seq)
+			}
+			fresh := mustOpen(t, mk(t))
+			if !slices.Equal(tableShape(t, s, "event_cursor_watermarks"), tableShape(t, fresh, "event_cursor_watermarks")) {
+				t.Fatal("upgrade table differs")
+			}
+		})
+	}
+}
+
+func TestEventsWatermarkMySQLResume32(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		if name != "mysql" {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 31)
+			ms, err := s.migrations()
+			mustEvent(t, err)
+			for _, m := range ms {
+				if m.version == 32 {
+					// MySQL DDL committed, then the process died before the version marker.
+					_, err = s.exec(t.Context(), m.statements[0])
+					mustEvent(t, err)
+				}
+			}
+			version, err := s.SchemaVersion(t.Context())
+			mustEvent(t, err)
+			if version != 31 {
+				t.Fatal(version)
+			}
+			mustEvent(t, s.Migrate(t.Context()))
+			mustEvent(t, s.Migrate(t.Context()))
+			version, err = s.SchemaVersion(t.Context())
+			mustEvent(t, err)
+			if version != 32 {
+				t.Fatal(version)
+			}
+			n, err := s.Events().PurgedEventSeq(t.Context(), "unknown")
+			mustEvent(t, err)
+			if n != 0 {
+				t.Fatal(n)
 			}
 		})
 	}

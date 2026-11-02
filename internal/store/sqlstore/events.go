@@ -160,6 +160,25 @@ func (r events) LatestEventSeq(ctx context.Context, tid string) (int64, error) {
 	err := r.s.queryRow(ctx, `SELECT COALESCE(MAX(seq),0) FROM tenant_events WHERE tenant_id=?`, tid).Scan(&n)
 	return n, err
 }
+func (r events) PurgedEventSeq(ctx context.Context, tid string) (int64, error) {
+	var n int64
+	err := r.s.queryRow(ctx, `SELECT COALESCE(MAX(purged_seq),0) FROM event_cursor_watermarks WHERE tenant_id=?`, tid).Scan(&n)
+	return n, err
+}
+
+// Caller holds the tenant mutation lock. Keep the removal and watermark in the
+// same transaction; rollbacks and no-op purges must leave history unchanged.
+func (r events) recordPurgedSeq(ctx context.Context, tid string, seq int64) error {
+	var q string
+	switch r.s.d.name {
+	case "mysql":
+		q = `INSERT INTO event_cursor_watermarks (tenant_id,purged_seq) VALUES (?,?) ON DUPLICATE KEY UPDATE purged_seq=GREATEST(purged_seq,VALUES(purged_seq))`
+	default:
+		q = `INSERT INTO event_cursor_watermarks (tenant_id,purged_seq) VALUES (?,?) ON CONFLICT (tenant_id) DO UPDATE SET purged_seq=CASE WHEN excluded.purged_seq>event_cursor_watermarks.purged_seq THEN excluded.purged_seq ELSE event_cursor_watermarks.purged_seq END`
+	}
+	_, err := r.s.exec(ctx, q, tid, seq)
+	return err
+}
 func (r events) OldestEventSeq(ctx context.Context, tid string) (int64, error) {
 	var n int64
 	err := r.s.queryRow(ctx, `SELECT COALESCE(MIN(seq),0) FROM tenant_events WHERE tenant_id=?`, tid).Scan(&n)
@@ -217,6 +236,9 @@ func (r events) PurgeEvents(ctx context.Context, before time.Time, limit int) (i
 				return err
 			}
 			if k > 0 {
+				if err := (events{t}).recordPurgedSeq(ctx, v.tid, v.seq); err != nil {
+					return err
+				}
 				if _, err := t.exec(ctx, `DELETE FROM event_deliveries WHERE tenant_id=? AND event_id=?`, v.tid, v.id); err != nil {
 					return err
 				}
@@ -244,7 +266,7 @@ func (r events) DeleteTenantEvents(ctx context.Context, tid string) error {
 		if err := t.lockRBAC(ctx, tid); err != nil && !errors.Is(err, store.ErrNotFound) {
 			return err
 		}
-		for _, table := range []string{"event_deliveries", "event_streams", "tenant_events"} {
+		for _, table := range []string{"event_deliveries", "event_streams", "tenant_events", "event_cursor_watermarks"} {
 			if _, err := t.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id=?`, tid); err != nil {
 				return err
 			}

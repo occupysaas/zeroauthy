@@ -114,12 +114,12 @@ func hasActions(f *File) bool {
 // ApplyWithActions applies ordinary seed data in its transaction, then builds
 // and creates Actions outside it. A failed build leaves the ordinary seed
 // applied, but creates no Action; a retry can safely finish the same seed.
-func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper, engine *actions.Engine) error {
+func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper, engine *actions.Engine, options ...Options) error {
 	ctx = events.WithContext(ctx, events.Context{})
 	if hasActions(f) && (engine == nil || engine.Builds == nil) {
 		return errors.New("seed: Actions require an Actions build manager")
 	}
-	if err := applyOrdinary(ctx, st, f, now, w); err != nil {
+	if err := applyOrdinary(ctx, st, f, now, w, options...); err != nil {
 		return err
 	}
 	if now == nil {
@@ -187,7 +187,9 @@ func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() t
 			}
 		}
 		if len(in.Actions) > 0 {
-			if err := st.WithTx(ctx, func(tx store.Store) error { return applyEventStreams(ctx, tx, tn.ID, in.EventStreams, now().UTC(), w) }); err != nil {
+			if err := st.WithTx(ctx, func(tx store.Store) error {
+				return applyEventStreams(ctx, tx, tn.ID, in.EventStreams, now().UTC(), w, options...)
+			}); err != nil {
 				return err
 			}
 		}

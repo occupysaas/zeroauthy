@@ -20,12 +20,12 @@ var errSSEExpired = &Error{Status: 410, Code: "cursor_expired", Message: "Cursor
 var errSSEInvalid = &Error{Status: 400, Code: "invalid_request", Message: "Invalid event stream query"}
 
 type ssePosition struct {
-	seq       int64
-	explicit  bool
-	timestamp bool
-	bootstrap bool // initial empty default/timestamp read has no sequence floor
-	from      time.Time
-	types     []string
+	seq          int64
+	explicit     bool
+	timestamp    bool
+	historyFloor int64 // preexisting purges accepted only by an initial timestamp read
+	from         time.Time
+	types        []string
 }
 
 func encodeEventOffset(seq int64) string {
@@ -102,30 +102,30 @@ func (h *Handlers) sseSnapshot(ctx context.Context, tid string, p *ssePosition, 
 			return e
 		}
 		repo := tx.Events()
-		oldest, e := repo.OldestEventSeq(ctx, tid)
+		floor, e := repo.PurgedEventSeq(ctx, tid)
 		if e != nil {
 			return e
 		}
 		if initial && !p.explicit {
 			p.seq, e = repo.LatestEventSeq(ctx, tid)
-			p.bootstrap = p.seq == 0 && oldest == 0
+			p.seq = max(p.seq, floor)
 			return e
 		}
-		// No persisted purge watermark exists when the retained set is empty. Keep
-		// the supplied cursor until a later retained oldest can prove expiration.
-		if initial && p.timestamp && oldest > 0 {
-			p.seq = oldest - 1
+		if initial && p.timestamp {
+			// Timestamp reads start in the retained history, including rows
+			// below a known purge watermark when event times were out of order.
+			p.historyFloor = floor
+			oldest, err := repo.OldestEventSeq(ctx, tid)
+			if err != nil {
+				return err
+			}
+			if oldest > 0 {
+				p.seq = oldest - 1
+			} else {
+				p.seq = floor
+			}
 		}
-		if initial && p.timestamp && oldest == 0 {
-			p.bootstrap = true
-		}
-		// Sequences are allocated across tenants. A fresh empty tenant's first
-		// sequence may exceed one without any missing tenant-local history.
-		if p.bootstrap && oldest > 0 {
-			p.seq = oldest - 1
-			p.bootstrap = false
-		}
-		if oldest > 0 && p.seq < oldest-1 {
+		if p.seq < floor && (!p.timestamp || floor > p.historyFloor) {
 			return errSSEExpired
 		}
 		rows, e = repo.EventsAfter(ctx, tid, p.seq, nil, 100, h.now().Add(-2*time.Second))
@@ -253,7 +253,7 @@ func (h *Handlers) SubscribeEvents(w http.ResponseWriter, r *http.Request) {
 			}
 			heartbeat = now
 		}
-		if now.Sub(offset) >= 30*time.Second {
+		if now.Sub(offset) >= 30*time.Second && (!p.timestamp || p.seq >= p.historyFloor) {
 			raw := encodeEventOffset(p.seq)
 			if err := send("event: offset-only\nid: " + raw + "\ndata: {\"offset\":\"" + raw + "\"}\n\n"); err != nil {
 				return err

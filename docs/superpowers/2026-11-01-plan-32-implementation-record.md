@@ -370,8 +370,9 @@ Implemented the Events repository on SQLite, PostgreSQL and MySQL; migration
 outbox rows, stream configuration with sealed secret bytes and worker state,
 and failed delivery records with attempts JSON and queue flags. It adds the
 sequence/type/time, delivery-filter/queue and purge indexes. MySQL uses the
-existing resumable DDL path. The existing LatestVersion expectation now says 31.
-Tenant deletion removes all three new tables' tenant rows.
+existing resumable DDL path. Task 4 raised LatestVersion to 31; the final-review
+fix wave adds 0032 for cursor watermarks and raises the current version to 32.
+Tenant deletion removes these tables and the later watermark rows.
 
 AppendEvents joins the caller's transaction and runs within a repository
 savepoint. It acquires the established lockRBAC tenant lock in sorted tenant
@@ -1157,14 +1158,16 @@ Rulings: canonical unpadded base64url decimal nonnegative int64 offsets, max1024
 valid future offsets wait. Last-Event-ID wins over from or timestamp, while the
 forbidden from+from_timestamp query pair always400. Timestamp is strict20-character
 UTC RFC3339 seconds (including valid Go-zero-time year0001 via an explicit flag).
-Expire only when oldest>0 and cursor<oldest-1. Existing repositories have no
-watermark when every retained event was purged: explicit cursor validation is
-then deferred until a new retained oldest proves expiry (controller accepted;
-cost: delayed410). Fresh default/timestamp starts with initially empty retention
-bootstrap to first observed oldest-1 because globally allocated sequences may
-start above1 for that tenant; events created and fully purged before first
-observation cannot be diagnosed without a persisted watermark. No repository
-interface or SQL production change was added.
+The initial Task 10 implementation inferred expiry from oldest-1 and deferred
+empty-ring expiry. Final review I1 superseded that ruling: migration 0032 and the
+Events.PurgedEventSeq contract now persist the highest sequence actually removed
+per tenant, atomically with retention/eviction. Explicit cursors expire iff below
+that watermark; global gaps remain valid and fully purged rings expire promptly.
+Unknown pre-0032 purges start at zero because sequence gaps cannot prove removal.
+Timestamp reads start at oldest retained-1 and allow preexisting purge gaps while
+scanning available history; a subsequent newly advancing purge floor can terminate
+the connection. Row offsets below a known gap can legitimately return 410 on
+reconnect; offset-only frames are suppressed until that initial gap is crossed.
 
 TDD initial missing-handler compile RED exit1; later focused REDs reproduced
 raw store/probe diagnostic leakage, zero-time timestamp collision, replay
@@ -1594,3 +1597,37 @@ capture-overhead target remains explicitly not met. Self-review confirms only th
 fixture entry signal gained one-time ownership and retries remain hanging until
 their context cancels. Full command/timestamp report:
 `.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-14-go-fix1-report.md`.
+
+
+Final review fix wave I1–I3 adds durable purge history (`0032`, all three SQL
+dialects, memory and additive Events-v1 RPC), a finite 60s synchronous test-delivery
+request/write budget through normal Management capture, and explicit configured
+seed quotas at startup and in the seed command. Latest schema is now 32, after
+both 0031 and 0032. Existing streams remain create-only after quota reduction.
+The final fix report records RED/GREEN commands and the full validation still
+reserved for the designated validator. Minor findings M1–M9 remain deferred.
+
+Focused fix-wave verification used Go1.26.7 and Node26.8.1; all listed final
+commands exited0 with zero skipped Go leaves:
+
+| Check | Fresh outcome |
+| --- | --- |
+| SQL Events + migration30/31 upgrade/reopen + interrupted MySQL32 resume, `./scripts/test-sql.sh -timeout=15m -run '^(TestEventsConformance\|TestEventsMigrationFrom30\|TestEventsWatermarkUpgradeFrom31\|TestEventsWatermarkMySQLResume32\|TestLatestVersion\|TestMigrationSetsMatch)$' -v ./internal/store/sqlstore` | 72 leaves across SQLite/PostgreSQL/MySQL, race enabled |
+| SSE `go test -race -count=3 -timeout=3m -run '^TestSSE' -v ./internal/mgmt` | 165 leaf executions |
+| Memory/gRPC floor contract, capabilities and missing-floor SSE | 69 leaves, race enabled |
+| Real HTTP four-attempt response and cancellation/blocked writes | 4 leaves, race enabled; actual slow response47.13s |
+| Seed/CLI provisioning and startup/config | 29+3 leaves, race enabled |
+| `make console` | 75 files /604 tests, lint/typecheck/build; existing bundle advisory |
+| `make generate`; affected-package compile | Both exit0; generated console outputs unchanged |
+
+Exact logs, commands, UTC times, child statuses and dirty-source identities are
+in `/tmp/plan32-final-fix-wave/*.json` and `*.log`; the workspace report is
+`.superpowers/sdd/2026-11-01-zeroauthy-plan-32-event-streams/task-14-final-fix-report.md`.
+Original RED evidence remains at `/tmp/plan32-final-review-3iav0ckp` and was copied
+into the fix artifacts. Permanent regressions also reproduced all3 findings
+before implementation (HTTP EOF47.15s), plus missing floor/SQL table, blocked
+cancellation, CLI quota and original startup callsite failures. An intermediate
+SSE run failed only the superseded delayed-empty-ring-expiry test; its assertion
+now requires immediate410. An initial new fault-stub pointer compile error was
+corrected; final compile passed. No fullGo/fullSQL/E2E command ran in this wave;
+scoped re-review and the sole validator's fixed-commit matrix remain pending.

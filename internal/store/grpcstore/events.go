@@ -211,6 +211,21 @@ func (s *Server) LatestEventSeq(ctx context.Context, q *storev1.EventsRequest) (
 	}), nil
 }
 
+func (o clientEvents) PurgedEventSeq(ctx context.Context, tid string) (int64, error) {
+	v, err := eventsCall(o.c, ctx, &storev1.EventsRequest{TenantId: tid}, o.c.rpc.PurgedEventSeq)
+	if err != nil {
+		return 0, err
+	}
+	return v.Seq, nil
+}
+func (s *Server) PurgedEventSeq(ctx context.Context, q *storev1.EventsRequest) (*storev1.EventsResponse, error) {
+	return s.eventsServe(q.TxId, func(r store.Events, out *storev1.EventsResponse) error {
+		n, err := r.PurgedEventSeq(ctx, q.TenantId)
+		out.Seq = n
+		return err
+	}), nil
+}
+
 func (o clientEvents) OldestEventSeq(ctx context.Context, tid string) (int64, error) {
 	v, err := eventsCall(o.c, ctx, &storev1.EventsRequest{TenantId: tid}, o.c.rpc.OldestEventSeq)
 	if err != nil {

@@ -17,6 +17,7 @@ type storedEvent struct {
 	pending   bool
 }
 type eventRing struct {
+	purged int64
 	events []storedEvent
 	start  int
 }
@@ -33,6 +34,7 @@ func (r *eventRing) append(e storedEvent) {
 	if len(r.events) < eventCapacity {
 		r.events = append(r.events, e)
 	} else {
+		r.purged = max(r.purged, r.events[r.start].event.Seq)
 		r.events[r.start] = e
 		r.start = (r.start + 1) % eventCapacity
 	}
@@ -66,7 +68,7 @@ func cloneEventDelivery(s *store.EventDelivery) *store.EventDelivery {
 func cloneEventRings(m map[string]*eventRing) map[string]*eventRing {
 	out := make(map[string]*eventRing, len(m))
 	for k, r := range m {
-		v := &eventRing{start: r.start, events: make([]storedEvent, len(r.events))}
+		v := &eventRing{purged: r.purged, start: r.start, events: make([]storedEvent, len(r.events))}
 		for i, e := range r.events {
 			v.events[i] = e
 			v.events[i].event = cloneEvent(e.event)
@@ -180,6 +182,17 @@ func (r events) LatestEventSeq(ctx context.Context, tid string) (int64, error) {
 	r.s.tenantEvents[tid].each(func(e storedEvent) { seq = e.event.Seq })
 	return seq, nil
 }
+func (r events) PurgedEventSeq(ctx context.Context, tid string) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	if ring := r.s.tenantEvents[tid]; ring != nil {
+		return ring.purged, nil
+	}
+	return 0, nil
+}
 func (r events) OldestEventSeq(ctx context.Context, tid string) (int64, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
@@ -205,10 +218,11 @@ func (r events) PurgeEvents(ctx context.Context, before time.Time, limit int) (i
 	}
 	n := 0
 	for tid, ring := range r.s.tenantEvents {
-		next := &eventRing{}
+		next := &eventRing{purged: ring.purged}
 		ring.each(func(e storedEvent) {
 			if n < limit && e.event.Time.Before(before) {
 				n++
+				next.purged = max(next.purged, e.event.Seq)
 				r.removeEventDeliveries(tid, e.event.ID)
 			} else {
 				next.append(e)

@@ -28,6 +28,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
+// Options carries deployment limits shared with the Management API.
+type Options struct{ EventsMaxStreams int }
+
 // Apply upserts everything in f. It never deletes. With f.Mode set to
 // ModeCreateOnly it only creates what does not exist yet and leaves every
 // existing entity as it is, so edits made in the console survive a restart.
@@ -36,22 +39,22 @@ import (
 // replicas seeding a fresh shared database both see a tenant (or client, or
 // user) as missing, and the loser's insert conflicts. On the retry the
 // winner's rows exist and are updated instead.
-func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
+func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper, options ...Options) error {
 	if hasActions(f) {
 		return errors.New("seed: Actions require ApplyWithActions")
 	}
-	return applyOrdinary(ctx, st, f, now, w)
+	return applyOrdinary(ctx, st, f, now, w, options...)
 }
 
-func applyOrdinary(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
-	err := apply(ctx, st, f, now, w)
+func applyOrdinary(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper, options ...Options) error {
+	err := apply(ctx, st, f, now, w, options...)
 	if errors.Is(err, store.ErrConflict) {
-		err = apply(ctx, st, f, now, w)
+		err = apply(ctx, st, f, now, w, options...)
 	}
 	return err
 }
 
-func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
+func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper, options ...Options) error {
 	ctx = events.WithContext(ctx, events.Context{})
 	if now == nil {
 		now = time.Now
@@ -65,7 +68,7 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 	}
 	return st.WithTx(ctx, func(tx store.Store) error {
 		for _, t := range f.Tenants {
-			if err := applyTenant(ctx, tx, f, t, now().UTC(), w); err != nil {
+			if err := applyTenant(ctx, tx, f, t, now().UTC(), w, options...); err != nil {
 				return fmt.Errorf("seed: tenant %q: %w", t.Name, err)
 			}
 		}
@@ -73,7 +76,7 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 	})
 }
 
-func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now time.Time, w keys.Wrapper) error {
+func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now time.Time, w keys.Wrapper, options ...Options) error {
 	createOnly := f.Mode == ModeCreateOnly
 	existing, err := st.Tenants().GetByName(ctx, in.Name)
 	if err == nil && existing.Origin == store.OriginAPI {
@@ -221,7 +224,7 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	if len(in.Actions) == 0 {
-		if err := applyEventStreams(ctx, st, tn.ID, in.EventStreams, now, w); err != nil {
+		if err := applyEventStreams(ctx, st, tn.ID, in.EventStreams, now, w, options...); err != nil {
 			return err
 		}
 	}

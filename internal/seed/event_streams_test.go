@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
 	"github.com/zeroauthy/zeroauthy/internal/eventrules"
+	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/eventstream"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
@@ -62,7 +63,7 @@ func TestSeedEventStreamsCreateOnly(t *testing.T) {
 			}
 			before, _, _ := st.Events().ListEventStreams(ctx, tn.ID, "", 100)
 			t.Setenv("SEED_EVENT_TOKEN", "")
-			if err = Apply(ctx, st, f, fixedNow, w); err != nil {
+			if err = Apply(ctx, st, f, fixedNow, w, Options{EventsMaxStreams: 1}); err != nil {
 				t.Fatal(err)
 			}
 			after, _, _ := st.Events().ListEventStreams(ctx, tn.ID, "", 100)
@@ -284,6 +285,51 @@ func TestSeedEventStreamValidation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if _, err := Parse([]byte(text)); err == nil {
 				t.Fatal("invalid seed accepted")
+			}
+		})
+	}
+}
+
+func TestSeedUsesConfiguredStreamLimit(t *testing.T) {
+	for _, c := range []struct {
+		limit, streams int
+		conflict       bool
+	}{{2, 3, true}, {20, 11, false}, {0, 11, true}, {0, 10, false}} {
+		t.Run(fmt.Sprintf("limit%d_streams%d", c.limit, c.streams), func(t *testing.T) {
+			ctx := t.Context()
+			st := events.Wrap(memory.New(), events.Config{MaxStreams: c.limit}) // app.build installs this before ApplyWithActions
+			var text strings.Builder
+			text.WriteString("tenants:\n- name: acme\n  domains: [acme.example.test]\n  event_streams:\n")
+			for i := 0; i < c.streams; i++ {
+				fmt.Fprintf(&text, "  - name: Stream %d\n    subscriptions: [{event_type: user.created}]\n    destination: {type: eventbridge, configuration: {aws_account_id: '123456789012', aws_region: us-east-1}}\n", i)
+			}
+			f, err := Parse([]byte(text.String()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = ApplyWithActions(ctx, st, f, fixedNow, testWrapper(t), nil, Options{EventsMaxStreams: c.limit})
+			if c.conflict && !errors.Is(err, store.ErrConflict) {
+				t.Fatalf("limit=%d streams=%d: expected quota rejection, got %v", c.limit, c.streams, err)
+			}
+			if !c.conflict && err != nil {
+				t.Fatalf("limit=%d streams=%d: allowed startup seed failed: %v", c.limit, c.streams, err)
+			}
+			if !c.conflict {
+				tn, err := st.Tenants().GetByName(ctx, "acme")
+				if err != nil {
+					t.Fatal(err)
+				}
+				before, _, err := st.Events().ListEventStreams(ctx, tn.ID, "", 100)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := ApplyWithActions(ctx, st, f, fixedNow, testWrapper(t), nil, Options{EventsMaxStreams: 2}); err != nil {
+					t.Fatal("lower quota changed existing resources", err)
+				}
+				after, _, err := st.Events().ListEventStreams(ctx, tn.ID, "", 100)
+				if err != nil || !reflect.DeepEqual(before, after) {
+					t.Fatal("reapply changed existing streams", err)
+				}
 			}
 		})
 	}
