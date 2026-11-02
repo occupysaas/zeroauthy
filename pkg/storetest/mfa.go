@@ -28,6 +28,39 @@ func MFA(t *testing.T, factory Factory) {
 		mustNoErr(t, s.Clients().Create(ctx, newClient("a", "c")))
 		return s
 	}
+	t.Run("MFAPhoneMethod", func(t *testing.T) {
+		s := setup(t)
+		a := &store.Authenticator{TenantID: "a", UserID: "u", ID: "phone", Type: "phone", Preferred: true, LastStep: 17, SignCount: 8, PublicData: []byte(`{"transports":["usb"]}`)}
+		field := reflect.ValueOf(a).Elem().FieldByName("PhoneMethod")
+		if !field.IsValid() {
+			t.Fatal("missing independently stored phone method")
+		}
+		field.SetString("sms")
+		mustNoErr(t, s.MFA().CreateAuthenticator(ctx, a))
+		got, e := s.MFA().GetAuthenticator(ctx, "a", "u", "phone")
+		mustNoErr(t, e)
+		if string(got.PublicData) != string(a.PublicData) {
+			t.Fatal("public metadata lost")
+		}
+		got.PublicData[0] = 'x'
+		check, e := s.MFA().GetAuthenticator(ctx, "a", "u", "phone")
+		mustNoErr(t, e)
+		if string(check.PublicData) != string(a.PublicData) {
+			t.Fatal("metadata clone leaked")
+		}
+		if reflect.ValueOf(got).Elem().FieldByName("PhoneMethod").String() != "sms" {
+			t.Fatal("phone method lost")
+		}
+		reflect.ValueOf(got).Elem().FieldByName("PhoneMethod").SetString("voice")
+		got.LastStep = 999
+		got.SignCount = 999
+		mustNoErr(t, s.MFA().UpdateAuthenticator(ctx, got))
+		got, e = s.MFA().GetAuthenticator(ctx, "a", "u", "phone")
+		mustNoErr(t, e)
+		if reflect.ValueOf(got).Elem().FieldByName("PhoneMethod").String() != "voice" || got.LastStep != 17 || got.SignCount != 8 || !got.Preferred || string(got.PublicData) != string(a.PublicData) {
+			t.Fatal("metadata update changed replay/preference state")
+		}
+	})
 	t.Run("MFARejectCrossTenantReferences", func(t *testing.T) {
 		s := setup(t)
 		mustNoErr(t, s.Users().Create(ctx, &store.User{TenantID: "b", UserID: "other"}))

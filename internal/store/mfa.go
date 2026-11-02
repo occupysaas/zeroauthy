@@ -19,6 +19,8 @@ type GuardianSettings struct {
 }
 type Authenticator struct {
 	TenantID, UserID, ID, Type, Name string // Type: totp|email|recovery-code|webauthn-roaming|webauthn-platform|phone
+	PhoneMethod                      string // preferred_authentication_method: sms or voice; separate from runtime Preferred.
+	PublicData                       []byte // JSON of the bounded public WebAuthn metadata allowlist, never secrets.
 	Confirmed, Preferred             bool
 	SealedSecret                     []byte // TOTP
 	LastStep                         int64  // last accepted TOTP step

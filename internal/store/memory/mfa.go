@@ -34,6 +34,7 @@ func cloneAuthenticator(v *store.Authenticator) *store.Authenticator {
 	n := *v
 	n.SealedSecret = bytes.Clone(v.SealedSecret)
 	n.CredentialID = bytes.Clone(v.CredentialID)
+	n.PublicData = bytes.Clone(v.PublicData)
 	n.PublicKey = bytes.Clone(v.PublicKey)
 	return &n
 }
@@ -126,7 +127,7 @@ func (r mfa) UpdateAuthenticator(_ context.Context, a *store.Authenticator) erro
 	if v == nil || v.UserID != a.UserID {
 		return store.ErrNotFound
 	}
-	v.Name, v.Preferred, v.Confirmed = a.Name, a.Preferred, a.Confirmed
+	v.Name, v.Preferred, v.Confirmed, v.PhoneMethod = a.Name, a.Preferred, a.Confirmed, a.PhoneMethod
 	return nil
 }
 func (r mfa) DeleteAuthenticator(_ context.Context, tid, uid, id string) error {

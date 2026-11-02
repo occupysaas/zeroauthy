@@ -3,6 +3,8 @@ package events
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/resourceview"
+	"reflect"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -13,6 +15,8 @@ type pendingEvent struct {
 	typ, tid, id string
 	event        *store.TenantEvent
 	previous     *store.User
+	previousMFA  []string
+	mfaOnly      bool
 }
 type capture struct {
 	store.Store
@@ -97,7 +101,17 @@ func (s *capture) WithTx(ctx context.Context, fn func(store.Store) error) error 
 			if err != nil {
 				return err
 			}
-			e, err := Build(v.ctx, tenant, v.typ, u, v.previous, time.Now())
+			methods, listErr := tx.MFA().ListAuthenticators(ctx, v.tid, v.id)
+			if listErr != nil && !errors.Is(listErr, store.ErrMFAUnavailable) {
+				return listErr
+			}
+			current := resourceview.UserWithMFA(u, methods)
+			if v.mfaOnly && reflect.DeepEqual(v.previousMFA, current["multifactor"]) {
+				continue
+			}
+			previous := resourceview.User(v.previous)
+			previous["multifactor"] = v.previousMFA
+			e, err := Build(v.ctx, tenant, v.typ, current, previous, time.Now())
 			if err != nil {
 				return err
 			}
@@ -130,6 +144,13 @@ func (s *capture) emit(ctx context.Context, tid, typ string, object, prior any) 
 	if err != nil {
 		return err
 	}
+	if u, ok := object.(*store.User); ok {
+		methods, e := s.Store.MFA().ListAuthenticators(ctx, u.TenantID, u.UserID)
+		if e != nil && !errors.Is(e, store.ErrMFAUnavailable) {
+			return e
+		}
+		object = resourceview.UserWithMFA(u, methods)
+	}
 	e, err := Build(ctx, tenant, typ, object, prior, time.Now())
 	if errors.Is(err, ErrNotEmitted) {
 		return nil
@@ -144,12 +165,14 @@ func (s *capture) userUpdated(ctx context.Context, prior *store.User) {
 	if s.pending == nil {
 		return
 	}
-	for _, p := range *s.pending {
+	for i, p := range *s.pending {
 		if p.typ == "user.updated" && p.tid == prior.TenantID && p.id == prior.UserID {
+			(*s.pending)[i].mfaOnly = false
 			return
 		}
 	}
-	*s.pending = append(*s.pending, pendingEvent{ctx: ctx, typ: "user.updated", tid: prior.TenantID, id: prior.UserID, previous: prior})
+	methods, _ := s.Store.MFA().ListAuthenticators(ctx, prior.TenantID, prior.UserID)
+	*s.pending = append(*s.pending, pendingEvent{ctx: ctx, typ: "user.updated", tid: prior.TenantID, id: prior.UserID, previous: prior, previousMFA: resourceview.Multifactor(methods)})
 }
 func (s *capture) Users() store.Users { return users{Users: s.Store.Users(), s: s} }
 func (s *capture) Connections() store.Connections {

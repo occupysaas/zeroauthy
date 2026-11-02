@@ -21033,6 +21033,8 @@ type MFAAuthenticator struct {
 	SignCount     uint32                 `protobuf:"varint,16,opt,name=sign_count,json=signCount,proto3" json:"sign_count,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,17,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	LastAuthAt    string                 `protobuf:"bytes,18,opt,name=last_auth_at,json=lastAuthAt,proto3" json:"last_auth_at,omitempty"`
+	PhoneMethod   string                 `protobuf:"bytes,19,opt,name=phone_method,json=phoneMethod,proto3" json:"phone_method,omitempty"`
+	PublicData    []byte                 `protobuf:"bytes,20,opt,name=public_data,json=publicData,proto3" json:"public_data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -21191,6 +21193,20 @@ func (x *MFAAuthenticator) GetLastAuthAt() string {
 		return x.LastAuthAt
 	}
 	return ""
+}
+
+func (x *MFAAuthenticator) GetPhoneMethod() string {
+	if x != nil {
+		return x.PhoneMethod
+	}
+	return ""
+}
+
+func (x *MFAAuthenticator) GetPublicData() []byte {
+	if x != nil {
+		return x.PublicData
+	}
+	return nil
 }
 
 type MFATokenMsg struct {
@@ -26499,7 +26515,7 @@ const file_store_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1a@\n" +
 	"\x12SealedSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"\x80\x04\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"\xc4\x04\n" +
 	"\x10MFAAuthenticator\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x0e\n" +
@@ -26523,7 +26539,10 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x11 \x01(\tR\tcreatedAt\x12 \n" +
 	"\flast_auth_at\x18\x12 \x01(\tR\n" +
-	"lastAuthAt\"\xcd\x01\n" +
+	"lastAuthAt\x12!\n" +
+	"\fphone_method\x18\x13 \x01(\tR\vphoneMethod\x12\x1f\n" +
+	"\vpublic_data\x18\x14 \x01(\fR\n" +
+	"publicData\"\xcd\x01\n" +
 	"\vMFATokenMsg\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x12\n" +
 	"\x04hash\x18\x02 \x01(\tR\x04hash\x12\x1b\n" +

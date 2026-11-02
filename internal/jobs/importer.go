@@ -3,9 +3,13 @@ package jobs
 import (
 	"bytes"
 	"context"
+	"encoding/base32"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"log/slog"
 	"maps"
 	"math"
@@ -73,6 +77,7 @@ var reservedAppMetadata = []string{
 // database scripts are never called: an import into a custom database
 // (which must be in import mode) writes zeroauthy's own copy of the users.
 type Importer struct {
+	Wrapper keys.Wrapper
 	// Mailer sends the completion email to the tenant's operators; nil
 	// sends none.
 	Mailer email.Mailer
@@ -157,7 +162,11 @@ func paramBool(j *store.Job, k string, def bool) bool {
 // Run implements Processor.
 func (p Importer) Run(ctx context.Context, st store.Store, j *store.Job, lease Lease) (status store.JobStatus, details string, err error) {
 	ctx = events.WithContext(ctx, events.Context{})
-	recs, details := ParseImportFile(j.Input)
+	input, openErr := openImportInput(p.Wrapper, j)
+	if openErr != nil {
+		return "", "", openErr
+	}
+	recs, details := ParseImportFile(input)
 	if details != "" {
 		p.log().InfoContext(ctx, "jobs: user import failed", "tenant", j.TenantID, "job", j.ID, "details", details)
 		p.notify(ctx, st, j, store.JobFailed, details, store.JobSummary{})
@@ -210,7 +219,7 @@ func (p Importer) Run(ctx context.Context, st store.Store, j *store.Job, lease L
 					next.Updated++
 				default:
 					next.Failed++
-					errs = append(errs, store.JobError{Index: i, User: plan[i].echo(), Errors: items})
+					errs = append(errs, store.JobError{Index: i, User: plan[i].echo(), Errors: maskImportMFAErrors(plan[i].obj, items)})
 				}
 			}
 			return tx.Jobs().Checkpoint(ctx, j.TenantID, j.ID, owner, end, next, errs)
@@ -294,7 +303,11 @@ func (r *importRecord) echo() any {
 	if r.obj == nil {
 		return storable(r.raw)
 	}
-	return storable((&passhash.Spec{}).Masked(r.obj))
+	out := (&passhash.Spec{}).Masked(r.obj)
+	if _, ok := out["mfa_factors"]; ok {
+		out["mfa_factors"] = "*****"
+	}
+	return storable(maskImportMFAValue(importMFAMasks(context.Background(), r.obj), out))
 }
 
 // planImport decodes every record and finds the duplicates within the
@@ -409,7 +422,10 @@ func typeItem(want string, got any, path string) store.JobErrorItem {
 }
 
 // fields is a record that passed the checks, normalized.
+type importMFAFactor struct{ typ, value string }
 type fields struct {
+	mfaFactors                            []importMFAFactor
+	hasMFAFactors                         bool
 	identities                            []store.Identity
 	identityKeys                          []store.FederatedIdentityKey
 	hasIdentities                         bool
@@ -571,11 +587,56 @@ func check(conn *store.Connection, obj map[string]any) (*fields, []store.JobErro
 		f.spec, f.customHash = spec, true
 	}
 	if v, ok := obj["mfa_factors"]; ok {
-		// Accepted and ignored: zeroauthy has no MFA yet (D-0044).
-		if _, isArr := v.([]any); !isArr {
+		f.hasMFAFactors = true
+		factors, valid := v.([]any)
+		if !valid {
 			items = append(items, typeItem("array", v, "mfa_factors"))
+		} else {
+			seen := map[string]bool{}
+			for i, raw := range factors {
+				path := fmt.Sprintf("mfa_factors[%d]", i)
+				bad := func() { items = append(items, item("INVALID_FORMAT", "Invalid MFA factor", path)) }
+				obj, ok := raw.(map[string]any)
+				if !ok || len(obj) != 1 {
+					bad()
+					continue
+				}
+				for typ, v := range obj {
+					cfg, ok := v.(map[string]any)
+					if !ok || seen[typ] {
+						bad()
+						continue
+					}
+					seen[typ] = true
+					key := "value"
+					if typ == "totp" {
+						key = "secret"
+					}
+					value, ok := cfg[key].(string)
+					if !ok || value == "" {
+						bad()
+						continue
+					}
+					valid := false
+					switch typ {
+					case "totp":
+						b, e := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(value)
+						valid = e == nil && len(b) > 0
+					case "email":
+						valid = identity.CheckEmail(value) == nil
+					case "phone":
+						valid = len(value) >= 2 && len(value) <= 30
+					}
+					if !valid {
+						bad()
+						continue
+					}
+					f.mfaFactors = append(f.mfaFactors, importMFAFactor{typ, value})
+				}
+			}
 		}
 	}
+
 	if raw, ok := obj["identities"]; ok {
 		f.hasIdentities = true
 		var identityItems []store.JobErrorItem
@@ -688,6 +749,9 @@ func (p Importer) insert(ctx context.Context, tx store.Store, conn *store.Connec
 	} else if err != nil {
 		return 0, nil, err
 	}
+	if err := p.importMFA(ctx, tx, u, f); err != nil {
+		return 0, nil, err
+	}
 	return outInserted, nil, nil
 }
 
@@ -755,6 +819,9 @@ func (p Importer) update(ctx context.Context, tx store.Store, conn *store.Connec
 	if err := tx.Users().Update(ctx, u); errors.Is(err, store.ErrConflict) {
 		return outFailed, []store.JobErrorItem{item("CONFLICT", "The user conflicts with another user of the connection", "")}, nil
 	} else if err != nil {
+		return 0, nil, err
+	}
+	if err := p.importMFA(ctx, tx, u, f); err != nil {
 		return 0, nil, err
 	}
 	return outUpdated, nil, nil
@@ -834,4 +901,84 @@ func Recipients(ctx context.Context, st store.Store, name string) ([]string, err
 	}
 	slices.Sort(out)
 	return out, nil
+}
+
+// importMFA runs inside the import's transaction; validation occurs before any
+// user write. Upsert replaces supplied factor types and preserves other types.
+func (p Importer) importMFA(ctx context.Context, tx store.Store, u *store.User, f *fields) error {
+	if !f.hasMFAFactors {
+		return nil
+	}
+	for _, factor := range f.mfaFactors {
+		a := &store.Authenticator{TenantID: u.TenantID, UserID: u.UserID, ID: factor.typ + "|dev_" + secrets.RandomString(20), Type: factor.typ, Confirmed: true, LastStep: -1, CreatedAt: p.now()}
+		switch factor.typ {
+		case "totp":
+			var err error
+			a.SealedSecret, err = mfa.SealTOTPSecret(p.Wrapper, u.TenantID, u.UserID, a.ID, factor.value)
+			if err != nil {
+				return err
+			}
+		case "email":
+			a.Email = factor.value
+		case "phone":
+			a.Phone = factor.value
+		}
+		if err := tx.MFA().DeleteUserAuthenticators(ctx, u.TenantID, u.UserID, []string{factor.typ}); err != nil {
+			return err
+		}
+		if err := tx.MFA().CreateAuthenticator(ctx, a); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func importMFAMasks(ctx context.Context, obj map[string]any) context.Context {
+	var register func(any)
+	register = func(v any) {
+		switch x := v.(type) {
+		case string:
+			ctx = logscrub.WithCredentials(ctx, x)
+		case map[string]any:
+			for _, v := range x {
+				register(v)
+			}
+		case []any:
+			for _, v := range x {
+				register(v)
+			}
+		}
+	}
+	register(obj["mfa_factors"])
+	return ctx
+}
+func maskImportMFAErrors(obj map[string]any, items []store.JobErrorItem) []store.JobErrorItem {
+	ctx := importMFAMasks(context.Background(), obj)
+	for i := range items {
+		items[i].Message = logscrub.MaskText(ctx, items[i].Message)
+		items[i].Path = logscrub.MaskText(ctx, items[i].Path)
+	}
+	return items
+}
+
+// Only replace registered factor material here. The import error contract's
+// existing password/hash masks and surrounding public structure stay intact.
+func maskImportMFAValue(ctx context.Context, v any) any {
+	switch x := v.(type) {
+	case string:
+		return logscrub.MaskText(ctx, x)
+	case map[string]any:
+		out := make(map[string]any, len(x))
+		for k, v := range x {
+			out[logscrub.MaskText(ctx, k)] = maskImportMFAValue(ctx, v)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, v := range x {
+			out[i] = maskImportMFAValue(ctx, v)
+		}
+		return out
+	}
+	return v
 }

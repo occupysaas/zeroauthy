@@ -51,7 +51,7 @@ var exportDates = map[string]bool{"created_at": true, "updated_at": true, "last_
 // neverExported are field names that would be a password hash. The user view
 // holds none, so they read as unknown fields; this keeps it so should a view
 // ever gain one.
-var neverExported = map[string]bool{"password_hash": true, "custom_password_hash": true}
+var neverExported = map[string]bool{"password_hash": true, "custom_password_hash": true, "authentication_methods": true, "mfa_factors": true, "authenticators": true}
 
 // Exporter runs users_export jobs: it walks the tenant's users in user_id
 // order (all, or those of one connection) and writes a gzipped CSV or

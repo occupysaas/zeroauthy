@@ -1513,7 +1513,7 @@ message EventsResponse {
 
 // MFA v1 uses RFC3339Nano timestamps (empty denotes zero time). Bytes are opaque.
 message MFAGuardian { string tenant_id = 1; map<string,bool> factors = 2; repeated string policies = 3; map<string,bytes> stored = 4; map<string,bytes> sealed_secrets = 5; int64 version = 6; }
-message MFAAuthenticator { string tenant_id=1; string user_id=2; string id=3; string type=4; string name=5; bool confirmed=6; bool preferred=7; bytes sealed_secret=8; int64 last_step=9; string code_hash=10; string email=11; string phone=12; bytes credential_id=13; bytes public_key=14; string rp_id=15; uint32 sign_count=16; string created_at=17; string last_auth_at=18; }
+message MFAAuthenticator { string tenant_id=1; string user_id=2; string id=3; string type=4; string name=5; bool confirmed=6; bool preferred=7; bytes sealed_secret=8; int64 last_step=9; string code_hash=10; string email=11; string phone=12; bytes credential_id=13; bytes public_key=14; string rp_id=15; uint32 sign_count=16; string created_at=17; string last_auth_at=18; string phone_method=19; bytes public_data=20; }
 message MFATokenMsg { string tenant_id=1; string hash=2; string client_id=3; string user_id=4; string connection=5; bytes request=6; string expires_at=7; }
 message MFAChallengeMsg { string tenant_id=1; string id=2; string user_id=3; string authenticator_id=4; string kind=5; string code_hash=6; bytes challenge=7; int64 attempts=8; string expires_at=9; }
 message MFAEnrollmentTicket { string tenant_id=1; string hash=2; string user_id=3; string factor=4; bool allow_multiple=5; string expires_at=6; }

@@ -78,12 +78,12 @@ func (r mfa) PutGuardian(ctx context.Context, v *store.GuardianSettings, ver int
 	})
 }
 
-const authCols = `tenant_id,user_id,id,type,name,confirmed,preferred,sealed_secret,last_step,code_hash,email,phone,credential_id,public_key,rp_id,sign_count,created_at,last_auth_at`
+const authCols = `tenant_id,user_id,id,type,name,confirmed,preferred,sealed_secret,last_step,code_hash,email,phone,credential_id,public_key,rp_id,sign_count,created_at,last_auth_at,phone_method,public_data`
 
 func scanAuth(row scanner) (*store.Authenticator, error) {
 	var a store.Authenticator
 	var created, last int64
-	err := row.Scan(&a.TenantID, &a.UserID, &a.ID, &a.Type, &a.Name, &a.Confirmed, &a.Preferred, &a.SealedSecret, &a.LastStep, &a.CodeHash, &a.Email, &a.Phone, &a.CredentialID, &a.PublicKey, &a.RPID, &a.SignCount, &created, &last)
+	err := row.Scan(&a.TenantID, &a.UserID, &a.ID, &a.Type, &a.Name, &a.Confirmed, &a.Preferred, &a.SealedSecret, &a.LastStep, &a.CodeHash, &a.Email, &a.Phone, &a.CredentialID, &a.PublicKey, &a.RPID, &a.SignCount, &created, &last, &a.PhoneMethod, &a.PublicData)
 	a.CreatedAt = fromMicros(created)
 	a.LastAuthAt = fromMicros(last)
 	if err != nil {
@@ -103,7 +103,7 @@ func (r mfa) CreateAuthenticator(ctx context.Context, a *store.Authenticator) er
 		if len(a.CredentialID) > 0 {
 			credential = a.CredentialID
 		}
-		_, err := s.exec(ctx, `INSERT INTO mfa_authenticators (`+authCols+`,recovery_user) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, a.TenantID, a.UserID, a.ID, a.Type, a.Name, a.Confirmed, a.Preferred, a.SealedSecret, a.LastStep, a.CodeHash, a.Email, a.Phone, credential, a.PublicKey, a.RPID, a.SignCount, micros(a.CreatedAt), micros(a.LastAuthAt), recovery)
+		_, err := s.exec(ctx, `INSERT INTO mfa_authenticators (`+authCols+`,recovery_user) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, a.TenantID, a.UserID, a.ID, a.Type, a.Name, a.Confirmed, a.Preferred, a.SealedSecret, a.LastStep, a.CodeHash, a.Email, a.Phone, credential, a.PublicKey, a.RPID, a.SignCount, micros(a.CreatedAt), micros(a.LastAuthAt), a.PhoneMethod, a.PublicData, recovery)
 		return s.conflict(err)
 	})
 }
@@ -127,7 +127,7 @@ func (r mfa) ListAuthenticators(ctx context.Context, tid, uid string) ([]store.A
 	return out, rows.Err()
 }
 func (r mfa) UpdateAuthenticator(ctx context.Context, a *store.Authenticator) error {
-	res, err := r.s.write(ctx, nil, `UPDATE mfa_authenticators SET name=?,preferred=?,confirmed=? WHERE tenant_id=? AND user_id=? AND id=?`, a.Name, a.Preferred, a.Confirmed, a.TenantID, a.UserID, a.ID)
+	res, err := r.s.write(ctx, nil, `UPDATE mfa_authenticators SET name=?,preferred=?,confirmed=?,phone_method=? WHERE tenant_id=? AND user_id=? AND id=?`, a.Name, a.Preferred, a.Confirmed, a.PhoneMethod, a.TenantID, a.UserID, a.ID)
 	if err != nil {
 		return err
 	}

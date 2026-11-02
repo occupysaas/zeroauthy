@@ -16,6 +16,17 @@ const ManagementAPIName = "Auth0 Management API"
 // ManagementAPIScopes are the Management API scopes, with Auth0's names,
 // for the resources zeroauthy stores. Later slices add more.
 var ManagementAPIScopes = []store.Scope{
+	{Value: "create:guardian_enrollment_tickets", Description: "create guardian enrollment tickets"},
+	{Value: "read:guardian_enrollments", Description: "read guardian enrollments"},
+	{Value: "delete:guardian_enrollments", Description: "delete guardian enrollments"},
+	{Value: "read:guardian_factors", Description: "read guardian factors"},
+	{Value: "update:guardian_factors", Description: "update guardian factors"},
+	{Value: "read:mfa_policies", Description: "read mfa policies"},
+	{Value: "update:mfa_policies", Description: "update mfa policies"},
+	{Value: "read:authentication_methods", Description: "read authentication methods"},
+	{Value: "delete:authentication_methods", Description: "delete authentication methods"},
+	{Value: "create:authentication_methods", Description: "create authentication methods"},
+	{Value: "update:authentication_methods", Description: "update authentication methods"},
 	{Value: "read:event_streams", Description: "Read event streams"},
 	{Value: "create:event_streams", Description: "Create event streams"},
 	{Value: "update:event_streams", Description: "Update event streams"},

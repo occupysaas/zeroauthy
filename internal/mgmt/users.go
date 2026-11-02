@@ -137,12 +137,16 @@ func UserJSON(u *store.User) map[string]any { return resourceview.User(u) }
 // userTime is Auth0's timestamp: RFC 3339 in UTC with milliseconds.
 func userTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }
 
-func userViews(us []*store.User, fields []string, include bool) []map[string]any {
+func (h *Handlers) userViews(r *http.Request, us []*store.User, fields []string, include bool) ([]map[string]any, error) {
 	out := make([]map[string]any, len(us))
 	for i, u := range us {
-		out[i] = ProjectKeeping(UserJSON(u), fields, include, nil)
+		view, err := h.userView(r, u)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = ProjectKeeping(view, fields, include, nil)
 	}
-	return out
+	return out, nil
 }
 
 // fieldError maps a userrules problem to Auth0's error.
@@ -213,7 +217,11 @@ func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.Ge
 		Fail(w, internalError(h, r, "list users", err))
 		return
 	}
-	out := userViews(got, fields, include)
+	out, err := h.userViews(r, got, fields, include)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
 	if !totals {
 		writeJSON(w, http.StatusOK, out)
 		return
@@ -256,7 +264,12 @@ func (h *Handlers) GetUsersByEmail(w http.ResponseWriter, r *http.Request, _ mgm
 		Fail(w, internalError(h, r, "find users by email", err))
 		return
 	}
-	writeJSON(w, http.StatusOK, userViews(got, fields, include))
+	out, err := h.userViews(r, got, fields, include)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // GetUser returns one user.
@@ -275,7 +288,11 @@ func (h *Handlers) GetUser(w http.ResponseWriter, r *http.Request, id string, _ 
 		Fail(w, err)
 		return
 	}
-	view := UserJSON(u)
+	view, err := h.userView(r, u)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
 	if caller, _ := CallerFrom(r.Context()); caller.Kind == M2M && slices.Contains(caller.Scopes, scopeIDPTokens) {
 		// Upstream tokens: individual GET only, to a client granted
 		// read:user_idp_tokens explicitly; never to operators (Plan 24).
@@ -602,7 +619,12 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if (in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && !u.EmailVerified && u.Email != "") {
 		h.sendVerification(r, u, "")
 	}
-	writeJSON(w, http.StatusCreated, UserJSON(u))
+	view, viewErr := h.userView(r, u)
+	if viewErr != nil {
+		Fail(w, viewErr)
+		return
+	}
+	writeJSON(w, http.StatusCreated, view)
 }
 
 // legacyCreate creates the user in a legacy store: get_user (when the
@@ -917,7 +939,12 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	if (in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && emailChanged && !out.EmailVerified) {
 		h.sendVerification(r, out, clientID)
 	}
-	writeJSON(w, http.StatusOK, UserJSON(out))
+	view, viewErr := h.userView(r, out)
+	if viewErr != nil {
+		Fail(w, viewErr)
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
 }
 
 // legacyPatch runs change_email or change_password on a legacy connection.

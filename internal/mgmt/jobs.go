@@ -499,6 +499,12 @@ func (h *Handlers) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) 
 	j.Params = map[string]any{
 		jobs.ParamUpsert: upsert, jobs.ParamSendCompletionEmail: sendEmail, jobs.ParamWeakHashes: jobs.WeakHashes(users),
 	}
+	if jobs.ImportInputNeedsSealing(users) {
+		if err := jobs.SealImportInput(h.Wrapper, j); err != nil {
+			Fail(w, internalError(h, r, "seal import input", err))
+			return
+		}
+	}
 	if err := h.createImportJob(r, j); err != nil {
 		Fail(w, err)
 		return

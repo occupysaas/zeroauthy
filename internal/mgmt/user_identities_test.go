@@ -274,7 +274,7 @@ func TestUnlinkUserIdentity(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("get recreated = %d %v", rec.Code, u)
 	}
-	want := map[string]any{"user_id": s, "email": "second@x.test", "email_verified": true, "name": "second@x.test", "nickname": "second",
+	want := map[string]any{"multifactor": []any{}, "user_id": s, "email": "second@x.test", "email_verified": true, "name": "second@x.test", "nickname": "second",
 		"created_at": u["created_at"], "updated_at": u["updated_at"],
 		"identities": []any{map[string]any{"connection": dbConn, "provider": "auth0", "user_id": strings.TrimPrefix(s, "auth0|"), "isSocial": false}}}
 	if !jsonEqual(u, want) {

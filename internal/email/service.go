@@ -26,6 +26,7 @@ var ErrServiceUnavailable = errors.New("email: delivery service is unavailable")
 
 type Event struct {
 	TenantID, UserID, ClientID, Template, Language, URL, OrganizationID string
+	Recipient                                                           string // Optional delivery address for Guardian enrollment invitations.
 	Variables                                                           map[string]any
 }
 type Policy struct {
@@ -278,14 +279,16 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 		return nil
 	}
 	if policy.Template == nil {
-		if event.Template != "mfa_oob_code" {
+		if event.Template != "mfa_oob_code" && event.Template != "enrollment_email" {
 			return store.ErrNotFound
 		}
-		policy.Template = &store.EmailTemplate{TenantID: event.TenantID, Name: event.Template, Fields: map[string]any{
-			"subject": "Your verification code",
-			"body":    "<p>Your verification code is {{ code }}. It expires in 5 minutes.</p>",
-		}}
+		fields := map[string]any{"subject": "Your verification code", "body": "<p>Your verification code is {{ code }}. It expires in 5 minutes.</p>"}
+		if event.Template == "enrollment_email" {
+			fields = map[string]any{"subject": "Enroll in multifactor authentication", "body": "<p><a href=\"{{ url }}\">Enroll in multifactor authentication</a></p>"}
+		}
+		policy.Template = &store.EmailTemplate{TenantID: event.TenantID, Name: event.Template, Fields: fields}
 	}
+
 	if s.Renderer == nil {
 		return ErrServiceUnavailable
 	}
@@ -354,6 +357,9 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 		from = "zeroauthy@localhost"
 	}
 	msg := Message{OrganizationID: event.OrganizationID, Type: event.Template, Locale: event.Language, UserID: event.UserID, ClientID: event.ClientID, From: from, To: user.Email, Subject: rendered.Subject, HTML: rendered.HTML, Text: htmlToText(rendered.HTML)}
+	if event.Template == "enrollment_email" && event.Recipient != "" {
+		msg.To = event.Recipient
+	}
 	if err = validateMessage(from, msg); err != nil {
 		return err
 	}

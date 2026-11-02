@@ -1279,14 +1279,20 @@
       "type": "gd_email_settings_update",
       "description": "The MFA email factor configuration changed.",
       "category": "management.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/management-success/gd-email-settings-update",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 Management API outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/guardian_stored.go",
+          "function": "guardianStored",
+          "when": "The MFA email factor configuration changed."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_enrollment_complete",
@@ -1559,14 +1565,25 @@
       "type": "gd_tenant_update",
       "description": "Tenant MFA configuration changed.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-tenant-update",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 Management API outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/guardian.go",
+          "function": "MFAOperation",
+          "when": "Tenant MFA configuration changed."
+        },
+        {
+          "file": "internal/mgmt/guardian_stored.go",
+          "function": "guardianStored",
+          "when": "Tenant MFA configuration changed."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_unenroll",
@@ -1583,6 +1600,16 @@
           "file": "internal/mfa/service.go",
           "function": "Unenroll",
           "when": "A second-factor device registration was removed."
+        },
+        {
+          "file": "internal/mgmt/user_auth_methods.go",
+          "function": "userMFA",
+          "when": "A Management API operation removes an enrolled authentication method."
+        },
+        {
+          "file": "internal/mgmt/user_auth_methods.go",
+          "function": "guardianEnrollment",
+          "when": "A Management API operation removes an enrolled authentication method."
         }
       ],
       "status": "emitted"
@@ -1591,14 +1618,20 @@
       "type": "gd_update_device_account",
       "description": "A second-factor device registration changed.",
       "category": "user.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-notification/gd-update-device-account",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 33 Management API outcome boundary.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/user_auth_methods.go",
+          "function": "userMFA",
+          "when": "A second-factor device registration changed."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_webauthn_challenge_failed",

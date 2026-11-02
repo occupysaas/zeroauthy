@@ -11,7 +11,7 @@ import (
 )
 
 func User(u *store.User) map[string]any {
-	m := map[string]any{"user_id": u.UserID, "created_at": userTime(u.CreatedAt), "updated_at": userTime(u.UpdatedAt)}
+	m := map[string]any{"multifactor": []string{}, "user_id": u.UserID, "created_at": userTime(u.CreatedAt), "updated_at": userTime(u.UpdatedAt)}
 	if u.Email != "" {
 		m["email"] = u.Email
 		m["email_verified"] = u.EmailVerified

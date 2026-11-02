@@ -149,7 +149,11 @@ func newImpEnv(t *testing.T, st store.Store) *impEnv {
 }
 
 func (e *impEnv) importer() Importer {
-	return Importer{Log: slog.New(slog.NewTextHandler(e.logs, nil)), Now: func() time.Time { return e.now }, Mailer: e.mail}
+	wrapper, err := keys.NewLocalWrapper(bytes.Repeat([]byte{8}, 32))
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	return Importer{Wrapper: wrapper, Log: slog.New(slog.NewTextHandler(e.logs, nil)), Now: func() time.Time { return e.now }, Mailer: e.mail}
 }
 
 func fileOf(t *testing.T, records any) []byte {

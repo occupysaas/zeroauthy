@@ -312,7 +312,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 				Sender: &login.VerificationMailer{Recorder: recorder, Store: st, Mailer: mailer, Email: tenantEmail, BaseDomain: cfg.Server.BaseDomain, Log: log},
 				Log:    log,
 			},
-			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
+			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log, Wrapper: wrapper},
 			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
 		Sweeps: []jobs.Sweep{{Name: "expired jobs", Every: sweepInterval,
