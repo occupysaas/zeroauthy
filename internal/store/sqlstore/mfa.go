@@ -224,7 +224,7 @@ func (r mfa) createJSON(ctx context.Context, table, keycol, tid, key, uid, clien
 		}
 		if client != "" {
 			var x int
-			if err := s.queryRow(ctx, `SELECT 1 FROM clients WHERE tenant_id=? AND client_id=?`, tid, client).Scan(&x); err != nil {
+			if err := s.queryRow(ctx, `SELECT 1 FROM clients WHERE tenant_id=? AND client_id=?`+s.d.forUpdate, tid, client).Scan(&x); err != nil {
 				return mfaMissing(err)
 			}
 		}
@@ -394,6 +394,7 @@ func (r mfa) BumpRememberEpoch(ctx context.Context, tid, uid string) error {
 func (r mfa) PurgeMFA(ctx context.Context, before time.Time, limit int) (int, error) {
 	n := 0
 	err := r.s.atomicRetry(ctx, r.s.sweep(), func(s *Store) error {
+		n = 0 // a retry starts after the previous transaction was rolled back
 		for _, v := range []struct{ table, key string }{{"mfa_tokens", "hash"}, {"mfa_challenges", "id"}, {"mfa_tickets", "hash"}, {"mfa_browsers", "hash"}} {
 			if limit > 0 && n >= limit {
 				break

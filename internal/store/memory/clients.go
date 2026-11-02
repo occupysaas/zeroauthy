@@ -63,6 +63,11 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 			delete(r.s.userGrants, gk)
 		}
 	}
+	for tk, token := range r.s.mfaTokens {
+		if tk.tenant == tenantID && token.ClientID == clientID {
+			delete(r.s.mfaTokens, tk)
+		}
+	}
 	for tk, t := range r.s.refreshTokens {
 		if tk.tenant == tenantID && t.ClientID == clientID {
 			delete(r.s.refreshTokens, tk)

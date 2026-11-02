@@ -76,3 +76,91 @@ func TestMFAConditionalUpdatesConcurrent(t *testing.T) {
 		})
 	}
 }
+
+func TestMFAMySQLMigrationResume33(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		if name != "mysql" {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 32)
+			ms, err := s.migrations()
+			mustEvent(t, err)
+			for _, m := range ms {
+				if m.version == 33 {
+					for _, stmt := range m.statements[:5] {
+						_, err = s.exec(t.Context(), stmt)
+						mustEvent(t, err)
+					}
+				}
+			}
+			version, err := s.SchemaVersion(t.Context())
+			mustEvent(t, err)
+			if version != 32 {
+				t.Fatal(version)
+			}
+			mustEvent(t, s.Migrate(t.Context()))
+			mustEvent(t, s.Migrate(t.Context()))
+			version, err = s.SchemaVersion(t.Context())
+			mustEvent(t, err)
+			if version != 33 {
+				t.Fatal(version)
+			}
+			mustEvent(t, s.Tenants().Create(t.Context(), &store.Tenant{ID: "t", Name: "t"}))
+			mustEvent(t, s.Users().Create(t.Context(), &store.User{TenantID: "t", UserID: "u"}))
+			mustEvent(t, s.MFA().CreateAuthenticator(t.Context(), &store.Authenticator{TenantID: "t", UserID: "u", ID: "a"}))
+		})
+	}
+}
+
+func TestMFATokenClientDeletionConcurrent(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			dsn := mk(t)
+			s := mustOpen(t, dsn)
+			other := mustOpenRaw(t, dsn)
+			ctx := context.Background()
+			mustEvent(t, s.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
+			mustEvent(t, s.Users().Create(ctx, &store.User{TenantID: "t", UserID: "u"}))
+			mustEvent(t, s.Clients().Create(ctx, &store.Client{TenantID: "t", ClientID: "c"}))
+			deleted := make(chan struct{})
+			release := make(chan struct{})
+			deleteDone := make(chan error, 1)
+			go func() {
+				deleteDone <- s.WithTx(ctx, func(tx store.Store) error {
+					if err := tx.Clients().Delete(ctx, "t", "c"); err != nil {
+						return err
+					}
+					close(deleted)
+					<-release
+					return nil
+				})
+			}()
+			<-deleted
+			created := make(chan error, 1)
+			go func() {
+				created <- other.MFA().CreateMFAToken(ctx, &store.MFAToken{TenantID: "t", UserID: "u", ClientID: "c", Hash: "h", ExpiresAt: time.Now().Add(time.Hour)})
+			}()
+			var createErr error
+			returned := false
+			select {
+			case createErr = <-created:
+				returned = true
+			case <-time.After(250 * time.Millisecond):
+			}
+			close(release)
+			mustEvent(t, <-deleteDone)
+			if !returned {
+				createErr = <-created
+			}
+			if createErr != nil && !errors.Is(createErr, store.ErrNotFound) {
+				t.Fatal(createErr)
+			}
+			mustEvent(t, s.Clients().Create(ctx, &store.Client{TenantID: "t", ClientID: "c"}))
+			_, err := s.MFA().PeekMFAToken(ctx, "t", "h", time.Now())
+			if !errors.Is(err, store.ErrNotFound) {
+				t.Fatalf("token survived client deletion: %v (create=%v)", err, createErr)
+			}
+		})
+	}
+}

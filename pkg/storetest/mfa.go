@@ -161,6 +161,31 @@ func MFA(t *testing.T, factory Factory) {
 		mustNoErr(t, s.MFA().AcceptSignCount(ctx, "a", "u", "id", 3, now))
 		mustErrIs(t, s.MFA().AcceptSignCount(ctx, "a", "u", "id", 3, now), store.ErrPrecondition)
 	})
+	t.Run("MFATokenClientDeletion", func(t *testing.T) {
+		s := setup(t)
+		mustNoErr(t, s.Clients().Create(ctx, newClient("a", "other")))
+		mustNoErr(t, s.Clients().Create(ctx, newClient("b", "c")))
+		for _, v := range []*store.MFAToken{
+			{TenantID: "a", UserID: "u", ClientID: "c", Hash: "bound", ExpiresAt: now.Add(time.Hour)},
+			{TenantID: "a", UserID: "u", ClientID: "other", Hash: "other", ExpiresAt: now.Add(time.Hour)},
+			{TenantID: "a", UserID: "u", Hash: "unbound", ExpiresAt: now.Add(time.Hour)},
+			{TenantID: "b", UserID: "u", ClientID: "c", Hash: "other-tenant", ExpiresAt: now.Add(time.Hour)},
+		} {
+			mustNoErr(t, s.MFA().CreateMFAToken(ctx, v))
+		}
+		mustNoErr(t, s.Clients().Delete(ctx, "a", "c"))
+		mustNoErr(t, s.Clients().Create(ctx, newClient("a", "c")))
+		_, err := s.MFA().PeekMFAToken(ctx, "a", "bound", now)
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.MFA().ConsumeMFAToken(ctx, "a", "bound", "c", now)
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.MFA().PeekMFAToken(ctx, "a", "other", now)
+		mustNoErr(t, err)
+		_, err = s.MFA().PeekMFAToken(ctx, "a", "unbound", now)
+		mustNoErr(t, err)
+		_, err = s.MFA().PeekMFAToken(ctx, "b", "other-tenant", now)
+		mustNoErr(t, err)
+	})
 	t.Run("MFATokenConsumeOnce", func(t *testing.T) {
 		s := setup(t)
 		v := &store.MFAToken{TenantID: "a", Hash: "h", ClientID: "c", UserID: "u", ExpiresAt: now.Add(time.Minute)}
