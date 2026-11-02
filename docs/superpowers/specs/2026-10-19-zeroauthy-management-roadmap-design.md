@@ -317,13 +317,15 @@ My Organization API/self-service organization administration Plan 42.
 
 **Designed 2026-11-02:** [spec](2026-11-02-zeroauthy-mfa-design.md), [plan](../plans/2026-11-02-zeroauthy-plan-33-mfa.md) (14 tasks, D-0059, migration 0033). Trimmed for v1.0 on 2026-11-02: WebAuthn MFA and passkeys move to Plan 33b, after 1.0. **v1.0 scope:** [release scope](2026-11-02-zeroauthy-v1-release-scope.md) (accepted 2026-11-02) sets what ships before 1.0 and reorders the remaining plans.
 
+**Task 1 contract freeze:** [implementation record](../2026-11-02-plan-33-implementation-record.md) and D-0059 record the public evidence and unobserved M1–M9 gaps; runtime remains under implementation.
+
 **Endpoints:** `/api/v2/guardian/factors` (`GET`, `PUT /{name}`), `/guardian/policies`, `/guardian/enrollments/{id}`, `POST /guardian/enrollments/ticket`, `/guardian/factors/sms|phone/...` templates and providers stored for Plan 34; user endpoints `/users/{id}/authentication-methods` (CRUD), `/users/{id}/enrollments`, `DELETE /users/{id}/multifactor/{provider}`, `POST /users/{id}/recovery-code-regeneration`, `POST /users/{id}/multifactor/actions/invalidate-remember-browser`.
 
-**Runtime:** factors `otp`, `email`, `recovery-code`, `webauthn-roaming`, `webauthn-platform` (passkeys as a second factor); policies (`all-applications`, `confidence-score`, never); MFA prompts on hosted login with remember-browser; the Authentication API `/mfa/associate`, `/mfa/challenge`, `/mfa/authenticators` and the `mfa-otp`, `mfa-oob`, `mfa-recovery-code` grants with `mfa_required` (the Plan 5 follow-up); `api.multifactor.enable` in post-login Actions; the MFA email templates from Plan 21. `push-notification` (needs Auth0's Guardian app) and `duo` stay stored, not enforced (§5).
+**Runtime:** enforced factors `otp`, `email`, `recovery-code`; WebAuthn flags stored until Plan 33b; policies (`all-applications`, `confidence-score`, never); MFA prompts on hosted login with remember-browser; the Authentication API `/mfa/associate`, `/mfa/challenge`, `/mfa/authenticators` and the `mfa-otp`, `mfa-oob`, `mfa-recovery-code` grants with `mfa_required` (the Plan 5 follow-up); `api.multifactor.enable` in post-login Actions; the MFA email templates from Plan 21. `push-notification` (needs Auth0's Guardian app) and `duo` stay stored, not enforced (§5).
 
-**Carried in:** `api.authentication.challengeWith`/`challengeWithAny` and `api.multifactor.enable` (fail closed since Plans 27–28) in post-login and `password-reset-post-challenge`; tenant `customize_mfa_in_postlogin_action` (stored since Plan 19); passkey connection options (D-0042) and the WebAuthn hosted-page controls Plan 22 deferred; WebAuthn RP ID enforcement for custom domains (stored-only since Plan 23); `acr`/`amr` values needed by Plan 41.
+**Carried in:** `api.authentication.challengeWith`/`challengeWithAny` and `api.multifactor.enable` (fail closed since Plans 27–28) in post-login and `password-reset-post-challenge`; tenant `customize_mfa_in_postlogin_action` (stored since Plan 19); passkey connection options (D-0042) (WebAuthn hosted-page controls and RP ID enforcement remain Plan 33b); `acr`/`amr` values needed by Plan 41.
 
-**E2E:** Playwright enrolment and challenge with a TOTP generator and a virtual WebAuthn authenticator; node-auth0 `guardian`; auth0-auth-js MFA grants.
+**E2E:** Playwright enrolment and challenge with a TOTP generator ; node-auth0 `guardian`; auth0-auth-js MFA grants.
 
 ### Plan 34 — Passwordless and phone (full design)
 

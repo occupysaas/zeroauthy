@@ -1337,28 +1337,28 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 
 // Defines values for ConnectionCreateStrategy.
 const (
-	Auth0        ConnectionCreateStrategy = "auth0"
-	GoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
-	Oauth2       ConnectionCreateStrategy = "oauth2"
-	Oidc         ConnectionCreateStrategy = "oidc"
-	Waad         ConnectionCreateStrategy = "waad"
-	Windowslive  ConnectionCreateStrategy = "windowslive"
+	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
+	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
+	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
+	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
+	ConnectionCreateStrategyWaad         ConnectionCreateStrategy = "waad"
+	ConnectionCreateStrategyWindowslive  ConnectionCreateStrategy = "windowslive"
 )
 
 // Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
 func (e ConnectionCreateStrategy) Valid() bool {
 	switch e {
-	case Auth0:
+	case ConnectionCreateStrategyAuth0:
 		return true
-	case GoogleOauth2:
+	case ConnectionCreateStrategyGoogleOauth2:
 		return true
-	case Oauth2:
+	case ConnectionCreateStrategyOauth2:
 		return true
-	case Oidc:
+	case ConnectionCreateStrategyOidc:
 		return true
-	case Waad:
+	case ConnectionCreateStrategyWaad:
 		return true
-	case Windowslive:
+	case ConnectionCreateStrategyWindowslive:
 		return true
 	default:
 		return false
@@ -4272,15 +4272,1056 @@ func (e LogStreamSumoSinkViewSumoSourceAddress) Valid() bool {
 	}
 }
 
+// Defines values for MFAAuthenticationMethodAuthenticationMethodsType.
+const (
+	MFAAuthenticationMethodAuthenticationMethodsTypePush  MFAAuthenticationMethodAuthenticationMethodsType = "push"
+	MFAAuthenticationMethodAuthenticationMethodsTypeSms   MFAAuthenticationMethodAuthenticationMethodsType = "sms"
+	MFAAuthenticationMethodAuthenticationMethodsTypeTotp  MFAAuthenticationMethodAuthenticationMethodsType = "totp"
+	MFAAuthenticationMethodAuthenticationMethodsTypeVoice MFAAuthenticationMethodAuthenticationMethodsType = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAAuthenticationMethodAuthenticationMethodsType enum.
+func (e MFAAuthenticationMethodAuthenticationMethodsType) Valid() bool {
+	switch e {
+	case MFAAuthenticationMethodAuthenticationMethodsTypePush:
+		return true
+	case MFAAuthenticationMethodAuthenticationMethodsTypeSms:
+		return true
+	case MFAAuthenticationMethodAuthenticationMethodsTypeTotp:
+		return true
+	case MFAAuthenticationMethodAuthenticationMethodsTypeVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAAuthenticationMethodPreferredAuthenticationMethod.
+const (
+	MFAAuthenticationMethodPreferredAuthenticationMethodSms   MFAAuthenticationMethodPreferredAuthenticationMethod = "sms"
+	MFAAuthenticationMethodPreferredAuthenticationMethodVoice MFAAuthenticationMethodPreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAAuthenticationMethodPreferredAuthenticationMethod enum.
+func (e MFAAuthenticationMethodPreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFAAuthenticationMethodPreferredAuthenticationMethodSms:
+		return true
+	case MFAAuthenticationMethodPreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAAuthenticationMethodType.
+const (
+	MFAAuthenticationMethodTypeEmail             MFAAuthenticationMethodType = "email"
+	MFAAuthenticationMethodTypeEmailVerification MFAAuthenticationMethodType = "email-verification"
+	MFAAuthenticationMethodTypeGuardian          MFAAuthenticationMethodType = "guardian"
+	MFAAuthenticationMethodTypePasskey           MFAAuthenticationMethodType = "passkey"
+	MFAAuthenticationMethodTypePassword          MFAAuthenticationMethodType = "password"
+	MFAAuthenticationMethodTypePhone             MFAAuthenticationMethodType = "phone"
+	MFAAuthenticationMethodTypePush              MFAAuthenticationMethodType = "push"
+	MFAAuthenticationMethodTypeRecoveryCode      MFAAuthenticationMethodType = "recovery-code"
+	MFAAuthenticationMethodTypeTotp              MFAAuthenticationMethodType = "totp"
+	MFAAuthenticationMethodTypeWebauthnPlatform  MFAAuthenticationMethodType = "webauthn-platform"
+	MFAAuthenticationMethodTypeWebauthnRoaming   MFAAuthenticationMethodType = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFAAuthenticationMethodType enum.
+func (e MFAAuthenticationMethodType) Valid() bool {
+	switch e {
+	case MFAAuthenticationMethodTypeEmail:
+		return true
+	case MFAAuthenticationMethodTypeEmailVerification:
+		return true
+	case MFAAuthenticationMethodTypeGuardian:
+		return true
+	case MFAAuthenticationMethodTypePasskey:
+		return true
+	case MFAAuthenticationMethodTypePassword:
+		return true
+	case MFAAuthenticationMethodTypePhone:
+		return true
+	case MFAAuthenticationMethodTypePush:
+		return true
+	case MFAAuthenticationMethodTypeRecoveryCode:
+		return true
+	case MFAAuthenticationMethodTypeTotp:
+		return true
+	case MFAAuthenticationMethodTypeWebauthnPlatform:
+		return true
+	case MFAAuthenticationMethodTypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateAuthenticationMethodCredentialDeviceType.
+const (
+	MFACreateAuthenticationMethodCredentialDeviceTypeMultiDevice  MFACreateAuthenticationMethodCredentialDeviceType = "multi_device"
+	MFACreateAuthenticationMethodCredentialDeviceTypeSingleDevice MFACreateAuthenticationMethodCredentialDeviceType = "single_device"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateAuthenticationMethodCredentialDeviceType enum.
+func (e MFACreateAuthenticationMethodCredentialDeviceType) Valid() bool {
+	switch e {
+	case MFACreateAuthenticationMethodCredentialDeviceTypeMultiDevice:
+		return true
+	case MFACreateAuthenticationMethodCredentialDeviceTypeSingleDevice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateAuthenticationMethodPreferredAuthenticationMethod.
+const (
+	MFACreateAuthenticationMethodPreferredAuthenticationMethodSms   MFACreateAuthenticationMethodPreferredAuthenticationMethod = "sms"
+	MFACreateAuthenticationMethodPreferredAuthenticationMethodVoice MFACreateAuthenticationMethodPreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateAuthenticationMethodPreferredAuthenticationMethod enum.
+func (e MFACreateAuthenticationMethodPreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFACreateAuthenticationMethodPreferredAuthenticationMethodSms:
+		return true
+	case MFACreateAuthenticationMethodPreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateAuthenticationMethodType.
+const (
+	MFACreateAuthenticationMethodTypeEmail           MFACreateAuthenticationMethodType = "email"
+	MFACreateAuthenticationMethodTypeTotp            MFACreateAuthenticationMethodType = "totp"
+	MFACreateAuthenticationMethodTypeWebauthnRoaming MFACreateAuthenticationMethodType = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateAuthenticationMethodType enum.
+func (e MFACreateAuthenticationMethodType) Valid() bool {
+	switch e {
+	case MFACreateAuthenticationMethodTypeEmail:
+		return true
+	case MFACreateAuthenticationMethodTypeTotp:
+		return true
+	case MFACreateAuthenticationMethodTypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateAuthenticationMethodsResponseAuthenticationMethodsType.
+const (
+	MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypePush  MFACreateAuthenticationMethodsResponseAuthenticationMethodsType = "push"
+	MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypeSms   MFACreateAuthenticationMethodsResponseAuthenticationMethodsType = "sms"
+	MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypeTotp  MFACreateAuthenticationMethodsResponseAuthenticationMethodsType = "totp"
+	MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypeVoice MFACreateAuthenticationMethodsResponseAuthenticationMethodsType = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateAuthenticationMethodsResponseAuthenticationMethodsType enum.
+func (e MFACreateAuthenticationMethodsResponseAuthenticationMethodsType) Valid() bool {
+	switch e {
+	case MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypePush:
+		return true
+	case MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypeSms:
+		return true
+	case MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypeTotp:
+		return true
+	case MFACreateAuthenticationMethodsResponseAuthenticationMethodsTypeVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateAuthenticationMethodsResponseCredentialDeviceType.
+const (
+	MFACreateAuthenticationMethodsResponseCredentialDeviceTypeMultiDevice  MFACreateAuthenticationMethodsResponseCredentialDeviceType = "multi_device"
+	MFACreateAuthenticationMethodsResponseCredentialDeviceTypeSingleDevice MFACreateAuthenticationMethodsResponseCredentialDeviceType = "single_device"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateAuthenticationMethodsResponseCredentialDeviceType enum.
+func (e MFACreateAuthenticationMethodsResponseCredentialDeviceType) Valid() bool {
+	switch e {
+	case MFACreateAuthenticationMethodsResponseCredentialDeviceTypeMultiDevice:
+		return true
+	case MFACreateAuthenticationMethodsResponseCredentialDeviceTypeSingleDevice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod.
+const (
+	MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethodSms   MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod = "sms"
+	MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethodVoice MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod enum.
+func (e MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethodSms:
+		return true
+	case MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateAuthenticationMethodsResponseType.
+const (
+	MFACreateAuthenticationMethodsResponseTypeEmail           MFACreateAuthenticationMethodsResponseType = "email"
+	MFACreateAuthenticationMethodsResponseTypePhone           MFACreateAuthenticationMethodsResponseType = "phone"
+	MFACreateAuthenticationMethodsResponseTypeTotp            MFACreateAuthenticationMethodsResponseType = "totp"
+	MFACreateAuthenticationMethodsResponseTypeWebauthnRoaming MFACreateAuthenticationMethodsResponseType = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateAuthenticationMethodsResponseType enum.
+func (e MFACreateAuthenticationMethodsResponseType) Valid() bool {
+	switch e {
+	case MFACreateAuthenticationMethodsResponseTypeEmail:
+		return true
+	case MFACreateAuthenticationMethodsResponseTypePhone:
+		return true
+	case MFACreateAuthenticationMethodsResponseTypeTotp:
+		return true
+	case MFACreateAuthenticationMethodsResponseTypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFACreateGuardianEnrollmentTicketRequestFactor.
+const (
+	MFACreateGuardianEnrollmentTicketRequestFactorEmail            MFACreateGuardianEnrollmentTicketRequestFactor = "email"
+	MFACreateGuardianEnrollmentTicketRequestFactorOtp              MFACreateGuardianEnrollmentTicketRequestFactor = "otp"
+	MFACreateGuardianEnrollmentTicketRequestFactorPhone            MFACreateGuardianEnrollmentTicketRequestFactor = "phone"
+	MFACreateGuardianEnrollmentTicketRequestFactorPushNotification MFACreateGuardianEnrollmentTicketRequestFactor = "push-notification"
+	MFACreateGuardianEnrollmentTicketRequestFactorWebauthnPlatform MFACreateGuardianEnrollmentTicketRequestFactor = "webauthn-platform"
+	MFACreateGuardianEnrollmentTicketRequestFactorWebauthnRoaming  MFACreateGuardianEnrollmentTicketRequestFactor = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFACreateGuardianEnrollmentTicketRequestFactor enum.
+func (e MFACreateGuardianEnrollmentTicketRequestFactor) Valid() bool {
+	switch e {
+	case MFACreateGuardianEnrollmentTicketRequestFactorEmail:
+		return true
+	case MFACreateGuardianEnrollmentTicketRequestFactorOtp:
+		return true
+	case MFACreateGuardianEnrollmentTicketRequestFactorPhone:
+		return true
+	case MFACreateGuardianEnrollmentTicketRequestFactorPushNotification:
+		return true
+	case MFACreateGuardianEnrollmentTicketRequestFactorWebauthnPlatform:
+		return true
+	case MFACreateGuardianEnrollmentTicketRequestFactorWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodResponseAuthenticationMethodsType.
+const (
+	MFAGetAuthenticationMethodResponseAuthenticationMethodsTypePush  MFAGetAuthenticationMethodResponseAuthenticationMethodsType = "push"
+	MFAGetAuthenticationMethodResponseAuthenticationMethodsTypeSms   MFAGetAuthenticationMethodResponseAuthenticationMethodsType = "sms"
+	MFAGetAuthenticationMethodResponseAuthenticationMethodsTypeTotp  MFAGetAuthenticationMethodResponseAuthenticationMethodsType = "totp"
+	MFAGetAuthenticationMethodResponseAuthenticationMethodsTypeVoice MFAGetAuthenticationMethodResponseAuthenticationMethodsType = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodResponseAuthenticationMethodsType enum.
+func (e MFAGetAuthenticationMethodResponseAuthenticationMethodsType) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodResponseAuthenticationMethodsTypePush:
+		return true
+	case MFAGetAuthenticationMethodResponseAuthenticationMethodsTypeSms:
+		return true
+	case MFAGetAuthenticationMethodResponseAuthenticationMethodsTypeTotp:
+		return true
+	case MFAGetAuthenticationMethodResponseAuthenticationMethodsTypeVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod.
+const (
+	MFAGetAuthenticationMethodResponsePreferredAuthenticationMethodSms   MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod = "sms"
+	MFAGetAuthenticationMethodResponsePreferredAuthenticationMethodVoice MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod enum.
+func (e MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodResponsePreferredAuthenticationMethodSms:
+		return true
+	case MFAGetAuthenticationMethodResponsePreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodResponseType.
+const (
+	MFAGetAuthenticationMethodResponseTypeEmail             MFAGetAuthenticationMethodResponseType = "email"
+	MFAGetAuthenticationMethodResponseTypeEmailVerification MFAGetAuthenticationMethodResponseType = "email-verification"
+	MFAGetAuthenticationMethodResponseTypeGuardian          MFAGetAuthenticationMethodResponseType = "guardian"
+	MFAGetAuthenticationMethodResponseTypePassword          MFAGetAuthenticationMethodResponseType = "password"
+	MFAGetAuthenticationMethodResponseTypePhone             MFAGetAuthenticationMethodResponseType = "phone"
+	MFAGetAuthenticationMethodResponseTypePush              MFAGetAuthenticationMethodResponseType = "push"
+	MFAGetAuthenticationMethodResponseTypeRecoveryCode      MFAGetAuthenticationMethodResponseType = "recovery-code"
+	MFAGetAuthenticationMethodResponseTypeTotp              MFAGetAuthenticationMethodResponseType = "totp"
+	MFAGetAuthenticationMethodResponseTypeWebauthnPlatform  MFAGetAuthenticationMethodResponseType = "webauthn-platform"
+	MFAGetAuthenticationMethodResponseTypeWebauthnRoaming   MFAGetAuthenticationMethodResponseType = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodResponseType enum.
+func (e MFAGetAuthenticationMethodResponseType) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodResponseTypeEmail:
+		return true
+	case MFAGetAuthenticationMethodResponseTypeEmailVerification:
+		return true
+	case MFAGetAuthenticationMethodResponseTypeGuardian:
+		return true
+	case MFAGetAuthenticationMethodResponseTypePassword:
+		return true
+	case MFAGetAuthenticationMethodResponseTypePhone:
+		return true
+	case MFAGetAuthenticationMethodResponseTypePush:
+		return true
+	case MFAGetAuthenticationMethodResponseTypeRecoveryCode:
+		return true
+	case MFAGetAuthenticationMethodResponseTypeTotp:
+		return true
+	case MFAGetAuthenticationMethodResponseTypeWebauthnPlatform:
+		return true
+	case MFAGetAuthenticationMethodResponseTypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType.
+const (
+	MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypePush  MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType = "push"
+	MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypeSms   MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType = "sms"
+	MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypeTotp  MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType = "totp"
+	MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypeVoice MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType enum.
+func (e MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypePush:
+		return true
+	case MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypeSms:
+		return true
+	case MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypeTotp:
+		return true
+	case MFAGetAuthenticationMethodsResponse0AuthenticationMethodsTypeVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod.
+const (
+	MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethodSms   MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod = "sms"
+	MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethodVoice MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod enum.
+func (e MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethodSms:
+		return true
+	case MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodsResponse0Type.
+const (
+	MFAGetAuthenticationMethodsResponse0TypeEmail             MFAGetAuthenticationMethodsResponse0Type = "email"
+	MFAGetAuthenticationMethodsResponse0TypeEmailVerification MFAGetAuthenticationMethodsResponse0Type = "email-verification"
+	MFAGetAuthenticationMethodsResponse0TypeGuardian          MFAGetAuthenticationMethodsResponse0Type = "guardian"
+	MFAGetAuthenticationMethodsResponse0TypePassword          MFAGetAuthenticationMethodsResponse0Type = "password"
+	MFAGetAuthenticationMethodsResponse0TypePhone             MFAGetAuthenticationMethodsResponse0Type = "phone"
+	MFAGetAuthenticationMethodsResponse0TypePush              MFAGetAuthenticationMethodsResponse0Type = "push"
+	MFAGetAuthenticationMethodsResponse0TypeRecoveryCode      MFAGetAuthenticationMethodsResponse0Type = "recovery-code"
+	MFAGetAuthenticationMethodsResponse0TypeTotp              MFAGetAuthenticationMethodsResponse0Type = "totp"
+	MFAGetAuthenticationMethodsResponse0TypeWebauthnPlatform  MFAGetAuthenticationMethodsResponse0Type = "webauthn-platform"
+	MFAGetAuthenticationMethodsResponse0TypeWebauthnRoaming   MFAGetAuthenticationMethodsResponse0Type = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodsResponse0Type enum.
+func (e MFAGetAuthenticationMethodsResponse0Type) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodsResponse0TypeEmail:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypeEmailVerification:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypeGuardian:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypePassword:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypePhone:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypePush:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypeRecoveryCode:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypeTotp:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypeWebauthnPlatform:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType.
+const (
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypePush  MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType = "push"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypeSms   MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType = "sms"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypeTotp  MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType = "totp"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypeVoice MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType enum.
+func (e MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypePush:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypeSms:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypeTotp:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsTypeVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod.
+const (
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethodSms   MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod = "sms"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethodVoice MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod enum.
+func (e MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethodSms:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetAuthenticationMethodsResponse1AuthenticatorsType.
+const (
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeEmail             MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "email"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeEmailVerification MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "email-verification"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeGuardian          MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "guardian"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePassword          MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "password"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePhone             MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "phone"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePush              MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "push"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeRecoveryCode      MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "recovery-code"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeTotp              MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "totp"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeWebauthnPlatform  MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "webauthn-platform"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeWebauthnRoaming   MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetAuthenticationMethodsResponse1AuthenticatorsType enum.
+func (e MFAGetAuthenticationMethodsResponse1AuthenticatorsType) Valid() bool {
+	switch e {
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeEmail:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeEmailVerification:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeGuardian:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePassword:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePhone:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePush:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeRecoveryCode:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeTotp:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeWebauthnPlatform:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetGuardianEnrollmentResponseStatus.
+const (
+	MFAGetGuardianEnrollmentResponseStatusConfirmed MFAGetGuardianEnrollmentResponseStatus = "confirmed"
+	MFAGetGuardianEnrollmentResponseStatusPending   MFAGetGuardianEnrollmentResponseStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetGuardianEnrollmentResponseStatus enum.
+func (e MFAGetGuardianEnrollmentResponseStatus) Valid() bool {
+	switch e {
+	case MFAGetGuardianEnrollmentResponseStatusConfirmed:
+		return true
+	case MFAGetGuardianEnrollmentResponseStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes.
+const (
+	MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypesSms   MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes = "sms"
+	MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypesVoice MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes enum.
+func (e MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes) Valid() bool {
+	switch e {
+	case MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypesSms:
+		return true
+	case MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypesVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider.
+const (
+	MFAGetGuardianFactorsPhoneSelectedProviderResponseProviderAuth0            MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider = "auth0"
+	MFAGetGuardianFactorsPhoneSelectedProviderResponseProviderPhoneMessageHook MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider = "phone-message-hook"
+	MFAGetGuardianFactorsPhoneSelectedProviderResponseProviderTwilio           MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider enum.
+func (e MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider) Valid() bool {
+	switch e {
+	case MFAGetGuardianFactorsPhoneSelectedProviderResponseProviderAuth0:
+		return true
+	case MFAGetGuardianFactorsPhoneSelectedProviderResponseProviderPhoneMessageHook:
+		return true
+	case MFAGetGuardianFactorsPhoneSelectedProviderResponseProviderTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider.
+const (
+	MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProviderDirect   MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider = "direct"
+	MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProviderGuardian MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider = "guardian"
+	MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProviderSns      MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider = "sns"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider enum.
+func (e MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider) Valid() bool {
+	switch e {
+	case MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProviderDirect:
+		return true
+	case MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProviderGuardian:
+		return true
+	case MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProviderSns:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetGuardianFactorsResponseName.
+const (
+	MFAGetGuardianFactorsResponseNameDuo              MFAGetGuardianFactorsResponseName = "duo"
+	MFAGetGuardianFactorsResponseNameEmail            MFAGetGuardianFactorsResponseName = "email"
+	MFAGetGuardianFactorsResponseNameOtp              MFAGetGuardianFactorsResponseName = "otp"
+	MFAGetGuardianFactorsResponseNamePushNotification MFAGetGuardianFactorsResponseName = "push-notification"
+	MFAGetGuardianFactorsResponseNameRecoveryCode     MFAGetGuardianFactorsResponseName = "recovery-code"
+	MFAGetGuardianFactorsResponseNameSms              MFAGetGuardianFactorsResponseName = "sms"
+	MFAGetGuardianFactorsResponseNameWebauthnPlatform MFAGetGuardianFactorsResponseName = "webauthn-platform"
+	MFAGetGuardianFactorsResponseNameWebauthnRoaming  MFAGetGuardianFactorsResponseName = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetGuardianFactorsResponseName enum.
+func (e MFAGetGuardianFactorsResponseName) Valid() bool {
+	switch e {
+	case MFAGetGuardianFactorsResponseNameDuo:
+		return true
+	case MFAGetGuardianFactorsResponseNameEmail:
+		return true
+	case MFAGetGuardianFactorsResponseNameOtp:
+		return true
+	case MFAGetGuardianFactorsResponseNamePushNotification:
+		return true
+	case MFAGetGuardianFactorsResponseNameRecoveryCode:
+		return true
+	case MFAGetGuardianFactorsResponseNameSms:
+		return true
+	case MFAGetGuardianFactorsResponseNameWebauthnPlatform:
+		return true
+	case MFAGetGuardianFactorsResponseNameWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetGuardianFactorsSmsSelectedProviderResponseProvider.
+const (
+	MFAGetGuardianFactorsSmsSelectedProviderResponseProviderAuth0            MFAGetGuardianFactorsSmsSelectedProviderResponseProvider = "auth0"
+	MFAGetGuardianFactorsSmsSelectedProviderResponseProviderPhoneMessageHook MFAGetGuardianFactorsSmsSelectedProviderResponseProvider = "phone-message-hook"
+	MFAGetGuardianFactorsSmsSelectedProviderResponseProviderTwilio           MFAGetGuardianFactorsSmsSelectedProviderResponseProvider = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetGuardianFactorsSmsSelectedProviderResponseProvider enum.
+func (e MFAGetGuardianFactorsSmsSelectedProviderResponseProvider) Valid() bool {
+	switch e {
+	case MFAGetGuardianFactorsSmsSelectedProviderResponseProviderAuth0:
+		return true
+	case MFAGetGuardianFactorsSmsSelectedProviderResponseProviderPhoneMessageHook:
+		return true
+	case MFAGetGuardianFactorsSmsSelectedProviderResponseProviderTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetUserEnrollmentsResponseAuthMethod.
+const (
+	MFAGetUserEnrollmentsResponseAuthMethodAuthenticator    MFAGetUserEnrollmentsResponseAuthMethod = "authenticator"
+	MFAGetUserEnrollmentsResponseAuthMethodGuardian         MFAGetUserEnrollmentsResponseAuthMethod = "guardian"
+	MFAGetUserEnrollmentsResponseAuthMethodSms              MFAGetUserEnrollmentsResponseAuthMethod = "sms"
+	MFAGetUserEnrollmentsResponseAuthMethodWebauthnPlatform MFAGetUserEnrollmentsResponseAuthMethod = "webauthn-platform"
+	MFAGetUserEnrollmentsResponseAuthMethodWebauthnRoaming  MFAGetUserEnrollmentsResponseAuthMethod = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetUserEnrollmentsResponseAuthMethod enum.
+func (e MFAGetUserEnrollmentsResponseAuthMethod) Valid() bool {
+	switch e {
+	case MFAGetUserEnrollmentsResponseAuthMethodAuthenticator:
+		return true
+	case MFAGetUserEnrollmentsResponseAuthMethodGuardian:
+		return true
+	case MFAGetUserEnrollmentsResponseAuthMethodSms:
+		return true
+	case MFAGetUserEnrollmentsResponseAuthMethodWebauthnPlatform:
+		return true
+	case MFAGetUserEnrollmentsResponseAuthMethodWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAGetUserEnrollmentsResponseStatus.
+const (
+	MFAGetUserEnrollmentsResponseStatusConfirmed MFAGetUserEnrollmentsResponseStatus = "confirmed"
+	MFAGetUserEnrollmentsResponseStatusPending   MFAGetUserEnrollmentsResponseStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the MFAGetUserEnrollmentsResponseStatus enum.
+func (e MFAGetUserEnrollmentsResponseStatus) Valid() bool {
+	switch e {
+	case MFAGetUserEnrollmentsResponseStatusConfirmed:
+		return true
+	case MFAGetUserEnrollmentsResponseStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod.
+const (
+	MFASetAuthenticationMethodsRequestPreferredAuthenticationMethodSms   MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod = "sms"
+	MFASetAuthenticationMethodsRequestPreferredAuthenticationMethodVoice MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod enum.
+func (e MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFASetAuthenticationMethodsRequestPreferredAuthenticationMethodSms:
+		return true
+	case MFASetAuthenticationMethodsRequestPreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetAuthenticationMethodsRequestType.
+const (
+	MFASetAuthenticationMethodsRequestTypeEmail MFASetAuthenticationMethodsRequestType = "email"
+	MFASetAuthenticationMethodsRequestTypePhone MFASetAuthenticationMethodsRequestType = "phone"
+	MFASetAuthenticationMethodsRequestTypeTotp  MFASetAuthenticationMethodsRequestType = "totp"
+)
+
+// Valid indicates whether the value is a known member of the MFASetAuthenticationMethodsRequestType enum.
+func (e MFASetAuthenticationMethodsRequestType) Valid() bool {
+	switch e {
+	case MFASetAuthenticationMethodsRequestTypeEmail:
+		return true
+	case MFASetAuthenticationMethodsRequestTypePhone:
+		return true
+	case MFASetAuthenticationMethodsRequestTypeTotp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetAuthenticationMethodsResponseAuthenticationMethodsType.
+const (
+	MFASetAuthenticationMethodsResponseAuthenticationMethodsTypePush  MFASetAuthenticationMethodsResponseAuthenticationMethodsType = "push"
+	MFASetAuthenticationMethodsResponseAuthenticationMethodsTypeSms   MFASetAuthenticationMethodsResponseAuthenticationMethodsType = "sms"
+	MFASetAuthenticationMethodsResponseAuthenticationMethodsTypeTotp  MFASetAuthenticationMethodsResponseAuthenticationMethodsType = "totp"
+	MFASetAuthenticationMethodsResponseAuthenticationMethodsTypeVoice MFASetAuthenticationMethodsResponseAuthenticationMethodsType = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFASetAuthenticationMethodsResponseAuthenticationMethodsType enum.
+func (e MFASetAuthenticationMethodsResponseAuthenticationMethodsType) Valid() bool {
+	switch e {
+	case MFASetAuthenticationMethodsResponseAuthenticationMethodsTypePush:
+		return true
+	case MFASetAuthenticationMethodsResponseAuthenticationMethodsTypeSms:
+		return true
+	case MFASetAuthenticationMethodsResponseAuthenticationMethodsTypeTotp:
+		return true
+	case MFASetAuthenticationMethodsResponseAuthenticationMethodsTypeVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod.
+const (
+	MFASetAuthenticationMethodsResponsePreferredAuthenticationMethodSms   MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod = "sms"
+	MFASetAuthenticationMethodsResponsePreferredAuthenticationMethodVoice MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod enum.
+func (e MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFASetAuthenticationMethodsResponsePreferredAuthenticationMethodSms:
+		return true
+	case MFASetAuthenticationMethodsResponsePreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetAuthenticationMethodsResponseType.
+const (
+	MFASetAuthenticationMethodsResponseTypeEmail           MFASetAuthenticationMethodsResponseType = "email"
+	MFASetAuthenticationMethodsResponseTypePhone           MFASetAuthenticationMethodsResponseType = "phone"
+	MFASetAuthenticationMethodsResponseTypeTotp            MFASetAuthenticationMethodsResponseType = "totp"
+	MFASetAuthenticationMethodsResponseTypeWebauthnRoaming MFASetAuthenticationMethodsResponseType = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFASetAuthenticationMethodsResponseType enum.
+func (e MFASetAuthenticationMethodsResponseType) Valid() bool {
+	switch e {
+	case MFASetAuthenticationMethodsResponseTypeEmail:
+		return true
+	case MFASetAuthenticationMethodsResponseTypePhone:
+		return true
+	case MFASetAuthenticationMethodsResponseTypeTotp:
+		return true
+	case MFASetAuthenticationMethodsResponseTypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes.
+const (
+	MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypesSms   MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes = "sms"
+	MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypesVoice MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes enum.
+func (e MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypesSms:
+		return true
+	case MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypesVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes.
+const (
+	MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypesSms   MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes = "sms"
+	MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypesVoice MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes enum.
+func (e MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypesSms:
+		return true
+	case MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypesVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsPhoneSelectedProviderRequestProvider.
+const (
+	MFASetGuardianFactorsPhoneSelectedProviderRequestProviderAuth0            MFASetGuardianFactorsPhoneSelectedProviderRequestProvider = "auth0"
+	MFASetGuardianFactorsPhoneSelectedProviderRequestProviderPhoneMessageHook MFASetGuardianFactorsPhoneSelectedProviderRequestProvider = "phone-message-hook"
+	MFASetGuardianFactorsPhoneSelectedProviderRequestProviderTwilio           MFASetGuardianFactorsPhoneSelectedProviderRequestProvider = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsPhoneSelectedProviderRequestProvider enum.
+func (e MFASetGuardianFactorsPhoneSelectedProviderRequestProvider) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsPhoneSelectedProviderRequestProviderAuth0:
+		return true
+	case MFASetGuardianFactorsPhoneSelectedProviderRequestProviderPhoneMessageHook:
+		return true
+	case MFASetGuardianFactorsPhoneSelectedProviderRequestProviderTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsPhoneSelectedProviderResponseProvider.
+const (
+	MFASetGuardianFactorsPhoneSelectedProviderResponseProviderAuth0            MFASetGuardianFactorsPhoneSelectedProviderResponseProvider = "auth0"
+	MFASetGuardianFactorsPhoneSelectedProviderResponseProviderPhoneMessageHook MFASetGuardianFactorsPhoneSelectedProviderResponseProvider = "phone-message-hook"
+	MFASetGuardianFactorsPhoneSelectedProviderResponseProviderTwilio           MFASetGuardianFactorsPhoneSelectedProviderResponseProvider = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsPhoneSelectedProviderResponseProvider enum.
+func (e MFASetGuardianFactorsPhoneSelectedProviderResponseProvider) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsPhoneSelectedProviderResponseProviderAuth0:
+		return true
+	case MFASetGuardianFactorsPhoneSelectedProviderResponseProviderPhoneMessageHook:
+		return true
+	case MFASetGuardianFactorsPhoneSelectedProviderResponseProviderTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider.
+const (
+	MFASetGuardianFactorsPushNotificationSelectedProviderRequestProviderDirect   MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider = "direct"
+	MFASetGuardianFactorsPushNotificationSelectedProviderRequestProviderGuardian MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider = "guardian"
+	MFASetGuardianFactorsPushNotificationSelectedProviderRequestProviderSns      MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider = "sns"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider enum.
+func (e MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsPushNotificationSelectedProviderRequestProviderDirect:
+		return true
+	case MFASetGuardianFactorsPushNotificationSelectedProviderRequestProviderGuardian:
+		return true
+	case MFASetGuardianFactorsPushNotificationSelectedProviderRequestProviderSns:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider.
+const (
+	MFASetGuardianFactorsPushNotificationSelectedProviderResponseProviderDirect   MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider = "direct"
+	MFASetGuardianFactorsPushNotificationSelectedProviderResponseProviderGuardian MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider = "guardian"
+	MFASetGuardianFactorsPushNotificationSelectedProviderResponseProviderSns      MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider = "sns"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider enum.
+func (e MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsPushNotificationSelectedProviderResponseProviderDirect:
+		return true
+	case MFASetGuardianFactorsPushNotificationSelectedProviderResponseProviderGuardian:
+		return true
+	case MFASetGuardianFactorsPushNotificationSelectedProviderResponseProviderSns:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsSmsSelectedProviderRequestProvider.
+const (
+	MFASetGuardianFactorsSmsSelectedProviderRequestProviderAuth0            MFASetGuardianFactorsSmsSelectedProviderRequestProvider = "auth0"
+	MFASetGuardianFactorsSmsSelectedProviderRequestProviderPhoneMessageHook MFASetGuardianFactorsSmsSelectedProviderRequestProvider = "phone-message-hook"
+	MFASetGuardianFactorsSmsSelectedProviderRequestProviderTwilio           MFASetGuardianFactorsSmsSelectedProviderRequestProvider = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsSmsSelectedProviderRequestProvider enum.
+func (e MFASetGuardianFactorsSmsSelectedProviderRequestProvider) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsSmsSelectedProviderRequestProviderAuth0:
+		return true
+	case MFASetGuardianFactorsSmsSelectedProviderRequestProviderPhoneMessageHook:
+		return true
+	case MFASetGuardianFactorsSmsSelectedProviderRequestProviderTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFASetGuardianFactorsSmsSelectedProviderResponseProvider.
+const (
+	MFASetGuardianFactorsSmsSelectedProviderResponseProviderAuth0            MFASetGuardianFactorsSmsSelectedProviderResponseProvider = "auth0"
+	MFASetGuardianFactorsSmsSelectedProviderResponseProviderPhoneMessageHook MFASetGuardianFactorsSmsSelectedProviderResponseProvider = "phone-message-hook"
+	MFASetGuardianFactorsSmsSelectedProviderResponseProviderTwilio           MFASetGuardianFactorsSmsSelectedProviderResponseProvider = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the MFASetGuardianFactorsSmsSelectedProviderResponseProvider enum.
+func (e MFASetGuardianFactorsSmsSelectedProviderResponseProvider) Valid() bool {
+	switch e {
+	case MFASetGuardianFactorsSmsSelectedProviderResponseProviderAuth0:
+		return true
+	case MFASetGuardianFactorsSmsSelectedProviderResponseProviderPhoneMessageHook:
+		return true
+	case MFASetGuardianFactorsSmsSelectedProviderResponseProviderTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod.
+const (
+	MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethodSms   MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod = "sms"
+	MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethodVoice MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod enum.
+func (e MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethodSms:
+		return true
+	case MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType.
+const (
+	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypePush  MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "push"
+	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeSms   MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "sms"
+	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeTotp  MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "totp"
+	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeVoice MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType enum.
+func (e MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType) Valid() bool {
+	switch e {
+	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypePush:
+		return true
+	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeSms:
+		return true
+	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeTotp:
+		return true
+	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod.
+const (
+	MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodSms   MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod = "sms"
+	MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodVoice MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod enum.
+func (e MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod) Valid() bool {
+	switch e {
+	case MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodSms:
+		return true
+	case MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAUpdateAuthenticationMethodResponseType.
+const (
+	MFAUpdateAuthenticationMethodResponseTypeEmail           MFAUpdateAuthenticationMethodResponseType = "email"
+	MFAUpdateAuthenticationMethodResponseTypePhone           MFAUpdateAuthenticationMethodResponseType = "phone"
+	MFAUpdateAuthenticationMethodResponseTypeTotp            MFAUpdateAuthenticationMethodResponseType = "totp"
+	MFAUpdateAuthenticationMethodResponseTypeWebauthnRoaming MFAUpdateAuthenticationMethodResponseType = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the MFAUpdateAuthenticationMethodResponseType enum.
+func (e MFAUpdateAuthenticationMethodResponseType) Valid() bool {
+	switch e {
+	case MFAUpdateAuthenticationMethodResponseTypeEmail:
+		return true
+	case MFAUpdateAuthenticationMethodResponseTypePhone:
+		return true
+	case MFAUpdateAuthenticationMethodResponseTypeTotp:
+		return true
+	case MFAUpdateAuthenticationMethodResponseTypeWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrganizationEffectiveRoleSources.
 const (
-	Direct OrganizationEffectiveRoleSources = "direct"
+	OrganizationEffectiveRoleSourcesDirect OrganizationEffectiveRoleSources = "direct"
 )
 
 // Valid indicates whether the value is a known member of the OrganizationEffectiveRoleSources enum.
 func (e OrganizationEffectiveRoleSources) Valid() bool {
 	switch e {
-	case Direct:
+	case OrganizationEffectiveRoleSourcesDirect:
 		return true
 	default:
 		return false
@@ -5445,6 +6486,42 @@ func (e TestTenantEmail200JSONResponseBodyStatus) Valid() bool {
 	}
 }
 
+// Defines values for SetGuardianFactorParamsName.
+const (
+	SetGuardianFactorParamsNameDuo              SetGuardianFactorParamsName = "duo"
+	SetGuardianFactorParamsNameEmail            SetGuardianFactorParamsName = "email"
+	SetGuardianFactorParamsNameOtp              SetGuardianFactorParamsName = "otp"
+	SetGuardianFactorParamsNamePushNotification SetGuardianFactorParamsName = "push-notification"
+	SetGuardianFactorParamsNameRecoveryCode     SetGuardianFactorParamsName = "recovery-code"
+	SetGuardianFactorParamsNameSms              SetGuardianFactorParamsName = "sms"
+	SetGuardianFactorParamsNameWebauthnPlatform SetGuardianFactorParamsName = "webauthn-platform"
+	SetGuardianFactorParamsNameWebauthnRoaming  SetGuardianFactorParamsName = "webauthn-roaming"
+)
+
+// Valid indicates whether the value is a known member of the SetGuardianFactorParamsName enum.
+func (e SetGuardianFactorParamsName) Valid() bool {
+	switch e {
+	case SetGuardianFactorParamsNameDuo:
+		return true
+	case SetGuardianFactorParamsNameEmail:
+		return true
+	case SetGuardianFactorParamsNameOtp:
+		return true
+	case SetGuardianFactorParamsNamePushNotification:
+		return true
+	case SetGuardianFactorParamsNameRecoveryCode:
+		return true
+	case SetGuardianFactorParamsNameSms:
+		return true
+	case SetGuardianFactorParamsNameWebauthnPlatform:
+		return true
+	case SetGuardianFactorParamsNameWebauthnRoaming:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetHooksParamsTriggerId.
 const (
 	GetHooksParamsTriggerIdCredentialsExchange  GetHooksParamsTriggerId = "credentials-exchange"
@@ -5517,6 +6594,24 @@ func (e GetUserLogsParamsSort) Valid() bool {
 	case GetUserLogsParamsSortDate1:
 		return true
 	case GetUserLogsParamsSortDate11:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeleteUserMultifactorParamsProvider.
+const (
+	DeleteUserMultifactorParamsProviderDuo                 DeleteUserMultifactorParamsProvider = "duo"
+	DeleteUserMultifactorParamsProviderGoogleAuthenticator DeleteUserMultifactorParamsProvider = "google-authenticator"
+)
+
+// Valid indicates whether the value is a known member of the DeleteUserMultifactorParamsProvider enum.
+func (e DeleteUserMultifactorParamsProvider) Valid() bool {
+	switch e {
+	case DeleteUserMultifactorParamsProviderDuo:
+		return true
+	case DeleteUserMultifactorParamsProviderGoogleAuthenticator:
 		return true
 	default:
 		return false
@@ -8631,6 +9726,819 @@ type LogStreamSumoSinkView struct {
 // LogStreamSumoSinkViewSumoSourceAddress Opaque credential replacement; raw configured values are never returned.
 type LogStreamSumoSinkViewSumoSourceAddress string
 
+// MFAAuthenticationMethod defines model for MFAAuthenticationMethod.
+type MFAAuthenticationMethod struct {
+	Aaguid                        *string                                               `json:"aaguid,omitempty"`
+	AuthenticationMethods         *[]MFAAuthenticationMethod_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
+	Confirmed                     *bool                                                 `json:"confirmed,omitempty"`
+	CreatedAt                     time.Time                                             `json:"created_at"`
+	CredentialBackedUp            *bool                                                 `json:"credential_backed_up,omitempty"`
+	CredentialDeviceType          *string                                               `json:"credential_device_type,omitempty"`
+	Email                         *string                                               `json:"email,omitempty"`
+	EnrolledAt                    *time.Time                                            `json:"enrolled_at,omitempty"`
+	Id                            string                                                `json:"id"`
+	IdentityUserId                *string                                               `json:"identity_user_id,omitempty"`
+	KeyId                         *string                                               `json:"key_id,omitempty"`
+	LastAuthAt                    *time.Time                                            `json:"last_auth_at,omitempty"`
+	LinkId                        *string                                               `json:"link_id,omitempty"`
+	Name                          *string                                               `json:"name,omitempty"`
+	PhoneNumber                   *string                                               `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFAAuthenticationMethodPreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+	PublicKey                     *string                                               `json:"public_key,omitempty"`
+	RelyingPartyIdentifier        *string                                               `json:"relying_party_identifier,omitempty"`
+	Transports                    *[]string                                             `json:"transports,omitempty"`
+	Type                          MFAAuthenticationMethodType                           `json:"type"`
+	UserAgent                     *string                                               `json:"user_agent,omitempty"`
+	UserHandle                    *string                                               `json:"user_handle,omitempty"`
+}
+
+// MFAAuthenticationMethodAuthenticationMethodsType defines model for MFAAuthenticationMethod.AuthenticationMethods.Type.
+type MFAAuthenticationMethodAuthenticationMethodsType string
+
+// MFAAuthenticationMethod_AuthenticationMethods_Item defines model for MFAAuthenticationMethod.authentication_methods.Item.
+type MFAAuthenticationMethod_AuthenticationMethods_Item struct {
+	Id                   *string                                           `json:"id,omitempty"`
+	Type                 *MFAAuthenticationMethodAuthenticationMethodsType `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                            `json:"-"`
+}
+
+// MFAAuthenticationMethodPreferredAuthenticationMethod defines model for MFAAuthenticationMethod.PreferredAuthenticationMethod.
+type MFAAuthenticationMethodPreferredAuthenticationMethod string
+
+// MFAAuthenticationMethodType defines model for MFAAuthenticationMethod.Type.
+type MFAAuthenticationMethodType string
+
+// MFACreateAuthenticationMethod defines model for MFACreateAuthenticationMethod.
+type MFACreateAuthenticationMethod struct {
+	Aaguid                        *openapi_types.UUID                                         `json:"aaguid,omitempty"`
+	CredentialBackedUp            *bool                                                       `json:"credential_backed_up,omitempty"`
+	CredentialDeviceType          *MFACreateAuthenticationMethodCredentialDeviceType          `json:"credential_device_type,omitempty"`
+	Email                         *string                                                     `json:"email,omitempty"`
+	IdentityUserId                *string                                                     `json:"identity_user_id,omitempty"`
+	KeyId                         *string                                                     `json:"key_id,omitempty"`
+	Name                          *string                                                     `json:"name,omitempty"`
+	PhoneNumber                   *string                                                     `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFACreateAuthenticationMethodPreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+	PublicKey                     *string                                                     `json:"public_key,omitempty"`
+	RelyingPartyIdentifier        *string                                                     `json:"relying_party_identifier,omitempty"`
+	TotpSecret                    *string                                                     `json:"totp_secret,omitempty"`
+	Transports                    *[]string                                                   `json:"transports,omitempty"`
+	Type                          MFACreateAuthenticationMethodType                           `json:"type"`
+	UserAgent                     *string                                                     `json:"user_agent,omitempty"`
+	UserHandle                    *string                                                     `json:"user_handle,omitempty"`
+}
+
+// MFACreateAuthenticationMethodCredentialDeviceType defines model for MFACreateAuthenticationMethod.CredentialDeviceType.
+type MFACreateAuthenticationMethodCredentialDeviceType string
+
+// MFACreateAuthenticationMethodPreferredAuthenticationMethod defines model for MFACreateAuthenticationMethod.PreferredAuthenticationMethod.
+type MFACreateAuthenticationMethodPreferredAuthenticationMethod string
+
+// MFACreateAuthenticationMethodType defines model for MFACreateAuthenticationMethod.Type.
+type MFACreateAuthenticationMethodType string
+
+// MFACreateAuthenticationMethodsResponse defines model for MFACreateAuthenticationMethodsResponse.
+type MFACreateAuthenticationMethodsResponse struct {
+	Aaguid                        *string                                                              `json:"aaguid,omitempty"`
+	AuthenticationMethods         *[]MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
+	CreatedAt                     *time.Time                                                           `json:"created_at,omitempty"`
+	CredentialBackedUp            *bool                                                                `json:"credential_backed_up,omitempty"`
+	CredentialDeviceType          *MFACreateAuthenticationMethodsResponseCredentialDeviceType          `json:"credential_device_type,omitempty"`
+	Email                         *string                                                              `json:"email,omitempty"`
+	Id                            *string                                                              `json:"id,omitempty"`
+	IdentityUserId                *string                                                              `json:"identity_user_id,omitempty"`
+	KeyId                         *string                                                              `json:"key_id,omitempty"`
+	Name                          *string                                                              `json:"name,omitempty"`
+	PhoneNumber                   *string                                                              `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+	PublicKey                     *string                                                              `json:"public_key,omitempty"`
+	RelyingPartyIdentifier        *string                                                              `json:"relying_party_identifier,omitempty"`
+	Transports                    *[]string                                                            `json:"transports,omitempty"`
+	Type                          MFACreateAuthenticationMethodsResponseType                           `json:"type"`
+	UserAgent                     *string                                                              `json:"user_agent,omitempty"`
+	UserHandle                    *string                                                              `json:"user_handle,omitempty"`
+}
+
+// MFACreateAuthenticationMethodsResponseAuthenticationMethodsType defines model for MFACreateAuthenticationMethodsResponse.AuthenticationMethods.Type.
+type MFACreateAuthenticationMethodsResponseAuthenticationMethodsType string
+
+// MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item defines model for MFACreateAuthenticationMethodsResponse.authentication_methods.Item.
+type MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item struct {
+	Id                   *string                                                          `json:"id,omitempty"`
+	Type                 *MFACreateAuthenticationMethodsResponseAuthenticationMethodsType `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                                           `json:"-"`
+}
+
+// MFACreateAuthenticationMethodsResponseCredentialDeviceType defines model for MFACreateAuthenticationMethodsResponse.CredentialDeviceType.
+type MFACreateAuthenticationMethodsResponseCredentialDeviceType string
+
+// MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod defines model for MFACreateAuthenticationMethodsResponse.PreferredAuthenticationMethod.
+type MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod string
+
+// MFACreateAuthenticationMethodsResponseType defines model for MFACreateAuthenticationMethodsResponse.Type.
+type MFACreateAuthenticationMethodsResponseType string
+
+// MFACreateGuardianEnrollmentTicketRequest defines model for MFACreateGuardianEnrollmentTicketRequest.
+type MFACreateGuardianEnrollmentTicketRequest struct {
+	AllowMultipleEnrollments *bool                                           `json:"allow_multiple_enrollments,omitempty"`
+	Email                    *openapi_types.Email                            `json:"email,omitempty"`
+	EmailLocale              *string                                         `json:"email_locale,omitempty"`
+	Factor                   *MFACreateGuardianEnrollmentTicketRequestFactor `json:"factor,omitempty"`
+	SendMail                 *bool                                           `json:"send_mail,omitempty"`
+	UserId                   string                                          `json:"user_id"`
+}
+
+// MFACreateGuardianEnrollmentTicketRequestFactor defines model for MFACreateGuardianEnrollmentTicketRequest.Factor.
+type MFACreateGuardianEnrollmentTicketRequestFactor string
+
+// MFACreateGuardianEnrollmentTicketResponse defines model for MFACreateGuardianEnrollmentTicketResponse.
+type MFACreateGuardianEnrollmentTicketResponse struct {
+	TicketId             *string                `json:"ticket_id,omitempty"`
+	TicketUrl            *string                `json:"ticket_url,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// MFACreateUserRecoveryCodeResponse defines model for MFACreateUserRecoveryCodeResponse.
+type MFACreateUserRecoveryCodeResponse struct {
+	RecoveryCode         *string                `json:"recovery_code,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// MFAGetAuthenticationMethodResponse defines model for MFAGetAuthenticationMethodResponse.
+type MFAGetAuthenticationMethodResponse struct {
+	Aaguid                        *string                                                          `json:"aaguid,omitempty"`
+	AuthenticationMethods         *[]MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
+	Confirmed                     *bool                                                            `json:"confirmed,omitempty"`
+	CreatedAt                     time.Time                                                        `json:"created_at"`
+	CredentialBackedUp            *bool                                                            `json:"credential_backed_up,omitempty"`
+	CredentialDeviceType          *string                                                          `json:"credential_device_type,omitempty"`
+	Email                         *string                                                          `json:"email,omitempty"`
+	EnrolledAt                    *time.Time                                                       `json:"enrolled_at,omitempty"`
+	Id                            string                                                           `json:"id"`
+	IdentityUserId                *string                                                          `json:"identity_user_id,omitempty"`
+	KeyId                         *string                                                          `json:"key_id,omitempty"`
+	LastAuthAt                    *time.Time                                                       `json:"last_auth_at,omitempty"`
+	LinkId                        *string                                                          `json:"link_id,omitempty"`
+	Name                          *string                                                          `json:"name,omitempty"`
+	PhoneNumber                   *string                                                          `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+	PublicKey                     *string                                                          `json:"public_key,omitempty"`
+	RelyingPartyIdentifier        *string                                                          `json:"relying_party_identifier,omitempty"`
+	Transports                    *[]string                                                        `json:"transports,omitempty"`
+	Type                          MFAGetAuthenticationMethodResponseType                           `json:"type"`
+	UserAgent                     *string                                                          `json:"user_agent,omitempty"`
+	UserHandle                    *string                                                          `json:"user_handle,omitempty"`
+}
+
+// MFAGetAuthenticationMethodResponseAuthenticationMethodsType defines model for MFAGetAuthenticationMethodResponse.AuthenticationMethods.Type.
+type MFAGetAuthenticationMethodResponseAuthenticationMethodsType string
+
+// MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item defines model for MFAGetAuthenticationMethodResponse.authentication_methods.Item.
+type MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item struct {
+	Id                   *string                                                      `json:"id,omitempty"`
+	Type                 *MFAGetAuthenticationMethodResponseAuthenticationMethodsType `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                                       `json:"-"`
+}
+
+// MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod defines model for MFAGetAuthenticationMethodResponse.PreferredAuthenticationMethod.
+type MFAGetAuthenticationMethodResponsePreferredAuthenticationMethod string
+
+// MFAGetAuthenticationMethodResponseType defines model for MFAGetAuthenticationMethodResponse.Type.
+type MFAGetAuthenticationMethodResponseType string
+
+// MFAGetAuthenticationMethodsResponse defines model for MFAGetAuthenticationMethodsResponse.
+type MFAGetAuthenticationMethodsResponse struct {
+	union json.RawMessage
+}
+
+// MFAGetAuthenticationMethodsResponse0 defines model for MFAGetAuthenticationMethodsResponse.0.
+type MFAGetAuthenticationMethodsResponse0 = []struct {
+	Aaguid                        *string                                                             `json:"aaguid,omitempty"`
+	AuthenticationMethods         *[]MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
+	Confirmed                     *bool                                                               `json:"confirmed,omitempty"`
+	CreatedAt                     time.Time                                                           `json:"created_at"`
+	CredentialBackedUp            *bool                                                               `json:"credential_backed_up,omitempty"`
+	CredentialDeviceType          *string                                                             `json:"credential_device_type,omitempty"`
+	Email                         *string                                                             `json:"email,omitempty"`
+	EnrolledAt                    *time.Time                                                          `json:"enrolled_at,omitempty"`
+	Id                            string                                                              `json:"id"`
+	IdentityUserId                *string                                                             `json:"identity_user_id,omitempty"`
+	KeyId                         *string                                                             `json:"key_id,omitempty"`
+	LastAuthAt                    *time.Time                                                          `json:"last_auth_at,omitempty"`
+	LinkId                        *string                                                             `json:"link_id,omitempty"`
+	Name                          *string                                                             `json:"name,omitempty"`
+	PhoneNumber                   *string                                                             `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod  `json:"preferred_authentication_method,omitempty"`
+	PublicKey                     *string                                                             `json:"public_key,omitempty"`
+	RelyingPartyIdentifier        *string                                                             `json:"relying_party_identifier,omitempty"`
+	Transports                    *[]string                                                           `json:"transports,omitempty"`
+	Type                          MFAGetAuthenticationMethodsResponse0Type                            `json:"type"`
+	UserAgent                     *string                                                             `json:"user_agent,omitempty"`
+	UserHandle                    *string                                                             `json:"user_handle,omitempty"`
+}
+
+// MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType defines model for MFAGetAuthenticationMethodsResponse.0.AuthenticationMethods.Type.
+type MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType string
+
+// MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item defines model for MFAGetAuthenticationMethodsResponse.0.AuthenticationMethods.Item.
+type MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item struct {
+	Id                   *string                                                        `json:"id,omitempty"`
+	Type                 *MFAGetAuthenticationMethodsResponse0AuthenticationMethodsType `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                                         `json:"-"`
+}
+
+// MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod defines model for MFAGetAuthenticationMethodsResponse.0.PreferredAuthenticationMethod.
+type MFAGetAuthenticationMethodsResponse0PreferredAuthenticationMethod string
+
+// MFAGetAuthenticationMethodsResponse0Type defines model for MFAGetAuthenticationMethodsResponse.0.Type.
+type MFAGetAuthenticationMethodsResponse0Type string
+
+// MFAGetAuthenticationMethodsResponse1 defines model for MFAGetAuthenticationMethodsResponse.1.
+type MFAGetAuthenticationMethodsResponse1 struct {
+	Authenticators *[]struct {
+		Aaguid                        *string                                                                            `json:"aaguid,omitempty"`
+		AuthenticationMethods         *[]MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
+		Confirmed                     *bool                                                                              `json:"confirmed,omitempty"`
+		CreatedAt                     time.Time                                                                          `json:"created_at"`
+		CredentialBackedUp            *bool                                                                              `json:"credential_backed_up,omitempty"`
+		CredentialDeviceType          *string                                                                            `json:"credential_device_type,omitempty"`
+		Email                         *string                                                                            `json:"email,omitempty"`
+		EnrolledAt                    *time.Time                                                                         `json:"enrolled_at,omitempty"`
+		Id                            string                                                                             `json:"id"`
+		IdentityUserId                *string                                                                            `json:"identity_user_id,omitempty"`
+		KeyId                         *string                                                                            `json:"key_id,omitempty"`
+		LastAuthAt                    *time.Time                                                                         `json:"last_auth_at,omitempty"`
+		LinkId                        *string                                                                            `json:"link_id,omitempty"`
+		Name                          *string                                                                            `json:"name,omitempty"`
+		PhoneNumber                   *string                                                                            `json:"phone_number,omitempty"`
+		PreferredAuthenticationMethod *MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod   `json:"preferred_authentication_method,omitempty"`
+		PublicKey                     *string                                                                            `json:"public_key,omitempty"`
+		RelyingPartyIdentifier        *string                                                                            `json:"relying_party_identifier,omitempty"`
+		Transports                    *[]string                                                                          `json:"transports,omitempty"`
+		Type                          MFAGetAuthenticationMethodsResponse1AuthenticatorsType                             `json:"type"`
+		UserAgent                     *string                                                                            `json:"user_agent,omitempty"`
+		UserHandle                    *string                                                                            `json:"user_handle,omitempty"`
+	} `json:"authenticators,omitempty"`
+	Limit *float32 `json:"limit,omitempty"`
+	Start *float32 `json:"start,omitempty"`
+	Total *float32 `json:"total,omitempty"`
+}
+
+// MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType defines model for MFAGetAuthenticationMethodsResponse.1.Authenticators.AuthenticationMethods.Type.
+type MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType string
+
+// MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item defines model for MFAGetAuthenticationMethodsResponse.1.authenticators.authentication_methods.Item.
+type MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item struct {
+	Id                   *string                                                                      `json:"id,omitempty"`
+	Type                 *MFAGetAuthenticationMethodsResponse1AuthenticatorsAuthenticationMethodsType `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                                                       `json:"-"`
+}
+
+// MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod defines model for MFAGetAuthenticationMethodsResponse.1.Authenticators.PreferredAuthenticationMethod.
+type MFAGetAuthenticationMethodsResponse1AuthenticatorsPreferredAuthenticationMethod string
+
+// MFAGetAuthenticationMethodsResponse1AuthenticatorsType defines model for MFAGetAuthenticationMethodsResponse.1.Authenticators.Type.
+type MFAGetAuthenticationMethodsResponse1AuthenticatorsType string
+
+// MFAGetGuardianEnrollmentResponse defines model for MFAGetGuardianEnrollmentResponse.
+type MFAGetGuardianEnrollmentResponse struct {
+	EnrolledAt  *string                                 `json:"enrolled_at,omitempty"`
+	Id          string                                  `json:"id"`
+	Identifier  *string                                 `json:"identifier,omitempty"`
+	LastAuth    *string                                 `json:"last_auth,omitempty"`
+	Name        *string                                 `json:"name,omitempty"`
+	PhoneNumber *string                                 `json:"phone_number,omitempty"`
+	Status      *MFAGetGuardianEnrollmentResponseStatus `json:"status,omitempty"`
+}
+
+// MFAGetGuardianEnrollmentResponseStatus defines model for MFAGetGuardianEnrollmentResponse.Status.
+type MFAGetGuardianEnrollmentResponseStatus string
+
+// MFAGetGuardianFactorsDuoSettingsResponse defines model for MFAGetGuardianFactorsDuoSettingsResponse.
+type MFAGetGuardianFactorsDuoSettingsResponse struct {
+	Host *string `json:"host,omitempty"`
+	Ikey *string `json:"ikey,omitempty"`
+}
+
+// MFAGetGuardianFactorsEmailSettingsResponse defines model for MFAGetGuardianFactorsEmailSettingsResponse.
+type MFAGetGuardianFactorsEmailSettingsResponse struct {
+	OtpExpirationTime int `json:"otp_expiration_time"`
+	OtpLength         int `json:"otp_length"`
+}
+
+// MFAGetGuardianFactorsPhoneMessageTypesResponse defines model for MFAGetGuardianFactorsPhoneMessageTypesResponse.
+type MFAGetGuardianFactorsPhoneMessageTypesResponse struct {
+	MessageTypes *[]MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes `json:"message_types,omitempty"`
+}
+
+// MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes defines model for MFAGetGuardianFactorsPhoneMessageTypesResponse.MessageTypes.
+type MFAGetGuardianFactorsPhoneMessageTypesResponseMessageTypes string
+
+// MFAGetGuardianFactorsPhoneProvidersTwilioResponse defines model for MFAGetGuardianFactorsPhoneProvidersTwilioResponse.
+type MFAGetGuardianFactorsPhoneProvidersTwilioResponse struct {
+	From                *string `json:"from,omitempty"`
+	MessagingServiceSid *string `json:"messaging_service_sid,omitempty"`
+	Sid                 *string `json:"sid,omitempty"`
+}
+
+// MFAGetGuardianFactorsPhoneSelectedProviderResponse defines model for MFAGetGuardianFactorsPhoneSelectedProviderResponse.
+type MFAGetGuardianFactorsPhoneSelectedProviderResponse struct {
+	Provider *MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider `json:"provider,omitempty"`
+}
+
+// MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider defines model for MFAGetGuardianFactorsPhoneSelectedProviderResponse.Provider.
+type MFAGetGuardianFactorsPhoneSelectedProviderResponseProvider string
+
+// MFAGetGuardianFactorsPhoneSettingsResponse defines model for MFAGetGuardianFactorsPhoneSettingsResponse.
+type MFAGetGuardianFactorsPhoneSettingsResponse struct {
+	OtpExpirationTime int `json:"otp_expiration_time"`
+	OtpLength         int `json:"otp_length"`
+}
+
+// MFAGetGuardianFactorsPhoneTemplatesResponse defines model for MFAGetGuardianFactorsPhoneTemplatesResponse.
+type MFAGetGuardianFactorsPhoneTemplatesResponse struct {
+	EnrollmentMessage   string `json:"enrollment_message"`
+	VerificationMessage string `json:"verification_message"`
+}
+
+// MFAGetGuardianFactorsPushNotificationProvidersApnsResponse defines model for MFAGetGuardianFactorsPushNotificationProvidersApnsResponse.
+type MFAGetGuardianFactorsPushNotificationProvidersApnsResponse struct {
+	BundleId *string `json:"bundle_id,omitempty"`
+	Enabled  *bool   `json:"enabled,omitempty"`
+	Sandbox  *bool   `json:"sandbox,omitempty"`
+}
+
+// MFAGetGuardianFactorsPushNotificationProvidersSnsResponse defines model for MFAGetGuardianFactorsPushNotificationProvidersSnsResponse.
+type MFAGetGuardianFactorsPushNotificationProvidersSnsResponse struct {
+	AwsAccessKeyId                *string `json:"aws_access_key_id,omitempty"`
+	AwsRegion                     *string `json:"aws_region,omitempty"`
+	SnsApnsPlatformApplicationArn *string `json:"sns_apns_platform_application_arn,omitempty"`
+	SnsGcmPlatformApplicationArn  *string `json:"sns_gcm_platform_application_arn,omitempty"`
+}
+
+// MFAGetGuardianFactorsPushNotificationSelectedProviderResponse defines model for MFAGetGuardianFactorsPushNotificationSelectedProviderResponse.
+type MFAGetGuardianFactorsPushNotificationSelectedProviderResponse struct {
+	Provider *MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider `json:"provider,omitempty"`
+}
+
+// MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider defines model for MFAGetGuardianFactorsPushNotificationSelectedProviderResponse.Provider.
+type MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider string
+
+// MFAGetGuardianFactorsResponse defines model for MFAGetGuardianFactorsResponse.
+type MFAGetGuardianFactorsResponse = []struct {
+	Enabled      bool                                    `json:"enabled"`
+	Name         *MFAGetGuardianFactorsResponseName      `json:"name,omitempty"`
+	Settings     *MFAGetGuardianFactorsResponse_Settings `json:"settings,omitempty"`
+	TrialExpired *bool                                   `json:"trial_expired,omitempty"`
+}
+
+// MFAGetGuardianFactorsResponseName defines model for MFAGetGuardianFactorsResponse.Name.
+type MFAGetGuardianFactorsResponseName string
+
+// MFAGetGuardianFactorsResponse_Settings defines model for MFAGetGuardianFactorsResponse.Settings.
+type MFAGetGuardianFactorsResponse_Settings struct {
+	OtpExpirationTime    *int                   `json:"otp_expiration_time,omitempty"`
+	OtpLength            *int                   `json:"otp_length,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// MFAGetGuardianFactorsSmsProvidersTwilioResponse defines model for MFAGetGuardianFactorsSmsProvidersTwilioResponse.
+type MFAGetGuardianFactorsSmsProvidersTwilioResponse struct {
+	From                *string `json:"from,omitempty"`
+	MessagingServiceSid *string `json:"messaging_service_sid,omitempty"`
+	Sid                 *string `json:"sid,omitempty"`
+}
+
+// MFAGetGuardianFactorsSmsSelectedProviderResponse defines model for MFAGetGuardianFactorsSmsSelectedProviderResponse.
+type MFAGetGuardianFactorsSmsSelectedProviderResponse struct {
+	Provider *MFAGetGuardianFactorsSmsSelectedProviderResponseProvider `json:"provider,omitempty"`
+}
+
+// MFAGetGuardianFactorsSmsSelectedProviderResponseProvider defines model for MFAGetGuardianFactorsSmsSelectedProviderResponse.Provider.
+type MFAGetGuardianFactorsSmsSelectedProviderResponseProvider string
+
+// MFAGetGuardianFactorsSmsTemplatesResponse defines model for MFAGetGuardianFactorsSmsTemplatesResponse.
+type MFAGetGuardianFactorsSmsTemplatesResponse struct {
+	EnrollmentMessage   string `json:"enrollment_message"`
+	VerificationMessage string `json:"verification_message"`
+}
+
+// MFAGetGuardianPoliciesResponse defines model for MFAGetGuardianPoliciesResponse.
+type MFAGetGuardianPoliciesResponse = []string
+
+// MFAGetGuardianSettingsResponse defines model for MFAGetGuardianSettingsResponse.
+type MFAGetGuardianSettingsResponse struct {
+	DisplayRememberMeCheckbox   bool `json:"display_remember_me_checkbox"`
+	MfaSessionInactivityTimeout int  `json:"mfa_session_inactivity_timeout"`
+	MfaSessionOverallTimeout    int  `json:"mfa_session_overall_timeout"`
+	RememberMeDefaultValue      bool `json:"remember_me_default_value"`
+}
+
+// MFAGetUserEnrollmentsResponse defines model for MFAGetUserEnrollmentsResponse.
+type MFAGetUserEnrollmentsResponse = []MFAGetUserEnrollmentsResponse_Item
+
+// MFAGetUserEnrollmentsResponseAuthMethod defines model for MFAGetUserEnrollmentsResponse.AuthMethod.
+type MFAGetUserEnrollmentsResponseAuthMethod string
+
+// MFAGetUserEnrollmentsResponseStatus defines model for MFAGetUserEnrollmentsResponse.Status.
+type MFAGetUserEnrollmentsResponseStatus string
+
+// MFAGetUserEnrollmentsResponse_Item defines model for MFAGetUserEnrollmentsResponse.Item.
+type MFAGetUserEnrollmentsResponse_Item struct {
+	AuthMethod           *MFAGetUserEnrollmentsResponseAuthMethod `json:"auth_method,omitempty"`
+	EnrolledAt           *time.Time                               `json:"enrolled_at,omitempty"`
+	Id                   *string                                  `json:"id,omitempty"`
+	Identifier           *string                                  `json:"identifier,omitempty"`
+	LastAuth             *time.Time                               `json:"last_auth,omitempty"`
+	Name                 *string                                  `json:"name,omitempty"`
+	PhoneNumber          *string                                  `json:"phone_number,omitempty"`
+	Status               *MFAGetUserEnrollmentsResponseStatus     `json:"status,omitempty"`
+	Type                 *string                                  `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                   `json:"-"`
+}
+
+// MFASetAuthenticationMethodsRequest defines model for MFASetAuthenticationMethodsRequest.
+type MFASetAuthenticationMethodsRequest = []struct {
+	Email                         *string                                                          `json:"email,omitempty"`
+	Name                          *string                                                          `json:"name,omitempty"`
+	PhoneNumber                   *string                                                          `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+	TotpSecret                    *string                                                          `json:"totp_secret,omitempty"`
+	Type                          MFASetAuthenticationMethodsRequestType                           `json:"type"`
+}
+
+// MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod defines model for MFASetAuthenticationMethodsRequest.PreferredAuthenticationMethod.
+type MFASetAuthenticationMethodsRequestPreferredAuthenticationMethod string
+
+// MFASetAuthenticationMethodsRequestType defines model for MFASetAuthenticationMethodsRequest.Type.
+type MFASetAuthenticationMethodsRequestType string
+
+// MFASetAuthenticationMethodsResponse defines model for MFASetAuthenticationMethodsResponse.
+type MFASetAuthenticationMethodsResponse = []struct {
+	Aaguid                        *string                                                           `json:"aaguid,omitempty"`
+	AuthenticationMethods         *[]MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
+	CreatedAt                     *time.Time                                                        `json:"created_at,omitempty"`
+	Email                         *string                                                           `json:"email,omitempty"`
+	Id                            *string                                                           `json:"id,omitempty"`
+	KeyId                         *string                                                           `json:"key_id,omitempty"`
+	Name                          *string                                                           `json:"name,omitempty"`
+	PhoneNumber                   *string                                                           `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+	PublicKey                     *string                                                           `json:"public_key,omitempty"`
+	RelyingPartyIdentifier        *string                                                           `json:"relying_party_identifier,omitempty"`
+	Type                          MFASetAuthenticationMethodsResponseType                           `json:"type"`
+}
+
+// MFASetAuthenticationMethodsResponseAuthenticationMethodsType defines model for MFASetAuthenticationMethodsResponse.AuthenticationMethods.Type.
+type MFASetAuthenticationMethodsResponseAuthenticationMethodsType string
+
+// MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item defines model for MFASetAuthenticationMethodsResponse.authentication_methods.Item.
+type MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item struct {
+	Id                   *string                                                       `json:"id,omitempty"`
+	Type                 *MFASetAuthenticationMethodsResponseAuthenticationMethodsType `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                                        `json:"-"`
+}
+
+// MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod defines model for MFASetAuthenticationMethodsResponse.PreferredAuthenticationMethod.
+type MFASetAuthenticationMethodsResponsePreferredAuthenticationMethod string
+
+// MFASetAuthenticationMethodsResponseType defines model for MFASetAuthenticationMethodsResponse.Type.
+type MFASetAuthenticationMethodsResponseType string
+
+// MFASetGuardianFactorRequest defines model for MFASetGuardianFactorRequest.
+type MFASetGuardianFactorRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+// MFASetGuardianFactorResponse defines model for MFASetGuardianFactorResponse.
+type MFASetGuardianFactorResponse struct {
+	Enabled bool `json:"enabled"`
+}
+
+// MFASetGuardianFactorsDuoSettingsRequest defines model for MFASetGuardianFactorsDuoSettingsRequest.
+type MFASetGuardianFactorsDuoSettingsRequest struct {
+	Host *string `json:"host,omitempty"`
+	Ikey *string `json:"ikey,omitempty"`
+	Skey *string `json:"skey,omitempty"`
+}
+
+// MFASetGuardianFactorsDuoSettingsResponse defines model for MFASetGuardianFactorsDuoSettingsResponse.
+type MFASetGuardianFactorsDuoSettingsResponse struct {
+	Host *string `json:"host,omitempty"`
+	Ikey *string `json:"ikey,omitempty"`
+}
+
+// MFASetGuardianFactorsEmailSettingsRequest defines model for MFASetGuardianFactorsEmailSettingsRequest.
+type MFASetGuardianFactorsEmailSettingsRequest struct {
+	OtpExpirationTime int `json:"otp_expiration_time"`
+	OtpLength         int `json:"otp_length"`
+}
+
+// MFASetGuardianFactorsEmailSettingsResponse defines model for MFASetGuardianFactorsEmailSettingsResponse.
+type MFASetGuardianFactorsEmailSettingsResponse struct {
+	OtpExpirationTime int `json:"otp_expiration_time"`
+	OtpLength         int `json:"otp_length"`
+}
+
+// MFASetGuardianFactorsPhoneMessageTypesRequest defines model for MFASetGuardianFactorsPhoneMessageTypesRequest.
+type MFASetGuardianFactorsPhoneMessageTypesRequest struct {
+	MessageTypes []MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes `json:"message_types"`
+}
+
+// MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes defines model for MFASetGuardianFactorsPhoneMessageTypesRequest.MessageTypes.
+type MFASetGuardianFactorsPhoneMessageTypesRequestMessageTypes string
+
+// MFASetGuardianFactorsPhoneMessageTypesResponse defines model for MFASetGuardianFactorsPhoneMessageTypesResponse.
+type MFASetGuardianFactorsPhoneMessageTypesResponse struct {
+	MessageTypes *[]MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes `json:"message_types,omitempty"`
+}
+
+// MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes defines model for MFASetGuardianFactorsPhoneMessageTypesResponse.MessageTypes.
+type MFASetGuardianFactorsPhoneMessageTypesResponseMessageTypes string
+
+// MFASetGuardianFactorsPhoneProvidersTwilioRequest defines model for MFASetGuardianFactorsPhoneProvidersTwilioRequest.
+type MFASetGuardianFactorsPhoneProvidersTwilioRequest struct {
+	AuthToken           *string `json:"auth_token,omitempty"`
+	From                *string `json:"from,omitempty"`
+	MessagingServiceSid *string `json:"messaging_service_sid,omitempty"`
+	Sid                 *string `json:"sid,omitempty"`
+}
+
+// MFASetGuardianFactorsPhoneProvidersTwilioResponse defines model for MFASetGuardianFactorsPhoneProvidersTwilioResponse.
+type MFASetGuardianFactorsPhoneProvidersTwilioResponse struct {
+	From                *string `json:"from,omitempty"`
+	MessagingServiceSid *string `json:"messaging_service_sid,omitempty"`
+	Sid                 *string `json:"sid,omitempty"`
+}
+
+// MFASetGuardianFactorsPhoneSelectedProviderRequest defines model for MFASetGuardianFactorsPhoneSelectedProviderRequest.
+type MFASetGuardianFactorsPhoneSelectedProviderRequest struct {
+	Provider MFASetGuardianFactorsPhoneSelectedProviderRequestProvider `json:"provider"`
+}
+
+// MFASetGuardianFactorsPhoneSelectedProviderRequestProvider defines model for MFASetGuardianFactorsPhoneSelectedProviderRequest.Provider.
+type MFASetGuardianFactorsPhoneSelectedProviderRequestProvider string
+
+// MFASetGuardianFactorsPhoneSelectedProviderResponse defines model for MFASetGuardianFactorsPhoneSelectedProviderResponse.
+type MFASetGuardianFactorsPhoneSelectedProviderResponse struct {
+	Provider *MFASetGuardianFactorsPhoneSelectedProviderResponseProvider `json:"provider,omitempty"`
+}
+
+// MFASetGuardianFactorsPhoneSelectedProviderResponseProvider defines model for MFASetGuardianFactorsPhoneSelectedProviderResponse.Provider.
+type MFASetGuardianFactorsPhoneSelectedProviderResponseProvider string
+
+// MFASetGuardianFactorsPhoneSettingsRequest defines model for MFASetGuardianFactorsPhoneSettingsRequest.
+type MFASetGuardianFactorsPhoneSettingsRequest struct {
+	OtpExpirationTime int `json:"otp_expiration_time"`
+	OtpLength         int `json:"otp_length"`
+}
+
+// MFASetGuardianFactorsPhoneSettingsResponse defines model for MFASetGuardianFactorsPhoneSettingsResponse.
+type MFASetGuardianFactorsPhoneSettingsResponse struct {
+	OtpExpirationTime int `json:"otp_expiration_time"`
+	OtpLength         int `json:"otp_length"`
+}
+
+// MFASetGuardianFactorsPhoneTemplatesRequest defines model for MFASetGuardianFactorsPhoneTemplatesRequest.
+type MFASetGuardianFactorsPhoneTemplatesRequest struct {
+	EnrollmentMessage   string `json:"enrollment_message"`
+	VerificationMessage string `json:"verification_message"`
+}
+
+// MFASetGuardianFactorsPhoneTemplatesResponse defines model for MFASetGuardianFactorsPhoneTemplatesResponse.
+type MFASetGuardianFactorsPhoneTemplatesResponse struct {
+	EnrollmentMessage   string `json:"enrollment_message"`
+	VerificationMessage string `json:"verification_message"`
+}
+
+// MFASetGuardianFactorsPushNotificationProvidersApnsRequest defines model for MFASetGuardianFactorsPushNotificationProvidersApnsRequest.
+type MFASetGuardianFactorsPushNotificationProvidersApnsRequest struct {
+	BundleId *string `json:"bundle_id,omitempty"`
+	P12      *string `json:"p12,omitempty"`
+	Sandbox  *bool   `json:"sandbox,omitempty"`
+}
+
+// MFASetGuardianFactorsPushNotificationProvidersApnsResponse defines model for MFASetGuardianFactorsPushNotificationProvidersApnsResponse.
+type MFASetGuardianFactorsPushNotificationProvidersApnsResponse struct {
+	BundleId *string `json:"bundle_id,omitempty"`
+	Sandbox  *bool   `json:"sandbox,omitempty"`
+}
+
+// MFASetGuardianFactorsPushNotificationProvidersFcmRequest defines model for MFASetGuardianFactorsPushNotificationProvidersFcmRequest.
+type MFASetGuardianFactorsPushNotificationProvidersFcmRequest struct {
+	ServerKey *string `json:"server_key,omitempty"`
+}
+
+// MFASetGuardianFactorsPushNotificationProvidersFcmResponse defines model for MFASetGuardianFactorsPushNotificationProvidersFcmResponse.
+type MFASetGuardianFactorsPushNotificationProvidersFcmResponse map[string]interface{}
+
+// MFASetGuardianFactorsPushNotificationProvidersFcmv1Request defines model for MFASetGuardianFactorsPushNotificationProvidersFcmv1Request.
+type MFASetGuardianFactorsPushNotificationProvidersFcmv1Request struct {
+	ServerCredentials *string `json:"server_credentials,omitempty"`
+}
+
+// MFASetGuardianFactorsPushNotificationProvidersFcmv1Response defines model for MFASetGuardianFactorsPushNotificationProvidersFcmv1Response.
+type MFASetGuardianFactorsPushNotificationProvidersFcmv1Response map[string]interface{}
+
+// MFASetGuardianFactorsPushNotificationProvidersSnsRequest defines model for MFASetGuardianFactorsPushNotificationProvidersSnsRequest.
+type MFASetGuardianFactorsPushNotificationProvidersSnsRequest struct {
+	AwsAccessKeyId                *string `json:"aws_access_key_id,omitempty"`
+	AwsRegion                     *string `json:"aws_region,omitempty"`
+	AwsSecretAccessKey            *string `json:"aws_secret_access_key,omitempty"`
+	SnsApnsPlatformApplicationArn *string `json:"sns_apns_platform_application_arn,omitempty"`
+	SnsGcmPlatformApplicationArn  *string `json:"sns_gcm_platform_application_arn,omitempty"`
+}
+
+// MFASetGuardianFactorsPushNotificationProvidersSnsResponse defines model for MFASetGuardianFactorsPushNotificationProvidersSnsResponse.
+type MFASetGuardianFactorsPushNotificationProvidersSnsResponse struct {
+	AwsAccessKeyId                *string `json:"aws_access_key_id,omitempty"`
+	AwsRegion                     *string `json:"aws_region,omitempty"`
+	SnsApnsPlatformApplicationArn *string `json:"sns_apns_platform_application_arn,omitempty"`
+	SnsGcmPlatformApplicationArn  *string `json:"sns_gcm_platform_application_arn,omitempty"`
+}
+
+// MFASetGuardianFactorsPushNotificationSelectedProviderRequest defines model for MFASetGuardianFactorsPushNotificationSelectedProviderRequest.
+type MFASetGuardianFactorsPushNotificationSelectedProviderRequest struct {
+	Provider MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider `json:"provider"`
+}
+
+// MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider defines model for MFASetGuardianFactorsPushNotificationSelectedProviderRequest.Provider.
+type MFASetGuardianFactorsPushNotificationSelectedProviderRequestProvider string
+
+// MFASetGuardianFactorsPushNotificationSelectedProviderResponse defines model for MFASetGuardianFactorsPushNotificationSelectedProviderResponse.
+type MFASetGuardianFactorsPushNotificationSelectedProviderResponse struct {
+	Provider *MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider `json:"provider,omitempty"`
+}
+
+// MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider defines model for MFASetGuardianFactorsPushNotificationSelectedProviderResponse.Provider.
+type MFASetGuardianFactorsPushNotificationSelectedProviderResponseProvider string
+
+// MFASetGuardianFactorsSmsProvidersTwilioRequest defines model for MFASetGuardianFactorsSmsProvidersTwilioRequest.
+type MFASetGuardianFactorsSmsProvidersTwilioRequest struct {
+	AuthToken           *string `json:"auth_token,omitempty"`
+	From                *string `json:"from,omitempty"`
+	MessagingServiceSid *string `json:"messaging_service_sid,omitempty"`
+	Sid                 *string `json:"sid,omitempty"`
+}
+
+// MFASetGuardianFactorsSmsProvidersTwilioResponse defines model for MFASetGuardianFactorsSmsProvidersTwilioResponse.
+type MFASetGuardianFactorsSmsProvidersTwilioResponse struct {
+	From                *string `json:"from,omitempty"`
+	MessagingServiceSid *string `json:"messaging_service_sid,omitempty"`
+	Sid                 *string `json:"sid,omitempty"`
+}
+
+// MFASetGuardianFactorsSmsSelectedProviderRequest defines model for MFASetGuardianFactorsSmsSelectedProviderRequest.
+type MFASetGuardianFactorsSmsSelectedProviderRequest struct {
+	Provider MFASetGuardianFactorsSmsSelectedProviderRequestProvider `json:"provider"`
+}
+
+// MFASetGuardianFactorsSmsSelectedProviderRequestProvider defines model for MFASetGuardianFactorsSmsSelectedProviderRequest.Provider.
+type MFASetGuardianFactorsSmsSelectedProviderRequestProvider string
+
+// MFASetGuardianFactorsSmsSelectedProviderResponse defines model for MFASetGuardianFactorsSmsSelectedProviderResponse.
+type MFASetGuardianFactorsSmsSelectedProviderResponse struct {
+	Provider *MFASetGuardianFactorsSmsSelectedProviderResponseProvider `json:"provider,omitempty"`
+}
+
+// MFASetGuardianFactorsSmsSelectedProviderResponseProvider defines model for MFASetGuardianFactorsSmsSelectedProviderResponse.Provider.
+type MFASetGuardianFactorsSmsSelectedProviderResponseProvider string
+
+// MFASetGuardianFactorsSmsTemplatesRequest defines model for MFASetGuardianFactorsSmsTemplatesRequest.
+type MFASetGuardianFactorsSmsTemplatesRequest struct {
+	EnrollmentMessage   string `json:"enrollment_message"`
+	VerificationMessage string `json:"verification_message"`
+}
+
+// MFASetGuardianFactorsSmsTemplatesResponse defines model for MFASetGuardianFactorsSmsTemplatesResponse.
+type MFASetGuardianFactorsSmsTemplatesResponse struct {
+	EnrollmentMessage   string `json:"enrollment_message"`
+	VerificationMessage string `json:"verification_message"`
+}
+
+// MFASetGuardianPoliciesRequest defines model for MFASetGuardianPoliciesRequest.
+type MFASetGuardianPoliciesRequest = []string
+
+// MFASetGuardianPoliciesResponse defines model for MFASetGuardianPoliciesResponse.
+type MFASetGuardianPoliciesResponse = []string
+
+// MFASetGuardianSettingsRequest defines model for MFASetGuardianSettingsRequest.
+type MFASetGuardianSettingsRequest struct {
+	DisplayRememberMeCheckbox   bool `json:"display_remember_me_checkbox"`
+	MfaSessionInactivityTimeout int  `json:"mfa_session_inactivity_timeout"`
+	MfaSessionOverallTimeout    int  `json:"mfa_session_overall_timeout"`
+	RememberMeDefaultValue      bool `json:"remember_me_default_value"`
+}
+
+// MFASetGuardianSettingsResponse defines model for MFASetGuardianSettingsResponse.
+type MFASetGuardianSettingsResponse struct {
+	DisplayRememberMeCheckbox   bool `json:"display_remember_me_checkbox"`
+	MfaSessionInactivityTimeout int  `json:"mfa_session_inactivity_timeout"`
+	MfaSessionOverallTimeout    int  `json:"mfa_session_overall_timeout"`
+	RememberMeDefaultValue      bool `json:"remember_me_default_value"`
+}
+
+// MFAUpdateAuthenticationMethodRequest defines model for MFAUpdateAuthenticationMethodRequest.
+type MFAUpdateAuthenticationMethodRequest struct {
+	Name                          *string                                                            `json:"name,omitempty"`
+	PreferredAuthenticationMethod *MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+}
+
+// MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod defines model for MFAUpdateAuthenticationMethodRequest.PreferredAuthenticationMethod.
+type MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod string
+
+// MFAUpdateAuthenticationMethodResponse defines model for MFAUpdateAuthenticationMethodResponse.
+type MFAUpdateAuthenticationMethodResponse struct {
+	Aaguid                        *string                                                             `json:"aaguid,omitempty"`
+	AuthenticationMethods         *[]MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
+	Confirmed                     *bool                                                               `json:"confirmed,omitempty"`
+	CreatedAt                     *time.Time                                                          `json:"created_at,omitempty"`
+	Email                         *string                                                             `json:"email,omitempty"`
+	Id                            *string                                                             `json:"id,omitempty"`
+	KeyId                         *string                                                             `json:"key_id,omitempty"`
+	Name                          *string                                                             `json:"name,omitempty"`
+	PhoneNumber                   *string                                                             `json:"phone_number,omitempty"`
+	PreferredAuthenticationMethod *MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
+	PublicKey                     *string                                                             `json:"public_key,omitempty"`
+	RelyingPartyIdentifier        *string                                                             `json:"relying_party_identifier,omitempty"`
+	Type                          MFAUpdateAuthenticationMethodResponseType                           `json:"type"`
+}
+
+// MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType defines model for MFAUpdateAuthenticationMethodResponse.AuthenticationMethods.Type.
+type MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType string
+
+// MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item defines model for MFAUpdateAuthenticationMethodResponse.authentication_methods.Item.
+type MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item struct {
+	Id                   *string                                                         `json:"id,omitempty"`
+	Type                 *MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}                                          `json:"-"`
+}
+
+// MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod defines model for MFAUpdateAuthenticationMethodResponse.PreferredAuthenticationMethod.
+type MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod string
+
+// MFAUpdateAuthenticationMethodResponseType defines model for MFAUpdateAuthenticationMethodResponse.Type.
+type MFAUpdateAuthenticationMethodResponseType string
+
+// MFAUpdateGuardianFactorsDuoSettingsRequest defines model for MFAUpdateGuardianFactorsDuoSettingsRequest.
+type MFAUpdateGuardianFactorsDuoSettingsRequest struct {
+	Host *string `json:"host,omitempty"`
+	Ikey *string `json:"ikey,omitempty"`
+	Skey *string `json:"skey,omitempty"`
+}
+
+// MFAUpdateGuardianFactorsDuoSettingsResponse defines model for MFAUpdateGuardianFactorsDuoSettingsResponse.
+type MFAUpdateGuardianFactorsDuoSettingsResponse struct {
+	Host *string `json:"host,omitempty"`
+	Ikey *string `json:"ikey,omitempty"`
+}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest defines model for MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest.
+type MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest struct {
+	BundleId *string `json:"bundle_id,omitempty"`
+	P12      *string `json:"p12,omitempty"`
+	Sandbox  *bool   `json:"sandbox,omitempty"`
+}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse defines model for MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse.
+type MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse struct {
+	BundleId *string `json:"bundle_id,omitempty"`
+	Sandbox  *bool   `json:"sandbox,omitempty"`
+}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest defines model for MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest.
+type MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest struct {
+	ServerKey *string `json:"server_key,omitempty"`
+}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse defines model for MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse.
+type MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse map[string]interface{}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request defines model for MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request.
+type MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request struct {
+	ServerCredentials *string `json:"server_credentials,omitempty"`
+}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response defines model for MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response.
+type MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response map[string]interface{}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest defines model for MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest.
+type MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest struct {
+	AwsAccessKeyId                *string `json:"aws_access_key_id,omitempty"`
+	AwsRegion                     *string `json:"aws_region,omitempty"`
+	AwsSecretAccessKey            *string `json:"aws_secret_access_key,omitempty"`
+	SnsApnsPlatformApplicationArn *string `json:"sns_apns_platform_application_arn,omitempty"`
+	SnsGcmPlatformApplicationArn  *string `json:"sns_gcm_platform_application_arn,omitempty"`
+}
+
+// MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse defines model for MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse.
+type MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse struct {
+	AwsAccessKeyId                *string `json:"aws_access_key_id,omitempty"`
+	AwsRegion                     *string `json:"aws_region,omitempty"`
+	SnsApnsPlatformApplicationArn *string `json:"sns_apns_platform_application_arn,omitempty"`
+	SnsGcmPlatformApplicationArn  *string `json:"sns_gcm_platform_application_arn,omitempty"`
+}
+
 // ManagedSigningKey defines model for ManagedSigningKey.
 type ManagedSigningKey struct {
 	Alg          string     `json:"alg"`
@@ -10073,12 +11981,15 @@ type User struct {
 	LastIp        *string                 `json:"last_ip,omitempty"`
 	LastLogin     *time.Time              `json:"last_login,omitempty"`
 	LoginsCount   *int                    `json:"logins_count,omitempty"`
-	Name          *string                 `json:"name,omitempty"`
-	Nickname      *string                 `json:"nickname,omitempty"`
-	PhoneNumber   *string                 `json:"phone_number,omitempty"`
-	PhoneVerified *bool                   `json:"phone_verified,omitempty"`
-	Picture       *string                 `json:"picture,omitempty"`
-	UpdatedAt     *time.Time              `json:"updated_at,omitempty"`
+
+	// Multifactor Derived from confirmed non-recovery methods; local default is [guardian] (D-0059).
+	Multifactor   *[]string  `json:"multifactor,omitempty"`
+	Name          *string    `json:"name,omitempty"`
+	Nickname      *string    `json:"nickname,omitempty"`
+	PhoneNumber   *string    `json:"phone_number,omitempty"`
+	PhoneVerified *bool      `json:"phone_verified,omitempty"`
+	Picture       *string    `json:"picture,omitempty"`
+	UpdatedAt     *time.Time `json:"updated_at,omitempty"`
 
 	// UserId `auth0|` and 24 lowercase hex characters for generated IDs.
 	UserId               *string                 `json:"user_id,omitempty"`
@@ -10768,6 +12679,14 @@ type GetGrants200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// CreateGuardianEnrollmentTicketParams defines parameters for CreateGuardianEnrollmentTicket.
+type CreateGuardianEnrollmentTicketParams struct {
+	Auth0CustomDomain *string `json:"auth0-custom-domain,omitempty"`
+}
+
+// SetGuardianFactorParamsName defines parameters for SetGuardianFactor.
+type SetGuardianFactorParamsName string
+
 // GetHooksParams defines parameters for GetHooks.
 type GetHooksParams struct {
 	// Page Page index of the results, from 0.
@@ -11244,6 +13163,13 @@ type GetUserParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetAuthenticationMethodsParams defines parameters for GetAuthenticationMethods.
+type GetAuthenticationMethodsParams struct {
+	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int  `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
 // GetUserLogsParams defines parameters for GetUserLogs.
 type GetUserLogsParams struct {
 	// Page 0-based; default 0; nonnegative; (page+1)*per_page <= 1000
@@ -11261,6 +13187,9 @@ type GetUserLogsParams struct {
 
 // GetUserLogsParamsSort defines parameters for GetUserLogs.
 type GetUserLogsParamsSort string
+
+// DeleteUserMultifactorParamsProvider defines parameters for DeleteUserMultifactor.
+type DeleteUserMultifactorParamsProvider string
 
 // ListUserOrganizationsParams defines parameters for ListUserOrganizations.
 type ListUserOrganizationsParams struct {
@@ -11468,6 +13397,78 @@ type RedeliverEventsJSONRequestBody = EventsCreateEventStreamRedeliveryRequestCo
 // TestEventStreamJSONRequestBody defines body for TestEventStream for application/json ContentType.
 type TestEventStreamJSONRequestBody = EventsCreateEventStreamTestEventRequestContent
 
+// CreateGuardianEnrollmentTicketJSONRequestBody defines body for CreateGuardianEnrollmentTicket for application/json ContentType.
+type CreateGuardianEnrollmentTicketJSONRequestBody = MFACreateGuardianEnrollmentTicketRequest
+
+// UpdateGuardianFactorsDuoSettingsJSONRequestBody defines body for UpdateGuardianFactorsDuoSettings for application/json ContentType.
+type UpdateGuardianFactorsDuoSettingsJSONRequestBody = MFAUpdateGuardianFactorsDuoSettingsRequest
+
+// SetGuardianFactorsDuoSettingsJSONRequestBody defines body for SetGuardianFactorsDuoSettings for application/json ContentType.
+type SetGuardianFactorsDuoSettingsJSONRequestBody = MFASetGuardianFactorsDuoSettingsRequest
+
+// SetGuardianFactorsEmailSettingsJSONRequestBody defines body for SetGuardianFactorsEmailSettings for application/json ContentType.
+type SetGuardianFactorsEmailSettingsJSONRequestBody = MFASetGuardianFactorsEmailSettingsRequest
+
+// SetGuardianFactorsPhoneMessageTypesJSONRequestBody defines body for SetGuardianFactorsPhoneMessageTypes for application/json ContentType.
+type SetGuardianFactorsPhoneMessageTypesJSONRequestBody = MFASetGuardianFactorsPhoneMessageTypesRequest
+
+// SetGuardianFactorsPhoneProvidersTwilioJSONRequestBody defines body for SetGuardianFactorsPhoneProvidersTwilio for application/json ContentType.
+type SetGuardianFactorsPhoneProvidersTwilioJSONRequestBody = MFASetGuardianFactorsPhoneProvidersTwilioRequest
+
+// SetGuardianFactorsPhoneSelectedProviderJSONRequestBody defines body for SetGuardianFactorsPhoneSelectedProvider for application/json ContentType.
+type SetGuardianFactorsPhoneSelectedProviderJSONRequestBody = MFASetGuardianFactorsPhoneSelectedProviderRequest
+
+// SetGuardianFactorsPhoneSettingsJSONRequestBody defines body for SetGuardianFactorsPhoneSettings for application/json ContentType.
+type SetGuardianFactorsPhoneSettingsJSONRequestBody = MFASetGuardianFactorsPhoneSettingsRequest
+
+// SetGuardianFactorsPhoneTemplatesJSONRequestBody defines body for SetGuardianFactorsPhoneTemplates for application/json ContentType.
+type SetGuardianFactorsPhoneTemplatesJSONRequestBody = MFASetGuardianFactorsPhoneTemplatesRequest
+
+// UpdateGuardianFactorsPushNotificationProvidersApnsJSONRequestBody defines body for UpdateGuardianFactorsPushNotificationProvidersApns for application/json ContentType.
+type UpdateGuardianFactorsPushNotificationProvidersApnsJSONRequestBody = MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest
+
+// SetGuardianFactorsPushNotificationProvidersApnsJSONRequestBody defines body for SetGuardianFactorsPushNotificationProvidersApns for application/json ContentType.
+type SetGuardianFactorsPushNotificationProvidersApnsJSONRequestBody = MFASetGuardianFactorsPushNotificationProvidersApnsRequest
+
+// UpdateGuardianFactorsPushNotificationProvidersFcmJSONRequestBody defines body for UpdateGuardianFactorsPushNotificationProvidersFcm for application/json ContentType.
+type UpdateGuardianFactorsPushNotificationProvidersFcmJSONRequestBody = MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest
+
+// SetGuardianFactorsPushNotificationProvidersFcmJSONRequestBody defines body for SetGuardianFactorsPushNotificationProvidersFcm for application/json ContentType.
+type SetGuardianFactorsPushNotificationProvidersFcmJSONRequestBody = MFASetGuardianFactorsPushNotificationProvidersFcmRequest
+
+// UpdateGuardianFactorsPushNotificationProvidersFcmv1JSONRequestBody defines body for UpdateGuardianFactorsPushNotificationProvidersFcmv1 for application/json ContentType.
+type UpdateGuardianFactorsPushNotificationProvidersFcmv1JSONRequestBody = MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request
+
+// SetGuardianFactorsPushNotificationProvidersFcmv1JSONRequestBody defines body for SetGuardianFactorsPushNotificationProvidersFcmv1 for application/json ContentType.
+type SetGuardianFactorsPushNotificationProvidersFcmv1JSONRequestBody = MFASetGuardianFactorsPushNotificationProvidersFcmv1Request
+
+// UpdateGuardianFactorsPushNotificationProvidersSnsJSONRequestBody defines body for UpdateGuardianFactorsPushNotificationProvidersSns for application/json ContentType.
+type UpdateGuardianFactorsPushNotificationProvidersSnsJSONRequestBody = MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest
+
+// SetGuardianFactorsPushNotificationProvidersSnsJSONRequestBody defines body for SetGuardianFactorsPushNotificationProvidersSns for application/json ContentType.
+type SetGuardianFactorsPushNotificationProvidersSnsJSONRequestBody = MFASetGuardianFactorsPushNotificationProvidersSnsRequest
+
+// SetGuardianFactorsPushNotificationSelectedProviderJSONRequestBody defines body for SetGuardianFactorsPushNotificationSelectedProvider for application/json ContentType.
+type SetGuardianFactorsPushNotificationSelectedProviderJSONRequestBody = MFASetGuardianFactorsPushNotificationSelectedProviderRequest
+
+// SetGuardianFactorsSmsProvidersTwilioJSONRequestBody defines body for SetGuardianFactorsSmsProvidersTwilio for application/json ContentType.
+type SetGuardianFactorsSmsProvidersTwilioJSONRequestBody = MFASetGuardianFactorsSmsProvidersTwilioRequest
+
+// SetGuardianFactorsSmsSelectedProviderJSONRequestBody defines body for SetGuardianFactorsSmsSelectedProvider for application/json ContentType.
+type SetGuardianFactorsSmsSelectedProviderJSONRequestBody = MFASetGuardianFactorsSmsSelectedProviderRequest
+
+// SetGuardianFactorsSmsTemplatesJSONRequestBody defines body for SetGuardianFactorsSmsTemplates for application/json ContentType.
+type SetGuardianFactorsSmsTemplatesJSONRequestBody = MFASetGuardianFactorsSmsTemplatesRequest
+
+// SetGuardianFactorJSONRequestBody defines body for SetGuardianFactor for application/json ContentType.
+type SetGuardianFactorJSONRequestBody = MFASetGuardianFactorRequest
+
+// SetGuardianPoliciesJSONRequestBody defines body for SetGuardianPolicies for application/json ContentType.
+type SetGuardianPoliciesJSONRequestBody = MFASetGuardianPoliciesRequest
+
+// SetGuardianSettingsJSONRequestBody defines body for SetGuardianSettings for application/json ContentType.
+type SetGuardianSettingsJSONRequestBody = MFASetGuardianSettingsRequest
+
 // CreateUsersExportJobJSONRequestBody defines body for CreateUsersExportJob for application/json ContentType.
 type CreateUsersExportJobJSONRequestBody = UsersExportJobCreate
 
@@ -11581,6 +13582,15 @@ type CreateUserJSONRequestBody = UserCreate
 
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = UserUpdate
+
+// CreateAuthenticationMethodsJSONRequestBody defines body for CreateAuthenticationMethods for application/json ContentType.
+type CreateAuthenticationMethodsJSONRequestBody = MFACreateAuthenticationMethod
+
+// SetAuthenticationMethodsJSONRequestBody defines body for SetAuthenticationMethods for application/json ContentType.
+type SetAuthenticationMethodsJSONRequestBody = MFASetAuthenticationMethodsRequest
+
+// UpdateAuthenticationMethodJSONRequestBody defines body for UpdateAuthenticationMethod for application/json ContentType.
+type UpdateAuthenticationMethodJSONRequestBody = MFAUpdateAuthenticationMethodRequest
 
 // LinkUserIdentityJSONRequestBody defines body for LinkUserIdentity for application/json ContentType.
 type LinkUserIdentityJSONRequestBody = UserIdentityLink
@@ -12364,6 +14374,1009 @@ func (a Job) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for MFAAuthenticationMethod_AuthenticationMethods_Item. Returns the specified
+// element and whether it was found
+func (a MFAAuthenticationMethod_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFAAuthenticationMethod_AuthenticationMethods_Item
+func (a *MFAAuthenticationMethod_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFAAuthenticationMethod_AuthenticationMethods_Item to handle AdditionalProperties
+func (a *MFAAuthenticationMethod_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFAAuthenticationMethod_AuthenticationMethods_Item to handle AdditionalProperties
+func (a MFAAuthenticationMethod_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item. Returns the specified
+// element and whether it was found
+func (a MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item
+func (a *MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a *MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a MFACreateAuthenticationMethodsResponse_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFACreateGuardianEnrollmentTicketResponse. Returns the specified
+// element and whether it was found
+func (a MFACreateGuardianEnrollmentTicketResponse) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFACreateGuardianEnrollmentTicketResponse
+func (a *MFACreateGuardianEnrollmentTicketResponse) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFACreateGuardianEnrollmentTicketResponse to handle AdditionalProperties
+func (a *MFACreateGuardianEnrollmentTicketResponse) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["ticket_id"]; found {
+		err = json.Unmarshal(raw, &a.TicketId)
+		if err != nil {
+			return fmt.Errorf("error reading 'ticket_id': %w", err)
+		}
+		delete(object, "ticket_id")
+	}
+
+	if raw, found := object["ticket_url"]; found {
+		err = json.Unmarshal(raw, &a.TicketUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'ticket_url': %w", err)
+		}
+		delete(object, "ticket_url")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFACreateGuardianEnrollmentTicketResponse to handle AdditionalProperties
+func (a MFACreateGuardianEnrollmentTicketResponse) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.TicketId != nil {
+		object["ticket_id"], err = json.Marshal(a.TicketId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ticket_id': %w", err)
+		}
+	}
+
+	if a.TicketUrl != nil {
+		object["ticket_url"], err = json.Marshal(a.TicketUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ticket_url': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFACreateUserRecoveryCodeResponse. Returns the specified
+// element and whether it was found
+func (a MFACreateUserRecoveryCodeResponse) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFACreateUserRecoveryCodeResponse
+func (a *MFACreateUserRecoveryCodeResponse) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFACreateUserRecoveryCodeResponse to handle AdditionalProperties
+func (a *MFACreateUserRecoveryCodeResponse) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["recovery_code"]; found {
+		err = json.Unmarshal(raw, &a.RecoveryCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'recovery_code': %w", err)
+		}
+		delete(object, "recovery_code")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFACreateUserRecoveryCodeResponse to handle AdditionalProperties
+func (a MFACreateUserRecoveryCodeResponse) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.RecoveryCode != nil {
+		object["recovery_code"], err = json.Marshal(a.RecoveryCode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'recovery_code': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item. Returns the specified
+// element and whether it was found
+func (a MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item
+func (a *MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a *MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a MFAGetAuthenticationMethodResponse_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item. Returns the specified
+// element and whether it was found
+func (a MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item
+func (a *MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item to handle AdditionalProperties
+func (a *MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item to handle AdditionalProperties
+func (a MFAGetAuthenticationMethodsResponse_0_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item. Returns the specified
+// element and whether it was found
+func (a MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item
+func (a *MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item to handle AdditionalProperties
+func (a *MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item to handle AdditionalProperties
+func (a MFAGetAuthenticationMethodsResponse_1_Authenticators_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFAGetGuardianFactorsResponse_Settings. Returns the specified
+// element and whether it was found
+func (a MFAGetGuardianFactorsResponse_Settings) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFAGetGuardianFactorsResponse_Settings
+func (a *MFAGetGuardianFactorsResponse_Settings) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFAGetGuardianFactorsResponse_Settings to handle AdditionalProperties
+func (a *MFAGetGuardianFactorsResponse_Settings) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["otp_expiration_time"]; found {
+		err = json.Unmarshal(raw, &a.OtpExpirationTime)
+		if err != nil {
+			return fmt.Errorf("error reading 'otp_expiration_time': %w", err)
+		}
+		delete(object, "otp_expiration_time")
+	}
+
+	if raw, found := object["otp_length"]; found {
+		err = json.Unmarshal(raw, &a.OtpLength)
+		if err != nil {
+			return fmt.Errorf("error reading 'otp_length': %w", err)
+		}
+		delete(object, "otp_length")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFAGetGuardianFactorsResponse_Settings to handle AdditionalProperties
+func (a MFAGetGuardianFactorsResponse_Settings) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.OtpExpirationTime != nil {
+		object["otp_expiration_time"], err = json.Marshal(a.OtpExpirationTime)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'otp_expiration_time': %w", err)
+		}
+	}
+
+	if a.OtpLength != nil {
+		object["otp_length"], err = json.Marshal(a.OtpLength)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'otp_length': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFAGetUserEnrollmentsResponse_Item. Returns the specified
+// element and whether it was found
+func (a MFAGetUserEnrollmentsResponse_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFAGetUserEnrollmentsResponse_Item
+func (a *MFAGetUserEnrollmentsResponse_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFAGetUserEnrollmentsResponse_Item to handle AdditionalProperties
+func (a *MFAGetUserEnrollmentsResponse_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["auth_method"]; found {
+		err = json.Unmarshal(raw, &a.AuthMethod)
+		if err != nil {
+			return fmt.Errorf("error reading 'auth_method': %w", err)
+		}
+		delete(object, "auth_method")
+	}
+
+	if raw, found := object["enrolled_at"]; found {
+		err = json.Unmarshal(raw, &a.EnrolledAt)
+		if err != nil {
+			return fmt.Errorf("error reading 'enrolled_at': %w", err)
+		}
+		delete(object, "enrolled_at")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["identifier"]; found {
+		err = json.Unmarshal(raw, &a.Identifier)
+		if err != nil {
+			return fmt.Errorf("error reading 'identifier': %w", err)
+		}
+		delete(object, "identifier")
+	}
+
+	if raw, found := object["last_auth"]; found {
+		err = json.Unmarshal(raw, &a.LastAuth)
+		if err != nil {
+			return fmt.Errorf("error reading 'last_auth': %w", err)
+		}
+		delete(object, "last_auth")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["phone_number"]; found {
+		err = json.Unmarshal(raw, &a.PhoneNumber)
+		if err != nil {
+			return fmt.Errorf("error reading 'phone_number': %w", err)
+		}
+		delete(object, "phone_number")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFAGetUserEnrollmentsResponse_Item to handle AdditionalProperties
+func (a MFAGetUserEnrollmentsResponse_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AuthMethod != nil {
+		object["auth_method"], err = json.Marshal(a.AuthMethod)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'auth_method': %w", err)
+		}
+	}
+
+	if a.EnrolledAt != nil {
+		object["enrolled_at"], err = json.Marshal(a.EnrolledAt)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'enrolled_at': %w", err)
+		}
+	}
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Identifier != nil {
+		object["identifier"], err = json.Marshal(a.Identifier)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'identifier': %w", err)
+		}
+	}
+
+	if a.LastAuth != nil {
+		object["last_auth"], err = json.Marshal(a.LastAuth)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'last_auth': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.PhoneNumber != nil {
+		object["phone_number"], err = json.Marshal(a.PhoneNumber)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'phone_number': %w", err)
+		}
+	}
+
+	if a.Status != nil {
+		object["status"], err = json.Marshal(a.Status)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'status': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item. Returns the specified
+// element and whether it was found
+func (a MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item
+func (a *MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a *MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item. Returns the specified
+// element and whether it was found
+func (a MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item
+func (a *MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a *MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item to handle AdditionalProperties
+func (a MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for TenantSettings_DefaultTokenQuota_Clients. Returns the specified
 // element and whether it was found
 func (a TenantSettings_DefaultTokenQuota_Clients) Get(fieldName string) (value interface{}, found bool) {
@@ -12741,6 +15754,14 @@ func (a *User) UnmarshalJSON(b []byte) error {
 		delete(object, "logins_count")
 	}
 
+	if raw, found := object["multifactor"]; found {
+		err = json.Unmarshal(raw, &a.Multifactor)
+		if err != nil {
+			return fmt.Errorf("error reading 'multifactor': %w", err)
+		}
+		delete(object, "multifactor")
+	}
+
 	if raw, found := object["name"]; found {
 		err = json.Unmarshal(raw, &a.Name)
 		if err != nil {
@@ -12906,6 +15927,13 @@ func (a User) MarshalJSON() ([]byte, error) {
 		object["logins_count"], err = json.Marshal(a.LoginsCount)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'logins_count': %w", err)
+		}
+	}
+
+	if a.Multifactor != nil {
+		object["multifactor"], err = json.Marshal(a.Multifactor)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'multifactor': %w", err)
 		}
 	}
 
@@ -14489,6 +17517,68 @@ func (t LogStreamSinkPatch_HttpCustomHeaders) MarshalJSON() ([]byte, error) {
 }
 
 func (t *LogStreamSinkPatch_HttpCustomHeaders) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsMFAGetAuthenticationMethodsResponse0 returns the union data inside the MFAGetAuthenticationMethodsResponse as a MFAGetAuthenticationMethodsResponse0
+func (t MFAGetAuthenticationMethodsResponse) AsMFAGetAuthenticationMethodsResponse0() (MFAGetAuthenticationMethodsResponse0, error) {
+	var body MFAGetAuthenticationMethodsResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMFAGetAuthenticationMethodsResponse0 overwrites any union data inside the MFAGetAuthenticationMethodsResponse as the provided MFAGetAuthenticationMethodsResponse0
+func (t *MFAGetAuthenticationMethodsResponse) FromMFAGetAuthenticationMethodsResponse0(v MFAGetAuthenticationMethodsResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMFAGetAuthenticationMethodsResponse0 performs a merge with any union data inside the MFAGetAuthenticationMethodsResponse, using the provided MFAGetAuthenticationMethodsResponse0
+func (t *MFAGetAuthenticationMethodsResponse) MergeMFAGetAuthenticationMethodsResponse0(v MFAGetAuthenticationMethodsResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMFAGetAuthenticationMethodsResponse1 returns the union data inside the MFAGetAuthenticationMethodsResponse as a MFAGetAuthenticationMethodsResponse1
+func (t MFAGetAuthenticationMethodsResponse) AsMFAGetAuthenticationMethodsResponse1() (MFAGetAuthenticationMethodsResponse1, error) {
+	var body MFAGetAuthenticationMethodsResponse1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMFAGetAuthenticationMethodsResponse1 overwrites any union data inside the MFAGetAuthenticationMethodsResponse as the provided MFAGetAuthenticationMethodsResponse1
+func (t *MFAGetAuthenticationMethodsResponse) FromMFAGetAuthenticationMethodsResponse1(v MFAGetAuthenticationMethodsResponse1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMFAGetAuthenticationMethodsResponse1 performs a merge with any union data inside the MFAGetAuthenticationMethodsResponse, using the provided MFAGetAuthenticationMethodsResponse1
+func (t *MFAGetAuthenticationMethodsResponse) MergeMFAGetAuthenticationMethodsResponse1(v MFAGetAuthenticationMethodsResponse1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t MFAGetAuthenticationMethodsResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *MFAGetAuthenticationMethodsResponse) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -16259,6 +19349,132 @@ type ServerInterface interface {
 	// DeleteGrant Delete a grant
 	// (DELETE /api/v2/grants/{id})
 	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// CreateGuardianEnrollmentTicket CreateGuardianEnrollmentTicket
+	// (POST /api/v2/guardian/enrollments/ticket)
+	CreateGuardianEnrollmentTicket(w http.ResponseWriter, r *http.Request, params CreateGuardianEnrollmentTicketParams)
+	// DeleteGuardianEnrollment DeleteGuardianEnrollment
+	// (DELETE /api/v2/guardian/enrollments/{id})
+	DeleteGuardianEnrollment(w http.ResponseWriter, r *http.Request, id string)
+	// GetGuardianEnrollment GetGuardianEnrollment
+	// (GET /api/v2/guardian/enrollments/{id})
+	GetGuardianEnrollment(w http.ResponseWriter, r *http.Request, id string)
+	// GetGuardianFactors GetGuardianFactors
+	// (GET /api/v2/guardian/factors)
+	GetGuardianFactors(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsDuoSettings GetGuardianFactorsDuoSettings
+	// (GET /api/v2/guardian/factors/duo/settings)
+	GetGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request)
+	// UpdateGuardianFactorsDuoSettings UpdateGuardianFactorsDuoSettings
+	// (PATCH /api/v2/guardian/factors/duo/settings)
+	UpdateGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsDuoSettings SetGuardianFactorsDuoSettings
+	// (PUT /api/v2/guardian/factors/duo/settings)
+	SetGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsEmailSettings GetGuardianFactorsEmailSettings
+	// (GET /api/v2/guardian/factors/email/settings)
+	GetGuardianFactorsEmailSettings(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsEmailSettings SetGuardianFactorsEmailSettings
+	// (PUT /api/v2/guardian/factors/email/settings)
+	SetGuardianFactorsEmailSettings(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPhoneMessageTypes GetGuardianFactorsPhoneMessageTypes
+	// (GET /api/v2/guardian/factors/phone/message-types)
+	GetGuardianFactorsPhoneMessageTypes(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPhoneMessageTypes SetGuardianFactorsPhoneMessageTypes
+	// (PUT /api/v2/guardian/factors/phone/message-types)
+	SetGuardianFactorsPhoneMessageTypes(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPhoneProvidersTwilio GetGuardianFactorsPhoneProvidersTwilio
+	// (GET /api/v2/guardian/factors/phone/providers/twilio)
+	GetGuardianFactorsPhoneProvidersTwilio(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPhoneProvidersTwilio SetGuardianFactorsPhoneProvidersTwilio
+	// (PUT /api/v2/guardian/factors/phone/providers/twilio)
+	SetGuardianFactorsPhoneProvidersTwilio(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPhoneSelectedProvider GetGuardianFactorsPhoneSelectedProvider
+	// (GET /api/v2/guardian/factors/phone/selected-provider)
+	GetGuardianFactorsPhoneSelectedProvider(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPhoneSelectedProvider SetGuardianFactorsPhoneSelectedProvider
+	// (PUT /api/v2/guardian/factors/phone/selected-provider)
+	SetGuardianFactorsPhoneSelectedProvider(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPhoneSettings GetGuardianFactorsPhoneSettings
+	// (GET /api/v2/guardian/factors/phone/settings)
+	GetGuardianFactorsPhoneSettings(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPhoneSettings SetGuardianFactorsPhoneSettings
+	// (PUT /api/v2/guardian/factors/phone/settings)
+	SetGuardianFactorsPhoneSettings(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPhoneTemplates GetGuardianFactorsPhoneTemplates
+	// (GET /api/v2/guardian/factors/phone/templates)
+	GetGuardianFactorsPhoneTemplates(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPhoneTemplates SetGuardianFactorsPhoneTemplates
+	// (PUT /api/v2/guardian/factors/phone/templates)
+	SetGuardianFactorsPhoneTemplates(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPushNotificationProvidersApns GetGuardianFactorsPushNotificationProvidersApns
+	// (GET /api/v2/guardian/factors/push-notification/providers/apns)
+	GetGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request)
+	// UpdateGuardianFactorsPushNotificationProvidersApns UpdateGuardianFactorsPushNotificationProvidersApns
+	// (PATCH /api/v2/guardian/factors/push-notification/providers/apns)
+	UpdateGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPushNotificationProvidersApns SetGuardianFactorsPushNotificationProvidersApns
+	// (PUT /api/v2/guardian/factors/push-notification/providers/apns)
+	SetGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request)
+	// UpdateGuardianFactorsPushNotificationProvidersFcm UpdateGuardianFactorsPushNotificationProvidersFcm
+	// (PATCH /api/v2/guardian/factors/push-notification/providers/fcm)
+	UpdateGuardianFactorsPushNotificationProvidersFcm(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPushNotificationProvidersFcm SetGuardianFactorsPushNotificationProvidersFcm
+	// (PUT /api/v2/guardian/factors/push-notification/providers/fcm)
+	SetGuardianFactorsPushNotificationProvidersFcm(w http.ResponseWriter, r *http.Request)
+	// UpdateGuardianFactorsPushNotificationProvidersFcmv1 UpdateGuardianFactorsPushNotificationProvidersFcmv1
+	// (PATCH /api/v2/guardian/factors/push-notification/providers/fcmv1)
+	UpdateGuardianFactorsPushNotificationProvidersFcmv1(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPushNotificationProvidersFcmv1 SetGuardianFactorsPushNotificationProvidersFcmv1
+	// (PUT /api/v2/guardian/factors/push-notification/providers/fcmv1)
+	SetGuardianFactorsPushNotificationProvidersFcmv1(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPushNotificationProvidersSns GetGuardianFactorsPushNotificationProvidersSns
+	// (GET /api/v2/guardian/factors/push-notification/providers/sns)
+	GetGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request)
+	// UpdateGuardianFactorsPushNotificationProvidersSns UpdateGuardianFactorsPushNotificationProvidersSns
+	// (PATCH /api/v2/guardian/factors/push-notification/providers/sns)
+	UpdateGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPushNotificationProvidersSns SetGuardianFactorsPushNotificationProvidersSns
+	// (PUT /api/v2/guardian/factors/push-notification/providers/sns)
+	SetGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsPushNotificationSelectedProvider GetGuardianFactorsPushNotificationSelectedProvider
+	// (GET /api/v2/guardian/factors/push-notification/selected-provider)
+	GetGuardianFactorsPushNotificationSelectedProvider(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsPushNotificationSelectedProvider SetGuardianFactorsPushNotificationSelectedProvider
+	// (PUT /api/v2/guardian/factors/push-notification/selected-provider)
+	SetGuardianFactorsPushNotificationSelectedProvider(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsSmsProvidersTwilio GetGuardianFactorsSmsProvidersTwilio
+	// (GET /api/v2/guardian/factors/sms/providers/twilio)
+	GetGuardianFactorsSmsProvidersTwilio(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsSmsProvidersTwilio SetGuardianFactorsSmsProvidersTwilio
+	// (PUT /api/v2/guardian/factors/sms/providers/twilio)
+	SetGuardianFactorsSmsProvidersTwilio(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsSmsSelectedProvider GetGuardianFactorsSmsSelectedProvider
+	// (GET /api/v2/guardian/factors/sms/selected-provider)
+	GetGuardianFactorsSmsSelectedProvider(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsSmsSelectedProvider SetGuardianFactorsSmsSelectedProvider
+	// (PUT /api/v2/guardian/factors/sms/selected-provider)
+	SetGuardianFactorsSmsSelectedProvider(w http.ResponseWriter, r *http.Request)
+	// GetGuardianFactorsSmsTemplates GetGuardianFactorsSmsTemplates
+	// (GET /api/v2/guardian/factors/sms/templates)
+	GetGuardianFactorsSmsTemplates(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactorsSmsTemplates SetGuardianFactorsSmsTemplates
+	// (PUT /api/v2/guardian/factors/sms/templates)
+	SetGuardianFactorsSmsTemplates(w http.ResponseWriter, r *http.Request)
+	// SetGuardianFactor SetGuardianFactor
+	// (PUT /api/v2/guardian/factors/{name})
+	SetGuardianFactor(w http.ResponseWriter, r *http.Request, name SetGuardianFactorParamsName)
+	// GetGuardianPolicies GetGuardianPolicies
+	// (GET /api/v2/guardian/policies)
+	GetGuardianPolicies(w http.ResponseWriter, r *http.Request)
+	// SetGuardianPolicies SetGuardianPolicies
+	// (PUT /api/v2/guardian/policies)
+	SetGuardianPolicies(w http.ResponseWriter, r *http.Request)
+	// GetGuardianSettings GetGuardianSettings
+	// (GET /api/v2/guardian/settings)
+	GetGuardianSettings(w http.ResponseWriter, r *http.Request)
+	// SetGuardianSettings SetGuardianSettings
+	// (PUT /api/v2/guardian/settings)
+	SetGuardianSettings(w http.ResponseWriter, r *http.Request)
 	// GetHooks Return an empty compatibility list for retired Hooks.
 	// (GET /api/v2/hooks)
 	GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams)
@@ -16577,6 +19793,33 @@ type ServerInterface interface {
 	// UpdateUser Update a user
 	// (PATCH /api/v2/users/{id})
 	UpdateUser(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteAuthenticationMethods DeleteAuthenticationMethods
+	// (DELETE /api/v2/users/{id}/authentication-methods)
+	DeleteAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string)
+	// GetAuthenticationMethods GetAuthenticationMethods
+	// (GET /api/v2/users/{id}/authentication-methods)
+	GetAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string, params GetAuthenticationMethodsParams)
+	// CreateAuthenticationMethods CreateAuthenticationMethods
+	// (POST /api/v2/users/{id}/authentication-methods)
+	CreateAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string)
+	// SetAuthenticationMethods SetAuthenticationMethods
+	// (PUT /api/v2/users/{id}/authentication-methods)
+	SetAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteAuthenticationMethod DeleteAuthenticationMethod
+	// (DELETE /api/v2/users/{id}/authentication-methods/{authentication_method_id})
+	DeleteAuthenticationMethod(w http.ResponseWriter, r *http.Request, id string, authenticationMethodId string)
+	// GetAuthenticationMethod GetAuthenticationMethod
+	// (GET /api/v2/users/{id}/authentication-methods/{authentication_method_id})
+	GetAuthenticationMethod(w http.ResponseWriter, r *http.Request, id string, authenticationMethodId string)
+	// UpdateAuthenticationMethod UpdateAuthenticationMethod
+	// (PATCH /api/v2/users/{id}/authentication-methods/{authentication_method_id})
+	UpdateAuthenticationMethod(w http.ResponseWriter, r *http.Request, id string, authenticationMethodId string)
+	// DeleteUserAuthenticators DeleteUserAuthenticators
+	// (DELETE /api/v2/users/{id}/authenticators)
+	DeleteUserAuthenticators(w http.ResponseWriter, r *http.Request, id string)
+	// GetUserEnrollments GetUserEnrollments
+	// (GET /api/v2/users/{id}/enrollments)
+	GetUserEnrollments(w http.ResponseWriter, r *http.Request, id string)
 	// LinkUserIdentity Link a user account to this user
 	// (POST /api/v2/users/{id}/identities)
 	LinkUserIdentity(w http.ResponseWriter, r *http.Request, id string)
@@ -16586,6 +19829,12 @@ type ServerInterface interface {
 	// GetUserLogs Read one user’s log events
 	// (GET /api/v2/users/{id}/logs)
 	GetUserLogs(w http.ResponseWriter, r *http.Request, id string, params GetUserLogsParams)
+	// CreateUserRememberBrowser CreateUserRememberBrowser
+	// (POST /api/v2/users/{id}/multifactor/actions/invalidate-remember-browser)
+	CreateUserRememberBrowser(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteUserMultifactor DeleteUserMultifactor
+	// (DELETE /api/v2/users/{id}/multifactor/{provider})
+	DeleteUserMultifactor(w http.ResponseWriter, r *http.Request, id string, provider DeleteUserMultifactorParamsProvider)
 	// ListUserOrganizations List the organizations a user is a member of
 	// (GET /api/v2/users/{id}/organizations)
 	ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, params ListUserOrganizationsParams)
@@ -16598,6 +19847,9 @@ type ServerInterface interface {
 	// PostUserPermissions PostUserPermissions in the current tenant
 	// (POST /api/v2/users/{id}/permissions)
 	PostUserPermissions(w http.ResponseWriter, r *http.Request, id string)
+	// CreateUserRecoveryCode CreateUserRecoveryCode
+	// (POST /api/v2/users/{id}/recovery-code-regeneration)
+	CreateUserRecoveryCode(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteUserRefreshTokens Delete a user's refresh tokens
 	// (DELETE /api/v2/users/{id}/refresh-tokens)
 	DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string)
@@ -17309,6 +20561,258 @@ func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id st
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// CreateGuardianEnrollmentTicket CreateGuardianEnrollmentTicket
+// (POST /api/v2/guardian/enrollments/ticket)
+func (_ Unimplemented) CreateGuardianEnrollmentTicket(w http.ResponseWriter, r *http.Request, params CreateGuardianEnrollmentTicketParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteGuardianEnrollment DeleteGuardianEnrollment
+// (DELETE /api/v2/guardian/enrollments/{id})
+func (_ Unimplemented) DeleteGuardianEnrollment(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianEnrollment GetGuardianEnrollment
+// (GET /api/v2/guardian/enrollments/{id})
+func (_ Unimplemented) GetGuardianEnrollment(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactors GetGuardianFactors
+// (GET /api/v2/guardian/factors)
+func (_ Unimplemented) GetGuardianFactors(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsDuoSettings GetGuardianFactorsDuoSettings
+// (GET /api/v2/guardian/factors/duo/settings)
+func (_ Unimplemented) GetGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGuardianFactorsDuoSettings UpdateGuardianFactorsDuoSettings
+// (PATCH /api/v2/guardian/factors/duo/settings)
+func (_ Unimplemented) UpdateGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsDuoSettings SetGuardianFactorsDuoSettings
+// (PUT /api/v2/guardian/factors/duo/settings)
+func (_ Unimplemented) SetGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsEmailSettings GetGuardianFactorsEmailSettings
+// (GET /api/v2/guardian/factors/email/settings)
+func (_ Unimplemented) GetGuardianFactorsEmailSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsEmailSettings SetGuardianFactorsEmailSettings
+// (PUT /api/v2/guardian/factors/email/settings)
+func (_ Unimplemented) SetGuardianFactorsEmailSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPhoneMessageTypes GetGuardianFactorsPhoneMessageTypes
+// (GET /api/v2/guardian/factors/phone/message-types)
+func (_ Unimplemented) GetGuardianFactorsPhoneMessageTypes(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPhoneMessageTypes SetGuardianFactorsPhoneMessageTypes
+// (PUT /api/v2/guardian/factors/phone/message-types)
+func (_ Unimplemented) SetGuardianFactorsPhoneMessageTypes(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPhoneProvidersTwilio GetGuardianFactorsPhoneProvidersTwilio
+// (GET /api/v2/guardian/factors/phone/providers/twilio)
+func (_ Unimplemented) GetGuardianFactorsPhoneProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPhoneProvidersTwilio SetGuardianFactorsPhoneProvidersTwilio
+// (PUT /api/v2/guardian/factors/phone/providers/twilio)
+func (_ Unimplemented) SetGuardianFactorsPhoneProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPhoneSelectedProvider GetGuardianFactorsPhoneSelectedProvider
+// (GET /api/v2/guardian/factors/phone/selected-provider)
+func (_ Unimplemented) GetGuardianFactorsPhoneSelectedProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPhoneSelectedProvider SetGuardianFactorsPhoneSelectedProvider
+// (PUT /api/v2/guardian/factors/phone/selected-provider)
+func (_ Unimplemented) SetGuardianFactorsPhoneSelectedProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPhoneSettings GetGuardianFactorsPhoneSettings
+// (GET /api/v2/guardian/factors/phone/settings)
+func (_ Unimplemented) GetGuardianFactorsPhoneSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPhoneSettings SetGuardianFactorsPhoneSettings
+// (PUT /api/v2/guardian/factors/phone/settings)
+func (_ Unimplemented) SetGuardianFactorsPhoneSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPhoneTemplates GetGuardianFactorsPhoneTemplates
+// (GET /api/v2/guardian/factors/phone/templates)
+func (_ Unimplemented) GetGuardianFactorsPhoneTemplates(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPhoneTemplates SetGuardianFactorsPhoneTemplates
+// (PUT /api/v2/guardian/factors/phone/templates)
+func (_ Unimplemented) SetGuardianFactorsPhoneTemplates(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPushNotificationProvidersApns GetGuardianFactorsPushNotificationProvidersApns
+// (GET /api/v2/guardian/factors/push-notification/providers/apns)
+func (_ Unimplemented) GetGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersApns UpdateGuardianFactorsPushNotificationProvidersApns
+// (PATCH /api/v2/guardian/factors/push-notification/providers/apns)
+func (_ Unimplemented) UpdateGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPushNotificationProvidersApns SetGuardianFactorsPushNotificationProvidersApns
+// (PUT /api/v2/guardian/factors/push-notification/providers/apns)
+func (_ Unimplemented) SetGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersFcm UpdateGuardianFactorsPushNotificationProvidersFcm
+// (PATCH /api/v2/guardian/factors/push-notification/providers/fcm)
+func (_ Unimplemented) UpdateGuardianFactorsPushNotificationProvidersFcm(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPushNotificationProvidersFcm SetGuardianFactorsPushNotificationProvidersFcm
+// (PUT /api/v2/guardian/factors/push-notification/providers/fcm)
+func (_ Unimplemented) SetGuardianFactorsPushNotificationProvidersFcm(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersFcmv1 UpdateGuardianFactorsPushNotificationProvidersFcmv1
+// (PATCH /api/v2/guardian/factors/push-notification/providers/fcmv1)
+func (_ Unimplemented) UpdateGuardianFactorsPushNotificationProvidersFcmv1(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPushNotificationProvidersFcmv1 SetGuardianFactorsPushNotificationProvidersFcmv1
+// (PUT /api/v2/guardian/factors/push-notification/providers/fcmv1)
+func (_ Unimplemented) SetGuardianFactorsPushNotificationProvidersFcmv1(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPushNotificationProvidersSns GetGuardianFactorsPushNotificationProvidersSns
+// (GET /api/v2/guardian/factors/push-notification/providers/sns)
+func (_ Unimplemented) GetGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersSns UpdateGuardianFactorsPushNotificationProvidersSns
+// (PATCH /api/v2/guardian/factors/push-notification/providers/sns)
+func (_ Unimplemented) UpdateGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPushNotificationProvidersSns SetGuardianFactorsPushNotificationProvidersSns
+// (PUT /api/v2/guardian/factors/push-notification/providers/sns)
+func (_ Unimplemented) SetGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsPushNotificationSelectedProvider GetGuardianFactorsPushNotificationSelectedProvider
+// (GET /api/v2/guardian/factors/push-notification/selected-provider)
+func (_ Unimplemented) GetGuardianFactorsPushNotificationSelectedProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsPushNotificationSelectedProvider SetGuardianFactorsPushNotificationSelectedProvider
+// (PUT /api/v2/guardian/factors/push-notification/selected-provider)
+func (_ Unimplemented) SetGuardianFactorsPushNotificationSelectedProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsSmsProvidersTwilio GetGuardianFactorsSmsProvidersTwilio
+// (GET /api/v2/guardian/factors/sms/providers/twilio)
+func (_ Unimplemented) GetGuardianFactorsSmsProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsSmsProvidersTwilio SetGuardianFactorsSmsProvidersTwilio
+// (PUT /api/v2/guardian/factors/sms/providers/twilio)
+func (_ Unimplemented) SetGuardianFactorsSmsProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsSmsSelectedProvider GetGuardianFactorsSmsSelectedProvider
+// (GET /api/v2/guardian/factors/sms/selected-provider)
+func (_ Unimplemented) GetGuardianFactorsSmsSelectedProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsSmsSelectedProvider SetGuardianFactorsSmsSelectedProvider
+// (PUT /api/v2/guardian/factors/sms/selected-provider)
+func (_ Unimplemented) SetGuardianFactorsSmsSelectedProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianFactorsSmsTemplates GetGuardianFactorsSmsTemplates
+// (GET /api/v2/guardian/factors/sms/templates)
+func (_ Unimplemented) GetGuardianFactorsSmsTemplates(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactorsSmsTemplates SetGuardianFactorsSmsTemplates
+// (PUT /api/v2/guardian/factors/sms/templates)
+func (_ Unimplemented) SetGuardianFactorsSmsTemplates(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianFactor SetGuardianFactor
+// (PUT /api/v2/guardian/factors/{name})
+func (_ Unimplemented) SetGuardianFactor(w http.ResponseWriter, r *http.Request, name SetGuardianFactorParamsName) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianPolicies GetGuardianPolicies
+// (GET /api/v2/guardian/policies)
+func (_ Unimplemented) GetGuardianPolicies(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianPolicies SetGuardianPolicies
+// (PUT /api/v2/guardian/policies)
+func (_ Unimplemented) SetGuardianPolicies(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGuardianSettings GetGuardianSettings
+// (GET /api/v2/guardian/settings)
+func (_ Unimplemented) GetGuardianSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetGuardianSettings SetGuardianSettings
+// (PUT /api/v2/guardian/settings)
+func (_ Unimplemented) SetGuardianSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetHooks Return an empty compatibility list for retired Hooks.
 // (GET /api/v2/hooks)
 func (_ Unimplemented) GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams) {
@@ -17945,6 +21449,60 @@ func (_ Unimplemented) UpdateUser(w http.ResponseWriter, r *http.Request, id str
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteAuthenticationMethods DeleteAuthenticationMethods
+// (DELETE /api/v2/users/{id}/authentication-methods)
+func (_ Unimplemented) DeleteAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetAuthenticationMethods GetAuthenticationMethods
+// (GET /api/v2/users/{id}/authentication-methods)
+func (_ Unimplemented) GetAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string, params GetAuthenticationMethodsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateAuthenticationMethods CreateAuthenticationMethods
+// (POST /api/v2/users/{id}/authentication-methods)
+func (_ Unimplemented) CreateAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetAuthenticationMethods SetAuthenticationMethods
+// (PUT /api/v2/users/{id}/authentication-methods)
+func (_ Unimplemented) SetAuthenticationMethods(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteAuthenticationMethod DeleteAuthenticationMethod
+// (DELETE /api/v2/users/{id}/authentication-methods/{authentication_method_id})
+func (_ Unimplemented) DeleteAuthenticationMethod(w http.ResponseWriter, r *http.Request, id string, authenticationMethodId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetAuthenticationMethod GetAuthenticationMethod
+// (GET /api/v2/users/{id}/authentication-methods/{authentication_method_id})
+func (_ Unimplemented) GetAuthenticationMethod(w http.ResponseWriter, r *http.Request, id string, authenticationMethodId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateAuthenticationMethod UpdateAuthenticationMethod
+// (PATCH /api/v2/users/{id}/authentication-methods/{authentication_method_id})
+func (_ Unimplemented) UpdateAuthenticationMethod(w http.ResponseWriter, r *http.Request, id string, authenticationMethodId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUserAuthenticators DeleteUserAuthenticators
+// (DELETE /api/v2/users/{id}/authenticators)
+func (_ Unimplemented) DeleteUserAuthenticators(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserEnrollments GetUserEnrollments
+// (GET /api/v2/users/{id}/enrollments)
+func (_ Unimplemented) GetUserEnrollments(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // LinkUserIdentity Link a user account to this user
 // (POST /api/v2/users/{id}/identities)
 func (_ Unimplemented) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id string) {
@@ -17960,6 +21518,18 @@ func (_ Unimplemented) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request
 // GetUserLogs Read one user’s log events
 // (GET /api/v2/users/{id}/logs)
 func (_ Unimplemented) GetUserLogs(w http.ResponseWriter, r *http.Request, id string, params GetUserLogsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateUserRememberBrowser CreateUserRememberBrowser
+// (POST /api/v2/users/{id}/multifactor/actions/invalidate-remember-browser)
+func (_ Unimplemented) CreateUserRememberBrowser(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUserMultifactor DeleteUserMultifactor
+// (DELETE /api/v2/users/{id}/multifactor/{provider})
+func (_ Unimplemented) DeleteUserMultifactor(w http.ResponseWriter, r *http.Request, id string, provider DeleteUserMultifactorParamsProvider) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -17984,6 +21554,12 @@ func (_ Unimplemented) GetUserPermissions(w http.ResponseWriter, r *http.Request
 // PostUserPermissions PostUserPermissions in the current tenant
 // (POST /api/v2/users/{id}/permissions)
 func (_ Unimplemented) PostUserPermissions(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateUserRecoveryCode CreateUserRecoveryCode
+// (POST /api/v2/users/{id}/recovery-code-regeneration)
+func (_ Unimplemented) CreateUserRecoveryCode(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -21709,6 +25285,657 @@ func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateGuardianEnrollmentTicket operation middleware
+func (siw *ServerInterfaceWrapper) CreateGuardianEnrollmentTicket(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateGuardianEnrollmentTicketParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "auth0-custom-domain" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("auth0-custom-domain")]; found {
+		var Auth0CustomDomain string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "auth0-custom-domain", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "auth0-custom-domain", valueList[0], &Auth0CustomDomain, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "auth0-custom-domain", Err: err})
+			return
+		}
+
+		params.Auth0CustomDomain = &Auth0CustomDomain
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateGuardianEnrollmentTicket(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteGuardianEnrollment operation middleware
+func (siw *ServerInterfaceWrapper) DeleteGuardianEnrollment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteGuardianEnrollment(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianEnrollment operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianEnrollment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianEnrollment(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactors operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactors(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactors(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsDuoSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsDuoSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGuardianFactorsDuoSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGuardianFactorsDuoSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsDuoSettings operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsDuoSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsDuoSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsEmailSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsEmailSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsEmailSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsEmailSettings operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsEmailSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsEmailSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPhoneMessageTypes operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPhoneMessageTypes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPhoneMessageTypes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPhoneMessageTypes operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPhoneMessageTypes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPhoneMessageTypes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPhoneProvidersTwilio operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPhoneProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPhoneProvidersTwilio(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPhoneProvidersTwilio operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPhoneProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPhoneProvidersTwilio(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPhoneSelectedProvider operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPhoneSelectedProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPhoneSelectedProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPhoneSelectedProvider operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPhoneSelectedProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPhoneSelectedProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPhoneSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPhoneSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPhoneSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPhoneSettings operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPhoneSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPhoneSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPhoneTemplates operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPhoneTemplates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPhoneTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPhoneTemplates operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPhoneTemplates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPhoneTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPushNotificationProvidersApns operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPushNotificationProvidersApns(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersApns operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGuardianFactorsPushNotificationProvidersApns(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPushNotificationProvidersApns operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPushNotificationProvidersApns(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPushNotificationProvidersApns(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersFcm operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGuardianFactorsPushNotificationProvidersFcm(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGuardianFactorsPushNotificationProvidersFcm(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPushNotificationProvidersFcm operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPushNotificationProvidersFcm(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPushNotificationProvidersFcm(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersFcmv1 operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGuardianFactorsPushNotificationProvidersFcmv1(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGuardianFactorsPushNotificationProvidersFcmv1(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPushNotificationProvidersFcmv1 operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPushNotificationProvidersFcmv1(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPushNotificationProvidersFcmv1(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPushNotificationProvidersSns operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPushNotificationProvidersSns(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGuardianFactorsPushNotificationProvidersSns operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGuardianFactorsPushNotificationProvidersSns(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPushNotificationProvidersSns operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPushNotificationProvidersSns(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPushNotificationProvidersSns(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsPushNotificationSelectedProvider operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsPushNotificationSelectedProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsPushNotificationSelectedProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsPushNotificationSelectedProvider operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsPushNotificationSelectedProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsPushNotificationSelectedProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsSmsProvidersTwilio operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsSmsProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsSmsProvidersTwilio(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsSmsProvidersTwilio operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsSmsProvidersTwilio(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsSmsProvidersTwilio(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsSmsSelectedProvider operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsSmsSelectedProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsSmsSelectedProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsSmsSelectedProvider operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsSmsSelectedProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsSmsSelectedProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianFactorsSmsTemplates operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianFactorsSmsTemplates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianFactorsSmsTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactorsSmsTemplates operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactorsSmsTemplates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactorsSmsTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianFactor operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianFactor(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "name" -------------
+	var name SetGuardianFactorParamsName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", chi.URLParam(r, "name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianFactor(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianPolicies operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianPolicies(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianPolicies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianPolicies operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianPolicies(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianPolicies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGuardianSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetGuardianSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGuardianSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetGuardianSettings operation middleware
+func (siw *ServerInterfaceWrapper) SetGuardianSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetGuardianSettings(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -26000,6 +30227,309 @@ func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteAuthenticationMethods operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAuthenticationMethods(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAuthenticationMethods(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAuthenticationMethods operation middleware
+func (siw *ServerInterfaceWrapper) GetAuthenticationMethods(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetAuthenticationMethodsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAuthenticationMethods(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAuthenticationMethods operation middleware
+func (siw *ServerInterfaceWrapper) CreateAuthenticationMethods(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAuthenticationMethods(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAuthenticationMethods operation middleware
+func (siw *ServerInterfaceWrapper) SetAuthenticationMethods(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAuthenticationMethods(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAuthenticationMethod operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAuthenticationMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "authentication_method_id" -------------
+	var authenticationMethodId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authentication_method_id", chi.URLParam(r, "authentication_method_id"), &authenticationMethodId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authentication_method_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAuthenticationMethod(w, r, id, authenticationMethodId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAuthenticationMethod operation middleware
+func (siw *ServerInterfaceWrapper) GetAuthenticationMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "authentication_method_id" -------------
+	var authenticationMethodId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authentication_method_id", chi.URLParam(r, "authentication_method_id"), &authenticationMethodId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authentication_method_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAuthenticationMethod(w, r, id, authenticationMethodId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateAuthenticationMethod operation middleware
+func (siw *ServerInterfaceWrapper) UpdateAuthenticationMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "authentication_method_id" -------------
+	var authenticationMethodId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authentication_method_id", chi.URLParam(r, "authentication_method_id"), &authenticationMethodId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authentication_method_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateAuthenticationMethod(w, r, id, authenticationMethodId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUserAuthenticators operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserAuthenticators(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserAuthenticators(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserEnrollments operation middleware
+func (siw *ServerInterfaceWrapper) GetUserEnrollments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserEnrollments(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // LinkUserIdentity operation middleware
 func (siw *ServerInterfaceWrapper) LinkUserIdentity(w http.ResponseWriter, r *http.Request) {
 
@@ -26142,6 +30672,67 @@ func (siw *ServerInterfaceWrapper) GetUserLogs(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUserLogs(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateUserRememberBrowser operation middleware
+func (siw *ServerInterfaceWrapper) CreateUserRememberBrowser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUserRememberBrowser(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUserMultifactor operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserMultifactor(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "provider" -------------
+	var provider DeleteUserMultifactorParamsProvider
+
+	err = runtime.BindStyledParameterWithOptions("simple", "provider", chi.URLParam(r, "provider"), &provider, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "provider", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserMultifactor(w, r, id, provider)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -26356,6 +30947,32 @@ func (siw *ServerInterfaceWrapper) PostUserPermissions(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostUserPermissions(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateUserRecoveryCode operation middleware
+func (siw *ServerInterfaceWrapper) CreateUserRecoveryCode(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUserRecoveryCode(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -27461,6 +32078,168 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/stats/active-users", wrapper.GetActiveUsers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/guardian/enrollments/ticket", wrapper.CreateGuardianEnrollmentTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/guardian/enrollments/{id}", wrapper.DeleteGuardianEnrollment)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/enrollments/{id}", wrapper.GetGuardianEnrollment)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors", wrapper.GetGuardianFactors)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/duo/settings", wrapper.GetGuardianFactorsDuoSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/guardian/factors/duo/settings", wrapper.UpdateGuardianFactorsDuoSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/duo/settings", wrapper.SetGuardianFactorsDuoSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/email/settings", wrapper.GetGuardianFactorsEmailSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/email/settings", wrapper.SetGuardianFactorsEmailSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/phone/message-types", wrapper.GetGuardianFactorsPhoneMessageTypes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/phone/message-types", wrapper.SetGuardianFactorsPhoneMessageTypes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/phone/providers/twilio", wrapper.GetGuardianFactorsPhoneProvidersTwilio)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/phone/providers/twilio", wrapper.SetGuardianFactorsPhoneProvidersTwilio)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/phone/selected-provider", wrapper.GetGuardianFactorsPhoneSelectedProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/phone/selected-provider", wrapper.SetGuardianFactorsPhoneSelectedProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/phone/settings", wrapper.GetGuardianFactorsPhoneSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/phone/settings", wrapper.SetGuardianFactorsPhoneSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/phone/templates", wrapper.GetGuardianFactorsPhoneTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/phone/templates", wrapper.SetGuardianFactorsPhoneTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/apns", wrapper.GetGuardianFactorsPushNotificationProvidersApns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/apns", wrapper.UpdateGuardianFactorsPushNotificationProvidersApns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/apns", wrapper.SetGuardianFactorsPushNotificationProvidersApns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/fcm", wrapper.UpdateGuardianFactorsPushNotificationProvidersFcm)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/fcm", wrapper.SetGuardianFactorsPushNotificationProvidersFcm)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/fcmv1", wrapper.UpdateGuardianFactorsPushNotificationProvidersFcmv1)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/fcmv1", wrapper.SetGuardianFactorsPushNotificationProvidersFcmv1)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/sns", wrapper.GetGuardianFactorsPushNotificationProvidersSns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/sns", wrapper.UpdateGuardianFactorsPushNotificationProvidersSns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/push-notification/providers/sns", wrapper.SetGuardianFactorsPushNotificationProvidersSns)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/push-notification/selected-provider", wrapper.GetGuardianFactorsPushNotificationSelectedProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/push-notification/selected-provider", wrapper.SetGuardianFactorsPushNotificationSelectedProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/sms/providers/twilio", wrapper.GetGuardianFactorsSmsProvidersTwilio)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/sms/providers/twilio", wrapper.SetGuardianFactorsSmsProvidersTwilio)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/sms/selected-provider", wrapper.GetGuardianFactorsSmsSelectedProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/sms/selected-provider", wrapper.SetGuardianFactorsSmsSelectedProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/factors/sms/templates", wrapper.GetGuardianFactorsSmsTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/sms/templates", wrapper.SetGuardianFactorsSmsTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/factors/{name}", wrapper.SetGuardianFactor)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/policies", wrapper.GetGuardianPolicies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/policies", wrapper.SetGuardianPolicies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/guardian/settings", wrapper.GetGuardianSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/guardian/settings", wrapper.SetGuardianSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/authentication-methods", wrapper.DeleteAuthenticationMethods)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/authentication-methods", wrapper.GetAuthenticationMethods)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/users/{id}/authentication-methods", wrapper.CreateAuthenticationMethods)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/users/{id}/authentication-methods", wrapper.SetAuthenticationMethods)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/authentication-methods/{authentication_method_id}", wrapper.DeleteAuthenticationMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/authentication-methods/{authentication_method_id}", wrapper.GetAuthenticationMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/users/{id}/authentication-methods/{authentication_method_id}", wrapper.UpdateAuthenticationMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/authenticators", wrapper.DeleteUserAuthenticators)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/enrollments", wrapper.GetUserEnrollments)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/users/{id}/multifactor/actions/invalidate-remember-browser", wrapper.CreateUserRememberBrowser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/multifactor/{provider}", wrapper.DeleteUserMultifactor)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/users/{id}/recovery-code-regeneration", wrapper.CreateUserRecoveryCode)
 	})
 
 	return r

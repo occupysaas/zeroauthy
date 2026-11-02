@@ -147,3 +147,24 @@ func TestEventStreamSubscriptionRequests(t *testing.T) {
 		}
 	}
 }
+
+// MFA contracts are documentation-only in Task 1; responses must never expose
+// enrollment credentials even when requests accept them.
+func TestMFASecretBoundary(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	create := doc.Components.Schemas["MFACreateAuthenticationMethod"]
+	if create == nil {
+		t.Fatal("missing MFA create schema")
+	}
+	secret := create.Value.Properties["totp_secret"]
+	if secret == nil || !secret.Value.WriteOnly {
+		t.Fatal("totp_secret must be write-only")
+	}
+	method := doc.Components.Schemas["MFAAuthenticationMethod"]
+	if method == nil || method.Value.Properties["totp_secret"] != nil {
+		t.Fatal("public methods expose totp_secret")
+	}
+}

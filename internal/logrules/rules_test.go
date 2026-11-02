@@ -27,6 +27,7 @@ func TestLogsInventory(t *testing.T) {
 			Type, Description, Category, Source string
 			StatsKind                           string `json:"stats_kind"`
 			Emitted                             bool
+			Status                              string
 			Plan                                int
 			Triggers                            []struct{ File, Function string }
 		} `json:"codes"`
@@ -90,7 +91,7 @@ func TestLogsInventory(t *testing.T) {
 		if c.Description == "" || !cats[c.Category] || !strings.HasPrefix(c.Source, "https://auth0.com/docs/") {
 			t.Errorf("incomplete code %s", c.Type)
 		}
-		if !c.Emitted && c.Plan == 0 {
+		if !c.Emitted && c.Plan == 0 && c.Status != "not_planned" {
 			t.Errorf("deferred code %s lacks plan", c.Type)
 		}
 		if c.Emitted {

@@ -186,3 +186,10 @@ skips and conformance warning/review outcomes remain distinct from passes. E1–
 lack separate observer evidence, and no upstream parity pass is claimed. See the
 [post-fix validation](../superpowers/2026-11-02-plan-32-postfix-validation.md) and
 [implementation record](../superpowers/2026-11-01-plan-32-implementation-record.md).
+
+### Plan 33 — MFA contracts (implementation in progress)
+
+The frozen wire inventory and API schemas describe planned MFA routes; they do
+not establish runtime support. D-0059 records the local limits and M1–M9
+observation gaps. OTP, email and recovery are planned for enforcement; SMS and
+WebAuthn flags are stored for later plans, and push and Duo are not planned.

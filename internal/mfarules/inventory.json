@@ -1,0 +1,5542 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-11-02",
+  "decision": "D-0059",
+  "factors": [
+    {
+      "name": "push-notification",
+      "status": "not_planned"
+    },
+    {
+      "name": "sms",
+      "status": "stored"
+    },
+    {
+      "name": "email",
+      "status": "enforced"
+    },
+    {
+      "name": "duo",
+      "status": "not_planned"
+    },
+    {
+      "name": "otp",
+      "status": "enforced"
+    },
+    {
+      "name": "webauthn-roaming",
+      "status": "stored"
+    },
+    {
+      "name": "webauthn-platform",
+      "status": "stored"
+    },
+    {
+      "name": "recovery-code",
+      "status": "enforced"
+    }
+  ],
+  "method_id_pattern": "^[a-z-]+\\|dev_[A-Za-z0-9]{20}$",
+  "enrollment_id_pattern": "^dev_[A-Za-z0-9]{20}$",
+  "method_types": [
+    {
+      "type": "totp",
+      "creatable": true,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods",
+        "totp_secret"
+      ],
+      "secret": [
+        "totp_secret"
+      ]
+    },
+    {
+      "type": "email",
+      "creatable": true,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods",
+        "email"
+      ],
+      "secret": []
+    },
+    {
+      "type": "webauthn-roaming",
+      "creatable": true,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods",
+        "key_id",
+        "public_key",
+        "relying_party_identifier"
+      ],
+      "secret": []
+    },
+    {
+      "type": "webauthn-platform",
+      "creatable": false,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods",
+        "key_id",
+        "public_key",
+        "relying_party_identifier"
+      ],
+      "secret": []
+    },
+    {
+      "type": "phone",
+      "creatable": false,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods",
+        "phone_number"
+      ],
+      "secret": []
+    },
+    {
+      "type": "push",
+      "creatable": false,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods"
+      ],
+      "secret": []
+    },
+    {
+      "type": "recovery-code",
+      "creatable": false,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods"
+      ],
+      "secret": []
+    },
+    {
+      "type": "email-verification",
+      "creatable": false,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods",
+        "email"
+      ],
+      "secret": []
+    },
+    {
+      "type": "guardian",
+      "creatable": false,
+      "fields": [
+        "id",
+        "type",
+        "confirmed",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "preferred_authentication_method",
+        "authentication_methods"
+      ],
+      "secret": []
+    }
+  ],
+  "routes": [
+    {
+      "operation": "CreateGuardianEnrollmentTicket",
+      "method": "POST",
+      "path": "/guardian/enrollments/ticket",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "create:guardian_enrollment_tickets"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "auth0-custom-domain",
+          "in": "header",
+          "schema": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "user_id"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "user-id"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "send_mail": {
+            "type": "boolean"
+          },
+          "email_locale": {
+            "type": "string"
+          },
+          "factor": {
+            "type": "string",
+            "enum": [
+              "push-notification",
+              "phone",
+              "email",
+              "otp",
+              "webauthn-roaming",
+              "webauthn-platform"
+            ]
+          },
+          "allow_multiple_enrollments": {
+            "type": "boolean"
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFACreateGuardianEnrollmentTicketResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianEnrollment",
+      "method": "GET",
+      "path": "/guardian/enrollments/{id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_enrollments"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^dev_[A-Za-z0-9]{20}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianEnrollmentResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "DeleteGuardianEnrollment",
+      "method": "DELETE",
+      "path": "/guardian/enrollments/{id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "delete:guardian_enrollments"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^dev_[A-Za-z0-9]{20}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "204": {
+          "description": "MFA operation completed."
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactors",
+      "method": "GET",
+      "path": "/guardian/factors",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsDuoSettings",
+      "method": "GET",
+      "path": "/guardian/factors/duo/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsDuoSettingsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "UpdateGuardianFactorsDuoSettings",
+      "method": "PATCH",
+      "path": "/guardian/factors/duo/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ikey": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "skey": {
+            "type": "string",
+            "maxLength": 10000,
+            "format": "non-empty-string",
+            "writeOnly": true
+          },
+          "host": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAUpdateGuardianFactorsDuoSettingsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsDuoSettings",
+      "method": "PUT",
+      "path": "/guardian/factors/duo/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ikey": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "skey": {
+            "type": "string",
+            "maxLength": 10000,
+            "format": "non-empty-string",
+            "writeOnly": true
+          },
+          "host": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsDuoSettingsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsEmailSettings",
+      "method": "GET",
+      "path": "/guardian/factors/email/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsEmailSettingsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsEmailSettings",
+      "method": "PUT",
+      "path": "/guardian/factors/email/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "otp_length",
+          "otp_expiration_time"
+        ],
+        "properties": {
+          "otp_length": {
+            "type": "integer",
+            "default": 6,
+            "minimum": 4,
+            "maximum": 10
+          },
+          "otp_expiration_time": {
+            "type": "integer",
+            "default": 300,
+            "minimum": 30,
+            "maximum": 3600
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsEmailSettingsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPhoneMessageTypes",
+      "method": "GET",
+      "path": "/guardian/factors/phone/message-types",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPhoneMessageTypesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPhoneMessageTypes",
+      "method": "PUT",
+      "path": "/guardian/factors/phone/message-types",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "message_types"
+        ],
+        "properties": {
+          "message_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "sms",
+                "voice"
+              ]
+            }
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPhoneMessageTypesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPhoneProvidersTwilio",
+      "method": "GET",
+      "path": "/guardian/factors/phone/providers/twilio",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPhoneProvidersTwilioResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPhoneProvidersTwilio",
+      "method": "PUT",
+      "path": "/guardian/factors/phone/providers/twilio",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "+1223323",
+            "minLength": 0,
+            "maxLength": 64
+          },
+          "messaging_service_sid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "auth_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "zw5Ku6z2sxhd0ZVXto5SDHX6KPDByJPU",
+            "minLength": 1,
+            "maxLength": 1000,
+            "writeOnly": true
+          },
+          "sid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "wywA2BH4VqTpfywiDuyDAYZL3xQjoO40",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPhoneProvidersTwilioResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPhoneSelectedProvider",
+      "method": "GET",
+      "path": "/guardian/factors/phone/selected-provider",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPhoneSelectedProviderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPhoneSelectedProvider",
+      "method": "PUT",
+      "path": "/guardian/factors/phone/selected-provider",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "auth0",
+              "twilio",
+              "phone-message-hook"
+            ]
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPhoneSelectedProviderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPhoneSettings",
+      "method": "GET",
+      "path": "/guardian/factors/phone/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPhoneSettingsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPhoneSettings",
+      "method": "PUT",
+      "path": "/guardian/factors/phone/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "otp_length",
+          "otp_expiration_time"
+        ],
+        "properties": {
+          "otp_length": {
+            "type": "integer",
+            "default": 6,
+            "minimum": 4,
+            "maximum": 10
+          },
+          "otp_expiration_time": {
+            "type": "integer",
+            "default": 300,
+            "minimum": 30,
+            "maximum": 3600
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPhoneSettingsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPhoneTemplates",
+      "method": "GET",
+      "path": "/guardian/factors/phone/templates",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPhoneTemplatesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPhoneTemplates",
+      "method": "PUT",
+      "path": "/guardian/factors/phone/templates",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enrollment_message",
+          "verification_message"
+        ],
+        "properties": {
+          "enrollment_message": {
+            "type": "string",
+            "default": "{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment."
+          },
+          "verification_message": {
+            "type": "string",
+            "default": "{{code}} is your verification code for {{tenant.friendly_name}}"
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPhoneTemplatesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPushNotificationProvidersApns",
+      "method": "GET",
+      "path": "/guardian/factors/push-notification/providers/apns",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPushNotificationProvidersApnsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "UpdateGuardianFactorsPushNotificationProvidersApns",
+      "method": "PATCH",
+      "path": "/guardian/factors/push-notification/providers/apns",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sandbox": {
+            "type": "boolean"
+          },
+          "bundle_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "p12": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 10000,
+            "writeOnly": true
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPushNotificationProvidersApns",
+      "method": "PUT",
+      "path": "/guardian/factors/push-notification/providers/apns",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sandbox": {
+            "type": "boolean"
+          },
+          "bundle_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "p12": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 10000,
+            "writeOnly": true
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersApnsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "UpdateGuardianFactorsPushNotificationProvidersFcm",
+      "method": "PATCH",
+      "path": "/guardian/factors/push-notification/providers/fcm",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "server_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 152,
+            "writeOnly": true
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPushNotificationProvidersFcm",
+      "method": "PUT",
+      "path": "/guardian/factors/push-notification/providers/fcm",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "server_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 152,
+            "writeOnly": true
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersFcmResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "UpdateGuardianFactorsPushNotificationProvidersFcmv1",
+      "method": "PATCH",
+      "path": "/guardian/factors/push-notification/providers/fcmv1",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "server_credentials": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPushNotificationProvidersFcmv1",
+      "method": "PUT",
+      "path": "/guardian/factors/push-notification/providers/fcmv1",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "server_credentials": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersFcmv1Response"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPushNotificationProvidersSns",
+      "method": "GET",
+      "path": "/guardian/factors/push-notification/providers/sns",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPushNotificationProvidersSnsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "UpdateGuardianFactorsPushNotificationProvidersSns",
+      "method": "PATCH",
+      "path": "/guardian/factors/push-notification/providers/sns",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "aws_access_key_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "wywA2BH4VqTpfywiDuyDAYZL3xQjoO40",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "aws_secret_access_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "B1ER5JHDGJL3C4sVAKK7SBsq806R3IpL",
+            "minLength": 1,
+            "maxLength": 1000,
+            "writeOnly": true
+          },
+          "aws_region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "us-west-1",
+            "minLength": 1,
+            "maxLength": 1000,
+            "pattern": "^(?:us-east-[0-9]{1,2}|us-west-[0-9]{1,2}|ap-southeast-[0-9]{1,2}|ap-northeast-[0-9]{1,2}|ap-central-[0-9]{1,2}|eu-west-[0-9]{1,2}|eu-central-[0-9]{1,2})$"
+          },
+          "sns_apns_platform_application_arn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "sns_gcm_platform_application_arn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPushNotificationProvidersSns",
+      "method": "PUT",
+      "path": "/guardian/factors/push-notification/providers/sns",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "aws_access_key_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "wywA2BH4VqTpfywiDuyDAYZL3xQjoO40",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "aws_secret_access_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "B1ER5JHDGJL3C4sVAKK7SBsq806R3IpL",
+            "minLength": 1,
+            "maxLength": 1000,
+            "writeOnly": true
+          },
+          "aws_region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "us-west-1",
+            "minLength": 1,
+            "maxLength": 1000,
+            "pattern": "^(?:us-east-[0-9]{1,2}|us-west-[0-9]{1,2}|ap-southeast-[0-9]{1,2}|ap-northeast-[0-9]{1,2}|ap-central-[0-9]{1,2}|eu-west-[0-9]{1,2}|eu-central-[0-9]{1,2})$"
+          },
+          "sns_apns_platform_application_arn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "sns_gcm_platform_application_arn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersSnsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsPushNotificationSelectedProvider",
+      "method": "GET",
+      "path": "/guardian/factors/push-notification/selected-provider",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsPushNotificationSelectedProviderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsPushNotificationSelectedProvider",
+      "method": "PUT",
+      "path": "/guardian/factors/push-notification/selected-provider",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "guardian",
+              "sns",
+              "direct"
+            ]
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsPushNotificationSelectedProviderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsSmsProvidersTwilio",
+      "method": "GET",
+      "path": "/guardian/factors/sms/providers/twilio",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsSmsProvidersTwilioResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsSmsProvidersTwilio",
+      "method": "PUT",
+      "path": "/guardian/factors/sms/providers/twilio",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "+1223323",
+            "minLength": 0,
+            "maxLength": 64
+          },
+          "messaging_service_sid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "auth_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "zw5Ku6z2sxhd0ZVXto5SDHX6KPDByJPU",
+            "minLength": 1,
+            "maxLength": 1000,
+            "writeOnly": true
+          },
+          "sid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "wywA2BH4VqTpfywiDuyDAYZL3xQjoO40",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsSmsProvidersTwilioResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsSmsSelectedProvider",
+      "method": "GET",
+      "path": "/guardian/factors/sms/selected-provider",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsSmsSelectedProviderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsSmsSelectedProvider",
+      "method": "PUT",
+      "path": "/guardian/factors/sms/selected-provider",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "auth0",
+              "twilio",
+              "phone-message-hook"
+            ]
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsSmsSelectedProviderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianFactorsSmsTemplates",
+      "method": "GET",
+      "path": "/guardian/factors/sms/templates",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsSmsTemplatesResponse"
+              }
+            }
+          }
+        },
+        "204": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianFactorsSmsTemplatesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactorsSmsTemplates",
+      "method": "PUT",
+      "path": "/guardian/factors/sms/templates",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enrollment_message",
+          "verification_message"
+        ],
+        "properties": {
+          "enrollment_message": {
+            "type": "string",
+            "default": "{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to verify your enrollment."
+          },
+          "verification_message": {
+            "type": "string",
+            "default": "{{code}} is your verification code for {{tenant.friendly_name}}"
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorsSmsTemplatesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianFactor",
+      "method": "PUT",
+      "path": "/guardian/factors/{name}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "default": "sms",
+            "minLength": 1,
+            "enum": [
+              "push-notification",
+              "sms",
+              "email",
+              "duo",
+              "otp",
+              "webauthn-roaming",
+              "webauthn-platform",
+              "recovery-code"
+            ]
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianFactorResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianPolicies",
+      "method": "GET",
+      "path": "/guardian/policies",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:mfa_policies"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianPoliciesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianPolicies",
+      "method": "PUT",
+      "path": "/guardian/policies",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:mfa_policies"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "all-applications",
+            "confidence-score"
+          ]
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianPoliciesResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetGuardianSettings",
+      "method": "GET",
+      "path": "/guardian/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:tenant_settings"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetGuardianSettingsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetGuardianSettings",
+      "method": "PUT",
+      "path": "/guardian/settings",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:tenant_settings"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "display_remember_me_checkbox",
+          "remember_me_default_value",
+          "mfa_session_inactivity_timeout",
+          "mfa_session_overall_timeout"
+        ],
+        "properties": {
+          "display_remember_me_checkbox": {
+            "type": "boolean",
+            "default": true
+          },
+          "remember_me_default_value": {
+            "type": "boolean",
+            "default": false
+          },
+          "mfa_session_inactivity_timeout": {
+            "type": "integer",
+            "default": 604800,
+            "minimum": 3600,
+            "maximum": 2592000
+          },
+          "mfa_session_overall_timeout": {
+            "type": "integer",
+            "default": 2592000,
+            "minimum": 3600,
+            "maximum": 7776000
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetGuardianSettingsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetAuthenticationMethods",
+      "method": "GET",
+      "path": "/users/{id}/authentication-methods",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:authentication_methods"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        {
+          "name": "per_page",
+          "in": "query",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 50
+          }
+        },
+        {
+          "name": "include_totals",
+          "in": "query",
+          "schema": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetAuthenticationMethodsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "DeleteAuthenticationMethods",
+      "method": "DELETE",
+      "path": "/users/{id}/authentication-methods",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "delete:authentication_methods"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "204": {
+          "description": "MFA operation completed."
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "CreateAuthenticationMethods",
+      "method": "POST",
+      "path": "/users/{id}/authentication-methods",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "create:authentication_methods"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "totp",
+              "email",
+              "webauthn-roaming"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "totp_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "phone_number": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30
+          },
+          "email": {
+            "type": "string"
+          },
+          "preferred_authentication_method": {
+            "type": "string",
+            "enum": [
+              "voice",
+              "sms"
+            ]
+          },
+          "key_id": {
+            "type": "string"
+          },
+          "public_key": {
+            "type": "string"
+          },
+          "aaguid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "relying_party_identifier": {
+            "type": "string",
+            "format": "hostname"
+          },
+          "credential_device_type": {
+            "type": "string",
+            "enum": [
+              "single_device",
+              "multi_device"
+            ]
+          },
+          "credential_backed_up": {
+            "type": "boolean"
+          },
+          "identity_user_id": {
+            "type": "string"
+          },
+          "user_agent": {
+            "type": "string"
+          },
+          "user_handle": {
+            "type": "string"
+          },
+          "transports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found.",
+        "409": "Conflicting authentication method.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "201": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFACreateAuthenticationMethodsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting authentication method.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "SetAuthenticationMethods",
+      "method": "PUT",
+      "path": "/users/{id}/authentication-methods",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:authentication_methods"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "phone",
+                "email",
+                "totp"
+              ]
+            },
+            "preferred_authentication_method": {
+              "type": "string",
+              "enum": [
+                "voice",
+                "sms"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "phone_number": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 30
+            },
+            "email": {
+              "type": "string",
+              "minLength": 1
+            },
+            "totp_secret": {
+              "type": "string",
+              "minLength": 1,
+              "writeOnly": true
+            }
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "409": "Conflicting authentication method.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFASetAuthenticationMethodsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "Conflicting authentication method.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetAuthenticationMethod",
+      "method": "GET",
+      "path": "/users/{id}/authentication-methods/{authentication_method_id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:authentication_methods"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "authentication_method_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z-]+\\|dev_[A-Za-z0-9]{20}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAAuthenticationMethod"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "DeleteAuthenticationMethod",
+      "method": "DELETE",
+      "path": "/users/{id}/authentication-methods/{authentication_method_id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "delete:authentication_methods"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "authentication_method_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z-]+\\|dev_[A-Za-z0-9]{20}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "204": {
+          "description": "MFA operation completed."
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "UpdateAuthenticationMethod",
+      "method": "PATCH",
+      "path": "/users/{id}/authentication-methods/{authentication_method_id}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:authentication_methods"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "authentication_method_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z-]+\\|dev_[A-Za-z0-9]{20}$"
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "preferred_authentication_method": {
+            "type": "string",
+            "enum": [
+              "voice",
+              "sms"
+            ]
+          }
+        }
+      },
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAUpdateAuthenticationMethodResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "DeleteUserAuthenticators",
+      "method": "DELETE",
+      "path": "/users/{id}/authenticators",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "delete:guardian_enrollments"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "204": {
+          "description": "MFA operation completed."
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "GetUserEnrollments",
+      "method": "GET",
+      "path": "/users/{id}/enrollments",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "read:users"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAGetUserEnrollmentsResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "CreateUserRememberBrowser",
+      "method": "POST",
+      "path": "/users/{id}/multifactor/actions/invalidate-remember-browser",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:users"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied."
+      },
+      "responses": {
+        "204": {
+          "description": "MFA operation completed."
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "DeleteUserMultifactor",
+      "method": "DELETE",
+      "path": "/users/{id}/multifactor/{provider}",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:users"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "provider",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "duo",
+              "google-authenticator"
+            ]
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found.",
+        "429": "Request rate exceeded."
+      },
+      "responses": {
+        "204": {
+          "description": "MFA operation completed."
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "CreateUserRecoveryCode",
+      "method": "POST",
+      "path": "/users/{id}/recovery-code-regeneration",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "scopes": [
+        "update:users"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "Invalid request.",
+        "401": "Bearer token rejected.",
+        "403": "Permission denied.",
+        "404": "Resource not found."
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFACreateUserRecoveryCodeResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Bearer token rejected.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Permission denied.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Resource not found.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "MFAAssociate",
+      "method": "POST",
+      "path": "/mfa/associate",
+      "source": "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+      "scopes": [
+        "enroll"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "authenticator_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "otp",
+                "oob"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 1
+          },
+          "oob_channels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "email",
+                "sms",
+                "voice",
+                "auth0"
+              ]
+            }
+          },
+          "email": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "authenticator_types"
+        ]
+      },
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "access_denied",
+        "429": "too_many_attempts"
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAAssociateResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "invalid_request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "invalid_token",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "access_denied",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "too_many_attempts",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "MFAChallenge",
+      "method": "POST",
+      "path": "/mfa/challenge",
+      "source": "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+      "scopes": [],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mfa_token": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "challenge_type": {
+            "type": "string",
+            "enum": [
+              "otp",
+              "oob",
+              "otp oob"
+            ]
+          },
+          "authenticator_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfa_token",
+          "challenge_type"
+        ]
+      },
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "access_denied",
+        "429": "too_many_attempts"
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAChallengeResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "invalid_request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "invalid_token",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "access_denied",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "too_many_attempts",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "MFAListAuthenticators",
+      "method": "GET",
+      "path": "/mfa/authenticators",
+      "source": "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+      "scopes": [
+        "read:authenticators"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "access_denied",
+        "429": "too_many_attempts"
+      },
+      "responses": {
+        "200": {
+          "description": "MFA operation completed.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MFAAuthenticator"
+                }
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "invalid_request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "invalid_token",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "access_denied",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "too_many_attempts",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "MFADeleteAuthenticator",
+      "method": "DELETE",
+      "path": "/mfa/authenticators/{id}",
+      "source": "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+      "scopes": [
+        "remove:authenticators"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z-]+\\|dev_[A-Za-z0-9]{20}$"
+          }
+        }
+      ],
+      "body": {},
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "access_denied",
+        "429": "too_many_attempts",
+        "404": "not_found"
+      },
+      "responses": {
+        "204": {
+          "description": "MFA operation completed."
+        },
+        "400": {
+          "description": "invalid_request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "invalid_token",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "access_denied",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "too_many_attempts",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "not_found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MFAError"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "operation": "mfa-otp",
+      "method": "POST",
+      "path": "/oauth/token",
+      "source": "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+      "scopes": [],
+      "scope_mode": "bound_request",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "http://auth0.com/oauth/grant-type/mfa-otp"
+            ]
+          },
+          "mfa_token": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "otp": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "grant_type",
+          "mfa_token",
+          "otp"
+        ]
+      },
+      "errors": {
+        "invalid_grant": "Invalid, expired, consumed or wrongly bound proof.",
+        "too_many_attempts": "Shared factor throttle exceeded.",
+        "unauthorized_client": "Grant not allowed for this client."
+      },
+      "responses": {
+        "200": {
+          "schema": "TokenResponse"
+        }
+      }
+    },
+    {
+      "operation": "mfa-oob",
+      "method": "POST",
+      "path": "/oauth/token",
+      "source": "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+      "scopes": [],
+      "scope_mode": "bound_request",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "http://auth0.com/oauth/grant-type/mfa-oob"
+            ]
+          },
+          "mfa_token": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "oob_code": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "binding_code": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "grant_type",
+          "mfa_token",
+          "oob_code",
+          "binding_code"
+        ]
+      },
+      "errors": {
+        "invalid_grant": "Invalid, expired, consumed or wrongly bound proof.",
+        "too_many_attempts": "Shared factor throttle exceeded.",
+        "unauthorized_client": "Grant not allowed for this client."
+      },
+      "responses": {
+        "200": {
+          "schema": "TokenResponse"
+        }
+      }
+    },
+    {
+      "operation": "mfa-recovery-code",
+      "method": "POST",
+      "path": "/oauth/token",
+      "source": "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+      "scopes": [],
+      "scope_mode": "bound_request",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "http://auth0.com/oauth/grant-type/mfa-recovery-code"
+            ]
+          },
+          "mfa_token": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "recovery_code": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "grant_type",
+          "mfa_token",
+          "recovery_code"
+        ]
+      },
+      "errors": {
+        "invalid_grant": "Invalid, expired, consumed or wrongly bound proof.",
+        "too_many_attempts": "Shared factor throttle exceeded.",
+        "unauthorized_client": "Grant not allowed for this client."
+      },
+      "responses": {
+        "200": {
+          "schema": "TokenResponse"
+        }
+      }
+    }
+  ],
+  "limits": {
+    "totp_algorithm": "SHA1",
+    "totp_digits": 6,
+    "totp_step_seconds": 30,
+    "totp_window": 1,
+    "recovery_code_length": 24,
+    "recovery_code_alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    "recovery_codes_active": 1,
+    "mfa_token_seconds": 600,
+    "email_code_seconds": 300,
+    "email_code_attempts": 5,
+    "email_code_digits": 6,
+    "enrollment_ticket_days": 7,
+    "remember_browser_days": 30,
+    "device_window_days": 30,
+    "failed_attempts": 10,
+    "throttle_window_seconds": 900,
+    "email_sends": 5,
+    "email_resend_seconds": 30,
+    "id_random_length": 20,
+    "per_page_default": 50,
+    "per_page_max": 100
+  },
+  "screens": {
+    "mfa": [
+      "mfa-begin-enroll-options",
+      "mfa-enroll-result",
+      "mfa-login-options"
+    ],
+    "mfa-otp": [
+      "mfa-otp-enrollment-qr",
+      "mfa-otp-enrollment-code",
+      "mfa-otp-challenge"
+    ],
+    "mfa-email": [
+      "mfa-email-challenge",
+      "mfa-email-list"
+    ],
+    "mfa-recovery-code": [
+      "mfa-recovery-code-enrollment",
+      "mfa-recovery-code-challenge"
+    ]
+  },
+  "action_members": [
+    {
+      "name": "api.multifactor.enable",
+      "source": "https://auth0.com/docs/actions/reference/post-login/post-login-api-object",
+      "arguments": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "string",
+            "enum": [
+              "any",
+              "google-authenticator",
+              "guardian",
+              "none",
+              "duo"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "allowRememberBrowser": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": []
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 2
+      },
+      "triggers": [
+        "post-login"
+      ],
+      "requires_customize_mfa": false,
+      "incompatible_with": [
+        "api.authentication.challengeWith",
+        "api.authentication.challengeWithAny",
+        "api.authentication.enrollWith",
+        "api.authentication.enrollWithAny"
+      ],
+      "available_factors": [
+        "otp",
+        "email",
+        "recovery-code"
+      ],
+      "unavailable_factors": [
+        "webauthn-roaming",
+        "webauthn-platform",
+        "phone",
+        "push-notification"
+      ]
+    },
+    {
+      "name": "api.authentication.challengeWith",
+      "source": "https://auth0.com/docs/actions/reference/post-login/post-login-api-object",
+      "arguments": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "otp",
+                  "email",
+                  "recovery-code",
+                  "webauthn-roaming",
+                  "webauthn-platform",
+                  "phone",
+                  "push-notification"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "additionalFactors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "otp",
+                        "email",
+                        "recovery-code",
+                        "webauthn-roaming",
+                        "webauthn-platform",
+                        "phone",
+                        "push-notification"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              }
+            },
+            "required": []
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 2
+      },
+      "triggers": [
+        "post-login",
+        "password-reset-post-challenge"
+      ],
+      "requires_customize_mfa": true,
+      "incompatible_with": [
+        "api.multifactor.enable"
+      ],
+      "available_factors": [
+        "otp",
+        "email",
+        "recovery-code"
+      ],
+      "unavailable_factors": [
+        "webauthn-roaming",
+        "webauthn-platform",
+        "phone",
+        "push-notification"
+      ]
+    },
+    {
+      "name": "api.authentication.challengeWithAny",
+      "source": "https://auth0.com/docs/actions/reference/post-login/post-login-api-object",
+      "arguments": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "otp",
+                    "email",
+                    "recovery-code",
+                    "webauthn-roaming",
+                    "webauthn-platform",
+                    "phone",
+                    "push-notification"
+                  ]
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "minItems": 1
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      },
+      "triggers": [
+        "post-login",
+        "password-reset-post-challenge"
+      ],
+      "requires_customize_mfa": true,
+      "incompatible_with": [
+        "api.multifactor.enable"
+      ],
+      "available_factors": [
+        "otp",
+        "email",
+        "recovery-code"
+      ],
+      "unavailable_factors": [
+        "webauthn-roaming",
+        "webauthn-platform",
+        "phone",
+        "push-notification"
+      ]
+    },
+    {
+      "name": "api.authentication.enrollWith",
+      "source": "https://auth0.com/docs/actions/reference/post-login/post-login-api-object",
+      "arguments": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "otp",
+                  "email",
+                  "recovery-code",
+                  "webauthn-roaming",
+                  "webauthn-platform",
+                  "phone",
+                  "push-notification"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "additionalFactors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "otp",
+                        "email",
+                        "recovery-code",
+                        "webauthn-roaming",
+                        "webauthn-platform",
+                        "phone",
+                        "push-notification"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              }
+            },
+            "required": []
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 2
+      },
+      "triggers": [
+        "post-login"
+      ],
+      "requires_customize_mfa": true,
+      "incompatible_with": [
+        "api.multifactor.enable"
+      ],
+      "available_factors": [
+        "otp",
+        "email",
+        "recovery-code"
+      ],
+      "unavailable_factors": [
+        "webauthn-roaming",
+        "webauthn-platform",
+        "phone",
+        "push-notification"
+      ]
+    },
+    {
+      "name": "api.authentication.enrollWithAny",
+      "source": "https://auth0.com/docs/actions/reference/post-login/post-login-api-object",
+      "arguments": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "otp",
+                    "email",
+                    "recovery-code",
+                    "webauthn-roaming",
+                    "webauthn-platform",
+                    "phone",
+                    "push-notification"
+                  ]
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "minItems": 1
+          }
+        ],
+        "minItems": 1,
+        "maxItems": 1
+      },
+      "triggers": [
+        "post-login"
+      ],
+      "requires_customize_mfa": true,
+      "incompatible_with": [
+        "api.multifactor.enable"
+      ],
+      "available_factors": [
+        "otp",
+        "email",
+        "recovery-code"
+      ],
+      "unavailable_factors": [
+        "webauthn-roaming",
+        "webauthn-platform",
+        "phone",
+        "push-notification"
+      ]
+    }
+  ],
+  "deploy_handlers": {
+    "guardianFactors": "included",
+    "guardianFactorProviders": "included",
+    "guardianFactorTemplates": "included",
+    "guardianPolicies": "included",
+    "guardianPhoneFactorSelectedProvider": "included",
+    "guardianPhoneFactorMessageTypes": "included",
+    "guardianPhoneFactorSettings": "included",
+    "guardianEmailFactorSettings": "included",
+    "guardianSettings": "included"
+  },
+  "deploy_routes": {
+    "guardianFactors": [
+      "/guardian/factors",
+      "/guardian/factors/{name}"
+    ],
+    "guardianFactorProviders": [
+      "/guardian/factors/sms/providers/twilio",
+      "/guardian/factors/push-notification/providers/apns",
+      "/guardian/factors/push-notification/providers/fcm",
+      "/guardian/factors/push-notification/providers/fcmv1",
+      "/guardian/factors/push-notification/providers/sns",
+      "/guardian/factors/push-notification/selected-provider",
+      "/guardian/factors/duo/settings"
+    ],
+    "guardianFactorTemplates": [
+      "/guardian/factors/sms/templates",
+      "/guardian/factors/phone/templates"
+    ],
+    "guardianPolicies": [
+      "/guardian/policies"
+    ],
+    "guardianPhoneFactorSelectedProvider": [
+      "/guardian/factors/phone/selected-provider"
+    ],
+    "guardianPhoneFactorMessageTypes": [
+      "/guardian/factors/phone/message-types"
+    ],
+    "guardianPhoneFactorSettings": [
+      "/guardian/factors/phone/settings"
+    ],
+    "guardianEmailFactorSettings": [
+      "/guardian/factors/email/settings"
+    ],
+    "guardianSettings": [
+      "/guardian/settings"
+    ]
+  },
+  "gaps": [
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "M7",
+    "M8",
+    "M9"
+  ],
+  "discovery": {
+    "mfa_grants": "not_advertised",
+    "source": "https://auth0.com/docs/get-started/applications/configure-applications-with-oidc-discovery",
+    "note": "No public discovery document demonstrating these grants was supplied. Do not add them to grant_types_supported without public or separate observer evidence."
+  },
+  "settings_semantics": "Guardian settings and email/phone factor settings round-trip as documented configuration. Fixed Plan 33 lifetimes remain local runtime defaults until later enforcement is specified.",
+  "email_enrollment": "Verified email is required; explicit confirmed email methods are used. Implicit primary-email enrollment remains M7; public docs offer verified primary email automatically.",
+  "events": {
+    "enrolledFactors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "options": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "authentication_methods_mfa": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": [
+            "mfa"
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "name",
+        "timestamp"
+      ]
+    }
+  }
+}

@@ -24,6 +24,8 @@ type Code struct {
 	Category    string    `json:"category"`
 	Emitted     bool      `json:"emitted"`
 	Plan        int       `json:"plan"`
+	Status      string    `json:"status,omitempty"`
+	Owner       string    `json:"owner,omitempty"`
 	StatsKind   string    `json:"stats_kind"`
 	Source      string    `json:"source"`
 	Origin      string    `json:"origin"`

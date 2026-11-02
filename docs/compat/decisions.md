@@ -2181,3 +2181,46 @@ against the API response schema. Delivery date validation retains the published
 OpenAPI's explicit `maxLength: 20`, as well as its prohibition of sub-second
 precision: `YYYY-MM-DDTHH:MM:SSZ` is accepted, and longer numeric-offset RFC3339
 values are rejected. Calendar/time validation still uses the RFC3339 parser.
+
+## D-0059 — MFA contracts and local rulings
+
+**2026-11-02; Plan 33 Task 1.** Public documentation and the Management API
+OpenAPI are the evidence for the contract frozen in `internal/mfarules` and
+`api/*.yaml`. No tenant observation was performed. The maintainer ruled M1–M9
+are not 1.0 blockers; these gaps remain open for a separate observer, as listed
+in [follow-ups](../superpowers/plan-1-followups.md).
+
+The ten local rulings are: (1) push and Duo flags are stored and never offered;
+SMS/phone configuration is stored for Plan 34, whose native providers are an
+extension, while MFA and reset email use the tenant's Plan 21 provider; (2)
+confidence-score uses a 30-day device signal pending Plan 40; (3) MFA tokens
+last 10 minutes, email codes 5 minutes with 5 attempts, tickets 7 days, and
+remember-browser 30 days; (4) 10 wrong codes per user and factor per 15 minutes
+and 5 emails per 15 minutes; (5) one active 24-character uppercase alphanumeric
+recovery code, replaced on use; (6) WebAuthn is stored only; (7) required MFA
+without an enabled enforced factor fails closed with `access_denied`; (8)
+unsatisfied `prompt=none` returns `interaction_required`; (9) method IDs use
+`<type>|dev_<20 alphanumerics>`, enrollment IDs use `dev_<20 alphanumerics>`,
+and confirmed non-recovery methods derive `multifactor: ["guardian"]`; (10)
+WebAuthn MFA and passkeys belong to Plan 33b after 1.0.
+
+Unobserved points and local answers: **M1** ID and derived multifactor rules
+above; public documentation examples use `dev_` followed by 16 characters,
+which differ from the approved local 20-character IDs. **M2** accept and store
+unsupported factor flags and confidence-score. **M3** tickets last seven days,
+are single use, and follow the design's enrollment flow. **M4** use the
+lifetimes above and six-digit email and 24-character recovery codes. **M5** use
+the 10-per-15-minute rule above; [public ROPG MFA documentation](https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa)
+describes 10 attempts replenished at one per six minutes, which differs from
+this approved local rule. **M6** return `interaction_required`. **M7** offer
+email when verified email is available; verified email is not implicit
+confirmed enrollment. **M8** use the associate, challenge and replacement
+recovery-code response shapes frozen in the inventory and API documents.
+**M9** emit `user.updated` when derived multifactor changes, not on last-use
+updates. None is an observed upstream answer.
+
+The route lookup is `Route(op string) RouteSchema`: Go cannot declare a type
+and function both named `Route` in one package. This is an interface naming
+ruling, with no wire effect. The published enrollment schema contains an
+incompatible default and pattern for the device name; the local API schema omits
+those invalid constraints rather than exporting an unsatisfiable schema.

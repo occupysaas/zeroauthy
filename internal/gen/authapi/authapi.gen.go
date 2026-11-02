@@ -73,6 +73,186 @@ func (e ExtensibilityErrorStatusCode) Valid() bool {
 	}
 }
 
+// Defines values for MFAAssociateRequestAuthenticatorTypes.
+const (
+	MFAAssociateRequestAuthenticatorTypesOob MFAAssociateRequestAuthenticatorTypes = "oob"
+	MFAAssociateRequestAuthenticatorTypesOtp MFAAssociateRequestAuthenticatorTypes = "otp"
+)
+
+// Valid indicates whether the value is a known member of the MFAAssociateRequestAuthenticatorTypes enum.
+func (e MFAAssociateRequestAuthenticatorTypes) Valid() bool {
+	switch e {
+	case MFAAssociateRequestAuthenticatorTypesOob:
+		return true
+	case MFAAssociateRequestAuthenticatorTypesOtp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAAssociateRequestOobChannels.
+const (
+	MFAAssociateRequestOobChannelsAuth0 MFAAssociateRequestOobChannels = "auth0"
+	MFAAssociateRequestOobChannelsEmail MFAAssociateRequestOobChannels = "email"
+	MFAAssociateRequestOobChannelsSms   MFAAssociateRequestOobChannels = "sms"
+	MFAAssociateRequestOobChannelsVoice MFAAssociateRequestOobChannels = "voice"
+)
+
+// Valid indicates whether the value is a known member of the MFAAssociateRequestOobChannels enum.
+func (e MFAAssociateRequestOobChannels) Valid() bool {
+	switch e {
+	case MFAAssociateRequestOobChannelsAuth0:
+		return true
+	case MFAAssociateRequestOobChannelsEmail:
+		return true
+	case MFAAssociateRequestOobChannelsSms:
+		return true
+	case MFAAssociateRequestOobChannelsVoice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAAssociateResponseAuthenticatorType.
+const (
+	MFAAssociateResponseAuthenticatorTypeOob MFAAssociateResponseAuthenticatorType = "oob"
+	MFAAssociateResponseAuthenticatorTypeOtp MFAAssociateResponseAuthenticatorType = "otp"
+)
+
+// Valid indicates whether the value is a known member of the MFAAssociateResponseAuthenticatorType enum.
+func (e MFAAssociateResponseAuthenticatorType) Valid() bool {
+	switch e {
+	case MFAAssociateResponseAuthenticatorTypeOob:
+		return true
+	case MFAAssociateResponseAuthenticatorTypeOtp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAAssociateResponseBindingMethod.
+const (
+	MFAAssociateResponseBindingMethodPrompt MFAAssociateResponseBindingMethod = "prompt"
+)
+
+// Valid indicates whether the value is a known member of the MFAAssociateResponseBindingMethod enum.
+func (e MFAAssociateResponseBindingMethod) Valid() bool {
+	switch e {
+	case MFAAssociateResponseBindingMethodPrompt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAAssociateResponseOobChannel.
+const (
+	MFAAssociateResponseOobChannelEmail MFAAssociateResponseOobChannel = "email"
+)
+
+// Valid indicates whether the value is a known member of the MFAAssociateResponseOobChannel enum.
+func (e MFAAssociateResponseOobChannel) Valid() bool {
+	switch e {
+	case MFAAssociateResponseOobChannelEmail:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAAuthenticatorAuthenticatorType.
+const (
+	MFAAuthenticatorAuthenticatorTypeOob          MFAAuthenticatorAuthenticatorType = "oob"
+	MFAAuthenticatorAuthenticatorTypeOtp          MFAAuthenticatorAuthenticatorType = "otp"
+	MFAAuthenticatorAuthenticatorTypeRecoveryCode MFAAuthenticatorAuthenticatorType = "recovery-code"
+)
+
+// Valid indicates whether the value is a known member of the MFAAuthenticatorAuthenticatorType enum.
+func (e MFAAuthenticatorAuthenticatorType) Valid() bool {
+	switch e {
+	case MFAAuthenticatorAuthenticatorTypeOob:
+		return true
+	case MFAAuthenticatorAuthenticatorTypeOtp:
+		return true
+	case MFAAuthenticatorAuthenticatorTypeRecoveryCode:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAChallengeRequestChallengeType.
+const (
+	MFAChallengeRequestChallengeTypeOob    MFAChallengeRequestChallengeType = "oob"
+	MFAChallengeRequestChallengeTypeOtp    MFAChallengeRequestChallengeType = "otp"
+	MFAChallengeRequestChallengeTypeOtpOob MFAChallengeRequestChallengeType = "otp oob"
+)
+
+// Valid indicates whether the value is a known member of the MFAChallengeRequestChallengeType enum.
+func (e MFAChallengeRequestChallengeType) Valid() bool {
+	switch e {
+	case MFAChallengeRequestChallengeTypeOob:
+		return true
+	case MFAChallengeRequestChallengeTypeOtp:
+		return true
+	case MFAChallengeRequestChallengeTypeOtpOob:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAChallengeResponseBindingMethod.
+const (
+	MFAChallengeResponseBindingMethodPrompt MFAChallengeResponseBindingMethod = "prompt"
+)
+
+// Valid indicates whether the value is a known member of the MFAChallengeResponseBindingMethod enum.
+func (e MFAChallengeResponseBindingMethod) Valid() bool {
+	switch e {
+	case MFAChallengeResponseBindingMethodPrompt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFAChallengeResponseChallengeType.
+const (
+	MFAChallengeResponseChallengeTypeOob MFAChallengeResponseChallengeType = "oob"
+	MFAChallengeResponseChallengeTypeOtp MFAChallengeResponseChallengeType = "otp"
+)
+
+// Valid indicates whether the value is a known member of the MFAChallengeResponseChallengeType enum.
+func (e MFAChallengeResponseChallengeType) Valid() bool {
+	switch e {
+	case MFAChallengeResponseChallengeTypeOob:
+		return true
+	case MFAChallengeResponseChallengeTypeOtp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MFARequiredError.
+const (
+	MfaRequired MFARequiredError = "mfa_required"
+)
+
+// Valid indicates whether the value is a known member of the MFARequiredError enum.
+func (e MFARequiredError) Valid() bool {
+	switch e {
+	case MfaRequired:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PushedAuthorizationResponseExpiresIn.
 const (
 	N30 PushedAuthorizationResponseExpiresIn = 30
@@ -187,6 +367,94 @@ type JWK struct {
 type JWKS struct {
 	Keys []JWK `json:"keys"`
 }
+
+// MFAAssociateRequest defines model for MFAAssociateRequest.
+type MFAAssociateRequest struct {
+	AuthenticatorTypes []MFAAssociateRequestAuthenticatorTypes `json:"authenticator_types"`
+	ClientId           *string                                 `json:"client_id,omitempty"`
+	ClientSecret       *string                                 `json:"client_secret,omitempty"`
+	Email              *string                                 `json:"email,omitempty"`
+	OobChannels        *[]MFAAssociateRequestOobChannels       `json:"oob_channels,omitempty"`
+}
+
+// MFAAssociateRequestAuthenticatorTypes defines model for MFAAssociateRequest.AuthenticatorTypes.
+type MFAAssociateRequestAuthenticatorTypes string
+
+// MFAAssociateRequestOobChannels defines model for MFAAssociateRequest.OobChannels.
+type MFAAssociateRequestOobChannels string
+
+// MFAAssociateResponse defines model for MFAAssociateResponse.
+type MFAAssociateResponse struct {
+	AuthenticatorType *MFAAssociateResponseAuthenticatorType `json:"authenticator_type,omitempty"`
+	BarcodeUri        *string                                `json:"barcode_uri,omitempty"`
+	BindingMethod     *MFAAssociateResponseBindingMethod     `json:"binding_method,omitempty"`
+	OobChannel        *MFAAssociateResponseOobChannel        `json:"oob_channel,omitempty"`
+	OobCode           *string                                `json:"oob_code,omitempty"`
+	RecoveryCodes     *[]string                              `json:"recovery_codes,omitempty"`
+	Secret            *string                                `json:"secret,omitempty"`
+}
+
+// MFAAssociateResponseAuthenticatorType defines model for MFAAssociateResponse.AuthenticatorType.
+type MFAAssociateResponseAuthenticatorType string
+
+// MFAAssociateResponseBindingMethod defines model for MFAAssociateResponse.BindingMethod.
+type MFAAssociateResponseBindingMethod string
+
+// MFAAssociateResponseOobChannel defines model for MFAAssociateResponse.OobChannel.
+type MFAAssociateResponseOobChannel string
+
+// MFAAuthenticator defines model for MFAAuthenticator.
+type MFAAuthenticator struct {
+	Active            bool                              `json:"active"`
+	AuthenticatorType MFAAuthenticatorAuthenticatorType `json:"authenticator_type"`
+	Id                string                            `json:"id"`
+	Name              *string                           `json:"name,omitempty"`
+	OobChannel        *string                           `json:"oob_channel,omitempty"`
+}
+
+// MFAAuthenticatorAuthenticatorType defines model for MFAAuthenticator.AuthenticatorType.
+type MFAAuthenticatorAuthenticatorType string
+
+// MFAChallengeRequest defines model for MFAChallengeRequest.
+type MFAChallengeRequest struct {
+	AuthenticatorId *string                          `json:"authenticator_id,omitempty"`
+	ChallengeType   MFAChallengeRequestChallengeType `json:"challenge_type"`
+	ClientId        *string                          `json:"client_id,omitempty"`
+	ClientSecret    *string                          `json:"client_secret,omitempty"`
+	MfaToken        *string                          `json:"mfa_token,omitempty"`
+}
+
+// MFAChallengeRequestChallengeType defines model for MFAChallengeRequest.ChallengeType.
+type MFAChallengeRequestChallengeType string
+
+// MFAChallengeResponse defines model for MFAChallengeResponse.
+type MFAChallengeResponse struct {
+	BindingMethod *MFAChallengeResponseBindingMethod `json:"binding_method,omitempty"`
+	ChallengeType MFAChallengeResponseChallengeType  `json:"challenge_type"`
+	OobCode       *string                            `json:"oob_code,omitempty"`
+}
+
+// MFAChallengeResponseBindingMethod defines model for MFAChallengeResponse.BindingMethod.
+type MFAChallengeResponseBindingMethod string
+
+// MFAChallengeResponseChallengeType defines model for MFAChallengeResponse.ChallengeType.
+type MFAChallengeResponseChallengeType string
+
+// MFAError defines model for MFAError.
+type MFAError struct {
+	Error            string  `json:"error"`
+	ErrorDescription *string `json:"error_description,omitempty"`
+}
+
+// MFARequired defines model for MFARequired.
+type MFARequired struct {
+	Error            MFARequiredError `json:"error"`
+	ErrorDescription string           `json:"error_description"`
+	MfaToken         string           `json:"mfa_token"`
+}
+
+// MFARequiredError defines model for MFARequired.Error.
+type MFARequiredError string
 
 // OAuthError defines model for OAuthError.
 type OAuthError struct {
@@ -332,6 +600,7 @@ type SignupResponse struct {
 type TokenRequest struct {
 	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
 	Audience     *string `json:"audience,omitempty"`
+	BindingCode  *string `json:"binding_code,omitempty"`
 	ClientId     *string `json:"client_id,omitempty"`
 	ClientSecret *string `json:"client_secret,omitempty"`
 
@@ -342,16 +611,20 @@ type TokenRequest struct {
 	CodeVerifier *string `json:"code_verifier,omitempty"`
 
 	// GrantType Examples: client_credentials
-	GrantType string `json:"grant_type"`
+	GrantType string  `json:"grant_type"`
+	MfaToken  *string `json:"mfa_token,omitempty"`
+	OobCode   *string `json:"oob_code,omitempty"`
 
 	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The password, password-realm and device code grants ignore it (D-0055).
 	Organization *string `json:"organization,omitempty"`
+	Otp          *string `json:"otp,omitempty"`
 
 	// Password The user's password (password grants).
 	Password *string `json:"password,omitempty"`
 
 	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory).
-	Realm *string `json:"realm,omitempty"`
+	Realm        *string `json:"realm,omitempty"`
+	RecoveryCode *string `json:"recovery_code,omitempty"`
 
 	// RedirectUri Must equal the redirect_uri of the authorization request.
 	RedirectUri *string `json:"redirect_uri,omitempty"`
@@ -371,8 +644,11 @@ type TokenResponse struct {
 	AccessToken string `json:"access_token"`
 
 	// ExpiresIn Lifetime of the access token in seconds.
-	ExpiresIn    int     `json:"expires_in"`
-	IdToken      *string `json:"id_token,omitempty"`
+	ExpiresIn int     `json:"expires_in"`
+	IdToken   *string `json:"id_token,omitempty"`
+
+	// RecoveryCode One-time replacement after a successful MFA recovery-code grant.
+	RecoveryCode *string `json:"recovery_code,omitempty"`
 	RefreshToken *string `json:"refresh_token,omitempty"`
 	Scope        *string `json:"scope,omitempty"`
 
@@ -471,6 +747,11 @@ type DbconnectionsSignup400JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// OauthToken403JSONResponseBody defines parameters for OauthToken.
+type OauthToken403JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // OidcLogoutParams defines parameters for OidcLogout.
 type OidcLogoutParams struct {
 	// IdTokenHint An ID token this tenant issued to the user.
@@ -524,6 +805,12 @@ type DbconnectionsSignupJSONRequestBody = SignupRequest
 
 // DbconnectionsSignupFormdataRequestBody defines body for DbconnectionsSignup for application/x-www-form-urlencoded ContentType.
 type DbconnectionsSignupFormdataRequestBody = SignupFormRequest
+
+// MFAAssociateJSONRequestBody defines body for MFAAssociate for application/json ContentType.
+type MFAAssociateJSONRequestBody = MFAAssociateRequest
+
+// MFAChallengeJSONRequestBody defines body for MFAChallenge for application/json ContentType.
+type MFAChallengeJSONRequestBody = MFAChallengeRequest
 
 // OauthDeviceCodeJSONRequestBody defines body for OauthDeviceCode for application/json ContentType.
 type OauthDeviceCodeJSONRequestBody = DeviceCodeRequest
@@ -1054,6 +1341,68 @@ func (t *DbconnectionsSignup400JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsOAuthError returns the union data inside the OauthToken403JSONResponseBody as a OAuthError
+func (t OauthToken403JSONResponseBody) AsOAuthError() (OAuthError, error) {
+	var body OAuthError
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOAuthError overwrites any union data inside the OauthToken403JSONResponseBody as the provided OAuthError
+func (t *OauthToken403JSONResponseBody) FromOAuthError(v OAuthError) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOAuthError performs a merge with any union data inside the OauthToken403JSONResponseBody, using the provided OAuthError
+func (t *OauthToken403JSONResponseBody) MergeOAuthError(v OAuthError) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMFARequired returns the union data inside the OauthToken403JSONResponseBody as a MFARequired
+func (t OauthToken403JSONResponseBody) AsMFARequired() (MFARequired, error) {
+	var body MFARequired
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMFARequired overwrites any union data inside the OauthToken403JSONResponseBody as the provided MFARequired
+func (t *OauthToken403JSONResponseBody) FromMFARequired(v MFARequired) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMFARequired performs a merge with any union data inside the OauthToken403JSONResponseBody, using the provided MFARequired
+func (t *OauthToken403JSONResponseBody) MergeMFARequired(v MFARequired) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t OauthToken403JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *OauthToken403JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Jwks JSON Web Key Set
@@ -1074,6 +1423,18 @@ type ServerInterface interface {
 	// DbconnectionsSignup Sign up a user
 	// (POST /dbconnections/signup)
 	DbconnectionsSignup(w http.ResponseWriter, r *http.Request)
+	// MFAAssociate MFAAssociate
+	// (POST /mfa/associate)
+	MFAAssociate(w http.ResponseWriter, r *http.Request)
+	// MFAListAuthenticators MFAListAuthenticators
+	// (GET /mfa/authenticators)
+	MFAListAuthenticators(w http.ResponseWriter, r *http.Request)
+	// MFADeleteAuthenticator MFADeleteAuthenticator
+	// (DELETE /mfa/authenticators/{id})
+	MFADeleteAuthenticator(w http.ResponseWriter, r *http.Request, id string)
+	// MFAChallenge MFAChallenge
+	// (POST /mfa/challenge)
+	MFAChallenge(w http.ResponseWriter, r *http.Request)
 	// OauthDeviceCode Start a device authorization
 	// (POST /oauth/device/code)
 	OauthDeviceCode(w http.ResponseWriter, r *http.Request)
@@ -1140,6 +1501,30 @@ func (_ Unimplemented) DbconnectionsChangePassword(w http.ResponseWriter, r *htt
 // DbconnectionsSignup Sign up a user
 // (POST /dbconnections/signup)
 func (_ Unimplemented) DbconnectionsSignup(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MFAAssociate MFAAssociate
+// (POST /mfa/associate)
+func (_ Unimplemented) MFAAssociate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MFAListAuthenticators MFAListAuthenticators
+// (GET /mfa/authenticators)
+func (_ Unimplemented) MFAListAuthenticators(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MFADeleteAuthenticator MFADeleteAuthenticator
+// (DELETE /mfa/authenticators/{id})
+func (_ Unimplemented) MFADeleteAuthenticator(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MFAChallenge MFAChallenge
+// (POST /mfa/challenge)
+func (_ Unimplemented) MFAChallenge(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1547,6 +1932,74 @@ func (siw *ServerInterfaceWrapper) DbconnectionsSignup(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DbconnectionsSignup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MFAAssociate operation middleware
+func (siw *ServerInterfaceWrapper) MFAAssociate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MFAAssociate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MFAListAuthenticators operation middleware
+func (siw *ServerInterfaceWrapper) MFAListAuthenticators(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MFAListAuthenticators(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MFADeleteAuthenticator operation middleware
+func (siw *ServerInterfaceWrapper) MFADeleteAuthenticator(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MFADeleteAuthenticator(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MFAChallenge operation middleware
+func (siw *ServerInterfaceWrapper) MFAChallenge(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MFAChallenge(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1968,6 +2421,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/dbconnections/change_password", wrapper.DbconnectionsChangePassword)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/mfa/associate", wrapper.MFAAssociate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/mfa/challenge", wrapper.MFAChallenge)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/mfa/authenticators", wrapper.MFAListAuthenticators)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/mfa/authenticators/{id}", wrapper.MFADeleteAuthenticator)
 	})
 
 	return r

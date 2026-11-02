@@ -10097,6 +10097,2573 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementError'
+  /api/v2/guardian/enrollments/ticket:
+    post:
+      operationId: CreateGuardianEnrollmentTicket
+      tags:
+      - guardian
+      summary: CreateGuardianEnrollmentTicket
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - create:guardian_enrollment_tickets
+      - operatorToken: []
+      parameters:
+      - name: auth0-custom-domain
+        in: header
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 255
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFACreateGuardianEnrollmentTicketResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFACreateGuardianEnrollmentTicketRequest'
+  /api/v2/guardian/enrollments/{id}:
+    get:
+      operationId: GetGuardianEnrollment
+      tags:
+      - guardian
+      summary: GetGuardianEnrollment
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_enrollments
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^dev_[A-Za-z0-9]{20}$
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianEnrollmentResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    delete:
+      operationId: DeleteGuardianEnrollment
+      tags:
+      - guardian
+      summary: DeleteGuardianEnrollment
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - delete:guardian_enrollments
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^dev_[A-Za-z0-9]{20}$
+      responses:
+        '204':
+          description: MFA operation completed.
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/guardian/factors:
+    get:
+      operationId: GetGuardianFactors
+      tags:
+      - guardian
+      summary: GetGuardianFactors
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/guardian/factors/duo/settings:
+    get:
+      operationId: GetGuardianFactorsDuoSettings
+      tags:
+      - guardian
+      summary: GetGuardianFactorsDuoSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsDuoSettingsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateGuardianFactorsDuoSettings
+      tags:
+      - guardian
+      summary: UpdateGuardianFactorsDuoSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAUpdateGuardianFactorsDuoSettingsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAUpdateGuardianFactorsDuoSettingsRequest'
+    put:
+      operationId: SetGuardianFactorsDuoSettings
+      tags:
+      - guardian
+      summary: SetGuardianFactorsDuoSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsDuoSettingsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsDuoSettingsRequest'
+  /api/v2/guardian/factors/email/settings:
+    get:
+      operationId: GetGuardianFactorsEmailSettings
+      tags:
+      - guardian
+      summary: GetGuardianFactorsEmailSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsEmailSettingsResponse'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsEmailSettings
+      tags:
+      - guardian
+      summary: SetGuardianFactorsEmailSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsEmailSettingsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsEmailSettingsRequest'
+  /api/v2/guardian/factors/phone/message-types:
+    get:
+      operationId: GetGuardianFactorsPhoneMessageTypes
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPhoneMessageTypes
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPhoneMessageTypesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsPhoneMessageTypes
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPhoneMessageTypes
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPhoneMessageTypesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPhoneMessageTypesRequest'
+  /api/v2/guardian/factors/phone/providers/twilio:
+    get:
+      operationId: GetGuardianFactorsPhoneProvidersTwilio
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPhoneProvidersTwilio
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPhoneProvidersTwilioResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsPhoneProvidersTwilio
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPhoneProvidersTwilio
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPhoneProvidersTwilioResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPhoneProvidersTwilioRequest'
+  /api/v2/guardian/factors/phone/selected-provider:
+    get:
+      operationId: GetGuardianFactorsPhoneSelectedProvider
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPhoneSelectedProvider
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPhoneSelectedProviderResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsPhoneSelectedProvider
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPhoneSelectedProvider
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPhoneSelectedProviderResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPhoneSelectedProviderRequest'
+  /api/v2/guardian/factors/phone/settings:
+    get:
+      operationId: GetGuardianFactorsPhoneSettings
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPhoneSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPhoneSettingsResponse'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsPhoneSettings
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPhoneSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPhoneSettingsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPhoneSettingsRequest'
+  /api/v2/guardian/factors/phone/templates:
+    get:
+      operationId: GetGuardianFactorsPhoneTemplates
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPhoneTemplates
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPhoneTemplatesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsPhoneTemplates
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPhoneTemplates
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPhoneTemplatesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPhoneTemplatesRequest'
+  /api/v2/guardian/factors/push-notification/providers/apns:
+    get:
+      operationId: GetGuardianFactorsPushNotificationProvidersApns
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPushNotificationProvidersApns
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPushNotificationProvidersApnsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateGuardianFactorsPushNotificationProvidersApns
+      tags:
+      - guardian
+      summary: UpdateGuardianFactorsPushNotificationProvidersApns
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest'
+    put:
+      operationId: SetGuardianFactorsPushNotificationProvidersApns
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPushNotificationProvidersApns
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersApnsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersApnsRequest'
+  /api/v2/guardian/factors/push-notification/providers/fcm:
+    patch:
+      operationId: UpdateGuardianFactorsPushNotificationProvidersFcm
+      tags:
+      - guardian
+      summary: UpdateGuardianFactorsPushNotificationProvidersFcm
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest'
+    put:
+      operationId: SetGuardianFactorsPushNotificationProvidersFcm
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPushNotificationProvidersFcm
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersFcmResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersFcmRequest'
+  /api/v2/guardian/factors/push-notification/providers/fcmv1:
+    patch:
+      operationId: UpdateGuardianFactorsPushNotificationProvidersFcmv1
+      tags:
+      - guardian
+      summary: UpdateGuardianFactorsPushNotificationProvidersFcmv1
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request'
+    put:
+      operationId: SetGuardianFactorsPushNotificationProvidersFcmv1
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPushNotificationProvidersFcmv1
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersFcmv1Response'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersFcmv1Request'
+  /api/v2/guardian/factors/push-notification/providers/sns:
+    get:
+      operationId: GetGuardianFactorsPushNotificationProvidersSns
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPushNotificationProvidersSns
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPushNotificationProvidersSnsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateGuardianFactorsPushNotificationProvidersSns
+      tags:
+      - guardian
+      summary: UpdateGuardianFactorsPushNotificationProvidersSns
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest'
+    put:
+      operationId: SetGuardianFactorsPushNotificationProvidersSns
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPushNotificationProvidersSns
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersSnsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationProvidersSnsRequest'
+  /api/v2/guardian/factors/push-notification/selected-provider:
+    get:
+      operationId: GetGuardianFactorsPushNotificationSelectedProvider
+      tags:
+      - guardian
+      summary: GetGuardianFactorsPushNotificationSelectedProvider
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsPushNotificationSelectedProviderResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsPushNotificationSelectedProvider
+      tags:
+      - guardian
+      summary: SetGuardianFactorsPushNotificationSelectedProvider
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationSelectedProviderResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsPushNotificationSelectedProviderRequest'
+  /api/v2/guardian/factors/sms/providers/twilio:
+    get:
+      operationId: GetGuardianFactorsSmsProvidersTwilio
+      tags:
+      - guardian
+      summary: GetGuardianFactorsSmsProvidersTwilio
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsSmsProvidersTwilioResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsSmsProvidersTwilio
+      tags:
+      - guardian
+      summary: SetGuardianFactorsSmsProvidersTwilio
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsSmsProvidersTwilioResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsSmsProvidersTwilioRequest'
+  /api/v2/guardian/factors/sms/selected-provider:
+    get:
+      operationId: GetGuardianFactorsSmsSelectedProvider
+      tags:
+      - guardian
+      summary: GetGuardianFactorsSmsSelectedProvider
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsSmsSelectedProviderResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsSmsSelectedProvider
+      tags:
+      - guardian
+      summary: SetGuardianFactorsSmsSelectedProvider
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsSmsSelectedProviderResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsSmsSelectedProviderRequest'
+  /api/v2/guardian/factors/sms/templates:
+    get:
+      operationId: GetGuardianFactorsSmsTemplates
+      tags:
+      - guardian
+      summary: GetGuardianFactorsSmsTemplates
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsSmsTemplatesResponse'
+        '204':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianFactorsSmsTemplatesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianFactorsSmsTemplates
+      tags:
+      - guardian
+      summary: SetGuardianFactorsSmsTemplates
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorsSmsTemplatesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorsSmsTemplatesRequest'
+  /api/v2/guardian/factors/{name}:
+    put:
+      operationId: SetGuardianFactor
+      tags:
+      - guardian
+      summary: SetGuardianFactor
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:guardian_factors
+      - operatorToken: []
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          default: sms
+          minLength: 1
+          enum:
+          - push-notification
+          - sms
+          - email
+          - duo
+          - otp
+          - webauthn-roaming
+          - webauthn-platform
+          - recovery-code
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianFactorResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianFactorRequest'
+  /api/v2/guardian/policies:
+    get:
+      operationId: GetGuardianPolicies
+      tags:
+      - guardian
+      summary: GetGuardianPolicies
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:mfa_policies
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianPoliciesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianPolicies
+      tags:
+      - guardian
+      summary: SetGuardianPolicies
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:mfa_policies
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianPoliciesResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianPoliciesRequest'
+  /api/v2/guardian/settings:
+    get:
+      operationId: GetGuardianSettings
+      tags:
+      - guardian
+      summary: GetGuardianSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:tenant_settings
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetGuardianSettingsResponse'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    put:
+      operationId: SetGuardianSettings
+      tags:
+      - guardian
+      summary: SetGuardianSettings
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:tenant_settings
+      - operatorToken: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetGuardianSettingsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetGuardianSettingsRequest'
+  /api/v2/users/{id}/authentication-methods:
+    get:
+      operationId: GetAuthenticationMethods
+      tags:
+      - users
+      summary: GetAuthenticationMethods
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:authentication_methods
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 50
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetAuthenticationMethodsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    delete:
+      operationId: DeleteAuthenticationMethods
+      tags:
+      - users
+      summary: DeleteAuthenticationMethods
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - delete:authentication_methods
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: MFA operation completed.
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    post:
+      operationId: CreateAuthenticationMethods
+      tags:
+      - users
+      summary: CreateAuthenticationMethods
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - create:authentication_methods
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFACreateAuthenticationMethodsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: Conflicting authentication method.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFACreateAuthenticationMethod'
+    put:
+      operationId: SetAuthenticationMethods
+      tags:
+      - users
+      summary: SetAuthenticationMethods
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:authentication_methods
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFASetAuthenticationMethodsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '409':
+          description: Conflicting authentication method.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFASetAuthenticationMethodsRequest'
+  /api/v2/users/{id}/authentication-methods/{authentication_method_id}:
+    get:
+      operationId: GetAuthenticationMethod
+      tags:
+      - users
+      summary: GetAuthenticationMethod
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:authentication_methods
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: authentication_method_id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-z-]+\|dev_[A-Za-z0-9]{20}$
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAAuthenticationMethod'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    delete:
+      operationId: DeleteAuthenticationMethod
+      tags:
+      - users
+      summary: DeleteAuthenticationMethod
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - delete:authentication_methods
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: authentication_method_id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-z-]+\|dev_[A-Za-z0-9]{20}$
+      responses:
+        '204':
+          description: MFA operation completed.
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateAuthenticationMethod
+      tags:
+      - users
+      summary: UpdateAuthenticationMethod
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:authentication_methods
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: authentication_method_id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-z-]+\|dev_[A-Za-z0-9]{20}$
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAUpdateAuthenticationMethodResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAUpdateAuthenticationMethodRequest'
+  /api/v2/users/{id}/authenticators:
+    delete:
+      operationId: DeleteUserAuthenticators
+      tags:
+      - users
+      summary: DeleteUserAuthenticators
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - delete:guardian_enrollments
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: MFA operation completed.
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/users/{id}/enrollments:
+    get:
+      operationId: GetUserEnrollments
+      tags:
+      - users
+      summary: GetUserEnrollments
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - read:users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAGetUserEnrollmentsResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/users/{id}/multifactor/actions/invalidate-remember-browser:
+    post:
+      operationId: CreateUserRememberBrowser
+      tags:
+      - users
+      summary: CreateUserRememberBrowser
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: MFA operation completed.
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/users/{id}/multifactor/{provider}:
+    delete:
+      operationId: DeleteUserMultifactor
+      tags:
+      - users
+      summary: DeleteUserMultifactor
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - duo
+          - google-authenticator
+      responses:
+        '204':
+          description: MFA operation completed.
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Request rate exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/users/{id}/recovery-code-regeneration:
+    post:
+      operationId: CreateUserRecoveryCode
+      tags:
+      - users
+      summary: CreateUserRecoveryCode
+      description: Plan 33 frozen contract; runtime implementation follows in later tasks. Stored provider secrets
+        are never returned.
+      x-source:
+      - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      security:
+      - managementToken:
+        - update:users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFACreateUserRecoveryCodeResponse'
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Bearer token rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Permission denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Resource not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+
 components:
   securitySchemes:
     managementToken:
@@ -10153,6 +12720,1775 @@ components:
       description: The member's user ID.
       schema: {type: string}
   schemas:
+    MFACreateGuardianEnrollmentTicketResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        ticket_id:
+          type: string
+          default: u2x2-u2x2-u2x2-u2x2-u2x2-u2x2
+        ticket_url:
+          type: string
+          format: url
+    MFACreateGuardianEnrollmentTicketRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - user_id
+      properties:
+        user_id:
+          type: string
+          format: user-id
+        email:
+          type: string
+          format: email
+        send_mail:
+          type: boolean
+        email_locale:
+          type: string
+        factor:
+          type: string
+          enum:
+          - push-notification
+          - phone
+          - email
+          - otp
+          - webauthn-roaming
+          - webauthn-platform
+        allow_multiple_enrollments:
+          type: boolean
+    MFAGetGuardianEnrollmentResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          default: dev_0000000000000001
+        status:
+          type: string
+          default: pending
+          enum:
+          - pending
+          - confirmed
+        name:
+          type: string
+          minLength: 1
+          maxLength: 20
+        identifier:
+          type: string
+          default: 76dc-a90c-a88c-a90c-a88c-a88c-a90c
+        phone_number:
+          type: string
+          default: +1 999999999999
+        enrolled_at:
+          type: string
+          default: '2016-07-12T17:56:26.804Z'
+        last_auth:
+          type: string
+          default: '2016-07-12T17:56:26.804Z'
+    MFAGetGuardianFactorsResponse:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+        - enabled
+        properties:
+          enabled:
+            type: boolean
+            default: true
+          trial_expired:
+            type: boolean
+            default: true
+          name:
+            type: string
+            default: sms
+            minLength: 1
+            enum:
+            - push-notification
+            - sms
+            - email
+            - duo
+            - otp
+            - webauthn-roaming
+            - webauthn-platform
+            - recovery-code
+          settings:
+            type: object
+            additionalProperties: true
+            properties:
+              otp_length:
+                type: integer
+                default: 6
+                minimum: 4
+                maximum: 10
+              otp_expiration_time:
+                type: integer
+                default: 300
+                minimum: 30
+                maximum: 3600
+    MFAGetGuardianFactorsDuoSettingsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        ikey:
+          type: string
+          maxLength: 10000
+        host:
+          type: string
+          maxLength: 10000
+    MFAUpdateGuardianFactorsDuoSettingsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        ikey:
+          type: string
+          maxLength: 10000
+        host:
+          type: string
+          maxLength: 10000
+    MFAUpdateGuardianFactorsDuoSettingsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        ikey:
+          type: string
+          maxLength: 10000
+        skey:
+          type: string
+          maxLength: 10000
+          format: non-empty-string
+          writeOnly: true
+        host:
+          type: string
+          maxLength: 10000
+    MFASetGuardianFactorsDuoSettingsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        ikey:
+          type: string
+          maxLength: 10000
+        host:
+          type: string
+          maxLength: 10000
+    MFASetGuardianFactorsDuoSettingsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        ikey:
+          type: string
+          maxLength: 10000
+        skey:
+          type: string
+          maxLength: 10000
+          format: non-empty-string
+          writeOnly: true
+        host:
+          type: string
+          maxLength: 10000
+    MFAGetGuardianFactorsEmailSettingsResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - otp_length
+      - otp_expiration_time
+      properties:
+        otp_length:
+          type: integer
+          default: 6
+          minimum: 4
+          maximum: 10
+        otp_expiration_time:
+          type: integer
+          default: 300
+          minimum: 30
+          maximum: 3600
+    MFASetGuardianFactorsEmailSettingsResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - otp_length
+      - otp_expiration_time
+      properties:
+        otp_length:
+          type: integer
+          default: 6
+          minimum: 4
+          maximum: 10
+        otp_expiration_time:
+          type: integer
+          default: 300
+          minimum: 30
+          maximum: 3600
+    MFASetGuardianFactorsEmailSettingsRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - otp_length
+      - otp_expiration_time
+      properties:
+        otp_length:
+          type: integer
+          default: 6
+          minimum: 4
+          maximum: 10
+        otp_expiration_time:
+          type: integer
+          default: 300
+          minimum: 30
+          maximum: 3600
+    MFAGetGuardianFactorsPhoneMessageTypesResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        message_types:
+          type: array
+          items:
+            type: string
+            enum:
+            - sms
+            - voice
+    MFASetGuardianFactorsPhoneMessageTypesResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        message_types:
+          type: array
+          items:
+            type: string
+            enum:
+            - sms
+            - voice
+    MFASetGuardianFactorsPhoneMessageTypesRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - message_types
+      properties:
+        message_types:
+          type: array
+          items:
+            type: string
+            enum:
+            - sms
+            - voice
+    MFAGetGuardianFactorsPhoneProvidersTwilioResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        from:
+          type:
+          - string
+          - 'null'
+          default: '+1223323'
+          minLength: 0
+          maxLength: 64
+        messaging_service_sid:
+          type:
+          - string
+          - 'null'
+          default: 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq
+          minLength: 1
+          maxLength: 1000
+        sid:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+    MFASetGuardianFactorsPhoneProvidersTwilioResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        from:
+          type:
+          - string
+          - 'null'
+          default: '+1223323'
+          minLength: 0
+          maxLength: 64
+        messaging_service_sid:
+          type:
+          - string
+          - 'null'
+          default: 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq
+          minLength: 1
+          maxLength: 1000
+        sid:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+    MFASetGuardianFactorsPhoneProvidersTwilioRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        from:
+          type:
+          - string
+          - 'null'
+          default: '+1223323'
+          minLength: 0
+          maxLength: 64
+        messaging_service_sid:
+          type:
+          - string
+          - 'null'
+          default: 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq
+          minLength: 1
+          maxLength: 1000
+        auth_token:
+          type:
+          - string
+          - 'null'
+          default: zw5Ku6z2sxhd0ZVXto5SDHX6KPDByJPU
+          minLength: 1
+          maxLength: 1000
+          writeOnly: true
+        sid:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+    MFAGetGuardianFactorsPhoneSelectedProviderResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          enum:
+          - auth0
+          - twilio
+          - phone-message-hook
+    MFASetGuardianFactorsPhoneSelectedProviderResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          enum:
+          - auth0
+          - twilio
+          - phone-message-hook
+    MFASetGuardianFactorsPhoneSelectedProviderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - provider
+      properties:
+        provider:
+          type: string
+          enum:
+          - auth0
+          - twilio
+          - phone-message-hook
+    MFAGetGuardianFactorsPhoneSettingsResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - otp_length
+      - otp_expiration_time
+      properties:
+        otp_length:
+          type: integer
+          default: 6
+          minimum: 4
+          maximum: 10
+        otp_expiration_time:
+          type: integer
+          default: 300
+          minimum: 30
+          maximum: 3600
+    MFASetGuardianFactorsPhoneSettingsResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - otp_length
+      - otp_expiration_time
+      properties:
+        otp_length:
+          type: integer
+          default: 6
+          minimum: 4
+          maximum: 10
+        otp_expiration_time:
+          type: integer
+          default: 300
+          minimum: 30
+          maximum: 3600
+    MFASetGuardianFactorsPhoneSettingsRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - otp_length
+      - otp_expiration_time
+      properties:
+        otp_length:
+          type: integer
+          default: 6
+          minimum: 4
+          maximum: 10
+        otp_expiration_time:
+          type: integer
+          default: 300
+          minimum: 30
+          maximum: 3600
+    MFAGetGuardianFactorsPhoneTemplatesResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - enrollment_message
+      - verification_message
+      properties:
+        enrollment_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to
+            verify your enrollment.'
+        verification_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}'
+    MFASetGuardianFactorsPhoneTemplatesResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - enrollment_message
+      - verification_message
+      properties:
+        enrollment_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to
+            verify your enrollment.'
+        verification_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}'
+    MFASetGuardianFactorsPhoneTemplatesRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - enrollment_message
+      - verification_message
+      properties:
+        enrollment_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to
+            verify your enrollment.'
+        verification_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}'
+    MFAGetGuardianFactorsPushNotificationProvidersApnsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        bundle_id:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 20
+        sandbox:
+          type: boolean
+        enabled:
+          type: boolean
+    MFAUpdateGuardianFactorsPushNotificationProvidersApnsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        sandbox:
+          type: boolean
+        bundle_id:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+    MFAUpdateGuardianFactorsPushNotificationProvidersApnsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        sandbox:
+          type: boolean
+        bundle_id:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+        p12:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 10000
+          writeOnly: true
+    MFASetGuardianFactorsPushNotificationProvidersApnsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        sandbox:
+          type: boolean
+        bundle_id:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+    MFASetGuardianFactorsPushNotificationProvidersApnsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        sandbox:
+          type: boolean
+        bundle_id:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+        p12:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 10000
+          writeOnly: true
+    MFAUpdateGuardianFactorsPushNotificationProvidersFcmResponse:
+      type: object
+      additionalProperties: true
+      minProperties: 0
+      maxProperties: 0
+    MFAUpdateGuardianFactorsPushNotificationProvidersFcmRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        server_key:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 152
+          writeOnly: true
+    MFASetGuardianFactorsPushNotificationProvidersFcmResponse:
+      type: object
+      additionalProperties: true
+      minProperties: 0
+      maxProperties: 0
+    MFASetGuardianFactorsPushNotificationProvidersFcmRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        server_key:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 152
+          writeOnly: true
+    MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Response:
+      type: object
+      additionalProperties: true
+      minProperties: 0
+      maxProperties: 0
+    MFAUpdateGuardianFactorsPushNotificationProvidersFcmv1Request:
+      type: object
+      additionalProperties: false
+      properties:
+        server_credentials:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 10000
+    MFASetGuardianFactorsPushNotificationProvidersFcmv1Response:
+      type: object
+      additionalProperties: true
+      minProperties: 0
+      maxProperties: 0
+    MFASetGuardianFactorsPushNotificationProvidersFcmv1Request:
+      type: object
+      additionalProperties: false
+      properties:
+        server_credentials:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 10000
+    MFAGetGuardianFactorsPushNotificationProvidersSnsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        aws_access_key_id:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+        aws_region:
+          type:
+          - string
+          - 'null'
+          default: us-west-1
+          minLength: 1
+          maxLength: 1000
+          pattern: ^(?:us-east-[0-9]{1,2}|us-west-[0-9]{1,2}|ap-southeast-[0-9]{1,2}|ap-northeast-[0-9]{1,2}|ap-central-[0-9]{1,2}|eu-west-[0-9]{1,2}|eu-central-[0-9]{1,2})$
+        sns_apns_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+        sns_gcm_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          default: urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP
+          minLength: 1
+          maxLength: 1000
+    MFAUpdateGuardianFactorsPushNotificationProvidersSnsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        aws_access_key_id:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+        aws_region:
+          type:
+          - string
+          - 'null'
+          default: us-west-1
+          minLength: 1
+          maxLength: 1000
+          pattern: ^(?:us-east-[0-9]{1,2}|us-west-[0-9]{1,2}|ap-southeast-[0-9]{1,2}|ap-northeast-[0-9]{1,2}|ap-central-[0-9]{1,2}|eu-west-[0-9]{1,2}|eu-central-[0-9]{1,2})$
+        sns_apns_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+        sns_gcm_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          default: urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP
+          minLength: 1
+          maxLength: 1000
+    MFAUpdateGuardianFactorsPushNotificationProvidersSnsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        aws_access_key_id:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+        aws_secret_access_key:
+          type:
+          - string
+          - 'null'
+          default: B1ER5JHDGJL3C4sVAKK7SBsq806R3IpL
+          minLength: 1
+          maxLength: 1000
+          writeOnly: true
+        aws_region:
+          type:
+          - string
+          - 'null'
+          default: us-west-1
+          minLength: 1
+          maxLength: 1000
+          pattern: ^(?:us-east-[0-9]{1,2}|us-west-[0-9]{1,2}|ap-southeast-[0-9]{1,2}|ap-northeast-[0-9]{1,2}|ap-central-[0-9]{1,2}|eu-west-[0-9]{1,2}|eu-central-[0-9]{1,2})$
+        sns_apns_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+        sns_gcm_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          default: urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP
+          minLength: 1
+          maxLength: 1000
+    MFASetGuardianFactorsPushNotificationProvidersSnsResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        aws_access_key_id:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+        aws_region:
+          type:
+          - string
+          - 'null'
+          default: us-west-1
+          minLength: 1
+          maxLength: 1000
+          pattern: ^(?:us-east-[0-9]{1,2}|us-west-[0-9]{1,2}|ap-southeast-[0-9]{1,2}|ap-northeast-[0-9]{1,2}|ap-central-[0-9]{1,2}|eu-west-[0-9]{1,2}|eu-central-[0-9]{1,2})$
+        sns_apns_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+        sns_gcm_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          default: urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP
+          minLength: 1
+          maxLength: 1000
+    MFASetGuardianFactorsPushNotificationProvidersSnsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        aws_access_key_id:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+        aws_secret_access_key:
+          type:
+          - string
+          - 'null'
+          default: B1ER5JHDGJL3C4sVAKK7SBsq806R3IpL
+          minLength: 1
+          maxLength: 1000
+          writeOnly: true
+        aws_region:
+          type:
+          - string
+          - 'null'
+          default: us-west-1
+          minLength: 1
+          maxLength: 1000
+          pattern: ^(?:us-east-[0-9]{1,2}|us-west-[0-9]{1,2}|ap-southeast-[0-9]{1,2}|ap-northeast-[0-9]{1,2}|ap-central-[0-9]{1,2}|eu-west-[0-9]{1,2}|eu-central-[0-9]{1,2})$
+        sns_apns_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 1000
+        sns_gcm_platform_application_arn:
+          type:
+          - string
+          - 'null'
+          default: urn://yRMeBxgcCXh8MeTXPBAxhQnm6gP6f5nP
+          minLength: 1
+          maxLength: 1000
+    MFAGetGuardianFactorsPushNotificationSelectedProviderResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          enum:
+          - guardian
+          - sns
+          - direct
+    MFASetGuardianFactorsPushNotificationSelectedProviderResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          enum:
+          - guardian
+          - sns
+          - direct
+    MFASetGuardianFactorsPushNotificationSelectedProviderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - provider
+      properties:
+        provider:
+          type: string
+          enum:
+          - guardian
+          - sns
+          - direct
+    MFAGetGuardianFactorsSmsProvidersTwilioResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        from:
+          type:
+          - string
+          - 'null'
+          default: '+1223323'
+          minLength: 0
+          maxLength: 64
+        messaging_service_sid:
+          type:
+          - string
+          - 'null'
+          default: 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq
+          minLength: 1
+          maxLength: 1000
+        sid:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+    MFASetGuardianFactorsSmsProvidersTwilioResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        from:
+          type:
+          - string
+          - 'null'
+          default: '+1223323'
+          minLength: 0
+          maxLength: 64
+        messaging_service_sid:
+          type:
+          - string
+          - 'null'
+          default: 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq
+          minLength: 1
+          maxLength: 1000
+        sid:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+    MFASetGuardianFactorsSmsProvidersTwilioRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        from:
+          type:
+          - string
+          - 'null'
+          default: '+1223323'
+          minLength: 0
+          maxLength: 64
+        messaging_service_sid:
+          type:
+          - string
+          - 'null'
+          default: 5dEkAiHLPCuQ1uJj4qNXcAnERFAL6cpq
+          minLength: 1
+          maxLength: 1000
+        auth_token:
+          type:
+          - string
+          - 'null'
+          default: zw5Ku6z2sxhd0ZVXto5SDHX6KPDByJPU
+          minLength: 1
+          maxLength: 1000
+          writeOnly: true
+        sid:
+          type:
+          - string
+          - 'null'
+          default: wywA2BH4VqTpfywiDuyDAYZL3xQjoO40
+          minLength: 1
+          maxLength: 1000
+    MFAGetGuardianFactorsSmsSelectedProviderResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          enum:
+          - auth0
+          - twilio
+          - phone-message-hook
+    MFASetGuardianFactorsSmsSelectedProviderResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          enum:
+          - auth0
+          - twilio
+          - phone-message-hook
+    MFASetGuardianFactorsSmsSelectedProviderRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - provider
+      properties:
+        provider:
+          type: string
+          enum:
+          - auth0
+          - twilio
+          - phone-message-hook
+    MFAGetGuardianFactorsSmsTemplatesResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - enrollment_message
+      - verification_message
+      properties:
+        enrollment_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to
+            verify your enrollment.'
+        verification_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}'
+    MFASetGuardianFactorsSmsTemplatesResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - enrollment_message
+      - verification_message
+      properties:
+        enrollment_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to
+            verify your enrollment.'
+        verification_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}'
+    MFASetGuardianFactorsSmsTemplatesRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - enrollment_message
+      - verification_message
+      properties:
+        enrollment_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}. Please enter this code to
+            verify your enrollment.'
+        verification_message:
+          type: string
+          default: '{{code}} is your verification code for {{tenant.friendly_name}}'
+    MFASetGuardianFactorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - enabled
+      properties:
+        enabled:
+          type: boolean
+    MFASetGuardianFactorRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - enabled
+      properties:
+        enabled:
+          type: boolean
+    MFAGetGuardianPoliciesResponse:
+      type: array
+      items:
+        type: string
+        enum:
+        - all-applications
+        - confidence-score
+    MFASetGuardianPoliciesResponse:
+      type: array
+      items:
+        type: string
+        enum:
+        - all-applications
+        - confidence-score
+    MFASetGuardianPoliciesRequest:
+      type: array
+      items:
+        type: string
+        enum:
+        - all-applications
+        - confidence-score
+    MFAGetGuardianSettingsResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - display_remember_me_checkbox
+      - remember_me_default_value
+      - mfa_session_inactivity_timeout
+      - mfa_session_overall_timeout
+      properties:
+        display_remember_me_checkbox:
+          type: boolean
+          default: true
+        remember_me_default_value:
+          type: boolean
+          default: false
+        mfa_session_inactivity_timeout:
+          type: integer
+          default: 604800
+          minimum: 3600
+          maximum: 2592000
+        mfa_session_overall_timeout:
+          type: integer
+          default: 2592000
+          minimum: 3600
+          maximum: 7776000
+    MFASetGuardianSettingsResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - display_remember_me_checkbox
+      - remember_me_default_value
+      - mfa_session_inactivity_timeout
+      - mfa_session_overall_timeout
+      properties:
+        display_remember_me_checkbox:
+          type: boolean
+          default: true
+        remember_me_default_value:
+          type: boolean
+          default: false
+        mfa_session_inactivity_timeout:
+          type: integer
+          default: 604800
+          minimum: 3600
+          maximum: 2592000
+        mfa_session_overall_timeout:
+          type: integer
+          default: 2592000
+          minimum: 3600
+          maximum: 7776000
+    MFASetGuardianSettingsRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - display_remember_me_checkbox
+      - remember_me_default_value
+      - mfa_session_inactivity_timeout
+      - mfa_session_overall_timeout
+      properties:
+        display_remember_me_checkbox:
+          type: boolean
+          default: true
+        remember_me_default_value:
+          type: boolean
+          default: false
+        mfa_session_inactivity_timeout:
+          type: integer
+          default: 604800
+          minimum: 3600
+          maximum: 2592000
+        mfa_session_overall_timeout:
+          type: integer
+          default: 2592000
+          minimum: 3600
+          maximum: 7776000
+    MFAGetAuthenticationMethodsResponse:
+      oneOf:
+      - type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+          - id
+          - type
+          - created_at
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+              enum:
+              - recovery-code
+              - totp
+              - push
+              - phone
+              - email
+              - email-verification
+              - webauthn-roaming
+              - webauthn-platform
+              - guardian
+              - password
+            confirmed:
+              type: boolean
+            name:
+              type: string
+              maxLength: 20
+            authentication_methods:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+                properties:
+                  type:
+                    type: string
+                    enum:
+                    - totp
+                    - push
+                    - sms
+                    - voice
+                  id:
+                    type: string
+                    format: authenticator-id
+            preferred_authentication_method:
+              type: string
+              enum:
+              - voice
+              - sms
+            link_id:
+              type: string
+            phone_number:
+              type: string
+            email:
+              type: string
+            key_id:
+              type: string
+            public_key:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+            enrolled_at:
+              type: string
+              format: date-time
+            last_auth_at:
+              type: string
+              format: date-time
+            credential_device_type:
+              type: string
+            credential_backed_up:
+              type: boolean
+            identity_user_id:
+              type: string
+            user_agent:
+              type: string
+            user_handle:
+              type: string
+            transports:
+              type: array
+              items:
+                type: string
+            aaguid:
+              type: string
+            relying_party_identifier:
+              type: string
+      - type: object
+        additionalProperties: false
+        properties:
+          start:
+            type: number
+          limit:
+            type: number
+          total:
+            type: number
+          authenticators:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              required:
+              - id
+              - type
+              - created_at
+              properties:
+                id:
+                  type: string
+                type:
+                  type: string
+                  enum:
+                  - recovery-code
+                  - totp
+                  - push
+                  - phone
+                  - email
+                  - email-verification
+                  - webauthn-roaming
+                  - webauthn-platform
+                  - guardian
+                  - password
+                confirmed:
+                  type: boolean
+                name:
+                  type: string
+                  maxLength: 20
+                authentication_methods:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                        - totp
+                        - push
+                        - sms
+                        - voice
+                      id:
+                        type: string
+                        format: authenticator-id
+                preferred_authentication_method:
+                  type: string
+                  enum:
+                  - voice
+                  - sms
+                link_id:
+                  type: string
+                phone_number:
+                  type: string
+                email:
+                  type: string
+                key_id:
+                  type: string
+                public_key:
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+                enrolled_at:
+                  type: string
+                  format: date-time
+                last_auth_at:
+                  type: string
+                  format: date-time
+                credential_device_type:
+                  type: string
+                credential_backed_up:
+                  type: boolean
+                identity_user_id:
+                  type: string
+                user_agent:
+                  type: string
+                user_handle:
+                  type: string
+                transports:
+                  type: array
+                  items:
+                    type: string
+                aaguid:
+                  type: string
+                relying_party_identifier:
+                  type: string
+    MFACreateAuthenticationMethodsResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      properties:
+        id:
+          type: string
+          format: authenticator-id
+        type:
+          type: string
+          enum:
+          - phone
+          - email
+          - totp
+          - webauthn-roaming
+        name:
+          type: string
+        phone_number:
+          type: string
+          minLength: 2
+          maxLength: 30
+        email:
+          type: string
+        authentication_methods:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              type:
+                type: string
+                enum:
+                - totp
+                - push
+                - sms
+                - voice
+              id:
+                type: string
+                format: authenticator-id
+        preferred_authentication_method:
+          type: string
+          enum:
+          - voice
+          - sms
+        key_id:
+          type: string
+        public_key:
+          type: string
+        aaguid:
+          type: string
+        relying_party_identifier:
+          type: string
+        credential_device_type:
+          type: string
+          enum:
+          - single_device
+          - multi_device
+        credential_backed_up:
+          type: boolean
+        identity_user_id:
+          type: string
+        user_agent:
+          type: string
+        user_handle:
+          type: string
+        transports:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+    MFACreateAuthenticationMethod:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          enum:
+          - totp
+          - email
+          - webauthn-roaming
+        name:
+          type: string
+        totp_secret:
+          type: string
+          writeOnly: true
+        phone_number:
+          type: string
+          minLength: 2
+          maxLength: 30
+        email:
+          type: string
+        preferred_authentication_method:
+          type: string
+          enum:
+          - voice
+          - sms
+        key_id:
+          type: string
+        public_key:
+          type: string
+        aaguid:
+          type: string
+          format: uuid
+        relying_party_identifier:
+          type: string
+          format: hostname
+        credential_device_type:
+          type: string
+          enum:
+          - single_device
+          - multi_device
+        credential_backed_up:
+          type: boolean
+        identity_user_id:
+          type: string
+        user_agent:
+          type: string
+        user_handle:
+          type: string
+        transports:
+          type: array
+          items:
+            type: string
+    MFASetAuthenticationMethodsResponse:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+        - type
+        properties:
+          id:
+            type: string
+            format: authenticator-id
+          type:
+            type: string
+            enum:
+            - phone
+            - email
+            - totp
+            - webauthn-roaming
+          name:
+            type: string
+          phone_number:
+            type: string
+            minLength: 2
+            maxLength: 30
+          email:
+            type: string
+          authentication_methods:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
+              properties:
+                type:
+                  type: string
+                  enum:
+                  - totp
+                  - push
+                  - sms
+                  - voice
+                id:
+                  type: string
+                  format: authenticator-id
+          preferred_authentication_method:
+            type: string
+            enum:
+            - voice
+            - sms
+          key_id:
+            type: string
+          public_key:
+            type: string
+          aaguid:
+            type: string
+          relying_party_identifier:
+            type: string
+          created_at:
+            type: string
+            format: date-time
+    MFASetAuthenticationMethodsRequest:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - phone
+            - email
+            - totp
+          preferred_authentication_method:
+            type: string
+            enum:
+            - voice
+            - sms
+          name:
+            type: string
+            minLength: 1
+            maxLength: 20
+          phone_number:
+            type: string
+            minLength: 2
+            maxLength: 30
+          email:
+            type: string
+            minLength: 1
+          totp_secret:
+            type: string
+            minLength: 1
+            writeOnly: true
+    MFAGetAuthenticationMethodResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - type
+      - created_at
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+          - recovery-code
+          - totp
+          - push
+          - phone
+          - email
+          - email-verification
+          - webauthn-roaming
+          - webauthn-platform
+          - guardian
+          - password
+        confirmed:
+          type: boolean
+        name:
+          type: string
+          maxLength: 20
+        authentication_methods:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              type:
+                type: string
+                enum:
+                - totp
+                - push
+                - sms
+                - voice
+              id:
+                type: string
+                format: authenticator-id
+        preferred_authentication_method:
+          type: string
+          enum:
+          - voice
+          - sms
+        link_id:
+          type: string
+        phone_number:
+          type: string
+        email:
+          type: string
+        key_id:
+          type: string
+        public_key:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        enrolled_at:
+          type: string
+          format: date-time
+        last_auth_at:
+          type: string
+          format: date-time
+        credential_device_type:
+          type: string
+        credential_backed_up:
+          type: boolean
+        identity_user_id:
+          type: string
+        user_agent:
+          type: string
+        user_handle:
+          type: string
+        transports:
+          type: array
+          items:
+            type: string
+        aaguid:
+          type: string
+        relying_party_identifier:
+          type: string
+    MFAAuthenticationMethod:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - type
+      - created_at
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z-]+\|dev_[A-Za-z0-9]{20}$
+        type:
+          type: string
+          enum:
+          - recovery-code
+          - totp
+          - push
+          - phone
+          - email
+          - email-verification
+          - webauthn-roaming
+          - webauthn-platform
+          - guardian
+          - passkey
+          - password
+        confirmed:
+          type: boolean
+        name:
+          type: string
+          maxLength: 20
+        authentication_methods:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              type:
+                type: string
+                enum:
+                - totp
+                - push
+                - sms
+                - voice
+              id:
+                type: string
+                format: authenticator-id
+        preferred_authentication_method:
+          type: string
+          enum:
+          - voice
+          - sms
+        link_id:
+          type: string
+        phone_number:
+          type: string
+        email:
+          type: string
+        key_id:
+          type: string
+        public_key:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        enrolled_at:
+          type: string
+          format: date-time
+        last_auth_at:
+          type: string
+          format: date-time
+        credential_device_type:
+          type: string
+        credential_backed_up:
+          type: boolean
+        identity_user_id:
+          type: string
+        user_agent:
+          type: string
+        user_handle:
+          type: string
+        transports:
+          type: array
+          items:
+            type: string
+        aaguid:
+          type: string
+        relying_party_identifier:
+          type: string
+    MFAUpdateAuthenticationMethodResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      properties:
+        id:
+          type: string
+          format: authenticator-id
+        type:
+          type: string
+          enum:
+          - phone
+          - email
+          - totp
+          - webauthn-roaming
+        name:
+          type: string
+        phone_number:
+          type: string
+          minLength: 2
+          maxLength: 30
+        email:
+          type: string
+        authentication_methods:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              type:
+                type: string
+                enum:
+                - totp
+                - push
+                - sms
+                - voice
+              id:
+                type: string
+                format: authenticator-id
+        preferred_authentication_method:
+          type: string
+          enum:
+          - voice
+          - sms
+        key_id:
+          type: string
+        public_key:
+          type: string
+        aaguid:
+          type: string
+        relying_party_identifier:
+          type: string
+        confirmed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    MFAUpdateAuthenticationMethodRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        preferred_authentication_method:
+          type: string
+          enum:
+          - voice
+          - sms
+    MFAGetUserEnrollmentsResponse:
+      type: array
+      items:
+        type: object
+        additionalProperties: true
+        properties:
+          id:
+            type: string
+          status:
+            type: string
+            enum:
+            - pending
+            - confirmed
+          type:
+            type: string
+          name:
+            type: string
+            maxLength: 20
+          identifier:
+            type: string
+          phone_number:
+            type: string
+          auth_method:
+            type: string
+            enum:
+            - authenticator
+            - guardian
+            - sms
+            - webauthn-platform
+            - webauthn-roaming
+          enrolled_at:
+            type: string
+            format: date-time
+          last_auth:
+            type: string
+            format: date-time
+    MFACreateUserRecoveryCodeResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        recovery_code:
+          type: string
     EventsListEventStreamsResponseContent:
       type: object
       additionalProperties: true
@@ -17448,6 +21784,10 @@ components:
         returned. `fields` can leave out any property.
       additionalProperties: true
       properties:
+        multifactor:
+          type: array
+          items: {type: string}
+          description: Derived from confirmed non-recovery methods; local default is [guardian] (D-0059).
         user_id: {type: string, description: "`auth0|` and 24 lowercase hex characters for generated IDs."}
         email: {type: string}
         email_verified: {type: boolean}

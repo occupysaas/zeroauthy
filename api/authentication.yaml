@@ -206,6 +206,10 @@ paths:
           $ref: "#/components/responses/ServerError"
   /oauth/token:
     post:
+      x-mfa-grants:
+        - http://auth0.com/oauth/grant-type/mfa-otp
+        - http://auth0.com/oauth/grant-type/mfa-oob
+        - http://auth0.com/oauth/grant-type/mfa-recovery-code
       operationId: oauthToken
       tags: [Tokens]
       summary: Get a token
@@ -239,6 +243,7 @@ paths:
         form-urlencoded before base64 encoding). Using both methods in one
         request is rejected.
       x-source:
+        - https://auth0.com/docs/api/authentication#multi-factor-authentication
         - https://www.rfc-editor.org/rfc/rfc6749#section-4.4
         - https://www.rfc-editor.org/rfc/rfc6749#section-4.1.3
         - https://www.rfc-editor.org/rfc/rfc7636#section-4.6
@@ -277,7 +282,13 @@ paths:
         "401":
           $ref: "#/components/responses/OAuthErrorResponse"
         "403":
-          $ref: "#/components/responses/OAuthErrorResponse"
+          description: Access denied or password grant requires MFA.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/OAuthError"
+                  - $ref: "#/components/schemas/MFARequired"
         "404":
           $ref: "#/components/responses/UnknownTenant"
         "429":
@@ -742,6 +753,213 @@ paths:
           $ref: "#/components/responses/OAuthErrorResponse"
         default:
           $ref: "#/components/responses/ServerError"
+  /mfa/associate:
+    post:
+      operationId: MFAAssociate
+      summary: MFAAssociate
+      tags:
+      - MFA
+      x-source:
+      - https://auth0.com/docs/api/authentication#multi-factor-authentication
+      security:
+      - mfaToken: []
+      - mfaAccessToken:
+        - enroll
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAAssociateResponse'
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '403':
+          description: access_denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '429':
+          description: too_many_attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAAssociateRequest'
+      description: Plan 33 frozen contract. MFA tokens permit enrollment and reads; deletion requires the MFA
+        API access token and remove:authenticators. SMS/voice channels are unavailable until Plan 34; auth0 push
+        is not planned.
+  /mfa/challenge:
+    post:
+      operationId: MFAChallenge
+      summary: MFAChallenge
+      tags:
+      - MFA
+      x-source:
+      - https://auth0.com/docs/api/authentication#multi-factor-authentication
+      security: []
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAChallengeResponse'
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '403':
+          description: access_denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '429':
+          description: too_many_attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFAChallengeRequest'
+      description: Plan 33 frozen contract. MFA tokens permit enrollment and reads; deletion requires the MFA
+        API access token and remove:authenticators. SMS/voice channels are unavailable until Plan 34; auth0 push
+        is not planned.
+  /mfa/authenticators:
+    get:
+      operationId: MFAListAuthenticators
+      summary: MFAListAuthenticators
+      tags:
+      - MFA
+      x-source:
+      - https://auth0.com/docs/api/authentication#multi-factor-authentication
+      security:
+      - mfaToken: []
+      - mfaAccessToken:
+        - read:authenticators
+      parameters: []
+      responses:
+        '200':
+          description: MFA operation completed.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MFAAuthenticator'
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '403':
+          description: access_denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '429':
+          description: too_many_attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+      description: Plan 33 frozen contract. MFA tokens permit enrollment and reads; deletion requires the MFA
+        API access token and remove:authenticators. SMS/voice channels are unavailable until Plan 34; auth0 push
+        is not planned.
+  /mfa/authenticators/{id}:
+    delete:
+      operationId: MFADeleteAuthenticator
+      summary: MFADeleteAuthenticator
+      tags:
+      - MFA
+      x-source:
+      - https://auth0.com/docs/api/authentication#multi-factor-authentication
+      security:
+      - mfaAccessToken:
+        - remove:authenticators
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-z-]+\|dev_[A-Za-z0-9]{20}$
+      responses:
+        '204':
+          description: MFA operation completed.
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '401':
+          description: invalid_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '403':
+          description: access_denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '429':
+          description: too_many_attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFAError'
+      description: Plan 33 frozen contract. MFA tokens permit enrollment and reads; deletion requires the MFA
+        API access token and remove:authenticators. SMS/voice channels are unavailable until Plan 34; auth0 push
+        is not planned.
+
 components:
   securitySchemes:
     clientSecretBasic:
@@ -752,6 +970,21 @@ components:
       type: http
       scheme: bearer
       description: An access token issued by this tenant.
+    mfaToken:
+      type: http
+      scheme: bearer
+      description: Opaque short-lived token bound to the pending MFA request.
+    mfaAccessToken:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /authorize
+          tokenUrl: /oauth/token
+          scopes:
+            enroll: Enroll an authenticator.
+            read:authenticators: List authenticators.
+            remove:authenticators: Remove an authenticator.
+
   responses:
     OAuthErrorResponse:
       description: |
@@ -774,7 +1007,156 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/OAuthError"
+
   schemas:
+    MFAAssociateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        authenticator_types:
+          type: array
+          items:
+            type: string
+            enum:
+            - otp
+            - oob
+          minItems: 1
+          maxItems: 1
+        oob_channels:
+          type: array
+          items:
+            type: string
+            enum:
+            - email
+            - sms
+            - voice
+            - auth0
+        email:
+          type: string
+        client_id:
+          type: string
+        client_secret:
+          type: string
+          writeOnly: true
+      required:
+      - authenticator_types
+    MFAChallengeRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mfa_token:
+          type: string
+          writeOnly: true
+        client_id:
+          type: string
+        client_secret:
+          type: string
+          writeOnly: true
+        challenge_type:
+          type: string
+          enum:
+          - otp
+          - oob
+          - otp oob
+        authenticator_id:
+          type: string
+      required:
+      - mfa_token
+      - challenge_type
+    MFAAssociateResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        authenticator_type:
+          type: string
+          enum:
+          - otp
+          - oob
+        secret:
+          type: string
+        barcode_uri:
+          type: string
+        recovery_codes:
+          type: array
+          items:
+            type: string
+        oob_code:
+          type: string
+        binding_method:
+          type: string
+          enum:
+          - prompt
+        oob_channel:
+          type: string
+          enum:
+          - email
+      required: []
+    MFAChallengeResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        challenge_type:
+          type: string
+          enum:
+          - otp
+          - oob
+        oob_code:
+          type: string
+        binding_method:
+          type: string
+          enum:
+          - prompt
+      required:
+      - challenge_type
+    MFAAuthenticator:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z-]+\|dev_[A-Za-z0-9]{20}$
+        authenticator_type:
+          type: string
+          enum:
+          - otp
+          - oob
+          - recovery-code
+        active:
+          type: boolean
+        oob_channel:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - authenticator_type
+      - active
+    MFARequired:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          enum:
+          - mfa_required
+        error_description:
+          type: string
+        mfa_token:
+          type: string
+      required:
+      - error
+      - error_description
+      - mfa_token
+    MFAError:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+      required:
+      - error
     AuthorizeRequest:
       type: object
       description: The parameters of `GET /authorize`, form-encoded.
@@ -993,6 +1375,11 @@ components:
         organization:
           type: string
           description: For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The password, password-realm and device code grants ignore it (D-0055).
+        mfa_token: {type: string, writeOnly: true}
+        otp: {type: string, writeOnly: true}
+        oob_code: {type: string, writeOnly: true}
+        binding_code: {type: string, writeOnly: true}
+        recovery_code: {type: string, writeOnly: true}
     TokenResponse:
       type: object
       required: [access_token, token_type, expires_in]
@@ -1012,6 +1399,7 @@ components:
           type: string
         refresh_token:
           type: string
+        recovery_code: {type: string, description: One-time replacement after a successful MFA recovery-code grant.}
     OpenIDConfiguration:
       type: object
       required:
