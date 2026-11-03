@@ -22,6 +22,9 @@ type DecideInput struct {
 	SessionMFAAt               time.Time
 	RememberValid, KnownDevice bool
 	CustomizeInActions         bool
+	// MFAAPI marks a request for an MFA API (https://{host}/mfa/) token.
+	// A user with a usable primary factor must complete MFA for it.
+	MFAAPI bool
 }
 
 // Decide is shared by hosted authorization and password grants. Only OTP and
@@ -29,15 +32,19 @@ type DecideInput struct {
 func Decide(in DecideInput) (Requirement, error) {
 	r := Requirement{AllowRemember: true}
 	e := in.Effects
-	if e != nil && e.Provider == "none" {
-		return Requirement{}, nil
-	}
 	enabled := map[string]bool{}
 	if in.Settings != nil {
 		enabled = in.Settings.Factors
 	}
+	// The MFA API can remove and replace factors, so its token requires MFA
+	// whenever the user has a usable primary factor, regardless of policy or
+	// an Action skip. Unenrolled users may still obtain an enrollment token.
+	apiMFA := in.MFAAPI && hasPrimary(in.Authenticators, enabled)
+	if e != nil && e.Provider == "none" && !apiMFA {
+		return Requirement{}, nil
+	}
 	requested := []string{"otp", "email", "recovery-code"}
-	action := e != nil && (e.Provider != "" || e.Mode != "")
+	action := e != nil && e.Provider != "none" && (e.Provider != "" || e.Mode != "")
 	if action {
 		r.Required, r.Reason, r.AllowRemember = true, "action", e.AllowRememberBrowser
 		if e.Mode != "" {
@@ -78,6 +85,13 @@ func Decide(in DecideInput) (Requirement, error) {
 		case slices.Contains(in.Settings.Policies, "confidence-score") && !in.KnownDevice:
 			r.Required, r.Reason = true, "confidence"
 		}
+	}
+	if apiMFA {
+		if !r.Required {
+			r.Required, r.Reason = true, "mfa-api"
+		}
+		// A remembered browser does not satisfy factor management.
+		r.AllowRemember = false
 	}
 	if !r.Required {
 		return r, nil
@@ -142,4 +156,15 @@ func Decide(in DecideInput) (Requirement, error) {
 		r.Enroll = false
 	}
 	return r, nil
+}
+
+// hasPrimary reports whether a confirmed, enabled OTP or email method exists.
+func hasPrimary(list []store.Authenticator, enabled map[string]bool) bool {
+	for _, a := range list {
+		f := factorName(a.Type)
+		if a.Confirmed && enabled[f] && (f == "otp" || f == "email") {
+			return true
+		}
+	}
+	return false
 }

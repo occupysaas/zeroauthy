@@ -45,7 +45,7 @@ type MFAPending struct {
 
 type mfaCompletedKey struct{}
 
-func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, sess *store.LoginSession, eff *actions.Effects) (mfa.Requirement, error) {
+func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq, sess *store.LoginSession, eff *actions.Effects) (mfa.Requirement, error) {
 	var effects *actions.MFAEffects
 	if eff != nil {
 		effects = eff.MFA
@@ -83,6 +83,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, sess *store
 	}
 	customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
 	in := mfa.DecideInput{Settings: g, Effects: effects, Authenticators: aa, SessionMFAAt: sess.MFAAt, RememberValid: remember, KnownDevice: known, CustomizeInActions: customize}
+	in.MFAAPI = fr.Request.Audience != "" && mfa.APIAudience(r.Context(), h.Store, res.Tenant.ID, fr.Request.Audience)
 	// Validate the original Action factor restrictions before satisfying its
 	// forced prompt. Disabling its chosen factor must still fail closed.
 	req, err := mfa.Decide(in)
@@ -96,7 +97,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, sess *store
 }
 
 func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, eff *actions.Effects) bool {
-	req, err := h.mfaDecision(r, res, sess, eff)
+	req, err := h.mfaDecision(r, res, fr, sess, eff)
 	if err != nil {
 		if errors.Is(err, mfa.ErrNoFactor) {
 			h.refuse(w, r, res, client, fr, errAccessDenied("MFA is required but no factor is enabled"))

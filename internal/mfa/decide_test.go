@@ -102,3 +102,35 @@ func TestDecideActionEnrollExcludesEnrolledType(t *testing.T) {
 		t.Fatalf("enroll with no new type accepted: %v", err)
 	}
 }
+
+func TestDecideMFAAPIAudience(t *testing.T) {
+	enabled := map[string]bool{"otp": true, "email": true, "recovery-code": true}
+	enrolled := []store.Authenticator{{Type: "totp", Confirmed: true}, {Type: "recovery-code", Confirmed: true}}
+	for _, tc := range []struct {
+		name              string
+		list              []store.Authenticator
+		effects           *actionresult.MFAEffects
+		policy            []string
+		session, remember bool
+		required          bool
+		factors           []string
+	}{
+		{name: "enrolled without policy", list: enrolled, required: true, factors: []string{"otp", "recovery-code"}},
+		{name: "action skip cannot bypass", list: enrolled, effects: &actionresult.MFAEffects{Provider: "none"}, required: true, factors: []string{"otp", "recovery-code"}},
+		{name: "remember does not satisfy", list: enrolled, policy: []string{"all-applications"}, remember: true, required: true, factors: []string{"otp", "recovery-code"}},
+		{name: "session MFA satisfies", list: enrolled, session: true},
+		{name: "unenrolled may enroll with password", list: nil},
+		{name: "pending method is not enrolled", list: []store.Authenticator{{Type: "totp"}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := DecideInput{Settings: &store.GuardianSettings{Factors: enabled, Policies: tc.policy}, Effects: tc.effects, Authenticators: tc.list, RememberValid: tc.remember, MFAAPI: true}
+			if tc.session {
+				in.SessionMFAAt = time.Now()
+			}
+			got, err := Decide(in)
+			if err != nil || got.Required != tc.required || tc.required && !reflect.DeepEqual(got.Factors, tc.factors) || tc.required && got.Enroll {
+				t.Fatalf("got %+v err %v", got, err)
+			}
+		})
+	}
+}

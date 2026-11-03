@@ -408,3 +408,32 @@ func TestGateRedirectContinuationChallenges(t *testing.T) {
 		t.Fatal("continuation issued a code before MFA")
 	}
 }
+
+// Review C1: an MFA API audience requires MFA for an enrolled user even when
+// no policy applies; prompt=none cannot silently obtain the token.
+func TestGateMFAAPIAudienceChallengesEnrolledUser(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	gatePolicy(t, e, map[string]bool{"otp": true})
+	g, _ := e.st.MFA().GetGuardian(context.Background(), e.tenant.ID)
+	g.Policies = []string{}
+	if err := e.st.MFA().PutGuardian(context.Background(), g, g.Version); err != nil {
+		t.Fatal(err)
+	}
+	s := gateSession(t, e, ck)
+	q := with(goodQuery(), "audience", "https://acme.example.test/mfa/", "scope", "openid remove:authenticators")
+	if location(t, e.get(t, q, ck)).Query().Get("code") == "" {
+		t.Fatal("unenrolled user could not obtain an enrollment-capable MFA API code")
+	}
+	if err := e.st.MFA().CreateAuthenticator(context.Background(), &store.Authenticator{TenantID: e.tenant.ID, UserID: s.UserID, ID: "totp|dev_test", Type: "totp", Confirmed: true}); err != nil {
+		t.Fatal(err)
+	}
+	if location(t, e.get(t, goodQuery(), ck)).Query().Get("code") == "" {
+		t.Fatal("ordinary audience without policy required MFA")
+	}
+	e.txnAt(t, e.get(t, q, ck), "/u/mfa")
+	loc := location(t, e.get(t, with(q, "prompt", "none"), ck))
+	if loc.Query().Get("error") != "interaction_required" || loc.Query().Get("code") != "" {
+		t.Fatalf("prompt=none location=%s", loc)
+	}
+}

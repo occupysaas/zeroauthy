@@ -58,7 +58,7 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 		return mfaError(err)
 	}
 	customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	req, err := mfa.Decide(mfa.DecideInput{Settings: g, Effects: effect, Authenticators: list, CustomizeInActions: customize})
+	req, err := mfa.Decide(mfa.DecideInput{Settings: g, Effects: effect, Authenticators: list, CustomizeInActions: customize, MFAAPI: aud != "" && h.isMFAAudience(ctx, res.Tenant.ID, aud)})
 	if err != nil {
 		return accessDenied("multifactor authentication is unavailable")
 	}
