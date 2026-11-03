@@ -215,28 +215,41 @@ func (r phoneRepo) FailPasswordlessCode(ctx context.Context, tid, conn, ident, k
 }
 
 // ConsumePasswordlessCode compares the hash in constant time, then deletes the
-// row with a conditional statement. When two callers race, the statement's
-// row count lets exactly one of them win.
+// row (match) or increments its attempts (mismatch) with a statement
+// conditioned on the attempts it read. When callers race, the statement's row
+// count lets exactly one of them act on each observed state; the losers read
+// again, so every wrong guess is counted once and at most maxAttempts guesses
+// are accepted.
 func (r phoneRepo) ConsumePasswordlessCode(ctx context.Context, tid, conn, ident, kind, hash string, maxAttempts int, now time.Time) (*store.PasswordlessCode, error) {
-	c, err := scanPasswordlessCode(r.s.queryRow(ctx, `SELECT `+passwordlessCols+` FROM passwordless_codes WHERE tenant_id=? AND connection_id=? AND identifier=? AND kind=?`, tid, conn, ident, kind))
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrPrecondition
+	for range maxAttempts + 16 {
+		c, err := scanPasswordlessCode(r.s.queryRow(ctx, `SELECT `+passwordlessCols+` FROM passwordless_codes WHERE tenant_id=? AND connection_id=? AND identifier=? AND kind=?`, tid, conn, ident, kind))
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, store.ErrPrecondition
+		}
+		if err != nil {
+			return nil, err
+		}
+		if c.Attempts >= maxAttempts || !now.Before(c.ExpiresAt) {
+			return nil, store.ErrPrecondition
+		}
+		match := subtle.ConstantTimeCompare([]byte(c.CodeHash), []byte(hash)) == 1
+		stmt := `UPDATE passwordless_codes SET attempts=attempts+1 WHERE tenant_id=? AND connection_id=? AND identifier=? AND kind=? AND code_hash=? AND attempts=? AND expires_at=?`
+		if match {
+			stmt = `DELETE FROM passwordless_codes WHERE tenant_id=? AND connection_id=? AND identifier=? AND kind=? AND code_hash=? AND attempts=? AND expires_at=?`
+		}
+		res, err := r.s.write(ctx, nil, stmt, tid, conn, ident, kind, c.CodeHash, int64(c.Attempts), micros(c.ExpiresAt))
+		if err != nil {
+			return nil, err
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			continue // the row changed under us: read it again
+		}
+		if !match {
+			return nil, store.ErrPrecondition
+		}
+		return c, nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	if c.Attempts >= maxAttempts || !now.Before(c.ExpiresAt) || subtle.ConstantTimeCompare([]byte(c.CodeHash), []byte(hash)) != 1 {
-		return nil, store.ErrPrecondition
-	}
-	res, err := r.s.write(ctx, nil, `DELETE FROM passwordless_codes WHERE tenant_id=? AND connection_id=? AND identifier=? AND kind=? AND code_hash=? AND attempts=? AND expires_at=?`,
-		tid, conn, ident, kind, c.CodeHash, int64(c.Attempts), micros(c.ExpiresAt))
-	if err != nil {
-		return nil, err
-	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return nil, store.ErrPrecondition
-	}
-	return c, nil
+	return nil, store.ErrPrecondition
 }
 
 func (r phoneRepo) PeekPasswordlessLink(ctx context.Context, tid, hash string, now time.Time) (*store.PasswordlessCode, error) {

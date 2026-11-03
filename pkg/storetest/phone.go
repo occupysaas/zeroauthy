@@ -101,8 +101,6 @@ func Phone(t *testing.T, factory Factory) {
 		_, err := s.Phone().FailPasswordlessCode(ctx, "a", "conn", "+14155550100", "code", now)
 		mustNoErr(t, err)
 		mustNoErr(t, s.Phone().PutPasswordlessCode(ctx, code("a", "code", "new", time.Minute)))
-		_, err = s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "old", 5, now)
-		mustErrIs(t, err, store.ErrPrecondition)
 		got, err := s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "new", 1, now)
 		mustNoErr(t, err)
 		if got.Attempts != 0 || got.ClientID != "c" || string(got.Request) != `{"x":1}` {
@@ -112,6 +110,73 @@ func Phone(t *testing.T, factory Factory) {
 		mustErrIs(t, err, store.ErrPrecondition)
 		_, err = s.Phone().FailPasswordlessCode(ctx, "a", "conn", "+14155550100", "code", now)
 		mustErrIs(t, err, store.ErrNotFound)
+		// The replaced code is wrong for the new row and counts as an attempt.
+		mustNoErr(t, s.Phone().PutPasswordlessCode(ctx, code("a", "code", "old", time.Minute)))
+		mustNoErr(t, s.Phone().PutPasswordlessCode(ctx, code("a", "code", "new", time.Minute)))
+		_, err = s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "old", 5, now)
+		mustErrIs(t, err, store.ErrPrecondition)
+		got, err = s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "new", 5, now)
+		mustNoErr(t, err)
+		if got.Attempts != 1 {
+			t.Fatalf("wrong guess not counted: attempts = %d", got.Attempts)
+		}
+	})
+	t.Run("CodeWrongGuessCounted", func(t *testing.T) {
+		s := setup(t)
+		mustNoErr(t, s.Phone().PutPasswordlessCode(ctx, code("a", "code", "h", time.Minute)))
+		for range 2 {
+			_, err := s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "bad", 3, now)
+			mustErrIs(t, err, store.ErrPrecondition)
+		}
+		got, err := s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "h", 3, now)
+		mustNoErr(t, err)
+		if got.Attempts != 2 {
+			t.Fatalf("attempts = %d", got.Attempts)
+		}
+		// The third wrong guess exhausts a max of 3.
+		mustNoErr(t, s.Phone().PutPasswordlessCode(ctx, code("a", "code", "h", time.Minute)))
+		for range 3 {
+			_, err := s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "bad", 3, now)
+			mustErrIs(t, err, store.ErrPrecondition)
+		}
+		_, err = s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "h", 3, now)
+		mustErrIs(t, err, store.ErrPrecondition)
+	})
+	t.Run("CodeWrongGuessesConcurrent", func(t *testing.T) {
+		s := setup(t)
+		const max = 3
+		mustNoErr(t, s.Phone().PutPasswordlessCode(ctx, code("a", "code", "h", time.Minute)))
+		var wg sync.WaitGroup
+		var won atomic.Pointer[store.PasswordlessCode]
+		for i := range 21 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				hash := "bad"
+				if i == 10 {
+					hash = "h"
+				}
+				got, err := s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", hash, max, now)
+				if err == nil {
+					won.Store(got)
+				} else if !isErr(err, store.ErrPrecondition) {
+					t.Errorf("consume: %v", err)
+				}
+			}()
+		}
+		wg.Wait()
+		// Accepted guesses (counted wrong ones plus a success) never exceed max.
+		if got := won.Load(); got != nil {
+			if got.Attempts+1 > max {
+				t.Fatalf("success after %d wrong guesses (max %d)", got.Attempts, max)
+			}
+			return
+		}
+		got, err := s.Phone().ConsumePasswordlessCode(ctx, "a", "conn", "+14155550100", "code", "h", 100, now)
+		mustNoErr(t, err)
+		if got.Attempts != max {
+			t.Fatalf("attempts = %d, want exactly %d", got.Attempts, max)
+		}
 	})
 	t.Run("CodeConsumeOnceConcurrent", func(t *testing.T) {
 		s := setup(t)

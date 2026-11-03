@@ -199,12 +199,11 @@ func (s *Service) Start(ctx context.Context, in StartInput) (*StartResult, error
 	s.event(ctx, sent, conn)
 
 	res := &StartResult{ID: secrets.RandomHex(phonerules.Limits.StartIDHexLength / 2)}
+	res.Verified = identifierVerified(u, conn, ident)
 	if conn.Strategy == connrules.StrategySMS {
 		res.PhoneNumber = ident
-		res.Verified = u != nil && u.PhoneVerified
 	} else {
 		res.Email = ident
-		res.Verified = u != nil && u.EmailVerified
 	}
 	return res, nil
 }

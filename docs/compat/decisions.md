@@ -2385,7 +2385,7 @@ blocked user or disabled signup answers 403 `access_denied` (frozen route
 errors), not the password grant's `invalid_grant`; wrong codes answer
 `invalid_grant` "Wrong email or verification code." / "Wrong phone number or
 verification code.". (25) A code is bound to the client it was sent for; a
-code submitted by another client is spent and refused. Starting a code
+code submitted by another client is spent and refused. A wrong code is counted in the same atomic store step as the check, so parallel guesses never exceed the three-attempt limit; `email_verified`/`phone_verified` are only asserted for the user's own primary identifier, never through a linked identity. Starting a code
 expires an outstanding link for the identifier and vice versa (only the
 latest code or link is valid). (26) Start spends the per-IP (50/hour) and
 identifier (10/hour) budgets before the user lookup and even when delivery

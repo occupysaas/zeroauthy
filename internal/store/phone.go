@@ -56,6 +56,9 @@ type Phone interface {
 	FailPasswordlessCode(ctx context.Context, tid, conn, ident, kind string, now time.Time) (attempts int, err error)
 	// ConsumePasswordlessCode atomically deletes and returns the row. ErrPrecondition
 	// unless the row exists, the hash matches, it is unexpired at now and attempts < maxAttempts.
+	// A wrong hash on an unexpired row with attempts < maxAttempts increments attempts in the
+	// same atomic step as the check, so concurrent wrong guesses are each counted and at most
+	// maxAttempts guesses (wrong ones plus a success) are ever accepted.
 	ConsumePasswordlessCode(ctx context.Context, tid, conn, ident, kind, hash string, maxAttempts int, now time.Time) (*PasswordlessCode, error)
 	// PeekPasswordlessLink returns an unexpired link row by code hash without
 	// consuming it. ErrNotFound if missing or expired.

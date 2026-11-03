@@ -217,10 +217,8 @@ func (s *Service) VerifyCode(ctx context.Context, tid, clientID, connection, ide
 	now := s.now()
 	row, err := s.Store.Phone().ConsumePasswordlessCode(ctx, tid, conn.ID, ident, KindCode, secrets.HashToken(code), phonerules.Limits.OTPAttempts, now)
 	if errors.Is(err, store.ErrPrecondition) {
+		// The store counted a wrong guess in the same atomic step.
 		outcome = "failure"
-		if _, ferr := s.Store.Phone().FailPasswordlessCode(ctx, tid, conn.ID, ident, KindCode, now); ferr != nil && !errors.Is(ferr, store.ErrNotFound) {
-			return nil, ferr
-		}
 		return nil, ErrInvalidCode
 	}
 	if err != nil {
@@ -261,7 +259,39 @@ func (s *Service) signIn(ctx context.Context, t *store.Tenant, client *store.Cli
 	if u.Blocked {
 		return nil, ErrUserBlocked
 	}
-	return s.markVerified(ctx, u, conn.Strategy)
+	return s.markVerified(ctx, u.TenantID, u.UserID, conn, ident)
+}
+
+// ownsIdentifier reports whether ident is u's own proven identifier on conn:
+// the identity matched on conn is the user's primary (not linked) one and the
+// user's root email (email) or phone number (sms) is ident. Only then may a
+// passwordless sign-in assert email_verified or phone_verified.
+func ownsIdentifier(u *store.User, conn *store.Connection, ident string) bool {
+	var id *store.Identity
+	if conn.Strategy == connrules.StrategySMS {
+		for i := range u.Identities {
+			if u.Identities[i].Connection == conn.Name {
+				id = &u.Identities[i]
+				if !id.Linked() {
+					break
+				}
+			}
+		}
+		return id != nil && !id.Linked() && u.PhoneNormalized == ident
+	}
+	id = u.IdentityByLogin(conn.Name, ident)
+	return id != nil && !id.Linked() && u.Email == ident
+}
+
+// identifierVerified is the start response's verified flag (same rule).
+func identifierVerified(u *store.User, conn *store.Connection, ident string) bool {
+	if u == nil || !ownsIdentifier(u, conn, ident) {
+		return false
+	}
+	if conn.Strategy == connrules.StrategySMS {
+		return u.PhoneVerified
+	}
+	return u.EmailVerified
 }
 
 func (s *Service) findUser(ctx context.Context, tid string, conn *store.Connection, ident string) (*store.User, error) {
@@ -335,22 +365,41 @@ func (s *Service) create(ctx context.Context, t *store.Tenant, client *store.Cli
 	return u, nil
 }
 
-// markVerified sets email_verified or phone_verified after a successful
-// passwordless sign-in.
-func (s *Service) markVerified(ctx context.Context, u *store.User, strategy string) (*store.User, error) {
-	if (strategy == connrules.StrategySMS && u.PhoneVerified) || (strategy == connrules.StrategyEmail && u.EmailVerified) {
-		return u, nil
-	}
-	if strategy == connrules.StrategySMS {
-		u.PhoneVerified = true
-	} else {
-		u.EmailVerified = true
-	}
-	u.UpdatedAt = s.now()
-	if err := s.Store.Users().Update(ctx, u); err != nil {
+// markVerified re-reads the user under a row lock, re-checks the block and
+// sets only email_verified or phone_verified (when the identifier is the
+// user's own), so a concurrent block or edit is never undone.
+func (s *Service) markVerified(ctx context.Context, tid, userID string, conn *store.Connection, ident string) (*store.User, error) {
+	var out *store.User
+	err := s.Store.WithTx(ctx, func(tx store.Store) error {
+		u, err := tx.Users().GetForUpdate(ctx, tid, userID)
+		if err != nil {
+			return err
+		}
+		if u.Blocked {
+			return ErrUserBlocked
+		}
+		out = u
+		if !ownsIdentifier(u, conn, ident) {
+			return nil
+		}
+		if conn.Strategy == connrules.StrategySMS {
+			if u.PhoneVerified {
+				return nil
+			}
+			u.PhoneVerified = true
+		} else {
+			if u.EmailVerified {
+				return nil
+			}
+			u.EmailVerified = true
+		}
+		u.UpdatedAt = s.now()
+		return tx.Users().Update(ctx, u)
+	})
+	if err != nil {
 		return nil, err
 	}
-	return s.Store.Users().Get(ctx, u.TenantID, u.UserID)
+	return out, nil
 }
 
 // enabledFor reports whether conn is enabled for clientID.

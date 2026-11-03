@@ -660,3 +660,148 @@ func TestPhoneUnavailable(t *testing.T) {
 type noPhone struct{ *memory.Store }
 
 func (noPhone) Phone() store.Phone { return store.UnimplementedPhone{} }
+
+// hookStore runs after on the skip+1th FindByLogin (the protection lookup
+// comes first), between the user lookup and the verified-flag write.
+type hookStore struct {
+	*memory.Store
+	skip  int
+	after func()
+}
+
+func (h *hookStore) Users() store.Users { return hookUsers{h.Store.Users(), h} }
+
+type hookUsers struct {
+	store.Users
+	h *hookStore
+}
+
+func (u hookUsers) FindByLogin(ctx context.Context, tid, conn, login string) (*store.User, error) {
+	got, err := u.Users.FindByLogin(ctx, tid, conn, login)
+	if u.h.skip > 0 {
+		u.h.skip--
+		return got, err
+	}
+	if f := u.h.after; f != nil && err == nil {
+		u.h.after = nil
+		f()
+	}
+	return got, err
+}
+
+func (e *testEnv) putUser(u *store.User) {
+	e.t.Helper()
+	u.TenantID = tid
+	if err := e.st.Users().Create(e.ctx, u); err != nil {
+		e.t.Fatal(err)
+	}
+}
+
+// Review fix 1: a block (or any admin edit) landing between the lookup and
+// the verified-flag write is never undone.
+func TestVerifyDoesNotUndoConcurrentBlock(t *testing.T) {
+	e := newTestEnv(t)
+	e.putUser(&store.User{UserID: "email|aaaaaaaaaaaaaaaaaaaaaaaa", Email: "ada@example.test", Identities: []store.Identity{{Connection: "email", Provider: "email", UserID: "aaaaaaaaaaaaaaaaaaaaaaaa"}}})
+	code := e.emailCode("ada@example.test")
+	e.svc.Store = &hookStore{Store: e.st, skip: 1, after: func() {
+		u, _ := e.st.Users().Get(e.ctx, tid, "email|aaaaaaaaaaaaaaaaaaaaaaaa")
+		u.Blocked, u.AppMetadata = true, map[string]any{"plan": "gold"}
+		if err := e.st.Users().Update(e.ctx, u); err != nil {
+			t.Error(err)
+		}
+	}}
+	if _, err := e.svc.VerifyCode(e.ctx, tid, "cli", "email", "ada@example.test", code); !errors.Is(err, ErrUserBlocked) {
+		t.Fatalf("verify = %v", err)
+	}
+	u, _ := e.st.Users().Get(e.ctx, tid, "email|aaaaaaaaaaaaaaaaaaaaaaaa")
+	if !u.Blocked || u.AppMetadata["plan"] != "gold" {
+		t.Fatalf("concurrent edit undone: %+v", u)
+	}
+}
+
+// Review fix 2: signing in through a linked identity's email never marks the
+// primary user's (different) email verified.
+func TestVerifyLinkedIdentityKeepsPrimaryUnverified(t *testing.T) {
+	e := newTestEnv(t)
+	e.putUser(&store.User{UserID: "auth0|primary", Email: "primary@example.test", Identities: []store.Identity{
+		{Connection: "Username-Password-Authentication", Provider: "auth0", UserID: "primary"},
+		{Connection: "email", Provider: "email", UserID: "bbbbbbbbbbbbbbbbbbbbbbbb", ProfileData: map[string]any{"email": "linked@example.test", "email_verified": false}},
+	}})
+	res, err := e.start(StartInput{Connection: "email", Email: "linked@example.test", Send: "code"})
+	if err != nil || res.Verified {
+		t.Fatalf("start = %+v %v", res, err)
+	}
+	u, err := e.svc.VerifyCode(e.ctx, tid, "cli", "email", "linked@example.test", e.mail.last(t).Code)
+	if err != nil || u.UserID != "auth0|primary" {
+		t.Fatalf("verify = %+v %v", u, err)
+	}
+	if got, _ := e.st.Users().Get(e.ctx, tid, "auth0|primary"); got.EmailVerified {
+		t.Fatal("primary email marked verified by a linked identity's code")
+	}
+	// The primary identity's own address is marked verified.
+	e.putUser(&store.User{UserID: "email|cccccccccccccccccccccccc", Email: "own@example.test", Identities: []store.Identity{{Connection: "email", Provider: "email", UserID: "cccccccccccccccccccccccc"}}})
+	if _, err := e.svc.VerifyCode(e.ctx, tid, "cli", "email", "own@example.test", e.emailCode("own@example.test")); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := e.st.Users().Get(e.ctx, tid, "email|cccccccccccccccccccccccc"); !got.EmailVerified {
+		t.Fatal("own email not marked verified")
+	}
+	if res, _ := e.start(StartInput{Connection: "email", Email: "own@example.test", Send: "code"}); !res.Verified {
+		t.Fatal("start Verified false for a verified primary email")
+	}
+}
+
+// Review fix 4: magic-link sign-ins obey the Plan 19 brute-force block.
+func TestLinkObeysBruteForceBlock(t *testing.T) {
+	e := newTestEnv(t)
+	tn, _ := e.st.Tenants().Get(e.ctx, tid)
+	tn.ProtectionSettings.BruteForce.MaxAttempts = 2
+	if err := e.st.Tenants().Update(e.ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	e.emailCode("ada@example.test")
+	for range 2 {
+		if _, err := e.svc.VerifyCode(e.ctx, tid, "cli", "email", "ada@example.test", "000000"); !errors.Is(err, ErrInvalidCode) {
+			t.Fatalf("wrong = %v", err)
+		}
+	}
+	if _, err := e.start(StartInput{Connection: "email", Email: "ada@example.test"}); err != nil {
+		t.Fatal(err)
+	}
+	token := linkToken(t, e.mail.last(t))
+	if _, err := e.svc.VerifyLink(e.ctx, tid, token); !errors.Is(err, ErrTooManyAttempts) {
+		t.Fatalf("blocked link sign-in = %v", err)
+	}
+	// The refused attempt did not burn the link.
+	if _, _, err := e.svc.PeekLink(e.ctx, tid, token); err != nil {
+		t.Fatalf("link burned by a refused sign-in: %v", err)
+	}
+}
+
+// Review fix 3: parallel wrong guesses are each counted, so the right code
+// is refused once three wrong guesses landed.
+func TestConcurrentWrongGuessesExhaustCode(t *testing.T) {
+	e := newTestEnv(t)
+	conn, _ := e.st.Connections().GetByName(e.ctx, tid, "email")
+	conn.BruteForceProtection = false
+	if err := e.st.Connections().Update(e.ctx, conn); err != nil {
+		t.Fatal(err)
+	}
+	code := e.emailCode("ada@example.test")
+	wrong := "000000"
+	if code == wrong {
+		wrong = "111111"
+	}
+	var wg sync.WaitGroup
+	for range 12 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _ = e.svc.VerifyCode(e.ctx, tid, "cli", "email", "ada@example.test", wrong)
+		}()
+	}
+	wg.Wait()
+	if _, err := e.svc.VerifyCode(e.ctx, tid, "cli", "email", "ada@example.test", code); !errors.Is(err, ErrInvalidCode) {
+		t.Fatalf("code after 12 parallel wrong guesses = %v", err)
+	}
+}

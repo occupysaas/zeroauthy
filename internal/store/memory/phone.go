@@ -170,8 +170,12 @@ func (r phoneRepo) ConsumePasswordlessCode(_ context.Context, tid, conn, ident, 
 	defer r.s.unlock()
 	k := codeKey(tid, conn, ident, kind)
 	v := r.s.passwordlessCodes[k]
-	if v == nil || v.Attempts >= maxAttempts || !now.Before(v.ExpiresAt) ||
-		subtle.ConstantTimeCompare([]byte(v.CodeHash), []byte(hash)) != 1 {
+	if v == nil || v.Attempts >= maxAttempts || !now.Before(v.ExpiresAt) {
+		return nil, store.ErrPrecondition
+	}
+	if subtle.ConstantTimeCompare([]byte(v.CodeHash), []byte(hash)) != 1 {
+		// A wrong guess is counted under the same lock as the check.
+		v.Attempts++
 		return nil, store.ErrPrecondition
 	}
 	delete(r.s.passwordlessCodes, k)

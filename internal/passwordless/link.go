@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/phonerules"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -58,12 +59,6 @@ func (s *Service) VerifyLink(ctx context.Context, tid, token string) (*LinkGrant
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.Store.Phone().ConsumePasswordlessCode(ctx, tid, row.ConnectionID, row.Identifier, KindLink, row.CodeHash, phonerules.Limits.OTPAttempts, s.now()); err != nil {
-		if errors.Is(err, store.ErrPrecondition) {
-			return nil, ErrInvalidCode
-		}
-		return nil, err
-	}
 	t, err := s.Store.Tenants().Get(ctx, tid)
 	if err != nil {
 		return nil, err
@@ -75,6 +70,29 @@ func (s *Service) VerifyLink(ctx context.Context, tid, token string) (*LinkGrant
 	if err != nil {
 		return nil, err
 	}
+	// Link sign-ins obey the same Plan 19 brute-force and IP rules as codes;
+	// a refused attempt leaves the link unconsumed.
+	prot := s.protection()
+	decision, err := prot.Begin(ctx, protection.Attempt{Tenant: t, Connection: conn, Identifier: row.Identifier, IP: requestFrom(ctx).IP, Flow: "login"})
+	if err != nil {
+		return nil, err
+	}
+	if !decision.Allowed {
+		return nil, ErrTooManyAttempts
+	}
+	outcome := "refund"
+	defer func() {
+		if err := prot.Finish(ctx, decision.Receipt, outcome); err != nil {
+			s.log().ErrorContext(ctx, "passwordless: protection completion", "tenant", tid, "err", err)
+		}
+	}()
+	if _, err := s.Store.Phone().ConsumePasswordlessCode(ctx, tid, row.ConnectionID, row.Identifier, KindLink, row.CodeHash, phonerules.Limits.OTPAttempts, s.now()); err != nil {
+		if errors.Is(err, store.ErrPrecondition) {
+			return nil, ErrInvalidCode
+		}
+		return nil, err
+	}
+	outcome = "success"
 	client, err := s.Store.Clients().Get(ctx, tid, row.ClientID)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, ErrInvalidCode
