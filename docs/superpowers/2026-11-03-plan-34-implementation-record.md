@@ -71,3 +71,10 @@ exited 0. No full suite was run.
 - `+1` resolves to CA for Canadian area codes, to the Caribbean NANP country for their area codes, and otherwise to US; `+7` 6xx/7xx resolves to KZ. A leading `00` is accepted only with a default region.
 - Fix round 1: trunk 0 kept for IT/SM/VA, trunk 1 stripped for +1 regions (`go test ./internal/phone -count=1` ok).
 - Commands: `go test ./internal/phone ./internal/passwordless ./internal/awssig ./internal/email/... ./internal/phonerules -count=1` (exit 0; RED run first failed on undefined symbols); `go build ./...` exit 0. No database tests run.
+
+## Task 3: Phone senders
+
+- Added `internal/phone/{sender,twilio,sns,testendpoints}.go`: `Message`, `Result`, `ErrorClass`, `SendError`, `Sender`, `NewTwilio`, `NewSNS`, `phone.Endpoints`, `SetTestEndpoints`, `NewHTTPClient` (guarded dialer, 10 s, no redirects; private addresses only while test endpoints are active).
+- `config.TestPhoneEndpoints` (`ZA_TEST_PHONE_ENDPOINTS=twilio=URL,sns=URL`) errors without `ZA_TEST_MODE=1`; `serve` applies it and logs a startup warning.
+- `tests/e2e/phone-fakes` (fake Twilio Messages/Calls, SNS Publish, SMS gateway, JSON-lines log); `awssig` gained a fixed SNS signature test computed independently in Python.
+- Commands: `go test ./internal/phone ./internal/config ./internal/awssig ./cmd/zeroauthy ./tests/e2e/phone-fakes -count=1` (exit 0); `go build ./...` exit 0. No database tests run.

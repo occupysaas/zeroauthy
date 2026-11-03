@@ -33,3 +33,20 @@ func TestSignSetsHeaders(t *testing.T) {
 		t.Fatalf("headers=%v", req.Header)
 	}
 }
+
+// TestSignSNSKnownSignature checks a form POST with the headers SNS uses
+// against a signature computed independently (Python hmac/hashlib over the
+// SigV4 algorithm), not by calling Sign.
+func TestSignSNSKnownSignature(t *testing.T) {
+	body := []byte("Action=Publish&Message=hi&PhoneNumber=%2B14155550100&Version=2010-03-31")
+	req, _ := http.NewRequest(http.MethodPost, "https://sns.eu-west-1.amazonaws.com/", nil)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	Sign(req, body, "eu-west-1", "sns", "AKIDEXAMPLE", "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY", time.Date(2026, 11, 3, 1, 2, 3, 0, time.UTC))
+	want := "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20261103/eu-west-1/sns/aws4_request, SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date, Signature=a5a00e639b03e1e67448bc787d131528f1517977925b3c69e6701996aa8fd40c"
+	if got := req.Header.Get("Authorization"); got != want {
+		t.Fatalf("authorization=%s", got)
+	}
+	if req.Header.Get("X-Amz-Content-Sha256") != "c3a6aeeda9dac1136ab3d947eae288a2551873df07502372658ed31adb2a99fa" {
+		t.Fatalf("payload hash=%s", req.Header.Get("X-Amz-Content-Sha256"))
+	}
+}

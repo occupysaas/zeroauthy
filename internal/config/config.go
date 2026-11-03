@@ -49,6 +49,9 @@ type Config struct {
 	// defines at every start) or "create_only" (it only creates what is
 	// missing, so edits made in the console survive a restart).
 	SeedMode string `koanf:"seed_mode"`
+	// TestPhone is set from ZA_TEST_MODE and ZA_TEST_PHONE_ENDPOINTS (process
+	// settings, never YAML). Zero outside test mode.
+	TestPhone TestPhone `koanf:"-"`
 }
 
 type Events struct {
@@ -331,6 +334,11 @@ func Load(path string, environ []string) (*Config, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
+	tp, err := TestPhoneEndpoints(environ)
+	if err != nil {
+		return nil, err
+	}
+	cfg.TestPhone = tp
 	return cfg, nil
 }
 
