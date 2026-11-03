@@ -45,7 +45,13 @@ func NormalizeE164(raw, defaultRegion string) (string, error) {
 		if !ok || s == "" {
 			return "", ErrInvalidPhone
 		}
-		if code != "1" {
+		switch {
+		case code == "1":
+			// National trunk prefix 1 in front of a 10-digit number.
+			if len(s) == 11 && s[0] == '1' {
+				s = s[1:]
+			}
+		case !keepLeadingZero[strings.ToUpper(defaultRegion)]:
 			s = strings.TrimPrefix(s, "0")
 		}
 		digits = code + s
@@ -56,6 +62,10 @@ func NormalizeE164(raw, defaultRegion string) (string, error) {
 	}
 	return "+" + digits, nil
 }
+
+// keepLeadingZero lists regions whose national numbers begin with a 0 that is
+// part of the number, not a trunk prefix.
+var keepLeadingZero = map[string]bool{"IT": true, "SM": true, "VA": true}
 
 // CountryCode returns the ISO 3166 alpha-2 country of an E.164 number from the
 // in-tree calling-code table, or "" when unknown. +1 resolves to CA for the

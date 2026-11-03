@@ -188,6 +188,7 @@ var regionCode = func() map[string]string {
 	}
 	m["CA"] = "1"
 	m["KZ"] = "7"
+	m["VA"] = "39"
 	return m
 }()
 

@@ -69,4 +69,5 @@ exited 0. No full suite was run.
 
 - Added `internal/phone` (`NormalizeE164`, `CountryCode`, `Mask` delegating to `phonerules.MaskPhone`), `internal/passwordless/codes.go` (`NewCode`, `NewLinkToken`) and `internal/awssig` (`Sign`); SES now signs through `awssig`, and `TestSESSigV4ReferenceVector` moved there.
 - `+1` resolves to CA for Canadian area codes, to the Caribbean NANP country for their area codes, and otherwise to US; `+7` 6xx/7xx resolves to KZ. A leading `00` is accepted only with a default region.
+- Fix round 1: trunk 0 kept for IT/SM/VA, trunk 1 stripped for +1 regions (`go test ./internal/phone -count=1` ok).
 - Commands: `go test ./internal/phone ./internal/passwordless ./internal/awssig ./internal/email/... ./internal/phonerules -count=1` (exit 0; RED run first failed on undefined symbols); `go build ./...` exit 0. No database tests run.
