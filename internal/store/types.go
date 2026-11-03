@@ -764,8 +764,12 @@ type User struct {
 	Blocked     bool
 	Identities  []Identity
 	// PhoneNumber and PhoneVerified are profile fields, set through Update.
-	PhoneNumber       string
-	PhoneVerified     bool
+	PhoneNumber   string
+	PhoneVerified bool
+	// PhoneNormalized is the E.164 form of PhoneNumber, set by user write
+	// paths only when it normalizes; empty otherwise. Existing rows are never
+	// rewritten in bulk.
+	PhoneNormalized   string
 	LastLogin         *time.Time
 	LastPasswordReset *time.Time
 	// LastIP is the client IP of the last login. Only RecordLogin sets it;

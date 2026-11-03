@@ -576,7 +576,7 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		TenantID: tn.ID, Email: in.Email, EmailVerified: deref(in.EmailVerified), Username: in.Username,
 		Name: in.Name, Nickname: in.Nickname, Picture: in.Picture, GivenName: in.GivenName, FamilyName: in.FamilyName,
 		UserMetadata: in.UserMetadata, AppMetadata: in.AppMetadata, Blocked: deref(in.Blocked),
-		PhoneNumber: in.PhoneNumber, PhoneVerified: deref(in.PhoneVerified), CreatedAt: now, UpdatedAt: now,
+		PhoneNumber: in.PhoneNumber, PhoneNormalized: userrules.NormalizePhone(in.PhoneNumber), PhoneVerified: deref(in.PhoneVerified), CreatedAt: now, UpdatedAt: now,
 	}
 	legacy := identity.IsLegacy(conn)
 	ident := store.Identity{Connection: conn.Name, Provider: store.StrategyDatabase}

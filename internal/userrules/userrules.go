@@ -18,6 +18,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/phone"
+
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -280,6 +282,16 @@ func CheckPatch(c *store.Connection, u *store.User, in *Patch) []error {
 	return errs
 }
 
+// NormalizePhone returns the E.164 form stored as User.PhoneNormalized, or
+// empty when the number does not normalize without a default region.
+func NormalizePhone(number string) string {
+	n, err := phone.NormalizeE164(number, "")
+	if err != nil {
+		return ""
+	}
+	return n
+}
+
 // ApplyPatch copies the set fields of in onto u. It does not validate and
 // does not touch the password or the stored version. An email that
 // changes clears EmailVerified unless the patch sets email_verified.
@@ -298,6 +310,9 @@ func ApplyPatch(u *store.User, in *Patch) {
 	}
 	setStr(&u.Username, in.Username)
 	setStr(&u.PhoneNumber, in.PhoneNumber)
+	if in.PhoneNumber != nil {
+		u.PhoneNormalized = NormalizePhone(u.PhoneNumber)
+	}
 	setStr(&u.Name, in.Name)
 	setStr(&u.GivenName, in.GivenName)
 	setStr(&u.FamilyName, in.FamilyName)

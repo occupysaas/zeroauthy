@@ -78,3 +78,11 @@ exited 0. No full suite was run.
 - `config.TestPhoneEndpoints` (`ZA_TEST_PHONE_ENDPOINTS=twilio=URL,sns=URL`) errors without `ZA_TEST_MODE=1`; `serve` applies it and logs a startup warning.
 - `tests/e2e/phone-fakes` (fake Twilio Messages/Calls, SNS Publish, SMS gateway, JSON-lines log); `awssig` gained a fixed SNS signature test computed independently in Python.
 - Commands: `go test ./internal/phone ./internal/config ./internal/awssig ./cmd/zeroauthy ./tests/e2e/phone-fakes -count=1` (exit 0); `go build ./...` exit 0. No database tests run.
+
+## Task 4: Phone storage contract and memory store
+
+- Added `store.Phone` (providers, templates, passwordless codes, `FindUsersByPhone`, `PurgePhone`, `DeleteTenantPhone`), `ErrPhoneUnavailable` and `UnimplementedPhone`; `Store.Phone()` on the memory store (also its transaction view, rollback snapshot and tenant delete), SQL and gRPC (stubs until Tasks 5 and 6).
+- `User.PhoneNormalized` is set by `userrules.ApplyPatch`, Management API create and the bulk importer create only when `phone.NormalizeE164(n, "")` succeeds; no bulk rewrite.
+- `internal/app` sweep gains `purgePhone` (batches of 500, at most 20 per run, tolerates `ErrPhoneUnavailable`).
+- `storetest.Phone` is registered in `Suites` but deliberately not in `suiteOrder`, so the SQL, gRPC and plugin `Run` calls stay green until Tasks 5 and 6 add it.
+- Focused commands (memory/in-process only, no database): `go test ./internal/store/memory ./internal/app -run Phone -count=1 -race` exit 0; `go test ./internal/store/memory ./internal/store ./internal/userrules ./internal/app ./internal/events -count=1` exit 0; `go vet ./...` clean.

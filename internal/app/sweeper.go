@@ -43,6 +43,22 @@ func purgeMFA(ctx context.Context, st store.Store, before time.Time) (int, error
 	return total, nil
 }
 
+// purgePhone deletes expired passwordless codes and links.
+func purgePhone(ctx context.Context, st store.Store, before time.Time) (int, error) {
+	total := 0
+	for range mfaPurgeBatches {
+		n, err := st.Phone().PurgePhone(ctx, before, mfaPurgeBatch)
+		if errors.Is(err, store.ErrPhoneUnavailable) {
+			return total, nil // an old storage plugin: no passwordless rows exist
+		}
+		total += n
+		if err != nil || n < mfaPurgeBatch {
+			return total, err
+		}
+	}
+	return total, nil
+}
+
 // sweep deletes expired records and returns how many it removed. A failure
 // in one kind of record does not stop the others.
 func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
@@ -69,6 +85,7 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 			return actions.PurgeExecutions(ctx, st, before)
 		}, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeMFA(ctx, st, before) }, now},
+		{func(ctx context.Context, before time.Time) (int, error) { return purgePhone(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {

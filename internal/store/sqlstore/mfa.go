@@ -15,6 +15,9 @@ import (
 type mfa struct{ s *Store }
 
 func (s *Store) MFA() store.MFA { return mfa{s} }
+
+// Phone is the unimplemented stub until the SQL driver lands (Plan 34 Task 5).
+func (s *Store) Phone() store.Phone { return store.UnimplementedPhone{} }
 func mfaMissing(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return store.ErrNotFound

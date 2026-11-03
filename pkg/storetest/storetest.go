@@ -16,6 +16,7 @@ type Factory func(t *testing.T) store.Store
 // use RunSuites to bring suites up one at a time.
 var Suites = map[string]func(t *testing.T, newStore Factory){
 	"MFA":                         MFA,
+	"Phone":                       Phone, // not in suiteOrder until the SQL and gRPC drivers land (Plan 34 Tasks 5 and 6)
 	"Logs":                        testLogs,
 	"Events":                      testEvents,
 	"RBAC":                        testRBAC,
