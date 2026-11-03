@@ -482,3 +482,20 @@ and challenge outcomes. Phone recipients are masked; codes, spoken codes,
 provider credentials and magic-link tokens are excluded from event details,
 Action records and provider error responses. Use the event ID and provider
 error class to correlate failures. See [phone providers](phone-providers.md).
+
+## Passwordless and phone emission ownership
+
+Plan 34 emits `cs`/`cls` after passwordless code/link delivery and `fepotpft`
+on refused OTP grants. MFA phone sends emit `gd_send_sms` or `gd_send_voice`,
+with corresponding `_failure` codes on delivery failure; Guardian phone/SMS
+configuration writes emit `gd_phone_settings_update`. Phone send budgets
+emit `limit_phone`; signup verification send exhaustion emits
+`limit_signup_otp`. Management phone changes emit `scpn`/`fcpn`.
+
+The log inventory records the owning functions; `TestPlan34LogCodes` now
+checks emission status and those mappings without a deferred skip. This
+catalog check supplements the Task 16 production acceptance and secret scans;
+it does not by itself prove every runtime delivery or sink was exercised.
+Phone numbers in events/logs are masked, and phone codes, spoken code forms,
+magic links and provider credentials are secret material. Management API
+obfuscation settings do not permit full numbers in tenant event/log sinks.

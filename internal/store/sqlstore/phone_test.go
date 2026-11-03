@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -64,6 +65,33 @@ func TestPhoneMigrationLeavesUserData(t *testing.T) {
 			got, err := s.Users().Get(ctx, "t", "auth0|ua")
 			if err != nil || got.PhoneNormalized != "" || got.PhoneNumber != "+14155550100" {
 				t.Fatalf("legacy user: %+v %v", got, err)
+			}
+		})
+	}
+}
+
+// A phone-signup proof has no encrypted continuation payload. SQL JSON null
+// must remain absent, or the caller attempts to decrypt an empty ciphertext
+// after spending a valid code.
+func TestPhoneCodeAbsentRequestRoundTrip(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := mk(t)
+			ctx := t.Context()
+			if err := s.Tenants().Create(ctx, &store.Tenant{ID: "phone-null", Name: "phone-null"}); err != nil {
+				t.Fatal(err)
+			}
+			now := time.Now()
+			code := &store.PasswordlessCode{TenantID: "phone-null", ConnectionID: "db", Identifier: "+14155553430", Kind: "phone-signup", CodeHash: "proof", ExpiresAt: now.Add(time.Minute), CreatedAt: now}
+			if err := s.Phone().PutPasswordlessCode(ctx, code); err != nil {
+				t.Fatal(err)
+			}
+			got, err := s.Phone().ConsumePasswordlessCode(ctx, code.TenantID, code.ConnectionID, code.Identifier, code.Kind, code.CodeHash, 3, now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got.Request) != 0 {
+				t.Fatalf("absent payload became %q", got.Request)
 			}
 		})
 	}

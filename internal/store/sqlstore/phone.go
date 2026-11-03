@@ -172,7 +172,9 @@ func scanPasswordlessCode(row scanner) (*store.PasswordlessCode, error) {
 	if err := row.Scan(&c.TenantID, &c.ConnectionID, &c.Identifier, &c.Kind, &c.ClientID, &c.CodeHash, &request, &attempts, &expires, &created); err != nil {
 		return nil, err
 	}
-	c.Request = json.RawMessage(request)
+	if request != "null" {
+		c.Request = json.RawMessage(request)
+	}
 	c.Attempts = int(attempts)
 	c.ExpiresAt, c.CreatedAt = fromMicros(expires), fromMicros(created)
 	return &c, nil

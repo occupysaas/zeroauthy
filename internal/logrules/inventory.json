@@ -551,7 +551,13 @@
       "source": "https://auth0.com/docs/tenant-logs/user-fail/fcpn",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "A requested phone-number change was refused or failed."
+        }
+      ],
       "status": "emitted"
     },
     {
@@ -1391,7 +1397,13 @@
       "source": "https://auth0.com/docs/tenant-logs/management-success/gd-phone-settings-update",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/mgmt/guardian_stored.go",
+          "function": "guardianStored",
+          "when": "A Guardian SMS/phone configuration update committed."
+        }
+      ],
       "status": "emitted"
     },
     {
@@ -1511,7 +1523,13 @@
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/mfa/phone.go",
+          "function": "sendPhone",
+          "when": "An MFA text message was accepted by the configured sender."
+        }
+      ],
       "status": "emitted"
     },
     {
@@ -1524,7 +1542,13 @@
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms-failure",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/mfa/phone.go",
+          "function": "sendPhone",
+          "when": "MFA text delivery failed; preparePhone also emits when no provider works."
+        }
+      ],
       "status": "emitted"
     },
     {
@@ -1537,7 +1561,13 @@
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/mfa/phone.go",
+          "function": "sendPhone",
+          "when": "An MFA voice message was accepted by the configured sender."
+        }
+      ],
       "status": "emitted"
     },
     {
@@ -1550,7 +1580,13 @@
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice-failure",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/mfa/phone.go",
+          "function": "sendPhone",
+          "when": "MFA voice delivery failed; preparePhone also emits when no provider works."
+        }
+      ],
       "status": "emitted"
     },
     {
@@ -1832,6 +1868,16 @@
           "file": "internal/passwordless/start.go",
           "function": "reserveStart",
           "when": "Passwordless SMS identifier send budget exhausted."
+        },
+        {
+          "file": "internal/mfa/phone.go",
+          "function": "preparePhone",
+          "when": "An MFA send exhausted the shared user or voice budget."
+        },
+        {
+          "file": "internal/login/phone_codes.go",
+          "function": "sendIdentifierCode",
+          "when": "A reset phone-code send exhausted its identifier or IP budget."
         }
       ],
       "status": "emitted"
@@ -1846,7 +1892,13 @@
       "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-signup-otp",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/login/phone_codes.go",
+          "function": "sendIdentifierCode",
+          "when": "A signup verification send exhausted the identifier or IP budget."
+        }
+      ],
       "status": "emitted"
     },
     {
@@ -2228,7 +2280,13 @@
       "source": "https://auth0.com/docs/tenant-logs/user-success/scpn",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
+      "triggers": [
+        {
+          "file": "internal/mgmt/users.go",
+          "function": "UpdateUser",
+          "when": "A changed phone number was committed."
+        }
+      ],
       "status": "emitted"
     },
     {

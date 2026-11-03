@@ -190,7 +190,6 @@ func TestPlan34LogCodes(t *testing.T) {
 			t.Errorf("reused code %s not mapped", code)
 		}
 	}
-	t.Skip("flipped in Task 16")
 	for _, code := range plan34Codes {
 		c := codes[code]
 		if !c.Emitted || c.Status != "emitted" || len(c.Triggers) == 0 {

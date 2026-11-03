@@ -24,7 +24,7 @@ func newServeCmd() *cobra.Command {
 			}
 			log := newLogger(cmd.ErrOrStderr(), cfg.Log)
 			if cfg.TestPhone.Active() {
-				phone.SetTestEndpoints(cfg.TestPhone.Twilio, cfg.TestPhone.SNS)
+				phone.SetTestEndpoints(cfg.TestPhone.Twilio, cfg.TestPhone.SNS, cfg.TestPhone.Gateway)
 				log.Warn("ZA_TEST_PHONE_ENDPOINTS active: phone providers redirected to local fakes (test mode only)")
 			}
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)

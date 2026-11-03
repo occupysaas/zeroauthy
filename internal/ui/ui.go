@@ -673,11 +673,11 @@ func RenderOrganization(w http.ResponseWriter, status int, t Tenant, d Organizat
 // (login-passwordless-email-link text). The page posts the link token back
 // so that link scanners, which only GET, never consume it (D-0060 P3).
 // Identifier is the email address or phone number the sign-in is for.
-type PasswordlessLinkData struct{ Code, StateToken, Identifier string }
+type PasswordlessLinkData struct{ Code, StateToken, Identifier, RedirectURI string }
 
 // RenderPasswordlessLink asks the user to confirm a magic-link sign-in.
 func RenderPasswordlessLink(w http.ResponseWriter, t Tenant, d PasswordlessLinkData) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
-	render(w, http.StatusOK, "passwordless_link", t, d, "'self'")
+	render(w, http.StatusOK, "passwordless_link", t, d, formActionFor(d.RedirectURI))
 }

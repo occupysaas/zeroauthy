@@ -78,6 +78,9 @@ func TestLinkVerifyRedirectFlow(t *testing.T) {
 		if rec.Code != 200 || !strings.Contains(rec.Body.String(), `action="/passwordless/verify_redirect"`) {
 			t.Fatalf("GET %d = %d %s", i, rec.Code, rec.Body.String())
 		}
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self' https://app.test;") {
+			t.Fatalf("confirmation blocks validated callback redirect: %s", csp)
+		}
 		page = rec.Body.String()
 	}
 	form := url.Values{}

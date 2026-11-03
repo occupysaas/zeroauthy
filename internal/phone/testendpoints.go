@@ -9,7 +9,7 @@ import (
 )
 
 // EndpointSet holds the provider base URLs. SNS may contain "{region}".
-type EndpointSet struct{ Twilio, SNS string }
+type EndpointSet struct{ Twilio, SNS, Gateway string }
 
 // Endpoints are the fixed vendor URLs (D-0060 LR4). Tenants cannot change
 // them; only SetTestEndpoints, fed by config.TestPhoneEndpoints under
@@ -20,14 +20,17 @@ var testEndpoints bool
 
 // SetTestEndpoints redirects the adapters to local fakes. Empty values keep
 // the vendor URL. It also allows the guarded client to reach loopback.
-func SetTestEndpoints(twilio, sns string) {
+func SetTestEndpoints(twilio, sns string, gateway ...string) {
 	if twilio != "" {
 		Endpoints.Twilio = strings.TrimRight(twilio, "/")
 	}
 	if sns != "" {
 		Endpoints.SNS = sns
 	}
-	testEndpoints = twilio != "" || sns != ""
+	if len(gateway) > 0 {
+		Endpoints.Gateway = gateway[0]
+	}
+	testEndpoints = twilio != "" || sns != "" || Endpoints.Gateway != ""
 }
 
 // NewHTTPClient returns the provider client: SSRF-guarded dialer (private

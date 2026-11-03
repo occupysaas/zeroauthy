@@ -230,3 +230,47 @@ The Plan 34 workspace, test logs, intermediate failures/skips and ledger are
 retained for the next continuation. Earlier deferred minors remain in the
 ledger for that final review; this record does not claim the whole plan is
 finished or release-ready.
+
+## Task 16: Acceptance and regression continuation
+
+User requested `continue` after Tasks 12–15. Work resumes on the existing
+worktree; the earlier instruction to stop before whole-branch final review
+remains in effect. Acceptance/regression can complete, but the final-review
+portion of Task 16 must remain pending and Plan 34 must not be marked done.
+
+- Removed the deferred skip from `TestPlan34LogCodes`. RED exit 1 found
+  eight phone entries without trigger metadata (`.tmp/task16/logcodes-red.log`,
+  `.exit`). Added owning function metadata for the implemented emissions;
+  GREEN `go test ./internal/phonerules ./internal/logrules -count=1` exit 0
+  (`.tmp/task16/logcodes-green.log`, `.exit`).
+- Acceptance harness development assigned to one implementer; root owns the
+  final regression sequence and documentation. Commands, exact snapshots,
+  actual exits, failures/skips and artifacts will be recorded below.
+
+### Existing E2E regression results and Deploy CLI limitation
+
+The sequential regression monitor reported exit 0 for `make e2e-mfa`,
+`make e2e`, `make e2e-actions`, `make e2e-actions-ii`, `make e2e-logs`,
+`make e2e-events`, and `make e2e-domains`. Exact snapshot/command/exit/log
+files are retained under `.tmp/task16/regression/`; final monitor report
+will preserve counts and skips. Core browser acceptance reports 24 passed,
+67 skipped; these skips are not passing coverage.
+
+`make e2e-deploy` failed with actual exit **2** in the first generated/YAML
+export: `assertGuardianExport` at `tests/e2e/m20-deploy-cli.mjs:108` expected
+configured SNS push and Twilio SMS provider fields, but pinned CLI 9.1.0
+exported `guardianFactorProviders: []`. The other three identity/format
+cells were not reached. Evidence: `.tmp/task16/regression/e2e-deploy.log`,
+`.exit`, `.head`, `.patch.sha256` and `.command`.
+
+This reproduces the already-established Plan 33 pinned-client incompatibility
+(record §Task 13; D-0059). The unmodified CLI's
+`lib/tools/auth0/handlers/guardianFactorProviders.js` reads `provider.data`,
+while SDK 7.4.0 returns the public body directly, then filters entries with
+only name/provider keys. `provisionGuardian` verifies direct API reads retain
+the written fields before this exact export assertion fails. The server
+response must not be reshaped to adapt around a pinned-tool bug; no assertion,
+handler exclusion or client pin was weakened and no passing Deploy matrix
+is claimed. Task 15's focused Guardian settings/protection boundary checks
+remain separate passing evidence. No rerun of the unchanged failing full
+Deploy matrix is warranted.

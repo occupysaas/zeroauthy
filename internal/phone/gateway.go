@@ -53,6 +53,9 @@ func NewGatewayClient(allowPrivate bool) *http.Client {
 // NewGateway posts each text to an operator's SMS gateway. A nil hc uses
 // NewGatewayClient (private addresses only while test endpoints are active).
 func NewGateway(cfg GatewayConfig, hc *http.Client, now func() time.Time) Sender {
+	if testEndpoints && Endpoints.Gateway != "" {
+		cfg.URL = Endpoints.Gateway
+	}
 	if hc == nil {
 		hc = NewGatewayClient(testEndpoints)
 	}

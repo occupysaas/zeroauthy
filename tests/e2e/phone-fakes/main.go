@@ -121,6 +121,9 @@ func now() string { return time.Now().UTC().Format(time.RFC3339Nano) }
 func main() {
 	addr := flag.String("listen", "127.0.0.1:0", "listen address")
 	logPath := flag.String("log", "", "JSON-lines request log path")
+	tlsAddr := flag.String("tls-listen", "", "optional TLS listen address for HTTPS-only gateways")
+	cert := flag.String("cert", "", "TLS certificate")
+	key := flag.String("key", "", "TLS key")
 	flag.Parse()
 	s := &server{}
 	if *logPath != "" {
@@ -130,7 +133,12 @@ func main() {
 		}
 		s.log = f
 	}
-	srv := &http.Server{Addr: *addr, Handler: s.handler(), ReadHeaderTimeout: 5 * time.Second}
+	handler := s.handler()
+	if *tlsAddr != "" {
+		secure := &http.Server{Addr: *tlsAddr, Handler: handler, ReadHeaderTimeout: 5 * time.Second}
+		go func() { log.Fatal(secure.ListenAndServeTLS(*cert, *key)) }()
+	}
+	srv := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("phone-fakes listening on %s", *addr)
 	log.Fatal(srv.ListenAndServe())
 }

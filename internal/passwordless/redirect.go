@@ -224,6 +224,10 @@ func (h *Handlers) browserBinding(w http.ResponseWriter, r *http.Request) string
 // bound to this browser. identifier is the account the sign-in is for, shown
 // so that a user sent someone else's link can notice.
 func (h *Handlers) renderConfirm(w http.ResponseWriter, r *http.Request, res tenant.Resolved, st confirmState, token, identifier string) {
+	_, req, ok := h.validate(w, r, res, st.Params)
+	if !ok {
+		return
+	}
 	st.Browser = secrets.HashToken(h.browserBinding(w, r))
 	st.ExpiresAt = h.Service.now().Add(stateLifetime)
 	plain, err := json.Marshal(st)
@@ -236,7 +240,7 @@ func (h *Handlers) renderConfirm(w http.ResponseWriter, r *http.Request, res ten
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	ui.RenderPasswordlessLink(w, h.view(r, res), ui.PasswordlessLinkData{Code: token, StateToken: base64.RawURLEncoding.EncodeToString(sealed), Identifier: identifier})
+	ui.RenderPasswordlessLink(w, h.view(r, res), ui.PasswordlessLinkData{Code: token, StateToken: base64.RawURLEncoding.EncodeToString(sealed), Identifier: identifier, RedirectURI: req.RedirectURI})
 }
 
 // VerifyRedirectConfirm is POST /passwordless/verify_redirect: from the

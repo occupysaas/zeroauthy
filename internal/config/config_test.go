@@ -529,3 +529,16 @@ func TestTestEndpointsRequireTestMode(t *testing.T) {
 		t.Fatalf("cfg=%+v err=%v", cfg, err)
 	}
 }
+
+func TestGatewayTestEndpointRequiresTestMode(t *testing.T) {
+	const dsn = "ZEROAUTHY_STORAGE__DSN=memory://"
+	for _, mode := range []string{"", "ZA_TEST_MODE=0"} {
+		if _, err := Load("", []string{sysHost, dsn, mode, "ZA_TEST_PHONE_ENDPOINTS=gateway=https://127.0.0.1:9183/gateway"}); err == nil {
+			t.Fatal("gateway override accepted outside test mode")
+		}
+	}
+	cfg, err := Load("", []string{sysHost, dsn, "ZA_TEST_MODE=1", "ZA_TEST_PHONE_ENDPOINTS=gateway=https://127.0.0.1:9183/gateway"})
+	if err != nil || !cfg.TestPhone.Active() {
+		t.Fatalf("gated gateway endpoint unavailable: %v", err)
+	}
+}
