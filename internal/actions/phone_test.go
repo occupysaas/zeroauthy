@@ -155,3 +155,62 @@ console.log(m.action+' '+m.message_type+' '+m.code);}`, nil, false)
 	}
 	noCodeLeaks(t, h, actions.TriggerSendPhoneMessage)
 }
+
+const spokenPhoneCode = "7.3.1.9.4.6"
+
+// The spoken (dotted) code is as sensitive as the code itself.
+func TestPhoneSpokenCodeMasked(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	a := h.action("t1", actions.TriggerCustomPhoneProvider, "voice", `exports.onExecuteCustomPhoneProvider=async(e)=>{console.log(e.notification.as_voice);console.log('7-3-1-9-4-6 '+e.notification.as_voice.replace(/\./g,' '))}`, nil, false)
+	h.bind("t1", a.Trigger, a)
+	if err := h.eng.RunPhoneProvider(ctx, phoneInput("otp_verify", "voice")); err != nil {
+		t.Fatal(err)
+	}
+	b := h.action("t1", actions.TriggerSendPhoneMessage, "hookvoice", `exports.onExecuteSendPhoneMessage=async(e)=>{console.log(e.message_options.text);throw Error(e.message_options.text)}`, nil, false)
+	h.bind("t1", b.Trigger, b)
+	in := phoneInput("otp_verify", "voice")
+	in.Message.Body = in.AsVoice
+	if err := h.eng.RunSendPhoneMessage(ctx, in); err == nil || strings.Contains(err.Error(), spokenPhoneCode) {
+		t.Fatalf("throw: %v", err)
+	}
+	for _, trig := range []string{actions.TriggerCustomPhoneProvider, actions.TriggerSendPhoneMessage} {
+		exs := noCodeLeaks(t, h, trig)
+		raw, _ := json.Marshal(exs)
+		if len(exs) == 0 || strings.Contains(string(raw), spokenPhoneCode) || strings.Contains(string(raw), "7 3 1 9 4 6") {
+			t.Fatalf("%s: spoken code in execution records: %s", trig, raw)
+		}
+	}
+	if strings.Contains(h.logs.String(), spokenPhoneCode) {
+		t.Fatal("spoken code in slog output")
+	}
+}
+
+// Retry jobs re-queue only when the Action asks for a retry (D-0060 LR15).
+func TestCustomPhoneProviderRetryOnlyOnRequest(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	// Retry then throw on the first attempt is a delivery failure, not queued.
+	a := h.action("t1", actions.TriggerCustomPhoneProvider, "rt", `exports.onExecuteCustomPhoneProvider=async(e,a)=>{a.notification.retry('x');throw Error('boom')}`, nil, false)
+	h.bind("t1", a.Trigger, a)
+	if err := h.eng.RunPhoneProvider(ctx, phoneInput("otp_verify", "text")); phone.ClassOf(err) != phone.ClassTransient {
+		t.Fatalf("retry then throw: %v", err)
+	}
+	if js, _ := h.st.Actions().ClaimJobs(ctx, h.clock().Add(time.Hour), time.Minute, 1); len(js) != 0 {
+		t.Fatal("retry-then-throw queued a job")
+	}
+	// First attempt asks for a retry; the retry job throws: not re-queued.
+	h.redeploy(a, `exports.onExecuteCustomPhoneProvider=async(e,a)=>{if(!a.cache.get('seen')){a.cache.set('seen','1');a.notification.retry('later');return}throw Error('boom')}`)
+	if err := h.eng.RunPhoneProvider(ctx, phoneInput("otp_verify", "text")); err != nil {
+		t.Fatal(err)
+	}
+	h.advance(31 * time.Second) // the first retry; the Action cache is still fresh
+	j := claimJob(t, h)
+	if n := finishJob(t, h, &j); n.Status != "failed" {
+		t.Fatalf("thrown retry job re-queued: %+v", n)
+	}
+	h.advance(time.Hour)
+	if js, _ := h.st.Actions().ClaimJobs(ctx, h.clock(), time.Minute, 1); len(js) != 0 {
+		t.Fatal("job still pending after a throw")
+	}
+}

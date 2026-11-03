@@ -2353,7 +2353,8 @@ as Auth0 documents, a PATCH of `options` replaces the whole object.
 caller learns the delivery outcome. `api.notification.retry` accepts the
 message and queues the documented five retries as durable jobs (30 s, then
 doubling to 8 min, sealed envelope, code masked); a drop, a thrown error, a
-timeout or an unavailable runner is a delivery failure with no retry (LR3).
+timeout or an unavailable runner is a delivery failure with no retry (LR3);
+a retry job is re-queued only when its Action calls `retry` again.
 `send-phone-message` is blocking and never retried. (16) Guardian phone
 settings are read from the `phone` factor records, falling back to the
 legacy `sms` records; an unset selected provider means `auth0`. (17) A
@@ -2371,7 +2372,8 @@ Gateway failures carry the documented `sms_provider_error` descriptions.
 (21) Template `code` and SMS-connection `password` are passed to the Liquid
 renderer as trusted values (it drops code-like variables otherwise); voice
 bodies read the code digit by digit for branding, Guardian and Action
-`as_voice` alike.
+`as_voice` alike; the code and its digit-separated spellings are all masked
+in Action logs, errors, records and slog output.
 
 **Interface ruling.** As in D-0059, the route lookup is `Route(op string)
 RouteSchema` because Go cannot declare a type and a function both named

@@ -281,6 +281,14 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 		e.log().Info("actions email outcome", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID, "outcome", outcome.Kind, "reason", outcome.Reason)
 		retry = outcome.Kind == "retry"
 	}
+	// A custom-phone-provider job retries only when its Action asks for it;
+	// a throw is a delivery failure, as on the first attempt (D-0060 LR15).
+	if j.Trigger == TriggerCustomPhoneProvider && (result == nil || result.Notification == nil || result.Notification.Kind != "retry") {
+		retry = false
+		if runErr != nil {
+			next.Status = "failed"
+		}
+	}
 	if retry {
 		next.Status = "failed"
 		// A retry reruns every pinned Action; one that already completed

@@ -95,16 +95,17 @@ func brandingContent(ctx context.Context, st store.Store, tid, typ string) (Cont
 	return c, nil
 }
 
-// spokenCode separates the code's characters with dots so a voice reads it
-// digit by digit (D-0060 guardian voice_code rule).
-func spokenCode(code string) string {
+// SpokenCode separates the code's characters with dots so a voice reads it
+// digit by digit (D-0060 guardian voice_code rule). It is as secret as the
+// code.
+func SpokenCode(code string) string {
 	return strings.Join(strings.Split(code, ""), ".")
 }
 
 // codeFor is the code as a template sees it for one delivery method.
 func codeFor(code, method string) string {
 	if method == "voice" {
-		return spokenCode(code)
+		return SpokenCode(code)
 	}
 	return code
 }
@@ -223,4 +224,21 @@ func renderMacros(src string, vars map[string]any) (string, error) {
 		return "", errRender
 	}
 	return out, nil
+}
+
+// CodeForms are the code and its digit-separated spellings (dots, spaces,
+// dashes, commas): every form a log scrubber must mask.
+func CodeForms(code string) []string {
+	if code == "" {
+		return nil
+	}
+	out := []string{code}
+	if len(code) < 2 {
+		return out
+	}
+	chars := strings.Split(code, "")
+	for _, sep := range []string{".", " ", "-", ",", ", ", ". "} {
+		out = append(out, strings.Join(chars, sep))
+	}
+	return out
 }

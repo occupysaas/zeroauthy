@@ -82,10 +82,12 @@ func (e *Engine) runPhone(ctx context.Context, trigger string, in PhoneInput) er
 		return &phone.SendError{Class: phone.ClassProviderAuth, Err: phone.ErrActionUnbound}
 	}
 	sensitive := map[string]string{}
-	if code := in.Message.Code; code != "" {
-		ctx = logscrub.WithCredentials(ctx, code)
-		logs.AddCredentials(ctx, code)
-		sensitive["code"] = code
+	// The spoken (digit-separated) forms in as_voice and voice text are as
+	// secret as the code itself.
+	for i, form := range phone.CodeForms(in.Message.Code) {
+		ctx = logscrub.WithCredentials(ctx, form)
+		logs.AddCredentials(ctx, form)
+		sensitive[fmt.Sprint("code", i)] = form
 	}
 	snap, err := e.phoneSnapshot(ctx, &in)
 	if err != nil {
