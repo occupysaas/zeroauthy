@@ -349,7 +349,7 @@ func (h *Handlers) TryPhoneTemplate(w http.ResponseWriter, r *http.Request, id s
 	if friendly == "" {
 		friendly = t.Name
 	}
-	vars := map[string]any{"code": "123456", "tenant": t.Name, "friendly_name": friendly, "support_email": t.SupportEmail, "support_url": t.SupportURL, "logo_url": t.Branding.LogoURL, "locale": "en",
+	vars := map[string]any{"tenant": t.Name, "friendly_name": friendly, "support_email": t.SupportEmail, "support_url": t.SupportURL, "logo_url": t.Branding.LogoURL, "locale": "en",
 		"user":   map[string]any{"name": "Test User", "nickname": "test", "phone_number": "", "phone_verified": true},
 		"client": map[string]any{"name": "Test application"}}
 	h.sendPhoneTest(w, r, &providers[0], q, typ, c.From, func(method string) (string, error) {
@@ -359,7 +359,7 @@ func (h *Handlers) TryPhoneTemplate(w http.ResponseWriter, r *http.Request, id s
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
-		out, err := liquid.Render(ctx, src, vars, nil, liquid.Limits{MaxSourceBytes: phonerules.Limits.TemplateBodyMax, MaxOutputBytes: 64 << 10})
+		out, err := liquid.Render(ctx, src, vars, nil, liquid.Limits{MaxSourceBytes: phonerules.Limits.TemplateBodyMax, MaxOutputBytes: 64 << 10, Codes: map[string]string{"code": "123456"}})
 		if err != nil || strings.TrimSpace(out) == "" {
 			return "", errors.New("the template could not be rendered")
 		}

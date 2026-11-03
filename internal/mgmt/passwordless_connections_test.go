@@ -122,3 +122,33 @@ func TestSMSConnectionSecretsSealed(t *testing.T) {
 	}
 	var _ store.Connection
 }
+
+// PATCH {"options":{"twilio_token":null}} clears the sealed token (options
+// are replaced whole, as Auth0 documents for PATCH).
+func TestSMSConnectionClearTwilioToken(t *testing.T) {
+	e := newUsersEnv(t)
+	tok := strings.Repeat("T", 32) + "CLEARME"
+	rec, out := e.do(t, m2mCaller("create:connections"), "POST", "/api/v2/connections", map[string]any{
+		"name": "sms", "strategy": "sms",
+		"options": map[string]any{"from": "+15555550100", "twilio_sid": "AC" + strings.Repeat("b", 32), "twilio_token": tok},
+	}, e.h.CreateConnection)
+	if rec.Code != 201 {
+		t.Fatalf("create = %d %s", rec.Code, rec.Body)
+	}
+	id := out.(map[string]any)["id"].(string)
+	rec, _ = e.do(t, m2mCaller("update:connections"), "PATCH", "/api/v2/connections/"+id, map[string]any{"options": map[string]any{"twilio_token": nil}},
+		func(w http.ResponseWriter, r *http.Request) { e.h.UpdateConnection(w, r, id) })
+	if rec.Code != 200 || strings.Contains(rec.Body.String(), "CLEARME") {
+		t.Fatalf("patch = %d %s", rec.Code, rec.Body)
+	}
+	stored, err := e.st.Connections().Get(t.Context(), e.tn.ID, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := connrules.PasswordlessOf(*stored, func(b []byte) (map[string]string, error) {
+		return keys.OpenConnectionConfig(e.w, stored.TenantID, stored.ID, b)
+	})
+	if err != nil || got.SMS.TwilioToken != "" {
+		t.Fatalf("token not cleared: %q %v", got.SMS.TwilioToken, err)
+	}
+}

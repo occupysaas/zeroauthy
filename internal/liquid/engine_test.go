@@ -62,3 +62,15 @@ func TestHostedOutputEscapingPreservesEmailMode(t *testing.T) {
 		t.Fatalf("email mode changed: %q %v", out, err)
 	}
 }
+
+// Ordinary code-like variables are dropped; Codes are the trusted way in.
+func TestRenderCodes(t *testing.T) {
+	out, err := Render(context.Background(), "[{{ code }}]", map[string]any{"code": "111111"}, nil, Limits{})
+	if err != nil || out != "[]" {
+		t.Fatalf("plain code variable = %q, %v", out, err)
+	}
+	out, err = Render(context.Background(), "[{{ code }}]", nil, nil, Limits{Codes: map[string]string{"code": "1234567890"}})
+	if err != nil || out != "[1234567890]" {
+		t.Fatalf("trusted code = %q, %v", out, err)
+	}
+}

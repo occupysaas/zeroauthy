@@ -2340,6 +2340,39 @@ Plan 34 start with `phone_consolidated_experience` true (P9). The eight
 `phone_providers` and `phone_templates` scopes join the Management API scope
 list; the phone routes check the persisted client grant on every request.
 
+**Task 8 local rulings (passwordless connections).** (12) An `sms`
+connection with `provider: sms_gateway` requires `gateway_url`; the URL must
+be `https`, carry no credentials and not name a local, loopback or private
+host (the resolved address is checked again at dial time). (13)
+`options.authParams` is accepted as a query string or as an object of
+strings. (14) `{"options":{"twilio_token":null}}` clears the sealed token;
+as Auth0 documents, a PATCH of `options` replaces the whole object.
+
+**Task 9 local rulings (dispatcher and phone Actions).** (15) The first
+`custom-phone-provider` attempt runs synchronously inside the request so the
+caller learns the delivery outcome. `api.notification.retry` accepts the
+message and queues the documented five retries as durable jobs (30 s, then
+doubling to 8 min, sealed envelope, code masked); a drop, a thrown error, a
+timeout or an unavailable runner is a delivery failure with no retry (LR3).
+`send-phone-message` is blocking and never retried. (16) Guardian phone
+settings are read from the `phone` factor records, falling back to the
+legacy `sms` records; an unset selected provider means `auth0`. (17) A
+disabled branding template sends nothing (`ErrTemplateDisabled`); the
+caller logs its failure code. (18) A template `from` is the Twilio sender;
+for `sns` it is used as the alphanumeric sender ID only when it is one
+(1–11 letters and digits), otherwise the provider's `sender_id` applies.
+Guardian Twilio and SMS-connection Twilio sends use their stored `from` or
+messaging service. (19) An SMS connection with `provider: twilio` but no
+`twilio_sid`/`twilio_token` does not work and its send fails with
+`provider_auth`. (20) The SMS gateway client refuses non-public addresses at
+dial time (CGNAT, loopback, numeric host forms included); only test
+endpoints under `ZA_TEST_MODE=1` relax this, as for the native adapters.
+Gateway failures carry the documented `sms_provider_error` descriptions.
+(21) Template `code` and SMS-connection `password` are passed to the Liquid
+renderer as trusted values (it drops code-like variables otherwise); voice
+bodies read the code digit by digit for branding, Guardian and Action
+`as_voice` alike.
+
 **Interface ruling.** As in D-0059, the route lookup is `Route(op string)
 RouteSchema` because Go cannot declare a type and a function both named
 `Route`. Operation IDs carry a `#variant` suffix where one method and path
@@ -2347,8 +2380,7 @@ serves several contracts (`POST /api/v2/connections#sms`). The
 phone-provider-protection routes use Auth0's own path,
 `/api/v2/attack-protection/phone-provider-protection`. Until Task 10 the three
 passwordless Authentication API routes answer 501 `passwordless_unavailable`;
-the phone triggers are creatable now but their handlers join the runner in
-Task 9.
+both phone triggers run on the Actions runner since Task 9.
 
 **Gaps (local answers; none is an observed upstream fact).**
 **P1** `/passwordless/start` success bodies (`{_id, email, email_verified}` or

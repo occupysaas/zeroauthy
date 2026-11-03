@@ -33,6 +33,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -101,6 +102,11 @@ type Deps struct {
 	// Actions runs post-login and credentials-exchange flows (Plan 27);
 	// nil runs none. Its effects are sealed with Wrapper.
 	Actions *actions.Engine
+
+	// Phone routes SMS and voice messages to the tenant's providers and
+	// phone Actions (Plan 34); passwordless, MFA and phone reset send
+	// through it. nil sends none.
+	Phone *phone.Dispatcher
 }
 
 // authAPI adapts the handler groups to the generated ServerInterface.

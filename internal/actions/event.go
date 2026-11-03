@@ -505,3 +505,48 @@ func emailEvent(in *EmailInput, a *accum) map[string]any {
 	}
 	return ev
 }
+
+// phoneRequest is event.request of the phone triggers.
+func phoneRequest(r RequestInfo, host string) map[string]any {
+	hostname := r.Hostname
+	if hostname == "" {
+		hostname = host
+	}
+	return map[string]any{"ip": r.IP, "hostname": hostname, "user_agent": r.UserAgent, "language": r.Language}
+}
+
+// phoneEvent builds the custom-phone-provider notification event or the
+// send-phone-message message_options event (phonerules triggers).
+func phoneEvent(trigger string, s *phoneSnapshot, a *accum) map[string]any {
+	in := s.in
+	m := in.Message
+	ev := map[string]any{"client": clientEvent(s.client), "tenant": map[string]any{"id": in.Tenant},
+		"request": phoneRequest(in.Request, s.tenant.CanonicalHost), "transaction": map[string]any{"locale": m.Locale}}
+	if u := userEvent(s.user, &a.eff); u != nil {
+		ev["user"] = u
+	} else {
+		ev["user"] = map[string]any{}
+	}
+	if trigger == TriggerSendPhoneMessage {
+		action := "second-factor-authentication"
+		if in.MessageType == "otp_enroll" {
+			action = "enrollment"
+		}
+		mt := "sms"
+		if m.DeliveryMethod == "voice" {
+			mt = "voice"
+		}
+		ev["message_options"] = map[string]any{"action": action, "code": m.Code, "message_type": mt, "recipient": m.To, "text": m.Body}
+		return ev
+	}
+	method := m.DeliveryMethod
+	if method == "" {
+		method = "text"
+	}
+	ev["notification"] = map[string]any{"message_type": in.MessageType, "as_text": in.AsText, "as_voice": in.AsVoice, "delivery_method": method,
+		"recipient": m.To, "from": m.From, "code": m.Code, "locale": m.Locale}
+	if s.connection != nil {
+		ev["connection"] = connectionEvent(s.connection)
+	}
+	return ev
+}

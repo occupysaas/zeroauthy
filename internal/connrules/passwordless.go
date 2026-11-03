@@ -269,6 +269,11 @@ func normalizePasswordless(s *Spec) []error {
 			ga["secret"] = "x"
 		}
 	}
+	// A null twilio_token clears the sealed token (MergePasswordlessSecrets);
+	// the schema only types the string form.
+	if v, ok := in[SecretTwilioToken]; ok && v == nil {
+		delete(in, SecretTwilioToken)
+	}
 	if err := passwordlessContracts()[s.Strategy].schema.Validate(in); err != nil {
 		errs = append(errs, schemaErrors(err)...)
 	}

@@ -29,7 +29,7 @@ func scanActionJob(row scanner) (*store.ActionJob, error) {
 	return &j, nil
 }
 func jobTriggerValid(t string) bool {
-	return t == "post-user-registration" || t == "post-change-password" || t == "custom-email-provider" || t == "event-stream"
+	return t == "post-user-registration" || t == "post-change-password" || t == "custom-email-provider" || t == "custom-phone-provider" || t == "event-stream"
 }
 func jobStatusValid(s string) bool {
 	return s == "pending" || s == "done" || s == "failed" || s == "dropped"

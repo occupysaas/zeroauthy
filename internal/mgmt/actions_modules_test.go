@@ -200,9 +200,6 @@ func TestActionsManagementTriggersDryRun(t *testing.T) {
 
 	for _, tr := range actionsrules.Inventory().Triggers {
 		t.Run(tr.ID, func(t *testing.T) {
-			if tr.ID == "custom-phone-provider" || tr.ID == "send-phone-message" {
-				t.Skip("phone trigger handlers join the runner in Plan 34 Task 9")
-			}
 			commands := "console.log('ran');"
 			switch tr.ID {
 			case "post-login":

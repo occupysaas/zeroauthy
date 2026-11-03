@@ -86,9 +86,21 @@ func phoneWriteAllowed(h *Handlers, r *http.Request) error {
 	return nil
 }
 
-func phoneProviderAAD(tid, name string) []string { return []string{tid, name} }
+func phoneProviderAAD(tid, name string) []string { return phone.ProviderCredentialsAAD(tid, name) }
 
-const phoneProviderLabel = "phone-provider/v1"
+const phoneProviderLabel = phone.ProviderCredentialsLabel
+
+// phoneActions runs Action-backed phone providers: PhoneActions when set,
+// otherwise the Actions engine.
+func (h *Handlers) phoneActions() phone.ActionRunner {
+	if h.PhoneActions != nil {
+		return h.PhoneActions
+	}
+	if h.Actions != nil {
+		return h.Actions
+	}
+	return nil
+}
 
 func (h *Handlers) sealPhoneCredentials(tid, name string, creds map[string]string) ([]byte, error) {
 	plain, err := json.Marshal(creds)
@@ -615,18 +627,33 @@ func (h *Handlers) sendPhoneTest(w http.ResponseWriter, r *http.Request, p *stor
 		Fail(w, &Error{Status: http.StatusConflict, Code: "conflict", Message: "The phone provider is disabled"})
 		return
 	}
+	var sender phone.Sender
 	if p.Name == "custom" {
-		// Action-backed providers are wired by the dispatcher (Task 9).
-		Fail(w, errPhoneCustomConflict)
-		return
-	}
-	hc := h.PhoneHTTP
-	sender, err := phone.SenderFor(*p, func(sealed []byte) ([]byte, error) {
-		return keys.OpenBound(h.Wrapper, phoneProviderLabel, phoneProviderAAD(p.TenantID, p.Name), sealed)
-	}, hc)
-	if err != nil {
-		h.failTx(w, r, "build phone sender", err)
-		return
+		// The custom provider runs the bound custom-phone-provider Action;
+		// without one it does not work (D-0060 LR3).
+		runner := h.phoneActions()
+		if runner == nil {
+			Fail(w, errPhoneCustomConflict)
+			return
+		}
+		ok, err := runner.PhoneActionBound(r.Context(), t.ID, phone.TriggerCustomPhoneProvider)
+		if err != nil {
+			h.failTx(w, r, "read phone Action bindings", err)
+			return
+		}
+		if !ok {
+			Fail(w, errPhoneCustomConflict)
+			return
+		}
+		sender = phone.NewActionSender(runner, phone.TriggerCustomPhoneProvider)
+	} else {
+		sender, err = phone.SenderFor(*p, func(sealed []byte) ([]byte, error) {
+			return keys.OpenBound(h.Wrapper, phoneProviderLabel, phoneProviderAAD(p.TenantID, p.Name), sealed)
+		}, h.PhoneHTTP)
+		if err != nil {
+			h.failTx(w, r, "build phone sender", err)
+			return
+		}
 	}
 	body, err := bodyFor(q.method)
 	if err != nil {

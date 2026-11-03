@@ -26,6 +26,8 @@ const jobLabel = "action-job/v1"
 type AsyncJob struct {
 	TenantID, Trigger string
 	Input             any
+	// NotBefore delays the first attempt; zero runs it at once.
+	NotBefore time.Time
 }
 
 type jobPayload struct {
@@ -39,7 +41,7 @@ type jobPayload struct {
 }
 
 func asyncTrigger(trigger string) bool {
-	return trigger == TriggerPostUserRegistration || trigger == TriggerPostChangePassword || trigger == TriggerCustomEmailProvider || trigger == TriggerEventStream
+	return trigger == TriggerPostUserRegistration || trigger == TriggerPostChangePassword || trigger == TriggerCustomEmailProvider || trigger == TriggerCustomPhoneProvider || trigger == TriggerEventStream
 }
 
 // Enqueue snapshots the binding order, deployed Actions and immutable Modules
@@ -96,7 +98,7 @@ func (e *Engine) enqueueSnapshot(ctx context.Context, tx store.Store, j AsyncJob
 		return nil, fmt.Errorf("actions: encoding job event: %w", err)
 	}
 	p := jobPayload{Deadline: deadline}
-	if j.Trigger == TriggerCustomEmailProvider {
+	if j.Trigger == TriggerCustomEmailProvider || j.Trigger == TriggerCustomPhoneProvider {
 		p.SensitiveValues = slices.Collect(logscrub.MaskValues(ctx))
 	}
 	if err = json.Unmarshal(raw, &p.Input); err != nil || p.Input == nil {
@@ -119,6 +121,9 @@ func (e *Engine) enqueueSnapshot(ctx context.Context, tx store.Store, j AsyncJob
 	}
 	now := e.now()
 	job := &store.ActionJob{TenantID: j.TenantID, ID: "ajob_" + secrets.RandomString(24), Trigger: j.Trigger, Status: "pending", NextAt: now, CreatedAt: now, UpdatedAt: now, ModuleVersionIDs: ids}
+	if j.NotBefore.After(now) {
+		job.NextAt = j.NotBefore
+	}
 	job.Sealed, err = keys.SealBound(e.Secrets, jobLabel, []string{job.TenantID, job.ID, job.Trigger}, plain)
 	if err != nil {
 		return nil, err
@@ -285,13 +290,21 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 			e.log().Warn("actions email not retried: an Action in the flow already completed", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID)
 		}
 		if j.Trigger == TriggerCustomEmailProvider && j.Attempts <= 5 && !completed {
-			delays := [...]time.Duration{30 * time.Second, time.Minute, 2 * time.Minute, 4 * time.Minute, 8 * time.Minute}
 			next.Status = "pending"
-			next.NextAt = e.now().Add(delays[max(j.Attempts, 1)-1])
+			next.NextAt = e.now().Add(retryDelays[max(j.Attempts, 1)-1])
+		}
+		// The first custom-phone-provider attempt ran synchronously; its
+		// jobs are the documented retries only.
+		if j.Trigger == TriggerCustomPhoneProvider && j.Attempts < phoneRetries && !completed {
+			next.Status = "pending"
+			next.NextAt = e.now().Add(retryDelays[min(max(j.Attempts, 1), len(retryDelays)-1)])
 		}
 	}
 	return &next
 }
+
+// retryDelays space the attempts of notification provider retries.
+var retryDelays = [...]time.Duration{30 * time.Second, time.Minute, 2 * time.Minute, 4 * time.Minute, 8 * time.Minute}
 
 // Worker runs claimed jobs without holding any storage transaction across Node,
 // dependency extraction or network I/O. Each goroutine owns only one lease.

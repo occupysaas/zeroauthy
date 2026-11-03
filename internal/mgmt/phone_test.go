@@ -1,6 +1,8 @@
 package mgmt_test
 
 import (
+	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -403,7 +405,8 @@ func TestPhoneTemplateTry(t *testing.T) {
 		}
 	}
 	rec, _ = e.phone(t, "POST", "/x", map[string]any{"to": "+14155550103"}, allPhoneScopes, func(w http.ResponseWriter, r *http.Request) { e.h.TryPhoneTemplate(w, r, defID) })
-	if defID == "" || rec.Code != 202 || f.count() != 3 || strings.Contains(f.forms[2].Get("Body"), "{{") {
+	// The sample code renders (code-like variables reach the template).
+	if defID == "" || rec.Code != 202 || f.count() != 3 || strings.Contains(f.forms[2].Get("Body"), "{{") || !strings.Contains(f.forms[2].Get("Body"), "123456") {
 		t.Fatalf("default try: id=%q %d %s %v", defID, rec.Code, rec.Body, f.forms)
 	}
 }
@@ -551,5 +554,45 @@ func TestPhoneTryRefusesDisabledProvider(t *testing.T) {
 	rec, _ := e.phone(t, "POST", "/x", map[string]any{"to": "+14155550100"}, allPhoneScopes, func(w http.ResponseWriter, r *http.Request) { e.h.TryPhoneTemplate(w, r, "tem_default_otp_verify") })
 	if rec.Code != 409 || f.count() != 0 {
 		t.Fatalf("template try: %d %s sent=%d", rec.Code, rec.Body, f.count())
+	}
+}
+
+// fakePhoneActions stands in for the Actions engine in try.
+type fakePhoneActions struct {
+	bound bool
+	err   error
+	calls []phone.ActionInput
+}
+
+func (f *fakePhoneActions) PhoneActionBound(context.Context, string, string) (bool, error) {
+	return f.bound, nil
+}
+
+func (f *fakePhoneActions) RunPhoneAction(_ context.Context, _ string, in phone.ActionInput) error {
+	f.calls = append(f.calls, in)
+	return f.err
+}
+
+// try on the custom provider runs the bound custom-phone-provider Action.
+func TestPhoneProviderTryCustomRunsAction(t *testing.T) {
+	e, f := newPhoneEnv(t)
+	bindCustomPhoneAction(t, e)
+	id := e.createProvider(t, map[string]any{"name": "custom", "credentials": map[string]any{}, "configuration": map[string]any{"delivery_methods": []string{"text", "voice"}}})["id"].(string)
+	runner := &fakePhoneActions{}
+	e.h.PhoneActions = runner
+	if rec := e.tryProvider(t, id, map[string]any{"to": "+14155550100"}); rec.Code != 409 {
+		t.Fatalf("unbound custom try: %d %s", rec.Code, rec.Body)
+	}
+	runner.bound = true
+	if rec := e.tryProvider(t, id, map[string]any{"to": "+14155550100", "delivery_method": "voice"}); rec.Code != 202 {
+		t.Fatalf("custom try: %d %s", rec.Code, rec.Body)
+	}
+	if len(runner.calls) != 1 || runner.calls[0].Trigger != phone.TriggerCustomPhoneProvider || runner.calls[0].Message.To != "+14155550100" ||
+		runner.calls[0].Message.DeliveryMethod != "voice" || runner.calls[0].AsVoice == "" || f.count() != 0 {
+		t.Fatalf("action input = %+v", runner.calls)
+	}
+	runner.err = &phone.SendError{Class: phone.ClassTransient, Err: errors.New("action failed")}
+	if rec := e.tryProvider(t, id, map[string]any{"to": "+14155550101"}); rec.Code != http.StatusBadGateway {
+		t.Fatalf("failing action try: %d %s", rec.Code, rec.Body)
 	}
 }

@@ -379,10 +379,10 @@ func (s *renderState) output(b *strings.Builder) error {
 // RenderLiquid evaluates one source with the same bounded parser as email.
 // Hosted pages supply a larger output cap; email's existing limits stay fixed.
 func RenderLiquid(parent context.Context, source string, variables map[string]any, outputLimit int) (string, error) {
-	return renderLiquid(parent, source, variables, outputLimit, false)
+	return renderLiquid(parent, source, variables, outputLimit, false, nil)
 }
 
-func renderLiquid(parent context.Context, source string, variables map[string]any, outputLimit int, escapeVariables bool) (string, error) {
+func renderLiquid(parent context.Context, source string, variables map[string]any, outputLimit int, escapeVariables bool, codes map[string]string) (string, error) {
 	if activeRenders.Add(1) > maxConcurrent {
 		activeRenders.Add(-1)
 		return "", ErrRenderCapacity
@@ -402,6 +402,9 @@ func renderLiquid(parent context.Context, source string, variables map[string]an
 		return "", ErrRenderSyntax
 	}
 	state := renderState{ctx: ctx, deadline: time.Now().Add(maxRenderTime), vars: cloneMap(varMap), maxOutput: outputLimit, maxSource: len(source), escapeVariables: escapeVariables}
+	for k, v := range codes {
+		state.vars[k] = v
+	}
 	nodes, _, err := state.parse(source, 0)
 	if err != nil {
 		return "", err
