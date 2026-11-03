@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -54,6 +55,24 @@ type MFABrowser struct {
 	ExpiresAt                    time.Time
 }
 
+// AuthenticatorTypes are every Authenticator.Type, sorted so the derived
+// method IDs are in byte order; method IDs are "<type>|<enrollment id>".
+var AuthenticatorTypes = []string{"email", "phone", "recovery-code", "totp", "webauthn-platform", "webauthn-roaming"}
+
+// AuthenticatorIDsForEnrollment returns each possible method ID for an
+// enrollment ID in byte order, or nil when the enrollment ID cannot be one.
+// Drivers return the first existing ID, so all agree on any collision.
+func AuthenticatorIDsForEnrollment(enrollmentID string) []string {
+	if enrollmentID == "" || strings.Contains(enrollmentID, "|") {
+		return nil
+	}
+	out := make([]string, len(AuthenticatorTypes))
+	for i, t := range AuthenticatorTypes {
+		out[i] = t + "|" + enrollmentID
+	}
+	return out
+}
+
 type MFASupporter interface {
 	CheckMFASupport(context.Context) error
 	MFASupported() bool
@@ -66,6 +85,10 @@ type MFA interface {
 	CreateAuthenticator(ctx context.Context, a *Authenticator) error // ErrConflict on duplicate WebAuthn credential ID in tenant or another recovery-code authenticator for the user
 	GetAuthenticator(ctx context.Context, tid, uid, id string) (*Authenticator, error)
 	ListAuthenticators(ctx context.Context, tid, uid string) ([]Authenticator, error)
+	// GetAuthenticatorByEnrollmentID finds the tenant's method whose ID is
+	// "<type>|<enrollmentID>" for any AuthenticatorTypes entry, by indexed
+	// lookup rather than a user scan. ErrNotFound if none.
+	GetAuthenticatorByEnrollmentID(ctx context.Context, tid, enrollmentID string) (*Authenticator, error)
 	UpdateAuthenticator(ctx context.Context, a *Authenticator) error // name, preferred, confirmed
 	DeleteAuthenticator(ctx context.Context, tid, uid, id string) error
 	DeleteUserAuthenticators(ctx context.Context, tid, uid string, types []string) error     // nil = all
@@ -120,6 +143,9 @@ func (UnimplementedMFA) CreateAuthenticator(ctx context.Context, a *Authenticato
 	return ErrMFAUnavailable
 }
 func (UnimplementedMFA) GetAuthenticator(ctx context.Context, tid, uid, id string) (*Authenticator, error) {
+	return nil, ErrMFAUnavailable
+}
+func (UnimplementedMFA) GetAuthenticatorByEnrollmentID(ctx context.Context, tid, enrollmentID string) (*Authenticator, error) {
 	return nil, ErrMFAUnavailable
 }
 func (UnimplementedMFA) ListAuthenticators(ctx context.Context, tid, uid string) ([]Authenticator, error) {

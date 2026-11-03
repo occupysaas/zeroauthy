@@ -384,6 +384,51 @@ func (s *Server) MFAGetAuthenticator(ctx context.Context, q *storev1.MFAGetAuthe
 	return out, nil
 }
 
+func (o clientMFA) GetAuthenticatorByEnrollmentID(ctx context.Context, tid string, enrollmentID string) (*store.Authenticator, error) {
+	var out *store.Authenticator
+	if err := o.c.CheckMFASupport(ctx); err != nil {
+		return out, err
+	}
+	q := &storev1.MFAGetAuthenticatorByEnrollmentIDRequest{TxId: o.c.txID}
+	if err := copyMFA(&q.Tid, tid); err != nil {
+		return out, err
+	}
+	if err := copyMFA(&q.EnrollmentId, enrollmentID); err != nil {
+		return out, err
+	}
+	response, err := o.c.rpc.MFAGetAuthenticatorByEnrollmentID(ctx, q)
+	if err = mfaRPCError(o.c, err, response.GetError()); err != nil {
+		return out, err
+	}
+	err = copyMFA(&out, response.GetValue())
+	return out, err
+}
+func (s *Server) MFAGetAuthenticatorByEnrollmentID(ctx context.Context, q *storev1.MFAGetAuthenticatorByEnrollmentIDRequest) (*storev1.MFAGetAuthenticatorByEnrollmentIDResponse, error) {
+	out := &storev1.MFAGetAuthenticatorByEnrollmentIDResponse{}
+	if q == nil {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	var tid string
+	if err := copyMFA(&tid, q.Tid); err != nil {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	var enrollmentID string
+	if err := copyMFA(&enrollmentID, q.EnrollmentId); err != nil {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	out.Error = errToPB(s.with(q.TxId, func(st store.Store) error {
+		v, err := st.MFA().GetAuthenticatorByEnrollmentID(ctx, tid, enrollmentID)
+		if err != nil {
+			return err
+		}
+		return copyMFA(&out.Value, v)
+	}))
+	return out, nil
+}
+
 func (o clientMFA) ListAuthenticators(ctx context.Context, tid string, uid string) ([]store.Authenticator, error) {
 	var out []store.Authenticator
 	if err := o.c.CheckMFASupport(ctx); err != nil {

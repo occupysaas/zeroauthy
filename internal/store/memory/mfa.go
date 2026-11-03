@@ -120,6 +120,16 @@ func (r mfa) ListAuthenticators(_ context.Context, tid, uid string) ([]store.Aut
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
 }
+func (r mfa) GetAuthenticatorByEnrollmentID(_ context.Context, tid, enrollmentID string) (*store.Authenticator, error) {
+	r.s.readLock()
+	defer r.s.readUnlock()
+	for _, id := range store.AuthenticatorIDsForEnrollment(enrollmentID) {
+		if a := r.s.authenticators[key{tid, id}]; a != nil {
+			return cloneAuthenticator(a), nil
+		}
+	}
+	return nil, store.ErrNotFound
+}
 func (r mfa) UpdateAuthenticator(_ context.Context, a *store.Authenticator) error {
 	r.s.lock()
 	defer r.s.unlock()

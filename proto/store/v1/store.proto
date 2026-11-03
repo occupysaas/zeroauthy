@@ -65,6 +65,7 @@ service StoreService {
   rpc MFAPutGuardian(MFAPutGuardianRequest) returns (MFAPutGuardianResponse);
   rpc MFACreateAuthenticator(MFACreateAuthenticatorRequest) returns (MFACreateAuthenticatorResponse);
   rpc MFAGetAuthenticator(MFAGetAuthenticatorRequest) returns (MFAGetAuthenticatorResponse);
+  rpc MFAGetAuthenticatorByEnrollmentID(MFAGetAuthenticatorByEnrollmentIDRequest) returns (MFAGetAuthenticatorByEnrollmentIDResponse);
   rpc MFAListAuthenticators(MFAListAuthenticatorsRequest) returns (MFAListAuthenticatorsResponse);
   rpc MFAUpdateAuthenticator(MFAUpdateAuthenticatorRequest) returns (MFAUpdateAuthenticatorResponse);
   rpc MFADeleteAuthenticator(MFADeleteAuthenticatorRequest) returns (MFADeleteAuthenticatorResponse);
@@ -1527,6 +1528,8 @@ message MFACreateAuthenticatorRequest { string tx_id = 1; MFAAuthenticator v = 2
 message MFACreateAuthenticatorResponse { Error error = 1;  }
 message MFAGetAuthenticatorRequest { string tx_id = 1; string tid = 2; string uid = 3; string id = 4; }
 message MFAGetAuthenticatorResponse { Error error = 1; MFAAuthenticator value = 2; }
+message MFAGetAuthenticatorByEnrollmentIDRequest { string tx_id = 1; string tid = 2; string enrollment_id = 3; }
+message MFAGetAuthenticatorByEnrollmentIDResponse { Error error = 1; MFAAuthenticator value = 2; }
 message MFAListAuthenticatorsRequest { string tx_id = 1; string tid = 2; string uid = 3; }
 message MFAListAuthenticatorsResponse { Error error = 1; repeated MFAAuthenticator value = 2; }
 message MFAUpdateAuthenticatorRequest { string tx_id = 1; MFAAuthenticator v = 2; }

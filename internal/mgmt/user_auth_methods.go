@@ -315,52 +315,37 @@ func enrollmentJSON(a store.Authenticator) map[string]any {
 	return out
 }
 func (h *Handlers) guardianEnrollment(w http.ResponseWriter, r *http.Request, id string, remove bool) {
-	// The repository indexes methods by tenant/user. Walk tenant users in bounded
-	// pages; never perform an unscoped search or infer another tenant's owner.
+	// An indexed tenant-scoped lookup by enrollment ID; never an unscoped search
+	// or a walk over the tenant's users.
 	tid := resolved(r).ID
-	for offset := 0; ; offset += 100 {
-		users, _, err := h.Store.Users().List(r.Context(), tid, nil, store.UserSort{}, store.Page{Offset: offset, Limit: 100})
-		if err != nil {
-			h.mfaFail(w, r, err)
-			return
-		}
-		for _, u := range users {
-			all, e := h.Store.MFA().ListAuthenticators(r.Context(), tid, u.UserID)
-			if e != nil {
-				h.mfaFail(w, r, e)
-				return
-			}
-			for _, a := range all {
-				_, enrollmentID, _ := strings.Cut(a.ID, "|")
-				if !a.Confirmed || enrollmentID != id {
-					continue
-				}
-				if !remove {
-					writeJSON(w, 200, enrollmentJSON(a))
-					return
-				}
-				err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
-					if _, e := tx.Users().GetForUpdate(r.Context(), tid, u.UserID); e != nil {
-						return e
-					}
-					if e := tx.MFA().DeleteAuthenticator(r.Context(), tid, u.UserID, a.ID); e != nil {
-						return e
-					}
-					return tx.MFA().BumpRememberEpoch(r.Context(), tid, u.UserID)
-				})
-				if err != nil {
-					h.mfaFail(w, r, err)
-					return
-				}
-				h.domainEvent(r, "gd_unenroll", u, nil, nil)
-				logDetails(r, "delete Guardian enrollment", "user_id", u.UserID)
-				w.WriteHeader(204)
-				return
-			}
-		}
-		if len(users) < 100 {
-			break
-		}
+	a, err := h.Store.MFA().GetAuthenticatorByEnrollmentID(r.Context(), tid, id)
+	if err == nil && !a.Confirmed {
+		err = store.ErrNotFound
 	}
-	Fail(w, errMFAMissing)
+	if err != nil {
+		h.mfaFail(w, r, err)
+		return
+	}
+	if !remove {
+		writeJSON(w, 200, enrollmentJSON(*a))
+		return
+	}
+	var u *store.User
+	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		var e error
+		if u, e = tx.Users().GetForUpdate(r.Context(), tid, a.UserID); e != nil {
+			return e
+		}
+		if e = tx.MFA().DeleteAuthenticator(r.Context(), tid, a.UserID, a.ID); e != nil {
+			return e
+		}
+		return tx.MFA().BumpRememberEpoch(r.Context(), tid, a.UserID)
+	})
+	if err != nil {
+		h.mfaFail(w, r, err)
+		return
+	}
+	h.domainEvent(r, "gd_unenroll", u, nil, nil)
+	logDetails(r, "delete Guardian enrollment", "user_id", a.UserID)
+	w.WriteHeader(204)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/mfarules"
@@ -125,6 +126,19 @@ func (r mfa) ListAuthenticators(ctx context.Context, tid, uid string) ([]store.A
 		out = append(out, *a)
 	}
 	return out, rows.Err()
+}
+func (r mfa) GetAuthenticatorByEnrollmentID(ctx context.Context, tid, enrollmentID string) (*store.Authenticator, error) {
+	ids := store.AuthenticatorIDsForEnrollment(enrollmentID)
+	if ids == nil {
+		return nil, store.ErrNotFound
+	}
+	// Primary-key lookups on (tenant_id,id); no user scan.
+	args := []any{tid}
+	for _, id := range ids {
+		args = append(args, id)
+	}
+	marks := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	return scanAuth(r.s.queryRow(ctx, `SELECT `+authCols+` FROM mfa_authenticators WHERE tenant_id=? AND id IN (`+marks+`) ORDER BY id`+r.s.d.byteOrder+` LIMIT 1`, args...))
 }
 func (r mfa) UpdateAuthenticator(ctx context.Context, a *store.Authenticator) error {
 	res, err := r.s.write(ctx, nil, `UPDATE mfa_authenticators SET name=?,preferred=?,confirmed=?,phone_method=? WHERE tenant_id=? AND user_id=? AND id=?`, a.Name, a.Preferred, a.Confirmed, a.PhoneMethod, a.TenantID, a.UserID, a.ID)

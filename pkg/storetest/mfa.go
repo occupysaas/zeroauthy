@@ -167,6 +167,29 @@ func MFA(t *testing.T, factory Factory) {
 		_, e = s.MFA().GetAuthenticator(ctx, "a", "u", "id")
 		mustErrIs(t, e, store.ErrNotFound)
 	})
+	t.Run("MFAAuthenticatorByEnrollmentID", func(t *testing.T) {
+		s := setup(t)
+		mustNoErr(t, s.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: "a", UserID: "auth0|u1", ID: "email|dev_shared", Type: "email", Email: "u1@example.test", Confirmed: true}))
+		mustNoErr(t, s.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: "b", UserID: "u", ID: "totp|dev_shared", Type: "totp"}))
+		mustNoErr(t, s.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: "a", UserID: "u", ID: "totp|dev_other", Type: "totp"}))
+		got, e := s.MFA().GetAuthenticatorByEnrollmentID(ctx, "a", "dev_shared")
+		mustNoErr(t, e)
+		if got.TenantID != "a" || got.UserID != "auth0|u1" || got.ID != "email|dev_shared" || got.Email != "u1@example.test" || !got.Confirmed {
+			t.Fatal(got)
+		}
+		got, e = s.MFA().GetAuthenticatorByEnrollmentID(ctx, "b", "dev_shared")
+		mustNoErr(t, e)
+		if got.TenantID != "b" || got.ID != "totp|dev_shared" {
+			t.Fatal(got)
+		}
+		for _, id := range []string{"dev_missing", "", "totp|dev_other", "other"} {
+			_, e = s.MFA().GetAuthenticatorByEnrollmentID(ctx, "a", id)
+			mustErrIs(t, e, store.ErrNotFound)
+		}
+		mustNoErr(t, s.MFA().DeleteAuthenticator(ctx, "a", "auth0|u1", "email|dev_shared"))
+		_, e = s.MFA().GetAuthenticatorByEnrollmentID(ctx, "a", "dev_shared")
+		mustErrIs(t, e, store.ErrNotFound)
+	})
 	t.Run("MFAWebAuthnCredentialUnique", func(t *testing.T) {
 		s := setup(t)
 		a := &store.Authenticator{TenantID: "a", UserID: "u", ID: "1", CredentialID: []byte("cred")}
