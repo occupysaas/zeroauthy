@@ -236,6 +236,8 @@ func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error, f *fl
 		view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	}
 	switch {
+	case errors.Is(err, store.ErrPhoneUnavailable):
+		http.Error(w, "phone_unavailable", http.StatusNotImplemented)
 	case errors.Is(err, errOrganizationConnection) && f != nil:
 		h.Authz.RejectOrganizationConnection(w, r, f.res, f.txn)
 	case errors.Is(err, errTxn):
@@ -727,6 +729,10 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		if r.PostForm.Get(proof.field) == "" {
 			missing = true
 			if e := h.sendIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, proof.identifier, "signup", ""); e != nil {
+				if errors.Is(e, store.ErrPhoneUnavailable) {
+					h.fail(w, r, e, f)
+					return
+				}
 				data.Error = f.view.L.T(i18n.KeyPhoneUnableSend)
 			}
 		}

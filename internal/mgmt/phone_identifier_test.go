@@ -100,3 +100,18 @@ func TestPhoneChangeFailureLogsFcpn(t *testing.T) {
 		t.Fatal("missing fcpn")
 	}
 }
+
+type noPhoneIdentifierStore struct{ store.Store }
+
+func (noPhoneIdentifierStore) Phone() store.Phone { return store.UnimplementedPhone{} }
+func (s noPhoneIdentifierStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(noPhoneIdentifierStore{tx}) })
+}
+func TestPhoneIdentifierUnavailableOnOldPlugin(t *testing.T) {
+	e := newUsersEnv(t)
+	e.h.Store = noPhoneIdentifierStore{e.st}
+	r, _ := e.do(t, m2mCaller("update:connections"), "PATCH", "/api/v2/connections/"+e.conn.ID, map[string]any{"options": phoneIdentifierOptions()}, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateConnection(w, r, e.conn.ID) })
+	if r.Code != 501 || !strings.Contains(r.Body.String(), "phone_unavailable") {
+		t.Fatalf("%d %s", r.Code, r.Body)
+	}
+}

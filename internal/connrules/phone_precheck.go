@@ -15,6 +15,9 @@ type PhoneConflict struct {
 
 // PhonePrecheck inspects existing values without rewriting any user data.
 func PhonePrecheck(ctx context.Context, st store.Store, tid, connection string) ([]PhoneConflict, error) {
+	if _, err := st.Phone().FindUsersByPhone(ctx, tid, connection, ""); err != nil {
+		return nil, err
+	}
 	var out []PhoneConflict
 	numbers := map[string][]string{}
 	for offset := 0; ; offset += 100 {

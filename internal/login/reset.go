@@ -135,10 +135,17 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 		} else {
 			matches, e = h.Store.Phone().FindUsersByPhone(r.Context(), f.res.Tenant.ID, f.conn.Name, number)
 		}
+		if errors.Is(e, store.ErrPhoneUnavailable) {
+			h.fail(w, r, e, f)
+			return
+		}
 		if e == nil && len(matches) == 1 && !matches[0].Blocked {
 			raw, x := dbconn.IssueResetTicket(r.Context(), h.Store, store.PasswordResetTicket{TenantID: f.res.Tenant.ID, UserID: matches[0].UserID, Connection: f.conn.Name, ClientID: f.txn.ClientID, Lang: f.view.L.Lang(), Origin: f.res.Origin(), OrganizationID: f.txn.Params[store.TxnParamOrgID]}, 43, h.now(), 5*time.Minute)
 			if x == nil {
-				_ = h.sendIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, number, "reset", raw)
+				if e := h.sendIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, number, "reset", raw); errors.Is(e, store.ErrPhoneUnavailable) {
+					h.fail(w, r, e, f)
+					return
+				}
 			}
 		}
 		ui.RenderResetRequest(w, 200, f.view, data)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -181,5 +182,19 @@ func TestPhoneSignupNotAllowedSendsNothing(t *testing.T) {
 	rec := f.b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"signup@example.test"}, "phone_number": {"+14155550199"}, "password": {"A-secret-password-42"}})
 	if rec.Code != 400 || r.count() != 0 {
 		t.Fatalf("status=%d sends=%d", rec.Code, r.count())
+	}
+}
+
+type unavailablePhoneIdentifierStore struct{ store.Store }
+
+func (unavailablePhoneIdentifierStore) Phone() store.Phone { return store.UnimplementedPhone{} }
+func TestPhoneLoginUnavailableOnOldPlugin(t *testing.T) {
+	f, _ := newPhoneMFAFixture(t, "sms")
+	phoneDatabase(t, f)
+	f.h.Database.Store = unavailablePhoneIdentifierStore{f.st}
+	_, state, csrf := f.b.begin(t)
+	rec := f.b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"+14155550100"}, "password": {"alice password 1"}})
+	if rec.Code != 501 || !strings.Contains(rec.Body.String(), "phone_unavailable") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }
