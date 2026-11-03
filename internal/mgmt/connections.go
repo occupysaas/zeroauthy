@@ -222,7 +222,8 @@ func (h *Handlers) connectionViews(cs []*store.Connection, fields []string, incl
 // included for create only.
 func (h *Handlers) connectionView(c *store.Connection, withClients bool) (map[string]any, error) {
 	spec := connrules.FromConnection(c)
-	if len(c.ConfigurationSealed) > 0 {
+	// Passwordless credentials share the sealed map but are write-only (P17).
+	if len(c.ConfigurationSealed) > 0 && !spec.Passwordless() {
 		cfg, err := keys.OpenConnectionConfig(h.Wrapper, c.TenantID, c.ID, c.ConfigurationSealed)
 		if err != nil {
 			return nil, err
@@ -420,6 +421,9 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
+	if spec.Passwordless() {
+		plain = connrules.MergePasswordlessSecrets(spec, nil)
+	}
 	connrules.Apply(spec, c)
 	if err := federation.RequireMicrosoftConnection(r.Context(), h.Store, c); err != nil {
 		h.failTx(w, r, "create connection", err)
@@ -523,20 +527,32 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 		if set["authentication"] {
 			spec.Authentication = patch.Authentication
 		}
-		var plain map[string]string
+		var plain, passwordlessCurrent map[string]string
 		if set["options"] {
 			current, err := h.currentConfiguration(c)
 			if err != nil {
 				return err
+			}
+			if spec.Passwordless() {
+				spec.StoredSecrets = map[string]bool{}
+				for k := range current {
+					spec.StoredSecrets[k] = true
+				}
 			}
 			if plain, err = h.resolveConfiguration(tn.ID, id, patch.Options.Configuration, current); err != nil {
 				return err
 			}
 			spec.Options = patch.Options
 			setPlainConfiguration(spec, plain)
+			if spec.Passwordless() {
+				passwordlessCurrent = current
+			}
 		}
 		if err := normalizeConnection(spec); err != nil {
 			return err
+		}
+		if spec.Passwordless() && set["options"] {
+			plain = connrules.MergePasswordlessSecrets(spec, passwordlessCurrent)
 		}
 		next := *c
 		connrules.Apply(spec, &next)
