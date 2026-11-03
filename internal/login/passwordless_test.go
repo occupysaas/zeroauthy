@@ -3,6 +3,7 @@ package login
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -154,8 +155,23 @@ func enablePasswordless(t *testing.T, e *env) *pwlFixture {
 	mux.HandleFunc("GET /passwordless/verify_redirect", redirect.VerifyRedirect)
 	mux.HandleFunc("POST /passwordless/verify_redirect", redirect.VerifyRedirectConfirm)
 	mux.Handle("/", old)
-	e.srv = tenant.NewResolver(e.st.Tenants(), "", false).Middleware(mux)
+	resolved := tenant.NewResolver(e.st.Tenants(), "", false).Middleware(mux)
+	e.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resolved.ServeHTTP(w, r.WithContext(logs.WithRecorder(r.Context(), p.events)))
+	})
 	return p
+}
+
+// noFullNumber fails when any recorded event carries the full number.
+func (r *pwlEvents) noFullNumber(t *testing.T, number string) {
+	t.Helper()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, e := range r.events {
+		if strings.Contains(fmt.Sprintf("%+v", e), number) {
+			t.Errorf("event %s carries the full number: user_name=%q", e.Type, e.UserName)
+		}
+	}
 }
 
 // sendCode submits the passwordless identifier page and follows the
@@ -295,6 +311,17 @@ func TestHostedSMSCodeLogin(t *testing.T) {
 	if strings.Contains(p.logs.String(), m.Code) || strings.Contains(p.logs.String(), pwlNumber) {
 		t.Fatal("code or full number in server log")
 	}
+	if len(p.events.of("s")) != 1 || len(p.events.of("ss")) != 1 {
+		t.Fatalf("success events = %+v", p.events.events)
+	}
+	p.events.noFullNumber(t, pwlNumber)
+	// A later silent authorization records its events with the session user.
+	q := url.Values{"client_id": {"spa"}, "redirect_uri": {"https://app.acme.test/cb"}, "response_type": {"code"}, "scope": {"openid"}, "code_challenge": {challenge}, "code_challenge_method": {"S256"}, "prompt": {"none"}}
+	appCode(t, b.do(t, "GET", "/authorize?"+q.Encode(), nil))
+	if len(p.events.of("ssa")) != 1 {
+		t.Fatalf("no ssa event for the silent authorization: %+v", p.events.events)
+	}
+	p.events.noFullNumber(t, pwlNumber)
 }
 
 func TestHostedResendObeysBudget(t *testing.T) {

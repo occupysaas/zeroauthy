@@ -294,7 +294,7 @@ func (h *Handlers) continueAuthorization(w http.ResponseWriter, r *http.Request,
 		h.Authz.Deny(w, r, res, client, req, "access_denied", notEnabled)
 		return
 	}
-	*r = *r.WithContext(logs.WithEvent(ctx, logs.Event{UserID: u.UserID, UserName: u.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "passwordless"}))
+	*r = *r.WithContext(logs.WithEvent(ctx, logs.Event{UserID: u.UserID, UserName: MaskIdentifier(conn.Strategy, u.Name), Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "passwordless"}))
 	now := h.Service.now()
 	sess, err := h.Sessions.Start(r.Context(), w, r, res.Tenant, u.UserID, conn.Name, now)
 	if err != nil {

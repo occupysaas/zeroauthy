@@ -1,6 +1,7 @@
 package passwordless
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -41,7 +43,7 @@ func (e *testEnv) serveIn(jar map[string]*http.Cookie, h *Handlers, method, targ
 		req.AddCookie(c)
 	}
 	tn, _ := e.st.Tenants().Get(e.ctx, tid)
-	req = req.WithContext(tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: tn, Host: "acme.example.test"}))
+	req = req.WithContext(logs.WithRecorder(tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: tn, Host: "acme.example.test"}), e.rec))
 	rec := httptest.NewRecorder()
 	if method == "POST" {
 		h.VerifyRedirectConfirm(rec, req)
@@ -194,5 +196,31 @@ func TestVerifyRedirectConfirmCrossBrowserRefused(t *testing.T) {
 				t.Fatalf("same browser POST = %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body.String())
 			}
 		})
+	}
+}
+
+// An SMS sign-in through verify_redirect (continueAuthorization) records its
+// success with a masked phone number, never the full one.
+func TestSMSVerifyRedirectMasksNumberInEvents(t *testing.T) {
+	e := newTestEnv(t)
+	h := e.handlers()
+	const number = "+14155550123"
+	code := e.smsCode(number)
+	q := url.Values{"client_id": {"cli"}, "connection": {"sms"}, "phone_number": {number}, "verification_code": {code}, "code_challenge": {"E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"}, "code_challenge_method": {"S256"},
+		"redirect_uri": {"https://app.test/cb"}, "response_type": {"code"}, "scope": {"openid"}, "state": {"s3"}}
+	page := e.serve(h, "GET", "https://acme.example.test/passwordless/verify_redirect?"+q.Encode(), nil)
+	rec := e.serve(h, "POST", "https://acme.example.test/passwordless/verify_redirect", confirmFields(t, page.Body.String()))
+	if loc, _ := url.Parse(rec.Header().Get("Location")); rec.Code != 302 || loc.Query().Get("code") == "" {
+		t.Fatalf("sms confirm = %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body.String())
+	}
+	if len(e.rec.of("s")) != 1 {
+		t.Fatalf("success events = %+v", e.rec.events)
+	}
+	e.rec.mu.Lock()
+	defer e.rec.mu.Unlock()
+	for _, ev := range e.rec.events {
+		if strings.Contains(fmt.Sprintf("%+v", ev), number) {
+			t.Errorf("event %s carries the full number: user_name=%q", ev.Type, ev.UserName)
+		}
 	}
 }

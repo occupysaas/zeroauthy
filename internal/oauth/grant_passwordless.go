@@ -95,7 +95,7 @@ func (h *Handlers) passwordlessOTPGrant(ctx context.Context, res tenant.Resolved
 		return nil, serverError()
 	}
 	eventUserID = user.UserID
-	ctx = logs.WithEvent(ctx, logs.Event{UserID: user.UserID, UserName: user.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "passwordless"})
+	ctx = logs.WithEvent(ctx, logs.Event{UserID: user.UserID, UserName: passwordless.MaskIdentifier(conn.Strategy, user.Name), Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "passwordless"})
 	now := h.now().UTC()
 	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
 		h.log().WarnContext(ctx, "record login", "tenant", tenantID, "err", err)

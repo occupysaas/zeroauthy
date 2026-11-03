@@ -172,3 +172,9 @@ exited 0. No full suite was run.
   - Mutation RED: `go test ./internal/authz -run Passwordless` with the `needsLogin` change reverted, exit 1.
   - GREEN: the same commands exit 0. `go test ./... -count=1` exit 0. After a gofmt import-order fix, `go test ./internal/{authz,login,passwordless,i18n,ui,protection,server} -count=1` exit 0.
   - No SQL tests run (no store changes).
+
+### Task 11 fix round 1
+
+- SMS users are named by their number, so success events (`s`, later `ssa`, grant events) carried the full number. `logs.RecordEvent` now masks any E.164-shaped `user_name`, and the passwordless event sites (hosted `complete`, `verify_redirect`, OTP grant) mask the name explicitly.
+- RED: `go test ./internal/logs ./internal/login ./internal/passwordless -run 'MasksPhone|HostedSMSCodeLogin|SMSVerifyRedirectMasks' -count=1` exit 1.
+- GREEN: `go test ./internal/login ./internal/authz ./internal/passwordless ./internal/logs ./internal/oauth ./internal/logrules -count=1` exit 0; `go test ./... -count=1` exit 0.
