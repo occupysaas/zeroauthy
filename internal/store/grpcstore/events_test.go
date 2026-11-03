@@ -35,6 +35,7 @@ type eventsFaults struct {
 	mfaDomainOperation atomic.Bool
 	mfaDomainMark      atomic.Bool
 	mfaMissing         bool
+	phoneMissing       bool
 	mfaProbe           atomic.Int32
 	mfaOperation       atomic.Int32
 	mfaMark            atomic.Int32
@@ -65,6 +66,9 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 			if code := codes.Code(faults.mfaProbe.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "probe failure")
 			}
+		}
+		if name == "PhoneCapabilities" && faults.phoneMissing {
+			return nil, status.Error(codes.Unimplemented, "pre-Phone plugin")
 		}
 		if name == "SessionsMarkMFA" {
 			if faults.mfaDomainMark.Swap(false) {
@@ -250,7 +254,7 @@ func eventsUnavailableCalls(ctx context.Context) []func(store.Events) error {
 func TestEventsPrePluginPriorFeatures(t *testing.T) {
 	names := make([]string, 0, len(storetest.Suites))
 	for name := range storetest.Suites {
-		if name != "Events" && name != "Phone" { // Phone returns with the gRPC driver (Plan 34 Task 6)
+		if name != "Events" {
 			names = append(names, name)
 		}
 	}

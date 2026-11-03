@@ -11,6 +11,7 @@ import (
 
 type (
 	MFASupporter                 = store.MFASupporter
+	PhoneSupporter               = store.PhoneSupporter
 	OrganizationsIISupporter     = store.OrganizationsIISupporter
 	OrganizationsII              = store.OrganizationsII
 	OrganizationQuery            = store.OrganizationQuery
@@ -381,3 +382,4 @@ type (
 )
 
 var ErrMFAUnavailable = store.ErrMFAUnavailable
+var ErrPhoneUnavailable = store.ErrPhoneUnavailable

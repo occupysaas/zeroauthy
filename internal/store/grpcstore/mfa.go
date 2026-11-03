@@ -15,9 +15,6 @@ type clientMFA struct{ c *Client }
 
 func (c *Client) MFA() store.MFA { return clientMFA{c} }
 
-// Phone is the unimplemented stub until the phone.v1 capability lands (Plan 34 Task 6).
-func (c *Client) Phone() store.Phone { return store.UnimplementedPhone{} }
-
 // A definitive unsupported operation remains latched for the connection lifetime.
 // A newly connected client negotiates again; transient transport errors do not latch.
 func (c *Client) CheckMFASupport(ctx context.Context) error {

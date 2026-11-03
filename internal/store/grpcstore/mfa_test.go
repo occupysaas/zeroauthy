@@ -123,7 +123,7 @@ func TestMFACapabilityCompatibility(t *testing.T) {
 func TestMFAPrePluginPriorFeatures(t *testing.T) {
 	var names []string
 	for n := range storetest.Suites {
-		if n != "MFA" && n != "Phone" { // Phone returns with the gRPC driver (Plan 34 Task 6)
+		if n != "MFA" {
 			names = append(names, n)
 		}
 	}

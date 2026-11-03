@@ -336,7 +336,7 @@ func TestUserRoundTrip(t *testing.T) {
 			{Connection: "db", Provider: "auth0", UserID: "u2", PasswordHash: "$argon2id$2", ProfileData: map[string]any{"email": "b@example.test", "email_verified": false}},
 			{Connection: "other", Provider: "auth0", UserID: "u3", ImportedHash: `{"alg":"bcrypt","hash":"$2b$10$x"}`, ProfileData: map[string]any{}}},
 		LastPasswordReset: ptr(nanoTime.Add(-time.Hour)), LastLogin: ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime,
-		PhoneNumber: "+14155550100", PhoneVerified: true, LastIP: "2001:db8::1", Version: 5, UpdatedAt: nanoTime.Add(time.Second),
+		PhoneNumber: "+14155550100", PhoneNormalized: "+14155550100", PhoneVerified: true, LastIP: "2001:db8::1", Version: 5, UpdatedAt: nanoTime.Add(time.Second),
 	}, userToPB, userFromPB)
 	roundTrip(t, "empty", &store.User{UserMetadata: map[string]any{}, AppMetadata: map[string]any{}, Identities: []store.Identity{}}, userToPB, userFromPB)
 	roundTrip(t, "zero", &store.User{}, userToPB, userFromPB)

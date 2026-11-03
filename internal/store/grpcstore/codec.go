@@ -123,6 +123,8 @@ func errToPB(err error) *storev1.Error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, store.ErrPhoneUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_PHONE_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrMFAUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_MFA_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrEventsUnavailable):
@@ -167,6 +169,8 @@ func errFromPB(e *storev1.Error) error {
 		return nil
 	}
 	switch e.Kind {
+	case storev1.Error_KIND_PHONE_UNAVAILABLE:
+		return store.ErrPhoneUnavailable
 	case storev1.Error_KIND_MFA_UNAVAILABLE:
 		return store.ErrMFAUnavailable
 	case storev1.Error_KIND_EVENTS_UNAVAILABLE:
@@ -771,7 +775,7 @@ func userToPB(u *store.User) (*storev1.User, error) {
 		GivenName: u.GivenName, FamilyName: u.FamilyName, Blocked: u.Blocked,
 		LastPasswordReset: optTSToPB(u.LastPasswordReset), LastLogin: optTSToPB(u.LastLogin), LoginsCount: int64(u.LoginsCount),
 		CreatedAt: tsToPB(u.CreatedAt), UpdatedAt: tsToPB(u.UpdatedAt),
-		PhoneNumber: u.PhoneNumber, PhoneVerified: u.PhoneVerified, LastIp: u.LastIP, Version: u.Version,
+		PhoneNumber: u.PhoneNumber, PhoneNormalized: u.PhoneNormalized, PhoneVerified: u.PhoneVerified, LastIp: u.LastIP, Version: u.Version,
 	}
 	if u.UserMetadata != nil {
 		b, err := json.Marshal(u.UserMetadata)
@@ -817,7 +821,7 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 		GivenName: pb.GivenName, FamilyName: pb.FamilyName, Blocked: pb.Blocked,
 		LastPasswordReset: optTSFromPB(pb.LastPasswordReset), LastLogin: optTSFromPB(pb.LastLogin), LoginsCount: int(pb.LoginsCount),
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt),
-		PhoneNumber: pb.PhoneNumber, PhoneVerified: pb.PhoneVerified, LastIP: pb.LastIp, Version: pb.Version,
+		PhoneNumber: pb.PhoneNumber, PhoneNormalized: pb.PhoneNormalized, PhoneVerified: pb.PhoneVerified, LastIP: pb.LastIp, Version: pb.Version,
 	}
 	if pb.UserMetadataJson != nil {
 		var m map[string]any

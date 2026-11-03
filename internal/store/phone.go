@@ -32,6 +32,13 @@ type PasswordlessCode struct {
 	ExpiresAt, CreatedAt               time.Time
 }
 
+// PhoneSupporter is implemented by drivers that negotiate the phone.v1
+// capability (the gRPC plugin client); others support Phone unconditionally.
+type PhoneSupporter interface {
+	CheckPhoneSupport(context.Context) error
+	PhoneSupported() bool
+}
+
 type Phone interface {
 	ListPhoneProviders(ctx context.Context, tid string) ([]PhoneProvider, error)
 	GetPhoneProvider(ctx context.Context, tid, id string) (*PhoneProvider, error)

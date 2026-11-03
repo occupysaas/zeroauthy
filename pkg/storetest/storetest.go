@@ -16,7 +16,7 @@ type Factory func(t *testing.T) store.Store
 // use RunSuites to bring suites up one at a time.
 var Suites = map[string]func(t *testing.T, newStore Factory){
 	"MFA":                         MFA,
-	"Phone":                       Phone, // gRPC driver joins in Plan 34 Task 6
+	"Phone":                       Phone,
 	"Logs":                        testLogs,
 	"Events":                      testEvents,
 	"RBAC":                        testRBAC,
