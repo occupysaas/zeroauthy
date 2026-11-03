@@ -540,3 +540,16 @@ func TestPhoneRoutesUnavailableOnOldPlugin(t *testing.T) {
 		}
 	}
 }
+
+func TestPhoneTryRefusesDisabledProvider(t *testing.T) {
+	e, f := newPhoneEnv(t)
+	id := e.createProvider(t, twilioBody())["id"].(string)
+	e.phone(t, "PATCH", "/x", map[string]any{"disabled": true}, allPhoneScopes, func(w http.ResponseWriter, r *http.Request) { e.h.UpdatePhoneProvider(w, r, id) })
+	if rec := e.tryProvider(t, id, map[string]any{"to": "+14155550100"}); rec.Code != 409 {
+		t.Fatalf("provider try: %d %s", rec.Code, rec.Body)
+	}
+	rec, _ := e.phone(t, "POST", "/x", map[string]any{"to": "+14155550100"}, allPhoneScopes, func(w http.ResponseWriter, r *http.Request) { e.h.TryPhoneTemplate(w, r, "tem_default_otp_verify") })
+	if rec.Code != 409 || f.count() != 0 {
+		t.Fatalf("template try: %d %s sent=%d", rec.Code, rec.Body, f.count())
+	}
+}

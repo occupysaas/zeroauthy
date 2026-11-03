@@ -2323,6 +2323,23 @@ backoff gives 3 immediate sends, then waits doubling from 60 s to 1920 s with
 E.164 numbers have 8–15 digits; short values (four characters or fewer) are
 fully masked.
 
+**Task 7 local rulings (phone Management routes).** (7) Phone templates not
+yet configured are listed under the ids `tem_default_<type>`; GET, reset and
+`try` work on them, PATCH and DELETE answer 404 until the type is created.
+(8) `try` failures map invalid number or unsupported delivery to 400,
+provider rate limiting and an exhausted send budget to 429 (the budget also
+logs `limit_phone`), a disabled or Action-backed provider to 409, and every
+other provider failure to 502 `phone_delivery_failed`. (9) `country_codes` is
+enforced on `try` as on every SMS and voice destination (P20). (10) PATCH of
+a provider `configuration` replaces it whole, as Auth0's schema requires its
+required fields on every write; credentials merge per key. (11) The tenant
+settings read always returns `phone_consolidated_experience` and
+`flags.disable_management_api_sms_obfuscation` with their effective values
+(absent on an existing tenant: false and true), and tenants created after
+Plan 34 start with `phone_consolidated_experience` true (P9). The eight
+`phone_providers` and `phone_templates` scopes join the Management API scope
+list; the phone routes check the persisted client grant on every request.
+
 **Interface ruling.** As in D-0059, the route lookup is `Route(op string)
 RouteSchema` because Go cannot declare a type and a function both named
 `Route`. Operation IDs carry a `#variant` suffix where one method and path

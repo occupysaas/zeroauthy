@@ -610,6 +610,11 @@ func (h *Handlers) sendPhoneTest(w http.ResponseWriter, r *http.Request, p *stor
 		Fail(w, badBody("the destination country is not permitted by country_codes"))
 		return
 	}
+	if p.Disabled {
+		// A disabled provider does not work (D-0060 LR3).
+		Fail(w, &Error{Status: http.StatusConflict, Code: "conflict", Message: "The phone provider is disabled"})
+		return
+	}
 	if p.Name == "custom" {
 		// Action-backed providers are wired by the dispatcher (Task 9).
 		Fail(w, errPhoneCustomConflict)
