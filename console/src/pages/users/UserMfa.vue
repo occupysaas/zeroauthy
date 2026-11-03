@@ -13,7 +13,7 @@ const props = defineProps<{ tenant: SystemTenant; user: User }>()
 const { t, locale } = useI18n(), { api } = useServices()
 const { key, capture, current } = useMfaScope(() => props.tenant, () => props.user.user_id ?? '')
 // Keep a public projection only, never opaque method metadata or response objects.
-type Method = Pick<AuthenticationMethod, 'id' | 'type' | 'name' | 'enrolled_at' | 'created_at' | 'last_auth_at'>
+type Method = Pick<AuthenticationMethod, 'id' | 'type' | 'name' | 'enrolled_at' | 'created_at' | 'last_auth_at' | 'phone_number'>
 const methods = ref<Method[]>([]), loading = ref(false), busy = ref(false), error = ref(''), notice = ref(''), unavailable = ref(false)
 const confirm = ref(false), action = ref<'delete' | 'all' | 'recovery' | 'invalidate'>('all'), target = ref('')
 const recovery = ref(''), recoveryOpen = ref(false)
@@ -28,7 +28,7 @@ async function read(c: ReturnType<typeof capture>) {
     const result = await api.getAuthenticationMethods(c.tenant, c.id, page)
     if(!current(c)) return
     const items = Array.isArray(result) ? result : result.authenticators ?? []
-    all.push(...items.map(({ id, type, name, created_at, enrolled_at, last_auth_at }) => ({ id, type, name, created_at, enrolled_at, last_auth_at })))
+    all.push(...items.map(({ id, type, name, created_at, enrolled_at, last_auth_at, phone_number }) => ({ id, type, name, created_at, enrolled_at, last_auth_at, phone_number })))
     if(Array.isArray(result) || items.length === 0 || all.length >= (result.total ?? Infinity) || items.length < 100) break
   }
   if(current(c)) methods.value = all
@@ -82,7 +82,7 @@ async function invite() {
     <template v-if="!unavailable">
       <p v-if="!loading && !methods.length" class="muted">{{ t('mfa.noMethods') }}</p>
       <table v-if="methods.length" class="data"><thead><tr><th>{{ t('mfa.type') }}</th><th>{{ t('mfa.name') }}</th><th>{{ t('mfa.enrolled') }}</th><th>{{ t('mfa.lastUsed') }}</th><th>{{ t('userd.actions') }}</th></tr></thead>
-        <tbody><tr v-for="(method, index) in methods" :key="method.id"><td>{{ method.type }}</td><td>{{ method.name }}</td>
+        <tbody><tr v-for="(method, index) in methods" :key="method.id"><td>{{ method.type }}</td><td>{{ method.name }} <span v-if="method.type === 'phone'">{{ method.phone_number }}</span></td>
           <td><time :datetime="method.enrolled_at || method.created_at">{{ formatTime(method.enrolled_at || method.created_at, locale) }}</time></td>
           <td><time v-if="method.last_auth_at" :datetime="method.last_auth_at">{{ formatTime(method.last_auth_at, locale) }}</time><span v-else>{{ t('users.never') }}</span></td>
           <td><Button :id="'delete-method-' + index" variant="danger" :disabled="busy || loading" @click="ask('delete', method.id)">{{ t('mfa.deleteOne') }}</Button></td></tr></tbody>

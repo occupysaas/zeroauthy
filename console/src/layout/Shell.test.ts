@@ -28,7 +28,7 @@ async function sidebar(path: string): Promise<{ links: string[]; groups: string[
   return { links, groups }
 }
 
-const common = ['Home', 'Applications', 'APIs', 'Database', 'Social', 'Enterprise', 'Users', 'Roles', 'Organizations', 'Attack protection', 'Multi-factor auth', 'Actions', 'Universal Login', 'Email templates', 'Custom domains', 'Logs', 'Log streams', 'Event streams', 'Actions logs', 'Tenant settings']
+const common = ['Home', 'Applications', 'APIs', 'Database', 'Passwordless email', 'Passwordless SMS', 'Social', 'Enterprise', 'Users', 'Roles', 'Organizations', 'Attack protection', 'Multi-factor auth', 'Actions', 'Universal Login', 'Phone providers', 'Phone templates', 'Email templates', 'Custom domains', 'Logs', 'Log streams', 'Event streams', 'Actions logs', 'Tenant settings']
 const groups = ['Applications', 'Authentication', 'User management', 'Security', 'Actions', 'Branding', 'Monitoring', 'Settings']
 
 describe('Shell sidebar', () => {

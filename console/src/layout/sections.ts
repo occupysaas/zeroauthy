@@ -21,6 +21,8 @@ export const sections: Section[] = [
   { key: 'applications', label: 'nav.applications', group: 'navGroup.applications', path: 'applications', status: 'live' },
   { key: 'apis', label: 'nav.apis', group: 'navGroup.applications', path: 'apis', status: 'live' },
   { key: 'connections', label: 'nav.connections', group: 'navGroup.authentication', path: 'connections', status: 'live' },
+  { key: 'passwordless-email', label: 'phone.passwordlessEmail', group: 'navGroup.authentication', path: 'passwordless/email', status: 'live' },
+  { key: 'passwordless-sms', label: 'phone.passwordlessSMS', group: 'navGroup.authentication', path: 'passwordless/sms', status: 'live' },
   { key: 'social', label: 'nav.social', group: 'navGroup.authentication', path: 'social', status: 'live' },
   { key: 'enterprise', label: 'nav.enterprise', group: 'navGroup.authentication', path: 'enterprise', status: 'live' },
   {
@@ -36,6 +38,8 @@ export const sections: Section[] = [
   { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: 'live' },
   { key: 'actions', label: 'nav.actions', group: 'navGroup.actions', path: 'actions', status: 'live' },
   { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: 'live' },
+  { key: 'phone-providers', label: 'phone.providers', group: 'navGroup.branding', path: 'phone-providers', status: 'live' },
+  { key: 'phone-templates', label: 'phone.templates', group: 'navGroup.branding', path: 'phone-templates', status: 'live' },
   { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: 'live' },
   { key: 'custom-domains', label: 'nav.customDomains', group: 'navGroup.branding', path: 'custom-domains', status: 'live' },
   { key: 'logs', label: 'nav.logs', group: 'navGroup.monitoring', path: 'logs', status: 'live' },
