@@ -1170,6 +1170,59 @@ func (s *Server) MFAConsumeTicket(ctx context.Context, q *storev1.MFAConsumeTick
 	return out, nil
 }
 
+func (o clientMFA) PeekTicket(ctx context.Context, tid string, hash string, now time.Time) (*store.EnrollmentTicket, error) {
+	var out *store.EnrollmentTicket
+	if err := o.c.CheckMFASupport(ctx); err != nil {
+		return out, err
+	}
+	q := &storev1.MFAPeekTicketRequest{TxId: o.c.txID}
+	if err := copyMFA(&q.Tid, tid); err != nil {
+		return out, err
+	}
+	if err := copyMFA(&q.Hash, hash); err != nil {
+		return out, err
+	}
+	if err := copyMFA(&q.Now, now); err != nil {
+		return out, err
+	}
+	response, err := o.c.rpc.MFAPeekTicket(ctx, q)
+	if err = mfaRPCError(o.c, err, response.GetError()); err != nil {
+		return out, err
+	}
+	err = copyMFA(&out, response.GetValue())
+	return out, err
+}
+func (s *Server) MFAPeekTicket(ctx context.Context, q *storev1.MFAPeekTicketRequest) (*storev1.MFAPeekTicketResponse, error) {
+	out := &storev1.MFAPeekTicketResponse{}
+	if q == nil {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	var tid string
+	if err := copyMFA(&tid, q.Tid); err != nil {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	var hash string
+	if err := copyMFA(&hash, q.Hash); err != nil {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	var now time.Time
+	if err := copyMFA(&now, q.Now); err != nil {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	out.Error = errToPB(s.with(q.TxId, func(st store.Store) error {
+		v, err := st.MFA().PeekTicket(ctx, tid, hash, now)
+		if err != nil {
+			return err
+		}
+		return copyMFA(&out.Value, v)
+	}))
+	return out, nil
+}
+
 func (o clientMFA) PutBrowser(ctx context.Context, v *store.MFABrowser) error {
 	if err := o.c.CheckMFASupport(ctx); err != nil {
 		return err

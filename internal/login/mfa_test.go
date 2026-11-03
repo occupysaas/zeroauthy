@@ -395,6 +395,19 @@ func TestMFATicketEnrollNoPassword(t *testing.T) {
 	if r.Code != 303 || f.b.cookies[session.CookieName] != nil {
 		t.Fatalf("ticket %d %s", r.Code, r.Body)
 	}
+	// Opening the link does not spend it (link scanners prefetch); the first
+	// confirmed enrollment does. TestMFATicketSpentOnConfirmNotOnGet covers
+	// reuse after confirmation.
+	loc, _ := url.Parse(r.Header().Get("Location"))
+	f.state = loc.Query().Get("state")
+	p := f.page(t, "/u/mfa")
+	m := regexp.MustCompile(`<code id="mfa-secret">([A-Z2-7]+)</code>`).FindStringSubmatch(p.Body.String())
+	if m == nil {
+		t.Fatal("missing ticket OTP")
+	}
+	if r = f.post(t, "/u/mfa-otp-enrollment", url.Values{"code": {otpAt(m[1], *f.clock)}}); r.Code != 200 || f.b.cookies[session.CookieName] != nil {
+		t.Fatalf("ticket enrollment %d", r.Code)
+	}
 	r = f.b.do(t, "GET", "/u/mfa-enroll-ticket?ticket="+raw, nil)
 	if r.Code < 400 {
 		t.Fatal("reused ticket")

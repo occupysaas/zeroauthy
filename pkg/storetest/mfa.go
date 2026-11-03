@@ -348,6 +348,25 @@ func MFA(t *testing.T, factory Factory) {
 		_, e = s.MFA().ConsumeTicket(ctx, "a", "h", now)
 		mustErrIs(t, e, store.ErrNotFound)
 	})
+	t.Run("MFATicketPeekDoesNotConsume", func(t *testing.T) {
+		s := setup(t)
+		mustNoErr(t, s.MFA().CreateTicket(ctx, &store.EnrollmentTicket{TenantID: "a", Hash: "h", UserID: "u", Factor: "otp", AllowMultiple: true, ExpiresAt: now.Add(time.Minute)}))
+		for range 2 {
+			got, e := s.MFA().PeekTicket(ctx, "a", "h", now)
+			mustNoErr(t, e)
+			if got.UserID != "u" || got.Factor != "otp" || !got.AllowMultiple || got.Hash != "h" {
+				t.Fatal(got)
+			}
+		}
+		_, e := s.MFA().PeekTicket(ctx, "b", "h", now)
+		mustErrIs(t, e, store.ErrNotFound)
+		_, e = s.MFA().PeekTicket(ctx, "a", "h", now.Add(time.Minute))
+		mustErrIs(t, e, store.ErrNotFound)
+		_, e = s.MFA().ConsumeTicket(ctx, "a", "h", now)
+		mustNoErr(t, e)
+		_, e = s.MFA().PeekTicket(ctx, "a", "h", now)
+		mustErrIs(t, e, store.ErrNotFound)
+	})
 	t.Run("MFARememberEpoch", func(t *testing.T) {
 		s := setup(t)
 		u := newUser("a", "u", "u@example.com", "u")

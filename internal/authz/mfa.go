@@ -32,12 +32,15 @@ const mfaPendingKey = "za_mfa_pending"
 // marks its session then calls MFAComplete; reset and ticket purposes never do.
 // Completion reloads this state rather than trusting caller edits.
 type MFAPending struct {
-	Requirement                                                mfa.Requirement
-	Effects                                                    actions.Effects
-	SessionID, UserID                                          string
-	PreviousMFAAt                                              time.Time
-	RememberEpoch                                              int
-	TicketAllowMultiple                                        bool
+	Requirement         mfa.Requirement
+	Effects             actions.Effects
+	SessionID, UserID   string
+	PreviousMFAAt       time.Time
+	RememberEpoch       int
+	TicketAllowMultiple bool
+	// TicketHash identifies the enrollment ticket. It is spent only in the
+	// enrollment proof transaction, never by opening the link.
+	TicketHash                                                 string
 	ResetTicketHash, ResetPageHash, ResetResultURL, ResetEmail string
 	ResetUserVersion                                           int64
 	ResetEmailVerified                                         bool
@@ -185,7 +188,7 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 		return nil, invalid
 	}
 	var pending MFAPending
-	if json.Unmarshal(plain, &pending) != nil || !pending.Requirement.Required || pending.SessionID != sid || (!ticket && !reset && pending.UserID != current.UserID) || (ticket && pending.Requirement.Reason != "ticket") || (reset && (pending.Requirement.Reason != "reset" || pending.Requirement.Enroll || pending.Requirement.AllowRemember)) || (!reset && pending.Requirement.Reason == "reset") {
+	if json.Unmarshal(plain, &pending) != nil || !pending.Requirement.Required || pending.SessionID != sid || (!ticket && !reset && pending.UserID != current.UserID) || (ticket && (pending.Requirement.Reason != "ticket" || pending.TicketHash == "")) || (reset && (pending.Requirement.Reason != "reset" || pending.Requirement.Enroll || pending.Requirement.AllowRemember)) || (!reset && pending.Requirement.Reason == "reset") {
 		return nil, invalid
 	}
 	u, err := h.Store.Users().Get(ctx, res.Tenant.ID, pending.UserID)
@@ -279,9 +282,9 @@ func (h *Handlers) invalidMFA(w http.ResponseWriter, r *http.Request, res tenant
 }
 
 // StartMFATicket establishes enrollment-only authority, without an SSO session.
-func (h *Handlers) StartMFATicket(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, factors []string, allowMultiple bool) error {
+func (h *Handlers) StartMFATicket(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, ticketHash string, factors []string, allowMultiple bool) error {
 	p := map[string]string{ParamStage: StageMFA, "za_mfa_ticket": "1"}
-	pending := MFAPending{Requirement: mfa.Requirement{Required: true, Enroll: true, Factors: factors, Reason: "ticket"}, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, TicketAllowMultiple: allowMultiple}
+	pending := MFAPending{Requirement: mfa.Requirement{Required: true, Enroll: true, Factors: factors, Reason: "ticket"}, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, TicketAllowMultiple: allowMultiple, TicketHash: ticketHash}
 	txn, err := h.createTxn(w, r, res, "", p, "/u", func(id string, p map[string]string) error {
 		plain, e := json.Marshal(pending)
 		if e != nil {

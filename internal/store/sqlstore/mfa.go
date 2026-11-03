@@ -385,6 +385,17 @@ func (r mfa) ConsumeTicket(ctx context.Context, tid, hash string, now time.Time)
 	}
 	return &v, nil
 }
+func (r mfa) PeekTicket(ctx context.Context, tid, hash string, now time.Time) (*store.EnrollmentTicket, error) {
+	var raw string
+	if err := r.s.queryRow(ctx, `SELECT data FROM mfa_tickets WHERE tenant_id=? AND hash=? AND expires_at>?`, tid, hash, micros(now)).Scan(&raw); err != nil {
+		return nil, mfaMissing(err)
+	}
+	var v store.EnrollmentTicket
+	if err := fromJSON(raw, &v); err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
 func (r mfa) PutBrowser(ctx context.Context, v *store.MFABrowser) error {
 	raw, err := toJSON(v)
 	if err != nil {

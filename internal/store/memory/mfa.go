@@ -324,6 +324,15 @@ func (r mfa) ConsumeTicket(_ context.Context, tid, hash string, now time.Time) (
 	delete(r.s.tickets, k)
 	return cloneValue(v), nil
 }
+func (r mfa) PeekTicket(_ context.Context, tid, hash string, now time.Time) (*store.EnrollmentTicket, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	v := r.s.tickets[key{tid, hash}]
+	if v == nil || !now.Before(v.ExpiresAt) {
+		return nil, store.ErrNotFound
+	}
+	return cloneValue(v), nil
+}
 func (r mfa) PutBrowser(_ context.Context, v *store.MFABrowser) error {
 	r.s.lock()
 	defer r.s.unlock()

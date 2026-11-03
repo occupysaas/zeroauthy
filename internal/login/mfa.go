@@ -485,9 +485,21 @@ func (h *Handlers) proveMFA(r *http.Request, f *mfaFlow, recovery *string) error
 		if f.pending.Requirement.Reason == "action" {
 			svc = svc.WithNewFactorEnrollment()
 		}
+		if f.pending.Requirement.Reason == "ticket" {
+			// Spend the ticket atomically with the confirmation, so one ticket
+			// can never authorize two enrollments.
+			tid, uid, hash := f.res.Tenant.ID, f.pending.UserID, f.pending.TicketHash
+			svc = svc.WithProofCommit(func(tx store.Store) error {
+				t, e := tx.MFA().ConsumeTicket(r.Context(), tid, hash, h.now())
+				if errors.Is(e, store.ErrNotFound) || e == nil && t.UserID != uid {
+					return mfa.ErrInvalidCode
+				}
+				return e
+			})
+		}
 		confirm := svc.ConfirmEnroll
 		if f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple {
-			confirm = h.MFA.ConfirmFirstEnroll
+			confirm = svc.ConfirmFirstEnroll
 		}
 		result, err = confirm(r.Context(), f.res.Tenant.ID, f.pending.UserID, &mfa.Enrollment{AuthenticatorID: f.page.AuthenticatorID, ChallengeID: f.page.ChallengeID}, mfa.Proof{Code: r.PostForm.Get("code")})
 		if err == nil {
@@ -554,8 +566,11 @@ func (h *Handlers) MFATicket(w http.ResponseWriter, r *http.Request) {
 	var user *store.User
 	var factors []string
 	var allowMultiple bool
+	ticketHash := secrets.HashToken(r.URL.Query().Get("ticket"))
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
-		ticket, e := tx.MFA().ConsumeTicket(r.Context(), res.Tenant.ID, secrets.HashToken(r.URL.Query().Get("ticket")), h.now())
+		// Opening the link only validates it; link scanners must not spend it.
+		// The enrollment proof transaction consumes it (see proveMFA).
+		ticket, e := tx.MFA().PeekTicket(r.Context(), res.Tenant.ID, ticketHash, h.now())
 		if e != nil {
 			return e
 		}
@@ -603,7 +618,7 @@ func (h *Handlers) MFATicket(w http.ResponseWriter, r *http.Request) {
 		ui.RenderError(w, 400, ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, "")), i18n.ForRequest(res.Tenant, r, "").T("mfa.mfa-enroll-result.invalidTicket"))
 		return
 	}
-	if err = h.Authz.StartMFATicket(w, r, res, user, factors, allowMultiple); err != nil {
+	if err = h.Authz.StartMFATicket(w, r, res, user, ticketHash, factors, allowMultiple); err != nil {
 		h.fail(w, r, err, nil)
 	}
 }

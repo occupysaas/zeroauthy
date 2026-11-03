@@ -40,6 +40,7 @@ const (
 	StoreService_MFAConsumeChallenge_FullMethodName                     = "/zeroauthy.store.v1.StoreService/MFAConsumeChallenge"
 	StoreService_MFACreateTicket_FullMethodName                         = "/zeroauthy.store.v1.StoreService/MFACreateTicket"
 	StoreService_MFAConsumeTicket_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAConsumeTicket"
+	StoreService_MFAPeekTicket_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAPeekTicket"
 	StoreService_MFAPutBrowser_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAPutBrowser"
 	StoreService_MFAGetBrowser_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAGetBrowser"
 	StoreService_MFABumpRememberEpoch_FullMethodName                    = "/zeroauthy.store.v1.StoreService/MFABumpRememberEpoch"
@@ -458,6 +459,7 @@ type StoreServiceClient interface {
 	MFAConsumeChallenge(ctx context.Context, in *MFAConsumeChallengeRequest, opts ...grpc.CallOption) (*MFAConsumeChallengeResponse, error)
 	MFACreateTicket(ctx context.Context, in *MFACreateTicketRequest, opts ...grpc.CallOption) (*MFACreateTicketResponse, error)
 	MFAConsumeTicket(ctx context.Context, in *MFAConsumeTicketRequest, opts ...grpc.CallOption) (*MFAConsumeTicketResponse, error)
+	MFAPeekTicket(ctx context.Context, in *MFAPeekTicketRequest, opts ...grpc.CallOption) (*MFAPeekTicketResponse, error)
 	MFAPutBrowser(ctx context.Context, in *MFAPutBrowserRequest, opts ...grpc.CallOption) (*MFAPutBrowserResponse, error)
 	MFAGetBrowser(ctx context.Context, in *MFAGetBrowserRequest, opts ...grpc.CallOption) (*MFAGetBrowserResponse, error)
 	MFABumpRememberEpoch(ctx context.Context, in *MFABumpRememberEpochRequest, opts ...grpc.CallOption) (*MFABumpRememberEpochResponse, error)
@@ -1031,6 +1033,16 @@ func (c *storeServiceClient) MFAConsumeTicket(ctx context.Context, in *MFAConsum
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MFAConsumeTicketResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAConsumeTicket_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) MFAPeekTicket(ctx context.Context, in *MFAPeekTicketRequest, opts ...grpc.CallOption) (*MFAPeekTicketResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MFAPeekTicketResponse)
+	err := c.cc.Invoke(ctx, StoreService_MFAPeekTicket_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4471,6 +4483,7 @@ type StoreServiceServer interface {
 	MFAConsumeChallenge(context.Context, *MFAConsumeChallengeRequest) (*MFAConsumeChallengeResponse, error)
 	MFACreateTicket(context.Context, *MFACreateTicketRequest) (*MFACreateTicketResponse, error)
 	MFAConsumeTicket(context.Context, *MFAConsumeTicketRequest) (*MFAConsumeTicketResponse, error)
+	MFAPeekTicket(context.Context, *MFAPeekTicketRequest) (*MFAPeekTicketResponse, error)
 	MFAPutBrowser(context.Context, *MFAPutBrowserRequest) (*MFAPutBrowserResponse, error)
 	MFAGetBrowser(context.Context, *MFAGetBrowserRequest) (*MFAGetBrowserResponse, error)
 	MFABumpRememberEpoch(context.Context, *MFABumpRememberEpochRequest) (*MFABumpRememberEpochResponse, error)
@@ -4902,6 +4915,9 @@ func (UnimplementedStoreServiceServer) MFACreateTicket(context.Context, *MFACrea
 }
 func (UnimplementedStoreServiceServer) MFAConsumeTicket(context.Context, *MFAConsumeTicketRequest) (*MFAConsumeTicketResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAConsumeTicket not implemented")
+}
+func (UnimplementedStoreServiceServer) MFAPeekTicket(context.Context, *MFAPeekTicketRequest) (*MFAPeekTicketResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MFAPeekTicket not implemented")
 }
 func (UnimplementedStoreServiceServer) MFAPutBrowser(context.Context, *MFAPutBrowserRequest) (*MFAPutBrowserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAPutBrowser not implemented")
@@ -6297,6 +6313,24 @@ func _StoreService_MFAConsumeTicket_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).MFAConsumeTicket(ctx, req.(*MFAConsumeTicketRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_MFAPeekTicket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MFAPeekTicketRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).MFAPeekTicket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_MFAPeekTicket_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).MFAPeekTicket(ctx, req.(*MFAPeekTicketRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -12360,6 +12394,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MFAConsumeTicket",
 			Handler:    _StoreService_MFAConsumeTicket_Handler,
+		},
+		{
+			MethodName: "MFAPeekTicket",
+			Handler:    _StoreService_MFAPeekTicket_Handler,
 		},
 		{
 			MethodName: "MFAPutBrowser",

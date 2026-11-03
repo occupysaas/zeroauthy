@@ -95,6 +95,9 @@ type MFA interface {
 
 	CreateTicket(ctx context.Context, t *EnrollmentTicket) error
 	ConsumeTicket(ctx context.Context, tid, hash string, now time.Time) (*EnrollmentTicket, error)
+	// PeekTicket returns an unexpired, unconsumed ticket without spending it.
+	// ErrNotFound if missing, expired or consumed.
+	PeekTicket(ctx context.Context, tid, hash string, now time.Time) (*EnrollmentTicket, error)
 
 	PutBrowser(ctx context.Context, b *MFABrowser) error
 	GetBrowser(ctx context.Context, tid, hash string, now time.Time) (*MFABrowser, error)
@@ -165,6 +168,9 @@ func (UnimplementedMFA) CreateTicket(ctx context.Context, t *EnrollmentTicket) e
 	return ErrMFAUnavailable
 }
 func (UnimplementedMFA) ConsumeTicket(ctx context.Context, tid, hash string, now time.Time) (*EnrollmentTicket, error) {
+	return nil, ErrMFAUnavailable
+}
+func (UnimplementedMFA) PeekTicket(ctx context.Context, tid, hash string, now time.Time) (*EnrollmentTicket, error) {
 	return nil, ErrMFAUnavailable
 }
 func (UnimplementedMFA) PutBrowser(ctx context.Context, b *MFABrowser) error {

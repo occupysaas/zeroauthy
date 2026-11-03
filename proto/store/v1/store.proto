@@ -81,6 +81,7 @@ service StoreService {
   rpc MFAConsumeChallenge(MFAConsumeChallengeRequest) returns (MFAConsumeChallengeResponse);
   rpc MFACreateTicket(MFACreateTicketRequest) returns (MFACreateTicketResponse);
   rpc MFAConsumeTicket(MFAConsumeTicketRequest) returns (MFAConsumeTicketResponse);
+  rpc MFAPeekTicket(MFAPeekTicketRequest) returns (MFAPeekTicketResponse);
   rpc MFAPutBrowser(MFAPutBrowserRequest) returns (MFAPutBrowserResponse);
   rpc MFAGetBrowser(MFAGetBrowserRequest) returns (MFAGetBrowserResponse);
   rpc MFABumpRememberEpoch(MFABumpRememberEpochRequest) returns (MFABumpRememberEpochResponse);
@@ -1559,6 +1560,8 @@ message MFACreateTicketRequest { string tx_id = 1; MFAEnrollmentTicket v = 2; }
 message MFACreateTicketResponse { Error error = 1;  }
 message MFAConsumeTicketRequest { string tx_id = 1; string tid = 2; string hash = 3; string now = 4; }
 message MFAConsumeTicketResponse { Error error = 1; MFAEnrollmentTicket value = 2; }
+message MFAPeekTicketRequest { string tx_id = 1; string tid = 2; string hash = 3; string now = 4; }
+message MFAPeekTicketResponse { Error error = 1; MFAEnrollmentTicket value = 2; }
 message MFAPutBrowserRequest { string tx_id = 1; MFABrowserMsg v = 2; }
 message MFAPutBrowserResponse { Error error = 1;  }
 message MFAGetBrowserRequest { string tx_id = 1; string tid = 2; string hash = 3; string now = 4; }
