@@ -11,7 +11,7 @@ require users to enroll.
 | `otp` | Enforced. Standard RFC 6238 TOTP works with any authenticator app. |
 | `email` | Enforced. Sends a six-digit code to the user's verified email. |
 | `recovery-code` | Enforced fallback after another factor is enrolled. |
-| `sms` / phone configuration | Stored for Plan 34; no SMS or voice challenge. |
+| `sms` / phone configuration | SMS and voice enrollment/challenges through the configured phone route. |
 | `webauthn-roaming`, `webauthn-platform` | Stored for Plan 33b, after 1.0. No WebAuthn challenge or passkey login. |
 | `push-notification`, `duo` | Configuration is stored; delivery is not planned and these factors are never offered. |
 
@@ -193,7 +193,7 @@ For explicit factor selection, enable the tenant's
 `enrollWith`, or `enrollWithAny`. Challenges require an enabled, already
 enrolled eligible factor and do not enroll one automatically. Enrollment
 requires an enabled factor not already enrolled; recovery code cannot be
-a first enrollment target. Unsupported WebAuthn, phone and push selections
+a first enrollment target. Unsupported WebAuthn and push selections
 fail the login. Do not mix these calls with `multifactor.enable` in one
 execution.
 
@@ -212,7 +212,8 @@ provider and the `mfa_oob_code` / `enrollment_email` templates through the
 existing email administration flow. Custom email delivery follows the
 existing sealed Action job queue. No provider is hard-coded for MFA.
 SMS/phone providers remain route-keyed configuration with individually
-sealed credentials, ready for native non-Twilio providers in Plan 34.
+sealed credentials. Native Twilio, the consolidated SNS extension and Action
+providers are described in [phone providers](phone-providers.md).
 
 | Limit | Local runtime value |
 | --- | --- |
@@ -232,11 +233,10 @@ steps are single use even when requests race or use different server
 processes. Provider secrets and TOTP seeds are sealed under the master key;
 proofs, tokens, tickets, browser cookies and recovery codes are hashed.
 
-Guardian email/phone OTP settings and Guardian session/remember settings
-round-trip as documented configuration. They do not override the fixed
-runtime values above in Plan 33. In particular, storing a different
-`otp_length`, timeout or remember-checkbox setting does not change the
-runtime proof format, cookie lifetime or policy/Action remember eligibility.
+Guardian phone OTP length and expiration settings control phone challenges.
+Guardian email OTP and session/remember settings retain their Plan 33 runtime
+boundaries: storing them does not change email proof format, cookie lifetime
+or policy/Action remember eligibility.
 
 ## Deploy CLI and troubleshooting
 
@@ -256,7 +256,7 @@ including repeat import and exact public fields. Directory and preserved-ID
 round trips remain unverified; this partial result does not make the complete
 required matrix pass. CLI policy assets wrap the
 array as `guardianPolicies: {policies: [...]}`; seed and wire policy fields
-remain arrays. SMS/phone/push configuration portability does not enable
+remain arrays. Push configuration portability does not enable
 runtime delivery. Write-only provider credentials must be supplied through
 a protected operator channel at the destination; exports do not contain
 them. User authentication methods, TOTP secrets, recovery codes, challenges,
@@ -301,3 +301,19 @@ The contract is based on the [public Management API description](https://auth0.c
 and [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238).
 See the [design](superpowers/specs/2026-11-02-zeroauthy-mfa-design.md) and
 `internal/mfarules` for the frozen route, factor and log inventories.
+
+## SMS and voice delivery
+
+Guardian `sms` enables phone enrollment and challenges with the `phone`
+authenticator type. Enrollment verifies ownership using an out-of-band code;
+voice reads the code aloud. The phone provider, permitted message types and
+OTP settings must allow the requested method. A post-login Action can request
+`challengeWith({type: "phone", options: {preferredMethod: "sms"}})` (or
+`voice`). Missing providers and unsupported delivery methods fail closed.
+A new code replaces the previous code and bounded verification attempts are
+atomic. Recovery codes and remembered sessions follow the existing MFA rules.
+
+[Phone providers](phone-providers.md) explains consolidated-provider priority,
+Guardian Twilio/phone-message-hook selection and tested custom Action
+examples. Management enrollment reads follow the tenant's obfuscation flag;
+logs always mask phone numbers.

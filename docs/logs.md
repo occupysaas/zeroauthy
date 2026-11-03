@@ -325,7 +325,8 @@ semantics before enabling a code.
 The runtime and administration emitters below are implemented. The acceptance
 record distinguishes code coverage from the final regression matrix. `fertft`
 remains the existing Plan 31 refresh-token emitter. WebAuthn remains Plan 33b,
-phone/SMS/voice remains Plan 34, and Guardian push delivery is not planned.
+phone/SMS/voice delivery uses the Plan 34 routes described below; Guardian
+push delivery is not planned.
 
 | Code | Meaning | Source owner |
 | --- | --- | --- |
@@ -468,3 +469,16 @@ enterprise-connection changes in the business transaction, then deliver them to
 an HTTPS webhook or `event-stream` Action. Their failed-delivery records and SSE
 Events API live under `/event-streams` and `/events`. Action destinations retain
 execution IDs and masked diagnostics in the existing Actions logs.
+
+## Passwordless and phone events
+
+Phone sends use `gd_send_sms` / `gd_send_voice` and their `_failure` variants.
+Passwordless code/link sends use `cs` / `cls`; OTP grant refusals use
+`fepotpft`. Send throttling uses `limit_phone`, signup OTP budgets use
+`limit_signup_otp`, and Guardian configuration writes use
+`gd_phone_settings_update`.
+Events distinguish send, delivery failure, throttling, configuration changes
+and challenge outcomes. Phone recipients are masked; codes, spoken codes,
+provider credentials and magic-link tokens are excluded from event details,
+Action records and provider error responses. Use the event ID and provider
+error class to correlate failures. See [phone providers](phone-providers.md).

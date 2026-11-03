@@ -169,6 +169,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	if !(createOnly && exists) {
+		if err := applyPhone(ctx, st, tn.ID, &in, now, w); err != nil {
+			return fmt.Errorf("phone: %w", err)
+		}
 		if err := applyGuardian(ctx, st, tn.ID, &in); err != nil {
 			return fmt.Errorf("guardian: %w", err)
 		}
@@ -430,7 +433,20 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 		}
 	}
 	return tenantsetup.UpsertConnection(ctx, st, tenantID, in.Name, now, func(c *store.Connection) error {
-		return setConnection(c, in, w)
+		before := store.PhoneIdentifierActive(c)
+		if err := setConnection(c, in, w); err != nil {
+			return err
+		}
+		if !before && store.PhoneIdentifierActive(c) {
+			conflicts, err := connrules.PhonePrecheck(ctx, st, tenantID, in.Name)
+			if err != nil {
+				return err
+			}
+			if len(conflicts) > 0 {
+				return fmt.Errorf("phone identifier pre-check found %d conflicting groups: %w", len(conflicts), store.ErrConflict)
+			}
+		}
+		return nil
 	})
 }
 
@@ -443,6 +459,52 @@ func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 	if len(c.FederationSecretsSealed) > 0 {
 		p := *c
 		prev = &p
+	}
+	if spec.Passwordless() {
+		copySpec := in.spec()
+		spec = &copySpec
+		if spec.Strategy == connrules.StrategySMS {
+			extra := spec.Options.Extra
+			if value, ok := in.Options["twilio_token"]; ok {
+				secret, err := streamEnvValue(value, true, false)
+				if err != nil {
+					return errors.New("passwordless credential environment reference missing or invalid")
+				}
+				extra["twilio_token"] = secret
+			}
+			if ga, ok := extra["gateway_authentication"].(map[string]any); ok {
+				original, _ := in.Options["gateway_authentication"].(map[string]any)
+				if value, ok := original["secret"]; ok {
+					secret, err := streamEnvValue(value, true, false)
+					if err != nil {
+						return errors.New("passwordless credential environment reference missing or invalid")
+					}
+					ga["secret"] = secret
+				}
+			}
+		}
+		if errs := connrules.Normalize(spec); len(errs) > 0 {
+			return errors.Join(errs...)
+		}
+		current := map[string]string{}
+		if len(c.ConfigurationSealed) > 0 {
+			var err error
+			current, err = keys.OpenConnectionConfig(w, c.TenantID, c.ID, c.ConfigurationSealed)
+			if err != nil {
+				return err
+			}
+		}
+		creds := connrules.MergePasswordlessSecrets(spec, current)
+		c.ConfigurationSealed = nil
+		if len(creds) > 0 {
+			var err error
+			c.ConfigurationSealed, err = keys.SealConnectionConfig(w, c.TenantID, c.ID, creds)
+			if err != nil {
+				return err
+			}
+		}
+		connrules.Apply(spec, c)
+		return nil
 	}
 	// The seed owns the complexity half of the password options unless it
 	// names password_options; fields it does not name are left alone.

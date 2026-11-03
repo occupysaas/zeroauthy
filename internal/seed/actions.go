@@ -223,6 +223,16 @@ func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() t
 				return fmt.Errorf("seed trigger %q: %w", trigger, err)
 			}
 		}
+
+		// Custom providers can be created only after their seeded Action is built,
+		// deployed and bound. Like event streams, this is a retryable second phase.
+		if in.PhoneProvider != nil && in.PhoneProvider.Name == "custom" {
+			if err := st.WithTx(ctx, func(tx store.Store) error {
+				return applyPhone(ctx, tx, tn.ID, &Tenant{PhoneProvider: in.PhoneProvider}, now().UTC(), w)
+			}); err != nil {
+				return fmt.Errorf("seed custom phone provider: %w", err)
+			}
+		}
 	}
 	return nil
 }

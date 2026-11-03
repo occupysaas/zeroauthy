@@ -27,6 +27,9 @@ func (f *File) validate() error {
 	domainOwner := map[string]string{}
 	for i := range f.Tenants {
 		t := &f.Tenants[i]
+		if err := validatePhone(t); err != nil {
+			errs = append(errs, fmt.Errorf("seed: tenant %q: %w", t.Name, err))
+		}
 		if err := validateGuardian(t); err != nil {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: %w", t.Name, err))
 		}
@@ -310,7 +313,7 @@ func (t *Tenant) validate() []error {
 			fail("connection %q: password_policy and password_options cannot both be set", c.Name)
 		}
 		spec := c.spec()
-		if c.Options != nil && !spec.Federated() {
+		if c.Options != nil && !spec.Federated() && !spec.Passwordless() && spec.Strategy != store.StrategyDatabase {
 			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive and waad strategies", c.Name)
 		}
 		if spec.Federated() {
