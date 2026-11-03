@@ -64,3 +64,9 @@ subtests skipped); `go test ./internal/server -count=1` exited 0;
 final enum change, which only touched the Management spec and server test);
 `go build ./...`, `go vet` on the touched packages and `git diff --check`
 exited 0. No full suite was run.
+
+## Task 2: Phone and code primitives
+
+- Added `internal/phone` (`NormalizeE164`, `CountryCode`, `Mask` delegating to `phonerules.MaskPhone`), `internal/passwordless/codes.go` (`NewCode`, `NewLinkToken`) and `internal/awssig` (`Sign`); SES now signs through `awssig`, and `TestSESSigV4ReferenceVector` moved there.
+- `+1` resolves to CA for Canadian area codes, to the Caribbean NANP country for their area codes, and otherwise to US; `+7` 6xx/7xx resolves to KZ. A leading `00` is accepted only with a default region.
+- Commands: `go test ./internal/phone ./internal/passwordless ./internal/awssig ./internal/email/... ./internal/phonerules -count=1` (exit 0; RED run first failed on undefined symbols); `go build ./...` exit 0. No database tests run.
