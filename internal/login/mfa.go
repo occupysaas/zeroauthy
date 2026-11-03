@@ -226,14 +226,22 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 			}
 		} else {
 			var aa []store.Authenticator
+			var u *store.User
+			var g *store.GuardianSettings
 			aa, err = h.Store.MFA().ListAuthenticators(r.Context(), f.res.Tenant.ID, f.pending.UserID)
+			if err == nil {
+				u, err = h.Store.Users().Get(r.Context(), f.res.Tenant.ID, f.pending.UserID)
+			}
+			if err == nil {
+				g, err = h.Store.MFA().GetGuardian(r.Context(), f.res.Tenant.ID)
+			}
 			if err == nil {
 				typ := factor
 				if typ == "otp" {
 					typ = "totp"
 				}
 				for _, a := range aa {
-					if a.Confirmed && a.Type == typ && (f.page.AuthenticatorID == "" || a.Preferred) {
+					if a.Type == typ && mfa.UsableMethod(u, a, g.Factors) && (f.page.AuthenticatorID == "" || a.Preferred) {
 						f.page.AuthenticatorID = a.ID
 					}
 				}
@@ -548,7 +556,7 @@ func (h *Handlers) MFATicket(w http.ResponseWriter, r *http.Request) {
 		}
 		if !ticket.AllowMultiple {
 			for _, a := range aa {
-				if a.Confirmed && a.Type != "recovery-code" {
+				if mfa.UsableMethod(user, a, g.Factors) {
 					return store.ErrInvalid
 				}
 			}

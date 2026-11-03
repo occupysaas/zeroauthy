@@ -329,8 +329,20 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 			if e != nil {
 				return e
 			}
+			var u *store.User
+			var g *store.GuardianSettings
+			if firstOnly {
+				if u, e = tx.Users().Get(ctx, tid, uid); e != nil {
+					return e
+				}
+				if g, e = tx.MFA().GetGuardian(ctx, tid); e != nil {
+					return e
+				}
+			}
 			for _, other := range list {
-				if other.Confirmed && (firstOnly && other.Type != "recovery-code" || s.newFactorOnly && other.Type == current.Type) {
+				// First-only enrollment is blocked only by a usable primary
+				// factor; a disabled or stale method must not lock the user out.
+				if other.ID != current.ID && (firstOnly && UsableMethod(u, other, g.Factors) || s.newFactorOnly && other.Confirmed && other.Type == current.Type) {
 					return ErrInvalidCode
 				}
 			}
@@ -476,21 +488,17 @@ func (s *Service) Recover(ctx context.Context, tid, uid, code string) (next stri
 		if !g.Factors["recovery-code"] {
 			return ErrNoFactor
 		}
+		u, e := tx.Users().Get(ctx, tid, uid)
+		if e != nil {
+			return e
+		}
 		var recovery *store.Authenticator
 		usable := false
 		for _, a := range list {
 			if a.Type == "recovery-code" && a.Confirmed {
 				recovery = &a
 			}
-			if a.Confirmed && factorType(a.Type) != "" && g.Factors[factorName(a.Type)] {
-				if a.Type != "email" {
-					usable = true
-				} else if e = verifiedEmail(ctx, tx, tid, uid, &a); e == nil {
-					usable = true
-				} else if !errors.Is(e, ErrNoFactor) {
-					return e
-				}
-			}
+			usable = usable || UsableMethod(u, a, g.Factors)
 		}
 		if !usable {
 			return ErrNoFactor

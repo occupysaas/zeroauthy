@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 func (f *fixture) setMFAPolicy(t *testing.T, policies ...string) {
@@ -53,5 +55,56 @@ func TestMFAAPIAudienceUnenrolledUserPasswordOnly(t *testing.T) {
 	w, b := f.call(t, false, tokenCall{host: acmeHost, form: pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", "https://acme.example.test/mfa/", "scope", "enroll")})
 	if w.Code != 200 || b["scope"] != "enroll" {
 		t.Fatalf("unenrolled MFA API token=%d %v", w.Code, b)
+	}
+}
+
+func (f *fixture) setMFAFactors(t *testing.T, factors map[string]bool) {
+	t.Helper()
+	ctx := context.Background()
+	g, e := f.st.MFA().GetGuardian(ctx, f.tenantID(t, "acme"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	g.Factors = factors
+	if e = f.st.MFA().PutGuardian(ctx, g, g.Version); e != nil {
+		t.Fatal(e)
+	}
+}
+
+// Review I3: an email method whose address no longer matches the verified
+// user email is not a usable factor; the user must be routed to enrollment
+// and that enrollment must complete.
+func TestMFAStaleEmailMethodRoutesToEnrollment(t *testing.T) {
+	f, _ := mfaFixture(t)
+	ctx := context.Background()
+	tid, uid := f.tenantID(t, "acme"), f.aliceID(t)
+	if e := f.st.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: tid, UserID: uid, ID: "email|dev_stale", Type: "email", Email: "old@acme.test", Confirmed: true, CreatedAt: fixedNow()}); e != nil {
+		t.Fatal(e)
+	}
+	tok := f.mfaRequired(t)
+	s, _ := f.associateOTP(t, tok)
+	f.proveOTP(t, tok, s)
+}
+
+// Review I4: a password-grant user whose only factor was disabled can enroll
+// and confirm a replacement factor.
+func TestMFADisabledFactorReplacementEnrollment(t *testing.T) {
+	f, mail := mfaFixture(t)
+	ctx := context.Background()
+	tid, uid := f.tenantID(t, "acme"), f.aliceID(t)
+	if e := f.st.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: tid, UserID: uid, ID: "totp|dev_old", Type: "totp", Confirmed: true, LastStep: -1, CreatedAt: fixedNow()}); e != nil {
+		t.Fatal(e)
+	}
+	f.setMFAFactors(t, map[string]bool{"email": true, "recovery-code": true})
+	tok := f.mfaRequired(t)
+	w, b := f.mfaAPI(t, "POST", "/mfa/associate", tok, `{"authenticator_types":["oob"],"oob_channels":["email"],"email":"alice@acme.test"}`)
+	if w.Code != 200 {
+		t.Fatalf("email associate=%d %v", w.Code, b)
+	}
+	form := mfaForm(oobGrant, tok, "oob_code", b["oob_code"].(string))
+	form.Set("binding_code", mail.code)
+	w, b = f.call(t, false, tokenCall{host: acmeHost, form: form})
+	if w.Code != 200 {
+		t.Fatalf("replacement OOB=%d %v", w.Code, b)
 	}
 }

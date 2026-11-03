@@ -22,6 +22,9 @@ type DecideInput struct {
 	SessionMFAAt               time.Time
 	RememberValid, KnownDevice bool
 	CustomizeInActions         bool
+	// User is the authenticating user. Email methods are usable only while
+	// they match the user's current verified email; nil makes them unusable.
+	User *store.User
 	// MFAAPI marks a request for an MFA API (https://{host}/mfa/) token.
 	// A user with a usable primary factor must complete MFA for it.
 	MFAAPI bool
@@ -39,7 +42,7 @@ func Decide(in DecideInput) (Requirement, error) {
 	// The MFA API can remove and replace factors, so its token requires MFA
 	// whenever the user has a usable primary factor, regardless of policy or
 	// an Action skip. Unenrolled users may still obtain an enrollment token.
-	apiMFA := in.MFAAPI && hasPrimary(in.Authenticators, enabled)
+	apiMFA := in.MFAAPI && hasPrimary(in.User, in.Authenticators, enabled)
 	if e != nil && e.Provider == "none" && !apiMFA {
 		return Requirement{}, nil
 	}
@@ -101,7 +104,7 @@ func Decide(in DecideInput) (Requirement, error) {
 	preferred := ""
 	for _, a := range in.Authenticators {
 		f := factorName(a.Type)
-		if a.Confirmed && enabled[f] && (f == "otp" || f == "email") {
+		if UsableMethod(in.User, a, enabled) {
 			primary = true
 			confirmed[f] = true
 			if a.Preferred {
@@ -158,11 +161,28 @@ func Decide(in DecideInput) (Requirement, error) {
 	return r, nil
 }
 
-// hasPrimary reports whether a confirmed, enabled OTP or email method exists.
-func hasPrimary(list []store.Authenticator, enabled map[string]bool) bool {
+// UsableMethod is the single predicate for a confirmed primary factor that
+// can satisfy a challenge: an enabled OTP method, or an enabled email method
+// whose address still matches the user's verified email. Decide, Recover and
+// first-enrollment restrictions all use it, so an unusable method can neither
+// count as enrolled nor block enrollment of a replacement.
+func UsableMethod(u *store.User, a store.Authenticator, enabled map[string]bool) bool {
+	if !a.Confirmed || !enabled[factorName(a.Type)] {
+		return false
+	}
+	switch a.Type {
+	case "totp":
+		return true
+	case "email":
+		return u != nil && u.EmailVerified && a.Email != "" && u.Email == a.Email
+	}
+	return false
+}
+
+// hasPrimary reports whether a usable primary method exists.
+func hasPrimary(u *store.User, list []store.Authenticator, enabled map[string]bool) bool {
 	for _, a := range list {
-		f := factorName(a.Type)
-		if a.Confirmed && enabled[f] && (f == "otp" || f == "email") {
+		if UsableMethod(u, a, enabled) {
 			return true
 		}
 	}

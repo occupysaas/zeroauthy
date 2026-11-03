@@ -82,7 +82,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		return mfa.Requirement{}, err
 	}
 	customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	in := mfa.DecideInput{Settings: g, Effects: effects, Authenticators: aa, SessionMFAAt: sess.MFAAt, RememberValid: remember, KnownDevice: known, CustomizeInActions: customize}
+	in := mfa.DecideInput{Settings: g, Effects: effects, User: u, Authenticators: aa, SessionMFAAt: sess.MFAAt, RememberValid: remember, KnownDevice: known, CustomizeInActions: customize}
 	in.MFAAPI = fr.Request.Audience != "" && mfa.APIAudience(r.Context(), h.Store, res.Tenant.ID, fr.Request.Audience)
 	// Validate the original Action factor restrictions before satisfying its
 	// forced prompt. Disabling its chosen factor must still fail closed.

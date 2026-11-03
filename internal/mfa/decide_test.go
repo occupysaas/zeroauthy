@@ -134,3 +134,26 @@ func TestDecideMFAAPIAudience(t *testing.T) {
 		})
 	}
 }
+
+func TestDecideStaleEmailMethodIsNotPrimary(t *testing.T) {
+	enabled := map[string]bool{"otp": true, "email": true, "recovery-code": true}
+	user := &store.User{Email: "new@acme.test", EmailVerified: true}
+	stale := []store.Authenticator{{Type: "email", Email: "old@acme.test", Confirmed: true}, {Type: "recovery-code", Confirmed: true}}
+	got, err := Decide(DecideInput{Settings: &store.GuardianSettings{Factors: enabled, Policies: []string{"all-applications"}}, User: user, Authenticators: stale})
+	if err != nil || !got.Required || !got.Enroll || !reflect.DeepEqual(got.Factors, []string{"otp", "email"}) {
+		t.Fatalf("stale email: %+v %v", got, err)
+	}
+	got, err = Decide(DecideInput{Settings: &store.GuardianSettings{Factors: enabled}, User: user, Authenticators: stale, MFAAPI: true})
+	if err != nil || got.Required {
+		t.Fatalf("stale email MFA API: %+v %v", got, err)
+	}
+	current := []store.Authenticator{{Type: "email", Email: "new@acme.test", Confirmed: true}}
+	got, err = Decide(DecideInput{Settings: &store.GuardianSettings{Factors: enabled, Policies: []string{"all-applications"}}, User: user, Authenticators: current})
+	if err != nil || !got.Required || got.Enroll || !reflect.DeepEqual(got.Factors, []string{"email"}) {
+		t.Fatalf("current email: %+v %v", got, err)
+	}
+	unverified := &store.User{Email: "new@acme.test"}
+	if !UsableMethod(user, current[0], enabled) || UsableMethod(unverified, current[0], enabled) || UsableMethod(nil, current[0], enabled) || UsableMethod(user, store.Authenticator{Type: "totp", Confirmed: true}, map[string]bool{"email": true}) {
+		t.Fatal("UsableMethod predicate")
+	}
+}
