@@ -1,6 +1,7 @@
 package passwordless
 
 import (
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -36,6 +37,9 @@ type Handlers struct {
 }
 
 const (
+	// confirmCookie binds a confirmation form to the browser that rendered
+	// it (login CSRF): the sealed form state carries the cookie's hash.
+	confirmCookie = "za_pwl_confirm"
 	stateLabel    = "passwordless-confirm/v1"
 	stateLifetime = 10 * time.Minute
 	wrongCode     = "Wrong email or verification code."
@@ -43,7 +47,11 @@ const (
 )
 
 type confirmState struct {
-	Hash      string     `json:"h"`
+	Hash string `json:"h"`
+	// Kind is KindCode for a typed code, empty for a magic link.
+	Kind string `json:"k,omitempty"`
+	// Browser is the hash of the rendering browser's confirmCookie.
+	Browser   string     `json:"b"`
 	ExpiresAt time.Time  `json:"e"`
 	Params    url.Values `json:"p"`
 }
@@ -89,9 +97,9 @@ func (h *Handlers) validate(w http.ResponseWriter, r *http.Request, res tenant.R
 	return client, req, true
 }
 
-// VerifyRedirect is GET /passwordless/verify_redirect. A typed code is
-// verified and consumed; a magic-link token is only peeked and answered with
-// a confirmation page whose form posts back (P3).
+// VerifyRedirect is GET /passwordless/verify_redirect. Neither a typed code
+// nor a magic-link token is consumed here: the GET answers a confirmation
+// page whose form, bound to this browser, posts back (P3; D-0060 LR30).
 func (h *Handlers) VerifyRedirect(w http.ResponseWriter, r *http.Request) {
 	res, ok := tenant.FromContext(r.Context())
 	if !ok {
@@ -110,15 +118,34 @@ func (h *Handlers) VerifyRedirect(w http.ResponseWriter, r *http.Request) {
 		h.confirmPage(w, r, res, code)
 		return
 	}
-	client, req, ok := h.validate(w, r, res, q)
-	if !ok {
+	// A typed code is verified only by the confirmation POST from the
+	// browser that rendered the form, so a crafted link cannot sign a
+	// victim's browser in to another account (login CSRF).
+	if _, _, ok := h.validate(w, r, res, q); !ok {
 		return
 	}
-	conn := q.Get("connection")
+	params := url.Values{}
+	for k, v := range q {
+		if k != "verification_code" {
+			params[k] = v
+		}
+	}
 	ident := q.Get("email")
+	if q.Get("connection") == "sms" {
+		ident = q.Get("phone_number")
+	}
+	h.renderConfirm(w, r, res, confirmState{Hash: secrets.HashToken(code), Kind: KindCode, Params: params}, code, ident)
+}
+
+// verifyCode verifies a confirmed typed code and continues the
+// authorization.
+func (h *Handlers) verifyCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req authz.Request, params url.Values, code string) {
+	ctx := r.Context()
+	conn := params.Get("connection")
+	ident := params.Get("email")
 	wrong := wrongCode
 	if conn == "sms" {
-		ident, wrong = q.Get("phone_number"), wrongPhone
+		ident, wrong = params.Get("phone_number"), wrongPhone
 	}
 	ctx = WithRequest(ctx, h.request(r))
 	u, err := h.Service.VerifyCode(ctx, res.Tenant.ID, client.ClientID, conn, ident, code)
@@ -176,7 +203,30 @@ func (h *Handlers) confirmPage(w http.ResponseWriter, r *http.Request, res tenan
 		}
 		return
 	}
-	plain, err := json.Marshal(confirmState{Hash: row.CodeHash, ExpiresAt: h.Service.now().Add(stateLifetime), Params: params})
+	h.renderConfirm(w, r, res, confirmState{Hash: row.CodeHash, Params: params}, token, row.Identifier)
+}
+
+// browserBinding returns this browser's confirmation cookie, setting a new
+// one when it has none.
+func (h *Handlers) browserBinding(w http.ResponseWriter, r *http.Request) string {
+	value := ""
+	if c, err := r.Cookie(confirmCookie); err == nil && len(c.Value) >= 32 && len(c.Value) <= 64 {
+		value = c.Value
+	} else {
+		value = secrets.RandomString(32)
+	}
+	http.SetCookie(w, &http.Cookie{Name: confirmCookie, Value: value, Path: verifyPath, MaxAge: int(stateLifetime / time.Second),
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode})
+	return value
+}
+
+// renderConfirm renders the confirmation page whose sealed form state is
+// bound to this browser. identifier is the account the sign-in is for, shown
+// so that a user sent someone else's link can notice.
+func (h *Handlers) renderConfirm(w http.ResponseWriter, r *http.Request, res tenant.Resolved, st confirmState, token, identifier string) {
+	st.Browser = secrets.HashToken(h.browserBinding(w, r))
+	st.ExpiresAt = h.Service.now().Add(stateLifetime)
+	plain, err := json.Marshal(st)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -186,11 +236,12 @@ func (h *Handlers) confirmPage(w http.ResponseWriter, r *http.Request, res tenan
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	ui.RenderPasswordlessLink(w, h.view(r, res), ui.PasswordlessLinkData{Code: token, StateToken: base64.RawURLEncoding.EncodeToString(sealed)})
+	ui.RenderPasswordlessLink(w, h.view(r, res), ui.PasswordlessLinkData{Code: token, StateToken: base64.RawURLEncoding.EncodeToString(sealed), Identifier: identifier})
 }
 
-// VerifyRedirectConfirm is POST /passwordless/verify_redirect: it consumes
-// the magic link once and continues the authorization.
+// VerifyRedirectConfirm is POST /passwordless/verify_redirect: from the
+// browser that rendered the form, it consumes the magic link (or verifies the
+// typed code) once and continues the authorization.
 func (h *Handlers) VerifyRedirectConfirm(w http.ResponseWriter, r *http.Request) {
 	res, ok := tenant.FromContext(r.Context())
 	if !ok {
@@ -212,8 +263,18 @@ func (h *Handlers) VerifyRedirectConfirm(w http.ResponseWriter, r *http.Request)
 		h.errorPage(w, r, res, "the confirmation form has expired; open the link from your email again")
 		return
 	}
+	// The form must come from the browser that rendered it (login CSRF).
+	c, cerr := r.Cookie(confirmCookie)
+	if cerr != nil || st.Browser == "" || subtle.ConstantTimeCompare([]byte(secrets.HashToken(c.Value)), []byte(st.Browser)) != 1 {
+		h.errorPage(w, r, res, "this confirmation was opened in another browser; open the link again in this browser")
+		return
+	}
 	client, req, ok := h.validate(w, r, res, st.Params)
 	if !ok {
+		return
+	}
+	if st.Kind == KindCode {
+		h.verifyCode(w, r, res, client, req, st.Params, token)
 		return
 	}
 	ctx = WithRequest(ctx, h.request(r))

@@ -234,6 +234,7 @@ func New(d Deps) http.Handler {
 	if d.Phone != nil {
 		pwl.SMS = d.Phone
 	}
+	lg.Passwordless = pwl
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
@@ -281,6 +282,10 @@ func New(d Deps) http.Handler {
 		tr.Get("/u/mfa-enroll-ticket", lg.MFATicket)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
+		for _, path := range []string{"/u/login-passwordless-email-code", "/u/login-passwordless-sms-otp"} {
+			tr.Get(path, lg.PasswordlessCodePage)
+			tr.Post(path, lg.PasswordlessCodeSubmit)
+		}
 		tr.Get("/u/login/password", lg.LoginPasswordGet)
 		tr.Post("/u/login/password", lg.LoginPasswordPost)
 		tr.Post("/u/login/identifier", lg.LoginIdentifierResetPost)

@@ -32,6 +32,10 @@ type StartInput struct {
 	IP, UserAgent, Locale                                    string
 	// Origin is the public tenant origin magic links point at.
 	Origin string
+	// Hosted marks a send from the hosted login prompt (Universal Login),
+	// which needs no passwordless OTP grant on the client and only sends
+	// codes (D-0060 P24).
+	Hosted bool
 }
 
 // StartResult is the start response body (D-0060 P1).
@@ -55,11 +59,17 @@ func refuse(status int, code, description string) *Error {
 }
 
 const (
-	linkLabel      = "passwordless-link/v1"
-	verifyPath     = "/passwordless/verify_redirect"
-	notEnabled     = "the connection does not exist or is not enabled for this client"
-	kindStartIP    = "passwordless-start-ip"
-	kindIdentifier = "passwordless-send"
+	linkLabel  = "passwordless-link/v1"
+	verifyPath = "/passwordless/verify_redirect"
+	notEnabled = "the connection does not exist or is not enabled for this client"
+	// DescUserBlocked and DescSignupDisabled are the descriptions of the
+	// 403 access_denied refusals of Start.
+	DescUserBlocked    = "user is blocked"
+	DescSignupDisabled = "signups are disabled for this connection"
+	// DescCountryNotAllowed refuses an SMS number outside country_codes.
+	DescCountryNotAllowed = "phone numbers from this country are not allowed"
+	kindStartIP           = "passwordless-start-ip"
+	kindIdentifier        = "passwordless-send"
 )
 
 // Start sends a code (email or SMS) or a magic link (email) and replaces any
@@ -78,7 +88,7 @@ func (s *Service) Start(ctx context.Context, in StartInput) (*StartResult, error
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Contains(client.GrantTypes, clientrules.GrantPasswordlessOTP) {
+	if !in.Hosted && !slices.Contains(client.GrantTypes, clientrules.GrantPasswordlessOTP) {
 		return nil, refuse(http.StatusForbidden, "unauthorized_client", fmt.Sprintf("grant type %q is not allowed for this client", clientrules.GrantPasswordlessOTP))
 	}
 	conn, err := s.passwordlessConnection(ctx, in.TenantID, in.Connection)
@@ -98,6 +108,9 @@ func (s *Service) Start(ctx context.Context, in StartInput) (*StartResult, error
 		if conn.Strategy == connrules.StrategySMS {
 			send = KindCode
 		}
+	}
+	if in.Hosted && send != KindCode {
+		return nil, refuse(http.StatusBadRequest, "invalid_request", "the hosted login sends codes only")
 	}
 	if send != KindCode && send != KindLink {
 		return nil, refuse(http.StatusBadRequest, "invalid_request", "send must be code or link")
@@ -123,7 +136,7 @@ func (s *Service) Start(ctx context.Context, in StartInput) (*StartResult, error
 	masked := MaskIdentifier(conn.Strategy, ident)
 	base := logs.Event{TenantID: t.ID, ClientID: client.ClientID, ClientName: client.Name, UserName: masked, IP: in.IP, UserAgent: in.UserAgent}
 	if conn.Strategy == connrules.StrategySMS && !tenantrules.PhoneSettingsOf(t).CountryAllowed(phone.CountryCode(ident)) {
-		return nil, refuse(http.StatusBadRequest, "invalid_request", "phone numbers from this country are not allowed")
+		return nil, refuse(http.StatusBadRequest, "invalid_request", DescCountryNotAllowed)
 	}
 	if err := s.reserveStart(ctx, t.ID, conn, ident, in.IP, base); err != nil {
 		return nil, err
@@ -134,10 +147,10 @@ func (s *Service) Start(ctx context.Context, in StartInput) (*StartResult, error
 	}
 	switch {
 	case u != nil && u.Blocked:
-		return nil, refuse(http.StatusForbidden, "access_denied", "user is blocked")
+		return nil, refuse(http.StatusForbidden, "access_denied", DescUserBlocked)
 	case u == nil && opts.DisableSignup:
 		// P22: an unknown user cannot sign up, so no message is sent.
-		return nil, refuse(http.StatusForbidden, "access_denied", "signups are disabled for this connection")
+		return nil, refuse(http.StatusForbidden, "access_denied", DescSignupDisabled)
 	}
 
 	now := s.now()

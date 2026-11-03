@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -104,6 +105,8 @@ type testEnv struct {
 	rec   *recorder
 	svc   *Service
 	clock atomic.Int64
+	// jar is the default browser's cookies for serve.
+	jar map[string]*http.Cookie
 }
 
 const tid = "t1"

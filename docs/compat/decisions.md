@@ -2404,6 +2404,34 @@ and resumes the authorization through a fresh session and transaction, so
 MFA, consent, organizations and post-login Actions apply as on the hosted
 login. Magic links drop `offline_access`.
 
+**Task 11 local rulings (hosted passwordless).** (30) Login CSRF on
+`/passwordless/verify_redirect`: a GET never consumes anything, a typed code
+included. Both a typed code and a magic link get the confirmation page, and its
+sealed state carries the hash of an `HttpOnly`, `SameSite=Strict` browser
+cookie (`za_pwl_confirm`, path `/passwordless/verify_redirect`, 10 minutes). The
+POST is refused (400, nothing consumed) unless it comes from the browser that
+rendered the form. The page shows the identifier being signed in. auth0.js's
+typed-code redirect therefore needs one extra click; Auth0 documents neither
+the confirmation step nor any binding. (31) The hosted prompt chooses
+passwordless per Auth0's documented table: `connection=email|sms` selects it,
+and without `connection` it is used only when the application has no database
+connection (the one created first; social buttons are shown alongside).
+Identifier-first sends the code from the identifier step instead of moving to
+the password step. Screens: identifier entry on `/u/login` (`login-id` text),
+then `/u/login-passwordless-email-code` or `/u/login-passwordless-sms-otp`.
+These paths and the `zeroauthy.login-passwordless.*` messages are local. The
+hosted send needs no passwordless OTP grant on the client and always sends a
+code (P24). The P3 same-browser rule has no hosted case, because hosted
+transactions never send links. (32) `challenge_passwordless_policy` governs the
+hosted identifier submit (CAPTCHA action `passwordless`) independently of
+`challenge_password_policy`. Resend obeys the same identifier and IP budgets
+as `/passwordless/start` and shows 429 with `limit_phone`/`api_limit` logged.
+(33) With `connection=email|sms` an existing session is not reused
+(documented); `prompt=none` answers `login_required`. Organization membership
+follows the password login (assign on login, otherwise the authorization
+refuses with `access_denied`). As with social connections, the database-only
+`is_signup_enabled` does not apply.
+
 **Interface ruling.** As in D-0059, the route lookup is `Route(op string)
 RouteSchema` because Go cannot declare a type and a function both named
 `Route`. Operation IDs carry a `#variant` suffix where one method and path

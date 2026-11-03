@@ -197,5 +197,48 @@
       "invalidCode": "Le code est incorrect ou a expiré. Réessayez.",
       "tooManyAttempts": "Trop de tentatives. Réessayez plus tard."
     }
+  },
+  "login-id": {
+    "login-id": {
+      "emailPlaceholder": "Adresse e-mail",
+      "phonePlaceholder": "Numéro de téléphone"
+    }
+  },
+  "zeroauthy": {
+    "login-passwordless": {
+      "email-description": "Saisissez votre adresse e-mail et nous vous enverrons un code pour vous connecter à ${companyName}.",
+      "sms-description": "Saisissez votre numéro de téléphone et nous vous enverrons un code par SMS pour vous connecter à ${companyName}.",
+      "invalid-email": "Saisissez une adresse e-mail valide.",
+      "invalid-phone": "Saisissez un numéro de téléphone valide, avec l'indicatif du pays (par exemple +14155550123).",
+      "country-not-allowed": "Les numéros de ce pays ne peuvent pas être utilisés ici.",
+      "too-many-sends": "Trop de codes ont été demandés. Patientez avant d'en demander un autre.",
+      "send-failed": "Le code n'a pas pu être envoyé. Réessayez dans un instant."
+    }
+  },
+  "login-passwordless": {
+    "login-passwordless-email-code": {
+      "pageTitle": "Saisissez votre code",
+      "title": "Consultez votre messagerie",
+      "description": "Nous avons envoyé un e-mail contenant un code à usage unique à l'adresse ci-dessous. Saisissez-le pour continuer vers ${clientName}.",
+      "codePlaceholder": "Code à usage unique",
+      "buttonText": "Continuer",
+      "resendText": "Pas encore de code ?",
+      "resendActionText": "Envoyer un nouveau code",
+      "editText": "Utiliser une autre adresse e-mail",
+      "logoAltText": "${companyName}",
+      "invalid-code": "Ce code est incorrect ou a expiré. Vérifiez-le ou demandez-en un nouveau."
+    },
+    "login-passwordless-sms-otp": {
+      "pageTitle": "Saisissez votre code",
+      "title": "Consultez votre téléphone",
+      "description": "Nous avons envoyé un SMS contenant un code à usage unique au numéro ci-dessous. Saisissez-le pour continuer vers ${clientName}.",
+      "codePlaceholder": "Code à usage unique",
+      "buttonText": "Continuer",
+      "resendText": "Pas encore de code ?",
+      "resendActionText": "Envoyer un nouveau code",
+      "editText": "Utiliser un autre numéro",
+      "logoAltText": "${companyName}",
+      "invalid-code": "Ce code est incorrect ou a expiré. Vérifiez-le ou demandez-en un nouveau."
+    }
   }
 }

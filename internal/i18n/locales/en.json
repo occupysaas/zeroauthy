@@ -237,6 +237,15 @@
       "body": "Follow this link to join the organization.",
       "action": "Accept invitation",
       "expiry": "This invitation expires at"
+    },
+    "login-passwordless": {
+      "email-description": "Enter your email address and we will send you a code to sign in to ${companyName}.",
+      "sms-description": "Enter your phone number and we will text you a code to sign in to ${companyName}.",
+      "invalid-email": "Enter a valid email address.",
+      "invalid-phone": "Enter a valid phone number, including the country code (for example +14155550123).",
+      "country-not-allowed": "Phone numbers from this country cannot be used here.",
+      "too-many-sends": "Too many codes were requested. Wait a while before asking for another one.",
+      "send-failed": "The code could not be sent. Try again in a moment."
     }
   },
   "login-id": {
@@ -245,7 +254,9 @@
       "description": "Enter your email or username to continue to ${companyName}.",
       "usernamePlaceholder": "Email or username",
       "buttonText": "Continue",
-      "invalid-identifier": "Enter your email or username."
+      "invalid-identifier": "Enter your email or username.",
+      "emailPlaceholder": "Email address",
+      "phonePlaceholder": "Phone number"
     }
   },
   "login-password": {
@@ -481,6 +492,30 @@
       "description": "Select the button below to finish signing in with the link from your email.",
       "buttonText": "Sign in",
       "logoAltText": "${companyName}"
+    },
+    "login-passwordless-email-code": {
+      "pageTitle": "Enter your code",
+      "title": "Check your email",
+      "description": "We sent an email with a one-time code to the address below. Enter it to continue to ${clientName}.",
+      "codePlaceholder": "One-time code",
+      "buttonText": "Continue",
+      "resendText": "No code yet?",
+      "resendActionText": "Send a new code",
+      "editText": "Use a different email address",
+      "logoAltText": "${companyName}",
+      "invalid-code": "That code is wrong or has expired. Check it or ask for a new one."
+    },
+    "login-passwordless-sms-otp": {
+      "pageTitle": "Enter your code",
+      "title": "Check your phone",
+      "description": "We sent a text message with a one-time code to the number below. Enter it to continue to ${clientName}.",
+      "codePlaceholder": "One-time code",
+      "buttonText": "Continue",
+      "resendText": "No code yet?",
+      "resendActionText": "Send a new code",
+      "editText": "Use a different phone number",
+      "logoAltText": "${companyName}",
+      "invalid-code": "That code is wrong or has expired. Check it or ask for a new one."
     }
   }
 }

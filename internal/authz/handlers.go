@@ -15,6 +15,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -256,6 +257,11 @@ func (h *Handlers) needsLogin(req Request, sess *store.LoginSession) bool {
 		return true
 	}
 	if req.Connection != "" && sess.Connection != req.Connection {
+		return true
+	}
+	// Documented: with connection=email|sms the existing session is not
+	// reused; the user is prompted (prompt=none: login_required).
+	if connrules.IsPasswordless(req.Connection) {
 		return true
 	}
 	if maxAge, ok := req.MaxAgeSeconds(); ok && (maxAge == 0 || h.now().Sub(sess.AuthenticatedAt) > time.Duration(maxAge)*time.Second) {

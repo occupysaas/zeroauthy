@@ -62,9 +62,14 @@ func TestBotPolicies(t *testing.T) {
 	for _, tc := range []struct {
 		mode, flow           string
 		monitor, allow, want bool
-	}{{"never", "login", false, false, false}, {"always", "login", false, false, true}, {"always", "signup", false, false, true}, {"always", "login", true, false, false}, {"always", "login", false, true, false}, {"always", "refresh", false, false, false}, {"always", "reset-send", false, false, true}} {
+	}{{"never", "login", false, false, false}, {"always", "login", false, false, true}, {"always", "signup", false, false, true}, {"always", "login", true, false, false}, {"always", "login", false, true, false}, {"always", "refresh", false, false, false}, {"always", "reset-send", false, false, true}, {"always", "passwordless", false, false, true}, {"never", "passwordless", false, false, false}} {
 		tenant.ProtectionSettings.Bot.ChallengePasswordPolicy = tc.mode
 		tenant.ProtectionSettings.Bot.ChallengePasswordResetPolicy = tc.mode
+		tenant.ProtectionSettings.Bot.ChallengePasswordlessPolicy = "never"
+		if tc.flow == "passwordless" {
+			tenant.ProtectionSettings.Bot.ChallengePasswordlessPolicy = tc.mode
+			tenant.ProtectionSettings.Bot.ChallengePasswordPolicy = "never"
+		}
 		tenant.ProtectionSettings.Bot.MonitoringModeEnabled = tc.monitor
 		tenant.ProtectionSettings.Bot.Allowlist = nil
 		if tc.allow {

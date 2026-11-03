@@ -152,3 +152,23 @@ exited 0. No full suite was run.
 - Commands:
   - RED: `go test ./internal/passwordless -run 'ConcurrentBlock|LinkedIdentity|LinkObeysBruteForce|CodeAttempts'` exit 1; `go test ./internal/store/memory -run Phone` exit 1; SQL conformance Phone against the old sqlstore exit 1 on all three dialects; email mutation run exit 1.
   - GREEN: `go test ./internal/passwordless ./internal/oauth ./internal/email/... ./internal/store/memory ./internal/store/grpcstore/... ./pkg/storetest/... -count=1` exit 0; `./scripts/test-sql.sh -run 'TestConformance/.*/Phone|Phone' ./internal/store/sqlstore/...` exit 0.
+
+## Task 11: Hosted passwordless login
+
+- What was built:
+  - `internal/login/passwordless.go` adds the hosted `login-passwordless` prompt. The identifier entry is on `/u/login`; codes are entered on `/u/login-passwordless-email-code` or `/u/login-passwordless-sms-otp`, with resend and "use a different email/number". Connections are chosen per Auth0's documented table: `connection=email|sms`, or the first-created passwordless connection when there is no database connection. Identifier-first sends the code instead of going to the password step.
+  - Sends go through `passwordless.Service.Start` with the new `Hosted` flag: codes only (P24), no OTP grant required, same budgets. A correct code ends in `complete` (session, `Authz.Resume`), so MFA, consent, organizations and post-login Actions run as for a password login. Organization membership is applied as for a password login.
+  - `challenge_passwordless_policy` is enforced as a new `passwordless` protection flow.
+  - `connection=email|sms` never reuses an existing session (`authz.needsLogin`).
+- Login CSRF fix carried from Task 10: a GET of `/passwordless/verify_redirect` never consumes anything, a typed code included. It renders the confirmation page, now showing the identifier. The form's sealed state is bound to an `HttpOnly`/`SameSite=Strict` cookie (`za_pwl_confirm`), and a POST from another browser, or with no cookie, is refused with 400 and nothing consumed.
+- Supporting changes:
+  - Templates: `passwordless_identifier.html` and `passwordless_code.html`; `passwordless_link.html` is reused.
+  - English and French text: `login-passwordless.login-passwordless-{email-code,sms-otp}.*`, `login-id.login-id.{email,phone}Placeholder`, `zeroauthy.login-passwordless.*`.
+  - Server routes; D-0060 LR30–33.
+  - Not built (P24 ruling): the hosted "link sent" screen.
+- Commands:
+  - RED: `go test ./internal/login ./internal/authz -run 'Passwordless|IdentifierFirstRoutes' -count=1` exit 1 (build failed: `Handlers.Passwordless`, `PasswordlessCodePage/Submit`, `passwordlessCodeSuffixes` undefined).
+  - RED: `go test ./internal/passwordless -run 'VerifyRedirect|CrossBrowser' -count=1` exit 1. The typed-code GET signed in at once, and the victim's cross-browser POST signed in.
+  - Mutation RED: `go test ./internal/authz -run Passwordless` with the `needsLogin` change reverted, exit 1.
+  - GREEN: the same commands exit 0. `go test ./... -count=1` exit 0. After a gofmt import-order fix, `go test ./internal/{authz,login,passwordless,i18n,ui,protection,server} -count=1` exit 0.
+  - No SQL tests run (no store changes).

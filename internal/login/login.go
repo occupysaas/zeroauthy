@@ -26,6 +26,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -55,6 +56,9 @@ type Handlers struct {
 	// Verification sends the verification email after a signup; nil sends
 	// none.
 	Verification *VerificationMailer
+	// Passwordless serves the hosted passwordless prompt (Plan 34); nil
+	// offers no email or sms connection.
+	Passwordless *passwordless.Service
 	// Device code entry limits (/activate). Each counts misses; a code
 	// that is found refunds its attempt.
 	DeviceTxnThrottle    *identity.Throttle // key: transaction ID
@@ -280,6 +284,13 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if ok, err := h.passwordlessFlow(r, f); err != nil {
+		h.fail(w, r, err, f)
+		return
+	} else if ok {
+		h.passwordlessPage(w, r, f)
+		return
+	}
 	// An explicitly selected federated connection goes straight to the
 	// provider, unless a challenge is due: then the page is shown first.
 	// Identifier-first transactions start at the identifier step; nothing has
@@ -363,6 +374,13 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.organizationStep(w, r, f) {
+		return
+	}
+	if ok, err := h.passwordlessFlow(r, f); err != nil {
+		h.fail(w, r, err, f)
+		return
+	} else if ok {
+		h.passwordlessIdentifierPost(w, r, f)
 		return
 	}
 	var err error
