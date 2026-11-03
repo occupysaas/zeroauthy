@@ -57,6 +57,7 @@ var (
 		"device_code":            parsePage("templates/layout.html", "templates/device_code.html"),
 		"device_confirm":         parsePage("templates/layout.html", "templates/device_confirm.html"),
 		"device_result":          parsePage("templates/layout.html", "templates/device_result.html"),
+		"passwordless_link":      parsePage("templates/layout.html", "templates/passwordless_link.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
 	formGet    = parsePage("templates/form_get.html")
@@ -660,4 +661,16 @@ type OrganizationData struct {
 
 func RenderOrganization(w http.ResponseWriter, status int, t Tenant, d OrganizationData, screen string) {
 	render(w, status, screen, t, d, formActionFor(d.RedirectURI))
+}
+
+// PasswordlessLinkData is the magic-link confirmation page
+// (login-passwordless-email-link text). The page posts the link token back
+// so that link scanners, which only GET, never consume it (D-0060 P3).
+type PasswordlessLinkData struct{ Code, StateToken string }
+
+// RenderPasswordlessLink asks the user to confirm a magic-link sign-in.
+func RenderPasswordlessLink(w http.ResponseWriter, t Tenant, d PasswordlessLinkData) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	render(w, http.StatusOK, "passwordless_link", t, d, "'self'")
 }

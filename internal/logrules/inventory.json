@@ -127,6 +127,11 @@
           "file": "internal/mgmt/auth.go",
           "function": "Auth",
           "when": "Single Management middleware observes a 429 returned by a tenant Management endpoint; no separate general Authentication limiter is added."
+        },
+        {
+          "file": "internal/passwordless/start.go",
+          "function": "reserveStart",
+          "when": "Per-IP /passwordless/start limit or email identifier send budget exhausted (Plan 34)."
         }
       ]
     },
@@ -206,14 +211,20 @@
       "type": "cls",
       "description": "A passwordless sign-in message containing a link or code was dispatched.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/cls",
       "origin": "public-catalog",
-      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 34 emits it; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [
+        {
+          "file": "internal/passwordless/start.go",
+          "function": "Start",
+          "when": "A magic link was accepted by the email provider."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "coff",
@@ -291,14 +302,20 @@
       "type": "cs",
       "description": "A passwordless sign-in code was dispatched.",
       "category": "user.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-notification/cs",
       "origin": "public-catalog",
-      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 34 emits it; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [
+        {
+          "file": "internal/passwordless/start.go",
+          "function": "Start",
+          "when": "A passwordless code was accepted by the email or SMS provider (D-0060 phonerules log_codes)."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "custom_domain_verification_failed",
@@ -322,13 +339,19 @@
       "type": "depnote",
       "description": "A request exercised a deprecated feature.",
       "category": "system.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 45,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/system-notification/depnote",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 emits it; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [
+        {
+          "file": "internal/oauth/passwordless_start.go",
+          "function": "PasswordlessStart",
+          "when": "A confidential client called /passwordless/start without authentication while enforce_client_authentication_on_passwordless_start is off."
+        }
+      ]
     },
     {
       "type": "directory_sync_completed",
@@ -842,14 +865,20 @@
       "type": "fepotpft",
       "description": "A passwordless one-time grant was refused.",
       "category": "auth.token_exchange.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fepotpft",
       "origin": "public-catalog",
-      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 34 emits it; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_passwordless.go",
+          "function": "passwordlessOTPGrant",
+          "when": "Every refused passwordless OTP grant after the grant type is recognised."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "fercft",
@@ -999,6 +1028,11 @@
           "file": "internal/email/service.go",
           "function": "Send",
           "when": "Non-verification email dispatch failure; no published generic success code is invented."
+        },
+        {
+          "file": "internal/passwordless/start.go",
+          "function": "Start",
+          "when": "Passwordless SMS delivery failure (email failures log fn in email.Service)."
         }
       ]
     },
@@ -1099,6 +1133,11 @@
           "file": "internal/dbconn/signup.go",
           "function": "Signup",
           "when": "Direct registration outcome or breach refusal."
+        },
+        {
+          "file": "internal/passwordless/service.go",
+          "function": "create",
+          "when": "Passwordless user creation refused by pre-user-registration."
         }
       ]
     },
@@ -1152,6 +1191,11 @@
           "file": "internal/oauth/grant_password.go",
           "function": "resourceOwner",
           "when": "Known credential mismatch or breach result; choose the matching specific code."
+        },
+        {
+          "file": "internal/passwordless/service.go",
+          "function": "signIn",
+          "when": "Unknown user on a disable_signup passwordless connection at verification."
         }
       ]
     },
@@ -1783,6 +1827,11 @@
           "file": "internal/mgmt/phone_providers.go",
           "function": "reservePhoneSend",
           "when": "A phone provider or template try is refused because the destination send budget is exhausted."
+        },
+        {
+          "file": "internal/passwordless/start.go",
+          "function": "reserveStart",
+          "when": "Passwordless SMS identifier send budget exhausted."
         }
       ],
       "status": "emitted"
@@ -2090,6 +2139,11 @@
           "file": "internal/authz/handlers.go",
           "function": "finish",
           "when": "Successful interactive authorization after Actions and policy checks; not a token exchange."
+        },
+        {
+          "file": "internal/oauth/grant_passwordless.go",
+          "function": "passwordlessOTPGrant",
+          "when": "Successful passwordless OTP grant."
         }
       ]
     },
@@ -2602,6 +2656,11 @@
           "file": "internal/dbconn/signup.go",
           "function": "Signup",
           "when": "Direct registration outcome or breach refusal."
+        },
+        {
+          "file": "internal/passwordless/service.go",
+          "function": "create",
+          "when": "First passwordless verification created the user."
         }
       ]
     },

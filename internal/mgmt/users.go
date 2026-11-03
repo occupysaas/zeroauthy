@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/events"
@@ -23,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -551,6 +553,10 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 	tn := resolved(r)
 	ctx := r.Context()
 	conn, err := h.Store.Connections().GetByName(ctx, tn.ID, in.Connection)
+	if err == nil && connrules.IsPasswordless(conn.Strategy) {
+		h.createPasswordlessUser(w, r, conn, in)
+		return
+	}
 	if errors.Is(err, store.ErrNotFound) || (err == nil && conn.Strategy != store.StrategyDatabase) {
 		Fail(w, errUserConnection)
 		return
@@ -1123,4 +1129,98 @@ func (h *Handlers) ListUserOrganizations(w http.ResponseWriter, r *http.Request,
 		items = append(items, orgView(o))
 	}
 	writeOrgList(w, "organizations", items, res.Total, res.Next, p, checkpoint, false)
+}
+
+// createPasswordlessUser creates a user on an email or sms passwordless
+// connection: no password; the email (email) or E.164 phone_number (sms)
+// identifies the user (D-0060 LR: Auth0 documents creating passwordless
+// users through the Management API; local validation messages).
+func (h *Handlers) createPasswordlessUser(w http.ResponseWriter, r *http.Request, conn *store.Connection, in *userrules.Create) {
+	ctx := events.Enrich(r.Context(), nil, conn)
+	*r = *r.WithContext(ctx)
+	tn := resolved(r)
+	switch {
+	case in.Password != "":
+		Fail(w, badBodyRaw("Passwordless connections do not accept a password"))
+		return
+	case in.Username != "":
+		Fail(w, &Error{Status: http.StatusBadRequest, Code: userrules.CodeOperationNotSupported, Message: "Cannot set username for connection without requires_username"})
+		return
+	}
+	in.Email = loginid.Normalize(in.Email)
+	if in.Email != "" && identity.CheckEmail(in.Email) != nil {
+		Fail(w, badBodyRaw("Object didn't pass validation for format email: "+in.Email))
+		return
+	}
+	var e164 string
+	if conn.Strategy == connrules.StrategySMS {
+		if in.PhoneNumber == "" {
+			Fail(w, badBodyRaw("Missing required property: phone_number"))
+			return
+		}
+		n, err := phone.NormalizeE164(in.PhoneNumber, "")
+		if err != nil {
+			Fail(w, badBodyRaw("phone_number must be an E.164 phone number"))
+			return
+		}
+		e164 = n
+		existing, err := h.Store.Phone().FindUsersByPhone(ctx, tn.ID, conn.Name, e164)
+		if errors.Is(err, store.ErrPhoneUnavailable) {
+			Fail(w, &Error{Status: http.StatusNotImplemented, Code: "phone_unavailable", Message: "Phone features are not available with this storage plugin"})
+			return
+		}
+		if err != nil {
+			Fail(w, internalError(h, r, "find users by phone", err))
+			return
+		}
+		if len(existing) > 0 {
+			Fail(w, errUserExists)
+			return
+		}
+	} else {
+		if in.Email == "" {
+			Fail(w, badBodyRaw("Missing required property: email"))
+			return
+		}
+		if in.PhoneNumber != "" {
+			Fail(w, badBodyRaw(`"phone_number" is not allowed`))
+			return
+		}
+	}
+	if err := identity.CheckProfile(in.GivenName, in.FamilyName, in.Name, in.Nickname, in.Picture); err != nil {
+		Fail(w, badBodyRaw(err.Error()))
+		return
+	}
+	deref := func(b *bool) bool { return b != nil && *b }
+	now := h.now()
+	id := secrets.RandomHex(12)
+	u := &store.User{
+		TenantID: tn.ID, UserID: conn.Strategy + "|" + id, Email: in.Email, EmailVerified: deref(in.EmailVerified),
+		Name: in.Name, Nickname: in.Nickname, Picture: in.Picture, GivenName: in.GivenName, FamilyName: in.FamilyName,
+		UserMetadata: in.UserMetadata, AppMetadata: in.AppMetadata, Blocked: deref(in.Blocked),
+		PhoneNumber: e164, PhoneNormalized: e164, PhoneVerified: deref(in.PhoneVerified), CreatedAt: now, UpdatedAt: now,
+		Identities: []store.Identity{{Connection: conn.Name, Provider: conn.Strategy, UserID: id}},
+	}
+	login := in.Email
+	if e164 != "" {
+		login = e164
+	}
+	u.Name, u.Nickname = identity.DefaultNames(u.Name, u.Nickname, login, "")
+	if u.Picture == "" {
+		u.Picture = userrules.DefaultPicture(in.Email)
+	}
+	if err := h.Store.Users().Create(ctx, u); errors.Is(err, store.ErrConflict) {
+		Fail(w, errUserExists)
+		return
+	} else if err != nil {
+		h.failTx(w, r, "create user", err)
+		return
+	}
+	logDetails(r, "create user", "user_id", u.UserID, "connection", conn.Name)
+	view, viewErr := h.userView(r, u)
+	if viewErr != nil {
+		Fail(w, viewErr)
+		return
+	}
+	writeJSON(w, http.StatusCreated, view)
 }

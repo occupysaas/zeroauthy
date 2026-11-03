@@ -710,3 +710,10 @@ func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *st
 
 type silentAuthorizationKey struct{}
 type silentAuthorizationOutcome struct{ completed bool }
+
+// Deny answers an authorization request with an error, at its redirect_uri
+// (or the error page when the client shows one). Passwordless verification
+// uses it for wrong or used codes and links.
+func (h *Handlers) Deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, code, description string) {
+	h.deny(w, r, res, client, req, &Error{Code: code, Description: description})
+}

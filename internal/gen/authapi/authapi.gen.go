@@ -578,7 +578,7 @@ type OpenIDConfiguration struct {
 	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
 }
 
-// PasswordlessStartRequest defines model for PasswordlessStartRequest.
+// PasswordlessStartRequest Unknown members (extra options auth0.js forwards) are accepted and ignored, as Auth0 does.
 type PasswordlessStartRequest struct {
 	// AuthParams Authorization parameters (scope, state, redirect_uri, response_type, ...) carried into the magic link.
 	AuthParams          *map[string]interface{}                      `json:"authParams,omitempty"`

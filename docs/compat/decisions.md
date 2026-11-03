@@ -2374,6 +2374,35 @@ renderer as trusted values (it drops code-like variables otherwise); voice
 bodies read the code digit by digit for branding, Guardian and Action
 `as_voice` alike; the code and its digit-separated spellings are all masked
 in Action logs, errors, records and slog output.
+(22) `/passwordless/start` accepts and ignores unknown body members (auth0.js
+forwards extra options), relaxing the frozen `additionalProperties: false`.
+(23) The passwordless OTP grant, like the password grants, is first-party
+only, is refused to `organization_usage: require` clients and ignores
+`organization`; Auth0 documents neither point. Its post-login
+`event.transaction.protocol` is `oauth2-resource-owner` and its access token
+`gty` is `password` (undocumented for this grant). (24) A grant refused for a
+blocked user or disabled signup answers 403 `access_denied` (frozen route
+errors), not the password grant's `invalid_grant`; wrong codes answer
+`invalid_grant` "Wrong email or verification code." / "Wrong phone number or
+verification code.". (25) A code is bound to the client it was sent for; a
+code submitted by another client is spent and refused. Starting a code
+expires an outstanding link for the identifier and vice versa (only the
+latest code or link is valid). (26) Start spends the per-IP (50/hour) and
+identifier (10/hour) budgets before the user lookup and even when delivery
+fails; blocked users and disabled-signup unknowns get 403 `access_denied` and
+no message. An email delivery failure answers 500 `server_error`; an SMS
+failure 400 `sms_provider_error` and logs `fn`. (27) The password and
+password-realm grants refuse `realm=email|sms` with their usual
+`invalid_request` (not a database connection). (28) `POST /api/v2/users` on
+`email`/`sms` creates a user without a password (`email|`/`sms|` + 24 hex,
+E.164 phone number, 409 on a duplicate email or number in the connection); a
+password or username is refused with 400. Auth0 documents creating
+passwordless users through the Management API but not these validation
+messages. (29) The magic-link confirmation form carries a sealed state token
+(tenant, link hash, authParams, 10-minute expiry); the POST consumes the link
+and resumes the authorization through a fresh session and transaction, so
+MFA, consent, organizations and post-login Actions apply as on the hosted
+login. Magic links drop `offline_access`.
 
 **Interface ruling.** As in D-0059, the route lookup is `Route(op string)
 RouteSchema` because Go cannot declare a type and a function both named

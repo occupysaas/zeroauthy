@@ -473,5 +473,14 @@
       "invalidCode": "The code is invalid or expired. Try again.",
       "tooManyAttempts": "Too many attempts. Try again later."
     }
+  },
+  "login-passwordless": {
+    "login-passwordless-email-link": {
+      "pageTitle": "Finish signing in",
+      "title": "Finish signing in",
+      "description": "Select the button below to finish signing in with the link from your email.",
+      "buttonText": "Sign in",
+      "logoAltText": "${companyName}"
+    }
   }
 }

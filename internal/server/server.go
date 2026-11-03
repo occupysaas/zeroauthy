@@ -33,6 +33,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
+	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -117,6 +118,8 @@ type authAPI struct {
 	oauth  *oauth.Handlers
 	authz  *authz.Handlers
 	dbconn *dbconn.Handlers
+
+	passwordless *passwordless.Handlers
 }
 
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)   { a.oidc.Discovery(w, r) }
@@ -226,6 +229,11 @@ func New(d Deps) http.Handler {
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 	}
 	az.ResetContinue = lg.ResetContinue
+	pwl := &passwordless.Service{Store: d.Store, Wrapper: d.Wrapper, Email: d.EmailService, Protection: sharedProtection,
+		Actions: d.Actions, Database: db, Recorder: d.Recorder, Log: d.Log}
+	if d.Phone != nil {
+		pwl.SMS = d.Phone
+	}
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
@@ -245,9 +253,11 @@ func New(d Deps) http.Handler {
 				Protection:        sharedProtection,
 				TrustProxyHeaders: d.TrustProxyHeaders,
 				Actions:           d.Actions,
+				Passwordless:      pwl,
 			},
-			authz:  az,
-			dbconn: dbconnHandlers,
+			authz:        az,
+			dbconn:       dbconnHandlers,
+			passwordless: &passwordless.Handlers{Service: pwl, Authz: az, Sessions: d.Sessions, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log},
 		}, authapi.ChiServerOptions{
 			BaseRouter: tr,
 			ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
@@ -261,6 +271,7 @@ func New(d Deps) http.Handler {
 		tr.Options("/userinfo", preflight)
 		tr.Options("/dbconnections/signup", preflight)
 		tr.Options("/dbconnections/change_password", preflight)
+		tr.Options("/passwordless/start", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
 		for _, path := range []string{"/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {

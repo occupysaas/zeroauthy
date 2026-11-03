@@ -635,3 +635,14 @@ func (d *Database) enqueueSignup(ctx context.Context, tx store.Store, conn *stor
 	}
 	return err
 }
+
+// CreatePasswordless inserts a new passwordless (email or sms) user after its
+// first verified code or link: the pre-user-registration flow runs on the
+// prospective user, then the insert queues post-user-registration in the
+// same transaction. ErrUserExists reports a concurrent creation.
+func (d *Database) CreatePasswordless(ctx context.Context, conn *store.Connection, a SignupActions, u *store.User) error {
+	if err := d.runSignupActions(ctx, a, u); err != nil {
+		return err
+	}
+	return d.insertSignup(ctx, conn, a, u, "")
+}

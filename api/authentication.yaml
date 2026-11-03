@@ -229,7 +229,7 @@ paths:
         | `refresh_token` | Exchange a refresh token (from a request with scope `offline_access`) for new tokens. Rotating refresh tokens return a new `refresh_token`; reusing a rotated token revokes all tokens derived from the same login. `scope` may narrow the original scopes. |
         | `password` | Resource owner password: exchange `username` and `password` for tokens. When `realm` is given, the user is looked up in that database connection (which must be enabled for the client), as with the password-realm grant. Otherwise the tenant's default directory (`default_directory`) is used, and a tenant without one rejects the request with `invalid_request`. |
         | `http://auth0.com/oauth/grant-type/password-realm` | As `password`, but `realm` names the database connection to use. The connection must be enabled for the client. |
-        | `http://auth0.com/oauth/grant-type/passwordless/otp` | Exchange a passwordless code: `realm` (`email` or `sms`), `username` (the email or E.164 number) and `otp`. The client must have the grant enabled. Same MFA decision as password grants. `redirect_uri` is validated when sent (D-0060 P11). Runtime lands in Plan 34 Task 10. |
+        | `http://auth0.com/oauth/grant-type/passwordless/otp` | Exchange a passwordless code: `realm` (`email` or `sms`), `username` (the email or E.164 number) and `otp`. The client must have the grant enabled. Same MFA decision as password grants. `redirect_uri` is validated when sent (D-0060 P11). |
 
         **Password grants.** Wrong passwords and unknown users get the same
         `invalid_grant` error. Attempts count against the same per-user and
@@ -777,8 +777,8 @@ paths:
         here. Requests are limited to 50 per hour per IP and by a per
         identifier send budget (`429 too_many_requests`). SMS gateway
         failures answer `400 sms_provider_error`. The success body is the
-        local shape frozen in D-0060 (P1). Runtime lands in Plan 34 Task 10;
-        until then the route answers `501 passwordless_unavailable`.
+        local shape frozen in D-0060 (P1). Storage plugins without Phone v1
+        answer `501 phone_unavailable`.
       x-source:
         - https://auth0.com/docs/api/authentication/passwordless/get-code-or-link
         - https://auth0.com/docs/authenticate/passwordless/implement-login/embedded-login/relevant-api-endpoints
@@ -1432,7 +1432,7 @@ components:
         statusCode: {type: integer, enum: [400]}
     PasswordlessStartRequest:
       type: object
-      additionalProperties: false
+      description: Unknown members (extra options auth0.js forwards) are accepted and ignored, as Auth0 does.
       required: [client_id, connection]
       properties:
         client_id: {type: string}
