@@ -19,6 +19,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -207,10 +208,15 @@ func (a *usersAPI) waitJob(id string) map[string]any {
 // the API; a malformed file fails the job and /errors answers the job.
 func TestUsersImportEndToEnd(t *testing.T) {
 	var runner *jobs.Runner
-	a := newJobsAPI(t, func(d *Deps) { d.JobNotify = func() { runner.Notify() } })
+	var wrapper keys.Wrapper
+	a := newJobsAPI(t, func(d *Deps) {
+		wrapper = d.Wrapper
+		d.JobNotify = func() { runner.Notify() }
+	})
 	runner = &jobs.Runner{
 		Store: a.st, Workers: 1, LeaseFor: time.Second, Poll: time.Hour,
-		Processors: map[store.JobType]jobs.Processor{store.JobUsersImport: jobs.Importer{}},
+		// Match app wiring: malformed input is sealed at ingress too.
+		Processors: map[store.JobType]jobs.Processor{store.JobUsersImport: jobs.Importer{Wrapper: wrapper}},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})

@@ -398,3 +398,22 @@ The Task13 complete Deploy CLI matrix remains actual exit2 because the pinned
 client's provider export expects an incompatible response shape. This phase
 neither adapts that client nor turns the eight-handler diagnostic into a pass.
 M1–M9 observer gaps and discovery-advertisement evidence remain unresolved.
+
+### Task 14b — first full race run and import fixture correction
+
+Sole monitor `task14b_matrix`, snapshot `587f606fb455ced551bb22a96fa14f57728b84c6`.
+`GOTOOLCHAIN=go1.26.7 ZA_REQUIRE_NODE=1 go test -race -timeout=50m ./...`
+started once, session17767, actual exit1 after 29m28s. Private evidence is
+`/tmp/plan33-task14b/01-race.{json,log,exit}`. Two recorded failures:
+`internal/server/TestUsersImportEndToEnd` and
+`internal/logs/TestRecorderNeverWaitsForTenantLookup` (50ms assertion).
+
+The import integration test constructed a worker with an empty `jobs.Importer`,
+while production passes the shared master-key wrapper. Plan33 deliberately seals
+malformed import input too because it cannot be classified as secret-free.
+The existing test reproduced this mismatch with focused race RED exit1; the
+fixture now passes `d.Wrapper`, matching `internal/app` without production changes
+or plaintext fallback. Focused race GREEN server/jobs exit0 includes the original
+integration test and sealed-input binding/tamper/retry/no-plaintext-fallback tests.
+Evidence: `/tmp/plan33-task14b/fix01-import-{red,green}.{json,log,exit}`.
+The first full suite remains failed; a later run must establish the final state.
