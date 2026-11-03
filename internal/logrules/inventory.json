@@ -545,14 +545,14 @@
       "type": "fcpn",
       "description": "An account phone update failed.",
       "category": "user.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-fail/fcpn",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "fcpr",
@@ -1840,14 +1840,14 @@
       "type": "limit_signup_otp",
       "description": "Signup verification traffic exhausted its identifier send budget.",
       "category": "system.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-signup-otp",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "limit_sul",
@@ -2222,14 +2222,14 @@
       "type": "scpn",
       "description": "An account phone number changed.",
       "category": "user.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-success/scpn",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "scpr",

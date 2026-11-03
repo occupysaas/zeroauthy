@@ -23,15 +23,18 @@ const userColsBeforeActionsII = `tenant_id, user_id, email, email_verified, user
 const userCols = userColsBeforeActionsII + `, last_password_reset, remember_browser_epoch, phone_normalized`
 
 func (r users) Create(ctx context.Context, u *store.User) error {
-	args, err := userArgs(u)
-	if err != nil {
-		return err
-	}
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+	return r.s.policyWrite(ctx, u.TenantID, func(tx *Store) error {
+		if err := (users{tx}).checkPhone(ctx, u); err != nil {
+			return err
+		}
+		args, err := userArgs(u)
+		if err != nil {
+			return err
+		}
+		if _, err = tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
-		if err := putLogins(ctx, tx, u, false); err != nil {
+		if err = putLogins(ctx, tx, u, false); err != nil {
 			return err
 		}
 		return syncIdentities(ctx, tx, u, false)
@@ -136,15 +139,18 @@ func (r users) GetForUpdate(ctx context.Context, tenantID, userID string) (*stor
 }
 
 func (r users) Update(ctx context.Context, u *store.User) error {
-	args, err := userArgs(u)
-	if err != nil {
-		return err
-	}
 	return r.s.policyWrite(ctx, u.TenantID, func(tx *Store) error {
+		if err := (users{tx}).checkPhone(ctx, u); err != nil {
+			return err
+		}
+		args, err := userArgs(u)
+		if err != nil {
+			return err
+		}
 		// The stored email and blocked flag decide whether Version moves.
 		var oldEmail string
 		var oldBlocked bool
-		err := tx.queryRow(ctx, `SELECT email, blocked FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate,
+		err = tx.queryRow(ctx, `SELECT email, blocked FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate,
 			u.TenantID, u.UserID).Scan(&oldEmail, &oldBlocked)
 		if errors.Is(err, sql.ErrNoRows) {
 			return store.ErrNotFound

@@ -780,6 +780,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	}
 
 	var changedEmail, changedUsername, changedPassword bool
+	changedPhone := in.PhoneNumber != nil && *in.PhoneNumber != u.PhoneNumber
 	if in.Email != nil {
 		changedEmail = loginid.Normalize(*in.Email) != u.Email
 	}
@@ -793,7 +794,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		for _, change := range []struct {
 			attempted        bool
 			success, failure string
-		}{{changedEmail, "sce", "fce"}, {changedUsername, "scu", "fcu"}, {changedPassword, "scp", "fcp"}} {
+		}{{changedEmail, "sce", "fce"}, {changedUsername, "scu", "fcu"}, {changedPassword, "scp", "fcp"}, {changedPhone, "scpn", "fcpn"}} {
 			if change.attempted {
 				typ := change.failure
 				if changed {
@@ -892,6 +893,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		}
 		// Determine committed changes under the existing row lock, so a
 		// concurrent identical update cannot manufacture another change event.
+		changedPhone = in.PhoneNumber != nil && *in.PhoneNumber != cur.PhoneNumber
 		changedEmail = in.Email != nil && *in.Email != cur.Email
 		changedUsername = in.Username != nil && *in.Username != cur.Username
 		userrules.ApplyPatch(cur, in)

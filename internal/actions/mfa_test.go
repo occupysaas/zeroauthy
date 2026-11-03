@@ -2,8 +2,12 @@ package actions_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
+	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"reflect"
 	"strings"
 	"testing"
@@ -197,5 +201,33 @@ func TestChallengeWithInvalidArgumentsCannotBeCaughtOrHidden(t *testing.T) {
 	for _, body := range []string{`try{api.authentication.challengeWith({type:1n});}catch(e){}`, `const circular={type:'otp'};circular.self=circular;try{api.authentication.challengeWith(circular);}catch(e){}`, `api.authentication.challengeWith({type:'invalid'});throw Error('later');`} {
 		_, err, h := runMFAAction(t, body, true)
 		requireMFAError(t, err, h, "")
+	}
+}
+
+func TestPhoneMethodsInTransaction(t *testing.T) {
+	st := memory.New()
+	ctx := context.Background()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "phone-tx", Name: "phone-tx"}); err != nil {
+		t.Fatal(err)
+	}
+	g, _ := st.MFA().GetGuardian(ctx, "phone-tx")
+	g.Factors["sms"] = true
+	if err := st.MFA().PutGuardian(ctx, g, g.Version); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Phone().CreatePhoneProvider(ctx, &store.PhoneProvider{TenantID: "phone-tx", ID: "p", Name: "custom", Configuration: json.RawMessage(`{"delivery_methods":["text"]}`)}); err != nil {
+		t.Fatal(err)
+	}
+	engine := &actions.Engine{Store: st}
+	svc := mfa.NewService(st, nil, nil, nil, nil, nil)
+	svc.Phone = &phone.Dispatcher{Store: st, Actions: engine}
+	if err := st.WithTx(ctx, func(tx store.Store) error {
+		methods, err := svc.WithStore(tx).PhoneMethods(ctx, "phone-tx")
+		if len(methods) != 0 {
+			t.Fatal("unbound Action offered")
+		}
+		return err
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

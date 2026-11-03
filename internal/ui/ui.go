@@ -181,6 +181,9 @@ func RenderLoginPassword(w http.ResponseWriter, status int, t Tenant, d LoginSta
 }
 
 type SignupData struct {
+	EmailCodeEnabled             bool
+	PhoneEnabled                 bool
+	PhoneNumber                  string
 	State, CSRF, Email, Username string
 	RequiresUsername             bool
 	LoginURL                     string
@@ -541,6 +544,9 @@ func RenderLogoutConfirm(w http.ResponseWriter, t Tenant, d LogoutConfirmData) {
 
 // ResetRequestData is the forgot-password page (screen reset-password-request).
 type ResetRequestData struct {
+	PhoneEnabled       bool
+	PhoneNumber        string
+	CodeEntry          bool
 	State, CSRF, Email string
 	LoginURL           string
 	RedirectURI        string // the client's callback; its origin is allowed as form-action

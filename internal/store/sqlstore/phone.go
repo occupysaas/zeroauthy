@@ -8,6 +8,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/phonenumber"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -278,7 +279,7 @@ func (r phoneRepo) FindUsersByPhone(ctx context.Context, tid, connection, e164 s
 	if e164 == "" {
 		return out, nil
 	}
-	rows, err := r.s.query(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id=? AND phone_normalized=? ORDER BY user_id`+r.s.d.byteOrder, tid, e164)
+	rows, err := r.s.query(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id=? AND (phone_normalized=? OR phone_normalized IS NULL OR phone_normalized='') ORDER BY user_id`+r.s.d.byteOrder, tid, e164)
 	if err != nil {
 		return nil, err
 	}
@@ -287,6 +288,10 @@ func (r phoneRepo) FindUsersByPhone(ctx context.Context, tid, connection, e164 s
 		u, err := scanUser(rows)
 		if err != nil {
 			return nil, err
+		}
+		n, _ := phonenumber.NormalizeE164(u.PhoneNumber, "")
+		if n != e164 {
+			continue
 		}
 		for _, id := range u.Identities {
 			if id.Connection == connection {

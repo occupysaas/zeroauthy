@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
 )
 
@@ -184,6 +185,12 @@ func (h *Handlers) renderMFA(w http.ResponseWriter, r *http.Request, status int,
 			h.fail(w, r, err, f.flow)
 			return
 		}
+		for _, country := range phone.Countries() {
+			if tenantrules.PhoneSettingsOf(f.res.Tenant).CountryAllowed(country) {
+				d.PhoneCountries = append(d.PhoneCountries, country)
+			}
+		}
+		d.PhoneMethod = f.page.Method
 		d.PhoneMethods = methods
 		d.PhoneEnroll = f.page.ChallengeID == ""
 		d.SwitchPhone = len(methods) > 1
@@ -203,7 +210,11 @@ func (h *Handlers) renderMFA(w http.ResponseWriter, r *http.Request, status int,
 			if f.pending.Requirement.Enroll && factor == "recovery-code" {
 				continue
 			}
-			d.Options = append(d.Options, ui.MFAOption{Factor: factor, Label: f.view.L.T(prompt + "." + screen + "." + factor + "Text")})
+			label := f.view.L.T(prompt + "." + screen + "." + factor + "Text")
+			if factor == "phone" {
+				label = f.view.L.T(i18n.KeyPhoneFactor)
+			}
+			d.Options = append(d.Options, ui.MFAOption{Factor: factor, Label: label})
 		}
 	}
 	if f.page.Factor != "" && !f.page.RecoveryPending {
@@ -451,16 +462,25 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		method := r.PostForm.Get("method")
 		if method == "" {
+			method = f.page.Method
+		}
+		if method == "" {
 			method = "sms"
 		}
 		svc := h.MFA
 		if f.pending.Requirement.Reason == "action" {
 			svc = svc.WithNewFactorEnrollment()
 		}
-		e, err := svc.BeginPhoneEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, r.PostForm.Get("phone_number"), method)
+		number := r.PostForm.Get("phone_number")
+		if country := r.PostForm.Get("country"); country != "" {
+			if n, e := phone.NormalizeE164(number, country); e == nil {
+				number = n
+			}
+		}
+		e, err := svc.BeginPhoneEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, number, method)
 		if err != nil {
 			_ = h.saveMFAPage(r, f, "mfa-page")
-			h.renderMFA(w, r, 400, f, "", "Unable to enroll this phone number")
+			h.renderMFA(w, r, 400, f, "", f.view.L.T(i18n.KeyPhoneUnableEnroll))
 			return
 		}
 		f.page.AuthenticatorID = e.AuthenticatorID
@@ -477,7 +497,7 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 	if f.page.Factor == "phone" && r.PostForm.Get("action") == "switch" {
 		methods, err := h.MFA.PhoneMethods(r.Context(), f.res.Tenant.ID)
 		if err != nil || len(methods) < 2 {
-			h.renderMFA(w, r, 400, f, "", "Delivery method unavailable")
+			h.renderMFA(w, r, 400, f, "", f.view.L.T(i18n.KeyPhoneMethodUnavailable))
 			return
 		}
 		method := "voice"
@@ -491,7 +511,7 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 		c, err := h.MFA.BeginPhoneChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, method)
 		if err != nil {
 			_ = h.saveMFAPage(r, f, "mfa-page")
-			h.renderMFA(w, r, 429, f, "", "Unable to send code")
+			h.renderMFA(w, r, 429, f, "", f.view.L.T(i18n.KeyPhoneUnableSend))
 			return
 		}
 		f.page.Method = c.Method

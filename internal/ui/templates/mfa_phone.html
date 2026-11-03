@@ -8,13 +8,14 @@
 <input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
 {{.Tenant.Partials.FormContentStart}}
 {{if .Data.PhoneEnroll}}
-<label for="phone_number">Phone number (including country code)</label><input id="phone_number" name="phone_number" type="tel" autocomplete="tel" required>
-<select name="method">{{range .Data.PhoneMethods}}<option value="{{.}}">{{.}}</option>{{end}}</select>
+<label for="country">{{t .Tenant.L "zeroauthy.phone.countryLabel"}}</label><select id="country" name="country">{{range .Data.PhoneCountries}}<option value="{{.}}">{{.}}</option>{{end}}</select>
+<label for="phone_number">{{t .Tenant.L "zeroauthy.phone.numberLabel"}}</label><input id="phone_number" name="phone_number" type="tel" autocomplete="tel" required>
+<select name="method">{{range .Data.PhoneMethods}}<option value="{{.}}" {{if eq . $.Data.PhoneMethod}}selected{{end}}>{{.}}</option>{{end}}</select>
 {{else}}<p>{{.Data.PhoneNumber}}</p>
 <label for="code">{{t .Tenant.L (printf "%scodeLabel" .Data.Prefix)}}</label><input id="code" name="code" autocomplete="one-time-code" required {{if not .Data.Recovery}}inputmode="numeric" pattern="[0-9]{6}" maxlength="6"{{end}}>
 {{end}}{{if .Data.AllowRemember}}<label><input type="checkbox" name="remember" value="yes">{{t .Tenant.L (printf "%srememberMeText" .Data.Prefix)}}</label>{{end}}
 <button type="submit">{{t .Tenant.L (printf "%sbuttonText" .Data.Prefix)}}</button>
-{{if not .Data.PhoneEnroll}}<button type="submit" name="action" value="resend" formnovalidate>{{t .Tenant.L (printf "%sresendActionText" .Data.Prefix)}}</button>{{if .Data.SwitchPhone}}<button type="submit" name="action" value="switch" formnovalidate>Switch SMS/voice</button>{{end}}{{end}}{{.Tenant.Partials.FormContentEnd}}</form>
+{{if not .Data.PhoneEnroll}}<button type="submit" name="action" value="resend" formnovalidate>{{t .Tenant.L (printf "%sresendActionText" .Data.Prefix)}}</button>{{if .Data.SwitchPhone}}<button type="submit" name="action" value="switch" formnovalidate>{{t .Tenant.L "zeroauthy.phone.switchMethod"}}</button>{{end}}{{end}}{{.Tenant.Partials.FormContentEnd}}</form>
 {{.Tenant.Partials.FormFooterStart}}
 {{if .Data.AnotherURL}}<p><a href="{{.Data.AnotherURL}}">{{t .Tenant.L (printf "%stryAnotherMethodText" .Data.Prefix)}}</a></p>{{end}}
 {{.Tenant.Partials.FormFooterEnd}}

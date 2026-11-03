@@ -213,6 +213,20 @@
       "country-not-allowed": "Les numéros de ce pays ne peuvent pas être utilisés ici.",
       "too-many-sends": "Trop de codes ont été demandés. Patientez avant d'en demander un autre.",
       "send-failed": "Le code n'a pas pu être envoyé. Réessayez dans un instant."
+    },
+    "phone": {
+      "numberLabel": "Numéro de téléphone (avec indicatif pays)",
+      "phoneCodeLabel": "Code de vérification du téléphone",
+      "emailCodeLabel": "Code de vérification par e-mail",
+      "unableSend": "Impossible d’envoyer le code de vérification",
+      "enterCodes": "Saisissez les codes de vérification et envoyez vos informations",
+      "invalidCode": "Code de vérification invalide",
+      "invalidNumber": "Numéro de téléphone invalide",
+      "switchMethod": "Changer entre SMS et appel vocal",
+      "methodUnavailable": "Mode de réception indisponible",
+      "unableEnroll": "Impossible d’inscrire ce numéro de téléphone",
+      "factorLabel": "Téléphone (SMS ou appel vocal)",
+      "countryLabel": "Pays"
     }
   },
   "login-passwordless": {

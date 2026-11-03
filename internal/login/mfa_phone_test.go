@@ -57,7 +57,7 @@ func newPhoneMFAFixture(t *testing.T, types ...string) (*mfaFixture, *hostedPhon
 	f := newMFAFixture(t)
 	r := &hostedPhoneRunner{}
 	f.h.Authz.MFA = f.h.MFA
- f.h.MFA.Phone = &phone.Dispatcher{Store: f.st, Wrapper: f.h.Authz.Wrapper, Actions: r}
+	f.h.MFA.Phone = &phone.Dispatcher{Store: f.st, Wrapper: f.h.Authz.Wrapper, Actions: r}
 	f.policy(t, "sms")
 	ctx := context.Background()
 	g, err := f.st.MFA().GetGuardian(ctx, f.tn.ID)
@@ -239,5 +239,22 @@ func TestHostedSwitchSMSVoice(t *testing.T) {
 	rec = f2.post(t, "/u/mfa-sms-challenge", url.Values{"action": {"switch"}})
 	if r2.count() != sent || f2.location(t, rec) == "/u/mfa-voice-challenge" {
 		t.Fatalf("switch without voice = %d sends=%d", rec.Code, r2.count()-sent)
+	}
+}
+
+func TestHostedPhoneCountryPicker(t *testing.T) {
+	f, r := newPhoneMFAFixture(t, "sms")
+	f.tn.SettingsExtra["country_codes"] = map[string]any{"mode": "allow", "list": []any{"GB"}}
+	if err := f.st.Tenants().Update(t.Context(), f.tn); err != nil {
+		t.Fatal(err)
+	}
+	f.begin(t)
+	page := f.page(t, "/u/mfa-phone-enrollment")
+	if !strings.Contains(page.Body.String(), `name="country"`) || !strings.Contains(page.Body.String(), `value="GB"`) || strings.Contains(page.Body.String(), `value="US"`) {
+		t.Fatalf("picker: %s", page.Body)
+	}
+	page = f.post(t, "/u/mfa-phone-enrollment", url.Values{"phone_number": {"07700 900123"}, "country": {"GB"}})
+	if page.Code != 303 || r.last(t).Message.To != "+447700900123" {
+		t.Fatalf("enrollment=%d %s", page.Code, page.Body)
 	}
 }

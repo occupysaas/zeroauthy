@@ -18,6 +18,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/passhash"
+	"github.com/zeroauthy/zeroauthy/internal/phonenumber"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -196,6 +197,44 @@ func (d *Database) loginLocal(ctx context.Context, conn *store.Connection, login
 		return nil, ErrInvalidCredentials
 	}
 	u, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, norm)
+	if store.PhoneIdentifierActive(conn) {
+		existingKind := ""
+		if u != nil {
+			if u.Email == norm && store.IdentifierActive(conn, "email") {
+				existingKind = "email"
+			} else if u.Username == norm && store.IdentifierActive(conn, "username") {
+				existingKind = "username"
+			} else {
+				u = nil
+				err = store.ErrNotFound
+			}
+		}
+		if number, e := phonenumber.NormalizeE164(login, ""); e == nil {
+			usePhone := u == nil
+			for _, kind := range store.IdentifierPrecedence(conn) {
+				if kind == existingKind {
+					break
+				}
+				if kind == "phone_number" {
+					usePhone = true
+					break
+				}
+			}
+			if usePhone {
+				matches, x := d.Store.Phone().FindUsersByPhone(ctx, conn.TenantID, conn.Name, number)
+				if x != nil {
+					return nil, x
+				}
+				if len(matches) == 1 {
+					u = &matches[0]
+					err = nil
+					norm = number
+				} else if u == nil {
+					err = store.ErrNotFound
+				}
+			}
+		}
+	}
 	if errors.Is(err, store.ErrNotFound) {
 		u = nil
 	} else if err != nil {
@@ -364,6 +403,9 @@ func verifyLocal(u *store.User, hash, password string) (*store.User, error) {
 // the '@'. UserMetadata is stored as given; callers validate its shape.
 // ClientID is the application signing up, passed to a create script.
 type SignupInput struct {
+	PhoneNumber                           string
+	PhoneVerified                         bool
+	EmailVerified                         bool
 	ClientID                              string
 	Email, Username, Password             string
 	GivenName, FamilyName, Name, Nickname string
@@ -398,8 +440,29 @@ func CheckProfile(givenName, familyName, name, nickname, picture string) error {
 // checkSignup validates a signup and returns the normalized email and
 // username (empty unless the connection requires one).
 func checkSignup(conn *store.Connection, in SignupInput) (email, username string, err error) {
+	if in.PhoneNumber != "" && !store.PhoneIdentifierActive(conn) {
+		return "", "", &PolicyError{Reason: "Phone number is not allowed"}
+	}
+	switch store.PhoneSignupStatus(conn) {
+	case "required":
+		if in.PhoneNumber == "" {
+			return "", "", &PolicyError{Reason: "Phone number is required"}
+		}
+	case "not_allowed":
+		if in.PhoneNumber != "" {
+			return "", "", &PolicyError{Reason: "Phone number is not allowed at signup"}
+		}
+	}
+	if store.PhoneIdentifierActive(conn) && in.PhoneNumber != "" {
+		if _, e := phonenumber.NormalizeE164(in.PhoneNumber, ""); e != nil {
+			return "", "", &PolicyError{Reason: "Invalid phone number"}
+		}
+	}
+	if store.PhoneIdentifierActive(conn) && in.PhoneNumber == "" && in.Email == "" {
+		return "", "", &PolicyError{Reason: "Phone number is required"}
+	}
 	email = NormalizeLogin(in.Email)
-	if err := CheckEmail(email); err != nil {
+	if err := CheckEmail(email); err != nil && !(email == "" && store.PhoneIdentifierActive(conn)) {
 		return "", "", err
 	}
 	username = NormalizeLogin(in.Username)
@@ -477,6 +540,7 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 	id := secrets.RandomHex(12)
 	now := d.now().UTC()
 	u := &store.User{
+		EmailVerified: in.EmailVerified, PhoneNumber: in.PhoneNumber, PhoneVerified: in.PhoneVerified,
 		TenantID: conn.TenantID,
 		UserID:   store.StrategyDatabase + "|" + id,
 		Email:    email,

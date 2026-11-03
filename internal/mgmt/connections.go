@@ -564,6 +564,16 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 				return err
 			}
 		}
+		if store.PhoneIdentifierActive(&next) && !store.PhoneIdentifierActive(c) {
+			conflicts, e := connrules.PhonePrecheck(r.Context(), tx, tn.ID, c.Name)
+			if e != nil {
+				return e
+			}
+			if len(conflicts) > 0 {
+				b, _ := json.Marshal(conflicts)
+				return badBodyRaw("Phone identifier conflicts: " + string(b))
+			}
+		}
 		if err := tx.Connections().Update(r.Context(), &next); err != nil {
 			return err
 		}

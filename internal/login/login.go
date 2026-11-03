@@ -591,7 +591,11 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	// Nonempty passwords still reach policy validation after the reservation.
 	var malformed error
 	switch {
-	case strings.TrimSpace(email) == "":
+	case store.PhoneSignupStatus(f.conn) == "not_allowed" && r.PostForm.Get("phone_number") != "":
+		malformed = &identity.PolicyError{Reason: "Phone number is not allowed at signup"}
+	case store.PhoneSignupStatus(f.conn) == "required" && r.PostForm.Get("phone_number") == "":
+		malformed = &identity.PolicyError{Reason: "Phone number is required"}
+	case strings.TrimSpace(email) == "" && !store.PhoneIdentifierActive(f.conn):
 		malformed = identity.CheckEmail("")
 	case r.PostForm.Get("password") == "":
 		malformed = identity.CheckPassword(f.conn, identity.Person{}, "", nil)
@@ -707,8 +711,47 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
 	}
+
+	emailCodeVerified, phoneVerified := false, false
+	phoneNumber := r.PostForm.Get("phone_number")
+	type signupCode struct{ identifier, field string }
+	var proofs []signupCode
+	if email != "" && h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "verify_email_by_code") {
+		proofs = append(proofs, signupCode{email, "email_code"})
+	}
+	if store.PhoneIdentifierActive(f.conn) && store.PhoneSignupVerification(f.conn) && phoneNumber != "" {
+		proofs = append(proofs, signupCode{phoneNumber, "phone_code"})
+	}
+	missing := false
+	for _, proof := range proofs {
+		if r.PostForm.Get(proof.field) == "" {
+			missing = true
+			if e := h.sendIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, proof.identifier, "signup", ""); e != nil {
+				data.Error = f.view.L.T(i18n.KeyPhoneUnableSend)
+			}
+		}
+	}
+	if missing {
+		if data.Error == "" {
+			data.Error = f.view.L.T(i18n.KeyPhoneEnterCodes)
+		}
+		h.renderSignup(w, r, 200, f, data)
+		return
+	}
+	for _, proof := range proofs {
+		if _, e := h.consumeIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, proof.identifier, "signup", r.PostForm.Get(proof.field)); e != nil {
+			data.Error = f.view.L.T(i18n.KeyPhoneInvalidCode)
+			h.renderSignup(w, r, 400, f, data)
+			return
+		}
+		if proof.field == "email_code" {
+			emailCodeVerified = true
+		} else {
+			phoneVerified = true
+		}
+	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
-		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,
+		EmailVerified: emailCodeVerified, PhoneNumber: phoneNumber, PhoneVerified: phoneVerified, ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,
 	})
 	if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
 		h.fail(w, r, riskErr, f)

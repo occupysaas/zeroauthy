@@ -246,6 +246,20 @@
       "country-not-allowed": "Phone numbers from this country cannot be used here.",
       "too-many-sends": "Too many codes were requested. Wait a while before asking for another one.",
       "send-failed": "The code could not be sent. Try again in a moment."
+    },
+    "phone": {
+      "numberLabel": "Phone number (including country code)",
+      "phoneCodeLabel": "Phone verification code",
+      "emailCodeLabel": "Email verification code",
+      "unableSend": "Unable to send verification code",
+      "enterCodes": "Enter the verification codes and submit your details",
+      "invalidCode": "Invalid verification code",
+      "invalidNumber": "Invalid phone number",
+      "switchMethod": "Switch SMS/voice",
+      "methodUnavailable": "Delivery method unavailable",
+      "unableEnroll": "Unable to enroll this phone number",
+      "factorLabel": "Phone (SMS or voice)",
+      "countryLabel": "Country"
     }
   },
   "login-id": {

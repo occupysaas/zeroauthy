@@ -12,6 +12,8 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/eventrules"
+	"github.com/zeroauthy/zeroauthy/internal/phonenumber"
+	"github.com/zeroauthy/zeroauthy/internal/phonerules"
 	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -54,6 +56,7 @@ func Build(ctx context.Context, tenant *store.Tenant, typ string, object, previo
 		}
 		d["previous_object"] = prior
 	}
+	maskEventPhones(d)
 	id := NewEventID()
 	body, err := json.Marshal(map[string]any{"specversion": "1.0", "type": typ, "source": "urn:auth0:" + tenant.CanonicalHost, "id": id, "time": timestamp(at), "a0tenant": tenant.ID, "data": d})
 	if err != nil {
@@ -144,4 +147,22 @@ func Stamp(body []byte, streamID string, test bool) []byte {
 		return append([]byte(nil), body...)
 	}
 	return out
+}
+
+func maskEventPhones(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		for k, val := range x {
+			x[k] = maskEventPhones(val)
+		}
+	case []any:
+		for i, val := range x {
+			x[i] = maskEventPhones(val)
+		}
+	case string:
+		if n, err := phonenumber.NormalizeE164(x, ""); err == nil {
+			return phonerules.MaskPhone(n)
+		}
+	}
+	return v
 }

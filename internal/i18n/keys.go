@@ -111,3 +111,13 @@ const (
 	KeyOrganizationInvalid       = "organizations.organization-selection.invalid-organization"
 	KeyOrganizationChoiceInvalid = "organizations.organization-picker.invalid-organization"
 )
+
+const (
+	KeyPhoneUnableSend        = "zeroauthy.phone.unableSend"
+	KeyPhoneEnterCodes        = "zeroauthy.phone.enterCodes"
+	KeyPhoneInvalidCode       = "zeroauthy.phone.invalidCode"
+	KeyPhoneInvalidNumber     = "zeroauthy.phone.invalidNumber"
+	KeyPhoneMethodUnavailable = "zeroauthy.phone.methodUnavailable"
+	KeyPhoneUnableEnroll      = "zeroauthy.phone.unableEnroll"
+	KeyPhoneFactor            = "zeroauthy.phone.factorLabel"
+)

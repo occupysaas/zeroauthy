@@ -174,10 +174,10 @@ func CheckCreate(c *store.Connection, in *Create) []error {
 	in.Email = loginid.Normalize(in.Email)
 	in.Username = loginid.Normalize(in.Username)
 	switch {
-	case in.Email == "":
+	case in.Email == "" && !store.PhoneIdentifierActive(c):
 		errs = append(errs, invalid("Missing required property: email"))
 	default:
-		if err := checkEmail(in.Email); err != nil {
+		if err := checkEmail(in.Email); err != nil && in.Email != "" {
 			errs = append(errs, err)
 		}
 	}
@@ -189,7 +189,15 @@ func CheckCreate(c *store.Connection, in *Create) []error {
 		}
 	}
 	if in.PhoneNumber != "" {
-		errs = append(errs, invalid(`"phone_number" is not allowed`))
+		if !store.PhoneIdentifierActive(c) {
+			errs = append(errs, invalid(`"phone_number" is not allowed`))
+		} else if n, e := phone.NormalizeE164(in.PhoneNumber, ""); e != nil {
+			errs = append(errs, invalid("Invalid phone number"))
+		} else {
+			in.PhoneNumber = n
+		}
+	} else if store.PhoneIdentifierActive(c) && (in.Email == "" || store.PhoneSignupStatus(c) == "required") {
+		errs = append(errs, invalid("Missing required property: phone_number"))
 	}
 	if in.UserID != "" {
 		if err := checkUserID(in.UserID); err != nil {
@@ -251,7 +259,13 @@ func CheckPatch(c *store.Connection, u *store.User, in *Patch) []error {
 		}
 	}
 	if in.PhoneNumber != nil {
-		errs = append(errs, invalid(`"phone_number" is not allowed`))
+		if !store.PhoneIdentifierActive(c) {
+			errs = append(errs, invalid(`"phone_number" is not allowed`))
+		} else if n, e := phone.NormalizeE164(*in.PhoneNumber, ""); e != nil {
+			errs = append(errs, invalid("Invalid phone number"))
+		} else {
+			in.PhoneNumber = &n
+		}
 	}
 	str := func(p *string, def string) string {
 		if p != nil {
@@ -309,6 +323,9 @@ func ApplyPatch(u *store.User, in *Patch) {
 		}
 	}
 	setStr(&u.Username, in.Username)
+	if in.PhoneNumber != nil && *in.PhoneNumber != u.PhoneNumber {
+		u.PhoneVerified = false
+	}
 	setStr(&u.PhoneNumber, in.PhoneNumber)
 	if in.PhoneNumber != nil {
 		u.PhoneNormalized = NormalizePhone(u.PhoneNumber)

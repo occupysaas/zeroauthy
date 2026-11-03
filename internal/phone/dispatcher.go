@@ -188,6 +188,11 @@ func (d *Dispatcher) bound(ctx context.Context, tid, trigger string) (bool, erro
 	if d.Actions == nil {
 		return false, nil
 	}
+	if scoped, ok := d.Actions.(interface {
+		PhoneActionBoundOnStore(context.Context, store.Store, string, string) (bool, error)
+	}); ok {
+		return scoped.PhoneActionBoundOnStore(ctx, d.Store, tid, trigger)
+	}
 	return d.Actions.PhoneActionBound(ctx, tid, trigger)
 }
 

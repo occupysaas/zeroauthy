@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/phonenumber"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -201,7 +202,8 @@ func (r phoneRepo) FindUsersByPhone(_ context.Context, tid, connection, e164 str
 		return out, nil
 	}
 	for k, u := range r.s.users {
-		if k.tenant != tid || u.PhoneNormalized != e164 {
+		n, _ := phonenumber.NormalizeE164(u.PhoneNumber, "")
+		if k.tenant != tid || n != e164 {
 			continue
 		}
 		for _, id := range u.Identities {

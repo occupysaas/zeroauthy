@@ -11,7 +11,9 @@ type MFAData struct {
 	// RedirectURI is the validated OAuth callback, as on other hosted forms.
 	RedirectURI                                        string
 	PhoneNumber                                        string
+	PhoneMethod                                        string
 	PhoneMethods                                       []string
+	PhoneCountries                                     []string
 	PhoneEnroll, SwitchPhone                           bool
 	Revision                                           int64
 	QR                                                 template.HTML

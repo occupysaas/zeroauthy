@@ -81,3 +81,21 @@ func TestSendPasswordlessCodeTemplate(t *testing.T) {
 		t.Fatalf("disabled template = %+v", got)
 	}
 }
+
+func TestCodeBasedEmailTemplatesUsed(t *testing.T) {
+	for _, name := range []string{"verify_email_by_code", "reset_email_by_code"} {
+		t.Run(name, func(t *testing.T) {
+			ctx, st, _, fallback, _, svc := emailServiceFixture(t)
+			if err := st.EmailTemplates().Put(ctx, &store.EmailTemplate{TenantID: "tenant-a", Name: name, Fields: map[string]any{"template": name, "body": "<p>Verification {{ code }}</p>", "subject": name, "from": "tpl@example.test", "enabled": true}}, 0); err != nil {
+				t.Fatal(err)
+			}
+			if err := svc.SendPasswordless(ctx, PasswordlessEmail{TenantID: "tenant-a", To: "ada@example.test", Template: name, Code: "123456"}); err != nil {
+				t.Fatal(err)
+			}
+			got := fallback.messages[len(fallback.messages)-1]
+			if got.Type != name || got.Subject != name || !strings.Contains(got.HTML, "123456") {
+				t.Fatalf("%+v", got)
+			}
+		})
+	}
+}

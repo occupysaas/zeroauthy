@@ -394,6 +394,7 @@ func normalize(s *Spec, api bool) []error {
 	}
 
 	errs = append(errs, normalizeExtra(o)...)
+	errs = append(errs, normalizePhoneAttributes(o)...)
 	errs = append(errs, normalizeCustomDB(o, api)...)
 
 	if api && o.Extra == nil {
@@ -425,6 +426,7 @@ func normalizeFederated(s *Spec) []error {
 		}
 	}
 	errs = append(errs, normalizeExtra(o)...)
+	errs = append(errs, normalizePhoneAttributes(o)...)
 	_, ruleErrs := rules.Parse(s.FederationInput())
 	return append(errs, ruleErrs...)
 }

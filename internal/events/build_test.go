@@ -233,3 +233,21 @@ func TestBuildUpdatedRequiresPrevious(t *testing.T) {
 		})
 	}
 }
+
+func TestPhoneChangeEventMasksNumbers(t *testing.T) {
+	u := testUser()
+	u.PhoneNumber = "+14155550100"
+	u.Name = u.PhoneNumber
+	previous := *u
+	previous.PhoneNumber = "+14155550101"
+	event, err := Build(context.Background(), testTenant, "user.updated", u, &previous, testTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(event.Body, []byte("+14155550100")) || bytes.Contains(event.Body, []byte("+14155550101")) {
+		t.Fatalf("unmasked event: %s", event.Body)
+	}
+	if !bytes.Contains(event.Body, []byte("XXXXXXXX0100")) {
+		t.Fatalf("missing masked phone: %s", event.Body)
+	}
+}

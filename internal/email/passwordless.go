@@ -17,6 +17,7 @@ const PasswordlessTemplate = "auth_email_by_code"
 type PasswordlessEmail struct {
 	TenantID, ClientID, To, Language string
 	Code, Link                       string
+	Template                         string
 	// From, Subject and Body are the connection's email options (Liquid).
 	From, Subject, Body string
 }
@@ -31,9 +32,16 @@ func (s *Service) SendPasswordless(ctx context.Context, m PasswordlessEmail) err
 		return ErrServiceUnavailable
 	}
 	ctx = logscrub.WithCredentials(ctx, m.Code, m.Link)
+	templateName := m.Template
+	if templateName == "" {
+		templateName = PasswordlessTemplate
+	}
+	if templateName != PasswordlessTemplate && templateName != "verify_email_by_code" && templateName != "reset_email_by_code" {
+		return store.ErrInvalid
+	}
 	fields := map[string]string{"from": m.From, "subject": m.Subject, "html": m.Body}
 	if m.Code != "" {
-		policy, err := s.Resolve(ctx, m.TenantID, PasswordlessTemplate)
+		policy, err := s.Resolve(ctx, m.TenantID, templateName)
 		if err != nil {
 			return err
 		}
@@ -84,7 +92,7 @@ func (s *Service) SendPasswordless(ctx context.Context, m PasswordlessEmail) err
 	if err != nil {
 		return err
 	}
-	msg := Message{Type: PasswordlessTemplate, Locale: language, ClientID: m.ClientID, From: rendered.From, To: m.To,
+	msg := Message{Type: templateName, Locale: language, ClientID: m.ClientID, From: rendered.From, To: m.To,
 		Subject: rendered.Subject, HTML: rendered.HTML, Text: htmlToText(rendered.HTML)}
 	return s.deliver(ctx, m.TenantID, msg, provider)
 }

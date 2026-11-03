@@ -40,7 +40,11 @@ type phoneSnapshot struct {
 
 // PhoneActionBound reports whether trigger has a deployed, bound Action.
 func (e *Engine) PhoneActionBound(ctx context.Context, tid, trigger string) (bool, error) {
-	bound, err := e.Store.Actions().Bindings(ctx, tid, trigger)
+	return e.PhoneActionBoundOnStore(ctx, e.Store, tid, trigger)
+}
+
+func (e *Engine) PhoneActionBoundOnStore(ctx context.Context, st store.Store, tid, trigger string) (bool, error) {
+	bound, err := st.Actions().Bindings(ctx, tid, trigger)
 	return len(bound) > 0, err
 }
 

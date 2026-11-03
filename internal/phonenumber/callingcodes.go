@@ -1,4 +1,4 @@
-package phone
+package phonenumber
 
 // callingCode maps an ITU calling code (1-3 digits) to its principal ISO 3166
 // alpha-2 country. +1 and +7 are refined in CountryCode.

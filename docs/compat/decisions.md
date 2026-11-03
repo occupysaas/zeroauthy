@@ -2494,3 +2494,24 @@ as the docs state.
 hosted prompt sends codes only and links come from `/passwordless/start`. The
 `login-passwordless-email-link` text serves the link confirmation page. This
 narrows spec §3's hosted description.
+
+**Plan 34 Task 13 local rulings (LR34–36).** Phone identifier normalization is
+shared through the internal `phonenumber` primitive package; the existing
+`phone` helpers retain their signatures. Phone signup uses a verification
+code before creating a user; an enabled `verify_email_by_code` template
+selects email code verification at hosted signup, and an enabled
+`reset_email_by_code` template selects hosted email reset codes. Codes expire
+after five minutes, permit three guesses, and are replaced on resend; reset
+codes carry a sealed reset ticket and only a successful code POST opens the
+normal password-reset form (policy, breach, Actions and MFA still apply).
+Phone verification is required when a phone identifier is supplied at signup
+unless its `signup.verification.active` is explicitly false.
+Phone codes for signup and reset share identifier and IP send budgets of
+10 and 50 per hour respectively. (LR) Tenant events mask phone values in
+both current and previous objects, including linked profile data, regardless
+of Management API obfuscation settings. The frozen upstream event catalog
+stays intact; the runtime event schema accepts the documented masked form
+alongside E.164 so emitted events remain valid. Consumers must treat event
+phone numbers as display values; use authorized Management API reads for
+full numbers. These choices can require an extra code step or a full-number
+lookup compared with clients expecting the unmasked upstream event schema.
