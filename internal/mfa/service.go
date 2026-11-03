@@ -46,6 +46,9 @@ type Service struct {
 	now           func() time.Time
 	proofCommit   func(store.Store) error
 	newFactorOnly bool
+	// pendingRecovery is the hash of a recovery code already displayed at
+	// association; it is persisted only when the enrollment is confirmed.
+	pendingRecovery string
 }
 
 // NewService uses the repository's master-key wrapper and atomic protection
@@ -127,6 +130,9 @@ func (s *Service) BeginEnroll(ctx context.Context, tid, uid, factor, rpID string
 		return nil, err
 	}
 	a := &store.Authenticator{TenantID: tid, UserID: uid, ID: NewMethodID(typ), Type: typ, LastStep: -1, CreatedAt: s.now()}
+	if typ == "totp" {
+		a.CodeHash = s.pendingRecovery
+	}
 	e := &Enrollment{Factor: factorName(typ), AuthenticatorID: a.ID}
 	switch typ {
 	case "totp":
@@ -436,7 +442,12 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 					break
 				}
 			}
-			if !hasRecovery {
+			if !hasRecovery && current.Type == "totp" && current.CodeHash != "" {
+				// The code was displayed at association; persist it now.
+				if e = tx.MFA().ReplaceRecoveryCode(ctx, tid, uid, "", current.CodeHash, s.now()); e != nil {
+					return e
+				}
+			} else if !hasRecovery {
 				recovery := NewRecoveryCode()
 				ctx = s.operationContext(ctx, recovery)
 				if e = tx.MFA().ReplaceRecoveryCode(ctx, tid, uid, "", secrets.HashToken(recovery), s.now()); e != nil {
@@ -624,5 +635,15 @@ func (s *Service) BeginOTPChallenge(ctx context.Context, tid, uid, code string, 
 func (s *Service) WithNewFactorEnrollment() *Service {
 	local := *s
 	local.newFactorOnly = true
+	return &local
+}
+
+// WithPendingRecovery returns a request-local view whose TOTP enrollment
+// carries the hash of a recovery code displayed at association (MFA API
+// /mfa/associate). The recovery method is created only when that enrollment
+// is confirmed and the user has none; an abandoned association creates none.
+func (s *Service) WithPendingRecovery(hash string) *Service {
+	local := *s
+	local.pendingRecovery = hash
 	return &local
 }

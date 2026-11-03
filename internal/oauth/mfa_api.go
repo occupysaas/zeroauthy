@@ -226,6 +226,29 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 	if actionEnroll {
 		svc = svc.WithNewFactorEnrollment()
 	}
+	// §7 displays the first recovery code at OTP association, before the OTP
+	// is confirmed. It is persisted only by the confirmation (see
+	// Service.WithPendingRecovery), so an abandoned association leaves none.
+	recovery := ""
+	if factor == "otp" {
+		list, err := h.Store.MFA().ListAuthenticators(r.Context(), res.Tenant.ID, caller.uid)
+		if err != nil {
+			writeError(w, mfaError(err))
+			return
+		}
+		// Show it only to the first association: not when a recovery method
+		// exists, nor while another recent association already displayed one
+		// (whichever confirms first persists its code; a later confirmation
+		// without a displayed code receives a fresh one in the grant).
+		outstanding := func(a store.Authenticator) bool {
+			return a.Type == "recovery-code" || a.Type == "totp" && !a.Confirmed && a.CodeHash != "" && h.now().Before(a.CreatedAt.Add(mfaTokenLifetime))
+		}
+		if !slices.ContainsFunc(list, outstanding) {
+			recovery = mfa.NewRecoveryCode()
+			logs.AddCredentials(r.Context(), recovery)
+			svc = svc.WithPendingRecovery(secrets.HashToken(recovery))
+		}
+	}
 	enrollment, err := svc.BeginEnroll(r.Context(), res.Tenant.ID, caller.uid, factor, "")
 	if err != nil {
 		if actionEnroll && errors.Is(err, mfa.ErrNoFactor) {
@@ -240,16 +263,8 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 		body["authenticator_type"] = "otp"
 		body["secret"] = enrollment.Secret
 		body["barcode_uri"] = enrollment.URI
-		// §7 displays the first recovery code at association, before the OTP is
-		// confirmed. Recovery verification still requires a confirmed primary.
-		code := mfa.NewRecoveryCode()
-		err = h.Store.MFA().ReplaceRecoveryCode(r.Context(), res.Tenant.ID, caller.uid, "", secrets.HashToken(code), h.now())
-		if err == nil {
-			body["recovery_codes"] = []string{code}
-			logs.AddCredentials(r.Context(), code)
-		} else if !errors.Is(err, store.ErrPrecondition) {
-			writeError(w, mfaError(err))
-			return
+		if recovery != "" {
+			body["recovery_codes"] = []string{recovery}
 		}
 	} else {
 		body["authenticator_type"] = "oob"

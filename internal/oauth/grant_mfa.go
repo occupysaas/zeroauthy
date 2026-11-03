@@ -35,6 +35,9 @@ type mfaEnvelope struct {
 	Sealed []byte `json:"sealed"`
 }
 
+// mfaTokenLifetime bounds an mfa_token and its MFA API associations.
+const mfaTokenLifetime = 10 * time.Minute
+
 func mfaBinding(t *store.MFAToken) []string {
 	return []string{t.TenantID, t.Hash, t.ClientID, t.UserID, t.Connection}
 }
@@ -69,7 +72,7 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 		return mfaUnavailableError()
 	}
 	raw := secrets.RandomString(48)
-	t := &store.MFAToken{TenantID: res.Tenant.ID, Hash: secrets.HashToken(raw), ClientID: c.ClientID, UserID: u.UserID, Connection: conn.ID, ExpiresAt: now.Add(10 * time.Minute)}
+	t := &store.MFAToken{TenantID: res.Tenant.ID, Hash: secrets.HashToken(raw), ClientID: c.ClientID, UserID: u.UserID, Connection: conn.ID, ExpiresAt: now.Add(mfaTokenLifetime)}
 	p, err := json.Marshal(mfaRequest{Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
 	if err != nil {
 		return serverError()

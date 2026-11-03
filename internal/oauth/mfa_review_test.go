@@ -108,3 +108,28 @@ func TestMFADisabledFactorReplacementEnrollment(t *testing.T) {
 		t.Fatalf("replacement OOB=%d %v", w.Code, b)
 	}
 }
+
+// Review M2: /mfa/associate displays the first recovery code but persists it
+// only when the OTP enrollment is confirmed; the displayed code then works.
+func TestMFAAssociateRecoveryPersistedOnConfirm(t *testing.T) {
+	f, _ := mfaFixture(t)
+	ctx := context.Background()
+	tid, uid := f.tenantID(t, "acme"), f.aliceID(t)
+	tok := f.mfaRequired(t)
+	s, code := f.associateOTP(t, tok)
+	list, _ := f.st.MFA().ListAuthenticators(ctx, tid, uid)
+	for _, a := range list {
+		if a.Type == "recovery-code" {
+			t.Fatal("recovery code persisted before OTP confirmation")
+		}
+	}
+	b := f.proveOTP(t, tok, s)
+	if b["recovery_code"] != nil {
+		t.Fatalf("second recovery code issued: %v", b)
+	}
+	tok = f.mfaRequired(t)
+	w, b := f.call(t, false, tokenCall{host: acmeHost, form: mfaForm(recoveryGrant, tok, "recovery_code", code)})
+	if w.Code != 200 {
+		t.Fatalf("displayed recovery code rejected: %d %v", w.Code, b)
+	}
+}
