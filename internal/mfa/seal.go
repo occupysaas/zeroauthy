@@ -11,6 +11,7 @@ import (
 // SealTOTPSecret seals enrollment or imported TOTP material under the master
 // key, bound to its tenant, user and authenticator. Errors never include material.
 func SealTOTPSecret(w keys.Wrapper, tid, uid, id, secret string) ([]byte, error) {
+	secret = NormalizeTOTPSecret(secret)
 	key, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(secret)
 	if err != nil || len(key) == 0 || tid == "" || uid == "" || id == "" {
 		return nil, store.ErrInvalid
@@ -57,5 +58,5 @@ func (s *Service) EnrollmentDisplay(ctx context.Context, tid, uid, id string) (*
 	if issuer == "" {
 		issuer = t.Name
 	}
-	return &Enrollment{Factor: "otp", AuthenticatorID: id, Secret: string(plain), URI: TOTPURI(issuer, u.Email, string(plain))}, nil
+	return &Enrollment{Factor: "otp", AuthenticatorID: id, Secret: string(plain), URI: TOTPURI(issuer, TOTPAccount(u), string(plain))}, nil
 }

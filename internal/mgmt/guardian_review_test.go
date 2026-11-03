@@ -41,3 +41,15 @@ func TestGuardianEnrollmentDoesNotScanUsers(t *testing.T) {
 		t.Fatalf("deleted %d %s", r.Code, r.Body)
 	}
 }
+
+// Review M5: a Management API totp_secret in lower case or with padding is
+// normalized rather than rejected.
+func TestAuthMethodTOTPSecretNormalized(t *testing.T) {
+	e, uid := mfaUser(t)
+	for _, secret := range []string{"jbswy3dpehpk3pxp", "JBSW Y3DP EHPK 3PXP", "MZXW6==="} {
+		r, _ := mfaCall(t, e.clientsEnv, "CreateAuthenticationMethods", uid, "", map[string]any{"type": "totp", "totp_secret": secret}, "")
+		if r.Code != 201 {
+			t.Fatalf("%q: %d %s", secret, r.Code, r.Body)
+		}
+	}
+}

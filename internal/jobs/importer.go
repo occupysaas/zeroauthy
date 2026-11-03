@@ -621,6 +621,7 @@ func check(conn *store.Connection, obj map[string]any) (*fields, []store.JobErro
 					valid := false
 					switch typ {
 					case "totp":
+						value = mfa.NormalizeTOTPSecret(value)
 						b, e := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(value)
 						valid = e == nil && len(b) > 0
 					case "email":

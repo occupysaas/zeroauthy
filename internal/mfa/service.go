@@ -147,7 +147,7 @@ func (s *Service) BeginEnroll(ctx context.Context, tid, uid, factor, rpID string
 		if issuer == "" {
 			issuer = tenant.Name
 		}
-		e.URI = TOTPURI(issuer, user.Email, e.Secret)
+		e.URI = TOTPURI(issuer, TOTPAccount(user), e.Secret)
 		ctx = s.operationContext(ctx, e.URI)
 	case "email":
 		if !user.EmailVerified || user.Email == "" {
