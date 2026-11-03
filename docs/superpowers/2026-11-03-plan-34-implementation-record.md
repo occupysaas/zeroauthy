@@ -211,3 +211,22 @@ exited 0. No full suite was run.
 - Commit `fd05696` contains Task 13 and its Task 12 integration follow-ups. Final signup-status/UI check (`.tmp/task13-final-ui2.log`) exited 0; `not_allowed` signup refuses before sending a code.
 - Phone v1 compatibility tests initially showed identifier enablement returning 200 and hosted phone login returning 500 with an old plugin (`.tmp/task13-plugin-red.log`). The enable precheck now probes Phone v1 and Management/hosted/password-grant paths map the unavailable capability to `501 phone_unavailable`. Covering command `go test ./internal/login ./internal/mgmt ./internal/oauth ./internal/connrules ./internal/seed -run 'Phone|ResetByPhone|CodeBased|Password' -count=1` exited 0 (`.tmp/task13-plugin-green.log`).
 - `make check-sources` was rerun after the documentation/schema changes and exited 0 (`.tmp/task15-final-check-sources.log`, `.exit`).
+
+## Task 14: Console
+
+- Commit `50ad07b`: passwordless email/SMS pages with application enablement and test sends; Twilio/SNS/Custom provider forms and deployed Action picker; phone template edit/reset/try and escaped sample preview; live SMS/voice MFA controls; database phone identifiers with conflict-list display; user phone edits and phone MFA enrollments. Provider/connection credentials stay blank and write-only; connection list requests explicitly project public fields. SMS-only providers disable voice. Regenerated console API types and rebuilt `console/dist` are committed.
+- Test-first RED: `make console` exit 2, eight new component failures with 625 existing tests passing (`.tmp/task14/make-console-red.log`). Additional focused RED cases covered public projections, Action gating, application enablement, clearing email overrides, legacy Guardian routing and voice-to-text transitions.
+- Final `make console` exited **0** (`.tmp/task14/make-console-green-2.log`): generated API types, ESLint with zero warnings, vue-tsc, all **78 files / 641 tests**, and Vite production build. No skips or final test stderr. Vite retained its existing >500 kB bundle advisory. Snapshot: base `86f82722f3a7cdea434f3393035826799bf7cf6b` plus console changes, then isolated console-only commit `50ad07b`.
+- Intermediate results are retained in the task report/logs: first postimplementation full check exited 2 on five navigation/projection/locale/control-order expectations (636 passed); corrected before the final green run. One initial focused component run exited 143 when an incomplete pagination fixture caused an endless loop; its fixture was fixed and later runs passed. It is not reported as passing. Full report: `.superpowers/sdd/2026-11-03-zeroauthy-plan-34-passwordless-phone/task14-report-current.md`.
+- Practical limits: template preview is escaped sample substitution; server sends evaluate Liquid. Console availability uses public configuration and deployed Action bindings; real delivery is checked with the try form. Custom Action binding and provider writes are separate Management API operations; a failed provider save can leave the selected binding updated, as explained in the form.
+
+## Requested stopping point
+
+Tasks **12–15** are implemented and committed on `plan-34-passwordless-phone`
+in `/mnt/nvme2/code/zeroauthy-plan34`. Task **16** (end-to-end acceptance,
+full final regression, completion audit and whole-branch final review) has
+**not** been started, at the user's request. No push or merge was performed.
+The Plan 34 workspace, test logs, intermediate failures/skips and ledger are
+retained for the next continuation. Earlier deferred minors remain in the
+ledger for that final review; this record does not claim the whole plan is
+finished or release-ready.
