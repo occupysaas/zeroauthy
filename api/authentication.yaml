@@ -1182,6 +1182,8 @@ components:
             - sms
             - voice
             - auth0
+        phone_number:
+          type: string
         email:
           type: string
         client_id:

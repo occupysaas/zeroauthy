@@ -178,3 +178,11 @@ exited 0. No full suite was run.
 - SMS users are named by their number, so success events (`s`, later `ssa`, grant events) carried the full number. `logs.RecordEvent` now masks any E.164-shaped `user_name`, and the passwordless event sites (hosted `complete`, `verify_redirect`, OTP grant) mask the name explicitly.
 - RED: `go test ./internal/logs ./internal/login ./internal/passwordless -run 'MasksPhone|HostedSMSCodeLogin|SMSVerifyRedirectMasks' -count=1` exit 1.
 - GREEN: `go test ./internal/login ./internal/authz ./internal/passwordless ./internal/logs ./internal/oauth ./internal/logrules -count=1` exit 0; `go test ./... -count=1` exit 0.
+
+## Task 12: SMS and voice MFA
+
+- Resumed the existing uncommitted Task 12 tests and partial implementation at `d8aa9e8`. Added phone enrollment/challenges, country restrictions, working-provider and delivery-method checks, shared durable per-user phone sends (10/hour; voice 1/hour), hosted phone enrollment/SMS/voice challenge and switching, MFA API OOB association/challenge/grant, phone obfuscation under the documented flag, phone Action preferred methods, Guardian settings events, and application wiring. Outstanding codes survive provider changes; unavailable delivery fails closed.
+- RED: focused MFA/login/oauth/mgmt/actions test command failed with missing `PhoneSender`, `preparePhone`, `sendPhone`. Logs: `.tmp/task12-red.log`.
+- GREEN: `GOTOOLCHAIN=go1.26.7 go test ./internal/mfa ./internal/login ./internal/oauth ./internal/mgmt ./internal/actions ./internal/mfarules -run 'Phone|SMS|Voice|OOB|Obfuscate|DeferredLogOwners' -count=1`, exit 0 (`.tmp/task12-final-focused2.log`). `make generate` exit 0. Broader affected-package run initially failed on duplicate enrollment-failure events and a stale Plan 33 log-owner assertion; both corrected. Its MFA/login/oauth/mgmt/actions/authz/ui/API packages passed; mfarules passed in the final focused run.
+- Ruling: failed voice delivery spends its send budget, consistent with the existing email/send policy and phone throttle test. The inherited failure test advances an hour before a successful retry. Cost if wrong: a failed voice attempt delays retry for an hour.
+- Task 16 acceptance and final review are deliberately deferred at the user's boundary.

@@ -191,7 +191,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
@@ -275,7 +275,7 @@ func New(d Deps) http.Handler {
 		tr.Options("/passwordless/start", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
-		for _, path := range []string{"/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
+		for _, path := range []string{"/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
 			tr.Get(path, lg.MFAPage)
 			tr.Post(path, lg.MFASubmit)
 		}

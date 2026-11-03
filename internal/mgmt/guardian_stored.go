@@ -97,6 +97,9 @@ func (h *Handlers) guardianStored(w http.ResponseWriter, r *http.Request, route 
 		return
 	}
 	code := "gd_tenant_update"
+	if strings.Contains(path, "/sms/") || strings.Contains(path, "/phone/") {
+		code = "gd_phone_settings_update"
+	}
 	if strings.Contains(path, "/email/") {
 		code = "gd_email_settings_update"
 	}

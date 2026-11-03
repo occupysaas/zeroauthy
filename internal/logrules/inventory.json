@@ -1385,14 +1385,14 @@
       "type": "gd_phone_settings_update",
       "description": "The MFA phone factor configuration changed.",
       "category": "management.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/management-success/gd-phone-settings-update",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "gd_recovery_failed",
@@ -1505,53 +1505,53 @@
       "type": "gd_send_sms",
       "description": "An MFA text challenge was dispatched.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "gd_send_sms_failure",
       "description": "An MFA text challenge could not be dispatched.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms-failure",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "gd_send_voice",
       "description": "An MFA voice challenge was dispatched.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "gd_send_voice_failure",
       "description": "An MFA voice challenge could not be dispatched.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice-failure",
       "origin": "public-catalog",
       "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
-      "status": "deferred"
+      "status": "emitted"
     },
     {
       "type": "gd_start_auth",

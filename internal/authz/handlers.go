@@ -39,6 +39,7 @@ const (
 )
 
 type Handlers struct {
+	MFA      *mfa.Service
 	Store    store.Store
 	Sessions *session.Manager
 	Log      *slog.Logger

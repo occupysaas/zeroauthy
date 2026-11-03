@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -258,6 +259,39 @@ func (d *Dispatcher) Working(ctx context.Context, tid string, r Route) (bool, er
 		return false, err
 	}
 	return p.working(), nil
+}
+
+// DeliveryMethods returns the delivery methods ("text", "voice") the
+// working provider of route r can use, or nil when it does not work. A
+// branding provider offers its configured delivery_methods limited to what
+// its adapter supports (sns is text only); Guardian Twilio and the
+// send-phone-message Action offer both.
+func (d *Dispatcher) DeliveryMethods(ctx context.Context, tid string, r Route) ([]string, error) {
+	p, err := d.resolve(ctx, tid, r)
+	if err != nil || !p.working() {
+		return nil, err
+	}
+	both := []string{"text", "voice"}
+	if p.rule.Sender != "branding" {
+		return both, nil
+	}
+	var cfg struct {
+		Methods []string `json:"delivery_methods"`
+	}
+	_ = json.Unmarshal(p.provider.Configuration, &cfg)
+	var supported []string
+	for _, pr := range rules().providers {
+		if pr.Name == p.provider.Name {
+			supported = pr.DeliveryMethods
+		}
+	}
+	var out []string
+	for _, m := range both {
+		if slices.Contains(cfg.Methods, m) && slices.Contains(supported, m) {
+			out = append(out, m)
+		}
+	}
+	return out, nil
 }
 
 // Send renders m's template for route r and delivers it. m needs To,

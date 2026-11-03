@@ -61,7 +61,15 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 		return mfaError(err)
 	}
 	customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	req, err := mfa.Decide(mfa.DecideInput{Settings: g, Effects: effect, User: u, Authenticators: list, CustomizeInActions: customize, MFAAPI: aud != "" && h.isMFAAudience(ctx, res.Tenant.ID, aud)})
+	phoneEnroll := false
+	if h.MFA != nil {
+		methods, e := h.MFA.WithStore(h.Store).PhoneMethods(ctx, res.Tenant.ID)
+		if e != nil {
+			return mfaError(e)
+		}
+		phoneEnroll = len(methods) > 0
+	}
+	req, err := mfa.Decide(mfa.DecideInput{PhoneEnroll: phoneEnroll, Settings: g, Effects: effect, User: u, Authenticators: list, CustomizeInActions: customize, MFAAPI: aud != "" && h.isMFAAudience(ctx, res.Tenant.ID, aud)})
 	if err != nil {
 		return accessDenied("multifactor authentication is unavailable")
 	}
@@ -136,6 +144,12 @@ func mfaUnavailableError() *Error {
 }
 func mfaError(err error) *Error {
 	switch {
+	case errors.Is(err, store.ErrPhoneUnavailable):
+		return &Error{Status: 501, Code: "phone_unavailable", Description: "Phone service unavailable"}
+	case errors.Is(err, mfa.ErrInvalidPhone), errors.Is(err, mfa.ErrCountryNotAllowed):
+		return invalidRequest("Invalid phone number or country")
+	case errors.Is(err, mfa.ErrPhoneDelivery):
+		return &Error{Status: 503, Code: "temporarily_unavailable", Description: "Unable to deliver verification code"}
 	case errors.Is(err, store.ErrMFAUnavailable):
 		return mfaUnavailableError()
 	case errors.Is(err, mfa.ErrThrottled):
@@ -173,6 +187,13 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 		return nil, e
 	}
 	uid = t.UserID
+	if factor == "email" {
+		saved, x := h.Store.MFA().GetChallenge(ctx, t.TenantID, secrets.HashToken(form.Get("oob_code")), h.now())
+		if x != nil || saved.UserID != uid || saved.Kind != "email" && saved.Kind != "phone" {
+			return nil, invalidGrant("invalid MFA verification")
+		}
+		factor = saved.Kind
+	}
 	if !slices.Contains(p.Requirement.Factors, factor) {
 		return nil, invalidGrant("invalid MFA verification")
 	}
@@ -213,9 +234,9 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 	default:
 		var challenge *mfa.Challenge
 		var a *store.Authenticator
-		if factor == "email" {
+		if factor == "email" || factor == "phone" {
 			saved, x := h.Store.MFA().GetChallenge(ctx, t.TenantID, secrets.HashToken(form.Get("oob_code")), h.now())
-			if x != nil || saved.UserID != uid || saved.Kind != "email" {
+			if x != nil || saved.UserID != uid || saved.Kind != factor {
 				return nil, invalidGrant("invalid MFA verification")
 			}
 			a, err = h.Store.MFA().GetAuthenticator(ctx, t.TenantID, uid, saved.AuthenticatorID)
@@ -231,7 +252,7 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 		}
 		if err == nil {
 			code := form.Get("otp")
-			if factor == "email" {
+			if factor == "email" || factor == "phone" {
 				code = form.Get("binding_code")
 			}
 			if p.Requirement.Enroll {

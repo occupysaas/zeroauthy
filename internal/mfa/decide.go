@@ -14,6 +14,7 @@ type Requirement struct {
 	Factors                                       []string
 	Reason                                        string
 	SelectFactor                                  bool
+	PhonePreferredMethod                          string
 }
 type DecideInput struct {
 	Settings                   *store.GuardianSettings
@@ -27,13 +28,17 @@ type DecideInput struct {
 	User *store.User
 	// MFAAPI marks a request for an MFA API (https://{host}/mfa/) token.
 	// A user with a usable primary factor must complete MFA for it.
-	MFAAPI bool
+	MFAAPI      bool
+	PhoneEnroll bool
 }
 
 // Decide is shared by hosted authorization and password grants. Only OTP and
 // email are enforced in Plan 33; recovery is a fallback for an enrolled user.
 func Decide(in DecideInput) (Requirement, error) {
 	r := Requirement{AllowRemember: true}
+	if in.Effects != nil {
+		r.PhonePreferredMethod = in.Effects.PhonePreferredMethod
+	}
 	e := in.Effects
 	enabled := map[string]bool{}
 	if in.Settings != nil {
@@ -46,7 +51,7 @@ func Decide(in DecideInput) (Requirement, error) {
 	if e != nil && e.Provider == "none" && !apiMFA {
 		return Requirement{}, nil
 	}
-	requested := []string{"otp", "email", "recovery-code"}
+	requested := []string{"otp", "email", "phone", "recovery-code"}
 	action := e != nil && e.Provider != "none" && (e.Provider != "" || e.Mode != "")
 	if action {
 		r.Required, r.Reason, r.AllowRemember = true, "action", e.AllowRememberBrowser
@@ -62,7 +67,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			requested = nil
 			for _, group := range e.Factors {
 				for _, f := range group {
-					if f != "otp" && f != "email" && f != "recovery-code" {
+					if f != "otp" && f != "email" && f != "phone" && f != "recovery-code" {
 						return r, ErrNoFactor
 					}
 					if !slices.Contains(requested, f) {
@@ -76,7 +81,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			case "google-authenticator":
 				requested = []string{"otp"}
 			case "guardian":
-				requested = []string{"otp", "recovery-code"}
+				requested = []string{"otp", "phone", "recovery-code"}
 			default:
 				return r, ErrNoFactor
 			}
@@ -125,10 +130,10 @@ func Decide(in DecideInput) (Requirement, error) {
 	}
 	var usable, enroll []string
 	for _, f := range requested {
-		if !enabled[f] {
+		if !enabled[guardianFactor(f)] {
 			continue
 		}
-		if f == "otp" || f == "email" {
+		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll {
 			if e == nil || e.Mode != "enroll" || !confirmed[f] {
 				enroll = append(enroll, f)
 			}
@@ -167,12 +172,14 @@ func Decide(in DecideInput) (Requirement, error) {
 // first-enrollment restrictions all use it, so an unusable method can neither
 // count as enrolled nor block enrollment of a replacement.
 func UsableMethod(u *store.User, a store.Authenticator, enabled map[string]bool) bool {
-	if !a.Confirmed || !enabled[factorName(a.Type)] {
+	if !a.Confirmed || !enabled[guardianFactor(a.Type)] {
 		return false
 	}
 	switch a.Type {
 	case "totp":
 		return true
+	case "phone":
+		return a.Phone != ""
 	case "email":
 		return u != nil && u.EmailVerified && a.Email != "" && u.Email == a.Email
 	}

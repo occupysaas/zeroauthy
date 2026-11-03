@@ -35,6 +35,7 @@ var rules = sync.OnceValue(func() struct {
 	guardianDefaults map[string]string
 	routing          []phonerules.RoutingRule
 	required         map[string][]string
+	providers        []phonerules.Provider
 } {
 	inv := phonerules.Inventory()
 	out := struct {
@@ -42,7 +43,8 @@ var rules = sync.OnceValue(func() struct {
 		guardianDefaults map[string]string
 		routing          []phonerules.RoutingRule
 		required         map[string][]string
-	}{templates: map[string]phonerules.TemplateType{}, guardianDefaults: map[string]string{}, routing: inv.Routing, required: map[string][]string{}}
+		providers        []phonerules.Provider
+	}{templates: map[string]phonerules.TemplateType{}, guardianDefaults: map[string]string{}, routing: inv.Routing, required: map[string][]string{}, providers: inv.Providers}
 	for _, t := range inv.Templates {
 		out.templates[t.Type] = t
 	}

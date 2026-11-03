@@ -16,6 +16,7 @@ type RBACSnapshot struct {
 // MFAEffects carries validated Action MFA instructions. Each Factors entry is
 // one call's ordered set of primary and alternative factors.
 type MFAEffects struct {
+	PhonePreferredMethod string
 	Provider             string
 	AllowRememberBrowser bool
 	Any                  bool // the Action requested an initial factor selector

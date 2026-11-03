@@ -444,6 +444,7 @@ type MFAAssociateRequest struct {
 	ClientSecret       *string                                 `json:"client_secret,omitempty"`
 	Email              *string                                 `json:"email,omitempty"`
 	OobChannels        *[]MFAAssociateRequestOobChannels       `json:"oob_channels,omitempty"`
+	PhoneNumber        *string                                 `json:"phone_number,omitempty"`
 }
 
 // MFAAssociateRequestAuthenticatorTypes defines model for MFAAssociateRequest.AuthenticatorTypes.

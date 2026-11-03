@@ -14,7 +14,7 @@ import (
 
 // Contract omissions must fail before downstream runtime tasks consume them.
 func TestMFAInventory(t *testing.T) {
-	want := []mfarules.Factor{{Name: "push-notification", Status: "not_planned"}, {Name: "sms", Status: "stored"}, {Name: "email", Status: "enforced"}, {Name: "duo", Status: "not_planned"}, {Name: "otp", Status: "enforced"}, {Name: "webauthn-roaming", Status: "stored"}, {Name: "webauthn-platform", Status: "stored"}, {Name: "recovery-code", Status: "enforced"}}
+	want := []mfarules.Factor{{Name: "push-notification", Status: "not_planned"}, {Name: "sms", Status: "enforced"}, {Name: "email", Status: "enforced"}, {Name: "duo", Status: "not_planned"}, {Name: "otp", Status: "enforced"}, {Name: "webauthn-roaming", Status: "stored"}, {Name: "webauthn-platform", Status: "stored"}, {Name: "recovery-code", Status: "enforced"}}
 	if !reflect.DeepEqual(mfarules.Factors(), want) {
 		t.Fatalf("factors: %+v", mfarules.Factors())
 	}
@@ -91,7 +91,7 @@ func TestMFAInventory(t *testing.T) {
 func TestPlan33DeferredLogOwners(t *testing.T) {
 	for _, c := range logrules.Codes() {
 		if (len(c.Type) >= 11 && c.Type[:11] == "gd_send_sms") || (len(c.Type) >= 13 && c.Type[:13] == "gd_send_voice") || c.Type == "gd_phone_settings_update" {
-			if c.Plan != 34 || c.Emitted {
+			if c.Plan != 34 || !c.Emitted {
 				t.Errorf("phone code owner %+v", c)
 			}
 		}

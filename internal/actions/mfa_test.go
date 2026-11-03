@@ -75,9 +75,27 @@ func TestEnrollWithAny(t *testing.T) {
 	}
 }
 func TestPhoneFactorUnavailable(t *testing.T) {
-	for _, factor := range []string{"phone", "webauthn-platform", "webauthn-roaming", "push-notification"} {
+	for _, factor := range []string{"webauthn-platform", "webauthn-roaming", "push-notification"} {
 		_, err, h := runMFAAction(t, fmt.Sprintf(`api.authentication.challengeWith({type:%q});`, factor), true)
 		requireMFAError(t, err, h, "unavailable")
+	}
+}
+func TestChallengeWithPhone(t *testing.T) {
+	r, err, _ := runMFAAction(t, `api.authentication.challengeWith({type:'phone',options:{preferredMethod:'voice'}});`, true)
+	if err != nil || r.Effects.MFA == nil || r.Effects.MFA.Mode != "challenge" || !reflect.DeepEqual(r.Effects.MFA.Factors, [][]string{{"phone"}}) || r.Effects.MFA.PhonePreferredMethod != "voice" {
+		t.Fatalf("%+v %v", r, err)
+	}
+	r, err, _ = runMFAAction(t, `api.authentication.challengeWith({type:'otp'},{additionalFactors:[{type:'phone'}]});`, true)
+	if err != nil || !reflect.DeepEqual(r.Effects.MFA.Factors, [][]string{{"otp", "phone"}}) || r.Effects.MFA.PhonePreferredMethod != "" {
+		t.Fatalf("additional phone %+v %v", r, err)
+	}
+	r, err, _ = runMFAAction(t, `api.authentication.enrollWith({type:'phone',options:{preferredMethod:'both'}});`, true)
+	if err != nil || r.Effects.MFA.Mode != "enroll" || r.Effects.MFA.PhonePreferredMethod != "both" {
+		t.Fatalf("enroll phone %+v %v", r, err)
+	}
+	for _, call := range []string{`challengeWith({type:'phone',options:{preferredMethod:'fax'}})`, `challengeWith({type:'otp',options:{preferredMethod:'sms'}})`, `challengeWith({type:'phone',options:{other:true}})`} {
+		_, err, h := runMFAAction(t, `try{api.authentication.`+call+`;}catch(e){}`, true)
+		requireMFAError(t, err, h, "")
 	}
 }
 func TestChallengeWithInvalidArguments(t *testing.T) {
