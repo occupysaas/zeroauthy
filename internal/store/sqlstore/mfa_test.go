@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -160,6 +161,28 @@ func TestMFATokenClientDeletionConcurrent(t *testing.T) {
 			_, err := s.MFA().PeekMFAToken(ctx, "t", "h", time.Now())
 			if !errors.Is(err, store.ErrNotFound) {
 				t.Fatalf("token survived client deletion: %v (create=%v)", err, createErr)
+			}
+		})
+	}
+}
+
+// Review I1: per-user MFA cleanup (DeleteUserMFA) and lookups use indexed
+// (tenant_id,user_id) access on every ephemeral MFA table.
+func TestMFAUserIndexes(t *testing.T) {
+	for name, fresh := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := fresh(t)
+			for _, table := range []string{"mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers"} {
+				found := false
+				for _, d := range actionsIISchemaDefinition(t, s, table) {
+					d = strings.ToLower(strings.Join(strings.Fields(strings.NewReplacer("`", "", `"`, "").Replace(d)), " "))
+					if strings.Contains(d, table+"_user") && (strings.Contains(d, "(tenant_id,user_id)") || strings.Contains(d, "(tenant_id, user_id)")) {
+						found = true
+					}
+				}
+				if !found {
+					t.Errorf("%s lacks a (tenant_id,user_id) index: %v", table, actionsIISchemaDefinition(t, s, table))
+				}
 			}
 		})
 	}

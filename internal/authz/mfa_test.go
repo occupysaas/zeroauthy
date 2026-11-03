@@ -322,6 +322,12 @@ func TestGateUnavailableStoreActionFailsClosed(t *testing.T) {
 func TestGateCompletedLoginRecordsKnownDevice(t *testing.T) {
 	e := newEnv(t)
 	ck := e.login(t, fixedNow())
+	gatePolicy(t, e, map[string]bool{"otp": true})
+	g, _ := e.st.MFA().GetGuardian(context.Background(), e.tenant.ID)
+	g.Policies = []string{"confidence-score"}
+	if err := e.st.MFA().PutGuardian(context.Background(), g, g.Version); err != nil {
+		t.Fatal(err)
+	}
 	rec := e.get(t, goodQuery(), ck)
 	if location(t, rec).Query().Get("code") == "" {
 		t.Fatal("login failed")
@@ -435,5 +441,49 @@ func TestGateMFAAPIAudienceChallengesEnrolledUser(t *testing.T) {
 	loc := location(t, e.get(t, with(q, "prompt", "none"), ck))
 	if loc.Query().Get("error") != "interaction_required" || loc.Query().Get("code") != "" {
 		t.Fatalf("prompt=none location=%s", loc)
+	}
+}
+
+func deviceCookie(rec *httptest.ResponseRecorder) *http.Cookie {
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "za_mfa_dev" {
+			return c
+		}
+	}
+	return nil
+}
+
+// Review I1: device confidence is recorded only while confidence-score is
+// active, and a still-valid device cookie is reused rather than re-inserted
+// on every authorization (including prompt=none renewals).
+func TestGateKnownDeviceOnlyForConfidenceAndReused(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	rec := e.get(t, goodQuery(), ck)
+	if location(t, rec).Query().Get("code") == "" {
+		t.Fatal("login failed")
+	}
+	if deviceCookie(rec) != nil {
+		t.Fatal("device recorded without confidence-score policy")
+	}
+	gatePolicy(t, e, map[string]bool{"otp": true})
+	g, _ := e.st.MFA().GetGuardian(context.Background(), e.tenant.ID)
+	g.Policies = []string{"confidence-score"}
+	if err := e.st.MFA().PutGuardian(context.Background(), g, g.Version); err != nil {
+		t.Fatal(err)
+	}
+	rec = e.get(t, goodQuery(), ck)
+	dev := deviceCookie(rec)
+	if dev == nil {
+		t.Fatal("confidence-score did not record device")
+	}
+	for _, q := range []url.Values{goodQuery(), with(goodQuery(), "prompt", "none")} {
+		rec = e.get(t, q, ck, dev)
+		if location(t, rec).Query().Get("code") == "" {
+			t.Fatalf("renewal failed: %s", rec.Header().Get("Location"))
+		}
+		if deviceCookie(rec) != nil {
+			t.Fatal("valid device cookie was replaced with a new row")
+		}
 	}
 }

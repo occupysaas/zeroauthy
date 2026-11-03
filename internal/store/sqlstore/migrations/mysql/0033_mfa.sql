@@ -11,3 +11,7 @@ CREATE INDEX mfa_tokens_expiry ON mfa_tokens (expires_at);
 CREATE INDEX mfa_challenges_expiry ON mfa_challenges (expires_at);
 CREATE INDEX mfa_tickets_expiry ON mfa_tickets (expires_at);
 CREATE INDEX mfa_browsers_expiry ON mfa_browsers (expires_at);
+CREATE INDEX mfa_tokens_user ON mfa_tokens (tenant_id,user_id);
+CREATE INDEX mfa_challenges_user ON mfa_challenges (tenant_id,user_id);
+CREATE INDEX mfa_tickets_user ON mfa_tickets (tenant_id,user_id);
+CREATE INDEX mfa_browsers_user ON mfa_browsers (tenant_id,user_id);

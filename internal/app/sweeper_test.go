@@ -144,3 +144,42 @@ func TestSweepActionsJobs(t *testing.T) {
 		t.Fatalf("pending job removed: %v", jobs)
 	}
 }
+
+// Review I1: expired MFA tokens, challenges, tickets and browser rows are
+// purged by the general sweep; unexpired rows remain.
+func TestSweepPurgesExpiredMFARecords(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC)
+	st := memory.New()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
+	must(st.Users().Create(ctx, &store.User{TenantID: "t", UserID: "u"}))
+	must(st.Clients().Create(ctx, &store.Client{TenantID: "t", ClientID: "c", Name: "c"}))
+	for _, at := range []struct {
+		id  string
+		exp time.Time
+	}{{"old", now.Add(-time.Second)}, {"new", now.Add(time.Hour)}} {
+		must(st.MFA().CreateMFAToken(ctx, &store.MFAToken{TenantID: "t", Hash: at.id, ClientID: "c", UserID: "u", ExpiresAt: at.exp}))
+		must(st.MFA().CreateChallenge(ctx, &store.MFAChallenge{TenantID: "t", ID: at.id, UserID: "u", Kind: "totp", ExpiresAt: at.exp}))
+		must(st.MFA().CreateTicket(ctx, &store.EnrollmentTicket{TenantID: "t", Hash: at.id, UserID: "u", ExpiresAt: at.exp}))
+		must(st.MFA().PutBrowser(ctx, &store.MFABrowser{TenantID: "t", Hash: at.id, UserID: "u", Kind: "device", ExpiresAt: at.exp}))
+	}
+	n, err := sweep(ctx, st, now)
+	if err != nil || n != 4 {
+		t.Fatalf("sweep = %d, %v; want 4, nil", n, err)
+	}
+	if _, err := st.MFA().GetBrowser(ctx, "t", "new", now); err != nil {
+		t.Fatalf("unexpired browser purged: %v", err)
+	}
+	if _, err := st.MFA().PeekMFAToken(ctx, "t", "new", now); err != nil {
+		t.Fatalf("unexpired MFA token purged: %v", err)
+	}
+	if _, err := st.MFA().GetBrowser(ctx, "t", "old", now.Add(-time.Hour)); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("expired browser kept: %v", err)
+	}
+}

@@ -177,12 +177,12 @@ func (h *Handlers) decideDevice(w http.ResponseWriter, r *http.Request, res tena
 // policy, consent and final organization checks. Signup's ss describes the
 // separate user-creation outcome; this event counts its completed login once.
 func (h *Handlers) loginSucceeded(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession) {
-	// Record confidence only for a committed login. Unsupported old plugins
-	// retain their pre-MFA behavior; a cookie failure cannot undo issuance.
-	if u, err := h.Store.Users().Get(r.Context(), res.Tenant.ID, sess.UserID); err == nil {
-		if err = h.Sessions.SetMFABrowser(r.Context(), w, u, "device"); err != nil && !errors.Is(err, store.ErrMFAUnavailable) {
-			h.log().ErrorContext(r.Context(), "record MFA browser", "tenant", res.Tenant.ID)
-		}
+	// Record confidence only for a committed login while the confidence-score
+	// policy is active, and reuse a still-valid device cookie rather than
+	// inserting a row per authorization. Unsupported old plugins retain their
+	// pre-MFA behavior; a cookie failure cannot undo issuance.
+	if err := h.recordKnownDevice(w, r, res, sess); err != nil && !errors.Is(err, store.ErrMFAUnavailable) {
+		h.log().ErrorContext(r.Context(), "record MFA browser", "tenant", res.Tenant.ID)
 	}
 	if outcome, ok := r.Context().Value(silentAuthorizationKey{}).(*silentAuthorizationOutcome); ok {
 		outcome.completed = true
@@ -197,4 +197,23 @@ func (h *Handlers) loginSucceeded(w http.ResponseWriter, r *http.Request, res te
 		e.Type = "ssa"
 	}
 	logs.RecordEvent(r.Context(), logs.RecorderFromContext(r.Context()), e)
+}
+
+func (h *Handlers) recordKnownDevice(w http.ResponseWriter, r *http.Request, res tenant.Resolved, sess *store.LoginSession) error {
+	g, err := h.Store.MFA().GetGuardian(r.Context(), res.Tenant.ID)
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(g.Policies, "confidence-score") {
+		return nil
+	}
+	u, err := h.Store.Users().Get(r.Context(), res.Tenant.ID, sess.UserID)
+	if err != nil {
+		return err
+	}
+	known, err := h.Sessions.MFABrowserValid(r.Context(), r, u, "device")
+	if err != nil || known {
+		return err
+	}
+	return h.Sessions.SetMFABrowser(r.Context(), w, u, "device")
 }
