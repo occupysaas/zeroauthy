@@ -386,8 +386,9 @@ use the existing `phone` type and `PhoneMethod` field.
   list (user IDs only, numbers masked), and nothing is enabled. Once
   enabled, every new or changed number is normalized on write and uniqueness
   is enforced by the store under the user lock (an application-level check,
-  so the three dialects behave the same; a database unique index is added
-  only on the normalized column that new writes populate). Existing values
+  so the three dialects behave the same). The normalized column gets a
+  non-unique index only: numbers are normalized on every write even before
+  the identifier is enabled, so a unique index could break on old duplicates. Existing values
   are normalized lazily on their next write or by the pre-check's fix-up
   guidance in the operator guide.
 - **Profile changes:** setting or changing `phone_number` through the
