@@ -187,7 +187,7 @@ lack separate observer evidence, and no upstream parity pass is claimed. See the
 [post-fix validation](../superpowers/2026-11-02-plan-32-postfix-validation.md) and
 [implementation record](../superpowers/2026-11-01-plan-32-implementation-record.md).
 
-### Plan 33 — MFA runtime and acceptance; final review pending
+### Plan 33 — MFA runtime and acceptance
 
 Tasks 1–13 implement OTP, verified-email codes and replacement recovery codes,
 Guardian/user management, memory/SQLite/PostgreSQL/MySQL storage and separately
@@ -201,7 +201,9 @@ Fresh full SQLite and memory acceptance and isolated PostgreSQL/MySQL client
 lanes passed. Final regression has recorded failures, skips and warnings: the
 30-minute SQL attempt timed out before a 90-minute run passed, the general E2E
 command skipped optional cases, conformance reported review/warning/skip results,
-and the pinned Deploy CLI matrix remains failed. Whole-branch review remains.
+and the pinned Deploy CLI matrix remains failed. The whole-branch review's
+Critical and Important findings are fixed; affected-package race, three-dialect
+SQL, source checks and `make e2e-mfa` exited 0 on fixed source.
 
 D-0059 retains unobserved M1–M9 gaps. WebAuthn flags are stored for Plan 33b;
 phone/SMS/voice configuration is stored for Plan 34; push and Duo enforcement

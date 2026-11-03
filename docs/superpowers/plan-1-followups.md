@@ -448,3 +448,13 @@ behaviour only where Auth0 is shown to differ.
   approved future dependency change, then rerun all formats and identity
   modes. An explicitly labeled eight-handler diagnostic is partial evidence
   only. See D-0059 and the Plan 33 implementation record.
+
+- **Plan 33 review Minors (deferred, not 1.0 blockers):** M1 consent is
+  shown and persisted before MFA (Auth0 runs MFA first); M3 abandoned
+  pending authenticators are never purged and are each unsealed on OTP
+  challenge; M6 `multifactor: []` is emitted on every user and costs one
+  authenticator list per user in `GET /users`; M7 ID-token `amr` reads the
+  session's `MFAAt` at code exchange rather than at code issue; M8 the
+  `totp_secret` write-only scrub for array bodies relies on key-name
+  scrubbing without a pinning test. See the Plan 33 implementation record,
+  Task 14c.
