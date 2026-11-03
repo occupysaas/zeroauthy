@@ -417,3 +417,50 @@ or plaintext fallback. Focused race GREEN server/jobs exit0 includes the origina
 integration test and sealed-input binding/tamper/retry/no-plaintext-fallback tests.
 Evidence: `/tmp/plan33-task14b/fix01-import-{red,green}.{json,log,exit}`.
 The first full suite remains failed; a later run must establish the final state.
+
+### Task 14b — final matrix and limitations
+
+The full race rerun after the import fixture fix exited 0 at snapshot
+`2751b0e79ec0f370d6dddcda213e47972140be83`; the initial exit 1 above remains
+failed. The focused recorder timing reproduction passed 20 iterations, without
+establishing the cause of the earlier 50ms failure. The required full SQL
+command timed out at 30 minutes (exit 1); the approved fresh 90-minute run
+across SQLite, PostgreSQL and MySQL exited 0 after 38m29s. Both runs and actual
+exits are retained. Console and source checks exited 0; rebuilt console passed
+625 tests and emitted the existing Vite chunk warning. Extended SQL and source
+checking overlapped about 40 seconds; subsequent E2E stages were sequential.
+
+The first fresh full MFA command exited 2: the privacy audit detected a seeded
+client secret in a console application-list response. That privileged list
+request unnecessarily fetched client secrets. The console now excludes that
+field with API projection; authorized detail access remains. A focused test
+failed before the fix and passed after it; the console was rebuilt. The full
+MFA target then exited 0: SQLite browser, SDK, CLI, grants, real token expiry
+and privacy passed, as did the memory client/grant/audit lane. The SQLite audit
+scanned 11 sinks for 54 observed secrets; memory scanned 11 for 39. Isolated
+PostgreSQL and MySQL SDK, CLI, grants, real expiry and audit lanes each exited
+0 with 39 observed secrets. The non-SQLite runner leaves the stored SQL sink
+dump empty, so these runs do not establish database sink scanning. The first
+MySQL attempt failed before acceptance because the temporary wrapper omitted a
+database name; the corrected attempt used a dedicated throwaway database.
+
+`make e2e`, Actions, Actions II, logs and events exited 0. General E2E reported
+24 browser passes and 59 skips. Domains initially failed twice because the
+browser test expected the background page h1 after a successful navigation to
+a detail dialog; saved trace and page snapshot show the correct dialog. The
+assertions now check its accessible title and preserve the detail workflow; the
+full domains rerun exited 0. `make e2e-deploy` exited 2 with the same pinned
+Deploy CLI provider-export mismatch documented in Task 13. No adapter or pin
+change was introduced.
+
+`make conformance` exited 0, with basic and form-post each reporting 21 passed,
+6 warnings, 4 review and 4 skipped; discovery 1 passed; logout 3 passed and
+8 review. These warning, review and skipped outcomes are not passes. Its output
+is retained in `/tmp/plan33-task14b/13-conformance.log` and results under
+`tests/conformance/results/20261103T023935Z`.
+
+Each stage's command, source HEAD, patch digest, UTC timestamps, process handle
+and exit is recorded in `/tmp/plan33-task14b/*.json`, with raw logs and patch
+snapshots in the same private directory. Whole-branch review remains pending.
+D-0059 observation gaps, grant discovery evidence, and the Deploy CLI failure
+remain open; this record does not claim full plan verification.

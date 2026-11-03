@@ -13,7 +13,10 @@ describe('Applications list', () => {
       const per = Number(u.searchParams.get('per_page'))
       return { status: 200, body: { clients: all.slice(page * per, page * per + per), start: page * per, limit: per, total: all.length } }
     })
-    expect(calls[0]!.url).toBe('https://acme.example.test/api/v2/clients?page=0&per_page=20&include_totals=true')
+    const query = new URL(calls[0]!.url).searchParams
+    expect(query.get('fields')).toBe('client_secret')
+    expect(query.get('include_fields')).toBe('false')
+    expect(query.get('include_totals')).toBe('true')
     expect(wrapper.findAll('tbody tr')).toHaveLength(20)
     expect(wrapper.text()).toContain('1–20 of 25')
     const next = wrapper.findAll('button').find((b) => b.text() === 'Next')!

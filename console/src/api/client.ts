@@ -489,7 +489,7 @@ export class Api {
   }
 
   listClients(t: SystemTenant, q: { page: number; per_page: number; app_type?: string }): Promise<ClientPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/clients', { query: { ...q, include_totals: true } })
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/clients', { query: { ...q, include_totals: true, fields: 'client_secret', include_fields: false } })
   }
 
   getClient(t: SystemTenant, id: string): Promise<Client> {

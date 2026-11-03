@@ -25,12 +25,12 @@ test('domain console: keyboard, narrow/wide, one-time secret, lost reply and sta
   await page.screenshot({path:`/tmp/zeroauthy-plan23-console-${width}.png`,fullPage:true});
  }
  await page.fill('#domain-name','browser.domains.e2e.test');await page.selectOption('#domain-type','self_managed_certs');
- await page.getByRole('button',{name:'Add domain',exact:true}).click();await expect(page.locator('h1')).toHaveText('browser.domains.e2e.test');
+ await page.getByRole('button',{name:'Add domain',exact:true}).click();await expect(page.getByRole('dialog').getByRole('heading', { name: 'browser.domains.e2e.test', exact: true })).toBeVisible();
  const d=(await ok('custom-domains')).find(d=>d.domain==='browser.domains.e2e.test');await publish(d);
  await page.getByRole('button',{name:'Verify now',exact:true}).click();await expect(page.locator('[data-secret]')).toBeVisible();
  const key=await page.locator('[data-secret]').innerText();expect(key.length).toBeGreaterThan(30);
  const storage=await page.evaluate(()=>JSON.stringify({local:{...localStorage},session:{...sessionStorage},url:location.href}));expect(storage).not.toContain(key);
- await page.reload();await expect(page.locator('h1')).toHaveText(d.domain);await expect(page.locator('[data-secret]')).toHaveCount(0);
+ await page.reload();await expect(page.getByRole('dialog').getByRole('heading', { name: d.domain, exact: true })).toBeVisible();await expect(page.locator('[data-secret]')).toHaveCount(0);
  await page.fill('#metadata','team=browser');await page.getByRole('button',{name:'Save settings',exact:true}).click();await expect(page.getByText('Settings saved.',{exact:true})).toBeVisible();
  const lost=await ok('custom-domains','POST',{domain:'lost.domains.e2e.test',type:'self_managed_certs'});await publish(lost);
  await page.goto(`${list}/${lost.custom_domain_id}`);
