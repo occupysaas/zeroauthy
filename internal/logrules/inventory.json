@@ -1772,14 +1772,20 @@
       "type": "limit_phone",
       "description": "Phone challenge traffic exhausted its send budget.",
       "category": "system.notification",
-      "emitted": false,
+      "emitted": true,
       "plan": 34,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-phone",
       "origin": "public-catalog",
-      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
-      "triggers": [],
-      "status": "deferred"
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060). Emitted by the phone provider and template try routes; Tasks 10-13 add the delivery paths.",
+      "triggers": [
+        {
+          "file": "internal/mgmt/phone_providers.go",
+          "function": "reservePhoneSend",
+          "when": "A phone provider or template try is refused because the destination send budget is exhausted."
+        }
+      ],
+      "status": "emitted"
     },
     {
       "type": "limit_signup_otp",

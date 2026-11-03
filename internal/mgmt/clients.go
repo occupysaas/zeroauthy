@@ -78,6 +78,9 @@ type Handlers struct {
 	// sends nothing.
 	Verification VerificationSender
 	EmailService *email.Service
+	// PhoneHTTP is the HTTP client of the phone provider try routes; nil uses
+	// phone.NewHTTPClient (SSRF-guarded).
+	PhoneHTTP *http.Client
 	// Notify wakes the job workers after a job is stored; nil does
 	// nothing (the workers poll).
 	Notify func()

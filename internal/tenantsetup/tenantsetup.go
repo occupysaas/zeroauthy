@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 // SigningKeys makes sure the tenant has a current and a next signing key.
@@ -36,6 +37,7 @@ func UpsertTenant(ctx context.Context, st store.Store, name string, now time.Tim
 	}
 	if create {
 		tn = &store.Tenant{ID: "ten_" + secrets.RandomString(16), Name: name, CreatedAt: now}
+		tenantrules.ApplyNewTenantDefaults(tn)
 	}
 	if err := set(tn); err != nil {
 		return nil, err

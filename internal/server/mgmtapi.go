@@ -934,3 +934,49 @@ func (a mgmtAPI) RedeliverEvents(w http.ResponseWriter, r *http.Request, id stri
 func (a mgmtAPI) RedeliverEvent(w http.ResponseWriter, r *http.Request, id, eid string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RedeliverOne(w, r, id, eid) }, "update:event_deliveries")
 }
+
+func (a mgmtAPI) ListPhoneProviders(w http.ResponseWriter, r *http.Request, p mgmtapi.ListPhoneProvidersParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListPhoneProviders(w, r, p) }, "read:phone_providers")
+}
+func (a mgmtAPI) CreatePhoneProvider(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreatePhoneProvider, "create:phone_providers")
+}
+func (a mgmtAPI) GetPhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetPhoneProvider(w, r, id) }, "read:phone_providers")
+}
+func (a mgmtAPI) UpdatePhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdatePhoneProvider(w, r, id) }, "update:phone_providers")
+}
+func (a mgmtAPI) DeletePhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeletePhoneProvider(w, r, id) }, "delete:phone_providers")
+}
+func (a mgmtAPI) TryPhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.TryPhoneProvider(w, r, id) }, "create:phone_providers")
+}
+func (a mgmtAPI) ListPhoneTemplates(w http.ResponseWriter, r *http.Request, p mgmtapi.ListPhoneTemplatesParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListPhoneTemplates(w, r, p) }, "read:phone_templates")
+}
+func (a mgmtAPI) CreatePhoneTemplate(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreatePhoneTemplate, "create:phone_templates")
+}
+func (a mgmtAPI) GetPhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetPhoneTemplate(w, r, id) }, "read:phone_templates")
+}
+func (a mgmtAPI) UpdatePhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdatePhoneTemplate(w, r, id) }, "update:phone_templates")
+}
+func (a mgmtAPI) DeletePhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeletePhoneTemplate(w, r, id) }, "delete:phone_templates")
+}
+func (a mgmtAPI) ResetPhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ResetPhoneTemplate(w, r, id) }, "update:phone_templates")
+}
+func (a mgmtAPI) TryPhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.TryPhoneTemplate(w, r, id) }, "create:phone_templates")
+}
+func (a mgmtAPI) GetPhoneProviderProtection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetPhoneProviderProtection, "read:attack_protection")
+}
+func (a mgmtAPI) UpdatePhoneProviderProtection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.UpdatePhoneProviderProtection, "update:attack_protection")
+}

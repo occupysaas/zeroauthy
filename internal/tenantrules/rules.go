@@ -171,6 +171,17 @@ func Public(t *store.Tenant) map[string]any {
 		}
 		out[key] = float64(seconds) / 3600
 	}
+	// Enforced phone settings read explicit values (see PhoneSettingsOf).
+	ps := PhoneSettingsOf(t)
+	out["phone_consolidated_experience"] = ps.Consolidated
+	flags := map[string]any{}
+	if existing, ok := out["flags"].(map[string]any); ok {
+		flags = existing
+	}
+	if _, ok := flags["disable_management_api_sms_obfuscation"]; !ok {
+		flags["disable_management_api_sms_obfuscation"] = ps.DisableSMSObfuscation
+	}
+	out["flags"] = flags
 	out["allowed_logout_urls"] = stringsArray(t.AllowedLogoutURLs)
 	if len(t.EnabledLocales) == 0 {
 		out["enabled_locales"] = []string{"en"}
