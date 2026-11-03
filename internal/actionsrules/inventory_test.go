@@ -88,7 +88,7 @@ func TestActionsInventory(t *testing.T) {
 		t.Fatalf("missing operations %v", want)
 	}
 
-	if len(inv.Triggers) != 8 {
+	if len(inv.Triggers) != 10 {
 		t.Fatalf("triggers=%d", len(inv.Triggers))
 	}
 	members := map[string][]string{
@@ -98,6 +98,8 @@ func TestActionsInventory(t *testing.T) {
 		"post-change-password":          {"cache.get", "cache.set", "cache.delete"},
 		"password-reset-post-challenge": {"access.deny", "authentication.challengeWith", "authentication.challengeWithAny", "redirect.sendUserTo", "redirect.encodeToken", "redirect.validateToken", "redirect.canRedirect", "cache.get", "cache.set", "cache.delete", "prompt.render", "transaction.setResultUrl"},
 		"custom-email-provider":         {"cache.get", "cache.set", "cache.delete", "notification.retry", "notification.drop"},
+		"custom-phone-provider":         {"cache.get", "cache.set", "cache.delete", "notification.retry", "notification.drop"},
+		"send-phone-message":            {"cache.get", "cache.set", "cache.delete"},
 		"post-login": {
 			"access.deny", "accessToken.setCustomClaim", "accessToken.addScope", "accessToken.removeScope",
 			"idToken.setCustomClaim", "transaction.setMetadata", "transaction.addTargetScope",
@@ -132,6 +134,8 @@ func TestActionsInventory(t *testing.T) {
 		"post-change-password":          {"onExecutePostChangePassword", "", false},
 		"password-reset-post-challenge": {"onExecutePostChallenge", "onContinuePostChallenge", true},
 		"custom-email-provider":         {"onExecuteCustomEmailProvider", "", false},
+		"custom-phone-provider":         {"onExecuteCustomPhoneProvider", "", false},
+		"send-phone-message":            {"onExecuteSendPhoneMessage", "", true},
 		"event-stream":                  {"onExecuteEventStream", "", false},
 	}
 	events := map[string][]string{
@@ -141,6 +145,8 @@ func TestActionsInventory(t *testing.T) {
 		"post-change-password":          {"user", "user.last_password_reset", "connection", "request", "tenant", "secrets"},
 		"password-reset-post-challenge": {"user", "connection", "client", "request", "tenant", "transaction", "secrets"},
 		"custom-email-provider":         {"notification.from", "notification.to", "notification.subject", "notification.html", "notification.text", "notification.locale", "notification.message_type", "user", "client", "tenant", "request", "connection", "secrets"},
+		"custom-phone-provider":         phoneProviderEvent,
+		"send-phone-message":            sendPhoneMessageEvent,
 	}
 	for _, tr := range inv.Triggers {
 		need, ok := members[tr.ID]
@@ -149,7 +155,7 @@ func TestActionsInventory(t *testing.T) {
 		}
 		delete(members, tr.ID)
 		// Empty versions retain the existing HTTP discovery defaults.
-		versions := map[string]string{"post-login": "", "credentials-exchange": "", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "", "custom-email-provider": "", "event-stream": "v1"}
+		versions := map[string]string{"post-login": "", "credentials-exchange": "", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "", "custom-email-provider": "", "event-stream": "v1", "custom-phone-provider": "v1", "send-phone-message": "v2"}
 		if tr.Version != versions[tr.ID] {
 			t.Errorf("%s version=%q want %q", tr.ID, tr.Version, versions[tr.ID])
 		}
@@ -205,7 +211,7 @@ func TestActionsInventory(t *testing.T) {
 		t.Errorf("missing triggers %v", members)
 	}
 	deferred := map[string]string{
-		"send-phone-message": "34", "custom-phone-provider": "34", "custom-token-exchange": "35",
+		"custom-token-exchange":   "35",
 		"password-hash-migration": "deferred", "login-post-identifier": "deferred", "signup-post-identifier": "deferred", "post-credential-validation": "deferred",
 	}
 	for _, tr := range inv.DeferredTriggers {
@@ -236,7 +242,7 @@ func TestActionsInventory(t *testing.T) {
 	}
 	for _, name := range []string{
 		"code_bytes", "name_min", "name_max", "secrets_max", "secret_name_max", "secret_value_max",
-		"dependencies_max", "bindings_per_trigger_max", "custom_email_provider_bindings_max", "flow_budget_seconds", "artifact_bytes_max",
+		"dependencies_max", "bindings_per_trigger_max", "custom_email_provider_bindings_max", "custom_phone_provider_bindings_max", "flow_budget_seconds", "artifact_bytes_max",
 		"cache_entries_max", "cache_key_bytes_max", "cache_value_bytes_max", "cache_total_bytes_max",
 		"cache_default_ttl_seconds", "cache_max_ttl_seconds", "continue_state_seconds",
 		"redirects_per_login_max", "execution_retention_days", "custom_claims_bytes_max",
@@ -268,4 +274,58 @@ func wantSupport(trigger, name string) string {
 		}
 	}
 	return "supported"
+}
+
+// Documented members of the Plan 34 phone triggers (D-0060).
+var (
+	phoneProviderEvent = []string{
+		"notification.message_type", "notification.as_text", "notification.as_voice", "notification.delivery_method",
+		"notification.recipient", "notification.from", "notification.code", "notification.locale",
+		"user", "client", "connection", "organization", "request", "tenant", "transaction", "custom_domain", "secrets",
+	}
+	sendPhoneMessageEvent = []string{
+		"message_options.action", "message_options.code", "message_options.message_type", "message_options.recipient",
+		"message_options.text", "user", "client", "request", "tenant", "transaction", "custom_domain", "security_context", "secrets",
+	}
+)
+
+// Plan 28 deferred both phone triggers to Plan 34; they are now creatable and bindable.
+func TestPhoneTriggersSupported(t *testing.T) {
+	inv := Inventory()
+	for _, d := range inv.DeferredTriggers {
+		if d.ID == "send-phone-message" || d.ID == "custom-phone-provider" {
+			t.Errorf("%s still deferred to %s", d.ID, d.Plan)
+		}
+	}
+	want := map[string][]string{"custom-phone-provider": phoneProviderEvent, "send-phone-message": sendPhoneMessageEvent}
+	for _, tr := range inv.Triggers {
+		event, ok := want[tr.ID]
+		if !ok {
+			continue
+		}
+		delete(want, tr.ID)
+		if !strings.HasPrefix(tr.SourceURL, "https://auth0.com/docs/") {
+			t.Errorf("%s source %q", tr.ID, tr.SourceURL)
+		}
+		for _, field := range event {
+			found := false
+			for _, f := range tr.Event {
+				found = found || f == field
+			}
+			if !found {
+				t.Errorf("%s missing event.%s", tr.ID, field)
+			}
+		}
+		for _, m := range tr.API {
+			if m.Support != "supported" || m.Evidence != "documented" {
+				t.Errorf("%s api.%s = %s/%s", tr.ID, m.Name, m.Support, m.Evidence)
+			}
+		}
+	}
+	if len(want) != 0 {
+		t.Errorf("triggers not supported: %v", want)
+	}
+	if inv.Limits["custom_phone_provider_bindings_max"] != 1 {
+		t.Error("custom-phone-provider binding limit")
+	}
 }

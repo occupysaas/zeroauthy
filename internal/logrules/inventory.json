@@ -211,8 +211,9 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/cls",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [],
+      "status": "deferred"
     },
     {
       "type": "coff",
@@ -295,8 +296,9 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-notification/cs",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [],
+      "status": "deferred"
     },
     {
       "type": "custom_domain_verification_failed",
@@ -525,8 +527,9 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-fail/fcpn",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [],
+      "status": "deferred"
     },
     {
       "type": "fcpr",
@@ -844,8 +847,9 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fepotpft",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [],
+      "status": "deferred"
     },
     {
       "type": "fercft",
@@ -1342,7 +1346,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/management-success/gd-phone-settings-update",
       "origin": "public-catalog",
-      "note": "Plan 34 owns SMS and voice delivery.",
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
       "status": "deferred"
     },
@@ -1462,7 +1466,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms",
       "origin": "public-catalog",
-      "note": "Plan 34 owns SMS and voice delivery.",
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
       "status": "deferred"
     },
@@ -1475,7 +1479,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-sms-failure",
       "origin": "public-catalog",
-      "note": "Plan 34 owns SMS and voice delivery.",
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
       "status": "deferred"
     },
@@ -1488,7 +1492,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice",
       "origin": "public-catalog",
-      "note": "Plan 34 owns SMS and voice delivery.",
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
       "status": "deferred"
     },
@@ -1501,7 +1505,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-send-voice-failure",
       "origin": "public-catalog",
-      "note": "Plan 34 owns SMS and voice delivery.",
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
       "triggers": [],
       "status": "deferred"
     },
@@ -1773,8 +1777,9 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-phone",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [],
+      "status": "deferred"
     },
     {
       "type": "limit_signup_otp",
@@ -1785,8 +1790,9 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/system-notification/limit-signup-otp",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [],
+      "status": "deferred"
     },
     {
       "type": "limit_sul",
@@ -2161,8 +2167,9 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/user-success/scpn",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 34 owns passwordless and phone delivery; the emission rule is frozen in internal/phonerules log_codes (D-0060).",
+      "triggers": [],
+      "status": "deferred"
     },
     {
       "type": "scpr",

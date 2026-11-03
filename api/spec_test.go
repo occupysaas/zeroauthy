@@ -203,3 +203,78 @@ func TestMFAWireContracts(t *testing.T) {
 		}
 	}
 }
+
+// Plan 34 contracts: phone credentials are write-only, passwordless routes and
+// the OTP grant are documented, and connection strategies include email and sms.
+func TestPhoneWireContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, methods := range map[string][]string{
+		"/api/v2/branding/phone/providers":                    {"GET", "POST"},
+		"/api/v2/branding/phone/providers/{id}":               {"GET", "PATCH", "DELETE"},
+		"/api/v2/branding/phone/providers/{id}/try":           {"POST"},
+		"/api/v2/branding/phone/templates":                    {"GET", "POST"},
+		"/api/v2/branding/phone/templates/{id}":               {"GET", "PATCH", "DELETE"},
+		"/api/v2/branding/phone/templates/{id}/reset":         {"PATCH"},
+		"/api/v2/branding/phone/templates/{id}/try":           {"POST"},
+		"/api/v2/attack-protection/phone-provider-protection": {"GET", "PATCH"},
+	} {
+		item := doc.Paths.Find(path)
+		for _, m := range methods {
+			if item == nil || item.GetOperation(m) == nil {
+				t.Errorf("missing %s %s", m, path)
+			}
+		}
+	}
+	for _, name := range []string{"PhoneProviderCreate", "PhoneProviderUpdate"} {
+		s := doc.Components.Schemas[name]
+		if s == nil {
+			t.Errorf("missing %s", name)
+			continue
+		}
+		creds := s.Value.Properties["credentials"]
+		if creds == nil || !creds.Value.WriteOnly {
+			t.Errorf("%s credentials must be write-only", name)
+		}
+	}
+	if p := doc.Components.Schemas["PhoneProvider"]; p == nil || p.Value.Properties["credentials"] != nil {
+		t.Error("phone provider responses must not carry credentials")
+	}
+	for _, name := range []string{"ConnectionOptionsEmail", "ConnectionOptionsSMS"} {
+		if doc.Components.Schemas[name] == nil {
+			t.Errorf("missing %s", name)
+		}
+	}
+	if s := doc.Components.Schemas["ConnectionOptionsSMS"]; s != nil {
+		if tok := s.Value.Properties["twilio_token"]; tok == nil || !tok.Value.WriteOnly {
+			t.Error("twilio_token must be write-only")
+		}
+	}
+	strategies := doc.Components.Schemas["ConnectionCreate"].Value.AllOf[1].Value.Properties["strategy"].Value.Enum
+	for _, want := range []string{"email", "sms"} {
+		found := false
+		for _, s := range strategies {
+			found = found || s == want
+		}
+		if !found {
+			t.Errorf("strategy %s not creatable", want)
+		}
+	}
+	auth, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if auth.Paths.Find("/passwordless/start") == nil || auth.Paths.Find("/passwordless/start").Post == nil {
+		t.Error("missing POST /passwordless/start")
+	}
+	if item := auth.Paths.Find("/passwordless/verify_redirect"); item == nil || item.Get == nil || item.Post == nil {
+		t.Error("missing /passwordless/verify_redirect GET and POST")
+	}
+	token := auth.Paths.Find("/oauth/token").Post
+	grants, _ := json.Marshal(token.Extensions["x-passwordless-grants"])
+	if !strings.Contains(string(grants), "http://auth0.com/oauth/grant-type/passwordless/otp") {
+		t.Error("passwordless OTP grant not documented")
+	}
+}

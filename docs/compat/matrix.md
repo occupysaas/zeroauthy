@@ -37,7 +37,7 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Discovery: `device_authorization_endpoint` | Implemented | Advertised with the device grant in `grant_types_supported` (D-0033) |
 | Implicit/hybrid flows | Planned | Not part of Plan 5 |
 | Social connections (`google-oauth2`, `oauth2`) and basic OIDC (`oidc`, back channel) | Implemented (Plan 24) | Guide: `docs/social-connections.md`; decisions in the Plan 24 contract and D-0049. Login buttons, explicit `connection=`, S256 PKCE, RS256 ID tokens, restricted profile scripts (Node 25+), identity index, explicit linking, scoped upstream tokens (`read:user_idp_tokens`, individual GET only). Verified with node-auth0 7.4.0, auth0-cli 1.37.0 (`api` verbs) and Chromium against local mock providers (m24); no live provider or Auth0 tenant observed. Not included: remaining social providers, enterprise OIDC extras (Plan 36), Token Vault, federated logout, automatic linking, development keys |
-| Passwordless, MFA | Planned (sub-project 2) | |
+| Passwordless and phone (Plan 34) | Contract frozen; runtime in progress | D-0060 and `internal/phonerules`: `email`/`sms` connections, `/passwordless/start`, `/passwordless/verify_redirect`, the passwordless OTP grant, branding phone providers (`twilio`, `custom`, extension `sns`) and templates, phone-provider-protection, phone Actions. Passwordless routes answer 501 until Plan 34 Task 10; P1–P24 are local answers, not observed. MFA is Plan 33 (below) |
 | Actions I (post-login, credentials-exchange, npm dependencies) | Implemented; locally verified and reviewed (Plan 27) | Fourteen operations, runtime/continue/versions/secrets, console, seed and offline builds; SQL/plugin/race/SDK/CLI/browser/four-cell Deploy evidence in [record](../superpowers/2026-10-27-plan-27-implementation-record.md). [Guide](../actions.md), [review](observations/actions.md), D-0053. `/userinfo` custom claims and later phone/token-exchange/event triggers deferred; no live tenant observed |
 | Actions II (registration, password/reset, custom email, Modules) | Implemented locally; final review pending (Plan 28) | Seven triggers, 24 operations, durable jobs, immutable Modules, console/seed/plugin support. Local SQL/race/SDK/CLI/browser/four-cell Deploy acceptance passed; [record](../superpowers/2026-10-28-plan-28-implementation-record.md) carries exact scope and limitations. D-0054 local defaults remain distinct from unobserved upstream behavior. Arbitrary historical module-version graph migration is not demonstrated. |
 | Management API v2: authentication (machine-to-machine tokens for the canonical `https://<tenant>/api/v2/` audience, operator tokens), errors, pagination, `fields` | Implemented | Guide: `docs/management-api.md`. Decisions D-0038 to D-0040 |
@@ -212,3 +212,14 @@ upstream evidence is available. Deploy CLI 9.1.0's provider export remains
 blocked by its incompatible node-auth0 7.4.0 response handling; the required
 nine-handler matrix failed in Task 13. No adapter, dependency change or partial
 handler run makes that matrix pass.
+
+### Plan 34 — Passwordless and phone (in progress)
+
+Task 1 froze the wire contract in `internal/phonerules` and the API documents
+(D-0060). The phone Action triggers `custom-phone-provider` and
+`send-phone-message` are creatable and bindable; their handlers join the
+runner in Task 9. `/passwordless/start` and `/passwordless/verify_redirect`
+answer `501 passwordless_unavailable` until Task 10. Differences frozen as
+local rulings: Guardian `auth0` uses the tenant phone provider, `sns` is an
+extension, `twilio_token` is never returned, magic links come only from the
+API (not the hosted prompt), and gaps P1–P24 stand until observed.

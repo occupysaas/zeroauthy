@@ -1159,6 +1159,98 @@
         }
       ],
       "source_url": "https://auth0.com/docs/customize/actions/reference/event-stream/event-stream-api-object"
+    },
+    {
+      "id": "custom-phone-provider",
+      "handler": "onExecuteCustomPhoneProvider",
+      "blocking": false,
+      "version": "v1",
+      "event": [
+        "notification.message_type",
+        "notification.as_text",
+        "notification.as_voice",
+        "notification.delivery_method",
+        "notification.recipient",
+        "notification.from",
+        "notification.code",
+        "notification.locale",
+        "user",
+        "client",
+        "connection",
+        "organization",
+        "request",
+        "tenant",
+        "transaction",
+        "custom_domain",
+        "secrets"
+      ],
+      "api": [
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "notification.drop",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "notification.retry",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/actions/reference/custom-phone-provider/custom-phone-provider-event-object"
+    },
+    {
+      "id": "send-phone-message",
+      "handler": "onExecuteSendPhoneMessage",
+      "blocking": true,
+      "version": "v2",
+      "event": [
+        "message_options.action",
+        "message_options.code",
+        "message_options.message_type",
+        "message_options.recipient",
+        "message_options.text",
+        "user",
+        "client",
+        "request",
+        "tenant",
+        "transaction",
+        "custom_domain",
+        "security_context",
+        "secrets"
+      ],
+      "api": [
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/actions/reference/send-phone-message/send-phone-message-event-object"
     }
   ],
   "limits": {
@@ -1195,7 +1287,8 @@
     "job_lease_seconds": 60,
     "job_pending_per_tenant": 10000,
     "email_retries": 5,
-    "notification_reason_chars": 1024
+    "notification_reason_chars": 1024,
+    "custom_phone_provider_bindings_max": 1
   },
   "limit_sources": {
     "code_bytes": "https://auth0.com/docs/customize/actions/limitations",
@@ -1231,17 +1324,10 @@
     "job_lease_seconds": "D-0054",
     "job_pending_per_tenant": "D-0054",
     "email_retries": "https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object",
-    "notification_reason_chars": "https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object"
+    "notification_reason_chars": "https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object",
+    "custom_phone_provider_bindings_max": "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/configure-a-custom-phone-provider-with-terraform"
   },
   "deferred_triggers": [
-    {
-      "id": "send-phone-message",
-      "plan": "34"
-    },
-    {
-      "id": "custom-phone-provider",
-      "plan": "34"
-    },
     {
       "id": "custom-token-exchange",
       "plan": "35"

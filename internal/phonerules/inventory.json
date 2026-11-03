@@ -1,0 +1,3772 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-11-03",
+  "decision": "D-0060",
+  "evidence": {
+    "management_oas": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+    "docs_corpus": "https://auth0.com/docs/llms-full.txt (fetched 2026-11-03)",
+    "auth0_js": "https://github.com/auth0/auth0.js/blob/master/src/authentication/passwordless-authentication.js",
+    "auth0_auth_js": "https://www.npmjs.com/package/@auth0/auth0-auth-js/v/1.16.1",
+    "observation": "none: no tenant observation; docs, OAS and MIT SDK source only"
+  },
+  "routes": [
+    {
+      "operation": "POST /api/v2/connections#email",
+      "method": "POST",
+      "path": "/api/v2/connections",
+      "source": "https://auth0.com/docs/api/management/v2/connections/post-connections",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/connections/post-connections",
+        "https://auth0.com/docs/authenticate/passwordless/authentication-methods/email-otp"
+      ],
+      "scopes": [
+        "create:connections"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "const": "email"
+          },
+          "name": {
+            "const": "email"
+          },
+          "options": {
+            "type": "object",
+            "allOf": [
+              {
+                "properties": {
+                  "authParams": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "brute_force_protection": {
+                    "type": "boolean"
+                  },
+                  "disable_signup": {
+                    "type": "boolean"
+                  },
+                  "email": {
+                    "type": "object",
+                    "properties": {
+                      "body": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20480
+                      },
+                      "from": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "subject": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "syntax": {
+                        "type": "string",
+                        "const": "liquid"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 128
+                  },
+                  "totp": {
+                    "type": "object",
+                    "properties": {
+                      "length": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 4,
+                            "maximum": 40
+                          }
+                        ]
+                      },
+                      "time_step": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 60
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "brute_force_protection",
+                  "email",
+                  "name"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "non_persistent_attrs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 255
+                    },
+                    "minItems": 0,
+                    "maxItems": 96
+                  }
+                }
+              }
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "success": 201,
+      "response": {
+        "schema": "CreateConnectionResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "MCP connections are not enabled for this tenant",
+        "409": "A connection with the same name already exists",
+        "422": "MCP connections must have connected_accounts.active set to true and authentication.active set to false",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "strategy email: options follow ConnectionOptionsEmail; name must equal the strategy (D-0060 P18). No sealed option."
+    },
+    {
+      "operation": "POST /api/v2/connections#sms",
+      "method": "POST",
+      "path": "/api/v2/connections",
+      "source": "https://auth0.com/docs/api/management/v2/connections/post-connections",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/connections/post-connections",
+        "https://auth0.com/docs/authenticate/passwordless/authentication-methods/sms-otp"
+      ],
+      "scopes": [
+        "create:connections"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "const": "sms"
+          },
+          "name": {
+            "const": "sms"
+          },
+          "options": {
+            "type": "object",
+            "allOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "non_persistent_attrs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 255
+                    },
+                    "minItems": 0,
+                    "maxItems": 96
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "brute_force_protection": {
+                    "type": "boolean"
+                  },
+                  "disable_signup": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "forward_req_info": {
+                    "type": "boolean"
+                  },
+                  "from": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "gateway_authentication": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "default": null,
+                    "required": [
+                      "audience",
+                      "method",
+                      "secret"
+                    ],
+                    "properties": {
+                      "audience": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "method": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "secret": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 5120
+                      },
+                      "secret_base64_encoded": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "subject": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      }
+                    },
+                    "additionalProperties": true
+                  },
+                  "gateway_url": {
+                    "anyOf": [
+                      {
+                        "allOf": [
+                          {
+                            "type": "string",
+                            "format": "uri",
+                            "pattern": "^https:\\/\\/.*",
+                            "minLength": 8
+                          },
+                          {
+                            "maxLength": 255
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "messaging_service_sid": {
+                    "type": "string",
+                    "minLength": 34,
+                    "maxLength": 34,
+                    "pattern": "^MG[0-9a-fA-F]{32}$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "provider": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "sms_gateway",
+                          "twilio"
+                        ]
+                      }
+                    ]
+                  },
+                  "syntax": {
+                    "type": "string",
+                    "enum": [
+                      "liquid",
+                      "md_with_macros"
+                    ]
+                  },
+                  "template": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5120
+                  },
+                  "totp": {
+                    "type": "object",
+                    "properties": {
+                      "length": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 4,
+                            "maximum": 40
+                          }
+                        ]
+                      },
+                      "time_step": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 60
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "twilio_sid": {
+                    "type": "string",
+                    "minLength": 34,
+                    "maxLength": 34,
+                    "pattern": "^AC[0-9a-fA-F]{32}$"
+                  },
+                  "twilio_token": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 2048
+                  }
+                }
+              }
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "success": 201,
+      "response": {
+        "schema": "CreateConnectionResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "MCP connections are not enabled for this tenant",
+        "409": "A connection with the same name already exists",
+        "422": "MCP connections must have connected_accounts.active set to true and authentication.active set to false",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "strategy sms: options follow ConnectionOptionsSMS; name must equal the strategy (D-0060 P18). twilio_token and gateway_authentication.secret are sealed, write-only and never returned (P17)."
+    },
+    {
+      "operation": "PATCH /api/v2/connections/{id}#email",
+      "method": "PATCH",
+      "path": "/api/v2/connections/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id",
+        "https://auth0.com/docs/authenticate/passwordless/authentication-methods/email-otp"
+      ],
+      "scopes": [
+        "update:connections"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "const": "email"
+          },
+          "name": {
+            "const": "email"
+          },
+          "options": {
+            "type": "object",
+            "allOf": [
+              {
+                "properties": {
+                  "authParams": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "brute_force_protection": {
+                    "type": "boolean"
+                  },
+                  "disable_signup": {
+                    "type": "boolean"
+                  },
+                  "email": {
+                    "type": "object",
+                    "properties": {
+                      "body": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20480
+                      },
+                      "from": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "subject": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "syntax": {
+                        "type": "string",
+                        "const": "liquid"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 128
+                  },
+                  "totp": {
+                    "type": "object",
+                    "properties": {
+                      "length": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 4,
+                            "maximum": 40
+                          }
+                        ]
+                      },
+                      "time_step": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 60
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "brute_force_protection",
+                  "email",
+                  "name"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "non_persistent_attrs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 255
+                    },
+                    "minItems": 0,
+                    "maxItems": 96
+                  }
+                }
+              }
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "UpdateConnectionResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "MCP connections are not enabled for this tenant",
+        "404": "The connection does not exist",
+        "409": "The name/client_id tuple has already been used for another connection",
+        "422": "MCP connections must have connected_accounts.active set to true and authentication.active set to false",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "strategy email: options follow ConnectionOptionsEmail; name must equal the strategy (D-0060 P18). No sealed option."
+    },
+    {
+      "operation": "PATCH /api/v2/connections/{id}#sms",
+      "method": "PATCH",
+      "path": "/api/v2/connections/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id",
+        "https://auth0.com/docs/authenticate/passwordless/authentication-methods/sms-otp"
+      ],
+      "scopes": [
+        "update:connections"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "const": "sms"
+          },
+          "name": {
+            "const": "sms"
+          },
+          "options": {
+            "type": "object",
+            "allOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "non_persistent_attrs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 255
+                    },
+                    "minItems": 0,
+                    "maxItems": 96
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "brute_force_protection": {
+                    "type": "boolean"
+                  },
+                  "disable_signup": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "forward_req_info": {
+                    "type": "boolean"
+                  },
+                  "from": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "gateway_authentication": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "default": null,
+                    "required": [
+                      "audience",
+                      "method",
+                      "secret"
+                    ],
+                    "properties": {
+                      "audience": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "method": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "secret": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 5120
+                      },
+                      "secret_base64_encoded": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "subject": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      }
+                    },
+                    "additionalProperties": true
+                  },
+                  "gateway_url": {
+                    "anyOf": [
+                      {
+                        "allOf": [
+                          {
+                            "type": "string",
+                            "format": "uri",
+                            "pattern": "^https:\\/\\/.*",
+                            "minLength": 8
+                          },
+                          {
+                            "maxLength": 255
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "messaging_service_sid": {
+                    "type": "string",
+                    "minLength": 34,
+                    "maxLength": 34,
+                    "pattern": "^MG[0-9a-fA-F]{32}$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "provider": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "sms_gateway",
+                          "twilio"
+                        ]
+                      }
+                    ]
+                  },
+                  "syntax": {
+                    "type": "string",
+                    "enum": [
+                      "liquid",
+                      "md_with_macros"
+                    ]
+                  },
+                  "template": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5120
+                  },
+                  "totp": {
+                    "type": "object",
+                    "properties": {
+                      "length": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 4,
+                            "maximum": 40
+                          }
+                        ]
+                      },
+                      "time_step": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 60
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "twilio_sid": {
+                    "type": "string",
+                    "minLength": 34,
+                    "maxLength": 34,
+                    "pattern": "^AC[0-9a-fA-F]{32}$"
+                  },
+                  "twilio_token": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 2048
+                  }
+                }
+              }
+            ],
+            "additionalProperties": true
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "UpdateConnectionResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "MCP connections are not enabled for this tenant",
+        "404": "The connection does not exist",
+        "409": "The name/client_id tuple has already been used for another connection",
+        "422": "MCP connections must have connected_accounts.active set to true and authentication.active set to false",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "strategy sms: options follow ConnectionOptionsSMS; name must equal the strategy (D-0060 P18). twilio_token and gateway_authentication.secret are sealed, write-only and never returned (P17)."
+    },
+    {
+      "operation": "POST /passwordless/start",
+      "method": "POST",
+      "path": "/passwordless/start",
+      "source": "https://auth0.com/docs/api/authentication/passwordless/get-code-or-link",
+      "sources": [
+        "https://auth0.com/docs/api/authentication/passwordless/get-code-or-link",
+        "https://auth0.com/docs/authenticate/passwordless/implement-login/embedded-login/relevant-api-endpoints",
+        "https://auth0.com/docs/authenticate/passwordless/best-practices",
+        "https://auth0.com/docs/troubleshoot/product-lifecycle/past-migrations/migrate-to-passwordless",
+        "https://github.com/auth0/auth0.js/blob/master/src/authentication/passwordless-authentication.js",
+        "https://www.npmjs.com/package/@auth0/auth0-auth-js/v/1.16.1"
+      ],
+      "scopes": [],
+      "scope_mode": "none",
+      "parameters": [
+        {
+          "name": "x-request-language",
+          "in": "header",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "auth0-forwarded-for",
+          "in": "header",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "client_id",
+          "connection"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_assertion": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_assertion_type": {
+            "type": "string",
+            "const": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+          },
+          "connection": {
+            "type": "string",
+            "enum": [
+              "email",
+              "sms"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone_number": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "send": {
+            "type": "string",
+            "enum": [
+              "link",
+              "code"
+            ],
+            "default": "link"
+          },
+          "authParams": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "email": {
+          "_id": "string (24 lowercase hex)",
+          "email": "string",
+          "email_verified": "boolean"
+        },
+        "sms": {
+          "_id": "string (24 lowercase hex)",
+          "phone_number": "string (E.164)",
+          "phone_verified": "boolean"
+        }
+      },
+      "errors": {
+        "400": "invalid_request: missing or malformed parameter, connection not enabled for the client, or country not allowed; sms_provider_error when the SMS gateway answers non-200 or times out.",
+        "401": "invalid_client: client authentication required or failed.",
+        "403": "unauthorized_client: the passwordless OTP grant is not enabled for the client; access_denied for blocked users or disabled signup (P22).",
+        "429": "too_many_requests: per-IP start limit or identifier send budget exhausted."
+      },
+      "semantics": "send defaults to link when omitted (documented); link is email only. SMS send is text only. Confidential clients must authenticate when enforce_client_authentication_on_passwordless_start is on; with it off an unauthenticated confidential call is accepted and logs depnote; public clients are unaffected. The client must have the passwordless OTP grant enabled. Blocked users receive no message. Only the latest code or link per tenant, connection and identifier is valid. auth0-forwarded-for is honoured only for confidential clients authenticated by secret or private key JWT. Unknown users are created on verification, never on start."
+    },
+    {
+      "operation": "GET /passwordless/verify_redirect",
+      "method": "GET",
+      "path": "/passwordless/verify_redirect",
+      "source": "https://github.com/auth0/auth0.js/blob/master/src/authentication/passwordless-authentication.js",
+      "sources": [
+        "https://github.com/auth0/auth0.js/blob/master/src/authentication/passwordless-authentication.js",
+        "https://auth0.com/docs/authenticate/passwordless/implement-login/embedded-login/relevant-api-endpoints",
+        "https://auth0.com/docs/authenticate/passwordless/authentication-methods/email-magic-link"
+      ],
+      "scopes": [],
+      "scope_mode": "none",
+      "parameters": [
+        {
+          "name": "client_id",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "connection",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "verification_code",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "email",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "phone_number",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "response_type",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "response_mode",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "redirect_uri",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "scope",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "audience",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "state",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "nonce",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "protocol",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "code_challenge",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "code_challenge_method",
+          "in": "query",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {},
+      "success": 302,
+      "response": {
+        "302": "redirect_uri with the requested response",
+        "200": "HTML confirmation page for magic-link tokens (login-passwordless-email-link text)"
+      },
+      "errors": {
+        "400": "HTML error page: unknown client, connection or redirect_uri not allowed.",
+        "302": "Wrong, expired or used code: redirect_uri with error=access_denied."
+      },
+      "semantics": "auth0.js builds this URL for codes entered in the browser and Auth0 emails it for magic links. A user-typed code is verified and consumed on GET. A magic-link token is never consumed on GET: GET renders a confirmation page whose form POSTs to the same path (scanner protection, P3). Magic links never return refresh tokens (documented)."
+    },
+    {
+      "operation": "POST /passwordless/verify_redirect",
+      "method": "POST",
+      "path": "/passwordless/verify_redirect",
+      "source": "https://auth0.com/docs/authenticate/passwordless/authentication-methods/email-magic-link",
+      "sources": [
+        "https://auth0.com/docs/authenticate/passwordless/authentication-methods/email-magic-link",
+        "https://github.com/auth0/auth0.js/blob/master/src/authentication/passwordless-authentication.js"
+      ],
+      "scopes": [],
+      "scope_mode": "none",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "required": [
+          "verification_code",
+          "state_token"
+        ],
+        "properties": {
+          "verification_code": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "state_token": {
+            "type": "string"
+          }
+        }
+      },
+      "success": 302,
+      "response": {
+        "302": "redirect_uri with the requested response"
+      },
+      "errors": {
+        "400": "HTML error page: expired confirmation form.",
+        "302": "Used, expired or replaced link: redirect_uri with error=access_denied."
+      },
+      "semantics": "Local confirmation step (P3): consumes the magic-link token once, then continues the authorization exactly as a verified code would. The browser binding rule of P3 applies."
+    },
+    {
+      "operation": "passwordless-otp",
+      "method": "POST",
+      "path": "/oauth/token",
+      "source": "https://auth0.com/docs/api/authentication/passwordless/authenticate-user",
+      "sources": [
+        "https://auth0.com/docs/api/authentication/passwordless/authenticate-user",
+        "https://auth0.com/docs/authenticate/passwordless/implement-login/embedded-login/relevant-api-endpoints",
+        "https://www.npmjs.com/package/@auth0/auth0-auth-js/v/1.16.1"
+      ],
+      "scopes": [],
+      "scope_mode": "none",
+      "parameters": [
+        {
+          "name": "DPoP",
+          "in": "header",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "auth0-forwarded-for",
+          "in": "header",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "required": [
+          "grant_type",
+          "client_id",
+          "otp",
+          "realm",
+          "username"
+        ],
+        "properties": {
+          "grant_type": {
+            "const": "http://auth0.com/oauth/grant-type/passwordless/otp"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "otp": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "realm": {
+            "type": "string",
+            "enum": [
+              "email",
+              "sms"
+            ]
+          },
+          "username": {
+            "type": "string"
+          },
+          "audience": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "TokenResponse"
+      },
+      "errors": {
+        "400": "invalid_request for missing parameters; invalid_grant for a wrong, expired, replaced or exhausted code (3 attempts).",
+        "401": "invalid_client.",
+        "403": "unauthorized_client when the grant is not enabled; access_denied for blocked users or disabled signup; mfa_required with mfa_token when MFA applies.",
+        "429": "too_many_requests."
+      },
+      "semantics": "realm must match the connection used for start. The documented redirect_uri requirement is not enforced; it is validated against callbacks when sent (P11). A correct code creates the user unless disable_signup, runs registration and post-login Actions, and applies the same MFA decision as password grants. Refusals log fepotpft; success logs s (and ss on creation). Not advertised in discovery (P11 discovery note)."
+    },
+    {
+      "operation": "GET /api/v2/branding/phone/providers",
+      "method": "GET",
+      "path": "/api/v2/branding/phone/providers",
+      "source": "https://auth0.com/docs/api/management/v2/branding/get-branding-phone-providers",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/get-branding-phone-providers",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider"
+      ],
+      "scopes": [
+        "read:phone_providers"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "disabled",
+          "in": "query",
+          "schema": {
+            "type": "boolean"
+          }
+        }
+      ],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "ListBrandingPhoneProvidersResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request query string. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope; expected any of: read:phone_provider.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "One provider per tenant: a second create is 409. credentials are sealed, write-only and never returned (P16). name custom requires a deployed custom-phone-provider Action, else 400 errorCode custom_email_provider_deployed_action_not_found (documented). name sns is the zeroauthy extension provider (P15)."
+    },
+    {
+      "operation": "POST /api/v2/branding/phone/providers",
+      "method": "POST",
+      "path": "/api/v2/branding/phone/providers",
+      "source": "https://auth0.com/docs/api/management/v2/branding/create-phone-provider",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/create-phone-provider",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider"
+      ],
+      "scopes": [
+        "create:phone_providers"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name",
+          "credentials"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "enum": [
+              "twilio",
+              "custom"
+            ]
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "configuration": {
+            "type": "object",
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sid",
+                  "delivery_methods"
+                ],
+                "properties": {
+                  "default_from": {
+                    "type": "string"
+                  },
+                  "mssid": {
+                    "type": "string"
+                  },
+                  "sid": {
+                    "type": "string"
+                  },
+                  "delivery_methods": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "voice"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "delivery_methods"
+                ],
+                "properties": {
+                  "delivery_methods": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "voice"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "credentials": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "auth_token"
+                ],
+                "properties": {
+                  "auth_token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            ]
+          }
+        }
+      },
+      "success": 201,
+      "response": {
+        "schema": "CreateBrandingPhoneProviderResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope; expected any of: create:phone_provider.",
+        "409": "Custom phone provider conflict.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "One provider per tenant: a second create is 409. credentials are sealed, write-only and never returned (P16). name custom requires a deployed custom-phone-provider Action, else 400 errorCode custom_email_provider_deployed_action_not_found (documented). name sns is the zeroauthy extension provider (P15)."
+    },
+    {
+      "operation": "GET /api/v2/branding/phone/providers/{id}",
+      "method": "GET",
+      "path": "/api/v2/branding/phone/providers/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/branding/get-phone-provider",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/get-phone-provider",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider"
+      ],
+      "scopes": [
+        "read:phone_providers"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "GetBrandingPhoneProviderResponseContent"
+      },
+      "errors": {
+        "400": "Invalid id for provider.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope; expected any of: read:phone_provider.",
+        "404": "Phone provider has not been configured.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "One provider per tenant: a second create is 409. credentials are sealed, write-only and never returned (P16). name custom requires a deployed custom-phone-provider Action, else 400 errorCode custom_email_provider_deployed_action_not_found (documented). name sns is the zeroauthy extension provider (P15)."
+    },
+    {
+      "operation": "PATCH /api/v2/branding/phone/providers/{id}",
+      "method": "PATCH",
+      "path": "/api/v2/branding/phone/providers/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/branding/update-phone-provider",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/update-phone-provider",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider"
+      ],
+      "scopes": [
+        "update:phone_providers"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "enum": [
+              "twilio",
+              "custom"
+            ]
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "credentials": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "auth_token"
+                ],
+                "properties": {
+                  "auth_token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            ]
+          },
+          "configuration": {
+            "type": "object",
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sid",
+                  "delivery_methods"
+                ],
+                "properties": {
+                  "default_from": {
+                    "type": "string"
+                  },
+                  "mssid": {
+                    "type": "string"
+                  },
+                  "sid": {
+                    "type": "string"
+                  },
+                  "delivery_methods": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "voice"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "delivery_methods"
+                ],
+                "properties": {
+                  "delivery_methods": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "voice"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "UpdateBrandingPhoneProviderResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope; expected any of: update:phone_provider.",
+        "404": "Phone provider has not been configured.",
+        "409": "Custom phone provider conflict.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "One provider per tenant: a second create is 409. credentials are sealed, write-only and never returned (P16). name custom requires a deployed custom-phone-provider Action, else 400 errorCode custom_email_provider_deployed_action_not_found (documented). name sns is the zeroauthy extension provider (P15)."
+    },
+    {
+      "operation": "DELETE /api/v2/branding/phone/providers/{id}",
+      "method": "DELETE",
+      "path": "/api/v2/branding/phone/providers/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/branding/delete-phone-provider",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/delete-phone-provider",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider"
+      ],
+      "scopes": [
+        "delete:phone_providers"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {},
+      "success": 204,
+      "response": {},
+      "errors": {
+        "401": "Invalid token.",
+        "403": "Insufficient scope; expected any of: delete:phone_provider.",
+        "404": "Phone provider has not been configured.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "One provider per tenant: a second create is 409. credentials are sealed, write-only and never returned (P16). name custom requires a deployed custom-phone-provider Action, else 400 errorCode custom_email_provider_deployed_action_not_found (documented). name sns is the zeroauthy extension provider (P15)."
+    },
+    {
+      "operation": "POST /api/v2/branding/phone/providers/{id}/try",
+      "method": "POST",
+      "path": "/api/v2/branding/phone/providers/{id}/try",
+      "source": "https://auth0.com/docs/api/management/v2/branding/try-phone-provider",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/try-phone-provider",
+        "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-twilio-as-a-phone-messaging-provider"
+      ],
+      "scopes": [
+        "create:phone_providers"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "to"
+        ],
+        "properties": {
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "delivery_method": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10,
+            "enum": [
+              "text",
+              "voice"
+            ]
+          }
+        }
+      },
+      "success": 202,
+      "response": {
+        "schema": "CreatePhoneProviderSendTestResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected: create:phone_provider.",
+        "404": "Phone provider has not been configured.",
+        "409": "Custom phone provider conflict.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Sends one real test message through the stored provider to `to`; obeys the phone send budget (limit_phone) and logs the result. delivery_method must be one of the provider's delivery_methods."
+    },
+    {
+      "operation": "GET /api/v2/branding/phone/templates",
+      "method": "GET",
+      "path": "/api/v2/branding/phone/templates",
+      "source": "https://auth0.com/docs/api/management/v2/branding/get-phone-templates",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/get-phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates/customize"
+      ],
+      "scopes": [
+        "read:phone_templates"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "disabled",
+          "in": "query",
+          "schema": {
+            "type": "boolean"
+          }
+        }
+      ],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "ListPhoneTemplatesResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected any of: read:phone_templates",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Types otp_verify, otp_enroll, change_password, blocked_account, password_breach; one template per type per tenant (409 on a second create). Unconfigured types are listed with zeroauthy defaults written in our own words (customizable true). reset restores the default content."
+    },
+    {
+      "operation": "POST /api/v2/branding/phone/templates",
+      "method": "POST",
+      "path": "/api/v2/branding/phone/templates",
+      "source": "https://auth0.com/docs/api/management/v2/branding/create-phone-template",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/create-phone-template",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates/customize"
+      ],
+      "scopes": [
+        "create:phone_templates"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "maxLength": 255,
+            "enum": [
+              "otp_verify",
+              "otp_enroll",
+              "change_password",
+              "blocked_account",
+              "password_breach"
+            ]
+          },
+          "disabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "syntax": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 16
+              },
+              "body": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  },
+                  "voice": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "success": 201,
+      "response": {
+        "schema": "CreatePhoneTemplateResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected any of: create:phone_templates",
+        "409": "Phone template already configured for tenant",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Types otp_verify, otp_enroll, change_password, blocked_account, password_breach; one template per type per tenant (409 on a second create). Unconfigured types are listed with zeroauthy defaults written in our own words (customizable true). reset restores the default content."
+    },
+    {
+      "operation": "GET /api/v2/branding/phone/templates/{id}",
+      "method": "GET",
+      "path": "/api/v2/branding/phone/templates/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/branding/get-phone-template",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/get-phone-template",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates/customize"
+      ],
+      "scopes": [
+        "read:phone_templates"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "GetPhoneTemplateResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected any of: read:phone_templates",
+        "404": "Phone template does not exist",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Types otp_verify, otp_enroll, change_password, blocked_account, password_breach; one template per type per tenant (409 on a second create). Unconfigured types are listed with zeroauthy defaults written in our own words (customizable true). reset restores the default content."
+    },
+    {
+      "operation": "PATCH /api/v2/branding/phone/templates/{id}",
+      "method": "PATCH",
+      "path": "/api/v2/branding/phone/templates/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/branding/update-phone-template",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/update-phone-template",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates/customize"
+      ],
+      "scopes": [
+        "update:phone_templates"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "from": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 16
+              },
+              "body": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  },
+                  "voice": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  }
+                }
+              }
+            }
+          },
+          "disabled": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "UpdatePhoneTemplateResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected any of: update:phone_templates",
+        "404": "Phone template does not exist",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Types otp_verify, otp_enroll, change_password, blocked_account, password_breach; one template per type per tenant (409 on a second create). Unconfigured types are listed with zeroauthy defaults written in our own words (customizable true). reset restores the default content."
+    },
+    {
+      "operation": "DELETE /api/v2/branding/phone/templates/{id}",
+      "method": "DELETE",
+      "path": "/api/v2/branding/phone/templates/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/branding/delete-phone-template",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/delete-phone-template",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates/customize"
+      ],
+      "scopes": [
+        "delete:phone_templates"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {},
+      "success": 204,
+      "response": {},
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected any of: delete:phone_templates",
+        "404": "Phone template does not exist",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Types otp_verify, otp_enroll, change_password, blocked_account, password_breach; one template per type per tenant (409 on a second create). Unconfigured types are listed with zeroauthy defaults written in our own words (customizable true). reset restores the default content."
+    },
+    {
+      "operation": "PATCH /api/v2/branding/phone/templates/{id}/reset",
+      "method": "PATCH",
+      "path": "/api/v2/branding/phone/templates/{id}/reset",
+      "source": "https://auth0.com/docs/api/management/v2/branding/reset-phone-template",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/reset-phone-template",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates/customize"
+      ],
+      "scopes": [
+        "update:phone_templates"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "ResetPhoneTemplateResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected any of: create:phone_templates",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Types otp_verify, otp_enroll, change_password, blocked_account, password_breach; one template per type per tenant (409 on a second create). Unconfigured types are listed with zeroauthy defaults written in our own words (customizable true). reset restores the default content."
+    },
+    {
+      "operation": "POST /api/v2/branding/phone/templates/{id}/try",
+      "method": "POST",
+      "path": "/api/v2/branding/phone/templates/{id}/try",
+      "source": "https://auth0.com/docs/api/management/v2/branding/try-phone-template",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/branding/try-phone-template",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates",
+        "https://auth0.com/docs/customize/phone-messages/phone-templates/customize"
+      ],
+      "scopes": [
+        "create:phone_templates"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "auth0-custom-domain",
+          "in": "header",
+          "schema": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "to"
+        ],
+        "properties": {
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "delivery_method": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10,
+            "enum": [
+              "text",
+              "voice"
+            ]
+          }
+        }
+      },
+      "success": 202,
+      "response": {
+        "schema": "CreatePhoneTemplateTestNotificationResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request body. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "Insufficient scope, expected any of: create:phone_templates",
+        "404": "Phone template does not exist",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Types otp_verify, otp_enroll, change_password, blocked_account, password_breach; one template per type per tenant (409 on a second create). Unconfigured types are listed with zeroauthy defaults written in our own words (customizable true). reset restores the default content."
+    },
+    {
+      "operation": "PUT /api/v2/guardian/factors/{name}#sms",
+      "method": "PUT",
+      "path": "/api/v2/guardian/factors/{name}",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-factors-by-name",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-factors-by-name"
+      ],
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "default": "sms",
+            "minLength": 1,
+            "enum": [
+              "push-notification",
+              "sms",
+              "email",
+              "duo",
+              "otp",
+              "webauthn-roaming",
+              "webauthn-platform",
+              "recovery-code",
+              "passkey"
+            ]
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "SetGuardianFactorResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas.",
+        "401": "Token has expired or signature is invalid.",
+        "403": "Passkey as a second factor is not enabled for this tenant. Contact Auth0 Support to enable this feature."
+      },
+      "semantics": "name=sms: enabled true makes the factor offerable only while a working provider exists (fail closed). Logs gd_tenant_update."
+    },
+    {
+      "operation": "PUT /api/v2/guardian/factors/{name}#phone",
+      "method": "PUT",
+      "path": "/api/v2/guardian/factors/{name}",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-factors-by-name",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-factors-by-name"
+      ],
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "name",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "default": "sms",
+            "minLength": 1,
+            "enum": [
+              "push-notification",
+              "sms",
+              "email",
+              "duo",
+              "otp",
+              "webauthn-roaming",
+              "webauthn-platform",
+              "recovery-code",
+              "passkey"
+            ]
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "SetGuardianFactorResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas.",
+        "401": "Token has expired or signature is invalid.",
+        "403": "Passkey as a second factor is not enabled for this tenant. Contact Auth0 Support to enable this feature."
+      },
+      "semantics": "name=phone: enabled true makes the factor offerable only while a working provider exists (fail closed). Logs gd_tenant_update."
+    },
+    {
+      "operation": "GET /api/v2/guardian/factors/phone/message-types",
+      "method": "GET",
+      "path": "/api/v2/guardian/factors/phone/message-types",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-message-types",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-message-types"
+      ],
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "GetGuardianFactorPhoneMessageTypesResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas",
+        "401": "Token has expired or signature is invalid",
+        "403": "Insufficient scope"
+      },
+      "semantics": "message_types sms, voice or both; With phone_consolidated_experience on, Guardian provider and template writes do not change delivery (the branding provider is used) and message-types must be a subset of the provider's delivery_methods (409 otherwise, documented). Writes log gd_phone_settings_update."
+    },
+    {
+      "operation": "GET /api/v2/guardian/factors/phone/selected-provider",
+      "method": "GET",
+      "path": "/api/v2/guardian/factors/phone/selected-provider",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers"
+      ],
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "GetGuardianFactorsProviderPhoneResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas",
+        "401": "Token has expired or signature is invalid",
+        "403": "Insufficient scope"
+      },
+      "semantics": "provider auth0 sends through the tenant branding phone provider (LR, P8); twilio uses the Guardian Twilio configuration; phone-message-hook runs send-phone-message. Writes log gd_phone_settings_update."
+    },
+    {
+      "operation": "GET /api/v2/guardian/factors/sms/selected-provider",
+      "method": "GET",
+      "path": "/api/v2/guardian/factors/sms/selected-provider",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers"
+      ],
+      "scopes": [
+        "read:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "GetGuardianFactorsProviderSmsResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas",
+        "401": "Token has expired or signature is invalid",
+        "403": "Insufficient scope"
+      },
+      "semantics": "provider auth0 sends through the tenant branding phone provider (LR, P8); twilio uses the Guardian Twilio configuration; phone-message-hook runs send-phone-message. Writes log gd_phone_settings_update."
+    },
+    {
+      "operation": "PUT /api/v2/guardian/factors/phone/message-types",
+      "method": "PUT",
+      "path": "/api/v2/guardian/factors/phone/message-types",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-message-types",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-message-types"
+      ],
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "message_types"
+        ],
+        "properties": {
+          "message_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "sms",
+                "voice"
+              ]
+            }
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "SetGuardianFactorPhoneMessageTypesResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas",
+        "401": "Token has expired or signature is invalid",
+        "403": "Insufficient scope",
+        "404": "The phone factor does not exist."
+      },
+      "semantics": "message_types sms, voice or both; With phone_consolidated_experience on, Guardian provider and template writes do not change delivery (the branding provider is used) and message-types must be a subset of the provider's delivery_methods (409 otherwise, documented). Writes log gd_phone_settings_update."
+    },
+    {
+      "operation": "PUT /api/v2/guardian/factors/phone/selected-provider",
+      "method": "PUT",
+      "path": "/api/v2/guardian/factors/phone/selected-provider",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers"
+      ],
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "auth0",
+              "twilio",
+              "phone-message-hook"
+            ]
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "SetGuardianFactorsProviderPhoneResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas",
+        "401": "Token has expired or signature is invalid",
+        "403": "Insufficient scope"
+      },
+      "semantics": "provider auth0 sends through the tenant branding phone provider (LR, P8); twilio uses the Guardian Twilio configuration; phone-message-hook runs send-phone-message. Writes log gd_phone_settings_update."
+    },
+    {
+      "operation": "PUT /api/v2/guardian/factors/sms/selected-provider",
+      "method": "PUT",
+      "path": "/api/v2/guardian/factors/sms/selected-provider",
+      "source": "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/guardian/put-phone-providers"
+      ],
+      "scopes": [
+        "update:guardian_factors"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "auth0",
+              "twilio",
+              "phone-message-hook"
+            ]
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "SetGuardianFactorsProviderSmsResponseContent"
+      },
+      "errors": {
+        "400": "Invalid input based on schemas",
+        "401": "Token has expired or signature is invalid",
+        "403": "Insufficient scope"
+      },
+      "semantics": "provider auth0 sends through the tenant branding phone provider (LR, P8); twilio uses the Guardian Twilio configuration; phone-message-hook runs send-phone-message. Writes log gd_phone_settings_update."
+    },
+    {
+      "operation": "GET /api/v2/users/{id}/enrollments",
+      "method": "GET",
+      "path": "/api/v2/users/{id}/enrollments",
+      "source": "https://auth0.com/docs/api/management/v2/users/get-enrollments",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/users/get-enrollments"
+      ],
+      "scopes": [
+        "read:current_user",
+        "read:users"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "inline"
+      },
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "User to be acted on does not match subject in bearer token.",
+        "404": "User not found.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "phone_number of sms/voice enrollments is masked by the masking rule unless disable_management_api_sms_obfuscation is true (its documented default)."
+    },
+    {
+      "operation": "POST /mfa/associate#phone",
+      "method": "POST",
+      "path": "/mfa/associate",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators",
+      "sources": [
+        "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+        "https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators"
+      ],
+      "scopes": [
+        "enroll"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "authenticator_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "otp",
+                "oob"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 1
+          },
+          "oob_channels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "email",
+                "sms",
+                "voice",
+                "auth0"
+              ]
+            }
+          },
+          "email": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "authenticator_types"
+        ]
+      },
+      "success": 200,
+      "response": {
+        "schema": "see mfarules"
+      },
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "access_denied",
+        "429": "too_many_attempts"
+      },
+      "semantics": "authenticator_types [oob], oob_channels [sms] or [voice], phone_number E.164; sends the enrollment code (otp_enroll / Guardian enrollment_message) and answers oob_code, binding_method prompt and first-time recovery_codes."
+    },
+    {
+      "operation": "POST /mfa/challenge#phone",
+      "method": "POST",
+      "path": "/mfa/challenge",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators",
+      "sources": [
+        "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+        "https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators"
+      ],
+      "scopes": [],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mfa_token": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "challenge_type": {
+            "type": "string",
+            "enum": [
+              "otp",
+              "oob",
+              "otp oob"
+            ]
+          },
+          "authenticator_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfa_token",
+          "challenge_type"
+        ]
+      },
+      "success": 200,
+      "response": {
+        "schema": "see mfarules"
+      },
+      "errors": {
+        "400": "invalid_request",
+        "401": "invalid_token",
+        "403": "access_denied",
+        "429": "too_many_attempts"
+      },
+      "semantics": "challenge_type oob with an sms|dev_ or voice|dev_ authenticator_id sends otp_verify; 10 sends per user per hour refilling one per hour (documented)."
+    },
+    {
+      "operation": "mfa-oob#phone",
+      "method": "POST",
+      "path": "/oauth/token",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators",
+      "sources": [
+        "https://auth0.com/docs/api/authentication#multi-factor-authentication",
+        "https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators"
+      ],
+      "scopes": [],
+      "scope_mode": "bound_request",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "http://auth0.com/oauth/grant-type/mfa-oob"
+            ]
+          },
+          "mfa_token": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "oob_code": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "binding_code": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "grant_type",
+          "mfa_token",
+          "oob_code",
+          "binding_code"
+        ]
+      },
+      "success": 200,
+      "response": {
+        "schema": "see mfarules"
+      },
+      "errors": {
+        "invalid_grant": "Invalid, expired, consumed or wrongly bound proof.",
+        "too_many_attempts": "Shared factor throttle exceeded.",
+        "unauthorized_client": "Grant not allowed for this client."
+      },
+      "semantics": "oob_code with binding_code (the delivered code) completes phone enrollment or challenge."
+    },
+    {
+      "operation": "POST /dbconnections/signup#phone",
+      "method": "POST",
+      "path": "/dbconnections/signup",
+      "source": "https://auth0.com/docs/api/authentication/signup/create-a-new-user",
+      "sources": [
+        "https://auth0.com/docs/api/authentication/signup/create-a-new-user",
+        "https://auth0.com/docs/authenticate/database-connections/activate-and-configure-attributes-for-flexible-identifiers"
+      ],
+      "scopes": [],
+      "scope_mode": "none",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "connection": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "email": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "SignupResponse"
+      },
+      "errors": {
+        "400": "invalid_signup when phone_number is required and missing, invalid, outside country_codes, or duplicate in the connection.",
+        "409": "user_exists.",
+        "429": "too_many_requests."
+      },
+      "semantics": "attributes.phone_number.signup.status off|optional|required governs phone_number; numbers are normalized to E.164 and unique per connection (P21)."
+    },
+    {
+      "operation": "PATCH /api/v2/users/{id}#phone_number",
+      "method": "PATCH",
+      "path": "/api/v2/users/{id}",
+      "source": "https://auth0.com/docs/api/management/v2/users/patch-users-by-id",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/users/patch-users-by-id"
+      ],
+      "scopes": [
+        "update:current_user_metadata",
+        "update:users",
+        "update:users_app_metadata"
+      ],
+      "scope_mode": "any",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "auth0-custom-domain",
+          "in": "header",
+          "schema": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 255
+          }
+        }
+      ],
+      "body": {
+        "type": "object",
+        "properties": {
+          "phone_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 16
+          },
+          "phone_verified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "UpdateUserResponseContent"
+      },
+      "errors": {
+        "400": "Invalid request URI. The message will vary depending on the cause.",
+        "401": "Invalid token.",
+        "403": "User to be acted on does not match subject in bearer token.",
+        "404": "User not found.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Setting or changing phone_number normalizes it to E.164 when the connection uses phone as identifier, resets phone_verified unless sent, logs scpn (fcpn on refusal) and emits user.updated."
+    },
+    {
+      "operation": "GET /api/v2/attack-protection/phone-provider-protection",
+      "method": "GET",
+      "path": "/api/v2/attack-protection/phone-provider-protection",
+      "source": "https://auth0.com/docs/api/management/v2/attack-protection/get-phone-provider-protection",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/attack-protection/get-phone-provider-protection",
+        "https://auth0.com/docs/secure/multi-factor-authentication/multi-factor-authentication-factors/exponential-backoff-for-sms"
+      ],
+      "scopes": [
+        "read:attack_protection"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {},
+      "success": 200,
+      "response": {
+        "schema": "GetPhoneProviderProtectionResponseContent"
+      },
+      "errors": {
+        "401": "Invalid token.",
+        "403": "Exponential backoff is not enabled for this tenant.",
+        "404": "Phone provider protection configuration not found.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "Always available (no plan gate); an unset tenant reads {\"type\":\"default\"} (P14)."
+    },
+    {
+      "operation": "PATCH /api/v2/attack-protection/phone-provider-protection",
+      "method": "PATCH",
+      "path": "/api/v2/attack-protection/phone-provider-protection",
+      "source": "https://auth0.com/docs/api/management/v2/attack-protection/patch-phone-provider-protection",
+      "sources": [
+        "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+        "https://auth0.com/docs/api/management/v2/attack-protection/patch-phone-provider-protection",
+        "https://auth0.com/docs/secure/multi-factor-authentication/multi-factor-authentication-factors/exponential-backoff-for-sms"
+      ],
+      "scopes": [
+        "update:attack_protection"
+      ],
+      "scope_mode": "any",
+      "parameters": [],
+      "body": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "exponential",
+              "default"
+            ]
+          }
+        }
+      },
+      "success": 200,
+      "response": {
+        "schema": "PatchPhoneProviderProtectionResponseContent"
+      },
+      "errors": {
+        "401": "Invalid token.",
+        "403": "Exponential backoff is not enabled for this tenant.",
+        "429": "Too many requests. Check the X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset headers."
+      },
+      "semantics": "type exponential enables the backoff of P14 for MFA SMS sends; default restores the static limits."
+    }
+  ],
+  "connections": [
+    {
+      "strategy": "email",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "name": "email",
+      "options": {
+        "type": "object",
+        "allOf": [
+          {
+            "properties": {
+              "authParams": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "brute_force_protection": {
+                "type": "boolean"
+              },
+              "disable_signup": {
+                "type": "boolean"
+              },
+              "email": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20480
+                  },
+                  "from": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "subject": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "syntax": {
+                    "type": "string",
+                    "const": "liquid"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "name": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 128
+              },
+              "totp": {
+                "type": "object",
+                "properties": {
+                  "length": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 4,
+                        "maximum": 40
+                      }
+                    ]
+                  },
+                  "time_step": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 60
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "brute_force_protection",
+              "email",
+              "name"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "non_persistent_attrs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 255
+                },
+                "minItems": 0,
+                "maxItems": 96
+              }
+            }
+          }
+        ],
+        "additionalProperties": true
+      },
+      "sealed": [],
+      "defaults": {
+        "brute_force_protection": true,
+        "disable_signup": false,
+        "totp": {
+          "length": 6,
+          "time_step": 180
+        },
+        "email": {
+          "syntax": "liquid",
+          "subject": "Your sign-in code for {{ application.name }}",
+          "body": "<p>Use this code to sign in to {{ application.name }}: <strong>{{ code }}</strong></p>{% if link %}<p>Or open this link on the same device: <a href=\"{{ link }}\">sign in</a></p>{% endif %}<p>If you did not try to sign in, you can ignore this email.</p>"
+        }
+      },
+      "consolidated_overrides": [],
+      "template_variables": [
+        "code",
+        "link",
+        "application.name",
+        "request_language",
+        "operation",
+        "organization.id",
+        "organization.display_name",
+        "organization.name",
+        "organization.metadata",
+        "organization.branding.logo_url",
+        "organization.branding.colors.primary",
+        "organization.branding.colors.page_background"
+      ]
+    },
+    {
+      "strategy": "sms",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "name": "sms",
+      "options": {
+        "type": "object",
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "non_persistent_attrs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 255
+                },
+                "minItems": 0,
+                "maxItems": 96
+              }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "brute_force_protection": {
+                "type": "boolean"
+              },
+              "disable_signup": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "forward_req_info": {
+                "type": "boolean"
+              },
+              "from": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "gateway_authentication": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "default": null,
+                "required": [
+                  "audience",
+                  "method",
+                  "secret"
+                ],
+                "properties": {
+                  "audience": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "method": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  },
+                  "secret": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5120
+                  },
+                  "secret_base64_encoded": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "subject": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "additionalProperties": true
+              },
+              "gateway_url": {
+                "anyOf": [
+                  {
+                    "allOf": [
+                      {
+                        "type": "string",
+                        "format": "uri",
+                        "pattern": "^https:\\/\\/.*",
+                        "minLength": 8
+                      },
+                      {
+                        "maxLength": 255
+                      }
+                    ]
+                  }
+                ]
+              },
+              "messaging_service_sid": {
+                "type": "string",
+                "minLength": 34,
+                "maxLength": 34,
+                "pattern": "^MG[0-9a-fA-F]{32}$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "provider": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "sms_gateway",
+                      "twilio"
+                    ]
+                  }
+                ]
+              },
+              "syntax": {
+                "type": "string",
+                "enum": [
+                  "liquid",
+                  "md_with_macros"
+                ]
+              },
+              "template": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 5120
+              },
+              "totp": {
+                "type": "object",
+                "properties": {
+                  "length": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 4,
+                        "maximum": 40
+                      }
+                    ]
+                  },
+                  "time_step": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 60
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "twilio_sid": {
+                "type": "string",
+                "minLength": 34,
+                "maxLength": 34,
+                "pattern": "^AC[0-9a-fA-F]{32}$"
+              },
+              "twilio_token": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 2048
+              }
+            }
+          }
+        ],
+        "additionalProperties": true
+      },
+      "sealed": [
+        "twilio_token",
+        "gateway_authentication.secret"
+      ],
+      "defaults": {
+        "brute_force_protection": true,
+        "disable_signup": false,
+        "provider": "twilio",
+        "syntax": "md_with_macros",
+        "template": "@@password@@ is your sign-in code for @@application.name@@.",
+        "totp": {
+          "length": 6,
+          "time_step": 180
+        }
+      },
+      "consolidated_overrides": [
+        "provider",
+        "twilio_sid",
+        "twilio_token",
+        "messaging_service_sid",
+        "from",
+        "gateway_url",
+        "gateway_authentication",
+        "forward_req_info",
+        "template",
+        "syntax"
+      ],
+      "template_variables": [
+        "password",
+        "code",
+        "phone_number",
+        "application.name",
+        "request_language"
+      ]
+    }
+  ],
+  "providers": [
+    {
+      "name": "twilio",
+      "extension": false,
+      "delivery_methods": [
+        "text",
+        "voice"
+      ]
+    },
+    {
+      "name": "custom",
+      "extension": false,
+      "delivery_methods": [
+        "text",
+        "voice"
+      ]
+    },
+    {
+      "name": "sns",
+      "extension": true,
+      "delivery_methods": [
+        "text"
+      ]
+    }
+  ],
+  "provider_schemas": [
+    {
+      "name": "twilio",
+      "source": "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-twilio-as-a-phone-messaging-provider",
+      "configuration": [
+        "sid",
+        "default_from",
+        "mssid",
+        "delivery_methods"
+      ],
+      "required": [
+        "sid",
+        "delivery_methods"
+      ],
+      "credentials": [
+        "auth_token"
+      ],
+      "working": "configured and not disabled",
+      "wire": "Messages: POST https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json (To, From or MessagingServiceSid, Body); Calls: POST .../Calls.json (To, From, Twiml <Response><Say>). Voice always needs default_from. Basic auth sid:auth_token. https://www.twilio.com/docs/messaging/api/message-resource https://www.twilio.com/docs/voice/api/call-resource"
+    },
+    {
+      "name": "custom",
+      "source": "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider",
+      "configuration": [
+        "delivery_methods"
+      ],
+      "required": [
+        "delivery_methods"
+      ],
+      "credentials": [],
+      "working": "a deployed custom-phone-provider Action is bound",
+      "wire": "Runs the custom-phone-provider Action (notification event)."
+    },
+    {
+      "name": "sns",
+      "source": "https://docs.aws.amazon.com/sns/latest/api/API_Publish.html",
+      "configuration": [
+        "region",
+        "sender_id",
+        "sms_type",
+        "delivery_methods"
+      ],
+      "required": [
+        "region",
+        "delivery_methods"
+      ],
+      "credentials": [
+        "access_key_id",
+        "secret_access_key"
+      ],
+      "working": "configured and not disabled",
+      "wire": "POST https://sns.{region}.amazonaws.com/ Action=Publish&Version=2010-03-31&PhoneNumber&Message, MessageAttributes AWS.SNS.SMS.SenderID and AWS.SNS.SMS.SMSType (Transactional|Promotional), SigV4 service sns. delivery_methods is [text] only; voice reports unsupported_delivery. https://docs.aws.amazon.com/sns/latest/api/API_Publish.html"
+    }
+  ],
+  "templates": [
+    {
+      "type": "otp_verify",
+      "default": {
+        "from": "",
+        "syntax": "liquid",
+        "body": {
+          "text": "{{ code }} is your verification code for {{ friendly_name }}. Do not share it with anyone.",
+          "voice": "Hello. Your verification code for {{ friendly_name }} is {{ code }}. Once more, your code is {{ code }}."
+        }
+      },
+      "variables": [
+        "code",
+        "tenant",
+        "friendly_name",
+        "support_email",
+        "support_url",
+        "logo_url",
+        "home_url",
+        "region",
+        "locale",
+        "connection",
+        "user.name",
+        "user.nickname",
+        "user.given_name",
+        "user.family_name",
+        "user.picture",
+        "user.login_count",
+        "user.user_metadata",
+        "user.app_metadata",
+        "user.email_verified",
+        "user.email",
+        "user.phone_number",
+        "user.phone_verified",
+        "user.multifactor",
+        "user.source_ip",
+        "user.country",
+        "user.city",
+        "client.name",
+        "client.clientID",
+        "client.metadata",
+        "application.name",
+        "application.client_metadata",
+        "organization.id",
+        "organization.name",
+        "organization.display_name",
+        "organization.metadata",
+        "organization.branding.logo_url",
+        "organization.branding.colors.primary",
+        "organization.branding.colors.page_background",
+        "custom_domain.domain",
+        "custom_domain.domain_metadata"
+      ]
+    },
+    {
+      "type": "otp_enroll",
+      "default": {
+        "from": "",
+        "syntax": "liquid",
+        "body": {
+          "text": "{{ code }} is your code to add this phone to your {{ friendly_name }} account.",
+          "voice": "Hello. Your code to add this phone to {{ friendly_name }} is {{ code }}. Once more, your code is {{ code }}."
+        }
+      },
+      "variables": [
+        "code",
+        "tenant",
+        "friendly_name",
+        "support_email",
+        "support_url",
+        "logo_url",
+        "home_url",
+        "region",
+        "locale",
+        "connection",
+        "user.name",
+        "user.nickname",
+        "user.given_name",
+        "user.family_name",
+        "user.picture",
+        "user.login_count",
+        "user.user_metadata",
+        "user.app_metadata",
+        "user.email_verified",
+        "user.email",
+        "user.phone_number",
+        "user.phone_verified",
+        "user.multifactor",
+        "user.source_ip",
+        "user.country",
+        "user.city",
+        "client.name",
+        "client.clientID",
+        "client.metadata",
+        "application.name",
+        "application.client_metadata",
+        "organization.id",
+        "organization.name",
+        "organization.display_name",
+        "organization.metadata",
+        "organization.branding.logo_url",
+        "organization.branding.colors.primary",
+        "organization.branding.colors.page_background",
+        "custom_domain.domain",
+        "custom_domain.domain_metadata"
+      ]
+    },
+    {
+      "type": "change_password",
+      "default": {
+        "from": "",
+        "syntax": "liquid",
+        "body": {
+          "text": "{{ code }} is your password reset code for {{ friendly_name }}. If you did not ask for it, ignore this message.",
+          "voice": "Hello. Your password reset code for {{ friendly_name }} is {{ code }}. Once more, your code is {{ code }}."
+        }
+      },
+      "variables": [
+        "code",
+        "tenant",
+        "friendly_name",
+        "support_email",
+        "support_url",
+        "logo_url",
+        "home_url",
+        "region",
+        "locale",
+        "connection",
+        "user.name",
+        "user.nickname",
+        "user.given_name",
+        "user.family_name",
+        "user.picture",
+        "user.login_count",
+        "user.user_metadata",
+        "user.app_metadata",
+        "user.email_verified",
+        "user.email",
+        "user.phone_number",
+        "user.phone_verified",
+        "user.multifactor",
+        "user.source_ip",
+        "user.country",
+        "user.city",
+        "client.name",
+        "client.clientID",
+        "client.metadata",
+        "application.name",
+        "application.client_metadata",
+        "organization.id",
+        "organization.name",
+        "organization.display_name",
+        "organization.metadata",
+        "organization.branding.logo_url",
+        "organization.branding.colors.primary",
+        "organization.branding.colors.page_background",
+        "custom_domain.domain",
+        "custom_domain.domain_metadata"
+      ]
+    },
+    {
+      "type": "blocked_account",
+      "default": {
+        "from": "",
+        "syntax": "liquid",
+        "body": {
+          "text": "Sign-in to your {{ friendly_name }} account was blocked after unusual activity. Contact {{ support_email }} for help.",
+          "voice": "Hello. Sign-in to your {{ friendly_name }} account was blocked after unusual activity. Please contact support."
+        }
+      },
+      "variables": [
+        "tenant",
+        "friendly_name",
+        "support_email",
+        "support_url",
+        "logo_url",
+        "home_url",
+        "region",
+        "locale",
+        "connection",
+        "user.name",
+        "user.nickname",
+        "user.given_name",
+        "user.family_name",
+        "user.picture",
+        "user.login_count",
+        "user.user_metadata",
+        "user.app_metadata",
+        "user.email_verified",
+        "user.email",
+        "user.phone_number",
+        "user.phone_verified",
+        "user.multifactor",
+        "user.source_ip",
+        "user.country",
+        "user.city",
+        "client.name",
+        "client.clientID",
+        "client.metadata",
+        "application.name",
+        "application.client_metadata",
+        "organization.id",
+        "organization.name",
+        "organization.display_name",
+        "organization.metadata",
+        "organization.branding.logo_url",
+        "organization.branding.colors.primary",
+        "organization.branding.colors.page_background",
+        "custom_domain.domain",
+        "custom_domain.domain_metadata"
+      ]
+    },
+    {
+      "type": "password_breach",
+      "default": {
+        "from": "",
+        "syntax": "liquid",
+        "body": {
+          "text": "Your {{ friendly_name }} password was found in a data breach. Use code {{ code }} to choose a new one.",
+          "voice": "Hello. Your {{ friendly_name }} password was found in a data breach. Your code to choose a new one is {{ code }}."
+        }
+      },
+      "variables": [
+        "code",
+        "tenant",
+        "friendly_name",
+        "support_email",
+        "support_url",
+        "logo_url",
+        "home_url",
+        "region",
+        "locale",
+        "connection",
+        "user.name",
+        "user.nickname",
+        "user.given_name",
+        "user.family_name",
+        "user.picture",
+        "user.login_count",
+        "user.user_metadata",
+        "user.app_metadata",
+        "user.email_verified",
+        "user.email",
+        "user.phone_number",
+        "user.phone_verified",
+        "user.multifactor",
+        "user.source_ip",
+        "user.country",
+        "user.city",
+        "client.name",
+        "client.clientID",
+        "client.metadata",
+        "application.name",
+        "application.client_metadata",
+        "organization.id",
+        "organization.name",
+        "organization.display_name",
+        "organization.metadata",
+        "organization.branding.logo_url",
+        "organization.branding.colors.primary",
+        "organization.branding.colors.page_background",
+        "custom_domain.domain",
+        "custom_domain.domain_metadata"
+      ]
+    }
+  ],
+  "guardian_templates": {
+    "source": "https://auth0.com/docs/customize/customize-sms-or-voice-messages",
+    "fields": [
+      "enrollment_message",
+      "verification_message"
+    ],
+    "variables": [
+      "message_type",
+      "code",
+      "locale",
+      "requestInfo.lang",
+      "tenant.friendlyName",
+      "custom_domain.domain",
+      "custom_domain.domain_metadata",
+      "pause"
+    ],
+    "defaults": {
+      "enrollment_message": "{{ code }} is your code to add this phone to {{ tenant.friendlyName }}.",
+      "verification_message": "{{ code }} is your verification code for {{ tenant.friendlyName }}."
+    },
+    "voice_code": "For voice delivery the code is rendered with its digits separated by dots (1.2.3.4.5.6) for speech; the same rule applies to branding templates (LR).",
+    "applies": "Only when phone_consolidated_experience is off."
+  },
+  "routing": [
+    {
+      "purpose": "mfa",
+      "consolidated": true,
+      "guardian_provider": "auth0",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "branding:otp_enroll|otp_verify",
+      "failure": "gd_send_sms_failure / gd_send_voice_failure; no working provider -> factor not offered",
+      "source": "https://auth0.com/docs/customize/phone-messages/unified-phone/use-auth0s-unified-phone-experience-for-multi-factor-authentication"
+    },
+    {
+      "purpose": "mfa",
+      "consolidated": true,
+      "guardian_provider": "twilio",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "branding:otp_enroll|otp_verify",
+      "failure": "gd_send_sms_failure / gd_send_voice_failure; no working provider -> factor not offered",
+      "source": "https://auth0.com/docs/customize/phone-messages/unified-phone/use-auth0s-unified-phone-experience-for-multi-factor-authentication"
+    },
+    {
+      "purpose": "mfa",
+      "consolidated": true,
+      "guardian_provider": "phone-message-hook",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "branding:otp_enroll|otp_verify",
+      "failure": "gd_send_sms_failure / gd_send_voice_failure; no working provider -> factor not offered",
+      "source": "https://auth0.com/docs/customize/phone-messages/unified-phone/use-auth0s-unified-phone-experience-for-multi-factor-authentication"
+    },
+    {
+      "purpose": "mfa",
+      "consolidated": false,
+      "guardian_provider": "auth0",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "guardian:enrollment_message|verification_message",
+      "failure": "no branding provider -> fail closed, gd_send_sms_failure, factor not offered to new enrollments (LR P8)",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-sms-voice-notifications-mfa"
+    },
+    {
+      "purpose": "mfa",
+      "consolidated": false,
+      "guardian_provider": "twilio",
+      "connection_provider": "",
+      "sender": "guardian-twilio",
+      "template": "guardian:enrollment_message|verification_message",
+      "failure": "gd_send_sms_failure / gd_send_voice_failure",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/multi-factor-authentication-factors/configure-sms-voice-notifications-mfa"
+    },
+    {
+      "purpose": "mfa",
+      "consolidated": false,
+      "guardian_provider": "phone-message-hook",
+      "connection_provider": "",
+      "sender": "action:send-phone-message",
+      "template": "guardian:enrollment_message|verification_message",
+      "failure": "no deployed bound Action -> factor not offered; Action error -> gd_send_sms_failure",
+      "source": "https://auth0.com/docs/customize/actions/explore-triggers/send-phone-message"
+    },
+    {
+      "purpose": "passwordless",
+      "consolidated": true,
+      "guardian_provider": "",
+      "connection_provider": "twilio",
+      "sender": "branding",
+      "template": "branding:otp_verify",
+      "failure": "fn; no working provider -> SMS connection not offered, start fails closed",
+      "source": "https://auth0.com/docs/customize/phone-messages/unified-phone/unified-phone-experience-passwordless"
+    },
+    {
+      "purpose": "passwordless",
+      "consolidated": true,
+      "guardian_provider": "",
+      "connection_provider": "sms_gateway",
+      "sender": "branding",
+      "template": "branding:otp_verify",
+      "failure": "fn; no working provider -> SMS connection not offered, start fails closed",
+      "source": "https://auth0.com/docs/customize/phone-messages/unified-phone/unified-phone-experience-passwordless"
+    },
+    {
+      "purpose": "passwordless",
+      "consolidated": false,
+      "guardian_provider": "",
+      "connection_provider": "twilio",
+      "sender": "connection-twilio",
+      "template": "connection:template",
+      "failure": "fn; 400 sms_provider_error",
+      "source": "https://auth0.com/docs/authenticate/passwordless/authentication-methods/sms-otp"
+    },
+    {
+      "purpose": "passwordless",
+      "consolidated": false,
+      "guardian_provider": "",
+      "connection_provider": "sms_gateway",
+      "sender": "connection-gateway",
+      "template": "connection:template",
+      "failure": "fn; 400 sms_provider_error (documented descriptions)",
+      "source": "https://auth0.com/docs/authenticate/passwordless/authentication-methods/use-sms-gateway-passwordless"
+    },
+    {
+      "purpose": "reset",
+      "consolidated": true,
+      "guardian_provider": "",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "branding:change_password",
+      "failure": "fn; no working provider -> phone reset not offered",
+      "source": "https://auth0.com/docs/customize/phone-messages/unified-phone/unified-phone-experience-passwordless"
+    },
+    {
+      "purpose": "verify",
+      "consolidated": true,
+      "guardian_provider": "",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "branding:otp_verify",
+      "failure": "fn; no working provider -> phone signup verification not offered",
+      "source": "https://auth0.com/docs/authenticate/database-connections/flexible-identifiers-and-attributes"
+    },
+    {
+      "purpose": "reset",
+      "consolidated": false,
+      "guardian_provider": "",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "branding:change_password",
+      "failure": "fn; no working provider -> phone reset not offered",
+      "source": "https://auth0.com/docs/customize/phone-messages/unified-phone/unified-phone-experience-passwordless"
+    },
+    {
+      "purpose": "verify",
+      "consolidated": false,
+      "guardian_provider": "",
+      "connection_provider": "",
+      "sender": "branding",
+      "template": "branding:otp_verify",
+      "failure": "fn; no working provider -> phone signup verification not offered",
+      "source": "https://auth0.com/docs/authenticate/database-connections/flexible-identifiers-and-attributes"
+    }
+  ],
+  "screens": {
+    "login-passwordless": [
+      "login-passwordless-email-code",
+      "login-passwordless-email-link",
+      "login-passwordless-sms-otp"
+    ],
+    "mfa-sms": [
+      "mfa-country-codes",
+      "mfa-sms-enrollment",
+      "mfa-sms-challenge",
+      "mfa-sms-list"
+    ],
+    "mfa-voice": [
+      "mfa-voice-enrollment",
+      "mfa-voice-challenge"
+    ],
+    "mfa-phone": [
+      "mfa-phone-enrollment",
+      "mfa-phone-challenge"
+    ],
+    "phone-identifier-enrollment": [
+      "phone-identifier-enrollment"
+    ],
+    "phone-identifier-challenge": [
+      "phone-identifier-challenge"
+    ]
+  },
+  "hosted": {
+    "source": "https://auth0.com/docs/authenticate/passwordless/passwordless-with-universal-login",
+    "connection_selection": "connection=email|sms on /authorize selects the passwordless connection; without it a tenant with no database connection shows the passwordless connection created first (documented table).",
+    "sso": "With connection=email|sms the existing session is not reused; the user is prompted (documented).",
+    "magic_link": "Magic links are not offered by the hosted prompt (documented: not supported in Universal Login). login-passwordless-email-link text is used by the verify_redirect confirmation page (P24).",
+    "phone_signup": "Signup with phone verification shows phone-identifier-challenge after signup-id; the account is created only after the code verifies.",
+    "phone_reset": "reset-password-request accepts a phone identifier; the code is entered on phone-identifier-challenge; then reset-password (LR).",
+    "resend": "Resend obeys the identifier send budget and replaces the previous code."
+  },
+  "triggers": [
+    {
+      "id": "custom-phone-provider",
+      "handler": "onExecuteCustomPhoneProvider",
+      "version": "v1",
+      "blocking": false,
+      "event": [
+        "notification.message_type",
+        "notification.as_text",
+        "notification.as_voice",
+        "notification.delivery_method",
+        "notification.recipient",
+        "notification.from",
+        "notification.code",
+        "notification.locale",
+        "user",
+        "client",
+        "connection",
+        "organization",
+        "request",
+        "tenant",
+        "transaction",
+        "custom_domain",
+        "secrets"
+      ],
+      "api": [
+        "cache.get",
+        "cache.set",
+        "cache.delete",
+        "notification.drop",
+        "notification.retry"
+      ],
+      "retries": 5,
+      "max_bindings": 1,
+      "source": "https://auth0.com/docs/actions/reference/custom-phone-provider/custom-phone-provider-event-object"
+    },
+    {
+      "id": "send-phone-message",
+      "handler": "onExecuteSendPhoneMessage",
+      "version": "v2",
+      "blocking": true,
+      "event": [
+        "message_options.action",
+        "message_options.code",
+        "message_options.message_type",
+        "message_options.recipient",
+        "message_options.text",
+        "user",
+        "client",
+        "request",
+        "tenant",
+        "transaction",
+        "custom_domain",
+        "security_context",
+        "secrets"
+      ],
+      "api": [
+        "cache.get",
+        "cache.set",
+        "cache.delete"
+      ],
+      "retries": 0,
+      "max_bindings": 0,
+      "source": "https://auth0.com/docs/actions/reference/send-phone-message/send-phone-message-event-object"
+    }
+  ],
+  "masking": {
+    "visible": 4,
+    "char": "X",
+    "source": "https://auth0.com/docs/secure/multi-factor-authentication/authenticate-using-ropg-flow-with-mfa/enroll-challenge-sms-voice-authenticators",
+    "applies": [
+      "MFA API authenticator name for sms/voice",
+      "Management enrollments and authentication methods when disable_management_api_sms_obfuscation is false",
+      "every log line, event body, Action log and console response that would carry a phone number"
+    ],
+    "note": "Documented examples show XXXXXXXX6220 / XXXXXXXX8730 for E.164 numbers: every character including + is replaced except the last four. Values of four characters or fewer are fully masked (LR). User profile phone_number is profile data and is not masked by the Management API (P5)."
+  },
+  "limits": {
+    "otp_length_default": 6,
+    "otp_length_min": 4,
+    "otp_length_max": 40,
+    "otp_lifetime_default_seconds": 180,
+    "otp_lifetime_min_seconds": 60,
+    "otp_attempts": 3,
+    "link_lifetime_default_seconds": 180,
+    "link_token_bytes": 32,
+    "start_id_hex_length": 24,
+    "start_per_ip_per_hour": 50,
+    "identifier_sends_per_hour": 10,
+    "phone_sends_per_user_per_hour": 10,
+    "voice_new_requests_per_hour": 1,
+    "signup_otp_lifetime_seconds": 900,
+    "signup_otp_sends_per_hour": 10,
+    "mfa_code_length_default": 6,
+    "mfa_code_length_min": 4,
+    "mfa_code_length_max": 10,
+    "mfa_code_lifetime_default_seconds": 300,
+    "mfa_code_lifetime_min_seconds": 30,
+    "mfa_code_lifetime_max_seconds": 3600,
+    "gateway_timeout_seconds": 30,
+    "gateway_jwt_seconds": 300,
+    "custom_provider_retries": 5,
+    "notification_reason_max": 1024,
+    "backoff_immediate": 3,
+    "backoff_min_seconds": 60,
+    "backoff_max_seconds": 1920,
+    "backoff_jitter_percent": 10,
+    "backoff_reset_seconds": 86400,
+    "template_body_max": 20000,
+    "phone_number_max": 16,
+    "phone_digits_min": 8,
+    "phone_digits_max": 15
+  },
+  "log_codes": {
+    "cs": "POST /passwordless/start or hosted send/resend with send=code, after the email or SMS provider accepted the message.",
+    "cls": "POST /passwordless/start with send=link, after the email provider accepted the message.",
+    "fepotpft": "Every refused passwordless OTP grant after the grant type is recognised (wrong, expired, replaced or exhausted code, disabled signup, blocked user).",
+    "gd_send_sms": "An MFA enrollment or challenge text was accepted by the routed provider (any route in routing).",
+    "gd_send_sms_failure": "An MFA text could not be sent: provider error, no working provider, Action error or runner unavailable.",
+    "gd_send_voice": "An MFA enrollment or challenge voice call was accepted by the routed provider.",
+    "gd_send_voice_failure": "An MFA voice call could not be placed, including unsupported_delivery (sns).",
+    "gd_phone_settings_update": "A successful write to Guardian sms/phone message-types, selected-provider, providers/twilio, templates or phone settings.",
+    "limit_phone": "A phone send budget or exponential backoff wait refused a send (MFA, passwordless SMS, phone reset, provider/template try); the log carries the remaining wait.",
+    "limit_signup_otp": "A signup verification code was not sent because the tenant+identifier+connection budget was exhausted (documented scope, independent of IP).",
+    "scpn": "phone_number was set or changed through the Management API or a hosted flow.",
+    "fcpn": "A phone_number change was refused (invalid E.164, duplicate in the connection, country not allowed).",
+    "s": "Successful passwordless login: hosted code, verify_redirect and the OTP grant (the catalog has no passwordless success exchange code).",
+    "f": "Wrong, expired or replaced code or link in hosted login or verify_redirect.",
+    "fu": "Unknown user on a disable_signup passwordless connection at verification.",
+    "ss": "First passwordless verification that created the user.",
+    "fs": "Passwordless user creation refused (pre-user-registration Action deny).",
+    "fn": "Passwordless email or SMS delivery failure outside MFA (connection Twilio, gateway, branding provider) and phone reset or verification delivery failure.",
+    "api_limit": "Per-IP /passwordless/start limit (50 per hour) and the email identifier budget.",
+    "depnote": "A confidential client called /passwordless/start without client authentication while enforce_client_authentication_on_passwordless_start is off.",
+    "limit_wc": "brute_force_protection on a passwordless connection: wrong codes count toward the Plan 19 per-user/IP block (P2)."
+  },
+  "tenant_settings": {
+    "source": "https://auth0.com/docs/api/management/v2/tenants/patch-settings",
+    "phone_consolidated_experience": "true routes MFA, passwordless SMS, phone reset and verification through the branding provider and templates; Guardian provider/template writes no longer change delivery. Absent on existing tenants means false; tenants created after Plan 34 start with true (P9).",
+    "country_codes": "{list: ISO 3166-1 alpha-2, mode: allow|deny}; applied to every SMS/voice destination (passwordless start, MFA enrollment, signup verification, phone identifiers) and to the hosted country picker (P20).",
+    "flags.enforce_client_authentication_on_passwordless_start": "Confidential clients must authenticate on /passwordless/start; public clients unaffected (documented migration).",
+    "flags.disable_management_api_sms_obfuscation": "Documented default true: phone numbers in Management GET enrollments/authentication methods are not obfuscated; false applies the masking rule.",
+    "bot_detection.challenge_passwordless_policy": "never|when_risky|always applies to the hosted login-passwordless prompt; /passwordless/start is not challenged (P10).",
+    "phone_provider_protection": "default|exponential (see protection_backoff)."
+  },
+  "email_templates": {
+    "source": "https://auth0.com/docs/customize/email/email-templates",
+    "auth_email_by_code": "Passwordless email codes use this template when it exists and is enabled; otherwise the connection's email.body/subject/from (P19).",
+    "verify_email_by_code": "Signup or first-login email verification with the OTP verification method (flexible identifiers).",
+    "reset_email_by_code": "Password reset by email code when the connection uses code-based reset."
+  },
+  "identity": {
+    "user_id": "email|<24 lowercase hex> and sms|<24 lowercase hex> (P6).",
+    "identity": "provider email|sms, connection email|sms, isSocial false; email_verified or phone_verified true after a successful login.",
+    "connection_name": "Passwordless connection names equal their strategy (email, sms); one per strategy per tenant (P18).",
+    "phone_authenticator_ids": "sms|dev_<20> and voice|dev_<20> share the device suffix for one phone enrollment (documented examples; Plan 33 ID rule)."
+  },
+  "gateway": {
+    "source": "https://auth0.com/docs/authenticate/passwordless/authentication-methods/use-sms-gateway-passwordless",
+    "body": {
+      "recipient": "E.164",
+      "body": "rendered text",
+      "sender": "connection from",
+      "req": {
+        "ip": "client IP",
+        "user-agent": "client user agent"
+      }
+    },
+    "req_only_when": "forward_req_info true",
+    "authorization": "Bearer JWT, HS256, signed with gateway_authentication.secret (base64url-decoded when secret_base64_encoded), claims sub=subject, aud=audience, iat, exp=iat+gateway_jwt_seconds (LR for alg and exp).",
+    "errors": {
+      "non_200": "400 sms_provider_error, Unexpected response while calling the SMS gateway: <status>",
+      "401": "400 sms_provider_error, Authentication failed while calling the SMS gateway: 401",
+      "timeout": "400 sms_provider_error, Timeout while calling the SMS gateway: <reason>"
+    },
+    "transport": "SSRF-guarded client (Plan 32): checked IP at dial, no redirects, 30 s timeout; only the HTTP status is considered."
+  },
+  "protection_backoff": {
+    "source": "https://auth0.com/docs/secure/multi-factor-authentication/multi-factor-authentication-factors/exponential-backoff-for-sms",
+    "rule": "exponential: 3 immediate sends per user identifier (LR), then waits doubling from 60 s to 1920 s with +/-10% jitter (LR); inactivity of 24 h resets (LR). Each refused send logs limit_phone with the remaining wait.",
+    "default": "static limits: 10 SMS/voice per user per hour refilling one per hour; a new voice request at most once per hour (documented)."
+  },
+  "discovery": {
+    "passwordless_grant": "not advertised",
+    "note": "No public discovery document was checked for the passwordless grant. Local rule: do not add it to grant_types_supported; not a claim about Auth0's response."
+  },
+  "rulings": [
+    "LR1 Guardian selected-provider auth0 sends through the tenant branding phone provider; none configured -> fail closed with gd_send_sms_failure and the factor is not offered to new enrollments.",
+    "LR2 sns is a marked zeroauthy extension provider name (text only); twilio, custom, auth0 and phone-message-hook keep Auth0's meaning.",
+    "LR3 A provider works when native (twilio, sns) and configured and not disabled, or Action-backed (custom, phone-message-hook) with a deployed bound Action; only working providers make a factor or SMS connection offerable; send-time failures are delivery failures.",
+    "LR4 Provider endpoints are fixed; only ZA_TEST_PHONE_ENDPOINTS with an explicit ZA_TEST_MODE=1 redirects adapters to local fakes, with a startup warning.",
+    "LR5 Enabling attributes.phone_number.identifier.active runs a pre-check of existing numbers (E.164 normalization in memory, duplicates per connection) and refuses with a masked conflict list; migration 0034 never rewrites user data.",
+    "LR6 Numbers frozen where docs are silent: identifier and signup OTP budgets 10/hour, link lifetime = totp.time_step, start _id 24 hex, backoff 3 immediate/60-1920 s/10% jitter/24 h reset, gateway JWT HS256 300 s, E.164 8-15 digits."
+  ],
+  "gaps": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11",
+    "P12",
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P17",
+    "P18",
+    "P19",
+    "P20",
+    "P21",
+    "P22",
+    "P23",
+    "P24"
+  ],
+  "gap_notes": {
+    "P1": "/passwordless/start response bodies, _id format and per-strategy errors are undocumented; frozen shapes are local.",
+    "P2": "OTP attempt limit (3, documented) interplay with brute_force_protection: each wrong code also counts toward the Plan 19 per-user/IP rule (limit_wc).",
+    "P3": "Magic-link lifetime equals totp.time_step; the documented same-browser rule is enforced only when start came from a browser transaction (cookie binding); GET verify_redirect renders a confirmation page and the POST consumes the token.",
+    "P4": "Send budgets: MFA 10/user/hour documented; passwordless identifier and signup OTP budgets 10/hour are local; email exhaustion logs api_limit.",
+    "P5": "Phone masking: documented authenticator examples only; Management default follows disable_management_api_sms_obfuscation (documented default true); user profile phone_number unmasked; logs always masked.",
+    "P6": "Passwordless user_id format email|/sms| + 24 lowercase hex is local.",
+    "P7": "Under the consolidated experience passwordless SMS uses the otp_verify branding template and the listed SMS connection fields are ignored; undocumented beyond 'does not use the custom SMS gateway'.",
+    "P8": "Guardian auth0 provider has no zeroauthy service; routed to the branding provider (LR1).",
+    "P9": "New tenants start with phone_consolidated_experience true (Auth0 enrolls new tenants); existing tenants keep absent=false.",
+    "P10": "Bot detection on /passwordless/start (auth0.js captcha, /passwordless/challenge) is not implemented; the policy applies to the hosted prompt only.",
+    "P11": "OTP grant redirect_uri is documented as required; auth0-auth-js 1.16.1 omits it, so it is optional and validated when present. The grant is not advertised in discovery.",
+    "P12": "send-phone-message trigger version v2 is local (no public statement); custom-phone-provider v1 is documented in the Terraform guide.",
+    "P13": "Docs prose spells /passwordless/verify-redirect; auth0.js uses /passwordless/verify_redirect, which is served; the hyphen spelling is not.",
+    "P14": "phone-provider-protection is always available (Auth0 gates it by plan with 403) and reads {type: default} when unset (Auth0 documents 404); backoff parameters are local.",
+    "P15": "sns provider shape (configuration region, sender_id, sms_type, delivery_methods [text]; credentials access_key_id, secret_access_key) is a zeroauthy extension outside Auth0's twilio|custom enum.",
+    "P16": "Published provider response schemas require credentials but do not define it (additionalProperties false); responses omit credentials.",
+    "P17": "Auth0 documentation shows twilio_token in GET connection responses; zeroauthy seals it and never returns it (spec secret rule).",
+    "P18": "Passwordless connection names must equal the strategy (email, sms), one per tenant, inferred from /passwordless/start allowing only email and sms.",
+    "P19": "When auth_email_by_code applies versus the connection's email body is undocumented; local rule in email_templates.",
+    "P20": "country_codes is documented for identifier input; zeroauthy applies it to every SMS/voice destination and refuses with invalid_request.",
+    "P21": "Docs state phone numbers are unique regardless of connection type; zeroauthy enforces uniqueness per connection (spec section 7).",
+    "P22": "Start for an unknown user on a disable_signup connection fails with 403 access_denied (local error choice; docs confirm enumeration exposure).",
+    "P23": "Passwordless on database connections (/otp/challenge, auth_session) and /passwordless/verify, /oauth/ro are out of scope.",
+    "P24": "Docs say magic links are not supported in Universal Login; the hosted prompt sends codes only, links come from /passwordless/start (spec section 3 hosted text narrowed)."
+  }
+}

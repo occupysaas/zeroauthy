@@ -110,6 +110,10 @@ func TestActionsValidateBindings(t *testing.T) {
 	if len(ValidateBindings("custom-email-provider", b(1))) != 0 || len(ValidateBindings("custom-email-provider", b(2))) == 0 || len(ValidateBindings("custom-email-provider", nil)) != 0 {
 		t.Error("custom-email-provider binding limit")
 	}
+	// The documented limit is the same for custom-phone-provider (D-0060).
+	if len(ValidateBindings("custom-phone-provider", b(1))) != 0 || len(ValidateBindings("custom-phone-provider", b(2))) == 0 {
+		t.Error("custom-phone-provider binding limit")
+	}
 }
 
 // Rejecting malformed reference pairs prevents silently pinning a different module.
