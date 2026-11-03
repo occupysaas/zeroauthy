@@ -336,7 +336,7 @@ func dropUserFederation(ctx context.Context, tx *Store, tenantID, userID string)
 func backfillFederatedIdentities(ctx context.Context, tx *Store) error {
 	// Migration 0021 runs before 0024 adds last_password_reset. Supply NULL
 	// to the current scanner without requiring a future schema column.
-	rows, err := tx.query(ctx, `SELECT `+userColsBeforeActionsII+`,NULL,0 FROM users WHERE identities LIKE ? OR identities LIKE ? OR identities LIKE ? ORDER BY tenant_id, user_id`,
+	rows, err := tx.query(ctx, `SELECT `+userColsBeforeActionsII+`,NULL,0,NULL FROM users WHERE identities LIKE ? OR identities LIKE ? OR identities LIKE ? ORDER BY tenant_id, user_id`,
 		`%"Provider":"google-oauth2"%`, `%"Provider":"oauth2"%`, `%"Provider":"oidc"%`)
 	if err != nil {
 		return err

@@ -250,7 +250,7 @@ func eventsUnavailableCalls(ctx context.Context) []func(store.Events) error {
 func TestEventsPrePluginPriorFeatures(t *testing.T) {
 	names := make([]string, 0, len(storetest.Suites))
 	for name := range storetest.Suites {
-		if name != "Events" {
+		if name != "Events" && name != "Phone" { // Phone returns with the gRPC driver (Plan 34 Task 6)
 			names = append(names, name)
 		}
 	}

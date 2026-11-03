@@ -16,7 +16,7 @@ type Factory func(t *testing.T) store.Store
 // use RunSuites to bring suites up one at a time.
 var Suites = map[string]func(t *testing.T, newStore Factory){
 	"MFA":                         MFA,
-	"Phone":                       Phone, // not in suiteOrder until the SQL and gRPC drivers land (Plan 34 Tasks 5 and 6)
+	"Phone":                       Phone, // gRPC driver joins in Plan 34 Task 6
 	"Logs":                        testLogs,
 	"Events":                      testEvents,
 	"RBAC":                        testRBAC,
@@ -68,7 +68,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 
 // suiteOrder is the order Run executes the suites in.
 var suiteOrder = []string{
-	"MFA",
+	"MFA", "Phone",
 	"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCap", "CustomDomainCAS", "CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",
 	"Events", "Logs", "RBAC", "Organizations", "OrganizationsII", "Protection", "Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
 	"Connections", "PasswordHistories", "Users", "UserDelete", "UserList", "UserQueryMetadataTypes", "Sessions", "AuthTransactions", "AuthCodes",

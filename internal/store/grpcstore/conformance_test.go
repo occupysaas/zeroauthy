@@ -80,18 +80,21 @@ type limitForwarder struct {
 
 func (f limitForwarder) SetOrgLimits(l store.OrgLimits) { f.backing.SetOrgLimits(l) }
 
+// grpcPhoneSkip is removed when the gRPC Phone driver lands (Plan 34 Task 6).
+var grpcPhoneSkip = map[string]string{"Phone": "gRPC phone driver lands in Plan 34 Task 6"}
+
 func TestConformance(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store {
+	storetest.RunExcept(t, func(t *testing.T) store.Store {
 		m := memory.New()
 		return limitForwarder{serve(t, m), m}
-	})
+	}, grpcPhoneSkip)
 }
 
 func TestConformanceSQLite(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store {
+	storetest.RunExcept(t, func(t *testing.T) store.Store {
 		st := openSQLite(t)
 		return limitForwarder{serve(t, st), st}
-	})
+	}, grpcPhoneSkip)
 }
 
 // These assertions run against SQL savepoints behind real gRPC transaction
