@@ -279,3 +279,122 @@ and generated package compilation are recorded in the task report.
 - Toolchain Go1.26.7/Node26.8.1 retained. `npm ci --ignore-scripts` installs locked dependencies; existing npm audit output reports5 vulnerabilities (1moderate/3high/1critical), no pin changes. Formatting, script syntax, fixture JSON and `git diff --check` pass. No API generation required: no operation/schema changes. Full repository/runtime/browser suites, final combined secret scan, full Deploy CLI matrix after an approved client fix, and upstream discovery remain outstanding; no passing claim.
 - Self-review: checked omission versus explicit Never, stored-only flags, tenant isolation, version no-op/CAS behavior, create-only ownership, rollback of existing values, portable configuration versus methods/secrets, exact fixture coverage and partial/full labeling. Controller review pending from base598f79e.
 - Task13 implementation commit: `5fabc2a33356d9733107d862bd53ee6121cd9cd2` (`feat: provision MFA through seed and Deploy CLI`). Review pending; required full Deploy CLI result remains failing at the documented external provider-export bug.
+
+## Task 14a — MFA acceptance harness and browser correction
+
+This bounded phase implements Task 14's acceptance fixtures. Task 14b still owns
+fresh full-matrix regression and whole-branch review; Plan 33 is not marked fully
+verified. Base `5da0f9f19d6cf9ae3f28f18e362e4bb949dab8eb`, worktree
+`/home/thomas/.codex/worktrees/79d0/zeroauthy`, Go1.26.7/Node26.8.1; dependency
+pins are unchanged. The detailed private execution ledger is
+`.superpowers/sdd/2026-11-02-zeroauthy-plan-33-mfa/task-14a-report.md`.
+
+- Added `make e2e-mfa`, the production-app runner, four requested browser/SDK/raw
+  grant/CLI clients, and focused privacy/RFC/mailbox checks. Default backends are
+  SQLite then memory; isolated `ZA_TEST_POSTGRES_DSN`/`ZA_TEST_MYSQL_DSN` select
+  PostgreSQL/MySQL through `E2E_M33_BACKENDS`. `E2E_M33_LANES` selects affected
+  lanes after a recorded failure, preserving the first complete command's result.
+- The SQLite browser signs up on the real QR page, confirms an independently
+  generated RFC6238 code, acknowledges recovery, logs out/in, remembers a
+  browser, invalidates it, proves recovery and checks MFA AMR. It covers stored
+  unsupported WebAuthn, second-app SSO/prompt=none, three deployed Actions and
+  actual operator recovery-code dismissal/stale-response lifecycle. Email is
+  delivered through the configured tenant SMTP provider with STARTTLS.
+- Node-auth07.4.0 and Auth0 CLI1.37.0 use real Guardian/user method/enrollment/
+  recovery endpoints. Auth-js1.16.1 and raw HTTP exercise OTP/email/recovery
+  grants, replacement/reuse, wrong-client binding, persisted throttling and
+  actual ten-minute token expiry. No fake clock, database timestamp mutation,
+  SDK mock, pin change or CLI-provider adapter is used.
+- Privacy capture allows only named one-time fields at explicit issuance
+  locations. All other response fields, browser diagnostics, ordinary console
+  responses, received log/event bodies and SQLite log/execution/event columns
+  are scanned against actual TOTP seeds/codes, email codes, recovery codes,
+  MFA tokens, tickets, browser cookies and credentials in five encodings.
+- Removed the log-code test skip and asserted producer provenance. `fertft`
+  retains its real Plan31 refresh-token owner; its missing emitted-status
+  metadata was corrected. The unskipped assertion initially failed on that old
+  owner/status mismatch. `docs/logs.md` now distinguishes real MFA emitters from
+  deferred WebAuthn/phone and unplanned Guardian push delivery.
+- The browser found a real hosted-page defect: successful MFA acknowledgement
+  redirected to the validated application callback, but Chromium rejected the
+  redirect because the MFA page's CSP allowed only `'self'`. MFA now carries the
+  validated transaction callback into the existing `formActionFor` sanitizer.
+  Handler/render regressions failed before the fix and passed afterward,
+  including CRLF/semicolon/malicious-scheme rejection and native callback schemes.
+- A new login admitted only by remembered-browser proof reaches the callback
+  without prompting. It does not invent a new session MFA proof timestamp;
+  exact `amr:["mfa"]` is asserted after actual OTP/email/recovery proof. This
+  corrects an extra test expectation, rather than changing the approved session
+  semantics to satisfy it.
+
+Verification recorded so far:
+
+- `GOTOOLCHAIN=go1.26.7 go test -race -v ./internal/login ./internal/ui ./internal/mfarules ./internal/logrules -count=1`,
+  session78580, `/tmp/plan33-task14a-focused-packages.{log,exit}`: actual exit0,
+  269 top-level/504 total PASS records, no skips. Package times:
+  login64.549s, UI1.194s, mfarules2.033s, logrules6.436s.
+- CSP regression RED exit1 at
+  `/tmp/plan33-task14a-csp-red.{log,exit}`; focused GREEN exit0 at
+  `/tmp/plan33-task14a-csp-green.{log,exit}`. The actual browser then completed
+  the previously blocked callback.
+- `node --test tests/e2e/m33-mfa-privacy.test.mjs` final focused result exit0,
+  four passed/no skips, `/tmp/plan33-task14a-mailbox-checkpoint-green.{log,exit}`.
+  Earlier RED caught missed base64url leakage. The mailbox regression caught
+  stale delivery reuse; an intermediate missing import/timestamp comparison
+  failed and was replaced with explicit pre-send delivery checkpoints.
+- The first `GOTOOLCHAIN=go1.26.7 make e2e-mfa`, session36549,
+  `/tmp/plan33-task14a-first-e2e-mfa.{log,exit}`, actual exit2: the new fixture
+  omitted the required event-webhook authentication and used HTTP. The complete
+  attempt is retained; corrected HTTPS/bearer configuration uses the documented
+  event destination shape. Subsequent selected failures and fixes are detailed
+  in the task report, never reported as passes.
+- SQLite browser/management r9, session43343,
+  `/tmp/plan33-task14a-browser-management-r9.{log,exit}`, actual exit0:
+  two browser tests plus pinned SDK and CLI management passed, artifacts
+  `/tmp/plan33-tzOU3M`. A fresh default acceptance attempt, session9818,
+  `/tmp/plan33-task14a-acceptance-final.{log,exit}`, repeated those passes but
+  exited2 at an incorrect relative path in the auth-js version check. It is
+  still a failed complete command. The path was corrected; remaining grants
+  and privacy checks resume the same persisted SQLite fixture without rerunning
+  completed browser lanes or discarding any captured sinks.
+- SQLite grant/audit r4, session36964,
+  `/tmp/plan33-task14a-sqlite-grants-audit-r4.{log,exit}`, actual exit0:
+  pinned auth-js/raw OTP/email/recovery, consumed token/wrong client/actual601s
+  expiry, durable throttle and all11 captured-sink privacy scans passed against
+  121 actual secret observations. The same persisted fixture preserves the completed
+  browser and management captures. Mandatory control kinds were strengthened
+  and the affected static privacy audit rerun exit0 at
+  `/tmp/plan33-task14a-sqlite-privacy-controls-final.{log,exit}`. A captured
+  `user.updated` event for the actual browser enrollee has
+  `multifactor:["guardian"]`; the runner requires the corresponding enrollment
+  event in its final snapshot.
+- Log-capture fixture correction: a synthetic zero checkpoint is invalid
+  (positive IDs only), actual API RED400 at
+  `/tmp/plan33-task14a-log-cursor-red.{log,exit}`. Sorted ordinary pagination
+  includes the first event and all later pages; actual GREEN200/100 records at
+  `/tmp/plan33-task14a-log-cursor-green.{log,exit}`. It then passed the complete
+  SQLite sink snapshot and privacy scan.
+- Fresh memory-only `E2E_M33_BACKENDS=memory GOTOOLCHAIN=go1.26.7 make e2e-mfa`,
+  session52442, `/tmp/plan33-task14a-memory-final.{log,exit}`, actual exit0:
+  SDK/CLI management, all pinned SDK/raw grant branches, actual601s expiry,
+  per-user throttle log and enrollment `user.updated` assertions passed. Privacy
+  checked all11 captured sinks against39 actual secret observations; artifacts
+  `/tmp/plan33-task14a-memory-artifacts/plan33-Cp0J0L`.
+
+Task14a is implemented and its acceptance cases are verified in the recorded
+SQLite phases and fresh memory lane. The complete default target's earlier
+exit2 remains recorded; the fresh complete matrix is Task14b. PostgreSQL/MySQL
+acceptance switches are implemented but were not executed in this phase.
+`git diff --check`, shell syntax and all four Node source syntax checks passed.
+Self-review checked the CSP trust boundary, explicit one-time response-location
+exceptions, captured-sink coverage, real SDK/CLI calls and precise failed-run
+reporting. Source commit subject: `test: verify Plan 33 MFA end to end`.
+
+Not run in Task14a: the repository-wide Go race suite, full three-driver SQL
+suite, console build/tests and check-sources, other E2E targets, OIDF conformance
+and whole-branch review. These remain Task14b requirements, not passing skips.
+
+The Task13 complete Deploy CLI matrix remains actual exit2 because the pinned
+client's provider export expects an incompatible response shape. This phase
+neither adapts that client nor turns the eight-handler diagnostic into a pass.
+M1–M9 observer gaps and discovery-advertisement evidence remain unresolved.

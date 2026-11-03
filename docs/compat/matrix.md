@@ -187,9 +187,25 @@ lack separate observer evidence, and no upstream parity pass is claimed. See the
 [post-fix validation](../superpowers/2026-11-02-plan-32-postfix-validation.md) and
 [implementation record](../superpowers/2026-11-01-plan-32-implementation-record.md).
 
-### Plan 33 — MFA contracts (implementation in progress)
+### Plan 33 — MFA runtime and scoped acceptance verified; final regression pending
 
-The frozen wire inventory and API schemas describe planned MFA routes; they do
-not establish runtime support. D-0059 records the local limits and M1–M9
-observation gaps. OTP, email and recovery are planned for enforcement; SMS and
-WebAuthn flags are stored for later plans, and push and Duo are not planned.
+Tasks 1–13 implement OTP, verified-email codes and replacement recovery codes,
+Guardian/user management, memory/SQLite/PostgreSQL/MySQL storage and separately
+negotiated MFA v1 plugins. Hosted login, password grants, remember-browser,
+Actions and console administration are implemented. The new `make e2e-mfa`
+acceptance lane uses the production app, SQLite browser journey, pinned
+node-auth0 7.4.0, auth0-auth-js 1.16.1 and Auth0 CLI 1.37.0 with an independent
+RFC 6238 generator. Its recorded results and remaining checks belong to the
+[implementation record](../superpowers/2026-11-02-plan-33-implementation-record.md);
+SQLite browser/management and grant/privacy phases and a fresh memory client
+lane passed. PostgreSQL/MySQL acceptance and the fresh complete final regression
+remain pending; the initial complete MFA command failed on fixtures and is
+retained as a failed run.
+
+D-0059 retains unobserved M1–M9 gaps. WebAuthn flags are stored for Plan 33b;
+phone/SMS/voice configuration is stored for Plan 34; push and Duo enforcement
+are unavailable. MFA grants are implemented but omitted from discovery until
+upstream evidence is available. Deploy CLI 9.1.0's provider export remains
+blocked by its incompatible node-auth0 7.4.0 response handling; the required
+nine-handler matrix failed in Task 13. No adapter, dependency change or partial
+handler run makes that matrix pass.

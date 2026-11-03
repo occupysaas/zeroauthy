@@ -320,6 +320,36 @@ semantics before enabling a code.
 | `svr` | A verification-email request was queued. |
 | `ublkdu` | An automatic account block was removed. |
 
+### MFA emitters (Plan 33)
+
+The runtime and administration emitters below are implemented. The acceptance
+record distinguishes code coverage from the final regression matrix. `fertft`
+remains the existing Plan 31 refresh-token emitter. WebAuthn remains Plan 33b,
+phone/SMS/voice remains Plan 34, and Guardian push delivery is not planned.
+
+| Code | Meaning | Source owner |
+| --- | --- | --- |
+| `feoobft` | A password grant with an out-of-band challenge was refused. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `feotpft` | A password grant with a one-time challenge was refused. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `fercft` | A password grant with an MFA recovery credential was refused. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `gd_auth_email_verification` | The MFA email verification step completed. | `internal/login/mfa.go` (`MFASubmit`) |
+| `gd_auth_failed` | An MFA challenge did not validate. | `internal/mfa/service.go` (`Verify`) |
+| `gd_auth_succeed` | An MFA challenge validated. | `internal/mfa/service.go` (`Verify`) |
+| `gd_email_settings_update` | The MFA email factor configuration changed. | `internal/mgmt/guardian_stored.go` (`guardianStored`) |
+| `gd_enrollment_complete` | An account completed its first MFA enrollment. | `internal/mfa/service.go` (`ConfirmEnroll`) |
+| `gd_otp_rate_limit_exceed` | Too many incorrect MFA one-time codes triggered throttling. | `internal/mfa/throttle.go` (`reserveProof`) |
+| `gd_recovery_failed` | An MFA recovery credential did not validate. | `internal/mfa/service.go` (`Recover`) |
+| `gd_recovery_succeed` | An MFA recovery credential validated. | `internal/mfa/service.go` (`Recover`) |
+| `gd_send_email` | An MFA challenge email was dispatched. | `internal/mfa/email.go` (`sendEmail`) |
+| `gd_send_email_verification` | An MFA enrollment verification email was dispatched. | `internal/login/mfa.go` (`startMFAMethod`), `internal/login/mfa.go` (`MFASubmit`) |
+| `gd_start_auth` | An MFA authentication challenge began. | `internal/mfa/service.go` (`BeginChallenge`) |
+| `gd_start_enroll` | An MFA enrollment began. | `internal/mfa/service.go` (`BeginEnroll`) |
+| `gd_start_enroll_failed` | An MFA enrollment could not complete. | `internal/mfa/service.go` (`BeginEnroll`) |
+| `gd_tenant_update` | Tenant MFA configuration changed. | `internal/mgmt/guardian.go` (`MFAOperation`), `internal/mgmt/guardian_stored.go` (`guardianStored`) |
+| `gd_unenroll` | A second-factor device registration was removed. | `internal/mfa/service.go` (`Unenroll`), `internal/mgmt/user_auth_methods.go` (`userMFA`), `internal/mgmt/user_auth_methods.go` (`guardianEnrollment`) |
+| `gd_update_device_account` | A second-factor device registration changed. | `internal/mgmt/user_auth_methods.go` (`userMFA`) |
+| `mfar` | The flow requested a second authentication factor. | `internal/authz/mfa.go` (`requireMFA`) |
+
 ### Not emitted yet
 
 These rows are searchable catalog/filter vocabulary; listing a code does not
@@ -371,32 +401,16 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `forms_submission_succeeded` | A submitted Form was processed. | Plan 38 |
 | `fpurh` | An asynchronous registration hook ended with an error. | Plan 38 |
 | `fscim` | A SCIM provisioning operation failed. | Plan 38 |
-| `gd_auth_email_verification` | The MFA email verification step completed. | Plan 33 |
-| `gd_auth_failed` | An MFA challenge did not validate. | Plan 33 |
-| `gd_auth_rejected` | The user declined an MFA push challenge. | Plan 33 |
-| `gd_auth_succeed` | An MFA challenge validated. | Plan 33 |
-| `gd_email_settings_update` | The MFA email factor configuration changed. | Plan 33 |
-| `gd_enrollment_complete` | An account completed its first MFA enrollment. | Plan 33 |
-| `gd_otp_rate_limit_exceed` | Too many incorrect MFA one-time codes triggered throttling. | Plan 33 |
-| `gd_phone_settings_update` | The MFA phone factor configuration changed. | Plan 33 |
-| `gd_recovery_failed` | An MFA recovery credential did not validate. | Plan 33 |
-| `gd_recovery_succeed` | An MFA recovery credential validated. | Plan 33 |
-| `gd_send_email` | An MFA challenge email was dispatched. | Plan 33 |
-| `gd_send_email_verification` | An MFA enrollment verification email was dispatched. | Plan 33 |
-| `gd_send_pn` | An MFA push challenge was dispatched. | Plan 33 |
-| `gd_send_pn_failure` | An MFA push challenge could not be dispatched. | Plan 33 |
-| `gd_send_sms` | An MFA text challenge was dispatched. | Plan 33 |
-| `gd_send_sms_failure` | An MFA text challenge could not be dispatched. | Plan 33 |
-| `gd_send_voice` | An MFA voice challenge was dispatched. | Plan 33 |
-| `gd_send_voice_failure` | An MFA voice challenge could not be dispatched. | Plan 33 |
-| `gd_start_auth` | An MFA authentication challenge began. | Plan 33 |
-| `gd_start_enroll` | An MFA enrollment began. | Plan 33 |
-| `gd_start_enroll_failed` | An MFA enrollment could not complete. | Plan 33 |
-| `gd_tenant_update` | Tenant MFA configuration changed. | Plan 33 |
-| `gd_unenroll` | A second-factor device registration was removed. | Plan 33 |
-| `gd_update_device_account` | A second-factor device registration changed. | Plan 33 |
-| `gd_webauthn_challenge_failed` | The browser could not complete a WebAuthn assertion. | Plan 33 |
-| `gd_webauthn_enrollment_failed` | The browser could not complete WebAuthn registration. | Plan 33 |
+| `gd_auth_rejected` | The user declined an MFA push challenge. | Plan 33b |
+| `gd_phone_settings_update` | The MFA phone factor configuration changed. | Plan 34 |
+| `gd_send_pn` | An MFA push challenge was dispatched. | Not planned |
+| `gd_send_pn_failure` | An MFA push challenge could not be dispatched. | Not planned |
+| `gd_send_sms` | An MFA text challenge was dispatched. | Plan 34 |
+| `gd_send_sms_failure` | An MFA text challenge could not be dispatched. | Plan 34 |
+| `gd_send_voice` | An MFA voice challenge was dispatched. | Plan 34 |
+| `gd_send_voice_failure` | An MFA voice challenge could not be dispatched. | Plan 34 |
+| `gd_webauthn_challenge_failed` | The browser could not complete a WebAuthn assertion. | Plan 33b |
+| `gd_webauthn_enrollment_failed` | The browser could not complete WebAuthn registration. | Plan 33b |
 | `idjag_exchange_failed` | An identity assertion authorization grant was refused. | Plan 35 |
 | `idjag_exchange_succeeded` | An identity assertion authorization grant issued tokens. | Plan 35 |
 | `jwt_bearer_exchange_failed` | A JWT assertion grant was refused. | Plan 35 |
@@ -406,7 +420,6 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `limit_delegation` | Delegation request traffic exhausted its rate budget. | Plan 38 |
 | `limit_phone` | Phone challenge traffic exhausted its send budget. | Plan 34 |
 | `limit_signup_otp` | Signup verification traffic exhausted its identifier send budget. | Plan 34 |
-| `mfar` | The flow requested a second authentication factor. | Plan 33 |
 | `my_account_authentication_method_failed` | A My Account authentication-method operation failed. | Plan 42 |
 | `my_account_authentication_method_succeeded` | A My Account authentication-method operation completed. | Plan 42 |
 | `oidc_backchannel_logout_failed` | An OIDC logout notification could not be delivered. | Plan 41 |

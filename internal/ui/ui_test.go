@@ -185,14 +185,16 @@ func TestRenderFormPostRejectsBadActionOrigin(t *testing.T) {
 
 func TestFormPagesAllowRedirectOriginInFormAction(t *testing.T) {
 	for redirect, want := range map[string]string{
-		"https://app.test:3443/cb?x=1":    "form-action 'self' https://app.test:3443;",
-		"com.example.app://cb":            "form-action 'self' com.example.app:;",
-		"com.example.app:/oauth2redirect": "form-action 'self' com.example.app:;",
-		"java script:foo":                 "form-action 'self';",
-		"a;b:/x":                          "form-action 'self';",
-		"1abc:/x":                         "form-action 'self';",
-		"javascript:alert(1)":             "form-action 'self';",
-		"":                                "form-action 'self';",
+		"https://app.test;script-src/cb":         "form-action 'self';",
+		"https://app.test\r\nscript-src:evil/cb": "form-action 'self';",
+		"https://app.test:3443/cb?x=1":           "form-action 'self' https://app.test:3443;",
+		"com.example.app://cb":                   "form-action 'self' com.example.app:;",
+		"com.example.app:/oauth2redirect":        "form-action 'self' com.example.app:;",
+		"java script:foo":                        "form-action 'self';",
+		"a;b:/x":                                 "form-action 'self';",
+		"1abc:/x":                                "form-action 'self';",
+		"javascript:alert(1)":                    "form-action 'self';",
+		"":                                       "form-action 'self';",
 	} {
 		rec := httptest.NewRecorder()
 		RenderLogin(rec, 200, Tenant{Name: "Acme"}, LoginData{State: "st", CSRF: "cs", RedirectURI: redirect})
@@ -204,6 +206,14 @@ func TestFormPagesAllowRedirectOriginInFormAction(t *testing.T) {
 		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
 			t.Errorf("signup with redirect %q: CSP %q lacks %q", redirect, csp, want)
 		}
+		for _, page := range []string{"mfa_otp_enroll", "mfa_otp_challenge", "mfa_email_challenge", "mfa_recovery_enroll", "mfa_recovery_challenge"} {
+			rec = httptest.NewRecorder()
+			RenderMFA(rec, 200, Tenant{Name: "Acme"}, page, MFAData{State: "st", CSRF: "cs", RedirectURI: redirect})
+			if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+				t.Errorf("%s with redirect %q: CSP %q lacks %q", page, redirect, csp, want)
+			}
+		}
+
 	}
 }
 

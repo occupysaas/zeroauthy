@@ -173,11 +173,26 @@ func TestMFAOTPEnrollFlow(t *testing.T) {
 	f.policy(t, "otp")
 	f.begin(t)
 	p := f.page(t, "/u/mfa-otp-enrollment")
+	txn, err := f.st.AuthTransactions().Get(context.Background(), f.tn.ID, f.state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	callback, err := url.Parse(txn.Params["redirect_uri"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCSP := "form-action 'self' " + callback.Scheme + "://" + callback.Host + ";"
+	if csp := p.Header().Get("Content-Security-Policy"); !strings.Contains(csp, wantCSP) {
+		t.Errorf("OTP form cannot redirect to validated callback: %s", csp)
+	}
 	m := regexp.MustCompile(`<code id="mfa-secret">([A-Z2-7]+)</code>`).FindStringSubmatch(p.Body.String())
 	if m == nil || !strings.Contains(p.Body.String(), "<svg") {
 		t.Fatalf("missing secret/QR %s", p.Body)
 	}
 	r := f.post(t, "/u/mfa-otp-enrollment", url.Values{"code": {otpAt(m[1], *f.clock)}})
+	if csp := r.Header().Get("Content-Security-Policy"); !strings.Contains(csp, wantCSP) {
+		t.Errorf("recovery acknowledgement cannot redirect to validated callback: %s", csp)
+	}
 	recovery := regexp.MustCompile(`<code id="recovery-code">([A-Z0-9]{24})</code>`).FindStringSubmatch(r.Body.String())
 	if recovery == nil {
 		t.Fatalf("missing one-time recovery %d %s", r.Code, r.Body)

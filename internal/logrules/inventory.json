@@ -900,7 +900,8 @@
           "function": "refreshToken",
           "when": "Final matching grant outcome; pending device polling is not a failure."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "feta",

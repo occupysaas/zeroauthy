@@ -317,7 +317,7 @@ My Organization API/self-service organization administration Plan 42.
 
 **Designed 2026-11-02:** [spec](2026-11-02-zeroauthy-mfa-design.md), [plan](../plans/2026-11-02-zeroauthy-plan-33-mfa.md) (14 tasks, D-0059, migration 0033). Trimmed for v1.0 on 2026-11-02: WebAuthn MFA and passkeys move to Plan 33b, after 1.0. **v1.0 scope:** [release scope](2026-11-02-zeroauthy-v1-release-scope.md) (accepted 2026-11-02) sets what ships before 1.0 and reorders the remaining plans.
 
-**Task 1 contract freeze:** [implementation record](../2026-11-02-plan-33-implementation-record.md) and D-0059 record the public evidence and unobserved M1–M9 gaps; runtime remains under implementation.
+**Implementation status:** Tasks 1–13 implement the runtime and administration. Task 14a adds the production MFA acceptance harness and verifies its cases in recorded SQLite phases and a fresh memory client lane. Fresh complete regression and whole-branch review remain Task 14b; PostgreSQL/MySQL acceptance is pending. The [implementation record](../2026-11-02-plan-33-implementation-record.md) and D-0059 retain unobserved M1–M9 gaps and the pinned Deploy CLI provider-export failure; the complete plan is not yet verified.
 
 **Endpoints:** `/api/v2/guardian/factors` (`GET`, `PUT /{name}`), `/guardian/policies`, `/guardian/enrollments/{id}`, `POST /guardian/enrollments/ticket`, `/guardian/factors/sms|phone/...` templates and providers stored for Plan 34; user endpoints `/users/{id}/authentication-methods` (CRUD), `/users/{id}/enrollments`, `DELETE /users/{id}/multifactor/{provider}`, `POST /users/{id}/recovery-code-regeneration`, `POST /users/{id}/multifactor/actions/invalidate-remember-browser`.
 
@@ -325,7 +325,7 @@ My Organization API/self-service organization administration Plan 42.
 
 **Carried in:** `api.authentication.challengeWith`/`challengeWithAny` and `api.multifactor.enable` (fail closed since Plans 27–28) in post-login and `password-reset-post-challenge`; tenant `customize_mfa_in_postlogin_action` (stored since Plan 19); passkey connection options (D-0042) (WebAuthn hosted-page controls and RP ID enforcement remain Plan 33b); `acr`/`amr` values needed by Plan 41.
 
-**E2E:** Playwright enrolment and challenge with a TOTP generator ; node-auth0 `guardian`; auth0-auth-js MFA grants.
+**E2E:** `make e2e-mfa` covers Playwright enrollment/challenge with an independent RFC 6238 generator, recovery, remember/invalidate, SSO and Actions; pinned node-auth0 Guardian/user APIs, auth0-auth-js plus raw MFA grants, raw Auth0 CLI APIs, and representative-secret scans. Default backends are SQLite and memory; PostgreSQL/MySQL use isolated SQL DSNs. Recorded results remain distinct from pending final-matrix checks.
 
 ### Plan 34 — Passwordless and phone (full design)
 

@@ -8,10 +8,12 @@ import (
 type MFAOption struct{ Factor, Label string }
 type MFAData struct {
 	State, CSRF, Action, Error, Secret, RecoveryCode, AnotherURL, Prefix string
-	Revision                                                             int64
-	QR                                                                   template.HTML
-	Options                                                              []MFAOption
-	AllowRemember, Email, Recovery, Enroll, CodeScreen                   bool
+	// RedirectURI is the validated OAuth callback, as on other hosted forms.
+	RedirectURI                                        string
+	Revision                                           int64
+	QR                                                 template.HTML
+	Options                                            []MFAOption
+	AllowRemember, Email, Recovery, Enroll, CodeScreen bool
 }
 
 func MFAScreen(page string) (string, string) {
@@ -41,7 +43,7 @@ func MFAScreen(page string) (string, string) {
 func RenderMFA(w http.ResponseWriter, status int, t Tenant, page string, d MFAData) {
 	p, s := MFAScreen(page)
 	d.Prefix = p + "." + s + "."
-	render(w, status, page, t, d, "'self'")
+	render(w, status, page, t, d, formActionFor(d.RedirectURI))
 }
 func init() {
 	for page, file := range map[string]string{"mfa_options": "options", "mfa_enroll_options": "options", "mfa_otp_enroll": "otp_enroll", "mfa_otp_enroll_code": "otp_enroll", "mfa_otp_challenge": "otp_challenge", "mfa_email_challenge": "email_challenge", "mfa_email_list": "options", "mfa_recovery_enroll": "recovery_enroll", "mfa_recovery_challenge": "recovery_challenge", "mfa_result": "result"} {

@@ -160,7 +160,7 @@ func (h *Handlers) renderMFA(w http.ResponseWriter, r *http.Request, status int,
 	if !h.prepareHostedForm(w, r, f.flow, prompt, screen) {
 		return
 	}
-	d := ui.MFAData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Revision: f.txn.HostedState.Revision, Action: mfaPath(f), Error: message, RecoveryCode: recovery, AllowRemember: f.pending.Requirement.AllowRemember, CodeScreen: f.page.Manual, Recovery: f.page.Factor == "recovery-code"}
+	d := ui.MFAData{RedirectURI: f.txn.Params["redirect_uri"], State: f.txn.ID, CSRF: f.txn.CSRFToken, Revision: f.txn.HostedState.Revision, Action: mfaPath(f), Error: message, RecoveryCode: recovery, AllowRemember: f.pending.Requirement.AllowRemember, CodeScreen: f.page.Manual, Recovery: f.page.Factor == "recovery-code"}
 	if f.page.RecoveryPending {
 		d.Action = "/u/mfa-recovery-code-enrollment"
 		d.AllowRemember = false

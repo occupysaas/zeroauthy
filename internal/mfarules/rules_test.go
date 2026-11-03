@@ -1,8 +1,11 @@
 package mfarules_test
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/logrules"
@@ -101,15 +104,31 @@ func TestPlan33DeferredLogOwners(t *testing.T) {
 }
 
 func TestPlan33LogCodes(t *testing.T) {
-	t.Skip("flipped in Task 14")
-	// Tasks 8–9 flip these after real emitters exist; Task 14 removes the skip.
+	// Each catalog entry now names its real runtime or administration emitter.
 	for _, code := range []string{"gd_start_auth", "gd_auth_succeed", "gd_auth_failed", "gd_start_enroll", "gd_start_enroll_failed", "gd_enrollment_complete", "gd_unenroll", "gd_update_device_account", "gd_recovery_succeed", "gd_recovery_failed", "gd_send_email", "gd_send_email_verification", "gd_auth_email_verification", "gd_otp_rate_limit_exceed", "gd_tenant_update", "gd_email_settings_update", "mfar", "fertft", "feotpft", "feoobft", "fercft"} {
 		found := false
 		for _, c := range logrules.Codes() {
 			if c.Type == code {
 				found = true
-				if c.Plan != 33 || !c.Emitted || c.Status != "emitted" {
-					t.Errorf("%s not emitted by Plan 33", code)
+				owner := 33
+				if code == "fertft" {
+					owner = 31
+				} // Existing refresh-token producer retains its owner.
+				if c.Plan != owner || !c.Emitted || c.Status != "emitted" {
+					t.Errorf("%s not emitted by Plan %d", code, owner)
+				}
+				if len(c.Triggers) == 0 {
+					t.Errorf("%s has no real emitter provenance", code)
+				}
+				for _, trigger := range c.Triggers {
+					source, err := os.ReadFile(filepath.Join("../..", trigger.File))
+					if err != nil {
+						t.Errorf("%s emitter: %v", code, err)
+						continue
+					}
+					if trigger.Function == "" || !strings.Contains(string(source), trigger.Function+"(") {
+						t.Errorf("%s missing producer %s in %s", code, trigger.Function, trigger.File)
+					}
 				}
 			}
 		}
