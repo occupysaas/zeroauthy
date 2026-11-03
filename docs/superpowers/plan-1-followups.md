@@ -458,3 +458,10 @@ behaviour only where Auth0 is shown to differ.
   `totp_secret` write-only scrub for array bodies relies on key-name
   scrubbing without a pinning test. See the Plan 33 implementation record,
   Task 14c.
+
+- **Timing-sensitive tests under full race load:** `internal/mgmt`
+  `TestSSEEventTypeFilter` (Plan 32; an `offset-only` frame can precede the
+  filtered event under load) and `internal/logs` `TestRecorderNeverBlocks` /
+  `TestRecorderNeverWaitsForTenantLookup` (50ms bounds) failed in full race
+  runs and pass in isolation. Make them deterministic. See the Plan 33
+  implementation record, Task 14d.

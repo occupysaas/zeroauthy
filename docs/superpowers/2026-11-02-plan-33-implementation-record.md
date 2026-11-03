@@ -499,3 +499,25 @@ Verification (logs and exit files in `/tmp/plan33-task14c/`, each started once):
 - Console code did not change, so `make console` was not run.
 
 Follow-ups, not fixed here: M1, M3, M6, M7 and M8 from the review. Abandoned pending authenticators, including those carrying a pending recovery hash, are still not purged. The repository-wide race suite and the other E2E targets were not rerun in Task 14c.
+
+### Task 14d — final full race runs before merge
+
+Snapshot `0b763609e94f01f7d36cbf2ce98893b7c45b3094`. Evidence in `/tmp/plan33-task14d/`.
+
+- Run 1, `GOTOOLCHAIN=go1.26.7 ZA_REQUIRE_NODE=1 go test -race -timeout=50m ./...`:
+  actual exit 1. The 7.7 GB tmpfs `/tmp` filled: the linker reported no space
+  for `internal/email`, `tests/e2e/protection-server` and `tests/e2e/signing-server`,
+  and `cmd/zeroauthy` `TestAdminCreate` hit SQLite "disk full".
+  `internal/logs` `TestRecorderNeverBlocks` also failed (1000 calls took 54ms
+  against a 50ms bound), the same timing class as Task 14b's recorder failure.
+- Run 2, same command with `TMPDIR`/`GOTMPDIR` on a disk with free space:
+  actual exit 1. 84 packages passed, including `internal/logs`, and the only
+  failure was `internal/mgmt` `TestSSEEventTypeFilter`. In the failing run, the
+  first `offset-only` frame carried offset 1 instead of the second event's
+  offset. Plan 33 does not modify the SSE handler or the event stream. The
+  focused reproduction `go test -race -count=30 -run 'TestSSEEventTypeFilter$' ./internal/mgmt/`
+  exited 0, 30 of 30 passing, so this is a load-dependent timing flake in a
+  Plan 32 test. It is recorded as a follow-up, not as a pass.
+
+Neither full run exited 0 on this snapshot. The branch was merged on the
+maintainer's instruction with these two recorded timing flakes outstanding.
