@@ -432,28 +432,20 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	var recovery string
 	var err error
-	if f.pending.Requirement.Enroll {
-		var result *mfa.Confirmed
-		svc := h.MFA
-		if f.pending.Requirement.Reason == "action" {
-			svc = svc.WithNewFactorEnrollment()
-		}
-		confirm := svc.ConfirmEnroll
-		if f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple {
-			confirm = h.MFA.ConfirmFirstEnroll
-		}
-		result, err = confirm(r.Context(), f.res.Tenant.ID, f.pending.UserID, &mfa.Enrollment{AuthenticatorID: f.page.AuthenticatorID, ChallengeID: f.page.ChallengeID}, mfa.Proof{Code: r.PostForm.Get("code")})
-		if err == nil {
-			recovery = result.RecoveryCode
-			if f.page.Factor == "email" {
-				u, _ := h.Store.Users().Get(r.Context(), f.res.Tenant.ID, f.pending.UserID)
-				h.event(r, f.flow, "gd_auth_email_verification", u)
+	if f.page.Factor == "otp" {
+		// TOTP challenges only bind the proof to this flow; the secret lives on
+		// the method, so a scanned enrollment stays valid. Renew an expired
+		// binding before proving instead of failing every later submission.
+		_, err = h.Store.MFA().GetChallenge(r.Context(), f.res.Tenant.ID, secrets.HashToken(f.page.ChallengeID), h.now())
+		if errors.Is(err, store.ErrNotFound) {
+			var c *mfa.Challenge
+			if c, err = h.MFA.RenewTOTPChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID); err == nil {
+				f.page.ChallengeID = c.ID
 			}
 		}
-	} else if f.page.Factor == "recovery-code" {
-		recovery, err = h.MFA.Recover(r.Context(), f.res.Tenant.ID, f.pending.UserID, r.PostForm.Get("code"))
-	} else {
-		err = h.MFA.Verify(r.Context(), f.res.Tenant.ID, f.pending.UserID, &mfa.Challenge{ID: f.page.ChallengeID, AuthenticatorID: f.page.AuthenticatorID}, mfa.Proof{Code: r.PostForm.Get("code")})
+	}
+	if err == nil {
+		err = h.proveMFA(r, f, &recovery)
 	}
 	if err != nil {
 		if e := h.saveMFAPage(r, f, "mfa-page"); e != nil {
@@ -482,6 +474,35 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.finishMFA(w, r, f)
+}
+
+// proveMFA submits the posted code once against the current page state.
+func (h *Handlers) proveMFA(r *http.Request, f *mfaFlow, recovery *string) error {
+	var err error
+	if f.pending.Requirement.Enroll {
+		var result *mfa.Confirmed
+		svc := h.MFA
+		if f.pending.Requirement.Reason == "action" {
+			svc = svc.WithNewFactorEnrollment()
+		}
+		confirm := svc.ConfirmEnroll
+		if f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple {
+			confirm = h.MFA.ConfirmFirstEnroll
+		}
+		result, err = confirm(r.Context(), f.res.Tenant.ID, f.pending.UserID, &mfa.Enrollment{AuthenticatorID: f.page.AuthenticatorID, ChallengeID: f.page.ChallengeID}, mfa.Proof{Code: r.PostForm.Get("code")})
+		if err == nil {
+			*recovery = result.RecoveryCode
+			if f.page.Factor == "email" {
+				u, _ := h.Store.Users().Get(r.Context(), f.res.Tenant.ID, f.pending.UserID)
+				h.event(r, f.flow, "gd_auth_email_verification", u)
+			}
+		}
+	} else if f.page.Factor == "recovery-code" {
+		*recovery, err = h.MFA.Recover(r.Context(), f.res.Tenant.ID, f.pending.UserID, r.PostForm.Get("code"))
+	} else {
+		err = h.MFA.Verify(r.Context(), f.res.Tenant.ID, f.pending.UserID, &mfa.Challenge{ID: f.page.ChallengeID, AuthenticatorID: f.page.AuthenticatorID}, mfa.Proof{Code: r.PostForm.Get("code")})
+	}
+	return err
 }
 func (h *Handlers) finishMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow) {
 	if !f.page.Proven {

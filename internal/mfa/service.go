@@ -207,6 +207,25 @@ func (s *Service) BeginChallenge(ctx context.Context, tid, uid, id, rpID string)
 	}
 	return c, err
 }
+
+// RenewTOTPChallenge replaces an expired TOTP challenge for the same owned
+// method, pending or confirmed. The TOTP secret belongs to the method, not
+// the challenge, so a scanned enrollment remains valid. It emits no start
+// event because no new factor interaction begins.
+func (s *Service) RenewTOTPChallenge(ctx context.Context, tid, uid, id string) (*Challenge, error) {
+	ctx = s.operationContext(ctx)
+	a, err := s.st.MFA().GetAuthenticator(ctx, tid, uid, id)
+	if err != nil {
+		return nil, err
+	}
+	if a.Type != "totp" {
+		return nil, ErrNoFactor
+	}
+	if err = enabled(ctx, s.st, tid, a.Type); err != nil {
+		return nil, err
+	}
+	return s.beginChallenge(ctx, tid, uid, a)
+}
 func (s *Service) beginChallenge(ctx context.Context, tid, uid string, a *store.Authenticator) (*Challenge, error) {
 	now := s.now()
 	c := &Challenge{ID: secrets.RandomString(32), Factor: factorName(a.Type), AuthenticatorID: a.ID}
