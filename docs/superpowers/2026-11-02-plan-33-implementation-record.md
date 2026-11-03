@@ -464,3 +464,38 @@ and exit is recorded in `/tmp/plan33-task14b/*.json`, with raw logs and patch
 snapshots in the same private directory. Whole-branch review remains pending.
 D-0059 observation gaps, grant discovery evidence, and the Deploy CLI failure
 remain open; this record does not claim full plan verification.
+
+### Task 14c — whole-branch review fixes
+
+Base `13977f6`; fixes verified at snapshot `0a94675`. Each fix was test-first:
+a focused in-memory or SQLite regression test failed for the reported reason
+before the production change and passed after it.
+
+| ID | Fix | Regression tests | Commit |
+|---|---|---|---|
+| C1 | `mfa.DecideInput.MFAAPI`: when the audience is the tenant MFA API and the user has a usable primary factor, MFA is required whatever the policy or an Action `none` skip, and a remembered browser does not satisfy it. Password grant returns `mfa_required`; hosted flow challenges, or `interaction_required` under `prompt=none`. Unenrolled users still get a password-only enrollment token. | `oauth/TestMFAAPIAudienceRequiresMFAForEnrolledUser`, `oauth/TestMFAAPIAudienceUnenrolledUserPasswordOnly`, `authz/TestGateMFAAPIAudienceChallengesEnrolledUser`, `mfa/TestDecideMFAAPIAudience` | `3bd8b8c` |
+| I3, I4 | One predicate, `mfa.UsableMethod(user, method, enabled factors)`, is used by Decide, Recover, ConfirmFirstEnroll, enrollment-ticket checks and hosted method choice. A stale email or a disabled factor no longer counts as enrolled or blocks a replacement. | `oauth/TestMFAStaleEmailMethodRoutesToEnrollment`, `oauth/TestMFADisabledFactorReplacementEnrollment`, `mfa/TestDecideStaleEmailMethodIsNotPrimary` | `c7a0855` |
+| I2 | Hosted submit renews an expired TOTP challenge binding for the same method (`Service.RenewTOTPChallenge`) before proving. The secret lives on the method, so the scanned QR stays valid and no spurious failure event is emitted. Expired email codes already keep the resend action; a test now pins that. | `login/TestMFAOTPEnrollmentAfterChallengeExpiry`, `login/TestMFAOTPChallengeAfterChallengeExpiry`, `login/TestMFAEmailExpiredCodeOffersResend`, `mfa/TestRenewTOTPChallengeKeepsEnrollmentSecret` | `d940127` |
+| I1 | The general sweep calls `PurgeMFA` in batches (500 rows, at most 20 batches per run). The device cookie and row are written only while `confidence-score` is active, and a still-valid cookie is reused. Migration 0033 (unreleased, edited in place) adds `(tenant_id,user_id)` indexes on mfa_tokens, mfa_challenges, mfa_tickets and mfa_browsers for all three dialects. | `app/TestSweepPurgesExpiredMFARecords`, `authz/TestGateKnownDeviceOnlyForConfidenceAndReused`, `sqlstore/TestMFAUserIndexes`; `authz/TestGateCompletedLoginRecordsKnownDevice` now sets confidence-score | `e090fc9` |
+| I5 | Opening `/u/mfa-enroll-ticket` only validates the ticket through the new `store.MFA.PeekTicket` (memory, SQL, gRPC v1 RPC `MFAPeekTicket`, storetest `MFATicketPeekDoesNotConsume`). The sealed pending state keeps only the ticket hash. The enrollment proof transaction consumes the ticket through `WithProofCommit`, so a ticket can authorize only one enrollment. | `login/TestMFATicketSpentOnConfirmNotOnGet`; in `login/TestMFATicketEnrollNoPassword`, the reuse assertion now runs after confirmation rather than on a second GET (intended semantic change) | `17c2f3a` |
+| I6 | New contract method `GetAuthenticatorByEnrollmentID(tid, enrollmentID)`. Memory does key lookups; SQL does primary-key lookups `(tenant_id, id IN <type>\|<eid>)`; gRPC v1 RPC `MFAGetAuthenticatorByEnrollmentID`; storetest `MFAAuthenticatorByEnrollmentID`. Guardian enrollment GET and DELETE use it. No migration change was needed because method IDs embed the enrollment ID. | `mgmt/TestGuardianEnrollmentDoesNotScanUsers` | `2ed01b8` |
+| M4, M5 | The otpauth account falls back to username, then user ID. Colons in the label are percent-encoded. Imported and Management API `totp_secret` values have case, whitespace and `=` padding normalized before strict decode and sealing; hyphens and other separators remain invalid. | `mfa/TestTOTPURIEscapesLabelColons`, `mfa/TestTOTPEnrollmentLabelFallsBack`, `mfa/TestNormalizeTOTPSecret`, `mgmt/TestAuthMethodTOTPSecretNormalized` | `cee98bc` |
+| M2 | `/mfa/associate` still displays the first recovery code, but its hash rides on the pending TOTP method. The recovery method is created only in the confirmation transaction. | `oauth/TestMFAAssociateRecoveryPersistedOnConfirm`; existing `TestMFAEnrollmentTokenCannotBypassLaterEnrollment` unchanged and passing | `0a94675` |
+
+Parity choices (flagged):
+
+- C1: An Action `api.multifactor.enable('none')` does not exempt MFA API tokens for an enrolled user. A remembered browser does not satisfy them; an MFA-marked SSO session does.
+- M2: A second association within 10 minutes of a still-pending one gets no `recovery_codes` in the associate response, preserving the existing assertion. If it confirms first, it receives a fresh `recovery_code` in the grant response.
+- The new RPCs are added to MFA plugin capability v1 rather than a v2, because MFA v1 is itself unreleased on this branch.
+
+Verification (logs and exit files in `/tmp/plan33-task14c/`, each started once):
+
+- `GOTOOLCHAIN=go1.26.7 go build ./...`: exit 0 (`01-build.*`).
+- `go vet` on mfa, oauth, login, authz, mgmt, app, jobs, store/..., pkg/storetest and proto: exit 0 (`02-vet.*`).
+- `go test -race -count=1 -timeout=60m` on mfa, oauth, login, authz, mgmt, server, app, jobs, session, store/memory, store/grpcstore and pkg/storetest: exit 0. All listed packages reported ok; pkg/storetest has no tests of its own and runs through memory, gRPC and SQL (`03-race.*`).
+- `./scripts/test-sql.sh -timeout=90m ./internal/store/sqlstore/...` (SQLite, PostgreSQL 17 and MySQL 8.4 in Podman containers): exit 0, 2626s (`04-sql.*`).
+- `make check-sources`: exit 0, 238 URLs ok (`05-check-sources.*`). Run because proto changed; protobuf bindings were regenerated with `go generate` (`go tool buf generate`).
+- `make e2e-mfa`: exit 0 (`06-e2e-mfa.*`). It ran the SQLite and memory lanes (browser, SDK, CLI, grants, real expiry, privacy audit; 53 and 39 secrets absent). The PostgreSQL and MySQL E2E lanes were not part of this run.
+- Console code did not change, so `make console` was not run.
+
+Follow-ups, not fixed here: M1, M3, M6, M7 and M8 from the review. Abandoned pending authenticators, including those carrying a pending recovery hash, are still not purged. The repository-wide race suite and the other E2E targets were not rerun in Task 14c.
