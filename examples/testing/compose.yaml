@@ -1,0 +1,72 @@
+# examples/testing/compose.yaml: zeroauthy as a disposable, Auth0-compatible
+# login server for end-to-end tests. Test configuration only; see
+# docs/testing.md.
+#
+#   docker compose -f examples/testing/compose.yaml up -d --wait zeroauthy
+#   docker compose -f examples/testing/compose.yaml cp zeroauthy:/data/zeroauthy-ca.pem ./zeroauthy-ca.pem
+#   NODE_EXTRA_CA_CERTS=./zeroauthy-ca.pem node examples/testing/smoke.mjs
+#   docker compose -f examples/testing/compose.yaml down -v
+#
+# Or run the smoke test inside the compose network:
+#   docker compose -f examples/testing/compose.yaml --profile test run --rm smoke
+#
+# Every start is a fresh tenant: storage is memory://, the seed recreates the
+# tenant, apps and users, and a new CA and certificate are generated.
+
+services:
+  zeroauthy:
+    image: ${ZEROAUTHY_IMAGE:-ghcr.io/occupysaas/zeroauthy:1.0.0-rc.1}
+    # To test your own checkout instead of the published image:
+    # build: ../..
+    ports:
+      - "8443:8443"
+    environment:
+      ZEROAUTHY_SERVER__LISTEN: ":8443"
+      ZEROAUTHY_SERVER__SYSTEM_HOST: "system.localhost:8443"
+      # New CA and certificate at every start, covering localhost, the tenant
+      # domains in the seed and the extra names below.
+      ZEROAUTHY_SERVER__TLS_SELF_SIGNED: "true"
+      ZEROAUTHY_SERVER__TLS_SELF_SIGNED_HOSTS: "zeroauthy"
+      # The CA certificate (never its key) for test clients to trust.
+      ZEROAUTHY_SERVER__TLS_SELF_SIGNED_CA_FILE: /data/zeroauthy-ca.pem
+      # Nothing persists: the master key is ephemeral with memory storage.
+      ZEROAUTHY_STORAGE__DSN: "memory://"
+      ZEROAUTHY_SEED: /seed/seed.yaml
+      # Emails go to the container log, links in full, so tests can follow
+      # verification and password-reset links (docker compose logs zeroauthy).
+      ZEROAUTHY_EMAIL__DRIVER: log
+      ZEROAUTHY_EMAIL__LOG_LINKS: "true"
+      ZEROAUTHY_LOG__FORMAT: json
+    volumes:
+      # Add ,Z on SELinux hosts: ./seed.yaml:/seed/seed.yaml:ro,Z
+      - ./seed.yaml:/seed/seed.yaml:ro
+      # /data is owned by the image's user; sharing it lets other containers
+      # read the CA file. memory:// storage writes nothing else there.
+      - zeroauthy-data:/data
+    healthcheck:
+      # The image has Node but no curl. Trusting the CA also proves it was written.
+      test: ["CMD-SHELL", "NODE_EXTRA_CA_CERTS=/data/zeroauthy-ca.pem node -e \"fetch('https://localhost:8443/healthz').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))\""]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 2s
+
+  # A test container on the same network: it reaches zeroauthy as
+  # https://zeroauthy:8443 and trusts the generated CA through
+  # NODE_EXTRA_CA_CERTS. Replace the command with your test runner.
+  smoke:
+    image: node:22-bookworm-slim
+    profiles: ["test"]
+    depends_on:
+      zeroauthy:
+        condition: service_healthy
+    environment:
+      NODE_EXTRA_CA_CERTS: /zeroauthy/zeroauthy-ca.pem
+      ZEROAUTHY_URL: https://zeroauthy:8443
+    volumes:
+      - zeroauthy-data:/zeroauthy:ro
+      - ./smoke.mjs:/tests/smoke.mjs:ro
+    command: ["node", "/tests/smoke.mjs"]
+
+volumes:
+  zeroauthy-data:

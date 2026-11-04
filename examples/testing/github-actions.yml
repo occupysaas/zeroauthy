@@ -1,0 +1,68 @@
+# examples/testing/github-actions.yml: run zeroauthy as a disposable login
+# server in GitHub Actions. Copy to .github/workflows/ in your repository and
+# set KIT to the directory where you keep seed.yaml and your tests.
+#
+# zeroauthy runs from a step, not as a `services:` container: service
+# containers start before the checkout, so they cannot mount the seed file.
+name: e2e
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      KIT: examples/testing
+      ZEROAUTHY_IMAGE: ghcr.io/occupysaas/zeroauthy:1.0.0-rc.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Start zeroauthy
+        run: |
+          docker run -d --name zeroauthy -p 8443:8443 \
+            -v "$GITHUB_WORKSPACE/$KIT/seed.yaml:/seed/seed.yaml:ro" \
+            -e ZEROAUTHY_SERVER__LISTEN=:8443 \
+            -e ZEROAUTHY_SERVER__SYSTEM_HOST=system.localhost:8443 \
+            -e ZEROAUTHY_SERVER__TLS_SELF_SIGNED=true \
+            -e ZEROAUTHY_SERVER__TLS_SELF_SIGNED_CA_FILE=/data/zeroauthy-ca.pem \
+            -e ZEROAUTHY_STORAGE__DSN=memory:// \
+            -e ZEROAUTHY_SEED=/seed/seed.yaml \
+            -e ZEROAUTHY_EMAIL__DRIVER=log \
+            -e ZEROAUTHY_EMAIL__LOG_LINKS=true \
+            "$ZEROAUTHY_IMAGE"
+
+      - name: Wait for zeroauthy and trust its CA
+        run: |
+          ca="$RUNNER_TEMP/zeroauthy-ca.pem"
+          for i in $(seq 1 60); do
+            if docker cp zeroauthy:/data/zeroauthy-ca.pem "$ca" 2>/dev/null &&
+               curl -fsS --cacert "$ca" https://localhost:8443/healthz; then
+              # Later steps' Node processes trust the generated CA.
+              echo "NODE_EXTRA_CA_CERTS=$ca" >> "$GITHUB_ENV"
+              echo "ZEROAUTHY_CA=$ca" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs zeroauthy
+          exit 1
+
+      - name: Smoke test (password grant, Management API)
+        run: node "$KIT/smoke.mjs"
+
+      - name: Browser login test (Playwright)
+        working-directory: ${{ env.KIT }}
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - name: zeroauthy log
+        if: always()
+        run: docker logs zeroauthy

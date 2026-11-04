@@ -9,6 +9,10 @@ that signs that user in. It takes about ten minutes.
 zeroauthy 1.0 is an **early preview**. Check the
 [compatibility page](compatibility.md) for what is not supported yet.
 
+Want zeroauthy as a throwaway login server for automated tests instead? The
+[testing guide](testing.md) starts a seeded tenant with one command, no
+certificates or console steps needed.
+
 ## What you need
 
 - Docker or Podman (or a release binary, see [Without a container](#without-a-container))

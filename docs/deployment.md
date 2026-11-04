@@ -84,7 +84,8 @@ its SHA-256 fingerprint and path. With environment variables use
 `ZEROAUTHY_SERVER__TLS_SELF_SIGNED_HOSTS=zeroauthy,10.0.0.5`.
 
 This is for testing only: zeroauthy logs a warning, and refuses to start if
-it is combined with `tls_cert_file`/`tls_key_file` or `server.acme`.
+it is combined with `tls_cert_file`/`tls_key_file` or `server.acme`. The
+[testing guide](testing.md) has a complete compose and CI setup built on it.
 
 ## Behind a reverse proxy
 
