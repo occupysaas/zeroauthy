@@ -54,25 +54,49 @@ type Config struct {
 	TestPhone TestPhone `koanf:"-"`
 }
 
+// Events configures event streams (webhook and EventBridge delivery and
+// server-sent events).
 type Events struct {
-	Retention            time.Duration `koanf:"retention"`
-	MaxStreams           int           `koanf:"max_streams"`
-	MaxConnections       int           `koanf:"max_connections"`
-	AllowPrivateNetworks bool          `koanf:"allow_private_networks"`
-	AllowInsecureHTTP    bool          `koanf:"allow_insecure_http"`
+	// Retention is how long events are kept; at least 24h.
+	Retention time.Duration `koanf:"retention"`
+	// MaxStreams is the event stream quota per tenant.
+	MaxStreams int `koanf:"max_streams"`
+	// MaxConnections caps concurrent server-sent event connections per
+	// tenant on each server instance.
+	MaxConnections int `koanf:"max_connections"`
+	// AllowPrivateNetworks permits webhook targets on private, loopback and
+	// link-local addresses, which are refused by default.
+	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
+	// AllowInsecureHTTP permits plain-HTTP webhook targets; for tests and
+	// development only.
+	AllowInsecureHTTP bool `koanf:"allow_insecure_http"`
 }
 
+// Logs configures tenant logs (the Management API logs and log streams),
+// not the server's own output (see the log section).
 type Logs struct {
+	// Retention is how long tenant log events are kept; at least 24h.
 	Retention time.Duration `koanf:"retention"`
-	QueueSize int           `koanf:"queue_size"`
-	Streams   LogStreams    `koanf:"streams"`
+	// QueueSize is the process-local queue of log events waiting to be
+	// written; events past it are dropped.
+	QueueSize int `koanf:"queue_size"`
+	// Streams is deployment policy for log stream destinations.
+	Streams LogStreams `koanf:"streams"`
 }
+
+// LogStreams is deployment policy for log stream destinations.
 type LogStreams struct {
-	AllowInsecureHTTP    bool `koanf:"allow_insecure_http"`
+	// AllowInsecureHTTP permits plain-HTTP log stream targets; for tests and
+	// development only.
+	AllowInsecureHTTP bool `koanf:"allow_insecure_http"`
+	// AllowPrivateNetworks permits log stream targets on private, loopback
+	// and link-local addresses, which are refused by default.
 	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 
+// Server configures the listener, host names, proxies and TLS.
 type Server struct {
+	// Listen is the address of the HTTP(S) listener, host:port or :port.
 	Listen string `koanf:"listen"`
 	// BaseDomain makes tenant "acme" reachable at acme.<BaseDomain>.
 	BaseDomain string `koanf:"base_domain"`
@@ -90,19 +114,26 @@ type Server struct {
 	TrustedProxyCIDRs []string      `koanf:"trusted_proxy_cidrs"`
 	ACME              ACME          `koanf:"acme"`
 	CustomDomains     CustomDomains `koanf:"custom_domains"`
-	TLSCertFile       string        `koanf:"tls_cert_file"`
-	TLSKeyFile        string        `koanf:"tls_key_file"`
+	// TLSCertFile is a PEM certificate chain; with TLSKeyFile the listener
+	// serves HTTPS. Read at startup.
+	TLSCertFile string `koanf:"tls_cert_file"`
+	// TLSKeyFile is the PEM private key of TLSCertFile. Set both or neither.
+	TLSKeyFile string `koanf:"tls_key_file"`
 }
 
 // ACME is opt-in automatic certificate issuance for managed custom domains
 // and the hosted wildcard. It never disables certificate validation.
 type ACME struct {
+	// Enabled turns on ACME certificate issuance.
 	Enabled bool `koanf:"enabled"`
 	// DirectoryURL is the CA's ACME directory (HTTPS only); accounts are
 	// bound to it, so staging and production never share an account.
-	DirectoryURL  string `koanf:"directory_url"`
-	Email         string `koanf:"email"`
-	TermsAccepted bool   `koanf:"terms_accepted"`
+	DirectoryURL string `koanf:"directory_url"`
+	// Email is the ACME account contact address; required when enabled.
+	Email string `koanf:"email"`
+	// TermsAccepted accepts the CA's terms of service; it must be true when
+	// enabled.
+	TermsAccepted bool `koanf:"terms_accepted"`
 	// DeploymentID is a stable identifier shared by every replica; it binds
 	// sealed TLS material to this deployment.
 	DeploymentID string `koanf:"deployment_id"`
@@ -112,7 +143,9 @@ type ACME struct {
 	// for tls-alpn-01.
 	HTTPListen string `koanf:"http_listen"`
 	// CABundleFile adds trust roots for the CA's issued chains.
-	CABundleFile   string         `koanf:"ca_bundle_file"`
+	CABundleFile string `koanf:"ca_bundle_file"`
+	// Workers is the number of concurrent certificate workers in this
+	// process, 1 to 8.
 	Workers        int            `koanf:"workers"`
 	HostedWildcard HostedWildcard `koanf:"hosted_wildcard"`
 }
@@ -120,8 +153,13 @@ type ACME struct {
 // HostedWildcard issues base_domain and *.base_domain through DigitalOcean
 // DNS-01. The token stays in a deployment file, never in tenant state.
 type HostedWildcard struct {
-	Enabled   bool   `koanf:"enabled"`
-	Zone      string `koanf:"zone"`
+	// Enabled issues the hosted wildcard; it needs server.acme.enabled and
+	// server.base_domain.
+	Enabled bool `koanf:"enabled"`
+	// Zone is the DigitalOcean DNS zone containing base_domain.
+	Zone string `koanf:"zone"`
+	// TokenFile is the path of a file holding the DigitalOcean API token;
+	// required when enabled.
 	TokenFile string `koanf:"token_file"`
 }
 
@@ -152,6 +190,7 @@ type Bootstrap struct {
 	AdminEmail string `koanf:"admin_email"`
 }
 
+// Storage selects the database.
 type Storage struct {
 	// DSN selects the driver: memory://, sqlite://, postgres:// (or
 	// postgresql://), mysql://. plugin:// comes with the gRPC plugin host.
@@ -162,34 +201,54 @@ type Storage struct {
 	AutoMigrate bool `koanf:"auto_migrate"`
 }
 
+// BreachedPasswords configures the breached password checker used by
+// tenants' breached password detection.
 type BreachedPasswords struct {
+	// Mode is off, range (the Pwned Passwords range API over HTTPS, sending
+	// only a five-character hash prefix) or file (a local sorted corpus).
 	Mode string `koanf:"mode"`
+	// File is the path of the sorted HASH:COUNT SHA-1 corpus; required in
+	// file mode.
 	File string `koanf:"file"`
 }
 
+// Security holds the master key and server-wide attack protection limits.
 type Security struct {
 	BreachedPasswords           BreachedPasswords `koanf:"breached_passwords"`
 	LoginMaxAttemptsExplicit    bool              `koanf:"-"`
 	LoginLockoutSecondsExplicit bool              `koanf:"-"`
 
 	// MasterKey is a base64-encoded 32-byte key. Prefer MasterKeyFile.
-	MasterKey     string `koanf:"master_key"`
+	MasterKey string `koanf:"master_key"`
+	// MasterKeyFile is the path of a file holding the base64 master key.
+	// Set only one of MasterKey and MasterKeyFile.
 	MasterKeyFile string `koanf:"master_key_file"`
 
 	// LoginMaxAttempts failed logins for one account within the lockout
 	// window lock that account for LoginLockoutSeconds. Per-IP limits are
 	// ten times higher.
-	LoginMaxAttempts    int `koanf:"login_max_attempts"`
+	LoginMaxAttempts int `koanf:"login_max_attempts"`
+	// LoginLockoutSeconds is how long an account stays locked after
+	// LoginMaxAttempts failures.
 	LoginLockoutSeconds int `koanf:"login_lockout_seconds"`
 
 	// Device activation limits wrong user codes. The transaction limit
 	// (misses on one device code) must be at least 1. The IP and tenant
 	// limits are off at 0.
-	DeviceActivationTxnMaxMisses         int `koanf:"device_activation_txn_max_misses"`
-	DeviceActivationIPMaxMisses          int `koanf:"device_activation_ip_max_misses"`
-	DeviceActivationIPLockoutSeconds     int `koanf:"device_activation_ip_lockout_seconds"`
-	DeviceActivationTenantMaxMisses      int `koanf:"device_activation_tenant_max_misses"`
-	DeviceActivationTenantWindowSeconds  int `koanf:"device_activation_tenant_window_seconds"`
+	DeviceActivationTxnMaxMisses int `koanf:"device_activation_txn_max_misses"`
+	// DeviceActivationIPMaxMisses wrong user codes from one IP lock that IP
+	// out of device activation; 0 turns the limit off.
+	DeviceActivationIPMaxMisses int `koanf:"device_activation_ip_max_misses"`
+	// DeviceActivationIPLockoutSeconds is how long the IP lockout lasts.
+	DeviceActivationIPLockoutSeconds int `koanf:"device_activation_ip_lockout_seconds"`
+	// DeviceActivationTenantMaxMisses wrong user codes in one tenant within
+	// DeviceActivationTenantWindowSeconds pause its device activation; 0
+	// turns the limit off.
+	DeviceActivationTenantMaxMisses int `koanf:"device_activation_tenant_max_misses"`
+	// DeviceActivationTenantWindowSeconds is the window the tenant limit
+	// counts misses in.
+	DeviceActivationTenantWindowSeconds int `koanf:"device_activation_tenant_window_seconds"`
+	// DeviceActivationTenantLockoutSeconds is how long the tenant pause lasts.
 	DeviceActivationTenantLockoutSeconds int `koanf:"device_activation_tenant_lockout_seconds"`
 
 	// RateLimit is the general Authentication API request limit.
@@ -200,27 +259,28 @@ type Security struct {
 // (an IPv6 /64) and endpoint group, kept in this process. N replicas allow
 // N times the rate.
 type RateLimit struct {
+	// Enabled turns the limit on.
 	Enabled bool `koanf:"enabled"`
 	// MaxTrackedKeys caps the (tenant, IP) buckets of each group; past it
 	// the least recently used bucket is dropped.
 	MaxTrackedKeys int `koanf:"max_tracked_keys"`
 	// MaxConcurrentSecretVerifications caps legacy (argon2id) client secret
 	// checks running at once in this process; 0 means GOMAXPROCS, at least
-	// 4. It applies even when Enabled is false.
+	// 4. It applies even when the limit is disabled.
 	MaxConcurrentSecretVerifications int `koanf:"max_concurrent_secret_verifications"`
 
-	Token     RateLimitGroup `koanf:"token"`     // /oauth/token
-	Authorize RateLimitGroup `koanf:"authorize"` // /authorize
-	Userinfo  RateLimitGroup `koanf:"userinfo"`  // /userinfo
-	Discovery RateLimitGroup `koanf:"discovery"` // /.well-known/*
-	Other     RateLimitGroup `koanf:"other"`     // every other tenant Authentication API route
+	Token     RateLimitGroup `koanf:"token"`     // Token limits /oauth/token.
+	Authorize RateLimitGroup `koanf:"authorize"` // Authorize limits /authorize.
+	Userinfo  RateLimitGroup `koanf:"userinfo"`  // Userinfo limits /userinfo.
+	Discovery RateLimitGroup `koanf:"discovery"` // Discovery limits /.well-known/*.
+	Other     RateLimitGroup `koanf:"other"`     // Other limits every other tenant Authentication API route.
 }
 
 // RateLimitGroup is one group's bucket: Rate requests per second
 // sustained, Burst at once.
 type RateLimitGroup struct {
-	Rate  float64 `koanf:"rate"`
-	Burst int     `koanf:"burst"`
+	Rate  float64 `koanf:"rate"`  // Rate is the sustained requests per second.
+	Burst int     `koanf:"burst"` // Burst is how many requests may arrive at once.
 }
 
 // Groups maps each group's config key to its bucket.
@@ -253,13 +313,15 @@ func (r RateLimit) validate() []error {
 type CustomDB struct {
 	Node        string        `koanf:"node"`          // Node.js executable; default "node"
 	ModulesDir  string        `koanf:"modules_dir"`   // optional absolute path of allowed npm modules
-	MaxMemoryMB int           `koanf:"max_memory_mb"` // default 256, at least 32
+	MaxMemoryMB int           `koanf:"max_memory_mb"` // runner heap in MB; default 256, at least 32
 	IdleTimeout time.Duration `koanf:"idle_timeout"`  // idle runner lifetime; default 5m
 }
 
 // Actions configures the Actions runner and the npm dependency builds.
 type Actions struct {
-	JobWorkers      int           `koanf:"job_workers"`
+	// JobWorkers is how many durable Actions jobs this server runs at once.
+	JobWorkers int `koanf:"job_workers"`
+	// JobPollInterval is how often idle job workers look for new jobs.
 	JobPollInterval time.Duration `koanf:"job_poll_interval"`
 	Node            string        `koanf:"node"` // Node.js executable; default "node"
 	// NPMCLI is the absolute path of npm's bin/npm-cli.js; default the npm
@@ -295,16 +357,17 @@ type Jobs struct {
 	Lease time.Duration `koanf:"lease"`
 }
 
+// Log configures the server's own log output on stdout.
 type Log struct {
-	Level  string `koanf:"level"`  // debug, info, warn, error
-	Format string `koanf:"format"` // json, text
+	Level  string `koanf:"level"`  // debug, info, warn or error
+	Format string `koanf:"format"` // json or text
 }
 
 // Email configures outgoing mail (password reset, verification).
 type Email struct {
-	Driver string `koanf:"driver"` // log (default) | dir | smtp
-	From   string `koanf:"from"`   // default "zeroauthy@localhost"
-	Dir    string `koanf:"dir"`
+	Driver string `koanf:"driver"` // log (writes mail to the server log; default), dir or smtp
+	From   string `koanf:"from"`   // sender address, optionally "Name <address>"; default "zeroauthy@localhost"
+	Dir    string `koanf:"dir"`    // directory the dir driver writes messages to; required with it
 	SMTP   SMTP   `koanf:"smtp"`
 	// LogLinks makes the log driver print reset links in full. Off by
 	// default: a logged link lets anyone who reads the log reset a password.
@@ -314,11 +377,12 @@ type Email struct {
 	AllowLocalSMTP []string `koanf:"allow_local_smtp"`
 }
 
+// SMTP configures the smtp email driver.
 type SMTP struct {
-	Host     string `koanf:"host"`
-	Port     int    `koanf:"port"` // default 587
-	Username string `koanf:"username"`
-	Password string `koanf:"password"`
+	Host     string `koanf:"host"`     // SMTP server host; required with the smtp driver
+	Port     int    `koanf:"port"`     // SMTP server port; default 587
+	Username string `koanf:"username"` // optional login name
+	Password string `koanf:"password"` // login password; set it in the environment, not the file
 	Insecure bool   `koanf:"insecure"` // allow plaintext (no STARTTLS); for local test servers only
 }
 

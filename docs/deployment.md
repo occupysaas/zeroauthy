@@ -4,7 +4,8 @@ How to run zeroauthy for real users. Start with the
 [quickstart](quickstart.md) to see it work locally, then use
 [examples/zeroauthy.yaml](../examples/zeroauthy.yaml) as your configuration.
 Every key can also be set as a `ZEROAUTHY_*` environment variable (`__`
-between levels); unknown keys stop the server at startup.
+between levels); unknown keys stop the server at startup. The
+[configuration reference](configuration.md) lists every key, its variable and default.
 
 ## Checklist
 

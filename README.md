@@ -271,7 +271,7 @@ API reference: `https://localhost:8443/docs`. The raw contract is at
 
 YAML file (`--config`) plus `ZEROAUTHY_*` environment variables. `__`
 separates levels: `ZEROAUTHY_STORAGE__DSN=memory://` sets `storage.dsn`.
-See [internal/config/config.go](internal/config/config.go) for every
+See the [configuration reference](docs/configuration.md) for every
 setting. Tenants, APIs, applications and grants can come from a declarative
 [seed file](tests/e2e/seed.yaml); tenants and applications can also be
 managed in the [console](docs/console.md) or through the
