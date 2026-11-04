@@ -84,9 +84,13 @@ flows. `welcome_email` can send once after a user's email is verified (or after
 a trusted signup that is already verified); it is disabled by default.
 `blocked_account` and `stolen_credentials` notify the canonical local user
 after the corresponding authoritative security event. Messages to unknown
-identifiers are never sent. The remaining code, MFA, invitation and approval
-templates are stored and can be previewed or test-sent, but their workflows
-are not implemented.
+identifiers are never sent. The code templates (`verify_email_by_code`,
+`reset_email_by_code`), the MFA templates (`mfa_oob_code`,
+`enrollment_email`) and organization invitations (`user_invitation`) are
+sent by their flows; see [MFA](mfa.md), [passwordless](passwordless.md) and
+[organizations](organizations.md). Only `async_approval` (CIBA, not yet
+implemented) is stored without a workflow; it can still be previewed or
+test-sent.
 
 Template `resultUrl` values used for verification or reset must satisfy the
 email-ticket redirect rules: HTTPS and, when an application is associated, an

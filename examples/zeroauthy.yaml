@@ -1,0 +1,57 @@
+# examples/zeroauthy.yaml: a minimal production configuration.
+#
+# Start with:   zeroauthy serve --config /etc/zeroauthy/zeroauthy.yaml
+# Every key can also be set as an environment variable: ZEROAUTHY_ plus the
+# upper-cased path with "__" between levels (storage.dsn ->
+# ZEROAUTHY_STORAGE__DSN). Keep secrets (DSN password, SMTP password) in the
+# environment or in files rather than here. Unknown keys stop the server at
+# startup. All settings: internal/config/config.go. Deployment guide:
+# docs/deployment.md.
+
+server:
+  # 443 needs root or CAP_NET_BIND_SERVICE; behind a reverse proxy use an
+  # internal port such as ":8080" and drop the two tls_* lines.
+  listen: ":443"
+  # Tenant "acme" is served at acme.auth.example.com and the admin console at
+  # system.auth.example.com/admin/. Point *.auth.example.com at this server.
+  base_domain: auth.example.com
+  # A certificate covering *.auth.example.com (read at startup; restart
+  # after renewal). SDKs need HTTPS: issuers are always https://<host>/.
+  tls_cert_file: /etc/zeroauthy/tls/fullchain.pem
+  tls_key_file: /etc/zeroauthy/tls/privkey.pem
+  # Behind a reverse proxy instead, trust forwarded headers from it only:
+  # trust_proxy_headers: true
+  # trusted_proxy_cidrs: ["10.0.0.10/32"]
+
+storage:
+  # SQLite (sqlite:///var/lib/zeroauthy/zeroauthy.db) suits one server.
+  # PostgreSQL 14+ or MySQL 8.0.17+ for several replicas. Use verified TLS.
+  dsn: postgres://zeroauthy@db.internal:5432/zeroauthy?sslmode=verify-full
+  # false: run `zeroauthy migrate --config ...` yourself after a backup
+  # (docs/upgrading.md). serve refuses a schema that does not match.
+  auto_migrate: false
+
+security:
+  # 32 random bytes, base64 (openssl rand -base64 32). It encrypts signing
+  # keys and secrets in the database. It cannot be rotated in 1.0 and a
+  # database backup is useless without it: back it up separately.
+  master_key_file: /etc/zeroauthy/master.key
+
+email:
+  # The default driver "log" only writes emails to the server log.
+  driver: smtp
+  from: "Example Login <login@example.com>"
+  smtp:
+    host: smtp.example.com
+    port: 587
+    username: zeroauthy
+    # Set the password with ZEROAUTHY_EMAIL__SMTP__PASSWORD.
+
+log:
+  level: info
+  format: json
+
+actions:
+  # Actions and custom database scripts run in Node.js 22.13+ (the container
+  # image includes it). Build cache for Action dependencies:
+  cache_dir: /var/cache/zeroauthy/actions

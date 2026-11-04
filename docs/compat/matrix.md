@@ -1,6 +1,8 @@
 # Compatibility Matrix
 
-Status of Auth0-compatible surfaces in zeroauthy.
+Status of Auth0-compatible surfaces in zeroauthy. This page is the detailed
+evidence log; the user-facing summary, with the gaps listed first, is
+[docs/compatibility.md](../compatibility.md).
 
 | Surface | Status | Notes |
 |---------|--------|-------|
@@ -10,7 +12,7 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | `/authorize`: `response_type=code`, PKCE (S256), `response_mode` query / fragment / form_post / web_message, `prompt` none / login, `max_age`, `connection`, `screen_hint=signup`, `login_hint` | Implemented | Verified with @auth0/auth0-spa-js 2.28.3 (login, silent auth, reload) |
 | `/oauth/token`: `authorization_code` | Implemented | ID token with `at_hash`, `sid`, `nonce` |
 | `/userinfo` (GET, POST) | Implemented | |
-| Hosted login: `/u/login`, `/u/signup` | Implemented | Database connections only |
+| Hosted login: `/u/login`, `/u/signup` | Implemented | Database, custom database, social and enterprise (OIDC, Google, Microsoft) connections, passwordless email and SMS codes, and MFA prompts (OTP, email, SMS, voice, recovery codes). Magic links come from the API only (D-0060). No WebAuthn or passkeys |
 | `/oauth/token`: `refresh_token` (rotation, reuse detection, leeway) | Implemented | Rotation verified with @auth0/auth0-react 2.28.2 (m5-react); reuse rejection is checked by a raw HTTP replay of the tokens the SDK rotated, not by an SDK call; @auth0/nextjs-auth0 4.32.0 obtains a refresh token via `offline_access` (observed in the server log, not asserted) but does not exchange it, and its server-side `/oauth/revoke` at logout was seen in the server log but is not asserted; leeway covered by server tests only. Opaque, stored hashed; no fixed length is promised (Auth0 lengthened its tokens in 2026-10) |
 | `/oauth/revoke` | Implemented | Refresh tokens (whole family); JWT access tokens are not revocable |
 | `/v2/logout`, `/oidc/logout` (RP-Initiated Logout with confirmation) | Implemented | `/v2/logout` verified with @auth0/auth0-react 2.28.2 (m5-react); `/oidc/logout` verified with @auth0/nextjs-auth0 4.32.0 (m5-nextjs, with `id_token_hint`, so no confirmation); the confirmation page and `returnTo`/`post_logout_redirect_uri` rejection are covered by server tests only; `federated` ignored; no back-/front-channel logout |
@@ -19,7 +21,7 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | `/dbconnections/change_password` and hosted password reset (`/u/reset-password`) | Implemented | Verified with auth0/legacy 7.4.0 (`database.changePassword` succeeds and a reset email is written; an unknown address also succeeds) and @auth0/auth0-auth-js 1.16.1 (`database.changePassword` returns the plain-text confirmation, the same for an unknown address). An unknown user gets the same 200 and no email (D-0018: the auth0-auth-js README's behaviour, chosen over the API reference's 404); server tests assert identical bodies and that no email is sent. Hosted flow verified in Chromium (m7-reset): "Forgot password?" link, emailed single-use link, new password, sign-in with it. Ending all sessions and refresh tokens on reset is covered by server tests only (D-0019) |
 | Breached-password protection | Implemented with local fallbacks | Fixed HTTPS range lookup or indexed operator corpus; server mode defaults off. Checks verified login before issuance, signup, reset completion and plaintext Management writes. Blocking checker outages return a temporary failure; monitoring emits redacted events. Local A5 errors and corpus do not claim upstream or Credential Guard parity. Plan 21 adds user breach notifications; administrator notices and email unblock links remain deferred (D-0045). No real breach service call is required. |
 | Custom database connections (`enabledDatabaseCustomization`, `import_mode`, `customScripts`, `configuration`) | Implemented | Scripts run in Node.js 22.13 or later (D-0022); guide: `docs/custom-db.md`. `login`, `get_user`, `create` and `change_password` are called by hosted login, the password grants, `/dbconnections/*` and the reset flow. `verify` runs when a verification ticket is opened, `delete` when a user is deleted through the Management API and `change_email` when its email changes (D-0043). Error responses: D-0023. Profiles: D-0024. Verified with auth0/legacy 7.4.0, @auth0/auth0-auth-js 1.16.1 and Chromium (m9) |
-| Consent and user grants (`/u/consent`, `prompt=consent`, `use_scope_descriptions_for_consent`, `skip_consent_for_verifiable_first_party_clients`) | Implemented | Guide: `docs/consent.md`. Decisions D-0025 to D-0027. Verified with express-openid-connect 3.4.0 and Chromium (m10). A grant is stored only when the user accepts a consent screen (D-0026); no grants API until sub-project 3 |
+| Consent and user grants (`/u/consent`, `prompt=consent`, `use_scope_descriptions_for_consent`, `skip_consent_for_verifiable_first_party_clients`) | Implemented | Guide: `docs/consent.md`. Decisions D-0025 to D-0027. Verified with express-openid-connect 3.4.0 and Chromium (m10). A grant is stored only when the user accepts a consent screen (D-0026); grants are managed through `/api/v2/grants` (below) |
 | Third-party applications: `strict` and `permissive` modes | Implemented | Strict verified by raw HTTP plus express-jwt 8.5.1 and jwks-rsa 4.1.0 (m10); permissive verified with express-openid-connect 3.4.0. Permissive behaviour follows Auth0's documentation because the maintainer's tenant cannot create permissive clients (D-0025) |
 | API access policies (`subject_type_authorization`, client grant `subject_type`) | Implemented | `deny_all` verified with node-auth0 (password grant refused, m3); the other policies, scope capping and refresh re-checks are covered by server tests only. Client credentials always need a client grant (Auth0 offers no `allow_all` for clients) |
 | Confirmation prompt for non-verifiable callbacks and `prompt=none` limits | Implemented | Verified with auth0-spa-js 2.28.3 (m10). Tenant and client `skip_non_verifiable_callback_uri_confirmation_prompt`; `consent_required` for `prompt=none` (D-0027) |
@@ -35,9 +37,9 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Tenant `device_flow` (`charset`, `mask`) | Implemented | `base20` or `digits`; seed refuses invalid masks and device grants on non-native, secret-holding or third-party clients (D-0033). Management API access implemented in Plan 19; API-valid unusable masks refuse device authorization |
 | Device screens: `/activate`, `/device/confirmation`, `/device/success`, `/device/denied` | Implemented | Entry, confirmation (always shown), success and denied pages with the four `device-code-*` custom text prompts; login and consent reuse `/u/login` and `/u/consent` (D-0032). Activation limits are zeroauthy's own numbers (D-0034) |
 | Discovery: `device_authorization_endpoint` | Implemented | Advertised with the device grant in `grant_types_supported` (D-0033) |
-| Implicit/hybrid flows | Planned | Not part of Plan 5 |
+| Implicit/hybrid flows | Not implemented | Considered in Plan 41 only where Auth0's behaviour passes the OIDF profiles |
 | Social connections (`google-oauth2`, `oauth2`) and basic OIDC (`oidc`, back channel) | Implemented (Plan 24) | Guide: `docs/social-connections.md`; decisions in the Plan 24 contract and D-0049. Login buttons, explicit `connection=`, S256 PKCE, RS256 ID tokens, restricted profile scripts (Node 25+), identity index, explicit linking, scoped upstream tokens (`read:user_idp_tokens`, individual GET only). Verified with node-auth0 7.4.0, auth0-cli 1.37.0 (`api` verbs) and Chromium against local mock providers (m24); no live provider or Auth0 tenant observed. Not included: remaining social providers, enterprise OIDC extras (Plan 36), Token Vault, federated logout, automatic linking, development keys |
-| Passwordless and phone (Plan 34) | Implemented; acceptance/regression in progress; final review pending | Tasks 1–15 implement email/SMS passwordless codes and magic links, the OTP grant, Twilio/Custom/native-extension SNS, templates/protection, phone Actions, SMS/voice MFA, database phone identifiers/signup/reset, code-based email templates, console and seed/Deploy CLI. D-0060 records local rulings; Task 16 acceptance/regression is in progress. Phone v1 is separately negotiated; old plugins return 501 `phone_unavailable`. No final-review or release-completion claim. |
+| Passwordless and phone (Plan 34) | Implemented (merged) | Email/SMS passwordless codes and magic links, the OTP grant, Twilio/Custom/native-extension SNS, templates, phone Actions, SMS/voice MFA, database phone identifiers/signup/reset, code-based email templates, console and seed/Deploy CLI. Guides: `docs/passwordless.md`, `docs/phone-providers.md`. D-0060 records local rulings. Phone-provider protection `exponential` is stored but not enforced (Plan 45). Phone v1 is separately negotiated; old plugins return 501 `phone_unavailable` |
 | Actions I (post-login, credentials-exchange, npm dependencies) | Implemented; locally verified and reviewed (Plan 27) | Fourteen operations, runtime/continue/versions/secrets, console, seed and offline builds; SQL/plugin/race/SDK/CLI/browser/four-cell Deploy evidence in [record](../superpowers/2026-10-27-plan-27-implementation-record.md). [Guide](../actions.md), [review](observations/actions.md), D-0053. `/userinfo` custom claims and later phone/token-exchange/event triggers deferred; no live tenant observed |
 | Actions II (registration, password/reset, custom email, Modules) | Implemented locally; final review pending (Plan 28) | Seven triggers, 24 operations, durable jobs, immutable Modules, console/seed/plugin support. Local SQL/race/SDK/CLI/browser/four-cell Deploy acceptance passed; [record](../superpowers/2026-10-28-plan-28-implementation-record.md) carries exact scope and limitations. D-0054 local defaults remain distinct from unobserved upstream behavior. Arbitrary historical module-version graph migration is not demonstrated. |
 | Management API v2: authentication (machine-to-machine tokens for the canonical `https://<tenant>/api/v2/` audience, operator tokens), errors, pagination, `fields` | Implemented | Guide: `docs/management-api.md`. Decisions D-0038 to D-0040 |
@@ -54,11 +56,11 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Management API v2: `/api/v2/grants` (list, delete by user, delete by ID) | Implemented | `clientID` (sic) and a sorted `scope` array, as Auth0 returns them (D-0043) |
 | Management API v2: `/api/v2/tickets/password-change`, `/api/v2/tickets/email-verification` | Implemented | Hosted pages `/u/reset-verify` and `/u/email-verification`; the verification email is sent at sign-up and user creation. Success page of a password-change ticket does not redirect to `result_url`, as on Auth0 (D-0043) |
 | Management API v2: `/api/v2/emails/provider` | Implemented | Tenant-scoped, write-only encrypted credentials; nine executable adapters. No provider or disabled provider uses the server-wide driver; enabled-provider failures do not fall back. node-auth0 7.4.0 and auth0-deploy-cli 9.1.0 local lanes; live upstream behavior unavailable (D-0047). Guide: [docs/email.md](../email.md) |
-| Management API v2: `/api/v2/email-templates` | Implemented | Fourteen names with bounded restricted Liquid rendering. Verification, reset, welcome and user security notices are active; code, MFA, invitations and async approval remain stored-only. Reset aliases are local choices, not observed upstream (D-0047). |
+| Management API v2: `/api/v2/email-templates` | Implemented | Fourteen names with bounded restricted Liquid rendering. Verification and reset (link and code), welcome, user security notices, MFA (`mfa_oob_code`, `enrollment_email`) and organization invitations are sent; only `async_approval` (CIBA) remains stored-only. Reset aliases are local choices, not observed upstream (D-0047). |
 | System email preview and test routes | Implemented (zeroauthy extension) | Target-tenant operator grants; synthetic preview context; test send only to the verified operator address. Fixed-window limits; uncertain started sends are not retried. Not an Auth0 Management API route (D-0047). |
 | Management API v2: jobs (user import, user export, verification email) | Implemented | Guide: `docs/user-import.md`; D-0044. Imports accept Auth0 hash formats and upgrade on sign-in to argon2id; masked record errors; gzipped CSV/NDJSON exports with 60-second download URLs; jobs retained 24 hours. E2E clients: auth0-cli 1.37.0, node-auth0 7.4.0 and Chromium (m18) |
 | Tenant settings GET/PATCH | Implemented (Plan 19) | [Guide](../tenant-settings.md), T1–T3 and D-0045. Integer hour/minute writes, numeric-hour reads, nested merge and arrays replace. Existing-session rules and sparse/projection defaults are explicit local fallbacks. All flags and future-feature families listed in the inventory are stored-only (disable_impersonation read-only). |
-| Attack protection (five GET/PATCH pairs) | Implemented with differences (Plan 19) | [Guide](../attack-protection.md), A1–A6 and D-0045. Shared reservations/counters and reset-mail budget. Local connection-scoped identity rules, deterministic 15-minute bot risk, explicit legacy migration and breach availability/errors differ from unobserved/proprietary behavior. Notification shields do not deliver mail; passwordless/custom exchange stages inert. |
+| Attack protection (five GET/PATCH pairs) | Implemented with differences (Plan 19) | [Guide](../attack-protection.md), A1–A6 and D-0045. Shared reservations/counters and reset-mail budget. Local connection-scoped identity rules, deterministic 15-minute bot risk, explicit legacy migration and breach availability/errors differ from unobserved/proprietary behavior. User notification emails (blocked account, stolen credentials) are sent, once per user per day; administrator notices and unblock links are not. Phone-provider protection `exponential` is stored but not enforced (Plan 45); passwordless/custom exchange stages inert. |
 | CAPTCHA | Partial (Plan 19) | reCAPTCHA v2/Enterprise, hCaptcha, Friendly v1 verified server-side; automated tests use local mocks, not real provider accounts/assets. Arkose/Auth Challenge/Simple CAPTCHA and fail_open stored-only, required unavailable challenges refuse. Credentials omitted; global replay protection; first-use transaction binding only where provider protocol supports it. Direct APIs return requires_verification without inline proof transport. |
 | User blocks and IP anomalies GET/DELETE | Implemented (Plan 19) | Automatic state is tenant scoped, distinct from administrative blocked. Unknown user ID 404; unknown identifier DELETE 204; unblocked IP GET 404/DELETE 204. Exact scopes and recovery in guide; linked-identity rules are local fallbacks. |
 | Management API v2: managed signing keys | Implemented (Plan 20; local verification) | RS256 lifecycle, certificate backfill, rotation retains unrevoked previous keys; revoke is explicit. `read:signing_keys`, `create:signing_keys`, `update:signing_keys`. Live Auth0 wire behavior unavailable. See [signing-keys.md](../signing-keys.md). |
@@ -67,12 +69,12 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Admin console (`/admin` on the system host) and system API (`/api/system/tenants`, `/api/system/operators`) | Implemented | zeroauthy extension, not an Auth0 surface. Guide: `docs/console.md`; D-0040. Verified in Chromium (m13-console) |
 | SAML, WS-Federation | Planned (sub-project 4) | |
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
-| Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; custom-text Management API planned (sub-project 3) |
+| Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; the custom-text Management API is implemented (Plan 22, below) |
 | Storage plugins (`plugin://` DSN, gRPC) | Implemented | zeroauthy extension, not an Auth0 surface; Go SDK in `pkg/storeplugin`; see D-0021 |
-| OpenID conformance: Basic OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-basic-certification-test-plan`; see `docs/conformance.md` |
-| OpenID conformance: Config OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-config-certification-test-plan`; see `docs/conformance.md` |
-| OpenID conformance: Form Post OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-formpost-basic-certification-test-plan`; see `docs/conformance.md` |
-| OpenID conformance: RP-Initiated OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-rp-initiated-logout-certification-test-plan`; see `docs/conformance.md` |
+| OpenID conformance: Basic OP | Certified 2026-10-30 (commit `38b4229`); local: passing (accepted warnings/skips per D-0036) | OIDF suite, plan `oidcc-basic-certification-test-plan`; see `docs/conformance.md` |
+| OpenID conformance: Config OP | Certified 2026-10-30 (commit `38b4229`); local: passing (accepted warnings/skips per D-0036) | OIDF suite, plan `oidcc-config-certification-test-plan`; see `docs/conformance.md` |
+| OpenID conformance: Form Post OP | Certified 2026-10-30 (commit `38b4229`); local: passing (accepted warnings/skips per D-0036) | OIDF suite, plan `oidcc-formpost-basic-certification-test-plan`; see `docs/conformance.md` |
+| OpenID conformance: RP-Initiated OP | local: passing (accepted warnings/skips per D-0036); not certified (OIDF certifies it only with a session, front- or back-channel logout profile; Plan 41) | OIDF suite, plan `oidcc-rp-initiated-logout-certification-test-plan`; see `docs/conformance.md` |
 
 | Plan 22 surface | Status | Boundary |
 |---|---|---|
@@ -206,20 +208,23 @@ Critical and Important findings are fixed; affected-package race, three-dialect
 SQL, source checks and `make e2e-mfa` exited 0 on fixed source.
 
 D-0059 retains unobserved M1–M9 gaps. WebAuthn flags are stored for Plan 33b;
-phone/SMS/voice configuration is stored for Plan 34; push and Duo enforcement
-are unavailable. MFA grants are implemented but omitted from discovery until
-upstream evidence is available. Deploy CLI 9.1.0's provider export remains
-blocked by its incompatible node-auth0 7.4.0 response handling; the required
-nine-handler matrix failed in Task 13. No adapter, dependency change or partial
-handler run makes that matrix pass.
+SMS and voice MFA are live since Plan 34; push and Duo enforcement are
+unavailable. MFA grants are implemented but omitted from discovery until
+upstream evidence is available. Deploy CLI 9.x cannot export
+`guardianFactorProviders` because of a bug in the tool itself (its exporter
+expects a response shape its own node-auth0 7.x does not return); the server's
+provider API works and the handler is classified as a tool bug (D-0059,
+[MFA guide](../mfa.md#deploy-cli-and-troubleshooting)).
 
-### Plan 34 — Passwordless and phone (in progress)
+### Plan 34 — Passwordless and phone (merged)
 
-Task 1 froze the wire contract in `internal/phonerules` and the API documents
-(D-0060). The phone Action triggers `custom-phone-provider` and
-`send-phone-message` are creatable and bindable; their handlers join the
-runner in Task 9. `/passwordless/start` and `/passwordless/verify_redirect`
-answer `501 passwordless_unavailable` until Task 10. Differences frozen as
-local rulings: Guardian `auth0` uses the tenant phone provider, `sns` is an
-extension, `twilio_token` is never returned, magic links come only from the
-API (not the hosted prompt), and gaps P1–P24 stand until observed.
+Plan 34 is merged. `internal/phonerules` and the API documents freeze the
+wire contract (D-0060). `/passwordless/start`, `/passwordless/verify_redirect`
+and the OTP grant are served; the phone Action triggers
+`custom-phone-provider` and `send-phone-message` run; SMS and voice MFA and
+the code-based email templates are live. Differences frozen as local rulings:
+Guardian `auth0` uses the tenant phone provider, `sns` is an extension,
+`twilio_token` is never returned, magic links come only from the API (not the
+hosted prompt), phone-provider protection `exponential` is stored but not
+enforced (Plan 45), and gaps P1–P24 stand until observed. Guides:
+[passwordless](../passwordless.md), [phone providers](../phone-providers.md).

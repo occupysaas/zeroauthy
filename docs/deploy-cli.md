@@ -7,7 +7,8 @@ The local CLI lane covers the nonempty resource families marked `included`
 in that manifest, including organizations and federated connections. Database
 connections remain excluded from this matrix; the pinned handler does not
 establish their migration compatibility. `attackProtection` includes phone-provider protection (`default` and
-`exponential`). Focused tests run unmodified Deploy CLI 9.1.0 handlers and the
+`exponential`; `exponential` is stored but not enforced in 1.0, see
+[attack protection](attack-protection.md#phone-provider-protection)). Focused tests run unmodified Deploy CLI 9.1.0 handlers and the
 lockfile Auth0 SDK 7.4.0 against local Management handlers, including Guardian
 phone settings, selected-provider and message-types. Full YAML/directory
 migration acceptance remains a separate lane.

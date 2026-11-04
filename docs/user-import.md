@@ -13,8 +13,8 @@ The file is a JSON array of user objects. Each needs `email`; optional fields
 are `email_verified`, `phone_number`, `phone_verified`, `user_id`, `username`,
 `given_name`, `family_name`, `name`, `nickname`, `picture`, `blocked`,
 `password_hash`, `custom_password_hash`, `app_metadata`, `user_metadata` and
-`mfa_factors`. Unknown top-level fields are ignored. MFA factors are accepted
-but ignored until MFA is implemented. Reserved application-metadata names
+`mfa_factors`. Unknown top-level fields are ignored. `mfa_factors` imports
+`totp` (`secret`), `email` and `phone` (`value`) enrollments; see [MFA](mfa.md). Reserved application-metadata names
 (such as `email`, `identities`, `blocked` and `__tenant`) are refused.
 
 Use only one of `password_hash` and `custom_password_hash`. `password_hash`

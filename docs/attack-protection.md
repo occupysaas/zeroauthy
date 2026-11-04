@@ -105,10 +105,15 @@ fallbacks. Checks precede password/user mutation and reset-ticket consumption,
 and login checks follow credential verification but precede token/session
 issuance. Existing imported hashes may still upgrade after verification.
 
-Notification shields/frequencies and proprietary detection methods round-trip;
-notification delivery, unblock email links and Credential Guard equivalence
-are not implemented. Plan 21 owns delivery. Current notification requests
-produce rate-limited warnings. Only the configured corpus verdict is enforced.
+Notification shields/frequencies and proprietary detection methods round-trip.
+User notifications are sent: with the `user_notification` shield, a login
+that brute-force protection blocks (with the `block` shield) sends the
+`blocked_account` email, and a breached password detected at login sends the
+`stolen_credentials` email. Each goes only to a verified email address, at
+most once per user per day, through the tenant's email provider and templates
+(a disabled custom template turns it off). Administrator notifications, unblock
+links in the email and Credential Guard equivalence are not implemented. Only
+the configured corpus verdict is enforced.
 
 ## Bot policy and CAPTCHA
 
@@ -196,9 +201,11 @@ protection enforcement, counter reservations or notification availability.
 ## Phone-provider protection
 
 `GET` and `PATCH /api/v2/attack-protection/phone-provider-protection` expose
-`type: default` or `type: exponential`. The latter adds send backoff to the
-existing IP, identifier and per-user budgets. Limits are enforced before
-provider delivery across passwordless, signup and MFA phone sends. A provider
+`type: default` or `type: exponential`. **In 1.0, `exponential` is stored but
+not enforced**: no send backoff is applied, and the fixed IP, identifier and
+per-user budgets apply in both modes. Enforcing the backoff is planned for
+Plan 45. The fixed budgets are enforced before provider delivery across
+passwordless, signup and MFA phone sends. A provider
 failure does not trigger an alternate route or disclose credentials. Tenant
 configuration can be provisioned alongside the existing attack-protection
 settings. Review [phone-provider routing](phone-providers.md) when diagnosing

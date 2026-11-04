@@ -1,7 +1,12 @@
 # Actions
 
-zeroauthy runs tenant JavaScript at seven supported triggers, including login,
-signup, password reset and custom email delivery.
+zeroauthy runs tenant JavaScript at ten supported triggers: `post-login`,
+`credentials-exchange`, `pre-user-registration`, `post-user-registration`,
+`post-change-password`, `password-reset-post-challenge`,
+`custom-email-provider`, `custom-phone-provider`, `send-phone-message` and
+`event-stream`. Post-login Actions can require MFA through `api.multifactor`
+and `api.authentication` (see [MFA](mfa.md#actions)); the phone triggers are
+described in [phone providers](phone-providers.md).
 Use the console's Actions library to save a draft, wait for its build, deploy
 it, then add it to an ordered trigger flow. Saving alone does not change the
 running version. The Management API exposes twenty-four operations under
@@ -28,9 +33,12 @@ after client authentication and client-grant validation, before minting.
 Redirects resume in `exports.onContinuePostLogin`.
 
 The post-login event includes user, client, connection, request, transaction,
-resource server, role names, login count, tenant and secrets. Session and
-refresh-token fields appear when available. `request.geoip`, `asn`,
-MFA, prompt, agent and Enterprise data are omitted. Earlier
+resource server, role names, login count, tenant and secrets, plus
+`event.user.enrolledFactors` and `event.authentication.methods` (in 1.0
+`methods` lists only a completed `mfa` step, not the first factor).
+`event.session` appears for browser logins; `event.refresh_token` is not
+provided. `request.geoip`, `asn`, prompt, agent and Enterprise data are
+omitted. Earlier
 Actions' target scopes, transaction metadata and user/app metadata overlays
 are visible to later Actions. Absent features are not synthesized.
 
@@ -65,9 +73,11 @@ and `org_name` are reserved claims; Actions cannot overwrite them. See
 | `validation.error(code, message)` | Stop the flow with the supplied error |
 | `groups.getUserGroups`, `groups.hasGroupMembership` | Empty groups / false membership |
 | `rules.wasExecuted` | Always false |
+| `multifactor.enable` | Require MFA for this login ([MFA](mfa.md#actions)) |
+| `authentication.challengeWith`, `challengeWithAny`, `enrollWith`, `enrollWithAny` | Choose the MFA factor to challenge or enroll ([MFA](mfa.md#actions)) |
 
-The `session.*`, `refreshToken.*`, `authentication.*`, `multifactor.*`,
-`prompt.*` and `samlResponse.*` APIs throw "not supported by zeroauthy" and
+The `session.*`, `refreshToken.*`, `prompt.*` and `samlResponse.*` APIs
+throw "not supported by zeroauthy" and
 fail the flow closed, including when the Action catches that exception.
 Unknown methods and invalid arguments also fail closed.
 
@@ -174,6 +184,15 @@ contain per-Action timings and masked errors. Flows without bindings create
 no execution, and pre-execution store failures may have no reference.
 Executions are retained ten days and swept hourly; expired continuation
 states are swept every minute by the jobs worker.
+
+**Console capture limit (1.0).** To keep secrets out of captured output, a
+tenant's runner process captures `console` lines and runner diagnostics only
+during its first 60 seconds or until it has masked 256 distinct values,
+whichever comes first. After that, execution records and the console's
+**Test** button show no console lines until the process retires (after
+`idle_timeout`, 5 minutes idle by default). On a busy tenant, use explicit
+`api.access.deny` reasons or thrown errors, which are always recorded, or
+let the tenant go idle before testing again.
 
 The console's **Logs → event detail → execution** journey and **Actions logs**
 show persisted console lines (64 KiB per result) and a separate **Denial reason**
@@ -457,10 +476,9 @@ additional equivalent module versions at the destination. Migration comparison
 therefore ignores the module's latest-publication counter while checking exact
 Action version pins, source code and the imported private-secret runtime claim.
 
-Phone/SMS triggers remain for Plan 34, custom token exchange for Plan 35 and
-event streams for Plan 32. Password-hash migration and identifier/credential
-validation triggers also remain deferred. MFA and Forms APIs await their own
-plans; the seven-trigger catalogue does not claim those runtimes.
+Custom token exchange waits for Plan 35. Password-hash migration and
+identifier/credential validation triggers also remain deferred, and so does
+the Forms API.
 
 ## Event-stream destination
 

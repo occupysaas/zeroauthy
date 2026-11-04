@@ -16,39 +16,46 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 as an OpenID Connect Provider for the Basic OP, Config OP and Form Post OP
 profiles (commit `38b4229`, October 2026). See [docs/conformance.md](docs/conformance.md).
 
-> **Status:** early. Multi-tenant discovery, JWKS, the `client_credentials`
-> grant, login with the hosted page, the authorization code + PKCE flow,
-> rotating refresh tokens, `/oauth/revoke`, and logout through `/v2/logout`
-> and `/oidc/logout` work today (verified with auth0-spa-js, auth0-react and
-> nextjs-auth0). Pushed authorization requests ([docs/par.md](docs/par.md)) and
-> the device authorization flow ([docs/device-flow.md](docs/device-flow.md))
-> are supported too, and so are Auth0's Management API for applications, APIs, client grants and database connections
-> ([docs/management-api.md](docs/management-api.md), verified with auth0-cli)
-> and an admin console ([docs/console.md](docs/console.md)). Organizations,
-> organization login and roles, invitations, application grants, discovery
-> domains, and per-tenant operators are implemented
-> ([docs/organizations.md](docs/organizations.md)). Tenant logs, log streams
-> and statistics ([docs/logs.md](docs/logs.md)), plus transactional Event
-> Streams with webhook and Action delivery and an SSE Events API
-> ([docs/event-streams.md](docs/event-streams.md)), are also available. See the
-> [compatibility matrix](docs/compat/matrix.md) for supported behavior and limits.
+> **Status: 1.0 early preview.** zeroauthy covers what most Auth0 tenants
+> use, but not everything yet. Try it, and check the
+> [compatibility page](docs/compatibility.md) for the gaps (WebAuthn and
+> passkeys, SAML, enterprise directories and more) before relying on it.
 
-Tenant-configurable email providers, bounded Liquid templates, previews and
-operator test sends are also available. Existing tenants can keep the
-server-wide email driver; see [docs/email.md](docs/email.md) for provider,
-template and migration guidance.
+**What works in 1.0**
+
+- The Authentication API and hosted login: authorization code with PKCE,
+  refresh token rotation, client credentials, password grants, PAR, the
+  device flow, logout, consent, signup and password reset
+- MFA (one-time passwords, email, SMS, voice, recovery codes) and
+  passwordless email and SMS ([MFA](docs/mfa.md), [passwordless](docs/passwordless.md))
+- Database, custom database, Google, Microsoft and generic OAuth 2 / OIDC
+  connections
+- The Management API for applications, APIs, connections, users, roles,
+  organizations, Actions, branding, email and phone, custom domains, logs and
+  event streams ([Management API](docs/management-api.md))
+- An admin console ([console](docs/console.md)), SQLite, PostgreSQL, MySQL and
+  gRPC storage plugins
+- Verified with auth0-spa-js, auth0-react, nextjs-auth0, express-openid-connect,
+  auth0-auth-js, node-auth0, Auth0.NET, the Auth0 CLI and the Deploy CLI
+
+**Start here:** [quickstart](docs/quickstart.md) (container to SDK login),
+[deployment](docs/deployment.md), [upgrading](docs/upgrading.md),
+[migrating from Auth0](docs/migrating-from-auth0.md),
+[stability promise](docs/stability.md), [security policy](SECURITY.md) and
+the [changelog](CHANGELOG.md).
 
 ![The zeroauthy admin console: a tenant's applications](docs/pics/console-applications.png)
 
 ## Roadmap
 
-The goal is a 1:1, drop-in replacement for Auth0's Authentication API and
-Management API. The Authentication API side is complete apart from what the
+zeroauthy aims to be a 1:1, drop-in replacement for Auth0's Authentication
+API and Management API; the [compatibility page](docs/compatibility.md) lists
+what is still missing. The Authentication API side is complete apart from what the
 features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–32)
+**Done** (Plans 1–34)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -71,7 +78,7 @@ each with its console screens; the full breakdown is in the
 **Signing keys and deployment migration (Plan 20)**
 
 - Managed signing keys, stored-only custom public JWKS, and credential-preserving bootstrap are implemented.
-- The pinned Deploy CLI passes local YAML/directory imports with generated or preserved credentials, including organizations, Actions and event streams. Database connections remain excluded from that matrix, and attack-protection migration needs an unavailable phone-provider API; the upstream observer lane remains unavailable. See [signing keys](docs/signing-keys.md) and [Deploy CLI migration](docs/deploy-cli.md) for current limits.
+- The pinned Deploy CLI passes local YAML/directory imports with generated or preserved credentials, including organizations, Actions and event streams. Database connections remain excluded from that matrix, and Guardian factor providers cannot be exported because of a bug in the Deploy CLI itself ([MFA](docs/mfa.md#deploy-cli-and-troubleshooting)); the upstream observer lane remains unavailable. See [signing keys](docs/signing-keys.md) and [Deploy CLI migration](docs/deploy-cli.md) for current limits.
 
 **Branding and Universal Login (Plan 22)**
 
@@ -121,12 +128,25 @@ each with its console screens; the full breakdown is in the
   and other limits, and the [validation report](docs/superpowers/2026-11-02-plan-32-postfix-validation.md)
   for actual results, skips and conformance outcomes.
 
-**Later** (Plans 33–47)
+**MFA (Plan 33)**
+
+- One-time passwords, email codes, recovery codes, MFA policies,
+  remember-browser, hosted MFA prompts, the MFA API and grants, Guardian and
+  user authentication-method APIs, and Actions `multifactor` /
+  `challengeWith*`. WebAuthn and passkeys move to Plan 33b. See [MFA](docs/mfa.md).
+
+**Passwordless and phone (Plan 34)**
+
+- Email and SMS passwordless connections, magic links and the OTP grant,
+  phone providers (Twilio, Amazon SNS, custom through Actions) and templates,
+  SMS and voice MFA, phone identifiers and phone password reset. See
+  [passwordless](docs/passwordless.md) and [phone providers](docs/phone-providers.md).
+
+**Later** (Plans 33b, 35–48)
 
 | Plan | Area | Depth | Needs |
 |---|---|---|---|
-| 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full | 21, 27 |
-| 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full | 33 |
+| 33b | WebAuthn MFA and passkeys | full | 33 |
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
@@ -140,11 +160,41 @@ each with its console screens; the full breakdown is in the
 | 45 | Operational hardening sweep | short | — |
 | 46 | Release pipeline, packaging, samples | short | 45 |
 | 47 | Hosted zeroauthy (multi-tenant SaaS) | full | 29, 31, 46 |
+| 48 | Refresh tokens II: rotation conversion, strict leeway, grant-revocation cascade, multi-resource and session-bound tokens | short | 17, 3 |
 
 The roadmap tracks 42 resource groupings; its [coverage table](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md#management-api-coverage-by-resource) records completed and remaining work. Four groups are not planned (Rules, Hooks and
 rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
 
 ## Quick start
+
+Run the container image (it includes Node.js for Actions and stores SQLite in
+the `/data` volume):
+
+```bash
+docker run -d --name zeroauthy -p 8443:8443 -v zeroauthy-data:/data \
+  -v "$PWD/certs:/certs:ro" \
+  -e ZEROAUTHY_SERVER__LISTEN=:8443 \
+  -e ZEROAUTHY_SERVER__SYSTEM_HOST=system.localhost:8443 \
+  -e ZEROAUTHY_SERVER__TLS_CERT_FILE=/certs/cert.pem \
+  -e ZEROAUTHY_SERVER__TLS_KEY_FILE=/certs/key.pem \
+  -e ZEROAUTHY_SECURITY__MASTER_KEY="$(cat master.key)" \
+  ghcr.io/occupysaas/zeroauthy:1.0.0-rc.1
+docker exec zeroauthy zeroauthy admin create --email you@example.com
+```
+
+The [quickstart](docs/quickstart.md) walks through the certificate and master
+key, the first tenant, application and user, and a login with
+express-openid-connect. Release binaries for linux/amd64, linux/arm64 and
+darwin/arm64 are on the
+[releases page](https://github.com/occupysaas/zeroauthy/releases). For a
+server, start from [examples/zeroauthy.yaml](examples/zeroauthy.yaml) and
+[deployment](docs/deployment.md).
+
+## Running from source with the test data
+
+This runs the server with the end-to-end test configuration
+(`tests/e2e/config.yaml`: memory storage, debug logging, published test
+secrets). It is for development, not for real users. It needs Go 1.26.7.
 
 ```bash
 go build -o bin/zeroauthy ./cmd/zeroauthy
@@ -259,6 +309,8 @@ master key. Generate one with `openssl rand -base64 32` and set it as
 `ZEROAUTHY_SECURITY__MASTER_KEY` (or point `security.master_key_file` at a
 file containing it). It is required for persistent storage; with
 `memory://` storage zeroauthy uses an ephemeral key and logs a warning.
+The master key cannot be rotated in 1.0, and a database backup is useless
+without it: back it up separately ([deployment](docs/deployment.md#master-key)).
 
 **Storage.** `storage.dsn` selects the driver:
 
@@ -296,9 +348,10 @@ The SQL drivers have a schema. Apply pending migrations with
 or set `storage.auto_migrate: true` (`ZEROAUTHY_STORAGE__AUTO_MIGRATE=true`)
 to have `serve` migrate at startup. Without it, `serve` refuses to start
 against a schema that is behind or ahead of the binary. `zeroauthy seed`
-requires a migrated database and ignores `storage.auto_migrate`. MySQL
-commits DDL implicitly, so if a migration fails part-way there, clean up the
-objects it created by hand before running `zeroauthy migrate` again.
+requires a migrated database and ignores `storage.auto_migrate`. Back up the
+database before migrating. MySQL commits DDL implicitly, and most early
+migrations cannot resume after a partial failure: if a MySQL migration fails,
+restore the backup instead of rerunning it. See [upgrading](docs/upgrading.md).
 
 **System tenant and operators.** zeroauthy keeps a reserved tenant named
 `system` for itself: its users are the console operators. It is reachable at
@@ -320,7 +373,9 @@ No password is ever taken from configuration. Operators sign in to the
 [admin console](docs/console.md) at `/admin/` on that host.
 
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
-sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
+sets `X-Forwarded-Host`, and list that proxy in `server.trusted_proxy_cidrs`;
+otherwise clients could choose their own tenant. See
+[deployment](docs/deployment.md#behind-a-reverse-proxy).
 
 **Request rate limits.** `security.rate_limit` limits every tenant
 Authentication API route with a token bucket per tenant, client IP (IPv6 by

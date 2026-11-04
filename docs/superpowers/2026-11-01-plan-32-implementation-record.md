@@ -1381,7 +1381,7 @@ Verification (Node v26.8.1; isolated worktree, sole suite monitor):
   fixtures; removed the fixture files and stopped Vite afterward. This does
   not claim live server, database or acceptance-lane coverage.
 - `git diff --check` passed. Full task commands, setup failures, intermediate
-  results and limitations are recorded in workspace `task-12-report.md`.
+  results and limitations are recorded in [the Task 12 report](2026-11-02-plan-32-task-12-report.md).
   No database or broader Go/E2E suites were run for this console task.
 
 ## Task 13 — seed and Deploy CLI provisioning

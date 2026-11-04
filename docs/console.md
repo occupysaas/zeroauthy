@@ -27,14 +27,21 @@ zeroauthy admin create --email you@example.com --config zeroauthy.yaml
 
 It prints a one-time link, valid for one hour. Open it, choose a password
 (at least 12 characters), then go to `/admin/` and sign in. Run the command
-again for a new link. Automated installs can set
-`ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL`: on a start that finds no operator, the
-server creates that one and logs the link once. Passwords are never taken
-from configuration.
+again for a new link. In a container, run it inside the running container
+(`docker exec zeroauthy zeroauthy admin create --email you@example.com`); see
+the [quickstart](quickstart.md).
+
+Automated installs can set `ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL` instead: on a
+start that finds no operator, the server creates that one and writes its
+one-hour setup link to a private (0600) file in the host's temporary
+directory. The server log contains only that file's path (`setup_file`), the
+email and the validity, never the link. Read the file on the server, open the
+link, and delete the file. Passwords are never taken from configuration.
 
 More operators can be invited from the **Operators** screen (system tenant
-only) or the system API (`POST /api/system/operators`); every operator
-manages every tenant for now.
+only) or the system API (`POST /api/system/operators`). An operator can manage
+every tenant (`["*"]`) or only a list of tenants; see
+[per-tenant operators](organizations.md#per-tenant-operators).
 
 ## Signing in
 
@@ -53,13 +60,17 @@ session.
   link closes it); the Docs and Source links move to the bottom of the drawer and
   the tenant and account chips shorten, so the header never scrolls sideways.
 - **Sidebar:** one list of sections in groups: Home; Applications
-  (Applications, APIs); Authentication (Database, Social); User management
-  (Users, Roles, Organizations); Security (Attack protection, Multi-factor);
-  Actions; Branding (Universal Login, Email templates, Custom domains);
-  Monitoring (Logs); Settings (Tenant settings); System (Operators, system
-  tenant only). Items read black and bold; sections that are not built yet
-  carry a "Planned" tag. The current section stays marked on its detail and
-  create screens too.
+  (Applications, APIs); Authentication (Database, Passwordless email,
+  Passwordless SMS, Social, Enterprise); User management (Users, Roles,
+  Organizations); Security (Attack protection, Multi-factor); Actions;
+  Branding (Universal Login, Phone providers, Phone templates, Email
+  templates, Custom domains); Monitoring (Logs, Log streams, Event streams,
+  Actions logs); Settings (Tenant settings); System (Operators, system tenant
+  only). Every section is live. The current section stays marked on its
+  detail and create screens too. Feature guides: [Actions](actions.md),
+  [MFA](mfa.md), [passwordless](passwordless.md),
+  [phone providers](phone-providers.md), [organizations](organizations.md),
+  [roles](rbac.md), [logs](logs.md), [event streams](event-streams.md).
 - **Modals:** creating, editing and deleting happen in modals over the
   section's list, so the sidebar keeps its place. Applications, APIs,
   database, social and enterprise connections, users, roles, organizations
@@ -70,13 +81,8 @@ session.
   button or Escape, never with a click outside it, and focus returns to
   what opened it. Deletes and other consequential actions ask in a modal
   rather than a browser prompt.
-- **Planned sections:** every section that is not built yet has its own
-  page (a direct link works), showing a banner with the slice that will
-  deliver it and the Management API it will use, and a disabled preview of
-  the page: the fields and tables Auth0's reference lists, with empty states
-  and no sample data. Controls do nothing and the pages make no requests;
-  only in-page navigation (such as the Email templates picker) works. Actions is a placeholder only: triggers, the code editor and
-  the deploy flow need their own design.
+- **Actions:** the Actions library (create, edit, build, deploy and test
+  Actions), trigger flows and Modules; see [Actions](actions.md).
 - **Home:** the tenant's domain, discovery URL and Management API
   identifier, the number of applications, and a banner when the seed file
   defines the tenant: edits to what the seed defines are overwritten at the
