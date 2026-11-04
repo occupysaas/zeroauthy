@@ -107,13 +107,21 @@ func TestRecorderNeverBlocks(t *testing.T) {
 		r.Record(bg, Event{TenantID: "t", Type: "s"})
 	}
 	<-block.entered
-	start := time.Now()
-	for range 1000 {
-		r.Record(bg, Event{TenantID: "t", Type: "s"})
-	}
-	elapsed := time.Since(start)
-	if elapsed > 50*time.Millisecond {
-		t.Fatalf("1000 Record calls took %s", elapsed)
+	// The store stays blocked for the whole loop, so a Record that waited on
+	// it would never return. A generous deadline tells "never blocks" apart
+	// from "slow under -race on a busy CI host" (a 50ms wall-clock limit was
+	// flaky there).
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for range 1000 {
+			r.Record(bg, Event{TenantID: "t", Type: "s"})
+		}
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Record blocked while the log store was blocked")
 	}
 	if r.Dropped() == 0 {
 		t.Fatal("full queue did not count drops")

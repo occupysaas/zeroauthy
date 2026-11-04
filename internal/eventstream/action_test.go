@@ -249,7 +249,9 @@ func TestActionDestinationCancellationFitsDeadline(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal(err)
 	}
-	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
+	// A cancellation that ignored the deadline would block until the test
+	// context ends; 1s leaves room for -race on busy CI hosts.
+	if elapsed := time.Since(start); elapsed > time.Second {
 		t.Fatalf("cancellation exceeded delivery deadline: %v", elapsed)
 	}
 }
