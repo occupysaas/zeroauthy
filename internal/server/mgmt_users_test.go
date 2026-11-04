@@ -379,7 +379,7 @@ func TestDeleteUserMidFlow(t *testing.T) {
 		t.Errorf("device poll = %d %v", resp.StatusCode, out)
 	}
 	resp, out = e.postForm(t, e.client(t), "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {refreshToken}})
-	if resp.StatusCode != 400 || out["error"] != "invalid_grant" {
+	if resp.StatusCode != 403 || out["error"] != "invalid_grant" {
 		t.Errorf("refresh = %d %v", resp.StatusCode, out)
 	}
 }
@@ -472,7 +472,7 @@ func TestUnlinkRestoresLogin(t *testing.T) {
 		resp, out := e.postForm(t, e.client(t), "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {token}})
 		return resp.StatusCode, out
 	}
-	if code, out := refresh(oldRefresh); code != 400 || out["error"] != "invalid_grant" {
+	if code, out := refresh(oldRefresh); code != 403 || out["error"] != "invalid_grant" {
 		t.Errorf("bob's refresh after the link = %d %v", code, out)
 	}
 	// Bob's credentials now log in as alice.
@@ -497,7 +497,7 @@ func TestUnlinkRestoresLogin(t *testing.T) {
 	if ts, _ := e.st.RefreshTokens().ListByUser(ctx, tn.ID, bob.UserID); len(ts) != 0 {
 		t.Errorf("bob's refresh tokens survived the link: %d", len(ts))
 	}
-	if code, out := refresh(oldRefresh); code != 400 || out["error"] != "invalid_grant" {
+	if code, out := refresh(oldRefresh); code != 403 || out["error"] != "invalid_grant" {
 		t.Errorf("bob's old refresh after the unlink = %d %v", code, out)
 	}
 	// Bob logs in as himself with his own password; alice is unchanged.

@@ -114,7 +114,7 @@ assert.equal(await statusOf(management.sessions.get('sess_nope')), 404);
 await management.users.refreshToken.delete(ada.user_id);
 assert.deepEqual(await management.users.refreshToken.list(ada.user_id).then(all), []);
 await assert.rejects(auth.oauth.refreshTokenGrant({ refresh_token: t1.refresh_token }), (e) => {
-  assert.ok([400, 403].includes(e.statusCode ?? e.status), `status ${e.statusCode ?? e.status}`);
+  assert.equal(e.statusCode ?? e.status, 403);
   assert.equal(e.error ?? e.body?.error ?? JSON.parse(e.body ?? '{}').error, 'invalid_grant');
   return true;
 }, 'a revoked refresh token no longer renews');

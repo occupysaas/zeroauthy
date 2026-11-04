@@ -1004,7 +1004,7 @@ func TestSharedHostedPasswordGrantProtection(t *testing.T) {
 	if code := hosted("wrong"); code != 401 {
 		t.Fatal(code)
 	}
-	if code := grant("wrong"); code != 400 {
+	if code := grant("wrong"); code != 403 {
 		t.Fatalf("grant wrong credentials: %d", code)
 	}
 	if code := hosted("wrong"); code != 401 {

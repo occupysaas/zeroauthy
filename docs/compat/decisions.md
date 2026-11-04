@@ -241,7 +241,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Decision:**
   - `password` honours `realm` when given (as @auth0/auth0-auth-js sends it) and behaves like the password-realm grant for that connection; otherwise it uses the tenant's `default_directory`, and without one it is `invalid_request`.
   - The connection must be a database connection enabled for the client.
-  - Wrong credentials and unknown users give the same `invalid_grant`; a blocked user gives `invalid_grant`.
+  - Wrong credentials and unknown users give the same `invalid_grant`; a blocked user gives `invalid_grant`. (Status and wording since 2026-11-04: `403` "Wrong email or password.", see D-0061.)
   - Attempts share the hosted login's per-user and per-IP throttles and return `429 too_many_requests` when locked.
   - `auth0-forwarded-for` is honoured only for clients that authenticated with a secret, and only when its value parses as an IP address; otherwise the request's own address is used.
   - Access tokens carry `gty: "password"`. ID tokens have `auth_time` = now and no `sid` (no browser session).
@@ -2578,3 +2578,44 @@ alongside E.164 so emitted events remain valid. Consumers must treat event
 phone numbers as display values; use authorized Management API reads for
 full numbers. These choices can require an extra code step or a full-number
 lookup compared with clients expecting the unmasked upstream event schema.
+
+## D-0061 — `/oauth/token` `invalid_grant` status and wording (2026-11-04)
+
+**Context.** `/oauth/token` answered `invalid_grant` with status 400 and
+its own descriptions ("wrong email/username or password", "invalid refresh
+token"), while Auth0 was observed answering 403 with fixed texts. The code
+already used 403 for "Password change required." and for every device-flow
+`invalid_grant` (D-0031). Pre-1.0 review auth-api-oidc F1.
+
+**Evidence.**
+- [organizations.md §6](observations/organizations.md): password-realm with
+  a wrong password, with or without an organization, is `403 invalid_grant`.
+- [management-jobs.md J6](observations/management-jobs.md): an imported user
+  without a hash gets "Wrong email or password."; unusable hashes get
+  `403 invalid_grant` "Password change required.".
+- [management-users.md U8](observations/management-users.md): a deleted
+  refresh token gives `invalid_grant` "Unknown or invalid refresh token.".
+- Auth0 support article
+  [Troubleshoot Refresh Token Unknown or Invalid Before Expiry](https://support.auth0.com/center/s/article/troubleshoot-refresh-token-unknown-or-invalid-before-expiry-403-unknown-or-invalid-refresh-token):
+  that error is returned "with an HTTP 403 status code", and it covers
+  expiry, revocation and rotation reuse.
+
+**Decision.**
+- Password and password-realm grants: a wrong password or an unknown user
+  (including a custom-database login that reports wrong credentials) is
+  `403 invalid_grant` "Wrong email or password.".
+- Refresh grant: an unknown, revoked, expired (absolute or idle) or reused
+  token, and a token presented by another client or on another origin, is
+  `403 invalid_grant` "Unknown or invalid refresh token.". The other-client
+  and other-origin cases share the answer so they reveal nothing about the
+  token.
+- Unchanged, because no observation or Auth0 document gives their status or
+  text: authorization-code `invalid_grant` (still 400, own wording), MFA grant
+  errors ("invalid MFA token", "invalid MFA verification"), passwordless OTP
+  (wording from D-0060, still 400), "user is blocked" (Auth0's text, status
+  not observed, still 400), "the user is not allowed to sign in", organization
+  eligibility and deleted audience/user answers. `/oauth/revoke` keeps its
+  400 (D-0013).
+
+**Cost if wrong.** Clients that branch on status 400 for these two cases see
+403; Auth0 SDKs, which match Auth0's 403, now classify them as Auth0 does.

@@ -59,7 +59,7 @@ func TestRefreshFailureEventAttribution(t *testing.T) {
 			raw := "known-refresh-token"
 			rt := &store.RefreshToken{TenantID: tid, ID: "rt_known", TokenHash: secrets.HashToken(raw), FamilyID: "rtf_known", ClientID: "rt-spa", UserID: "auth0|unloaded", OrganizationID: "org_known", OrganizationConnectionID: "con_known", Audience: acmeAPI, Scopes: []string{"openid", "offline_access", "read:things"}, CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
 			form := refreshForm("rt-spa", raw)
-			wantError := "invalid_grant"
+			wantError, wantStatus := "invalid_grant", http.StatusForbidden
 			switch reason {
 			case "reuse":
 				rt.Rotating = true
@@ -70,10 +70,10 @@ func TestRefreshFailureEventAttribution(t *testing.T) {
 				rt.RevokedAt = &now
 			case "audience":
 				form.Set("audience", "https://other.test")
-				wantError = "invalid_request"
+				wantError, wantStatus = "invalid_request", http.StatusBadRequest
 			case "scope":
 				form.Set("scope", "write:things")
-				wantError = "invalid_scope"
+				wantError, wantStatus = "invalid_scope", http.StatusBadRequest
 			case "other client":
 				rt.ClientID = "other-client"
 			case "other origin":
@@ -85,7 +85,7 @@ func TestRefreshFailureEventAttribution(t *testing.T) {
 			capture := &eventRecorder{}
 			f.h.Recorder = capture
 			status, body := f.refresh(t, form)
-			if status != http.StatusBadRequest || body["error"] != wantError {
+			if status != wantStatus || body["error"] != wantError {
 				t.Fatalf("response=%d %v", status, body)
 			}
 			wantCount := 1

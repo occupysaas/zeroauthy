@@ -568,7 +568,7 @@ func TestActionsRefreshReplayRunsNothing(t *testing.T) {
 	}
 	counts.Reset()
 	status, body := f.token(t, refreshForm("ropg", first, "client_secret", "ropg-secret"))
-	if status != 400 || body["error"] != "invalid_grant" {
+	if status != 403 || body["error"] != "invalid_grant" {
 		t.Fatalf("replay: %d %v", status, body)
 	}
 	if n := counts.Snapshot(); n["Actions.Bindings"] != 0 || n["Actions.CreateExecution"] != 0 {

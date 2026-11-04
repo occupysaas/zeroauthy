@@ -53,7 +53,7 @@ func TestPasswordRealmGrant(t *testing.T) {
 		t.Fatalf("realm grant = %d %v", rec.Code, body)
 	}
 	// bob is not in the default directory.
-	if rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "bob@acme.test", "bob password 12")}); rec.Code != 400 || body["error"] != "invalid_grant" {
+	if rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "bob@acme.test", "bob password 12")}); rec.Code != 403 || body["error"] != "invalid_grant" {
 		t.Fatalf("default directory = %d %v", rec.Code, body)
 	}
 }
@@ -72,8 +72,8 @@ func TestPasswordGrantRejects(t *testing.T) {
 		status int
 		code   string
 	}{
-		"wrong password":    {pw("ropg", "ropg-secret", "alice@acme.test", "nope"), 400, "invalid_grant"},
-		"unknown user":      {pw("ropg", "ropg-secret", "nobody@acme.test", "nope"), 400, "invalid_grant"},
+		"wrong password":    {pw("ropg", "ropg-secret", "alice@acme.test", "nope"), 403, "invalid_grant"},
+		"unknown user":      {pw("ropg", "ropg-secret", "nobody@acme.test", "nope"), 403, "invalid_grant"},
 		"blocked user":      {pw("ropg", "ropg-secret", "carol@acme.test", "carol password 1"), 400, "invalid_grant"},
 		"missing password":  {pw("ropg", "ropg-secret", "alice@acme.test", ""), 400, "invalid_request"},
 		"missing realm":     {realm(""), 400, "invalid_request"},
@@ -188,7 +188,7 @@ func TestPasswordGrantHonoursRealm(t *testing.T) {
 		t.Fatalf("not enabled = %d %v; unknown = %v; want description %v", rec.Code, notEnabled, unknownRealm, viaRealm["error_description"])
 	}
 	// (c) without a realm the default directory is used.
-	if code, body := call(f, "bob@acme.test", "bob password 12", ""); code != 400 || body["error"] != "invalid_grant" {
+	if code, body := call(f, "bob@acme.test", "bob password 12", ""); code != 403 || body["error"] != "invalid_grant" {
 		t.Fatalf("no realm, bob = %d %v", code, body)
 	}
 	if code, body := call(f, "alice@acme.test", "alice password 1", ""); code != 200 {
@@ -233,7 +233,7 @@ func TestPasswordRealmGrantLegacy(t *testing.T) {
 	if at["sub"] != "auth0|42" {
 		t.Fatalf("sub = %v", at["sub"])
 	}
-	if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "wrong")}); rec.Code != 400 || body["error"] != "invalid_grant" {
+	if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "wrong")}); rec.Code != 403 || body["error"] != "invalid_grant" {
 		t.Fatalf("wrong password = %d %v", rec.Code, body)
 	}
 }
@@ -327,7 +327,7 @@ func TestPasswordRealmGrantImport(t *testing.T) {
 			t.Fatalf("sub = %v", at["sub"])
 		}
 	}
-	if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "wrong")}); rec.Code != 400 || body["error"] != "invalid_grant" {
+	if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "wrong")}); rec.Code != 403 || body["error"] != "invalid_grant" {
 		t.Fatalf("wrong password = %d %v", rec.Code, body)
 	}
 	if n := len(f.scripts.Requests()); n != 1 {
@@ -506,7 +506,7 @@ func TestPasswordGrantOwnWritesKeepVersion(t *testing.T) {
 		if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: form}); rec.Code != 200 || body["refresh_token"] == nil {
 			t.Fatalf("first import login = %d %v", rec.Code, body)
 		}
-		if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "other")}); rec.Code != 400 {
+		if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "other")}); rec.Code != 403 {
 			t.Fatalf("wrong password after migration = %d %v", rec.Code, body)
 		}
 	})
@@ -537,7 +537,7 @@ func TestPasswordGrantImportedHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			f := newFixture(t)
 			u := f.setImportedHash(t, tc.imported)
-			if code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "wrong")); code != 400 || body["error_description"] != wrongCredentials {
+			if code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "wrong")); code != 403 || body["error_description"] != wrongCredentials {
 				t.Fatalf("wrong password = %d %v", code, body)
 			}
 			if got, _ := f.st.Users().Get(context.Background(), u.TenantID, u.UserID); got.Identities[0].ImportedHash != tc.imported {

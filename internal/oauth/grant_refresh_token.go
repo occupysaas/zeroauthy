@@ -39,7 +39,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	}
 	tenantID := res.Tenant.ID
 	now := h.now().UTC()
-	invalid := invalidGrant("invalid refresh token")
+	invalid := forbiddenGrant(unknownRefreshToken)
 
 	rt, err := h.Store.RefreshTokens().GetByTokenHash(ctx, tenantID, secrets.HashToken(raw))
 	if errors.Is(err, store.ErrNotFound) {
