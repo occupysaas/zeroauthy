@@ -416,6 +416,10 @@ blocked built-ins such as `child_process` are the known differences) and
 need Node.js 22.13 or later. See [docs/custom-db.md](docs/custom-db.md), including the security
 notes for hosting untrusted tenants.
 
+## Releases
+
+Releases are manual: a tagged commit pushed to the `release` branch, then a maintainer's approval in GitHub Actions. See [RELEASING.md](RELEASING.md) for the short checklist and the full walkthrough.
+
 ## Development
 
 ```bash

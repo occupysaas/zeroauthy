@@ -5,7 +5,9 @@ name: release
 # fast-forward `release` to it. See RELEASING.md.
 #
 # Without a v* tag on the pushed commit the workflow runs every gate and
-# builds every artefact but publishes nothing (a dry run).
+# builds every artefact but publishes nothing (a dry run). A tagged run
+# pauses after the gates for a maintainer to approve the `production`
+# environment; nothing is pushed to GHCR or GitHub Releases before that.
 on:
   push:
     branches: [release, "release/**"]
@@ -73,8 +75,22 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  approve:
+    # Manual gate: GitHub waits for a required reviewer of the `production`
+    # environment (Settings > Environments) before anything is published.
+    needs: [version, test, conformance, binaries]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "Approved release ${{ needs.version.outputs.tag }}"
+
   image:
-    needs: [version, test, conformance]
+    needs: [version, test, conformance, approve]
+    # Dry runs skip `approve` but still build the image (without pushing).
+    if: >-
+      !cancelled() && needs.test.result == 'success' && needs.conformance.result == 'success' &&
+      (needs.approve.result == 'success' || needs.version.outputs.publish != 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -119,8 +135,8 @@ jobs:
           push-to-registry: true
 
   publish:
-    needs: [version, test, conformance, binaries, image]
-    if: needs.version.outputs.publish == 'true'
+    needs: [version, test, conformance, binaries, approve, image]
+    if: needs.version.outputs.publish == 'true' && needs.approve.result == 'success' && needs.image.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
