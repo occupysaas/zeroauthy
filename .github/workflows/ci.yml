@@ -26,6 +26,16 @@ jobs:
       - run: CGO_ENABLED=0 go build ./cmd/zeroauthy
       - name: generated code is up to date
         run: go generate ./... && git diff --exit-code
+  vulncheck:
+    # Known-vulnerability scan of Go dependencies and the standard library.
+    # Also a release gate, since release.yml reuses this workflow.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: go.mod
+          go-package: ./...
   console:
     runs-on: ubuntu-latest
     steps:
