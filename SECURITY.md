@@ -24,10 +24,7 @@ Report it privately through GitHub's private vulnerability reporting:
 open <https://github.com/occupysaas/zeroauthy/security/advisories/new>
 (the **Security** tab of the repository, then **Report a vulnerability**).
 
-<!-- TODO(maintainer): confirm the response targets below, and confirm a
-security contact email address and add it
-here as a fallback for reporters without a GitHub account. Do not publish
-until confirmed. -->
+If you cannot use GitHub, email **security@occupysaas.com** instead.
 
 Please include:
 
@@ -40,8 +37,8 @@ Never include real users' data, live tokens or the master key.
 
 ## What to expect
 
-- We acknowledge your report within 3 working days.
-- We send an initial assessment (confirmed or not, and a severity) within
+- We aim to acknowledge your report within 3 working days.
+- We aim to send an initial assessment (confirmed or not, and a severity) within
   10 working days.
 - We aim to release a fix for critical and high-severity issues within
   30 days of confirmation, and keep you informed until then.
