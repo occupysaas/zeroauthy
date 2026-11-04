@@ -26,6 +26,7 @@ ARG VERSION=dev
 LABEL org.opencontainers.image.title="zeroauthy" \
       org.opencontainers.image.description="Open-source, Auth0-compatible identity server" \
       org.opencontainers.image.source="https://github.com/occupysaas/zeroauthy" \
+      org.opencontainers.image.documentation="https://github.com/occupysaas/zeroauthy/blob/main/docs/configuration.md" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.version="${VERSION}"
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt

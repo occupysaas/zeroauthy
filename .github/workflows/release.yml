@@ -146,7 +146,9 @@ jobs:
         run: |
           set -euo pipefail
           awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
-          printf '\n**Container image:** `ghcr.io/%s:%s`\n' "${GITHUB_REPOSITORY,,}" "$VERSION" >> notes.md
+          # Docker usage and environment variables for every release.
+          sed -e "s|@REPOSITORY@|${GITHUB_REPOSITORY,,}|g" -e "s|@VERSION@|$VERSION|g" -e "s|@TAG@|$TAG|g" \
+            .github/release-docker.md >> notes.md
           flags=(--verify-tag --title "zeroauthy $TAG" --notes-file notes.md)
           [ "$PRERELEASE" = true ] && flags+=(--prerelease) || flags+=(--latest)
           gh release create "$TAG" "${flags[@]}" dist/*.tar.gz dist/SHA256SUMS

@@ -46,6 +46,15 @@ lists what comes next (Plans 35 onward).
   auth0-auth-js, express-openid-connect and Auth0.NET.
 - **Releases.** Static binaries for linux/amd64, linux/arm64 and darwin/arm64
   with SHA-256 checksums, and a multi-arch container image on GHCR.
+- **Testing kit.** Run zeroauthy as a disposable, seeded login server for
+  local and CI end-to-end tests with real logins: `server.tls_self_signed`
+  generates a throwaway CA and certificate at startup, and
+  [docs/testing.md](docs/testing.md) with `examples/testing/` provides a seed,
+  docker compose, a GitHub Actions job and sample tests.
+- **Configuration reference.** [docs/configuration.md](docs/configuration.md)
+  lists every setting with its `ZEROAUTHY_*` environment variable and
+  default, generated from the code.
+- **Request rate limits** on the Authentication API (`security.rate_limit`).
 
 ### Known limitations
 
