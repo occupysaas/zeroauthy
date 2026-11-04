@@ -5,9 +5,14 @@
 - **Scope:** every Auth0 Management API v2 resource not covered by slices 1–4 (applications, APIs, client grants, database connections, users and jobs), broken into plans with an order, dependencies and a short design each.
 - **Inputs:** the management design (`2026-10-18-zeroauthy-management-design.md`), the users design (`2026-10-19-zeroauthy-users-design.md`), the compatibility matrix, the follow-ups file, and the maintainer's 2026-10-19 rulings.
 
-## 0. Where we are (2026-10-28)
+## 0. Where we are (2026-11-03)
 
-**Plans done:** 29. **Next:** Plan 30 (Organizations II). **Left in this roadmap:** 9 more (Plans 30–38), subject to splitting larger designs, then the follow-up plans 39–47 (§3a) that collect work deferred by earlier plans.
+**Plans done:** 1–34 (merged to `main`). **Next:** the 1.0 preview: the
+fix-before-1.0 items from the [pre-1.0 review](../reviews/2026-11-03-pre-1.0/)
+(the Plan 45 subset below) and the Plan 46 core release pipeline. 1.0 is an
+early preview to give people something to try (maintainer, 2026-11-03);
+Plans 35–48 continue after it. Review findings that can wait were moved into
+the plans below, marked "(pre-1.0 review)".
 
 ### Done
 
@@ -29,6 +34,10 @@
 | 26 | Tenant roles/direct permissions, runtime RBAC, four token profiles, console and Deploy CLI role migration |
 | 27 | Actions I: post-login/credentials-exchange, npm builds, redirect/continue, Management API, console, seed and Deploy CLI; /userinfo custom claims deferred |
 | 28 | Actions II: signup, post-change-password, reset-page and custom-email triggers, durable job queue, Modules, console, seed and Deploy CLI; secrets isolated per tenant, not per module (D-0054) |
+| 29–30 | Organizations I and II: members, roles, connections, organization login, invitations, client grants, discovery domains |
+| 31–32 | Logs, log streams and stats; event streams |
+| 33 | MFA I: OTP, email, recovery codes, policies, remember browser, hosted prompts, MFA grants and APIs (WebAuthn moved to Plan 33b) |
+| 34 | Passwordless and phone: email/SMS connections, magic links, OTP grant, Twilio/SNS/custom providers, SMS and voice MFA, phone identifiers and reset |
 
 ### Management API coverage by resource
 
@@ -84,11 +93,11 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (done) | 26 |
 | 28 | Actions II: signup, password/reset, custom email and Modules | full (done) | 27 |
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full (done) | 26 |
-| 30 | Organizations II: invitations, client grants, discovery domains | full (final verification in progress) | 29, 21 |
-| 31 | Logs, log streams, stats | full | 19 |
+| 30 | Organizations II: invitations, client grants, discovery domains | full (done) | 29, 21 |
+| 31 | Logs, log streams, stats | full (done) | 19 |
 | 32 | Event streams | full (done; documented local limitations) | 31 |
-| 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full | 21, 27 |
-| 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full | 33 |
+| 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full (done; WebAuthn → 33b) | 21, 27 |
+| 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full (done) | 33 |
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
@@ -102,6 +111,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 45 | Operational hardening sweep | short | — |
 | 46 | Release pipeline, packaging, samples | short | 45 |
 | 47 | Hosted zeroauthy (multi-tenant SaaS) | full | 29, 31, 46 |
+| 48 | Refresh tokens II: rotation conversion, strict leeway, grant-revocation cascade, multi-resource and session-bound tokens | short | 17, 3 |
 
 Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core spec and may itself split. Plans 39–47 are follow-ups (§3a): 39, 40 and 45 can run at any point after their dependencies; 41 should follow 33 and 35 so the certification run covers JAR and `acr`; 47 comes last.
 
@@ -358,6 +368,7 @@ SAML as identity provider (`samlp` addon on clients) and as service provider (`s
 - **AD/LDAP:** the `ad` strategy. Auth0's AD/LDAP connector is open source (MIT); the design decides whether zeroauthy speaks that connector's protocol (so existing connectors keep working) or ships its own LDAP bind.
 - **Forms and Flows:** `/api/v2/forms`, `/api/v2/flows`, `/flows/{id}/executions`, `/flows/vault/connections`; `api.prompt.render` in Actions (fails closed since Plan 28); a visual flow builder is a large console project.
 - **Network ACLs:** `/api/v2/network-acls` with enforcement at the edge of every tenant request; the October 2026 changelog added an Early Access tenant ACL rule editor, so the rule shape is rechecked at build time.
+- **Pre-1.0 review additions:** `/api/v2/keys/encryption*` (BYOK, GA in Auth0) and Early Access `/keys/network-acls*`; HTTP message signatures for tenant ACLs (changelog 2026-10-29); OAS routes no plan names yet: `/sessions/{id}/revoke`, `/users/{id}/revoke-access`, effective roles/permissions and the `*/search` routes; silently ignored list parameters (`/clients` `q`/`is_global`/`from`/`take`, `/roles` `from`/`take`); `GET /logs` sorting beyond `date`.
 - **Remaining resources** listed at build time from Auth0's reference: `/api/v2/device-credentials`, `/api/v2/user-attribute-profiles`, `/api/v2/connection-profiles`, `/api/v2/risk-assessments` settings, and anything Auth0 adds while the roadmap runs (the changelog review feeds this plan).
 
 ## 3a. Follow-up plans (after Plan 38)
@@ -370,11 +381,11 @@ Work that earlier plans deferred or that sits outside the Management API referen
 
 ### Plan 40 — Actions III
 
-Triggers Auth0 lists that Plan 28 deferred: `password-hash-migration`, `login-post-identifier`, `signup-post-identifier`, `post-credential-validation`, each only once Auth0 documents its event and `api`; Early Access members that reach general availability (`api.user.setUserId` in `pre-user-registration`, risk signals, `security_context`). Also the `/userinfo` custom-claim echo deferred by Plan 27, Actions validation of Plan 22's transient `ulp-` fields, and the Plan 27/28 deferred-minor ledgers (console log aggregate cap, sandbox probe assertions). **Short**, on Plans 27–28.
+Triggers Auth0 lists that Plan 28 deferred: `password-hash-migration`, `login-post-identifier`, `signup-post-identifier`, `post-credential-validation`, each only once Auth0 documents its event and `api`; Early Access members that reach general availability (`api.user.setUserId` in `pre-user-registration`, risk signals, `security_context`). Also the `/userinfo` custom-claim echo deferred by Plan 27, Actions validation of Plan 22's transient `ulp-` fields, and the Plan 27/28 deferred-minor ledgers (console log aggregate cap, sandbox probe assertions). Pre-1.0 review additions: first-factor entries in `event.authentication.methods` (`pwd`, `federated`, `sms`, `email`); `event.refresh_token`, `event.session` on token grants, `last_password_reset`/`multifactor` on the post-login user; the custom-database script `context` argument (`enableScriptContext`). **Short**, on Plans 27–28.
 
 ### Plan 41 — OIDC protocol extras, CIBA and formal certification
 
-The Plan 12 follow-ups: the `claims` parameter, `acr_values`, `address`/`phone` scopes and the remaining `profile` claims; front-channel and back-channel logout; Dynamic Client Registration (`/oidc/register`, Auth0's tenant flag); CIBA (`/bc-authorize`, the `async_approval` template stored since Plan 21). Then the formal OpenID certification submission under the open-source fee waiver (maintainer signs and submits), adding the new profiles (back-channel logout, Dynamic OP, FAPI only if Auth0 supports it) and a `client_secret_post` variant run. Implicit/Hybrid profiles only where Auth0 behaviour passes; each spec-vs-Auth0 conflict goes to the maintainer (spec-compliant default plus an opt-in non-compliant environment variable). **Full.**
+The Plan 12 follow-ups: the `claims` parameter, `acr_values`, `address`/`phone` scopes and the remaining `profile` claims; front-channel and back-channel logout; Dynamic Client Registration (`/oidc/register`, Auth0's tenant flag); CIBA (`/bc-authorize`, the `async_approval` template stored since Plan 21). Then the formal OpenID certification submission under the open-source fee waiver (maintainer signs and submits), adding the new profiles (back-channel logout, Dynamic OP, FAPI only if Auth0 supports it) and a `client_secret_post` variant run. Pre-1.0 review additions: whether `/authorize` may omit `redirect_uri` (Auth0's reference lists it optional); the RFC 8707 `resource` parameter (`resource_parameter_profile: compatibility`, stored only today). Implicit/Hybrid profiles only where Auth0 behaviour passes; each spec-vs-Auth0 conflict goes to the maintainer (spec-compliant default plus an opt-in non-compliant environment variable). **Full.**
 
 ### Plan 42 — My Account API and My Organization API
 
@@ -386,19 +397,43 @@ Auth0's end-user-facing APIs outside `/api/v2`: the My Account API (users manage
 
 ### Plan 44 — ACUL and the remaining Universal Login modes
 
-Advanced Customizations for Universal Login (tenant-built screens through the prompt rendering API), Classic Login, WebAuthn-first and social controls on hosted pages, prompt partials with custom-domain context: all deferred by Plans 22–23. ACUL runs tenant JavaScript in the browser, which Plan 22 rejects today, so the design must settle the content-security boundary first. Unblocks the Deploy CLI ACUL export. **Full.**
+Advanced Customizations for Universal Login (tenant-built screens through the prompt rendering API), Classic Login, WebAuthn-first and social controls on hosted pages, prompt partials with custom-domain context: all deferred by Plans 22–23. ACUL runs tenant JavaScript in the browser, which Plan 22 rejects today, so the design must settle the content-security boundary first. Unblocks the Deploy CLI ACUL export. Pre-1.0 review addition: the phone factor on MFA enrollment tickets. **Full.**
 
 ### Plan 45 — Operational hardening sweep
 
 Open items from the follow-ups file with no feature home: general Authentication API rate limiting and shared device-activation counters (Plans 2, 11, 19); custom-script Try limiting; CORS origin index for large tenants; orphaned sealed-token sweep (Plan 24); a durable retry schedule for hosted wildcard certificates, additional DNS providers and challenge delegation (Plan 23); custom public signing JWKS publication (Plans 20, 23); the Plan 27 MySQL deploy/delete freshness closure; a Playwright accessibility audit of the console. **Short**; may split by area.
 
+**Pre-1.0 review (2026-11-03).** The 1.0 subset fixed before the release:
+general Authentication API rate limiting, the Actions and custom-database
+unix-socket blocks, multi-line `X-Forwarded-For`, the hosted MFA first-enroll
+race, `SECURITY.md` and an oldest-schema upgrade test. Deferred here:
+enforcing the `phone-provider-protection` exponential send backoff (changelog
+2026-10-30; stored only in 1.0); master-key rotation with versioned sealed
+formats; an OS-level runner sandbox and one shared Actions/custom-database
+runner prelude; retiring a tenant runner when its log-capture window or mask
+cap is spent instead of muting it; moving pre-MFA side effects (invitation
+acceptance, membership, `last_login`/`logins_count`, session creation, the M1
+consent ordering) after MFA; HSTS when zeroauthy terminates TLS; database TLS
+defaults; scrubbing plugin stderr; replacing the per-tenant attack-protection
+row lock; signup verification code lifetime (900 s) and per-connection send
+scope; the brute-force `limit_sul` duplication; the console passwordless
+"send test" CORS path; the admin CSP header listing tenant domains;
+`PATCH /users` nulls and `verify_phone_number`; `organization_id` on
+verification jobs and tickets; narrowing `GET /users/{id}/organizations`
+scopes; the v1-only `connection` filter; non-secret email-provider fields
+(`api_user`, `region`, `smtp_*`) on `GET /emails/provider`.
+
 ### Plan 46 — Release pipeline, packaging and samples
 
-Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.**
+Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.** Core done 2026-11-03 for 1.0: `release.yml` (release branches only), reproducible `scripts/dist.sh` archives, the multi-arch image, `CHANGELOG.md`, `RELEASING.md`. Left: versioned docs links from the console, `govulncheck` in CI if not added for 1.0, the Android TV sample and translations.
 
 ### Plan 47 — Hosted zeroauthy
 
-The maintainer's hosting offer: tenant sign-up, subdomain and droplet provisioning through the DigitalOcean CLI, per-tenant quotas and isolation, billing hooks, backup/restore, and a decision on per-tenant keys (revisits customer-managed encryption keys, §5). Builds on per-tenant operators (29), logs (31) and the release pipeline (46). A product of its own rather than an Auth0 parity item. **Full.**
+The maintainer's hosting offer: tenant sign-up, subdomain and droplet provisioning through the DigitalOcean CLI, per-tenant quotas and isolation, billing hooks, backup/restore, and a decision on per-tenant keys (revisits customer-managed encryption keys, §5). Builds on per-tenant operators (29), logs (31) and the release pipeline (46). A product of its own rather than an Auth0 parity item. Pre-1.0 review addition: a tenant can hold another tenant's custom domain hostname indefinitely after verification fails; shared deployments need claim expiry or proof before reservation. **Full.**
+
+### Plan 48 — Refresh tokens II
+
+Proposed by the pre-1.0 review. Turning on rotation converts existing non-rotating tokens on their next exchange and deletes the client's other non-rotating tokens (Auth0's documented behaviour); the rotation `leeway` accepts only the immediately previous token; deleting a user grant revokes the refresh tokens issued under it; the refresh grant re-checks the API's `allow_offline_access`; multi-resource and session-bound refresh tokens. **Short.**
 
 ## 4. Cross-cutting work and where it lands
 
