@@ -83,4 +83,11 @@ describe('snippets', () => {
     expect(expressConfig(f, 'sec')).toContain(`issuerBaseURL: 'https://acme.example.test'`)
     expect(expressConfig(f, null)).not.toContain('sec\'')
   })
+
+  it('tells express-openid-connect the application token auth method', () => {
+    // The SDK defaults to client_secret_basic; new regular web apps use
+    // client_secret_post, so the snippet must say so or the callback fails.
+    expect(expressConfig(facts('acme.example.test'), 'sec')).toContain(`clientAuthMethod: 'client_secret_post',`)
+    expect(expressConfig(facts('acme.example.test', { authMethod: 'client_secret_basic' }), 'sec')).not.toContain('clientAuthMethod')
+  })
 })

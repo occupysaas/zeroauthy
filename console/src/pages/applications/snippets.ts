@@ -133,6 +133,8 @@ export function expressConfig(a: AppFacts, secret: string | null): string {
     `    baseURL: 'http://localhost:3000',`,
     `    clientID: ${jsString(a.clientID)},`,
     `    clientSecret: ${jsString(secret ?? SECRET_PLACEHOLDER)},`,
+    // The SDK defaults to client_secret_basic; say so when the app differs.
+    ...(a.authMethod && a.authMethod !== 'client_secret_basic' ? [`    clientAuthMethod: ${jsString(a.authMethod)},`] : []),
     `    secret: 'A_LONG_RANDOM_STRING',`,
     `    authRequired: false,`,
     `    authorizationParams: {`,
