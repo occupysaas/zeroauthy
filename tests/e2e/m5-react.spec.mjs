@@ -57,9 +57,10 @@ test('auth0-react rotates refresh tokens, detects reuse and logs out', async ({ 
 
   // Replaying the rotated token is reuse: it fails, and so does its successor.
   const reused = await replay(first.refresh_token);
-  expect(reused.status).toBe(400);
+  expect(reused.status).toBe(403);
   expect(reused.body.error).toBe('invalid_grant');
-  expect((await replay(second.refresh_token)).status).toBe(400);
+  expect(reused.body.error_description).toBe('Unknown or invalid refresh token.');
+  expect((await replay(second.refresh_token)).status).toBe(403);
 
   // Logout goes through zeroauthy's /v2/logout and ends its session:
   // logging in again shows the form.

@@ -110,7 +110,7 @@ func TestM19TwoHTTPInstances(t *testing.T) {
 		return request(h, "POST", "/oauth/token", "", map[string]any{"grant_type": "http://auth0.com/oauth/grant-type/password-realm", "client_id": "e2e-node", "client_secret": "e2e-node-secret-not-for-production", "realm": "Username-Password-Authentication", "username": "alice@e2e.local", "password": password})
 	}
 	for _, h := range []http.Handler{h1, h2} {
-		if status, out := login(h, "wrong"); status != http.StatusBadRequest || out["error"] != "invalid_grant" {
+		if status, out := login(h, "wrong"); status != http.StatusForbidden || out["error"] != "invalid_grant" {
 			t.Fatal(status, out)
 		}
 	}

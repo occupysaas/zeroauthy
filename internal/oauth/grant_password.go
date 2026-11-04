@@ -28,8 +28,6 @@ import (
 // resource owner password flow with an explicit connection (realm).
 const GrantPasswordRealm = "http://auth0.com/oauth/grant-type/password-realm"
 
-const wrongCredentials = "wrong email/username or password"
-
 type clientIPKey struct{}
 
 func withClientIP(ctx context.Context, ip string) context.Context {
@@ -188,10 +186,10 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, mfaError(err)
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		h.log().InfoContext(ctx, "password grant failed", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
-		return nil, invalidGrant(wrongCredentials)
+		return nil, forbiddenGrant(wrongCredentials)
 	case errors.Is(err, identity.ErrPasswordChangeRequired):
 		h.log().InfoContext(ctx, "password grant: password change required", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
-		return nil, &Error{Status: http.StatusForbidden, Code: "invalid_grant", Description: "Password change required."}
+		return nil, forbiddenGrant("Password change required.")
 	case errors.Is(err, identity.ErrUserBlocked):
 		return nil, invalidGrant("user is blocked")
 	case errors.As(err, &ue):

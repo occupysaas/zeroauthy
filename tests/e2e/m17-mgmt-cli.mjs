@@ -163,14 +163,14 @@ assert.notEqual(auth0('users', 'update', ada.user_id, '--blocked=false', '--json
 assert.equal((await realm('ada@cli-users.test', pw)).status, 200);
 const pw2 = 'Amber-Meadow-77';
 auth0('users', 'update', ada.user_id, '--password', pw2, '--json');
-assert.equal((await realm('ada@cli-users.test', pw)).status, 400, 'the old password is gone');
+assert.equal((await realm('ada@cli-users.test', pw)).status, 403, 'the old password is gone');
 assert.equal((await realm('ada@cli-users.test', pw2)).status, 200);
 
 // 6. users delete: one with --force, then it is gone from show and search.
 auth0('users', 'delete', cyd.user_id, '--force');
 assert.deepEqual(ids(search('email:*@cli-users.test')), ids([ada, bob]));
 assert.throws(() => auth0('users', 'show', cyd.user_id, '--json'), /404|not exist|not found/i);
-assert.equal((await realm('cyd@cli-users.test', pw)).status, 400, 'a deleted user cannot sign in');
+assert.equal((await realm('cyd@cli-users.test', pw)).status, 403, 'a deleted user cannot sign in');
 
 // 7. Plan 15 follow-up: deleting the connection deletes its users, which
 //    users search shows.

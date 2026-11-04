@@ -205,8 +205,9 @@ const second = 'Amber-Meadow-77';
 const changed = await setPassword(await requestReset(), second);
 assert.equal(changed.status, 200, changed.text);
 const stale = await realm(first);
-assert.equal(stale.status, 400, 'the old password no longer signs in');
+assert.equal(stale.status, 403, 'the old password no longer signs in');
 assert.equal(stale.body.error, 'invalid_grant');
+assert.equal(stale.body.error_description, 'Wrong email or password.');
 assert.equal((await realm(second)).status, 200);
 const ticket = await requestReset();
 for (const reused of [first, second]) {

@@ -84,6 +84,22 @@ func invalidGrant(desc string) *Error {
 	return &Error{Status: http.StatusBadRequest, Code: "invalid_grant", Description: desc}
 }
 
+// Auth0's exact invalid_grant answers for a wrong password and an unusable
+// refresh token, both with status 403 (D-0061). Evidence:
+// docs/compat/observations/organizations.md §6, management-jobs.md J6,
+// management-users.md U8, and
+// https://support.auth0.com/center/s/article/troubleshoot-refresh-token-unknown-or-invalid-before-expiry-403-unknown-or-invalid-refresh-token
+const (
+	wrongCredentials    = "Wrong email or password."
+	unknownRefreshToken = "Unknown or invalid refresh token."
+)
+
+// forbiddenGrant is invalid_grant with Auth0's status 403, used where Auth0
+// was observed or documented answering 403.
+func forbiddenGrant(desc string) *Error {
+	return &Error{Status: http.StatusForbidden, Code: "invalid_grant", Description: desc}
+}
+
 // authorizationPending, slowDown, expiredToken and deviceInvalidGrant are
 // the device flow's poll answers (RFC 8628 §3.5). Auth0 sends all but
 // slow_down with status 403 and invalid_grant here with 403, not 400.
@@ -99,6 +115,4 @@ func expiredToken() *Error {
 	return &Error{Status: http.StatusForbidden, Code: "expired_token", Description: "the device code has expired; start the flow again"}
 }
 
-func deviceInvalidGrant(desc string) *Error {
-	return &Error{Status: http.StatusForbidden, Code: "invalid_grant", Description: desc}
-}
+func deviceInvalidGrant(desc string) *Error { return forbiddenGrant(desc) }

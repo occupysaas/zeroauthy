@@ -38,7 +38,7 @@ func TestBreachImportedLogin(t *testing.T) {
 			wantCode = "temporarily_unavailable"
 		}
 		f.h.Protection = &protection.Service{Store: f.st, BreachChecker: c}
-		if code, _ := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "wrong")); code != 400 || c.calls != 0 {
+		if code, _ := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "wrong")); code != 403 || c.calls != 0 {
 			t.Fatal("unproved password checked", code, c.calls)
 		}
 		code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "imported pw 12"))
