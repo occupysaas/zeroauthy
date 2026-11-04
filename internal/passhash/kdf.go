@@ -18,8 +18,12 @@ const maxKDFMemory = 1 << 30
 //	argon2: t × m (KiB) <= 2^32 (libsodium SENSITIVE, t=4 at 1 GiB, is 2^22)
 //	scrypt: N × r × p <= 2^30 (N=2^20, r=8, p=1 is 2^23)
 //
+//	bcrypt: cost <= 16 (Auth0 documents no bcrypt cost bounds; 4 is
+//	        bcrypt's own minimum and real hashes use 10 to 14)
+//
 // They are checked at parse (MAXIMUM) and again in Verify (ErrUnusable).
 const (
+	maxBcryptCost = 16
 	maxPBKDF2Work = 50_000_000
 	maxArgon2Work = 1 << 32
 	maxScryptWork = 1 << 30

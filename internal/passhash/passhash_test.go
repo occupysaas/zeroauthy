@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 type vector struct {
@@ -588,5 +589,40 @@ func TestVerifyBudgetsBackstop(t *testing.T) {
 	s := &Spec{Algorithm: "scrypt", Hash: HashPart{Value: "00", Encoding: "hex"}, KeyLen: 32, Cost: 2048, BlockSize: 1024, Parallelization: 1025}
 	if _, err := s.Verify("x"); !errors.Is(err, ErrUnusable) {
 		t.Errorf("scrypt: err = %v", err)
+	}
+}
+
+// Auth0 documents no bcrypt cost bounds for custom_password_hash
+// (https://auth0.com/docs/manage-users/user-migration/bulk-user-import-database-schema-and-examples),
+// so zeroauthy caps the cost at 16: a cost-31 hash would make every login
+// attempt hash for hours.
+func TestBcryptCostCap(t *testing.T) {
+	salt := "abcdefghijklmnopqrstuu" + strings.Repeat("A", 31)
+	in := func(cost string) string {
+		return `{"algorithm":"bcrypt","hash":{"value":"$2b$` + cost + `$` + salt + `","encoding":"utf8"}}`
+	}
+	for _, c := range []string{"17", "20", "31"} {
+		_, errs := parse(t, in(c))
+		if len(errs) != 1 || errs[0].Code != "MAXIMUM" || errs[0].Path != "custom_password_hash" {
+			t.Errorf("cost %s: got %+v", c, errs)
+		}
+	}
+	for _, c := range []string{"04", "10", "16"} {
+		if _, errs := parse(t, in(c)); len(errs) > 0 {
+			t.Errorf("cost %s: %+v", c, errs)
+		}
+	}
+	// A stored over-cap hash that did not come through ParseCustom is
+	// refused, not run.
+	s := &Spec{Algorithm: "bcrypt", Hash: HashPart{Value: "$2b$31$" + salt, Encoding: "utf8"}}
+	done := make(chan error, 1)
+	go func() { _, err := s.Verify("x"); done <- err }()
+	select {
+	case err := <-done:
+		if !errors.Is(err, ErrUnusable) {
+			t.Errorf("Verify cost 31: err = %v", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("Verify ran a cost-31 bcrypt hash")
 	}
 }

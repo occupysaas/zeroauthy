@@ -110,6 +110,8 @@ requires a password reset and cannot authenticate.
 
 ### bcrypt
 
+zeroauthy rejects a bcrypt cost above 16 with `MAXIMUM` (Auth0 documents no bound) and refuses to verify any stored hash with a higher cost.
+
 ```json
 {
   "email": "bcrypt@example.test",

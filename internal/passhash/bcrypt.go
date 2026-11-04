@@ -18,6 +18,11 @@ func (s *Spec) verifyBcrypt(pw []byte) (bool, error) {
 	if len(in) > bcryptMaxInput {
 		in = in[:bcryptMaxInput]
 	}
+	// An over-cap cost is refused, not run: it would hold the login for
+	// hours. ParseCustom rejects it; this guards a stored value.
+	if c, err := bcrypt.Cost([]byte(s.Hash.Value)); err != nil || c > maxBcryptCost {
+		return false, ErrUnusable
+	}
 	switch err := bcrypt.CompareHashAndPassword([]byte(s.Hash.Value), in); {
 	case err == nil:
 		return true, nil

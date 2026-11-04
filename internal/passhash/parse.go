@@ -7,6 +7,8 @@ import (
 	"math"
 	"regexp"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -148,6 +150,11 @@ func ParseCustom(raw json.RawMessage) (*Spec, []FieldError) {
 	case "bcrypt":
 		if !strings.HasPrefix(v, "$2") {
 			return oneOf()
+		}
+		// As for argon2: a value that does not parse is accepted and
+		// unusable (R3); one that does is held to the cost cap.
+		if c, err := bcrypt.Cost([]byte(v)); err == nil && c > maxBcryptCost {
+			return nil, []FieldError{costTooBig("bcrypt")}
 		}
 	case "argon2":
 		if !strings.HasPrefix(v, "$argon2") {
