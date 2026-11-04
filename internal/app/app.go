@@ -39,6 +39,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/server"
@@ -427,6 +428,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			SystemHost:        systemHost,
 			Domains:           domains,
 
+			RateLimit:         rateLimit(sec.RateLimit),
+			LegacySecretSlots: ratelimit.NewSecretVerifications(sec.RateLimit.MaxConcurrentSecretVerifications),
+
 			DeviceTxnThrottle: identity.NewThrottle(sec.DeviceActivationTxnMaxMisses, authz.TxnLifetime, authz.TxnLifetime),
 			DeviceIPThrottle: identity.NewThrottleOrOff(sec.DeviceActivationIPMaxMisses,
 				seconds(sec.DeviceActivationIPLockoutSeconds), seconds(sec.DeviceActivationIPLockoutSeconds)),
@@ -434,6 +438,15 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 				seconds(sec.DeviceActivationTenantWindowSeconds), seconds(sec.DeviceActivationTenantLockoutSeconds)),
 		}),
 	}, nil
+}
+
+// rateLimit builds the Authentication API limiter from security.rate_limit.
+func rateLimit(c config.RateLimit) *ratelimit.Middleware {
+	groups := map[ratelimit.Group]ratelimit.Rate{}
+	for name, g := range c.Groups() {
+		groups[ratelimit.Group(name)] = ratelimit.Rate{PerSecond: g.Rate, Burst: g.Burst}
+	}
+	return ratelimit.New(ratelimit.Config{Enabled: c.Enabled, MaxKeys: c.MaxTrackedKeys, Groups: groups})
 }
 
 // bootstrapOperator creates the first operator from bootstrap.admin_email

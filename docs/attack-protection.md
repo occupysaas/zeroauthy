@@ -39,6 +39,40 @@ unknown key. Existing single-trusted-proxy rules apply. Public clients cannot
 spoof `auth0-forwarded-for`; confidential password clients retain the existing
 trusted forwarding rule. Do not expose a trusted-proxy listener directly.
 
+## Request rate limits
+
+Besides the per-feature limits above, every tenant Authentication API route
+(`/oauth/token` for every grant, `/authorize`, `/userinfo`, `/oauth/par`,
+`/oauth/device/code`, `/oauth/revoke`, `/dbconnections/*`,
+`/passwordless/start`, `/mfa/*`, `/.well-known/*` including the JWKS, logout
+and the hosted pages) sits behind a token bucket keyed by tenant, client IP
+and endpoint group (`token`, `authorize`, `userinfo`, `discovery`, `other`).
+The client IP follows the same proxy rules as every other throttle, and IPv6
+addresses share a bucket per /64. Configure it under `security.rate_limit`
+(defaults: 50 requests per second, burst 200, per group, IP and tenant; see the
+README's configuration section). The Management API, the console and export
+downloads are not limited here.
+
+Over the limit, the server answers like Auth0
+([custom rate-limit policies](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy/custom-rate-limit-policies)):
+HTTP 429 with `{"error":"too_many_requests","error_description":"Rate limit exceeded."}`
+and `Retry-After` in seconds. Every response on a limited route carries
+`X-RateLimit-Limit` (the burst), `X-RateLimit-Remaining` and
+`X-RateLimit-Reset` (UNIX time, in seconds, when the bucket is full again).
+The limiter runs before CORS, so a browser may report a throttled
+cross-origin request as a network error.
+
+Legacy client secrets are checked with argon2id (19 MiB each). At most
+`security.rate_limit.max_concurrent_secret_verifications` such checks run at
+once per process; a request that finds no free slot within 100 ms gets the
+same 429 instead of queueing.
+
+The limiter is **per process**: N replicas allow N times the configured rate.
+Each group tracks at most `max_tracked_keys` buckets and drops the least
+recently used one when full, so a flood of distinct addresses cannot grow
+memory without bound (it can only reset other buckets to full). Shared
+counters across replicas are deferred to Plan 45.
+
 ## Breached passwords
 
 Server configuration is required before any outbound lookup:

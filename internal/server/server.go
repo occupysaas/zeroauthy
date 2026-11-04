@@ -36,6 +36,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -108,6 +109,29 @@ type Deps struct {
 	// phone Actions (Plan 34); passwordless, MFA and phone reset send
 	// through it. nil sends none.
 	Phone *phone.Dispatcher
+
+	// RateLimit limits every tenant Authentication API route per tenant,
+	// client IP and endpoint group; nil limits nothing.
+	RateLimit *ratelimit.Middleware
+
+	// LegacySecretSlots caps concurrent legacy client secret checks in
+	// this process; nil gets the default cap.
+	LegacySecretSlots *ratelimit.Semaphore
+}
+
+// authGroup is the rate-limit group of a tenant Authentication API path.
+func authGroup(path string) ratelimit.Group {
+	switch {
+	case path == "/oauth/token":
+		return ratelimit.GroupToken
+	case path == "/authorize" || strings.HasPrefix(path, "/authorize/"):
+		return ratelimit.GroupAuthorize
+	case path == "/userinfo":
+		return ratelimit.GroupUserinfo
+	case strings.HasPrefix(path, "/.well-known/"):
+		return ratelimit.GroupDiscovery
+	}
+	return ratelimit.GroupOther
 }
 
 // authAPI adapts the handler groups to the generated ServerInterface.
@@ -168,6 +192,9 @@ func New(d Deps) http.Handler {
 	}
 	if d.Actions != nil {
 		d.Actions.InvitationEmail = d.EmailService
+	}
+	if d.LegacySecretSlots == nil {
+		d.LegacySecretSlots = ratelimit.NewSecretVerifications(0)
 	}
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
@@ -238,7 +265,16 @@ func New(d Deps) http.Handler {
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
-		tr.Use(d.Resolver.Middleware, cors(d.Store), hostedPresentation(d.Store), func(next http.Handler) http.Handler {
+		// The limiter runs right after tenant resolution, ahead of any
+		// other store work (CORS origin lookups included).
+		limit := d.RateLimit.Handler(func(r *http.Request) (string, string, ratelimit.Group, bool) {
+			res, ok := tenant.FromContext(r.Context())
+			if !ok {
+				return "", "", "", false
+			}
+			return res.Tenant.ID, httpx.ClientIP(r, d.TrustProxyHeaders), authGroup(r.URL.Path), true
+		})
+		tr.Use(d.Resolver.Middleware, limit, cors(d.Store), hostedPresentation(d.Store), func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				next.ServeHTTP(w, r.WithContext(logs.WithRecorder(r.Context(), d.Recorder)))
 			})
@@ -249,6 +285,7 @@ func New(d Deps) http.Handler {
 				MFA:      d.MFA,
 				Recorder: d.Recorder,
 				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
+				LegacySecretSlots: d.LegacySecretSlots,
 				BaseDomain:        d.BaseDomain,
 				Database:          db,
 				Protection:        sharedProtection,

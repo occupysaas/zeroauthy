@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -208,5 +209,38 @@ func TestSealedSecretWrongKeyFailsClosed(t *testing.T) {
 	req, form := authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, "", "")
 	if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr == nil || oerr.Code != "invalid_client" {
 		t.Fatalf("corrupt blob: authenticated: %+v", oerr)
+	}
+}
+
+// Legacy secrets cost an argon2id verification (19 MiB) each, so their
+// concurrency is capped; a request over the cap gets 429 instead of queueing.
+func TestLegacySecretVerificationIsCapped(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	acme := f.tenantID(t, "acme")
+	c, _ := f.st.Clients().Get(ctx, acme, "m2m")
+	legacy, _ := secrets.Hash("legacy-secret")
+	c.Secrets = []store.ClientSecret{{Hash: legacy, CreatedAt: fixedNow().Add(-time.Hour)}}
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	f.h.LegacySecretSlots = ratelimit.NewSemaphore(1, 0)
+	held, _ := f.h.LegacySecretSlots.Acquire(ctx)
+
+	req, form := authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"legacy-secret"}}, "", "")
+	_, oerr := f.h.authenticateClient(ctx, req, form, acme)
+	if oerr == nil || oerr.Status != http.StatusTooManyRequests || oerr.Code != "too_many_requests" {
+		t.Fatalf("over the cap: %+v, want 429 too_many_requests", oerr)
+	}
+	rec := httptest.NewRecorder()
+	writeError(rec, oerr)
+	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), `"too_many_requests"`) {
+		t.Fatalf("response %d %v", rec.Code, rec.Header())
+	}
+
+	held()
+	req, form = authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"legacy-secret"}}, "", "")
+	if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr != nil {
+		t.Fatalf("under the cap: %+v", oerr)
 	}
 }

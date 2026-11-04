@@ -191,6 +191,62 @@ type Security struct {
 	DeviceActivationTenantMaxMisses      int `koanf:"device_activation_tenant_max_misses"`
 	DeviceActivationTenantWindowSeconds  int `koanf:"device_activation_tenant_window_seconds"`
 	DeviceActivationTenantLockoutSeconds int `koanf:"device_activation_tenant_lockout_seconds"`
+
+	// RateLimit is the general Authentication API request limit.
+	RateLimit RateLimit `koanf:"rate_limit"`
+}
+
+// RateLimit is security.rate_limit: a token bucket per tenant, client IP
+// (an IPv6 /64) and endpoint group, kept in this process. N replicas allow
+// N times the rate.
+type RateLimit struct {
+	Enabled bool `koanf:"enabled"`
+	// MaxTrackedKeys caps the (tenant, IP) buckets of each group; past it
+	// the least recently used bucket is dropped.
+	MaxTrackedKeys int `koanf:"max_tracked_keys"`
+	// MaxConcurrentSecretVerifications caps legacy (argon2id) client secret
+	// checks running at once in this process; 0 means GOMAXPROCS, at least
+	// 4. It applies even when Enabled is false.
+	MaxConcurrentSecretVerifications int `koanf:"max_concurrent_secret_verifications"`
+
+	Token     RateLimitGroup `koanf:"token"`     // /oauth/token
+	Authorize RateLimitGroup `koanf:"authorize"` // /authorize
+	Userinfo  RateLimitGroup `koanf:"userinfo"`  // /userinfo
+	Discovery RateLimitGroup `koanf:"discovery"` // /.well-known/*
+	Other     RateLimitGroup `koanf:"other"`     // every other tenant Authentication API route
+}
+
+// RateLimitGroup is one group's bucket: Rate requests per second
+// sustained, Burst at once.
+type RateLimitGroup struct {
+	Rate  float64 `koanf:"rate"`
+	Burst int     `koanf:"burst"`
+}
+
+// Groups maps each group's config key to its bucket.
+func (r RateLimit) Groups() map[string]RateLimitGroup {
+	return map[string]RateLimitGroup{
+		"token": r.Token, "authorize": r.Authorize, "userinfo": r.Userinfo, "discovery": r.Discovery, "other": r.Other,
+	}
+}
+
+func (r RateLimit) validate() []error {
+	var errs []error
+	if r.MaxConcurrentSecretVerifications < 0 {
+		errs = append(errs, errors.New("security.rate_limit.max_concurrent_secret_verifications must not be negative"))
+	}
+	if !r.Enabled {
+		return errs
+	}
+	if r.MaxTrackedKeys < 1 {
+		errs = append(errs, errors.New("security.rate_limit.max_tracked_keys must be positive"))
+	}
+	for _, name := range []string{"token", "authorize", "userinfo", "discovery", "other"} {
+		if g := r.Groups()[name]; g.Rate <= 0 || g.Burst < 1 {
+			errs = append(errs, fmt.Errorf("security.rate_limit.%s.rate must be positive and burst at least 1", name))
+		}
+	}
+	return errs
 }
 
 // CustomDB configures the runner for custom database connection scripts.
@@ -275,6 +331,7 @@ func defaults() *Config {
 			LoginMaxAttempts: 10, LoginLockoutSeconds: 900, BreachedPasswords: BreachedPasswords{Mode: "off"},
 			DeviceActivationTxnMaxMisses: 5, DeviceActivationIPMaxMisses: 10, DeviceActivationIPLockoutSeconds: 900,
 			DeviceActivationTenantMaxMisses: 1000, DeviceActivationTenantWindowSeconds: 600, DeviceActivationTenantLockoutSeconds: 60,
+			RateLimit: defaultRateLimit(),
 		},
 		Jobs:     Jobs{Workers: 2, Lease: time.Minute},
 		Logs:     Logs{Retention: 30 * 24 * time.Hour, QueueSize: 10000},
@@ -287,6 +344,13 @@ func defaults() *Config {
 		},
 		Email: Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
 	}
+}
+
+// defaultRateLimit is generous: every E2E and conformance lane drives the
+// server from one address.
+func defaultRateLimit() RateLimit {
+	g := RateLimitGroup{Rate: 50, Burst: 200}
+	return RateLimit{Enabled: true, MaxTrackedKeys: 50000, Token: g, Authorize: g, Userinfo: g, Discovery: g, Other: g}
 }
 
 // Load reads the YAML file at path (skipped when path is ""), applies
@@ -497,6 +561,7 @@ func (c *Config) validate() error {
 	if sec.DeviceActivationTenantMaxMisses > 0 && (sec.DeviceActivationTenantWindowSeconds <= 0 || sec.DeviceActivationTenantLockoutSeconds <= 0) {
 		errs = append(errs, errors.New("security.device_activation_tenant_window_seconds and device_activation_tenant_lockout_seconds must be positive"))
 	}
+	errs = append(errs, sec.RateLimit.validate()...)
 	if c.CustomDB.ModulesDir != "" && !filepath.IsAbs(c.CustomDB.ModulesDir) {
 		errs = append(errs, errors.New("custom_db.modules_dir must be an absolute path"))
 	}
