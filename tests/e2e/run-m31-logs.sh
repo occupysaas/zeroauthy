@@ -3,7 +3,7 @@
 # are production wiring, SQLite persists across a real process restart.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-export GOTOOLCHAIN=go1.26.7
+export GOTOOLCHAIN=go1.26.10
 # Playwright sets FORCE_COLOR in its workers; omit NO_COLOR to avoid conflicts.
 unset NO_COLOR
 export FORCE_COLOR=0

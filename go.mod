@@ -1,6 +1,6 @@
 module github.com/zeroauthy/zeroauthy
 
-go 1.26.7
+go 1.26.10
 
 require (
 	github.com/getkin/kin-openapi v0.150.0
