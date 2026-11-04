@@ -1401,8 +1401,10 @@ roles; effective roles; role members; enabled connections;
 - effective roles need `read:organization_member_effective_roles`, not
   `read:organization_member_roles`;
 - role members need both `read:organization_members` and `read:roles`
-  (all-of, as D-0052 does for membership listings; the public reference lists
-  both and gives no 403 text). This operation is Early Access upstream and is
+  (all-of; the public reference lists both and gives no 403 text. D-0052's
+  membership listings, once the precedent here, accept the classic pair or the
+  fine-grained scope since the 2026-11-04 addendum; this all-of rule stands on
+  its own because no Auth0 guide names an alternative pair). This operation is Early Access upstream and is
   kept in Plan 29 as the spec chose;
 - user organizations accept either `read:users` or `read:organizations`;
 - `POST /organizations` also needs `create:organization_connections` when it
