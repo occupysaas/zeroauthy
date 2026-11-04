@@ -1,6 +1,7 @@
 # Releasing zeroauthy
 
-Nothing is released automatically. Merging to `main` only runs CI. A release
+Nothing is released automatically, and CI does not run on pushes: start it
+from the **Actions** tab (**ci** → **Run workflow**) when you want a check. A release
 happens when a maintainer deliberately pushes a tagged commit to the `release`
 branch **and** then approves the `production` environment in GitHub Actions.
 
@@ -18,7 +19,8 @@ with a `v` prefix: `v1.2.3`.
 V=1.0.0-rc.1                      # the version you are releasing
 
 # 1. On main: move CHANGELOG "Unreleased" entries under "## [$V]", fix the
-#    links at the bottom, then commit, push, and wait for CI to pass.
+#    links at the bottom, then commit and push. Optionally run the ci
+#    workflow from the Actions tab first (the release runs it anyway).
 git switch main && git pull
 $EDITOR CHANGELOG.md
 git commit -am "docs: changelog for $V" && git push
@@ -84,9 +86,11 @@ Prereleases are marked as prereleases on GitHub and never move `latest`.
 
    The section becomes the release notes, so write it for users: what's new,
    what changed, upgrade notes, known limitations.
-3. Commit (`docs: changelog for X.Y.Z`), push, and wait for **CI** on `main`
-   to pass. Do not tag a commit whose CI is red: the release workflow runs
-   the same checks and will stop.
+3. Commit (`docs: changelog for X.Y.Z`) and push. CI does not run on its
+   own: to check before tagging, open **Actions → ci → Run workflow** on
+   `main`. The release workflow runs the same CI as its first gate anyway,
+   so a red build can never be published; checking first only saves a
+   failed release run.
 
 ### Step 2: tag
 
