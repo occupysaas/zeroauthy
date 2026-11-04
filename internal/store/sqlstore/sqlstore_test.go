@@ -252,7 +252,7 @@ func TestAtomicRetry(t *testing.T) {
 
 	calls := 0
 	err := s.atomicRetry(context.Background(), nil, func(*Store) error { calls++; return deadlock })
-	if calls != 3 || !errors.Is(err, deadlock) || !strings.HasPrefix(err.Error(), "after 3 attempts: ") {
+	if calls != 5 || !errors.Is(err, deadlock) || !strings.HasPrefix(err.Error(), "after 5 attempts: ") {
 		t.Fatalf("calls=%d err=%v", calls, err)
 	}
 

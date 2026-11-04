@@ -310,11 +310,11 @@ func (s *Store) write(ctx context.Context, opts *sql.TxOptions, q string, args .
 }
 
 // atomicRetry is atomic for repository write methods: the outermost call
-// retries up to 3 attempts when the database aborts the transaction as a
+// retries up to 5 attempts when the database aborts the transaction as a
 // deadlock or serialization failure, with a short jittered backoff. fn must
 // be safe to re-run (repository methods only touch the database). A nested
 // call, already inside a transaction, never retries; it just propagates.
-// After the last attempt the error is wrapped ("after 3 attempts: …"); a
+// After the last attempt the error is wrapped ("after 5 attempts: …"); a
 // context that ends during the backoff returns ctx.Err().
 func (s *Store) atomicRetry(ctx context.Context, opts *sql.TxOptions, fn func(t *Store) error) error {
 	if s.tx != nil {
@@ -323,17 +323,22 @@ func (s *Store) atomicRetry(ctx context.Context, opts *sql.TxOptions, fn func(t 
 	return s.retry(ctx, func() error { return s.atomic(ctx, opts, fn) })
 }
 
-// retryBackoff is the jittered wait after failed attempt i; tests replace it.
+// retryBackoff is the jittered, exponentially growing wait after failed
+// attempt i (about 10-20ms, 20-40ms, 40-80ms, 80-160ms); tests replace it.
+// Heavily contended MySQL inserts (gap locks on unique indexes) on slow
+// hosts can deadlock several times in a row, which three quick retries
+// did not absorb.
 var retryBackoff = func(i int) time.Duration {
-	return time.Duration(5+rand.IntN(20*i)) * time.Millisecond
+	base := 10 << (i - 1)
+	return time.Duration(base+rand.IntN(base+1)) * time.Millisecond
 }
 
-// retry runs op up to 3 times while it fails as a deadlock or serialization
+// retry runs op up to 5 times while it fails as a deadlock or serialization
 // failure, with a short jittered backoff. After the last attempt the error is
-// wrapped ("after 3 attempts: …"); a context that ends during the backoff
+// wrapped ("after 5 attempts: …"); a context that ends during the backoff
 // returns ctx.Err().
 func (s *Store) retry(ctx context.Context, op func() error) error {
-	const attempts = 3
+	const attempts = 5
 	for i := 1; ; i++ {
 		err := op()
 		if err == nil || !s.d.isDeadlock(err) {
