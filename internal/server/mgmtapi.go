@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
@@ -550,23 +551,23 @@ func (a mgmtAPI) DeleteRolePermissions(w http.ResponseWriter, r *http.Request, i
 }
 
 func (a mgmtAPI) GetRoleUsers(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetRoleUsersParams) {
-	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetRoleUsers(w, r, id) }, "read:users", "read:roles", "read:role_members")
+	scopedAnyOf(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetRoleUsers(w, r, id) }, []string{"read:users", "read:roles"}, []string{"read:role_members"})
 }
 
 func (a mgmtAPI) PostRoleUsers(w http.ResponseWriter, r *http.Request, id string) {
-	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostRoleUsers(w, r, id) }, "update:roles", "create:role_members")
+	scopedAnyOf(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostRoleUsers(w, r, id) }, []string{"update:roles"}, []string{"create:role_members"})
 }
 
 func (a mgmtAPI) GetUserRoles(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserRolesParams) {
-	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUserRoles(w, r, id) }, "read:users", "read:roles", "read:role_members")
+	scopedAnyOf(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUserRoles(w, r, id) }, []string{"read:users", "read:roles"}, []string{"read:role_members"})
 }
 
 func (a mgmtAPI) PostUserRoles(w http.ResponseWriter, r *http.Request, id string) {
-	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostUserRoles(w, r, id) }, "update:users", "create:role_members")
+	scopedAnyOf(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostUserRoles(w, r, id) }, []string{"update:users"}, []string{"create:role_members"})
 }
 
 func (a mgmtAPI) DeleteUserRoles(w http.ResponseWriter, r *http.Request, id string) {
-	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteUserRoles(w, r, id) }, "update:users", "delete:role_members")
+	scopedAnyOf(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteUserRoles(w, r, id) }, []string{"update:users"}, []string{"delete:role_members"})
 }
 
 func (a mgmtAPI) GetUserPermissions(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserPermissionsParams) {
@@ -581,7 +582,33 @@ func (a mgmtAPI) DeleteUserPermissions(w http.ResponseWriter, r *http.Request, i
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteUserPermissions(w, r, id) }, "update:users")
 }
 
-// scopedAll requires every documented scope; membership APIs combine user and role privileges.
+// Role membership routes (D-0052, addendum 2026-11-04) accept Auth0's classic
+// scopes as its RBAC guides configure them, or the fine-grained *:role_members
+// scope from the Management API OAS security list of the route:
+// https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/view-user-roles
+// ("read:users and read:roles"),
+// https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/assign-roles-to-users
+// ("read:roles and update:users"),
+// https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/remove-roles-from-users
+// ("update:users").
+
+// scopedAnyOf runs fn for a caller holding every scope of at least one set.
+func scopedAnyOf(w http.ResponseWriter, r *http.Request, fn http.HandlerFunc, sets ...[]string) {
+	caller, ok := mgmt.CallerFrom(r.Context())
+	if !ok {
+		mgmt.WriteError(w, 401, "invalid_token", "Missing authentication")
+		return
+	}
+	for _, set := range sets {
+		if !slices.ContainsFunc(set, func(scope string) bool { return !caller.Has(scope) }) {
+			fn(w, r)
+			return
+		}
+	}
+	mgmt.WriteError(w, 403, "insufficient_scope", "Insufficient scope")
+}
+
+// scopedAll requires every listed scope.
 func scopedAll(w http.ResponseWriter, r *http.Request, fn http.HandlerFunc, scopes ...string) {
 	for _, scope := range scopes {
 		caller, ok := mgmt.CallerFrom(r.Context())

@@ -8,9 +8,11 @@ contains no captured dashboard, hosted pages, credentials or personal data.
 
 Machine-readable contracts and per-operation source URLs:
 `internal/rbacrules/inventory.json`. These describe Plan 26's tenant-role subset.
-The scope arrays are **all-of** requirements. This matters for membership APIs:
+The scope arrays are **all-of** requirements, except for the five membership
+operations, which accept any one of their `accepted_scope_sets` (D-0052
+addendum 2026-11-04; the rows below list the OAS scopes for them):
 
-| Operation | Required scopes (all) | Success |
+| Operation | Required scopes (all; membership rows: see D-0052) | Success |
 |---|---|---|
 | GET roles; GET role; GET role permissions | read:roles | 200 |
 | POST roles | create:roles | 200 |

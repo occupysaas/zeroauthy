@@ -24,6 +24,13 @@ func TestRBACInventory(t *testing.T) {
 		"POST /api/v2/users/{id}/permissions":   {"update:users"},
 		"DELETE /api/v2/users/{id}/permissions": {"update:users"},
 	}
+	wantSets := map[string][][]string{
+		"GET /api/v2/roles/{id}/users":    {{"read:users", "read:roles"}, {"read:role_members"}},
+		"POST /api/v2/roles/{id}/users":   {{"update:roles"}, {"create:role_members"}},
+		"GET /api/v2/users/{id}/roles":    {{"read:users", "read:roles"}, {"read:role_members"}},
+		"POST /api/v2/users/{id}/roles":   {{"update:users"}, {"create:role_members"}},
+		"DELETE /api/v2/users/{id}/roles": {{"update:users"}, {"delete:role_members"}},
+	}
 	got := Inventory()
 	if len(got) != 16 {
 		t.Fatalf("operations=%d, want 16", len(got))
@@ -37,7 +44,13 @@ func TestRBACInventory(t *testing.T) {
 		if !slices.Equal(op.RequiredScopes, scopes) {
 			t.Errorf("%s scopes=%v want %v", key, op.RequiredScopes, scopes)
 		}
-		if op.ScopeMatch != "all" {
+		// Membership routes accept the classic scopes or *:role_members
+		// (D-0052 addendum 2026-11-04); the rest require their one scope.
+		if sets, ok := wantSets[key]; ok {
+			if op.ScopeMatch != "any_set" || !slices.EqualFunc(op.AcceptedScopeSets, sets, slices.Equal) {
+				t.Errorf("%s match=%s sets=%v want any_set %v", key, op.ScopeMatch, op.AcceptedScopeSets, sets)
+			}
+		} else if op.ScopeMatch != "all" || op.AcceptedScopeSets != nil {
 			t.Errorf("%s scopes must all be required", key)
 		}
 		if op.SourceURL == "" || op.Evidence != "documented" || op.ResponseShape == "" || op.SuccessStatus < 200 {

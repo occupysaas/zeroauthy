@@ -83,7 +83,7 @@ operators manage it.
 | `POST /api/v2/connections` | `create:connections` |
 | `PATCH /api/v2/connections/{id}`, `PATCH /api/v2/connections/{id}/clients` | `update:connections` |
 | `DELETE /api/v2/connections/{id}` | `delete:connections` |
-| `GET /api/v2/users`, `GET /api/v2/users-by-email`, `GET /api/v2/users/{id}` | `read:users`; `app_metadata` is included with `read:users` or `read:users_app_metadata` |
+| `GET /api/v2/users`, `GET /api/v2/users-by-email`, `GET /api/v2/users/{id}` | `read:users` (`app_metadata` is always included); on the single-user `GET`, `read:user_idp_tokens` additionally adds the upstream identity provider tokens. `read:users_app_metadata` is not used. |
 | `POST /api/v2/users` | `create:users`; `app_metadata` in the body also needs `create:users_app_metadata` or `update:users_app_metadata` |
 | `PATCH /api/v2/users/{id}` | `update:users` or `update:users_app_metadata`; changing anything but `app_metadata` needs `update:users`, and writing `app_metadata` needs `update:users_app_metadata` |
 | `DELETE /api/v2/users/{id}` | `delete:users` |

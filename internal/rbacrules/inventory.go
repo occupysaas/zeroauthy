@@ -13,15 +13,18 @@ type OperationContract struct {
 	Method         string   `json:"method"`
 	Path           string   `json:"path"`
 	RequiredScopes []string `json:"required_scopes"`
-	ScopeMatch     string   `json:"scope_match"`
-	RequestShape   string   `json:"request_shape"`
-	ResponseShape  string   `json:"response_shape"`
-	Pagination     string   `json:"pagination"`
-	SuccessStatus  int      `json:"success_status"`
-	ErrorStatuses  []int    `json:"error_statuses"`
-	Limits         []string `json:"limits"`
-	SourceURL      string   `json:"source_url"`
-	Evidence       string   `json:"evidence"`
+	// ScopeMatch is "all" (every required scope) or "any_set" (every scope of
+	// at least one AcceptedScopeSets entry; RequiredScopes is then the OAS list).
+	ScopeMatch        string     `json:"scope_match"`
+	AcceptedScopeSets [][]string `json:"accepted_scope_sets,omitempty"`
+	RequestShape      string     `json:"request_shape"`
+	ResponseShape     string     `json:"response_shape"`
+	Pagination        string     `json:"pagination"`
+	SuccessStatus     int        `json:"success_status"`
+	ErrorStatuses     []int      `json:"error_statuses"`
+	Limits            []string   `json:"limits"`
+	SourceURL         string     `json:"source_url"`
+	Evidence          string     `json:"evidence"`
 }
 
 type RuleContract struct {

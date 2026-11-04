@@ -97,7 +97,7 @@ func TestRBACManagementValidationAndScopes(t *testing.T) {
 	for _, path := range []string{"/roles/" + id + "/users", "/users/nope/roles"} {
 		rec, _ := sendJSON(h, "GET", base+path, limited, nil)
 		if rec.Code != 403 {
-			t.Errorf("all-of %s=%d %s", path, rec.Code, rec.Body)
+			t.Errorf("read:users alone %s=%d %s", path, rec.Code, rec.Body)
 		}
 	}
 	for _, path := range []string{"/roles", "/roles/" + id, "/roles/" + id + "/permissions", "/roles/" + id + "/users", "/users/nope/roles", "/users/nope/permissions"} {
@@ -145,8 +145,6 @@ func TestRBACAllOperationScopes(t *testing.T) {
 		{"GET", "/roles", []string{"read:roles"}}, {"POST", "/roles", []string{"create:roles"}},
 		{"GET", "/roles/missing", []string{"read:roles"}}, {"PATCH", "/roles/missing", []string{"update:roles"}}, {"DELETE", "/roles/missing", []string{"delete:roles"}},
 		{"GET", "/roles/missing/permissions", []string{"read:roles"}}, {"POST", "/roles/missing/permissions", []string{"update:roles"}}, {"DELETE", "/roles/missing/permissions", []string{"update:roles"}},
-		{"GET", "/roles/missing/users", []string{"read:users", "read:roles", "read:role_members"}}, {"POST", "/roles/missing/users", []string{"update:roles", "create:role_members"}},
-		{"GET", "/users/missing/roles", []string{"read:users", "read:roles", "read:role_members"}}, {"POST", "/users/missing/roles", []string{"update:users", "create:role_members"}}, {"DELETE", "/users/missing/roles", []string{"update:users", "delete:role_members"}},
 		{"GET", "/users/missing/permissions", []string{"read:users"}}, {"POST", "/users/missing/permissions", []string{"update:users"}}, {"DELETE", "/users/missing/permissions", []string{"update:users"}},
 	}
 	for _, c := range cases {
@@ -162,20 +160,90 @@ func TestRBACAllOperationScopes(t *testing.T) {
 						scopes = append(scopes, s)
 					}
 				}
-				// Ask the actual token endpoint for a narrower valid Management token.
-				form := "grant_type=client_credentials&client_id=admin&client_secret=admin-s3cret&audience=" + url.QueryEscape(acmeMgmtAPI) + "&scope=" + url.QueryEscape(strings.Join(scopes, " "))
-				req := httptest.NewRequest("POST", "https://acme.example.test/oauth/token", strings.NewReader(form))
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				tokRec := httptest.NewRecorder()
-				h.ServeHTTP(tokRec, req)
-				var out map[string]any
-				_ = json.Unmarshal(tokRec.Body.Bytes(), &out)
-				if tokRec.Code != 200 {
-					t.Fatalf("token=%d %s", tokRec.Code, tokRec.Body)
-				}
-				rec, _ := sendJSON(h, c.method, base+c.path, out["access_token"].(string), map[string]any{})
+				rec, _ := sendJSON(h, c.method, base+c.path, narrowRBACToken(t, h, scopes), map[string]any{})
 				if rec.Code != 403 {
 					t.Errorf("without %s=%d %s", c.scopes[omit], rec.Code, rec.Body)
+				}
+			}
+		})
+	}
+}
+
+// narrowRBACToken asks the real token endpoint for a Management token holding
+// only scopes (the admin client's grant holds every RBAC scope).
+func narrowRBACToken(t *testing.T, h http.Handler, scopes []string) string {
+	t.Helper()
+	form := "grant_type=client_credentials&client_id=admin&client_secret=admin-s3cret&audience=" + url.QueryEscape(acmeMgmtAPI) + "&scope=" + url.QueryEscape(strings.Join(scopes, " "))
+	req := httptest.NewRequest("POST", "https://acme.example.test/oauth/token", strings.NewReader(form))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	var out map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &out)
+	if rec.Code != 200 {
+		t.Fatalf("token=%d %s", rec.Code, rec.Body)
+	}
+	return out["access_token"].(string)
+}
+
+// Membership routes accept Auth0's classic scopes (as its RBAC guides configure
+// them) or the fine-grained *:role_members scope (D-0052 addendum 2026-11-04):
+// https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/view-user-roles
+// ("read:users and read:roles"),
+// https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/assign-roles-to-users
+// ("read:roles and update:users"),
+// https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/remove-roles-from-users
+// ("update:users"), and the Management API OAS security lists of the routes.
+func TestRBACMembershipScopeAlternatives(t *testing.T) {
+	h, _, admin := newRBACManagement(t)
+	const base = "https://acme.example.test/api/v2"
+	rec, role := sendJSON(h, "POST", base+"/roles", admin, map[string]any{"name": "Members"})
+	if rec.Code != 200 {
+		t.Fatalf("role=%d %s", rec.Code, rec.Body)
+	}
+	rid := role["id"].(string)
+	rec, user := sendJSON(h, "POST", base+"/users", admin, map[string]any{"connection": "Username-Password-Authentication", "email": "member@example.test", "password": "Str0ng!!Password"})
+	if rec.Code != 201 {
+		t.Fatalf("user=%d %s", rec.Code, rec.Body)
+	}
+	uid := user["user_id"].(string)
+	roles := map[string]any{"roles": []string{rid}}
+	users := map[string]any{"users": []string{uid}}
+	cases := []struct {
+		method, path string
+		body         any
+		want         int
+		accepted     [][]string
+		refused      [][]string
+	}{
+		{"GET", "/users/" + uid + "/roles", nil, 200,
+			[][]string{{"read:users", "read:roles"}, {"read:role_members"}},
+			[][]string{{"read:users"}, {"read:roles"}, {"update:users", "create:role_members"}}},
+		{"GET", "/roles/" + rid + "/users", nil, 200,
+			[][]string{{"read:users", "read:roles"}, {"read:role_members"}},
+			[][]string{{"read:users"}, {"read:roles"}, {"update:roles", "create:role_members"}}},
+		{"POST", "/users/" + uid + "/roles", roles, 204,
+			[][]string{{"read:roles", "update:users"}, {"update:users"}, {"create:role_members"}},
+			[][]string{{"read:roles"}, {"update:roles"}, {"read:role_members", "delete:role_members"}}},
+		{"POST", "/roles/" + rid + "/users", users, 200,
+			[][]string{{"update:roles"}, {"create:role_members"}},
+			[][]string{{"update:users"}, {"read:roles"}, {"read:role_members", "delete:role_members"}}},
+		{"DELETE", "/users/" + uid + "/roles", roles, 204,
+			[][]string{{"update:users"}, {"delete:role_members"}},
+			[][]string{{"read:users", "read:roles"}, {"update:roles"}, {"create:role_members"}}},
+	}
+	for _, c := range cases {
+		t.Run(c.method+" "+strings.SplitN(c.path, "/", 3)[1], func(t *testing.T) {
+			for _, scopes := range c.accepted {
+				rec, _ := sendJSON(h, c.method, base+c.path, narrowRBACToken(t, h, append([]string{"read:clients"}, scopes...)), c.body)
+				if rec.Code != c.want {
+					t.Errorf("with %v=%d %s; want %d", scopes, rec.Code, rec.Body, c.want)
+				}
+			}
+			for _, scopes := range c.refused {
+				rec, _ := sendJSON(h, c.method, base+c.path, narrowRBACToken(t, h, append([]string{"read:clients"}, scopes...)), c.body)
+				if rec.Code != 403 {
+					t.Errorf("with only %v=%d %s; want 403", scopes, rec.Code, rec.Body)
 				}
 			}
 		})
