@@ -7,15 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,6 +22,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
+	"github.com/zeroauthy/zeroauthy/internal/noderunner/guardtest"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -931,75 +929,19 @@ func TestEngineCommitAtomic(t *testing.T) {
 
 // TestEngineNoUnixSockets: Node's permission model does not cover connecting
 // to a unix-domain socket path, so the runner refuses path connections
-// through net, tls and http (socketPath) while TCP stays open.
+// (net, tls, http socketPath and Agent, string and abstract paths, accessors
+// that change between reads, raw Pipe handles) while TCP stays open. The same
+// attack list runs against the custom-database runner (guardtest).
 func TestEngineNoUnixSockets(t *testing.T) {
 	h := newHarness(t)
-	dir, err := os.MkdirTemp("", "za-sock") // short path: sun_path is ~108 bytes
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
-	sock := filepath.Join(dir, "s")
-	unix, err := net.Listen("unix", sock)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer unix.Close()
-	tcp, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tcp.Close()
-	var accepted atomic.Int32
-	go func() {
-		for {
-			c, err := unix.Accept()
-			if err != nil {
-				return
-			}
-			accepted.Add(1)
-			_ = c.Close()
-		}
-	}()
-	go func() {
-		for {
-			c, err := tcp.Accept()
-			if err != nil {
-				return
-			}
-			_, _ = c.Write([]byte("tcp"))
-			_ = c.Close()
-		}
-	}()
-	port := tcp.Addr().(*net.TCPAddr).Port
-	a := h.action("t1", trigM2M, "sockets", fmt.Sprintf(`exports.onExecuteCredentialsExchange = async (event, api) => {
-	  const net = require("net"), tls = require("tls"), http = require("http");
-	  const sock = %q, out = {};
-	  const try_ = (name, f) => { try { f(); out[name] = "allowed"; } catch (e) { out[name] = "denied"; } };
-	  try_("connect", () => net.connect(sock).on("error", () => {}));
-	  try_("options", () => net.createConnection({ path: sock }).on("error", () => {}));
-	  try_("socket", () => new net.Socket().connect(sock).on("error", () => {}));
-	  try_("tls", () => tls.connect({ path: sock }).on("error", () => {}));
-	  try_("http", () => http.get({ socketPath: sock, path: "/" }).on("error", () => {}));
-	  out.tcp = await new Promise((resolve) => {
-	    const c = net.connect(%d, "127.0.0.1");
-	    c.on("data", (d) => resolve(String(d)));
-	    c.on("error", (e) => resolve(e.code));
-	  });
-	  api.accessToken.setCustomClaim("https://x.test/s", out);
-	};`, sock, port), nil, false)
+	tg := guardtest.Listen(t)
+	a := h.action("t1", trigM2M, "sockets", `exports.onExecuteCredentialsExchange = async (event, api) => {
+	  api.accessToken.setCustomClaim("https://x.test/s", await `+tg.Probe()+`);
+	};`, nil, false)
 	h.bind("t1", trigM2M, a)
 	r, err := h.eng.CredentialsExchange(context.Background(), h.m2mInput("t1"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := mustJSON(t, r.Effects.AccessClaims["https://x.test/s"])
-	want := `{"connect":"denied","http":"denied","options":"denied","socket":"denied","tcp":"tcp","tls":"denied"}`
-	if got != want {
-		t.Fatalf("results = %s, want %s", got, want)
-	}
-	time.Sleep(200 * time.Millisecond)
-	if n := accepted.Load(); n != 0 {
-		t.Fatalf("unix socket accepted %d connections", n)
-	}
+	tg.Check(t, []byte(mustJSON(t, r.Effects.AccessClaims["https://x.test/s"])))
 }

@@ -1209,6 +1209,24 @@ The final whole-branch review and its fixes are in the implementation record; no
 
 These are implementation contracts, not proof of completion or live parity.
 
+Unix-socket guard (pre-1.0 review, actions-extensibility F1/F2, 2026-11-04):
+both Node runners (Actions and custom databases) import one shared
+`internal/noderunner/guard.mjs` before any tenant code. It replaces
+`net.Socket.prototype.connect` with a wrapper that reads the caller's
+arguments once into a fresh null-prototype snapshot (each enumerable property
+once, `path` exactly once), refuses any snapshot with a `path` or a string
+argument Node would treat as a pipe name (including abstract `\0` names), and
+passes only the snapshot to Node, so accessors and Proxies cannot answer the
+check differently from Node's own read. This covers `net.connect`,
+`net.createConnection`, `Socket#connect`, `tls.connect`, `http(s).request`/`get`
+with `socketPath`, `http.Agent({socketPath})`, and fetch/undici, which all
+connect through that method. It also locks the native `Pipe.prototype.connect`
+(reachable through `process.stdin._handle`), and the runner refuses to start if
+stdio is not a pipe. TCP stays open. `guardtest` holds one attack list that
+both runners' tests must refuse. This is in-process hardening, not a sandbox
+boundary: an OS-level control (dedicated uid, network namespace or Landlock)
+remains Plan 45 work.
+
 ## D-0054 — Plan 28 Actions II contracts (2026-10-28)
 
 Sources: the [Actions II source review](observations/actions.md#actions-ii-contract-review-2026-10-28)

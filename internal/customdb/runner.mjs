@@ -6,6 +6,7 @@
 // model (--permission, read access only to this directory and the optional
 // modules directory). The vm context below is a convenience, not a security
 // boundary: the process boundary is.
+import './guard.mjs'; // first: refuses unix-domain sockets before any tenant code (D-0053)
 import vm from 'node:vm';
 import readline from 'node:readline';
 import { createRequire, builtinModules } from 'node:module';

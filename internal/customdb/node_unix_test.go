@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/noderunner/guardtest"
 )
 
 // spinnerSrc calls back with its pid, then keeps the runner busy forever.
@@ -162,4 +163,17 @@ func TestRunnerCannotSignalOtherProcesses(t *testing.T) {
 		t.Fatal("the helper process was killed by the script")
 	case <-time.After(300 * time.Millisecond):
 	}
+}
+
+// TestRunnerNoUnixSockets: custom database scripts run as the server's uid
+// like Actions, so the runner refuses the same unix-socket attack list
+// (guardtest) as the Actions runner while TCP stays open.
+func TestRunnerNoUnixSockets(t *testing.T) {
+	r := newRunner(t, config.CustomDB{})
+	tg := guardtest.Listen(t)
+	res, err := execLogin(t, r, `function login(e, p, cb) { `+tg.Probe()+`.then((out) => cb(null, out), cb); }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tg.Check(t, res)
 }

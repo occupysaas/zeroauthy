@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,6 +37,13 @@ var (
 	ErrTimeout     = errors.New("noderunner: call timed out")
 	ErrUnavailable = errors.New("noderunner: node runtime unavailable") // node missing, too old, crashed
 )
+
+// guardJS is written next to the Pool's script as guard.mjs. Runner scripts
+// import it first; it refuses unix-domain socket connections, which Node's
+// permission model does not cover (D-0053).
+//
+//go:embed guard.mjs
+var guardJS []byte
 
 // DefaultBudget bounds one call unless the caller sets another. When it is
 // exceeded the tenant's process is killed (Auth0's 20 s limit).
@@ -141,6 +149,10 @@ func New(cfg Config, log *slog.Logger) (*Pool, error) {
 		return nil, fmt.Errorf("noderunner: %w", err)
 	}
 	if err := os.Chmod(dir, 0o700); err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("noderunner: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "guard.mjs"), guardJS, 0o600); err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("noderunner: %w", err)
 	}
