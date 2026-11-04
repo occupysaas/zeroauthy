@@ -332,8 +332,11 @@ Behaviour:
 
 All new strings go through the i18n catalogs. Pages carry CSRF protection
 and reuse the transaction state of the login flow. An MFA page reached
-without a pending requirement redirects to `/authorize/resume` with
-`invalid_request`.
+without a valid pending requirement (expired, already completed, or bound to
+another session or browser) shows the hosted session-expired error page, as
+the login and consent pages do. A hosted enrollment decided because the user
+had no factor confirms only while the user still has none; if the user has
+enrolled a factor since, the transaction challenges that factor instead.
 
 ### Throttling
 
