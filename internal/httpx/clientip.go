@@ -22,16 +22,18 @@ func WithClientIP(ctx context.Context, ip netip.Addr) context.Context {
 // deployment trusts proxy headers, and then only its rightmost non-empty
 // entry: that is the address the single trusted proxy appended. Earlier
 // entries are client-supplied and trivially spoofed.
+//
+// Every X-Forwarded-For header line counts, joined in order as one
+// comma-separated list (RFC 9110 section 5.3): a proxy such as HAProxy adds
+// its own line instead of extending the client's, so reading only the first
+// line would return an address the client chose.
 func ClientIP(r *http.Request, trustProxy bool) string {
 	if ip, ok := r.Context().Value(clientIPKey{}).(netip.Addr); ok {
 		return ip.String()
 	}
 	if trustProxy {
-		parts := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
-		for i := len(parts) - 1; i >= 0; i-- {
-			if ip := strings.TrimSpace(parts[i]); ip != "" {
-				return ip
-			}
+		if ip := rightmostForwardedFor(r.Header); ip != "" {
+			return ip
 		}
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -39,6 +41,18 @@ func ClientIP(r *http.Request, trustProxy bool) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+// rightmostForwardedFor is the last non-empty entry across all
+// X-Forwarded-For header lines, or "" when there is none.
+func rightmostForwardedFor(h http.Header) string {
+	parts := strings.Split(strings.Join(h.Values("X-Forwarded-For"), ","), ",")
+	for i := len(parts) - 1; i >= 0; i-- {
+		if ip := strings.TrimSpace(parts[i]); ip != "" {
+			return ip
+		}
+	}
+	return ""
 }
 
 // RecordedIP is ClientIP as stored on a session or a user's last_ip: the

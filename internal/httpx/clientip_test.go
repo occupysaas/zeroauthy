@@ -61,3 +61,35 @@ func TestClientIPFromContext(t *testing.T) {
 		}
 	}
 }
+
+// A proxy such as HAProxy appends its own X-Forwarded-For header line rather
+// than extending the client's, so every line counts, in order: the rightmost
+// entry across all of them is the one the trusted proxy added.
+func TestClientIPMultipleHeaderLines(t *testing.T) {
+	for name, lines := range map[string][]string{
+		"two lines":           {"6.6.6.6", "203.0.113.9"},
+		"three lines":         {"6.6.6.6, 7.7.7.7", "8.8.8.8", " 203.0.113.9 "},
+		"empty trailing line": {"6.6.6.6", "203.0.113.9", ""},
+		"empty entries":       {"6.6.6.6", " , 203.0.113.9 , ,"},
+		"whitespace line":     {"6.6.6.6", "203.0.113.9", "   "},
+	} {
+		r := httptest.NewRequest("POST", "/u/login", nil)
+		r.RemoteAddr = "10.0.0.1:4444"
+		for _, l := range lines {
+			r.Header.Add("X-Forwarded-For", l)
+		}
+		if got := ClientIP(r, true); got != "203.0.113.9" {
+			t.Errorf("%s: trusted = %q", name, got)
+		}
+		if got := ClientIP(r, false); got != "10.0.0.1" {
+			t.Errorf("%s: untrusted = %q", name, got)
+		}
+	}
+	r := httptest.NewRequest("POST", "/u/login", nil)
+	r.RemoteAddr = "10.0.0.1:4444"
+	r.Header.Add("X-Forwarded-For", " ")
+	r.Header.Add("X-Forwarded-For", ",")
+	if got := ClientIP(r, true); got != "10.0.0.1" {
+		t.Errorf("only empty entries = %q", got)
+	}
+}
