@@ -2,6 +2,15 @@ import { test, expect } from '@playwright/test';
 import { generateKeyPairSync, X509Certificate } from 'node:crypto';
 import { ManagementClient } from 'auth0';
 
+// Console confirmations are modal dialogs titled "Are you sure?" whose
+// confirm button repeats the action's label (commit acc768e).
+async function confirmModal(page, label, message) {
+  const prompt = page.getByRole('dialog', { name: 'Are you sure?', exact: true });
+  await expect(prompt).toContainText(message);
+  await prompt.getByRole('button', { name: label, exact: true }).click();
+  await expect(prompt).toHaveCount(0);
+}
+
 test('operator rotates and revokes a tenant signing key and sees custom-key limits', async ({ page }) => {
   test.setTimeout(60_000);
   const setup = process.env.E2E_ADMIN_SETUP_URL_M20;
@@ -24,13 +33,13 @@ test('operator rotates and revokes a tenant signing key and sees custom-key limi
   await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Tenant settings', exact: true }).click();
   await page.getByRole('tab', { name: 'Signing keys', exact: true }).click();
   await expect(page.getByRole('table')).toContainText('Current');
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Rotate keys' }).click();
+  await confirmModal(page, 'Rotate keys', /Promote the next signing key/);
   const previous = page.getByRole('row').filter({ hasText: sdkKeys.find(key => key.current).kid });
   await expect(previous).toContainText('Previous');
   expect((await management.keys.signing.list()).some(key => key.current && key.kid !== sdkKeys.find(key => key.current).kid)).toBe(true);
-  page.once('dialog', dialog => dialog.accept());
   await previous.getByRole('button', { name: 'Revoke previous key' }).click();
+  await confirmModal(page, 'Revoke previous key', /Revoke previous key \S+ and reject its tokens/);
   await expect(previous).toContainText('Revoked');
   // The SDK cached a token signed by the key just revoked. Recover through
   // client credentials before making another administrative request.
@@ -45,8 +54,8 @@ test('operator rotates and revokes a tenant signing key and sees custom-key limi
     expect(response.status()).toBe(201);
     await route.abort('failed');
   });
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Rotate keys' }).click();
+  await confirmModal(page, 'Rotate keys', /Promote the next signing key/);
   await expect(page.getByRole('row').filter({ hasText: currentBeforeDrop })).toContainText('Previous');
   await expect(page.getByRole('button', { name: 'Rotate keys' })).toBeEnabled();
   expect(rotations).toBe(1);
@@ -66,12 +75,12 @@ test('operator rotates and revokes a tenant signing key and sees custom-key limi
   const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
   const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'custom-m20', use: 'sig', alg: 'RS256' };
   await page.locator('#custom-signing-jwks').fill(JSON.stringify({ keys: [jwk] }, null, 2));
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Replace keys' }).click();
+  await confirmModal(page, 'Replace keys', 'Replace the stored custom public keys?');
   await expect(page.locator('#custom-signing-jwks')).toHaveValue(/custom-m20/);
   await expect.poll(async () => (await management.keys.customSigning.get()).keys[0].kid).toBe('custom-m20');
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Delete keys' }).click();
+  await confirmModal(page, 'Delete keys', 'Delete the stored custom public keys?');
   await expect(page.locator('#custom-signing-jwks')).not.toHaveValue(/custom-m20/);
   await page.getByRole('tab', { name: 'Signing keys', exact: true }).click();
   // Exercise a real read-only scoped credential through the browser request
@@ -79,8 +88,8 @@ test('operator rotates and revokes a tenant signing key and sees custom-key limi
   const readerToken = await fetch('https://localhost:8443/oauth/token', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ grant_type: 'client_credentials', client_id: 'e2e-m17-admin', client_secret: 'e2e-m17-admin-secret-not-for-production', audience: 'https://localhost:8443/api/v2/', scope: 'read:signing_keys' }) }).then(r => r.json());
   await page.route('**/api/v2/keys/signing/rotate', route => route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${readerToken.access_token}` } }));
   const beforeDenied = (await management.keys.signing.list()).find(key => key.current).kid;
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Rotate keys' }).click();
+  await confirmModal(page, 'Rotate keys', /Promote the next signing key/);
   await expect(page.getByRole('alert')).toContainText(/scope|permission|Forbidden/i);
   expect((await management.keys.signing.list()).find(key => key.current).kid).toBe(beforeDenied);
   await page.unroute('**/api/v2/keys/signing/rotate');
