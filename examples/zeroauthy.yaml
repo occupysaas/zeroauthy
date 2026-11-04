@@ -5,7 +5,7 @@
 # upper-cased path with "__" between levels (storage.dsn ->
 # ZEROAUTHY_STORAGE__DSN). Keep secrets (DSN password, SMTP password) in the
 # environment or in files rather than here. Unknown keys stop the server at
-# startup. All settings: internal/config/config.go. Deployment guide:
+# startup. All settings: docs/configuration.md. Deployment guide:
 # docs/deployment.md.
 
 server:

@@ -66,7 +66,8 @@ docker run -d --name zeroauthy -p 8443:8443 \
 Use the newest tag from the
 [releases page](https://github.com/occupysaas/zeroauthy/releases). On
 SELinux hosts add `:Z` to the certificate mount (`/certs:ro,Z`). The image
-stores SQLite in the `/data` volume and migrates it at start. Check it:
+stores SQLite in the `/data` volume and migrates it at start. Every
+`ZEROAUTHY_*` variable is listed in the [configuration reference](configuration.md). Check it:
 
 ```bash
 curl --cacert certs/cert.pem https://localhost:8443/healthz
