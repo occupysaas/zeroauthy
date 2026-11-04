@@ -39,7 +39,7 @@ func TestRevokeRevokesFamily(t *testing.T) {
 			t.Errorf("token in the family not revoked: %+v", got)
 		}
 	}
-	if code, body := f.refresh(t, refreshForm("rt-spa", next)); code != 403 || body["error"] != "invalid_grant" {
+	if code, body := f.refresh(t, refreshForm("rt-spa", next)); code != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("refresh after revoke = %d %v", code, body)
 	}
 }

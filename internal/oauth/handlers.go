@@ -41,6 +41,11 @@ type Handlers struct {
 	// verifications in this process; nil is unlimited.
 	LegacySecretSlots *ratelimit.Semaphore
 
+	// Auth0RefreshErrorStatus answers an unusable refresh token with
+	// Auth0's 403 instead of the 400 that RFC 6749 and OIDC conformance
+	// require (compatibility.auth0_refresh_error_status; D-0061).
+	Auth0RefreshErrorStatus bool
+
 	// Database and Protection serve the password grants.
 	// The throttles are the hosted login's, so both paths share limits.
 	Database          *identity.Database

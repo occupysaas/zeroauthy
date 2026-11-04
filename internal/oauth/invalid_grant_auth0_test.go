@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -55,13 +56,23 @@ func TestInvalidGrantAuth0Shape(t *testing.T) {
 			return raw
 		},
 	} {
-		t.Run("refresh "+name, func(t *testing.T) {
-			f := newFixture(t)
-			raw, rt := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access", "read:things"}, acmeAPI)
-			code, body := f.refresh(t, refreshForm("rt-spa", prepare(f, raw, rt)))
-			if code != 403 || body["error"] != "invalid_grant" || body["error_description"] != "Unknown or invalid refresh token." {
-				t.Fatalf("got %d %v; want 403 invalid_grant \"Unknown or invalid refresh token.\"", code, body)
+		// OIDC conformance (OIDCC-3.1.3.4, oidcc-refresh-token) requires 400,
+		// so that is the default; compatibility.auth0_refresh_error_status
+		// opts into Auth0's 403. The description is Auth0's either way.
+		for _, auth0Status := range []bool{false, true} {
+			want := 400
+			if auth0Status {
+				want = 403
 			}
-		})
+			t.Run(fmt.Sprintf("refresh %s status %d", name, want), func(t *testing.T) {
+				f := newFixture(t)
+				f.h.Auth0RefreshErrorStatus = auth0Status
+				raw, rt := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access", "read:things"}, acmeAPI)
+				code, body := f.refresh(t, refreshForm("rt-spa", prepare(f, raw, rt)))
+				if code != want || body["error"] != "invalid_grant" || body["error_description"] != "Unknown or invalid refresh token." {
+					t.Fatalf("got %d %v; want %d invalid_grant \"Unknown or invalid refresh token.\"", code, body, want)
+				}
+			})
+		}
 	}
 }

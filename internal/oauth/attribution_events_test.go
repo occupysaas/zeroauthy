@@ -59,7 +59,7 @@ func TestRefreshFailureEventAttribution(t *testing.T) {
 			raw := "known-refresh-token"
 			rt := &store.RefreshToken{TenantID: tid, ID: "rt_known", TokenHash: secrets.HashToken(raw), FamilyID: "rtf_known", ClientID: "rt-spa", UserID: "auth0|unloaded", OrganizationID: "org_known", OrganizationConnectionID: "con_known", Audience: acmeAPI, Scopes: []string{"openid", "offline_access", "read:things"}, CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
 			form := refreshForm("rt-spa", raw)
-			wantError, wantStatus := "invalid_grant", http.StatusForbidden
+			wantError, wantStatus := "invalid_grant", http.StatusBadRequest
 			switch reason {
 			case "reuse":
 				rt.Rotating = true

@@ -313,3 +313,11 @@ mount a certificate. The [quickstart](quickstart.md) shows a full `docker run`.
 | --- | --- | --- | --- | --- |
 | `bootstrap.admin_email` | `ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL` | string | — | `bootstrap.admin_email`, when set and the system tenant has no operator, makes the server create that operator at start and log a one-time setup link. It never takes a password. |
 
+### `compatibility`
+
+`compatibility` holds opt-in switches for Auth0 behaviour that differs from the OAuth 2.0/OpenID Connect specifications. Defaults follow the specifications, so OpenID conformance passes.
+
+| Key | Environment variable | Type | Default | Description |
+| --- | --- | --- | --- | --- |
+| `compatibility.auth0_refresh_error_status` | `ZEROAUTHY_COMPATIBILITY__AUTH0_REFRESH_ERROR_STATUS` | bool | `false` | `compatibility.auth0_refresh_error_status` answers an unknown, expired, revoked or reused refresh token with HTTP 403, as Auth0 does, instead of the 400 that RFC 6749 section 5.2 and OpenID conformance require. The error code (invalid_grant) and description are Auth0's either way. |
+

@@ -362,10 +362,10 @@ func TestEndToEndRefreshAndLogout(t *testing.T) {
 		t.Fatalf("refresh = %d %v %v", resp.StatusCode, resp.Header, body)
 	}
 	// 3. Reusing the rotated token revokes the family.
-	if resp, body := refresh(first); resp.StatusCode != 403 || body["error"] != "invalid_grant" {
+	if resp, body := refresh(first); resp.StatusCode != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("reuse = %d %v", resp.StatusCode, body)
 	}
-	if resp, body := refresh(second); resp.StatusCode != 403 || body["error"] != "invalid_grant" {
+	if resp, body := refresh(second); resp.StatusCode != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("successor after reuse = %d %v", resp.StatusCode, body)
 	}
 	// 4. The session still works: a new login gives a new family, which
@@ -375,7 +375,7 @@ func TestEndToEndRefreshAndLogout(t *testing.T) {
 	if resp, body := e.postForm(t, c, "/oauth/revoke", url.Values{"client_id": {"spa"}, "token": {third}}); resp.StatusCode != 200 {
 		t.Fatalf("revoke = %d %v", resp.StatusCode, body)
 	}
-	if resp, _ := refresh(third); resp.StatusCode != 403 {
+	if resp, _ := refresh(third); resp.StatusCode != 400 {
 		t.Fatalf("refresh after revoke = %d", resp.StatusCode)
 	}
 	// 5. /v2/logout ends the session and returns to the app.
@@ -629,8 +629,8 @@ func TestEndToEndManagementDeletes(t *testing.T) {
 	e.mgmtDelete(t, "delete:refresh_tokens", func(h *mgmt.Handlers, w http.ResponseWriter, r *http.Request) {
 		h.DeleteRefreshToken(w, r, tokens[0].ID)
 	})
-	// Auth0 (management-users.md U8): 403 "Unknown or invalid refresh token." (D-0061).
-	if resp, body := refresh(rt); resp.StatusCode != 403 || body["error"] != "invalid_grant" || body["error_description"] != "Unknown or invalid refresh token." {
+	// Auth0 answers 403 (management-users.md U8); the spec default is 400 (D-0061).
+	if resp, body := refresh(rt); resp.StatusCode != 400 || body["error"] != "invalid_grant" || body["error_description"] != "Unknown or invalid refresh token." {
 		t.Errorf("refresh after deleting the token = %d %v", resp.StatusCode, body)
 	}
 }

@@ -441,6 +441,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			RateLimit:         rateLimit(sec.RateLimit),
 			LegacySecretSlots: ratelimit.NewSecretVerifications(sec.RateLimit.MaxConcurrentSecretVerifications),
 
+			Auth0RefreshErrorStatus: cfg.Compatibility.Auth0RefreshErrorStatus,
+
 			DeviceTxnThrottle: identity.NewThrottle(sec.DeviceActivationTxnMaxMisses, authz.TxnLifetime, authz.TxnLifetime),
 			DeviceIPThrottle: identity.NewThrottleOrOff(sec.DeviceActivationIPMaxMisses,
 				seconds(sec.DeviceActivationIPLockoutSeconds), seconds(sec.DeviceActivationIPLockoutSeconds)),

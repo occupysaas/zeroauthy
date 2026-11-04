@@ -39,7 +39,11 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	}
 	tenantID := res.Tenant.ID
 	now := h.now().UTC()
-	invalid := forbiddenGrant(unknownRefreshToken)
+	// 400 by default (OIDCC-3.1.3.4); Auth0's 403 only when opted in.
+	invalid := invalidGrant(unknownRefreshToken)
+	if h.Auth0RefreshErrorStatus {
+		invalid = forbiddenGrant(unknownRefreshToken)
+	}
 
 	rt, err := h.Store.RefreshTokens().GetByTokenHash(ctx, tenantID, secrets.HashToken(raw))
 	if errors.Is(err, store.ErrNotFound) {

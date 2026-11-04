@@ -2619,3 +2619,16 @@ already used 403 for "Password change required." and for every device-flow
 
 **Cost if wrong.** Clients that branch on status 400 for these two cases see
 403; Auth0 SDKs, which match Auth0's 403, now classify them as Auth0 does.
+
+**Addendum (2026-11-04, maintainer): spec default for refresh tokens.** The
+full regression showed OpenID conformance failing `oidcc-refresh-token`
+(`CheckTokenEndpointHttpStatus400`, OIDCC-3.1.3.4) in the Basic and Form Post
+plans once refresh errors returned 403; the certified commit `38b4229`
+returned 400. Following the parity-vs-spec rule (spec-compliant default,
+opt-in Auth0 behaviour), an unusable refresh token is again `400`
+`invalid_grant` by default, with Auth0's description. The new setting
+`compatibility.auth0_refresh_error_status: true`
+(`ZEROAUTHY_COMPATIBILITY__AUTH0_REFRESH_ERROR_STATUS`) answers `403` as
+Auth0 does. Wrong-password answers keep Auth0's `403`: conformance does not
+exercise the password grant. Cost if wrong: an Auth0 SDK that branches on 403
+for refresh failures needs the setting.

@@ -102,10 +102,10 @@ func TestRefreshRotates(t *testing.T) {
 	}
 
 	// Reuse of the rotated token revokes the family, successor included.
-	if code, body := f.refresh(t, refreshForm("rt-spa", raw)); code != 403 || body["error"] != "invalid_grant" {
+	if code, body := f.refresh(t, refreshForm("rt-spa", raw)); code != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("reuse = %d %v", code, body)
 	}
-	if code, body := f.refresh(t, refreshForm("rt-spa", next)); code != 403 || body["error"] != "invalid_grant" {
+	if code, body := f.refresh(t, refreshForm("rt-spa", next)); code != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("successor after reuse = %d %v", code, body)
 	}
 }
@@ -125,11 +125,11 @@ func TestRefreshLeeway(t *testing.T) {
 		t.Fatalf("within leeway: %d %v / %d %v", code1, b1, code2, b2)
 	}
 	f.h.Now = func() time.Time { return fixedNow().Add(31 * time.Second) }
-	if code, body := f.refresh(t, refreshForm("rt-spa", raw)); code != 403 || body["error"] != "invalid_grant" {
+	if code, body := f.refresh(t, refreshForm("rt-spa", raw)); code != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("after leeway = %d %v", code, body)
 	}
-	if code, _ := f.refresh(t, refreshForm("rt-spa", b1["refresh_token"].(string))); code != 403 {
-		t.Fatalf("successor after reuse = %d; want 403", code)
+	if code, _ := f.refresh(t, refreshForm("rt-spa", b1["refresh_token"].(string))); code != 400 {
+		t.Fatalf("successor after reuse = %d; want 400", code)
 	}
 }
 
@@ -152,7 +152,7 @@ func TestRefreshNonRotating(t *testing.T) {
 		t.Fatalf("second use = %d", code)
 	}
 	f.h.Now = func() time.Time { return at.Add(time.Hour + time.Second) }
-	if code, body := f.refresh(t, refreshForm("rt-web", raw, "client_secret", "rt-web-secret")); code != 403 || body["error"] != "invalid_grant" {
+	if code, body := f.refresh(t, refreshForm("rt-web", raw, "client_secret", "rt-web-secret")); code != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("idle-expired = %d %v", code, body)
 	}
 }
@@ -205,7 +205,7 @@ func TestRefreshIgnoresScopesIssuanceWouldDrop(t *testing.T) {
 func TestRefreshByAnotherClientLeavesTokenUntouched(t *testing.T) {
 	f := newFixture(t)
 	raw, _ := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, "")
-	if code, body := f.refresh(t, refreshForm("rt-web", raw, "client_secret", "rt-web-secret")); code != 403 || body["error"] != "invalid_grant" {
+	if code, body := f.refresh(t, refreshForm("rt-web", raw, "client_secret", "rt-web-secret")); code != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("other client = %d %v", code, body)
 	}
 	if got := f.storedRT(t, raw); got.RotatedAt != nil || got.RevokedAt != nil {
@@ -228,19 +228,19 @@ func TestRefreshRejects(t *testing.T) {
 		}, 400, "invalid_request"},
 		"unknown token": {func(*fixture, string, *store.RefreshToken) url.Values {
 			return refreshForm("rt-spa", "not-a-real-token")
-		}, 403, "invalid_grant"},
+		}, 400, "invalid_grant"},
 		"revoked": {func(f *fixture, raw string, rt *store.RefreshToken) url.Values {
 			_ = f.st.RefreshTokens().RevokeFamily(ctx, rt.TenantID, rt.FamilyID, fixedNow())
 			return refreshForm("rt-spa", raw)
-		}, 403, "invalid_grant"},
+		}, 400, "invalid_grant"},
 		"absolute expiry": {func(f *fixture, raw string, rt *store.RefreshToken) url.Values {
 			f.h.Now = func() time.Time { return rt.ExpiresAt }
 			return refreshForm("rt-spa", raw)
-		}, 403, "invalid_grant"},
+		}, 400, "invalid_grant"},
 		"idle expiry": {func(f *fixture, raw string, rt *store.RefreshToken) url.Values {
 			f.h.Now = func() time.Time { return rt.IdleExpiresAt }
 			return refreshForm("rt-spa", raw)
-		}, 403, "invalid_grant"},
+		}, 400, "invalid_grant"},
 		"blocked user": {func(f *fixture, raw string, rt *store.RefreshToken) url.Values {
 			u, _ := f.st.Users().Get(ctx, rt.TenantID, rt.UserID)
 			u.Blocked = true
@@ -251,7 +251,7 @@ func TestRefreshRejects(t *testing.T) {
 			rs, _ := f.st.ResourceServers().GetByIdentifier(ctx, rt.TenantID, acmeAPI)
 			_ = f.st.ResourceServers().Delete(ctx, rt.TenantID, rs.ID)
 			return refreshForm("rt-spa", raw)
-		}, 403, "invalid_grant"}, // deleting the API deletes its refresh tokens
+		}, 400, "invalid_grant"}, // deleting the API deletes its refresh tokens
 		"scope escalation": {func(_ *fixture, raw string, _ *store.RefreshToken) url.Values {
 			return refreshForm("rt-spa", raw, "scope", "openid write:things")
 		}, 400, "invalid_scope"},
@@ -290,10 +290,10 @@ func TestRefreshReuseNotMaskedByOtherChecks(t *testing.T) {
 				t.Fatalf("rotate = %d %v", code, body)
 			}
 			next := body["refresh_token"].(string)
-			if code, b := f.refresh(t, refreshForm("rt-spa", raw, extra...)); code != 403 || b["error"] != "invalid_grant" {
+			if code, b := f.refresh(t, refreshForm("rt-spa", raw, extra...)); code != 400 || b["error"] != "invalid_grant" {
 				t.Fatalf("reuse = %d %v", code, b)
 			}
-			if code, b := f.refresh(t, refreshForm("rt-spa", next)); code != 403 || b["error"] != "invalid_grant" {
+			if code, b := f.refresh(t, refreshForm("rt-spa", next)); code != 400 || b["error"] != "invalid_grant" {
 				t.Fatalf("successor = %d %v", code, b)
 			}
 		})

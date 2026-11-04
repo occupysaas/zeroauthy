@@ -233,8 +233,9 @@ paths:
 
         **Password grants.** Wrong passwords and unknown users get the same
         `403` `invalid_grant` error, "Wrong email or password.". An unknown,
-        expired, revoked or reused refresh token gets `403` `invalid_grant`,
-        "Unknown or invalid refresh token.". Attempts count against the same per-user and
+        expired, revoked or reused refresh token gets `400` `invalid_grant`,
+        "Unknown or invalid refresh token." (RFC 6749 §5.2; `403` as Auth0
+        answers with `compatibility.auth0_refresh_error_status`). Attempts count against the same per-user and
         per-IP limits as the hosted login page; while a limit is reached the
         response is `429` with `too_many_requests`. A server-side client may
         pass its end user's IP in the `auth0-forwarded-for` header so the
@@ -290,7 +291,7 @@ paths:
         "401":
           $ref: "#/components/responses/OAuthErrorResponse"
         "403":
-          description: Access denied, password grant requires MFA, a wrong password, an unusable refresh token, or a device-flow poll answer.
+          description: Access denied, password grant requires MFA, a wrong password, an unusable refresh token when `compatibility.auth0_refresh_error_status` is on, or a device-flow poll answer.
           content:
             application/json:
               schema:

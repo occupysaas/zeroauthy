@@ -43,6 +43,10 @@ type Config struct {
 	Events   Events   `koanf:"events"`
 	// Bootstrap creates the first console operator on an empty install.
 	Bootstrap Bootstrap `koanf:"bootstrap"`
+	// Compatibility holds opt-in switches for Auth0 behaviour that differs
+	// from the OAuth 2.0/OpenID Connect specifications. Defaults follow the
+	// specifications, so OpenID conformance passes.
+	Compatibility Compatibility `koanf:"compatibility"`
 	// Seed is an optional path to a declarative seed file applied at startup.
 	Seed string `koanf:"seed"`
 	// SeedMode is "apply" (the default: the seed overwrites what it
@@ -809,4 +813,14 @@ func (a Actions) validate() []error {
 		errs = append(errs, fmt.Errorf("actions.max_concurrent_builds %d must be at least 1", a.MaxConcurrentBuilds))
 	}
 	return errs
+}
+
+// Compatibility switches Auth0 behaviour on where it conflicts with the
+// specifications zeroauthy is certified against.
+type Compatibility struct {
+	// Auth0RefreshErrorStatus answers an unknown, expired, revoked or reused
+	// refresh token with HTTP 403, as Auth0 does, instead of the 400 that
+	// RFC 6749 section 5.2 and OpenID conformance require. The error code
+	// (invalid_grant) and description are Auth0's either way.
+	Auth0RefreshErrorStatus bool `koanf:"auth0_refresh_error_status"`
 }

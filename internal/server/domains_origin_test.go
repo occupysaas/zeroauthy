@@ -121,7 +121,7 @@ func TestDomainOriginBindings(t *testing.T) {
 	refreshOn := func(host string) *httptest.ResponseRecorder {
 		return e.on(host, "POST", "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {refresh}}, nil)
 	}
-	if rec := refreshOn(e.alias); rec.Code != 403 || decodeJSON(rec)["error"] != "invalid_grant" {
+	if rec := refreshOn(e.alias); rec.Code != 400 || decodeJSON(rec)["error"] != "invalid_grant" {
 		t.Fatalf("refresh on alias = %d %s", rec.Code, rec.Body)
 	}
 	if rec := e.on(e.alias, "POST", "/oauth/revoke", url.Values{"client_id": {"spa"}, "token": {refresh}}, nil); rec.Code != 200 {

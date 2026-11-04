@@ -117,6 +117,10 @@ type Deps struct {
 	// LegacySecretSlots caps concurrent legacy client secret checks in
 	// this process; nil gets the default cap.
 	LegacySecretSlots *ratelimit.Semaphore
+
+	// Auth0RefreshErrorStatus opts into Auth0's 403 for unusable refresh
+	// tokens (compatibility.auth0_refresh_error_status).
+	Auth0RefreshErrorStatus bool
 }
 
 // authGroup is the rate-limit group of a tenant Authentication API path.
@@ -285,13 +289,14 @@ func New(d Deps) http.Handler {
 				MFA:      d.MFA,
 				Recorder: d.Recorder,
 				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
-				LegacySecretSlots: d.LegacySecretSlots,
-				BaseDomain:        d.BaseDomain,
-				Database:          db,
-				Protection:        sharedProtection,
-				TrustProxyHeaders: d.TrustProxyHeaders,
-				Actions:           d.Actions,
-				Passwordless:      pwl,
+				LegacySecretSlots:       d.LegacySecretSlots,
+				Auth0RefreshErrorStatus: d.Auth0RefreshErrorStatus,
+				BaseDomain:              d.BaseDomain,
+				Database:                db,
+				Protection:              sharedProtection,
+				TrustProxyHeaders:       d.TrustProxyHeaders,
+				Actions:                 d.Actions,
+				Passwordless:            pwl,
 			},
 			authz:        az,
 			dbconn:       dbconnHandlers,
