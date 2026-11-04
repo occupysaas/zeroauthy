@@ -15,6 +15,7 @@ var templateNames = map[string]bool{"verify_email": true, "verify_email_by_code"
 
 // KnownTemplate reports whether name belongs to the supported email template inventory.
 func KnownTemplate(name string) bool { return templateNames[name] }
+
 var liquidFilters = map[string]bool{"escape": true, "escape_once": true, "upcase": true, "downcase": true, "capitalize": true, "strip": true, "lstrip": true, "rstrip": true, "append": true, "prepend": true, "replace": true, "replace_first": true, "remove": true, "remove_first": true, "truncate": true, "truncatewords": true, "default": true, "size": true, "first": true, "last": true, "join": true, "date": true}
 
 func ValidateTemplate(raw map[string]json.RawMessage, partial bool) error {
