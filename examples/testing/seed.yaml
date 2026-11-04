@@ -1,0 +1,93 @@
+# examples/testing/seed.yaml: a disposable test tenant for local and CI tests.
+#
+# Every secret and password here is a published test value. Never use this
+# file, or any of these values, for a real deployment.
+#
+# Format reference: tests/e2e/seed.yaml and internal/seed. Guide: docs/testing.md.
+tenants:
+  - name: test
+    friendly_name: Test Tenant
+    # The tenant answers on both hosts, and tokens name the host the request
+    # used as their issuer:
+    #   localhost:8443  tests running on the host (port published by compose)
+    #   zeroauthy:8443  tests running in another container on the compose network
+    # The Management API audience is always the first entry:
+    #   https://localhost:8443/api/v2/
+    domains: ["localhost:8443", "zeroauthy:8443"]
+    # Used by the password grant when the request names no realm.
+    default_directory: Username-Password-Authentication
+    # Test apps use http://localhost callbacks; without this, the hosted pages
+    # ask the user to confirm such a callback before redirecting to it.
+    skip_non_verifiable_callback_uri_confirmation_prompt: true
+
+    resource_servers:
+      - identifier: https://api.example.test
+        name: Test API
+        token_lifetime: 3600
+        allow_offline_access: true
+        skip_consent_for_verifiable_first_party_clients: true
+        scopes:
+          - {value: "read:messages", description: "Read messages"}
+
+    clients:
+      # Single-page app (auth0-spa-js, auth0-react): public, PKCE, no secret.
+      - client_id: test-spa
+        name: Test SPA
+        app_type: spa
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["http://localhost:3000", "http://localhost:3000/"]
+        allowed_logout_urls: ["http://localhost:3000", "http://localhost:3000/"]
+        web_origins: ["http://localhost:3000"]
+        allowed_origins: ["http://localhost:3000"]
+
+      # Regular web app (express-openid-connect, nextjs-auth0). Its token
+      # endpoint method is client_secret_post, as for a new Auth0 application;
+      # express-openid-connect defaults to client_secret_basic, so pass
+      # clientAuthMethod: 'client_secret_post' (or change this line).
+      # The password grant is enabled for fast, browser-free smoke tests.
+      - client_id: test-web
+        name: Test Web App
+        app_type: regular_web
+        client_secret: test-web-secret-not-for-production
+        token_endpoint_auth_method: client_secret_post
+        grant_types: [authorization_code, refresh_token, password]
+        callbacks: ["http://localhost:3000/callback", "http://localhost:3000/api/auth/callback", "http://localhost:3000/auth/callback"]
+        allowed_logout_urls: ["http://localhost:3000", "http://localhost:3000/"]
+
+      # Machine-to-machine client: Management API for test setup and the
+      # Test API for service-to-service calls.
+      - client_id: test-m2m
+        name: Test M2M
+        app_type: non_interactive
+        client_secret: test-m2m-secret-not-for-production
+        grant_types: [client_credentials]
+
+    client_grants:
+      - client_id: test-m2m
+        audience: "https://localhost:8443/api/v2/"
+        scopes: ["read:users", "create:users", "update:users", "delete:users",
+                 "read:users_app_metadata", "update:users_app_metadata", "create:user_tickets",
+                 "read:clients", "read:connections", "read:resource_servers", "read:client_grants",
+                 "read:roles", "create:roles", "update:roles", "delete:roles",
+                 "read:guardian_factors", "update:guardian_factors", "read:mfa_policies", "update:mfa_policies"]
+      - client_id: test-m2m
+        audience: https://api.example.test
+        scopes: ["read:messages"]
+
+    connections:
+      - name: Username-Password-Authentication
+        enabled_clients: [test-spa, test-web]
+
+    users:
+      - connection: Username-Password-Authentication
+        email: alice@example.test
+        password: "Test-Password-Alice-1"
+        email_verified: true
+        name: Alice Tester
+        given_name: Alice
+        family_name: Tester
+      - connection: Username-Password-Authentication
+        email: bob@example.test
+        password: "Test-Password-Bob-1"
+        email_verified: false
+        name: Bob Unverified

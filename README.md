@@ -21,6 +21,12 @@ profiles (commit `38b4229`, October 2026). See [docs/conformance.md](docs/confor
 > [compatibility page](docs/compatibility.md) for the gaps (WebAuthn and
 > passkeys, SAML, enterprise directories and more) before relying on it.
 
+**Use it for testing.** zeroauthy also makes a disposable, Auth0-compatible
+login server for end-to-end tests: one container seeded with known tenants,
+apps and users, so your test suite can run real logins with your Auth0 SDK
+locally and in CI. See the [testing guide](docs/testing.md) and the kit in
+[examples/testing](examples/testing).
+
 **What works in 1.0**
 
 - The Authentication API and hosted login: authorization code with PKCE,
