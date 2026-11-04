@@ -290,13 +290,10 @@ func TestMFARememberBrowserCookie(t *testing.T) {
 		})
 	}
 }
-func TestMFAPageWithoutRequirementRedirects(t *testing.T) {
+func TestMFAPageWithoutRequirementShowsHostedError(t *testing.T) {
 	f := newMFAFixture(t)
 	_, s, _ := f.b.begin(t)
-	r := f.b.do(t, "GET", "/u/mfa?state="+s, nil)
-	if r.Code != 303 || !strings.Contains(r.Header().Get("Location"), "/authorize/resume?error=invalid_request") {
-		t.Fatalf("unexpected %d %s", r.Code, r.Header().Get("Location"))
-	}
+	assertHostedExpired(t, f.b.do(t, "GET", "/u/mfa?state="+s, nil))
 }
 func TestMFACSRF(t *testing.T) {
 	f := newMFAFixture(t)
@@ -679,11 +676,8 @@ func TestMFABrowserBindingAndTicketFactor(t *testing.T) {
 	f.policy(t, "otp", "email")
 	f.ticketOTP(t, false)
 	other := f.env.browser(f.b.host)
-	r := other.do(t, "GET", "/u/mfa-otp-enrollment?state="+f.state, nil)
-	if r.Code != 303 || !strings.Contains(r.Header().Get("Location"), "invalid_request") {
-		t.Fatalf("cookie binding %d", r.Code)
-	}
-	r = f.b.do(t, "GET", "/u/mfa-email-challenge?state="+f.state, nil)
+	assertHostedExpired(t, other.do(t, "GET", "/u/mfa-otp-enrollment?state="+f.state, nil))
+	r := f.b.do(t, "GET", "/u/mfa-email-challenge?state="+f.state, nil)
 	if r.Code < 400 {
 		t.Fatalf("ticket factor widened %d", r.Code)
 	}

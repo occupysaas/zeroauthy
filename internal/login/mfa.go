@@ -29,16 +29,75 @@ type mfaPageState struct {
 	Factor, AuthenticatorID, ChallengeID, Method string
 	SentAt                                       time.Time
 	Proven, RecoveryPending, Remember, Manual    bool
+	// Switched replaces a stale enrollment requirement with the challenge for
+	// the factors the user enrolled since /authorize decided it.
+	Switched *mfa.Requirement `json:",omitempty"`
 }
 type mfaFlow struct {
 	*flow
 	pending *authz.MFAPending
 	sess    *store.LoginSession
 	page    mfaPageState
+	// switched is set when this request found the enrollment stale and reset
+	// the page; the handler saves it and restarts at /u/mfa.
+	switched bool
 }
 
-func (h *Handlers) mfaInvalid(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/authorize/resume?error=invalid_request", http.StatusSeeOther)
+// mfaInvalid answers an MFA page whose transaction is expired, already
+// completed or bound to another session or browser with the hosted
+// session-expired page, as the login and consent pages do (Back or Refresh
+// after MFA lands here). No redirect_uri of an invalid transaction is
+// trusted, so nothing is sent to the client.
+func (h *Handlers) mfaInvalid(w http.ResponseWriter, r *http.Request, f *flow) {
+	h.fail(w, r, errTxn, f)
+}
+
+// firstOnlyEnrollment reports whether a hosted enrollment exists only because
+// the user had no usable factor when /authorize decided it. Such enrollment is
+// confirmed with ConfirmFirstEnroll, so a stale transaction cannot add a second
+// factor after the user enrolled one. An Action that asks to enroll
+// (api.authentication.enrollWith) and an allow-multiple ticket enroll on
+// purpose; a ticket is guarded by its own first-only rule in proveMFA.
+func firstOnlyEnrollment(p *authz.MFAPending) bool {
+	if !p.Requirement.Enroll || p.Requirement.Reason == "ticket" || p.Requirement.Reason == "reset" {
+		return false
+	}
+	return p.Requirement.Reason != "action" || p.Effects.MFA == nil || p.Effects.MFA.Mode != "enroll"
+}
+
+// existingFactorChallenge returns the challenge requirement for a first-only
+// enrollment whose user has enrolled a usable factor since it was decided.
+// stale is false while the user still has none.
+func (h *Handlers) existingFactorChallenge(r *http.Request, f *flow, p *authz.MFAPending) (req mfa.Requirement, stale bool, err error) {
+	ctx, tid := r.Context(), f.res.Tenant.ID
+	g, err := h.Store.MFA().GetGuardian(ctx, tid)
+	if err != nil {
+		return req, false, err
+	}
+	u, err := h.Store.Users().Get(ctx, tid, p.UserID)
+	if err != nil {
+		return req, false, err
+	}
+	aa, err := h.Store.MFA().ListAuthenticators(ctx, tid, p.UserID)
+	if err != nil {
+		return req, false, err
+	}
+	if !slices.ContainsFunc(aa, func(a store.Authenticator) bool { return mfa.UsableMethod(u, a, g.Factors) }) {
+		return req, false, nil
+	}
+	methods, err := h.MFA.PhoneMethods(ctx, tid)
+	if err != nil {
+		return req, true, err
+	}
+	customize, _ := f.res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
+	req, err = mfa.Decide(mfa.DecideInput{Settings: g, Effects: p.Effects.MFA, User: u, Authenticators: aa, CustomizeInActions: customize, MFAAPI: p.Requirement.Reason == "mfa-api", PhoneEnroll: len(methods) > 0})
+	if err != nil || !req.Required || req.Enroll || len(req.Factors) == 0 {
+		// Fail closed: the transaction can neither enroll nor challenge.
+		return req, true, errTxn
+	}
+	req.Reason = p.Requirement.Reason
+	req.AllowRemember = req.AllowRemember && p.Requirement.AllowRemember
+	return req, true, nil
 }
 func (h *Handlers) loadMFA(w http.ResponseWriter, r *http.Request, post bool) *mfaFlow {
 	h.maskRequest(r)
@@ -53,7 +112,7 @@ func (h *Handlers) loadMFA(w http.ResponseWriter, r *http.Request, post bool) *m
 	} else {
 		f, err = h.loadTxn(r, r.URL.Query().Get("state"))
 		if err != nil {
-			h.mfaInvalid(w, r)
+			h.mfaInvalid(w, r, nil)
 			return nil
 		}
 	}
@@ -66,13 +125,13 @@ func (h *Handlers) loadMFA(w http.ResponseWriter, r *http.Request, post bool) *m
 	if !isolated {
 		sess, err = h.Authz.ActiveSession(r.Context(), r, f.res)
 		if err != nil {
-			h.mfaInvalid(w, r)
+			h.mfaInvalid(w, r, f)
 			return nil
 		}
 	}
 	pending, err := h.Authz.PendingMFA(r.Context(), r, f.res, f.txn, sess)
 	if err != nil {
-		h.mfaInvalid(w, r)
+		h.mfaInvalid(w, r, f)
 		return nil
 	}
 	if _, err = h.Store.MFA().GetGuardian(r.Context(), f.res.Tenant.ID); err != nil {
@@ -100,7 +159,31 @@ func (h *Handlers) loadMFA(w http.ResponseWriter, r *http.Request, post bool) *m
 			return nil
 		}
 	}
+	if out.page.Switched != nil {
+		out.pending.Requirement = *out.page.Switched
+	} else if firstOnlyEnrollment(pending) && !out.page.Proven && !out.page.RecoveryPending {
+		req, stale, e := h.existingFactorChallenge(r, f, pending)
+		if e != nil {
+			h.fail(w, r, e, f)
+			return nil
+		}
+		if stale {
+			out.page = mfaPageState{Switched: &req}
+			out.pending.Requirement = req
+			out.switched = true
+		}
+	}
 	return out
+}
+
+// restartSwitchedMFA saves a page reset by a stale enrollment and restarts the
+// transaction at /u/mfa, which now challenges the user's existing factors.
+func (h *Handlers) restartSwitchedMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow) {
+	if err := h.saveMFAPage(r, f, "mfa-page"); err != nil {
+		h.fail(w, r, errTxn, f.flow)
+		return
+	}
+	http.Redirect(w, r, mfaURL(f, "/u/mfa"), http.StatusSeeOther)
 }
 func (h *Handlers) saveMFAPage(r *http.Request, f *mfaFlow, step string) error {
 	plain, err := json.Marshal(f.page)
@@ -250,7 +333,7 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 		h.fail(w, r, errTxn, f.flow)
 		return false
 	}
-	f.page = mfaPageState{Factor: factor, SentAt: h.now()}
+	f.page = mfaPageState{Factor: factor, SentAt: h.now(), Switched: f.page.Switched}
 	if factor == "phone" && f.pending.Requirement.PhonePreferredMethod != "both" {
 		f.page.Method = f.pending.Requirement.PhonePreferredMethod
 	}
@@ -317,7 +400,7 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 		}
 	}
 	if err != nil {
-		f.page = mfaPageState{}
+		f.page = mfaPageState{Switched: f.page.Switched}
 		_ = h.saveMFAPage(r, f, "mfa-page")
 		h.fail(w, r, err, f.flow)
 		return false
@@ -331,6 +414,11 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 func (h *Handlers) MFAPage(w http.ResponseWriter, r *http.Request) {
 	f := h.loadMFA(w, r, false)
 	if f == nil {
+		return
+	}
+	// /u/mfa itself starts the challenge, which saves the switched page.
+	if f.switched && r.URL.Path != "/u/mfa" {
+		h.restartSwitchedMFA(w, r, f)
 		return
 	}
 	if f.page.RecoveryPending {
@@ -400,6 +488,12 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if !postedHostedRevision(r, f.flow) {
 		h.fail(w, r, errTxn, f.flow)
+		return
+	}
+	// A factor chosen on /u/mfa starts the challenge, which saves the
+	// switched page; any other stale page restarts there.
+	if f.switched && r.URL.Path != "/u/mfa" {
+		h.restartSwitchedMFA(w, r, f)
 		return
 	}
 	if r.URL.Path == "/u/mfa" {
@@ -583,6 +677,13 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = h.proveMFA(r, f, &recovery)
 	}
+	if errors.Is(err, mfa.ErrAlreadyEnrolled) && firstOnlyEnrollment(f.pending) {
+		// The user enrolled a factor after this page loaded. Nothing was
+		// confirmed; restart at /u/mfa, which challenges that factor.
+		f.page = mfaPageState{}
+		h.restartSwitchedMFA(w, r, f)
+		return
+	}
 	if err != nil {
 		if e := h.saveMFAPage(r, f, "mfa-page"); e != nil {
 			h.fail(w, r, errTxn, f.flow)
@@ -633,8 +734,10 @@ func (h *Handlers) proveMFA(r *http.Request, f *mfaFlow, recovery *string) error
 				return e
 			})
 		}
+		// Enrollment decided because the user had no factor must still find
+		// none when it confirms (as grant_mfa does for the MFA API).
 		confirm := svc.ConfirmEnroll
-		if f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple {
+		if firstOnlyEnrollment(f.pending) || f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple {
 			confirm = svc.ConfirmFirstEnroll
 		}
 		result, err = confirm(r.Context(), f.res.Tenant.ID, f.pending.UserID, &mfa.Enrollment{AuthenticatorID: f.page.AuthenticatorID, ChallengeID: f.page.ChallengeID}, mfa.Proof{Code: r.PostForm.Get("code")})

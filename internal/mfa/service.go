@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -24,6 +25,10 @@ var (
 	ErrNoFactor      = errors.New("mfa: no available factor")
 	ErrEmailDelivery = errors.New("mfa: email delivery failed")
 	errSealing       = errors.New("mfa: secret sealing unavailable")
+	// ErrAlreadyEnrolled refuses a first-only enrollment because the user now
+	// has a usable primary factor. It is also an ErrInvalidCode, so callers
+	// that do not distinguish it keep answering as for a wrong code.
+	ErrAlreadyEnrolled = fmt.Errorf("%w: a usable factor is already enrolled", ErrInvalidCode)
 )
 
 // Enrollment contains one-time TOTP display values. Callers must retain only
@@ -406,7 +411,13 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 			for _, other := range list {
 				// First-only enrollment is blocked only by a usable primary
 				// factor; a disabled or stale method must not lock the user out.
-				if other.ID != current.ID && (firstOnly && UsableMethod(u, other, g.Factors) || s.newFactorOnly && other.Confirmed && other.Type == current.Type) {
+				if other.ID == current.ID {
+					continue
+				}
+				if firstOnly && UsableMethod(u, other, g.Factors) {
+					return ErrAlreadyEnrolled
+				}
+				if s.newFactorOnly && other.Confirmed && other.Type == current.Type {
 					return ErrInvalidCode
 				}
 			}
