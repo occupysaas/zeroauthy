@@ -29,13 +29,15 @@ const (
 	GrantMFAOOB            = "http://auth0.com/oauth/grant-type/mfa-oob"
 	GrantMFAOTP            = "http://auth0.com/oauth/grant-type/mfa-otp"
 	GrantMFARecoveryCode   = "http://auth0.com/oauth/grant-type/mfa-recovery-code"
+	// GrantPasswordlessOTP exchanges a passwordless email or SMS code (Plan 34).
+	GrantPasswordlessOTP = "http://auth0.com/oauth/grant-type/passwordless/otp"
 )
 
 // GrantTypes lists every grant type a client may name.
 var GrantTypes = []string{
 	GrantAuthorizationCode, GrantImplicit, GrantRefreshToken, GrantClientCredentials,
 	GrantPassword, GrantPasswordRealm, GrantDeviceCode,
-	GrantMFAOOB, GrantMFAOTP, GrantMFARecoveryCode,
+	GrantMFAOOB, GrantMFAOTP, GrantMFARecoveryCode, GrantPasswordlessOTP,
 }
 
 // AppTypes lists the application types.
@@ -235,7 +237,7 @@ func Normalize(s *Spec, parSupported bool) []error {
 		switch {
 		case !slices.Contains(GrantTypes, gt):
 			fail("grant type %q is not supported", gt)
-		case !firstParty && (gt == GrantPassword || gt == GrantPasswordRealm):
+		case !firstParty && (gt == GrantPassword || gt == GrantPasswordRealm || gt == GrantPasswordlessOTP):
 			fail("grant type %q is not available to third-party applications", gt)
 		case strict && !slices.Contains(strictGrantTypes, gt):
 			fail("grant type %q is not available to strict third-party applications", gt)
@@ -314,8 +316,9 @@ var (
 	orgBehaviors = []string{store.OrgBehaviorNoPrompt, store.OrgBehaviorPreLoginPrompt, store.OrgBehaviorPostLoginPrompt}
 	orgMethods   = []string{store.OrgDiscoveryEmail, store.OrgDiscoveryName}
 	// orgRefusedGrants cannot be used by a require client: Organizations
-	// do not support the password and device flows (D-0055).
-	orgRefusedGrants = []string{GrantPassword, GrantPasswordRealm, GrantDeviceCode}
+	// do not support the password and device flows (D-0055), nor the
+	// passwordless OTP grant (D-0060 LR).
+	orgRefusedGrants = []string{GrantPassword, GrantPasswordRealm, GrantDeviceCode, GrantPasswordlessOTP}
 )
 
 // ValidateOrganizationFields checks a client's organization settings, where

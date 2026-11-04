@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -43,6 +44,10 @@ type Handlers struct {
 	// Actions runs post-login and credentials-exchange flows; nil runs
 	// none. Sealed effects on codes and device approvals open with Wrapper.
 	Actions *actions.Engine
+
+	// Passwordless serves /passwordless/start and the passwordless OTP
+	// grant (Plan 34); nil answers server_error.
+	Passwordless *passwordless.Service
 }
 
 func (h *Handlers) now() time.Time {

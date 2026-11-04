@@ -2,8 +2,12 @@ package actions_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
+	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"reflect"
 	"strings"
 	"testing"
@@ -75,9 +79,27 @@ func TestEnrollWithAny(t *testing.T) {
 	}
 }
 func TestPhoneFactorUnavailable(t *testing.T) {
-	for _, factor := range []string{"phone", "webauthn-platform", "webauthn-roaming", "push-notification"} {
+	for _, factor := range []string{"webauthn-platform", "webauthn-roaming", "push-notification"} {
 		_, err, h := runMFAAction(t, fmt.Sprintf(`api.authentication.challengeWith({type:%q});`, factor), true)
 		requireMFAError(t, err, h, "unavailable")
+	}
+}
+func TestChallengeWithPhone(t *testing.T) {
+	r, err, _ := runMFAAction(t, `api.authentication.challengeWith({type:'phone',options:{preferredMethod:'voice'}});`, true)
+	if err != nil || r.Effects.MFA == nil || r.Effects.MFA.Mode != "challenge" || !reflect.DeepEqual(r.Effects.MFA.Factors, [][]string{{"phone"}}) || r.Effects.MFA.PhonePreferredMethod != "voice" {
+		t.Fatalf("%+v %v", r, err)
+	}
+	r, err, _ = runMFAAction(t, `api.authentication.challengeWith({type:'otp'},{additionalFactors:[{type:'phone'}]});`, true)
+	if err != nil || !reflect.DeepEqual(r.Effects.MFA.Factors, [][]string{{"otp", "phone"}}) || r.Effects.MFA.PhonePreferredMethod != "" {
+		t.Fatalf("additional phone %+v %v", r, err)
+	}
+	r, err, _ = runMFAAction(t, `api.authentication.enrollWith({type:'phone',options:{preferredMethod:'both'}});`, true)
+	if err != nil || r.Effects.MFA.Mode != "enroll" || r.Effects.MFA.PhonePreferredMethod != "both" {
+		t.Fatalf("enroll phone %+v %v", r, err)
+	}
+	for _, call := range []string{`challengeWith({type:'phone',options:{preferredMethod:'fax'}})`, `challengeWith({type:'otp',options:{preferredMethod:'sms'}})`, `challengeWith({type:'phone',options:{other:true}})`} {
+		_, err, h := runMFAAction(t, `try{api.authentication.`+call+`;}catch(e){}`, true)
+		requireMFAError(t, err, h, "")
 	}
 }
 func TestChallengeWithInvalidArguments(t *testing.T) {
@@ -179,5 +201,33 @@ func TestChallengeWithInvalidArgumentsCannotBeCaughtOrHidden(t *testing.T) {
 	for _, body := range []string{`try{api.authentication.challengeWith({type:1n});}catch(e){}`, `const circular={type:'otp'};circular.self=circular;try{api.authentication.challengeWith(circular);}catch(e){}`, `api.authentication.challengeWith({type:'invalid'});throw Error('later');`} {
 		_, err, h := runMFAAction(t, body, true)
 		requireMFAError(t, err, h, "")
+	}
+}
+
+func TestPhoneMethodsInTransaction(t *testing.T) {
+	st := memory.New()
+	ctx := context.Background()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "phone-tx", Name: "phone-tx"}); err != nil {
+		t.Fatal(err)
+	}
+	g, _ := st.MFA().GetGuardian(ctx, "phone-tx")
+	g.Factors["sms"] = true
+	if err := st.MFA().PutGuardian(ctx, g, g.Version); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Phone().CreatePhoneProvider(ctx, &store.PhoneProvider{TenantID: "phone-tx", ID: "p", Name: "custom", Configuration: json.RawMessage(`{"delivery_methods":["text"]}`)}); err != nil {
+		t.Fatal(err)
+	}
+	engine := &actions.Engine{Store: st}
+	svc := mfa.NewService(st, nil, nil, nil, nil, nil)
+	svc.Phone = &phone.Dispatcher{Store: st, Actions: engine}
+	if err := st.WithTx(ctx, func(tx store.Store) error {
+		methods, err := svc.WithStore(tx).PhoneMethods(ctx, "phone-tx")
+		if len(methods) != 0 {
+			t.Fatal("unbound Action offered")
+		}
+		return err
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

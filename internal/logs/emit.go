@@ -2,8 +2,10 @@ package logs
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/zeroauthy/zeroauthy/internal/logrules"
+	"github.com/zeroauthy/zeroauthy/internal/phonerules"
 )
 
 var eventDescriptions = func() map[string]string {
@@ -15,6 +17,9 @@ var eventDescriptions = func() map[string]string {
 	}
 	return out
 }()
+
+// phoneName is an E.164 phone number.
+var phoneName = regexp.MustCompile(`^\+[1-9][0-9]{7,14}$`)
 
 // RecordEvent supplies the frozen catalog description at an outcome boundary.
 // A missing recorder is the default no-op; deferred catalog codes stay disabled.
@@ -31,6 +36,11 @@ func RecordEvent(ctx context.Context, recorder Recorder, event Event) {
 		return
 	}
 	event = Enrich(ctx, event)
+	// Passwordless SMS users are named by their phone number: an E.164 user
+	// name is always masked, whichever request records the event (D-0060 P5).
+	if phoneName.MatchString(event.UserName) {
+		event.UserName = phonerules.MaskPhone(event.UserName)
+	}
 	if event.Description == "" {
 		event.Description = description
 	}

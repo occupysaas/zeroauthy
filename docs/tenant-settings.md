@@ -59,12 +59,13 @@ over tenant defaults. Hosted language choices are separate from console language
 An empty device mask uses the runtime default; a schema-valid but unusable
 nonempty mask safely refuses device authorization.
 
-All `flags` are stored-only except read-only `disable_impersonation`; none
+Most `flags` remain stored-only. Read-only `disable_impersonation` and the
+phone/passwordless flags described below have their documented behavior; none
 silently enables a legacy endpoint. The linked inventory lists every nested
 field and its owner. Stored-only families include error-page HTML/default
 redirection, sandbox versions, token quotas, access-token claim mapping,
 security headers, anonymous sessions/logout toggles, MFA/organization options,
-mTLS/DPoP, resource indicators, dynamic registration, phone/country controls,
+mTLS/DPoP, resource indicators, dynamic registration,
 AI/vendor UI options and session-log metadata. These settings round-trip but
 do not activate those features. The existing issuer response behavior is
 unchanged by `authorization_response_iss_parameter_supported`.
@@ -72,3 +73,18 @@ unchanged by `authorization_response_iss_parameter_supported`.
 See [attack protection](attack-protection.md) for shared limits, provider
 configuration and operator recovery, and [D-0045](compat/decisions.md#d-0045-tenant-settings-and-protection-evidence-boundaries-plan-19)
 for observation versus local-fallback boundaries.
+
+## Passwordless and phone
+
+Phone-provider selection, phone templates and Guardian phone settings are
+separate resources. The tenant phone settings include provider protection and
+SMS obfuscation controls. `phone_consolidated_experience` selects branding
+provider/template routing; `country_codes` applies allow/deny country lists.
+`flags.enforce_client_authentication_on_passwordless_start` requires client
+authentication for confidential passwordless-start callers.
+`flags.disable_management_api_sms_obfuscation` governs
+Management API enrollment views, while logs and delivery records always mask
+recipients. Phone verification state must be reset when a user's number
+changes. A storage plugin needs the negotiated Phone v1 capability; older
+plugins fail closed. See [passwordless](passwordless.md), [MFA](mfa.md) and
+[phone providers](phone-providers.md) for provisioning and routing.

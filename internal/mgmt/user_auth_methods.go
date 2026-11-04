@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mfarules"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 	"net/http"
 	"net/url"
 	"strings"
@@ -119,7 +121,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 		if route.Operation == "GetUserEnrollments" {
 			for _, a := range all {
 				if a.Confirmed {
-					out = append(out, enrollmentJSON(a))
+					out = append(out, enrollmentJSON(publicPhone(r, a)))
 				}
 			}
 			writeJSON(w, 200, out)
@@ -133,7 +135,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 		start := min(page*per, len(all))
 		end := min(start+per, len(all))
 		for _, a := range all[start:end] {
-			out = append(out, methodJSON(a))
+			out = append(out, methodJSON(publicPhone(r, a)))
 		}
 		if totals {
 			writeJSON(w, 200, map[string]any{"authenticators": out, "start": page * per, "limit": per, "total": len(all)})
@@ -147,7 +149,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 			h.mfaFail(w, r, e)
 			return
 		}
-		writeJSON(w, 200, methodJSON(*a))
+		writeJSON(w, 200, methodJSON(publicPhone(r, *a)))
 		return
 	}
 	var out any
@@ -169,7 +171,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 			if e = repo.CreateAuthenticator(r.Context(), &a); e != nil {
 				return e
 			}
-			out = methodJSON(a)
+			out = methodJSON(publicPhone(r, a))
 			delete(out.(map[string]any), "confirmed")
 			delete(out.(map[string]any), "last_auth_at")
 			status = 201
@@ -191,7 +193,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 				if e := repo.CreateAuthenticator(r.Context(), &a); e != nil {
 					return e
 				}
-				view := methodJSON(a)
+				view := methodJSON(publicPhone(r, a))
 				delete(view, "confirmed")
 				delete(view, "last_auth_at")
 				list = append(list, view)
@@ -220,7 +222,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 			if e = repo.UpdateAuthenticator(r.Context(), a); e != nil {
 				return e
 			}
-			view := methodJSON(*a)
+			view := methodJSON(publicPhone(r, *a))
 			for _, key := range []string{"credential_device_type", "credential_backed_up", "identity_user_id", "user_agent", "user_handle", "transports", "last_auth_at"} {
 				delete(view, key)
 			}
@@ -327,7 +329,7 @@ func (h *Handlers) guardianEnrollment(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 	if !remove {
-		writeJSON(w, 200, enrollmentJSON(*a))
+		writeJSON(w, 200, enrollmentJSON(publicPhone(r, *a)))
 		return
 	}
 	var u *store.User
@@ -348,4 +350,11 @@ func (h *Handlers) guardianEnrollment(w http.ResponseWriter, r *http.Request, id
 	h.domainEvent(r, "gd_unenroll", u, nil, nil)
 	logDetails(r, "delete Guardian enrollment", "user_id", a.UserID)
 	w.WriteHeader(204)
+}
+
+func publicPhone(r *http.Request, a store.Authenticator) store.Authenticator {
+	if !tenantrules.PhoneSettingsOf(resolved(r)).DisableSMSObfuscation && a.Phone != "" {
+		a.Phone = phone.Mask(a.Phone)
+	}
+	return a
 }

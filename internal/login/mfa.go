@@ -15,18 +15,20 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
 )
 
 // Only IDs, control flags and send time are retained in the bound envelope.
 // Recovery codes are returned directly from the service to one response.
 type mfaPageState struct {
-	Factor, AuthenticatorID, ChallengeID      string
-	SentAt                                    time.Time
-	Proven, RecoveryPending, Remember, Manual bool
+	Factor, AuthenticatorID, ChallengeID, Method string
+	SentAt                                       time.Time
+	Proven, RecoveryPending, Remember, Manual    bool
 }
 type mfaFlow struct {
 	*flow
@@ -119,6 +121,14 @@ func mfaURL(f *mfaFlow, path string) string {
 }
 func mfaPath(f *mfaFlow) string {
 	switch f.page.Factor {
+	case "phone":
+		if f.page.ChallengeID == "" {
+			return "/u/mfa-phone-enrollment"
+		}
+		if f.page.Method == "voice" {
+			return "/u/mfa-voice-challenge"
+		}
+		return "/u/mfa-sms-challenge"
 	case "otp":
 		if f.pending.Requirement.Enroll {
 			return "/u/mfa-otp-enrollment"
@@ -136,6 +146,14 @@ func mfaPage(f *mfaFlow) string {
 		return "mfa_recovery_enroll"
 	}
 	switch f.page.Factor {
+	case "phone":
+		if f.page.ChallengeID == "" {
+			return "mfa_phone_enroll"
+		}
+		if f.page.Method == "voice" {
+			return "mfa_voice_challenge"
+		}
+		return "mfa_sms_challenge"
 	case "otp":
 		if f.pending.Requirement.Enroll {
 			if f.page.Manual {
@@ -161,6 +179,28 @@ func (h *Handlers) renderMFA(w http.ResponseWriter, r *http.Request, status int,
 		return
 	}
 	d := ui.MFAData{RedirectURI: f.txn.Params["redirect_uri"], State: f.txn.ID, CSRF: f.txn.CSRFToken, Revision: f.txn.HostedState.Revision, Action: mfaPath(f), Error: message, RecoveryCode: recovery, AllowRemember: f.pending.Requirement.AllowRemember, CodeScreen: f.page.Manual, Recovery: f.page.Factor == "recovery-code"}
+	if f.page.Factor == "phone" {
+		methods, err := h.MFA.PhoneMethods(r.Context(), f.res.Tenant.ID)
+		if err != nil {
+			h.fail(w, r, err, f.flow)
+			return
+		}
+		for _, country := range phone.Countries() {
+			if tenantrules.PhoneSettingsOf(f.res.Tenant).CountryAllowed(country) {
+				d.PhoneCountries = append(d.PhoneCountries, country)
+			}
+		}
+		d.PhoneMethod = f.page.Method
+		d.PhoneMethods = methods
+		d.PhoneEnroll = f.page.ChallengeID == ""
+		d.SwitchPhone = len(methods) > 1
+		if f.page.AuthenticatorID != "" {
+			a, e := h.Store.MFA().GetAuthenticator(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID)
+			if e == nil {
+				d.PhoneNumber = phone.Mask(a.Phone)
+			}
+		}
+	}
 	if f.page.RecoveryPending {
 		d.Action = "/u/mfa-recovery-code-enrollment"
 		d.AllowRemember = false
@@ -170,7 +210,11 @@ func (h *Handlers) renderMFA(w http.ResponseWriter, r *http.Request, status int,
 			if f.pending.Requirement.Enroll && factor == "recovery-code" {
 				continue
 			}
-			d.Options = append(d.Options, ui.MFAOption{Factor: factor, Label: f.view.L.T(prompt + "." + screen + "." + factor + "Text")})
+			label := f.view.L.T(prompt + "." + screen + "." + factor + "Text")
+			if factor == "phone" {
+				label = f.view.L.T(i18n.KeyPhoneFactor)
+			}
+			d.Options = append(d.Options, ui.MFAOption{Factor: factor, Label: label})
 		}
 	}
 	if f.page.Factor != "" && !f.page.RecoveryPending {
@@ -190,7 +234,7 @@ func (h *Handlers) renderMFA(w http.ResponseWriter, r *http.Request, status int,
 	ui.RenderMFA(w, status, f.view, page, d)
 }
 func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfaFlow, factor string) bool {
-	if !slices.Contains(f.pending.Requirement.Factors, factor) || factor != "otp" && factor != "email" && factor != "recovery-code" || f.pending.Requirement.Enroll && factor == "recovery-code" {
+	if !slices.Contains(f.pending.Requirement.Factors, factor) || factor != "otp" && factor != "email" && factor != "phone" && factor != "recovery-code" || f.pending.Requirement.Enroll && factor == "recovery-code" {
 		h.fail(w, r, errTxn, f.flow)
 		return false
 	}
@@ -198,7 +242,7 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 		h.fail(w, r, errTxn, f.flow)
 		return false
 	}
-	if f.page.Factor == factor && f.page.ChallengeID != "" {
+	if f.page.Factor == factor && (f.page.ChallengeID != "" || factor == "phone" && f.pending.Requirement.Enroll) {
 		return true
 	}
 	// Claim the revision before sending an email or creating a method.
@@ -207,6 +251,9 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 		return false
 	}
 	f.page = mfaPageState{Factor: factor, SentAt: h.now()}
+	if factor == "phone" && f.pending.Requirement.PhonePreferredMethod != "both" {
+		f.page.Method = f.pending.Requirement.PhonePreferredMethod
+	}
 	var err error
 	if factor != "recovery-code" {
 		if f.pending.Requirement.Enroll {
@@ -214,6 +261,13 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 			svc := h.MFA
 			if f.pending.Requirement.Reason == "action" {
 				svc = svc.WithNewFactorEnrollment()
+			}
+			if factor == "phone" {
+				if err = h.saveMFAPage(r, f, "mfa-page"); err != nil {
+					h.fail(w, r, errTxn, f.flow)
+					return false
+				}
+				return true
 			}
 			e, err = svc.BeginEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, factor, r.Host)
 			if err == nil {
@@ -249,9 +303,14 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 					err = mfa.ErrNoFactor
 				} else {
 					var c *mfa.Challenge
-					c, err = h.MFA.BeginChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, r.Host)
+					if factor == "phone" && f.page.Method != "" {
+						c, err = h.MFA.BeginPhoneChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, f.page.Method)
+					} else {
+						c, err = h.MFA.BeginChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, r.Host)
+					}
 					if err == nil {
 						f.page.ChallengeID = c.ID
+						f.page.Method = c.Method
 					}
 				}
 			}
@@ -316,6 +375,8 @@ func (h *Handlers) MFAPage(w http.ResponseWriter, r *http.Request) {
 		if !f.pending.Requirement.Enroll {
 			factor = "otp"
 		}
+	case "/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge":
+		factor = "phone"
 	case "/u/mfa-email-challenge":
 		factor = "email"
 	case "/u/mfa-recovery-code-challenge":
@@ -394,8 +455,77 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 		h.renderMFA(w, r, 200, f, "", "")
 		return
 	}
+	if f.page.Factor == "phone" && f.page.ChallengeID == "" {
+		if err := h.saveMFAPage(r, f, "mfa-busy"); err != nil {
+			h.fail(w, r, errTxn, f.flow)
+			return
+		}
+		method := r.PostForm.Get("method")
+		if method == "" {
+			method = f.page.Method
+		}
+		if method == "" {
+			method = "sms"
+		}
+		svc := h.MFA
+		if f.pending.Requirement.Reason == "action" {
+			svc = svc.WithNewFactorEnrollment()
+		}
+		number := r.PostForm.Get("phone_number")
+		if country := r.PostForm.Get("country"); country != "" {
+			if n, e := phone.NormalizeE164(number, country); e == nil {
+				number = n
+			}
+		}
+		e, err := svc.BeginPhoneEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, number, method)
+		if err != nil {
+			_ = h.saveMFAPage(r, f, "mfa-page")
+			h.renderMFA(w, r, 400, f, "", f.view.L.T(i18n.KeyPhoneUnableEnroll))
+			return
+		}
+		f.page.AuthenticatorID = e.AuthenticatorID
+		f.page.ChallengeID = e.ChallengeID
+		f.page.Method = method
+		f.page.SentAt = h.now()
+		if err = h.saveMFAPage(r, f, "mfa-page"); err != nil {
+			h.fail(w, r, errTxn, f.flow)
+			return
+		}
+		http.Redirect(w, r, mfaURL(f, mfaPath(f)), 303)
+		return
+	}
+	if f.page.Factor == "phone" && r.PostForm.Get("action") == "switch" {
+		methods, err := h.MFA.PhoneMethods(r.Context(), f.res.Tenant.ID)
+		if err != nil || len(methods) < 2 {
+			h.renderMFA(w, r, 400, f, "", f.view.L.T(i18n.KeyPhoneMethodUnavailable))
+			return
+		}
+		method := "voice"
+		if f.page.Method == "voice" {
+			method = "sms"
+		}
+		if err = h.saveMFAPage(r, f, "mfa-busy"); err != nil {
+			h.fail(w, r, errTxn, f.flow)
+			return
+		}
+		c, err := h.MFA.BeginPhoneChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, method)
+		if err != nil {
+			_ = h.saveMFAPage(r, f, "mfa-page")
+			h.renderMFA(w, r, 429, f, "", f.view.L.T(i18n.KeyPhoneUnableSend))
+			return
+		}
+		f.page.Method = c.Method
+		f.page.ChallengeID = c.ID
+		f.page.SentAt = h.now()
+		if err = h.saveMFAPage(r, f, "mfa-page"); err != nil {
+			h.fail(w, r, errTxn, f.flow)
+			return
+		}
+		http.Redirect(w, r, mfaURL(f, mfaPath(f)), 303)
+		return
+	}
 	if r.PostForm.Get("action") == "resend" {
-		if f.page.Factor != "email" {
+		if f.page.Factor != "email" && f.page.Factor != "phone" {
 			h.fail(w, r, errTxn, f.flow)
 			return
 		}
@@ -407,7 +537,13 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, r, errTxn, f.flow)
 			return
 		}
-		c, err := h.MFA.BeginChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, r.Host)
+		var c *mfa.Challenge
+		var err error
+		if f.page.Factor == "phone" {
+			c, err = h.MFA.BeginPhoneChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, f.page.Method)
+		} else {
+			c, err = h.MFA.BeginChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.AuthenticatorID, r.Host)
+		}
 		if err != nil {
 			_ = h.saveMFAPage(r, f, "mfa-page")
 			h.renderMFA(w, r, 429, f, "", f.view.L.T(prompt+"."+screen+".tooManyAttempts"))
@@ -419,7 +555,7 @@ func (h *Handlers) MFASubmit(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, r, errTxn, f.flow)
 			return
 		}
-		if f.pending.Requirement.Enroll {
+		if f.pending.Requirement.Enroll && f.page.Factor == "email" {
 			u, _ := h.Store.Users().Get(r.Context(), f.res.Tenant.ID, f.pending.UserID)
 			h.event(r, f.flow, "gd_send_email_verification", u)
 		}

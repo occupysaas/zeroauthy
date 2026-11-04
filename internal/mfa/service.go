@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -28,7 +29,7 @@ var (
 // Enrollment contains one-time TOTP display values. Callers must retain only
 // AuthenticatorID and ChallengeID in sealed transaction state, never Secret/URI.
 type Enrollment struct{ Factor, AuthenticatorID, Secret, URI, ChallengeID string }
-type Challenge struct{ ID, Factor, AuthenticatorID string }
+type Challenge struct{ ID, Factor, AuthenticatorID, Method string }
 type Proof struct{ Code string }
 type Confirmed struct{ AuthenticatorID, RecoveryCode string }
 type EmailSender interface {
@@ -46,6 +47,9 @@ type Service struct {
 	now           func() time.Time
 	proofCommit   func(store.Store) error
 	newFactorOnly bool
+	// Phone delivers SMS and voice codes; *phone.Dispatcher implements it.
+	// Nil means the phone factor never works and is never offered.
+	Phone PhoneSender
 	// pendingRecovery is the hash of a recovery code already displayed at
 	// association; it is persisted only when the enrollment is confirmed.
 	pendingRecovery string
@@ -86,7 +90,7 @@ func factorType(factor string) string {
 	if factor == "otp" || factor == "totp" {
 		return "totp"
 	}
-	if factor == "email" {
+	if factor == "email" || factor == "phone" {
 		return factor
 	}
 	return ""
@@ -97,12 +101,21 @@ func factorName(typ string) string {
 	}
 	return typ
 }
+
+// guardianFactor is the Guardian factor toggle that enables a method type:
+// phone methods (sms or voice delivery) are enabled by the "sms" factor.
+func guardianFactor(typ string) string {
+	if typ == "phone" {
+		return "sms"
+	}
+	return factorName(typ)
+}
 func enabled(ctx context.Context, st store.Store, tid, typ string) error {
 	g, err := st.MFA().GetGuardian(ctx, tid)
 	if err != nil {
 		return err
 	}
-	if !g.Factors[factorName(typ)] {
+	if !g.Factors[guardianFactor(typ)] {
 		return ErrNoFactor
 	}
 	return nil
@@ -113,24 +126,32 @@ func totpAAD(tid, uid, id string) []byte {
 }
 func (s *Service) BeginEnroll(ctx context.Context, tid, uid, factor, rpID string) (out *Enrollment, err error) {
 	ctx = s.operationContext(ctx)
-	defer func() {
-		if err != nil {
-			s.emit(ctx, tid, uid, "gd_start_enroll_failed")
-		}
-	}()
 	typ := factorType(factor)
-	if typ == "" {
+	if typ == "" || typ == "phone" {
+		// Phone enrollment needs a number and a method: BeginPhoneEnroll.
 		return nil, ErrNoFactor
 	}
 	if err = enabled(ctx, s.st, tid, typ); err != nil {
 		return nil, err
 	}
+	return s.beginEnroll(ctx, tid, uid, &store.Authenticator{TenantID: tid, UserID: uid, ID: NewMethodID(typ), Type: typ, LastStep: -1, CreatedAt: s.now()}, "")
+}
+
+// beginEnroll creates the pending method a and sends its first challenge
+// (method is the phone delivery method). The caller emits nothing; this
+// emits gd_start_enroll or gd_start_enroll_failed.
+func (s *Service) beginEnroll(ctx context.Context, tid, uid string, a *store.Authenticator, method string) (out *Enrollment, err error) {
+	defer func() {
+		if err != nil {
+			s.emit(ctx, tid, uid, "gd_start_enroll_failed")
+		}
+	}()
+	typ := a.Type
 	user, err := s.st.Users().Get(ctx, tid, uid)
 	if err != nil {
 		return nil, err
 	}
-	a := &store.Authenticator{TenantID: tid, UserID: uid, ID: NewMethodID(typ), Type: typ, LastStep: -1, CreatedAt: s.now()}
-	if typ == "totp" {
+	if typ == "totp" || typ == "phone" {
 		a.CodeHash = s.pendingRecovery
 	}
 	e := &Enrollment{Factor: factorName(typ), AuthenticatorID: a.ID}
@@ -186,7 +207,7 @@ func (s *Service) BeginEnroll(ctx context.Context, tid, uid, factor, rpID string
 	if err != nil {
 		return nil, err
 	}
-	c, err := s.beginChallenge(ctx, tid, uid, a)
+	c, err := s.beginChallenge(ctx, tid, uid, a, method)
 	if err != nil {
 		_ = s.st.MFA().DeleteAuthenticator(ctx, tid, uid, a.ID)
 		return nil, err
@@ -207,7 +228,7 @@ func (s *Service) BeginChallenge(ctx context.Context, tid, uid, id, rpID string)
 	if err = enabled(ctx, s.st, tid, a.Type); err != nil {
 		return nil, err
 	}
-	c, err := s.beginChallenge(ctx, tid, uid, a)
+	c, err := s.beginChallenge(ctx, tid, uid, a, "")
 	if err == nil {
 		s.emit(ctx, tid, uid, "gd_start_auth")
 	}
@@ -230,9 +251,12 @@ func (s *Service) RenewTOTPChallenge(ctx context.Context, tid, uid, id string) (
 	if err = enabled(ctx, s.st, tid, a.Type); err != nil {
 		return nil, err
 	}
-	return s.beginChallenge(ctx, tid, uid, a)
+	return s.beginChallenge(ctx, tid, uid, a, "")
 }
-func (s *Service) beginChallenge(ctx context.Context, tid, uid string, a *store.Authenticator) (*Challenge, error) {
+
+// beginChallenge stores a new challenge for a and delivers its code. method
+// selects phone delivery (sms|voice; empty uses the method's preference).
+func (s *Service) beginChallenge(ctx context.Context, tid, uid string, a *store.Authenticator, method string) (*Challenge, error) {
 	now := s.now()
 	c := &Challenge{ID: secrets.RandomString(32), Factor: factorName(a.Type), AuthenticatorID: a.ID}
 	ctx = s.operationContext(ctx, c.ID)
@@ -248,11 +272,26 @@ func (s *Service) beginChallenge(ctx context.Context, tid, uid string, a *store.
 		code = NewEmailCode()
 		saved.CodeHash = secrets.HashToken(code)
 	}
+	if a.Type == "phone" {
+		var err error
+		if c.Method, err = s.preparePhone(ctx, tid, uid, a, method, now); err != nil {
+			return nil, err
+		}
+		code = NewEmailCode()
+		saved.CodeHash = secrets.HashToken(code)
+		ctx = s.operationContext(ctx, phone.CodeForms(code)...)
+	}
 	if err := s.st.MFA().CreateChallenge(ctx, saved); err != nil {
 		return nil, err
 	}
-	if a.Type == "email" {
+	switch a.Type {
+	case "email":
 		if err := s.sendEmail(ctx, tid, uid, code); err != nil {
+			_ = s.st.MFA().ConsumeChallenge(ctx, tid, saved.ID, now)
+			return nil, err
+		}
+	case "phone":
+		if err := s.sendPhone(ctx, tid, uid, a, c.Method, code); err != nil {
 			_ = s.st.MFA().ConsumeChallenge(ctx, tid, saved.ID, now)
 			return nil, err
 		}
@@ -406,11 +445,15 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 				return e
 			}
 			valid = len(proof.Code) == 6 && subtle.ConstantTimeCompare([]byte(ch.CodeHash), []byte(secrets.HashToken(proof.Code))) == 1 && ch.Attempts < 5
+		case "phone":
+			// The code was delivered to the method's number; a provider switch
+			// since the send does not affect it.
+			valid = current.Phone != "" && len(proof.Code) == 6 && subtle.ConstantTimeCompare([]byte(ch.CodeHash), []byte(secrets.HashToken(proof.Code))) == 1 && ch.Attempts < 5
 		}
 		if !valid {
 			outcome = "failure"
 			proofErr = ErrInvalidCode
-			if current.Type == "email" {
+			if current.Type == "email" || current.Type == "phone" {
 				_, e = tx.MFA().FailChallenge(ctx, tid, ch.ID)
 				if e != nil && !errors.Is(e, store.ErrPrecondition) {
 					return e
@@ -442,7 +485,7 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 					break
 				}
 			}
-			if !hasRecovery && current.Type == "totp" && current.CodeHash != "" {
+			if !hasRecovery && (current.Type == "totp" || current.Type == "phone") && current.CodeHash != "" {
 				// The code was displayed at association; persist it now.
 				if e = tx.MFA().ReplaceRecoveryCode(ctx, tid, uid, "", current.CodeHash, s.now()); e != nil {
 					return e

@@ -85,8 +85,8 @@ required proofs count at most once per attempt. Success does not erase history;
 normal reset-email requests, infrastructure outages and already-throttled
 requests do not add risk. This deterministic rule differs from Auth0's
 proprietary classifier. Policies support never/always/when_risky, monitoring
-and allowlists; passwordless and custom-token-exchange stages remain inert
-until Plans 34/35.
+and allowlists; custom-token-exchange stages remain inert
+until Plan 35.
 
 Supported verifiers/widgets: reCAPTCHA v2, reCAPTCHA Enterprise (API-key
 assessments), hCaptcha and Friendly Captcha v1. Arkose, Auth Challenge and
@@ -158,3 +158,14 @@ window, retention and the complete code inventory. Recording is asynchronous
 and can drop events under queue/storage pressure, so absent log evidence is
 not proof that an enforcement decision did not occur. Logs do not change
 protection enforcement, counter reservations or notification availability.
+
+## Phone-provider protection
+
+`GET` and `PATCH /api/v2/attack-protection/phone-provider-protection` expose
+`type: default` or `type: exponential`. The latter adds send backoff to the
+existing IP, identifier and per-user budgets. Limits are enforced before
+provider delivery across passwordless, signup and MFA phone sends. A provider
+failure does not trigger an alternate route or disclose credentials. Tenant
+configuration can be provisioned alongside the existing attack-protection
+settings. Review [phone-provider routing](phone-providers.md) when diagnosing
+throttled or unsupported voice requests.

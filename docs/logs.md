@@ -325,7 +325,8 @@ semantics before enabling a code.
 The runtime and administration emitters below are implemented. The acceptance
 record distinguishes code coverage from the final regression matrix. `fertft`
 remains the existing Plan 31 refresh-token emitter. WebAuthn remains Plan 33b,
-phone/SMS/voice remains Plan 34, and Guardian push delivery is not planned.
+phone/SMS/voice delivery uses the Plan 34 routes described below; Guardian
+push delivery is not planned.
 
 | Code | Meaning | Source owner |
 | --- | --- | --- |
@@ -468,3 +469,33 @@ enterprise-connection changes in the business transaction, then deliver them to
 an HTTPS webhook or `event-stream` Action. Their failed-delivery records and SSE
 Events API live under `/event-streams` and `/events`. Action destinations retain
 execution IDs and masked diagnostics in the existing Actions logs.
+
+## Passwordless and phone events
+
+Phone sends use `gd_send_sms` / `gd_send_voice` and their `_failure` variants.
+Passwordless code/link sends use `cs` / `cls`; OTP grant refusals use
+`fepotpft`. Send throttling uses `limit_phone`, signup OTP budgets use
+`limit_signup_otp`, and Guardian configuration writes use
+`gd_phone_settings_update`.
+Events distinguish send, delivery failure, throttling, configuration changes
+and challenge outcomes. Phone recipients are masked; codes, spoken codes,
+provider credentials and magic-link tokens are excluded from event details,
+Action records and provider error responses. Use the event ID and provider
+error class to correlate failures. See [phone providers](phone-providers.md).
+
+## Passwordless and phone emission ownership
+
+Plan 34 emits `cs`/`cls` after passwordless code/link delivery and `fepotpft`
+on refused OTP grants. MFA phone sends emit `gd_send_sms` or `gd_send_voice`,
+with corresponding `_failure` codes on delivery failure; Guardian phone/SMS
+configuration writes emit `gd_phone_settings_update`. Phone send budgets
+emit `limit_phone`; signup verification send exhaustion emits
+`limit_signup_otp`. Management phone changes emit `scpn`/`fcpn`.
+
+The log inventory records the owning functions; `TestPlan34LogCodes` now
+checks emission status and those mappings without a deferred skip. This
+catalog check supplements the Task 16 production acceptance and secret scans;
+it does not by itself prove every runtime delivery or sink was exercised.
+Phone numbers in events/logs are masked, and phone codes, spoken code forms,
+magic links and provider credentials are secret material. Management API
+obfuscation settings do not permit full numbers in tenant event/log sinks.

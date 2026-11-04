@@ -11,12 +11,15 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/loginid"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -38,7 +41,7 @@ var errResetUnusable = errors.New("login: reset ticket is not usable")
 
 func (h *Handlers) resetRequestData(f *flow, email string) ui.ResetRequestData {
 	return ui.ResetRequestData{
-		State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: email,
+		PhoneEnabled: store.PhoneIdentifierActive(f.conn), State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: email,
 		LoginURL:    "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
 		RedirectURI: f.txn.Params["redirect_uri"],
 	}
@@ -84,6 +87,68 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 		data := h.resetRequestData(f, r.PostForm.Get("email"))
 		data.Error = f.view.L.T(key)
 		ui.RenderResetRequest(w, status, f.view, data)
+		return
+	}
+	emailCodes := r.PostForm.Get("phone_number") == "" && h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "reset_email_by_code")
+	if store.PhoneIdentifierActive(f.conn) && r.PostForm.Get("phone_number") != "" || emailCodes {
+		number, e := phone.NormalizeE164(r.PostForm.Get("phone_number"), "")
+		if emailCodes {
+			number = loginid.Normalize(r.PostForm.Get("email"))
+			e = nil
+			if !loginid.ValidEmail(number) {
+				e = errors.New("invalid email")
+			}
+		}
+		data := h.resetRequestData(f, "")
+		if emailCodes {
+			data.Email = number
+		} else {
+			data.PhoneNumber = number
+		}
+		data.CodeEntry = true
+		if e != nil {
+			data.Error = f.view.L.T(i18n.KeyPhoneInvalidNumber)
+			ui.RenderResetRequest(w, 400, f.view, data)
+			return
+		}
+		code := r.PostForm.Get("phone_code")
+		if emailCodes {
+			code = r.PostForm.Get("email_code")
+		}
+		if code != "" {
+			raw, e := h.consumeIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, number, "reset", code)
+			if e != nil {
+				data.Error = f.view.L.T(i18n.KeyPhoneInvalidCode)
+				ui.RenderResetRequest(w, 400, f.view, data)
+				return
+			}
+			http.Redirect(w, r, dbconn.ResetLink(f.res.Issuer(), raw), 303)
+			return
+		}
+		var matches []store.User
+		if emailCodes {
+			u, x := h.Resets.FindByEmail(r.Context(), f.conn, number)
+			e = x
+			if x == nil {
+				matches = []store.User{*u}
+			}
+		} else {
+			matches, e = h.Store.Phone().FindUsersByPhone(r.Context(), f.res.Tenant.ID, f.conn.Name, number)
+		}
+		if errors.Is(e, store.ErrPhoneUnavailable) {
+			h.fail(w, r, e, f)
+			return
+		}
+		if e == nil && len(matches) == 1 && !matches[0].Blocked {
+			raw, x := dbconn.IssueResetTicket(r.Context(), h.Store, store.PasswordResetTicket{TenantID: f.res.Tenant.ID, UserID: matches[0].UserID, Connection: f.conn.Name, ClientID: f.txn.ClientID, Lang: f.view.L.Lang(), Origin: f.res.Origin(), OrganizationID: f.txn.Params[store.TxnParamOrgID]}, 43, h.now(), 5*time.Minute)
+			if x == nil {
+				if e := h.sendIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, number, "reset", raw); errors.Is(e, store.ErrPhoneUnavailable) {
+					h.fail(w, r, e, f)
+					return
+				}
+			}
+		}
+		ui.RenderResetRequest(w, 200, f.view, data)
 		return
 	}
 	ctx := r.Context()

@@ -110,6 +110,11 @@ type Spec struct {
 	FederationSecretsSealed []byte `json:"-" yaml:"-"`
 	FederationRevision      int64  `json:"-" yaml:"-"`
 	FederationIssuer        string `json:"-" yaml:"-"`
+
+	// StoredSecrets names the passwordless credentials already sealed
+	// (SecretTwilioToken, SecretGatewaySecret), so an update need not resend
+	// them. Never part of the wire form.
+	StoredSecrets map[string]bool `json:"-" yaml:"-"`
 }
 
 // Federated reports whether s uses a federated strategy (Plan 24).
@@ -268,6 +273,10 @@ func CreateDefaults(s *Spec) {
 	if s.Options.Extra == nil {
 		s.Options.Extra = map[string]any{}
 	}
+	if s.Passwordless() {
+		passwordlessDefaults(s)
+		return
+	}
 	if s.Federated() {
 		// Database defaults (mfa, passwords, passkeys) stay off federated
 		// connections; only the shared purpose objects apply.
@@ -326,9 +335,10 @@ func normalize(s *Spec, api bool) []error {
 	if s.Strategy == "" && !api {
 		s.Strategy = store.StrategyDatabase
 	}
-	if s.Strategy != store.StrategyDatabase && !s.Federated() {
-		fail("strategy %q is not supported (only %q, %q, %q, %q, %q or %q)", s.Strategy,
-			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD)
+	if s.Strategy != store.StrategyDatabase && !s.Federated() && !s.Passwordless() {
+		fail("strategy %q is not supported (only %q, %q, %q, %q, %q, %q, %q or %q)", s.Strategy,
+			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD,
+			StrategyEmail, StrategySMS)
 	}
 	for _, r := range s.Realms {
 		if r == "" {
@@ -348,6 +358,13 @@ func normalize(s *Spec, api bool) []error {
 	}
 
 	o := &s.Options
+	if s.Passwordless() {
+		errs = append(errs, normalizePasswordless(s)...)
+		if api && o.Extra == nil {
+			o.Extra = map[string]any{}
+		}
+		return errs
+	}
 	if s.Federated() {
 		errs = append(errs, normalizeFederated(s)...)
 		if api && o.Extra == nil {
@@ -377,6 +394,7 @@ func normalize(s *Spec, api bool) []error {
 	}
 
 	errs = append(errs, normalizeExtra(o)...)
+	errs = append(errs, normalizePhoneAttributes(o)...)
 	errs = append(errs, normalizeCustomDB(o, api)...)
 
 	if api && o.Extra == nil {
@@ -408,6 +426,7 @@ func normalizeFederated(s *Spec) []error {
 		}
 	}
 	errs = append(errs, normalizeExtra(o)...)
+	errs = append(errs, normalizePhoneAttributes(o)...)
 	_, ruleErrs := rules.Parse(s.FederationInput())
 	return append(errs, ruleErrs...)
 }
@@ -648,6 +667,9 @@ func FromConnection(c *store.Connection) *Spec {
 	if s.Federated() {
 		// Database options have no meaning on federated connections.
 		s.Options.PasswordOptions, s.Options.BruteForceProtection, s.Options.Validation = nil, nil, nil
+	}
+	if s.Passwordless() {
+		s.Options.PasswordOptions, s.Options.Validation = nil, nil
 	}
 	return s
 }

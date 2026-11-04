@@ -733,7 +733,7 @@ func (p Importer) insert(ctx context.Context, tx store.Store, conn *store.Connec
 	now := p.now()
 	u := &store.User{
 		TenantID: conn.TenantID, UserID: userID, Email: f.email, EmailVerified: deref(f.emailVerified), Username: f.username,
-		GivenName: f.givenName, FamilyName: f.familyName, Picture: f.picture, PhoneNumber: f.phone, PhoneVerified: deref(f.phoneVerified),
+		GivenName: f.givenName, FamilyName: f.familyName, Picture: f.picture, PhoneNumber: f.phone, PhoneNormalized: userrules.NormalizePhone(f.phone), PhoneVerified: deref(f.phoneVerified),
 		Blocked: deref(f.blocked), UserMetadata: f.userMetadata, AppMetadata: f.appMetadata,
 		Identities: []store.Identity{ident}, CreatedAt: now, UpdatedAt: now,
 	}

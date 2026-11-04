@@ -1,6 +1,7 @@
 package login
 
 import (
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"maps"
 	"net/http"
 
@@ -115,6 +116,9 @@ func (h *Handlers) renderIdentifier(w http.ResponseWriter, r *http.Request, stat
 	ui.RenderLoginIdentifier(w, status, f.view, data)
 }
 func (h *Handlers) renderSignup(w http.ResponseWriter, r *http.Request, status int, f *flow, data ui.SignupData) {
+	data.EmailCodeEnabled = h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "verify_email_by_code")
+	data.PhoneEnabled = store.PhoneIdentifierActive(f.conn) && store.PhoneSignupStatus(f.conn) != "not_allowed"
+	data.PhoneNumber = r.PostForm.Get("phone_number")
 	if !h.prepareHostedForm(w, r, f, "signup", "signup") {
 		return
 	}

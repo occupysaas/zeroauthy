@@ -269,6 +269,11 @@ func (a mgmtAPI) CreateUserRecoveryCode(w http.ResponseWriter, r *http.Request, 
 // MFA endpoints require both the signed token scope and the currently persisted
 // client grant, so revocation applies immediately to enrollment management.
 func (a mgmtAPI) mfaScoped(w http.ResponseWriter, r *http.Request, fn http.HandlerFunc, scopes ...string) {
+	a.liveScoped(w, r, fn, scopes...)
+}
+
+// liveScoped is mfaScoped's shared form (MFA and phone routes).
+func (a mgmtAPI) liveScoped(w http.ResponseWriter, r *http.Request, fn http.HandlerFunc, scopes ...string) {
 	caller, ok := mgmt.CallerFrom(r.Context())
 	if ok && caller.Kind == mgmt.M2M {
 		res, _ := tenant.FromContext(r.Context())

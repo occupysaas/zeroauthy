@@ -15,6 +15,9 @@ type users struct{ s *Store }
 func (r users) Create(_ context.Context, u *store.User) error {
 	r.s.lock()
 	defer r.s.unlock()
+	if err := r.checkPhone(u); err != nil {
+		return err
+	}
 	k := key{u.TenantID, u.UserID}
 	if _, ok := r.s.users[k]; ok || r.loginTaken(u) {
 		return store.ErrConflict
@@ -69,6 +72,9 @@ func (r users) FindByLogin(_ context.Context, tenantID, connection, login string
 func (r users) Update(_ context.Context, u *store.User) error {
 	r.s.lock()
 	defer r.s.unlock()
+	if err := r.checkPhone(u); err != nil {
+		return err
+	}
 	k := key{u.TenantID, u.UserID}
 	if _, ok := r.s.users[k]; !ok {
 		return store.ErrNotFound

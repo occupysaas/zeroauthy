@@ -18,11 +18,15 @@ const { api } = useServices()
 const FIELDS = ['name', 'given_name', 'family_name', 'nickname', 'picture'] as const
 type Field_ = (typeof FIELDS)[number]
 const form = reactive<Record<Field_, string>>({ name: '', given_name: '', family_name: '', nickname: '', picture: '' })
+const phone = ref('')
+const phoneVerified = ref(false)
 const error = ref('')
 const status = ref('')
 const busy = ref(false)
 
 function reset() {
+  phone.value = props.user.phone_number ?? ''
+  phoneVerified.value = props.user.phone_verified ?? false
   for (const f of FIELDS) form[f] = props.user[f] ?? ''
 }
 watch(() => props.user, reset, { immediate: true })
@@ -30,6 +34,8 @@ watch(() => props.user, reset, { immediate: true })
 async function save() {
   const body: UserUpdate = {}
   for (const f of FIELDS) if (form[f] !== (props.user[f] ?? '')) body[f] = form[f]
+  if (phone.value !== (props.user.phone_number ?? '')) { body.phone_number = phone.value; body.phone_verified = false }
+  else if (phoneVerified.value !== (props.user.phone_verified ?? false)) body.phone_verified = phoneVerified.value
   error.value = ''
   status.value = ''
   if (Object.keys(body).length === 0) {
@@ -68,13 +74,16 @@ async function save() {
       <dd class="m-0">{{ user.logins_count ?? 0 }}</dd>
       <dt class="muted">{{ t('userd.phone') }}</dt>
       <dd class="m-0" data-testid="phone">
-        <template v-if="user.phone_number">{{ user.phone_number }} <span class="muted">({{ t('userd.phoneStored') }})</span></template>
+        <template v-if="user.phone_number">{{ user.phone_number }} <span class="muted">({{ user.phone_verified ? t('userd.verified') : t('userd.unverified') }})</span></template>
         <span v-else class="muted">{{ t('userd.none') }}</span>
       </dd>
     </dl>
 
     <form id="user-profile" class="stack card" novalidate @submit.prevent="save">
       <Banner v-if="error" kind="error">{{ error }}</Banner>
+      <Field id="user-phone" :label="t('userd.phone')"><input id="user-phone" v-model="phone" type="tel" autocomplete="off" /></Field>
+      <label><input v-model="phoneVerified" type="checkbox" :disabled="phone !== (user.phone_number ?? '')" /> {{ t('phone.verified') }}</label>
+      <p class="muted">{{ t('phone.phoneChangeHint') }}</p>
       <Field id="user-name" :label="t('userd.name')"><input id="user-name" v-model="form.name" type="text" autocomplete="off" /></Field>
       <Field id="user-given_name" :label="t('userd.givenName')"><input id="user-given_name" v-model="form.given_name" type="text" autocomplete="off" /></Field>
       <Field id="user-family_name" :label="t('userd.familyName')"><input id="user-family_name" v-model="form.family_name" type="text" autocomplete="off" /></Field>

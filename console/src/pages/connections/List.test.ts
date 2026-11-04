@@ -22,7 +22,7 @@ describe('connections list', () => {
   it('shows a page with strategy and the enabled-application count, and pages', async () => {
     const all = Array.from({ length: 25 }, (_, i) => connection('c' + i))
     const { wrapper, router, calls } = await mountAt(List, '/t/acme/connections', backend(all))
-    expect(calls[0]!.url).toBe('https://acme.example.test/api/v2/connections?page=0&per_page=20&include_totals=true')
+    expect(calls[0]!.url).toBe('https://acme.example.test/api/v2/connections?fields=id%2Cname%2Cstrategy%2Cis_domain_connection&page=0&per_page=20&include_fields=true&include_totals=true')
     expect(wrapper.findAll('tbody tr')).toHaveLength(20)
     expect(wrapper.findAll('tbody tr')[0]!.text()).toContain('Database')
     expect(wrapper.find('[data-testid="count-c0"]').text()).toBe('2')

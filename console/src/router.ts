@@ -1,3 +1,7 @@
+import PhoneProviders from './pages/branding/PhoneProviders.vue'
+import PhoneTemplates from './pages/branding/PhoneTemplates.vue'
+import PasswordlessEmail from './pages/connections/PasswordlessEmail.vue'
+import PasswordlessSMS from './pages/connections/PasswordlessSMS.vue'
 import EventStreamsList from './pages/event-streams/StreamsList.vue'
 import EventStreamEdit from './pages/event-streams/StreamEdit.vue'
 import EventDeliveries from './pages/event-streams/Deliveries.vue'
@@ -73,6 +77,10 @@ declare module 'vue-router' {
 // A section's create and edit forms are child routes of its list: they open
 // as modals over the list, so the sidebar keeps its place.
 export const routes: RouteRecordRaw[] = [
+  { path: '/t/:tenant/phone-providers', name: 'phone-providers', component: PhoneProviders },
+  { path: '/t/:tenant/phone-templates', name: 'phone-templates', component: PhoneTemplates },
+  { path: '/t/:tenant/passwordless/email', name: 'passwordless-email', component: PasswordlessEmail },
+  { path: '/t/:tenant/passwordless/sms', name: 'passwordless-sms', component: PasswordlessSMS },
   { path: '/', name: 'root', component: Root },
   { path: '/callback', name: 'callback', component: Callback, meta: { public: true, bare: true } },
   { path: '/t/:tenant/', name: 'home', component: Home },

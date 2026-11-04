@@ -5,8 +5,10 @@
 <form method="post" action="/u/reset-password/request" novalidate>
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{if .Data.PhoneEnabled}}<label for="phone_number">{{t .Tenant.L "zeroauthy.phone.numberLabel"}}</label><input id="phone_number" type="tel" name="phone_number" value="{{.Data.PhoneNumber}}">{{if .Data.CodeEntry}}<label for="phone_code">{{t .Tenant.L "zeroauthy.phone.phoneCodeLabel"}}</label><input id="phone_code" name="phone_code" inputmode="numeric" autocomplete="one-time-code">{{end}}{{end}}
 <label for="email">{{t .Tenant.L "reset-password.reset-password-request.emailPlaceholder"}}</label>
-<input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" required autofocus>
+<input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" {{if not .Data.PhoneEnabled}}required{{end}} autofocus>
+{{if and .Data.CodeEntry (not .Data.PhoneNumber)}}<label for="email_code">{{t .Tenant.L "zeroauthy.phone.emailCodeLabel"}}</label><input id="email_code" name="email_code" inputmode="numeric" autocomplete="one-time-code">{{end}}
 {{template "captcha" .}}
 <button type="submit">{{t .Tenant.L "reset-password.reset-password-request.buttonText"}}</button>
 </form>

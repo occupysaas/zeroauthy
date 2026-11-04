@@ -15,6 +15,7 @@ import (
 type mfa struct{ s *Store }
 
 func (s *Store) MFA() store.MFA { return mfa{s} }
+
 func mfaMissing(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
 		return store.ErrNotFound

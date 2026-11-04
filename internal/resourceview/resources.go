@@ -106,8 +106,19 @@ func Connection(spec *connrules.Spec, id string, withClients bool) (map[string]a
 			}
 		}
 	}
+	if spec.Passwordless() {
+		if opts, ok := m["options"].(map[string]any); ok {
+			for _, k := range passwordlessHiddenOptions {
+				delete(opts, k)
+			}
+		}
+	}
 	return m, nil
 }
+
+// passwordlessHiddenOptions are the database options an email or sms
+// connection never shows.
+var passwordlessHiddenOptions = []string{"requires_username", "enabledDatabaseCustomization", "import_mode", "password_options", "validation"}
 
 // federatedHiddenOptions are left out of a federated connection's options.
 var federatedHiddenOptions = []string{"client_secret", "disable_signup", "requires_username",

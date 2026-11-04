@@ -184,6 +184,8 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	}
 	var ue *identity.UnauthorizedError
 	switch {
+	case errors.Is(err, store.ErrPhoneUnavailable):
+		return nil, mfaError(err)
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		h.log().InfoContext(ctx, "password grant failed", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
 		return nil, invalidGrant(wrongCredentials)

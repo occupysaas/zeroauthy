@@ -16,6 +16,8 @@ const (
 	TriggerPostChangePassword   = "post-change-password"
 	TriggerResetPostChallenge   = "password-reset-post-challenge"
 	TriggerCustomEmailProvider  = "custom-email-provider"
+	TriggerCustomPhoneProvider  = "custom-phone-provider"
+	TriggerSendPhoneMessage     = "send-phone-message"
 )
 
 type triggerSpec struct {

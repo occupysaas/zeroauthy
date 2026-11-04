@@ -32,6 +32,8 @@ tags:
     description: Browser-based login flows.
   - name: Users
     description: Information about the signed-in user.
+  - name: Passwordless
+    description: Passwordless codes and magic links (Plan 34).
 paths:
   /.well-known/openid-configuration:
     get:
@@ -210,6 +212,8 @@ paths:
         - http://auth0.com/oauth/grant-type/mfa-otp
         - http://auth0.com/oauth/grant-type/mfa-oob
         - http://auth0.com/oauth/grant-type/mfa-recovery-code
+      x-passwordless-grants:
+        - http://auth0.com/oauth/grant-type/passwordless/otp
       operationId: oauthToken
       tags: [Tokens]
       summary: Get a token
@@ -225,6 +229,7 @@ paths:
         | `refresh_token` | Exchange a refresh token (from a request with scope `offline_access`) for new tokens. Rotating refresh tokens return a new `refresh_token`; reusing a rotated token revokes all tokens derived from the same login. `scope` may narrow the original scopes. |
         | `password` | Resource owner password: exchange `username` and `password` for tokens. When `realm` is given, the user is looked up in that database connection (which must be enabled for the client), as with the password-realm grant. Otherwise the tenant's default directory (`default_directory`) is used, and a tenant without one rejects the request with `invalid_request`. |
         | `http://auth0.com/oauth/grant-type/password-realm` | As `password`, but `realm` names the database connection to use. The connection must be enabled for the client. |
+        | `http://auth0.com/oauth/grant-type/passwordless/otp` | Exchange a passwordless code: `realm` (`email` or `sms`), `username` (the email or E.164 number) and `otp`. The client must have the grant enabled. Same MFA decision as password grants. `redirect_uri` is validated when sent (D-0060 P11). |
 
         **Password grants.** Wrong passwords and unknown users get the same
         `invalid_grant` error. Attempts count against the same per-user and
@@ -255,6 +260,7 @@ paths:
         - https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation
         - https://www.rfc-editor.org/rfc/rfc6749#section-4.3
         - https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token
+        - https://auth0.com/docs/api/authentication/passwordless/authenticate-user
       security:
         - clientSecretBasic: []
         - {}
@@ -753,6 +759,151 @@ paths:
           $ref: "#/components/responses/OAuthErrorResponse"
         default:
           $ref: "#/components/responses/ServerError"
+  /passwordless/start:
+    post:
+      operationId: passwordlessStart
+      tags: [Passwordless]
+      summary: Send a passwordless code or link
+      description: |
+        Sends a one-time code (email or SMS) or a magic link (email only) for
+        the `email` or `sms` passwordless connection. `send` defaults to
+        `link` when omitted. The connection must be enabled for the client
+        and the client must have the passwordless OTP grant enabled. When the
+        tenant flag `enforce_client_authentication_on_passwordless_start` is
+        on, confidential clients must authenticate (`client_secret` or
+        private key JWT); public clients are unaffected. Only the latest code
+        or link for a tenant, connection and identifier is valid. Blocked
+        users receive no message. Users are created on verification, never
+        here. Requests are limited to 50 per hour per IP and by a per
+        identifier send budget (`429 too_many_requests`). SMS gateway
+        failures answer `400 sms_provider_error`. The success body is the
+        local shape frozen in D-0060 (P1). Storage plugins without Phone v1
+        answer `501 phone_unavailable`.
+      x-source:
+        - https://auth0.com/docs/api/authentication/passwordless/get-code-or-link
+        - https://auth0.com/docs/authenticate/passwordless/implement-login/embedded-login/relevant-api-endpoints
+        - https://auth0.com/docs/authenticate/passwordless/best-practices
+        - https://auth0.com/docs/troubleshoot/product-lifecycle/past-migrations/migrate-to-passwordless
+        - https://auth0.com/docs/authenticate/passwordless/authentication-methods/use-sms-gateway-passwordless
+      parameters:
+        - name: x-request-language
+          in: header
+          schema: {type: string}
+        - name: auth0-forwarded-for
+          in: header
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordlessStartRequest"
+      responses:
+        "200":
+          description: The code or link was sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordlessStartResponse"
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "401":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "403":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "429":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "501":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /passwordless/verify_redirect:
+    get:
+      operationId: passwordlessVerifyRedirect
+      tags: [Passwordless]
+      summary: Verify a passwordless code or magic link in the browser
+      description: |
+        The URL auth0.js builds for codes typed in the browser and the target
+        of emailed magic links. A typed code is verified and consumed here,
+        then the authorization continues to `redirect_uri` as requested. A
+        magic-link token is never consumed by GET: the page asks for
+        confirmation and posts back to this path, so link scanners cannot
+        burn the link (D-0060 P3). Wrong, expired, replaced or used codes
+        redirect with `error=access_denied`. Magic links never return
+        refresh tokens. `client_id`, `connection` and `verification_code` are
+        required; their absence renders the error page.
+      x-source:
+        - https://github.com/auth0/auth0.js/blob/master/src/authentication/passwordless-authentication.js
+        - https://auth0.com/docs/authenticate/passwordless/implement-login/embedded-login/relevant-api-endpoints
+        - https://auth0.com/docs/authenticate/passwordless/authentication-methods/email-magic-link
+        - https://auth0.com/docs/authenticate/passwordless/passwordless-connection-limitations
+      parameters:
+        - {name: client_id, in: query, schema: {type: string}}
+        - {name: connection, in: query, schema: {type: string, enum: [email, sms]}}
+        - {name: verification_code, in: query, schema: {type: string}}
+        - {name: email, in: query, schema: {type: string}}
+        - {name: phone_number, in: query, schema: {type: string}}
+        - {name: response_type, in: query, schema: {type: string}}
+        - {name: response_mode, in: query, schema: {type: string}}
+        - {name: redirect_uri, in: query, schema: {type: string}}
+        - {name: scope, in: query, schema: {type: string}}
+        - {name: audience, in: query, schema: {type: string}}
+        - {name: state, in: query, schema: {type: string}}
+        - {name: nonce, in: query, schema: {type: string}}
+        - {name: protocol, in: query, schema: {type: string}}
+        - {name: code_challenge, in: query, schema: {type: string}}
+        - {name: code_challenge_method, in: query, schema: {type: string}}
+      responses:
+        "200":
+          description: Confirmation page for a magic link.
+          content:
+            text/html:
+              schema: {type: string}
+        "302":
+          description: Redirect to `redirect_uri` with the authorization response or an error.
+        "400":
+          description: Error page (unknown client or connection, callback not allowed).
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "501":
+          $ref: "#/components/responses/OAuthErrorResponse"
+    post:
+      operationId: passwordlessVerifyRedirectConfirm
+      tags: [Passwordless]
+      summary: Confirm a magic link
+      description: |
+        Posted by the confirmation page. Consumes the magic-link token once
+        and continues the authorization (D-0060 P3).
+      x-source:
+        - https://auth0.com/docs/authenticate/passwordless/authentication-methods/email-magic-link
+        - https://github.com/auth0/auth0.js/blob/master/src/authentication/passwordless-authentication.js
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [verification_code, state_token]
+              properties:
+                verification_code: {type: string, writeOnly: true}
+                state_token: {type: string}
+      responses:
+        "302":
+          description: Redirect to `redirect_uri` with the authorization response or an error.
+        "400":
+          description: Error page (expired confirmation form).
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "501":
+          $ref: "#/components/responses/OAuthErrorResponse"
   /mfa/associate:
     post:
       operationId: MFAAssociate
@@ -1031,6 +1182,8 @@ components:
             - sms
             - voice
             - auth0
+        phone_number:
+          type: string
         email:
           type: string
         client_id:
@@ -1209,6 +1362,9 @@ components:
         username:
           type: string
           description: Required when the connection requires usernames.
+        phone_number:
+          type: string
+          description: E.164 phone number for connections with the phone_number attribute (Plan 34; enforced by Task 13).
         given_name: {type: string, maxLength: 300}
         family_name: {type: string, maxLength: 300}
         name: {type: string, maxLength: 300}
@@ -1245,6 +1401,7 @@ components:
         email: {type: string}
         password: {type: string}
         username: {type: string}
+        phone_number: {type: string}
         given_name: {type: string, maxLength: 300}
         family_name: {type: string, maxLength: 300}
         name: {type: string, maxLength: 300}
@@ -1275,6 +1432,32 @@ components:
         code: {type: string}
         description: {type: string}
         statusCode: {type: integer, enum: [400]}
+    PasswordlessStartRequest:
+      type: object
+      description: Unknown members (extra options auth0.js forwards) are accepted and ignored, as Auth0 does.
+      required: [client_id, connection]
+      properties:
+        client_id: {type: string}
+        client_secret: {type: string, writeOnly: true}
+        client_assertion: {type: string, writeOnly: true}
+        client_assertion_type: {type: string, const: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"}
+        connection: {type: string, enum: [email, sms]}
+        email: {type: string, description: Required when connection is email.}
+        phone_number: {type: string, maxLength: 16, description: E.164 number; required when connection is sms.}
+        send: {type: string, enum: [link, code], default: link}
+        authParams:
+          type: object
+          additionalProperties: true
+          description: Authorization parameters (scope, state, redirect_uri, response_type, ...) carried into the magic link.
+    PasswordlessStartResponse:
+      type: object
+      required: [_id]
+      properties:
+        _id: {type: string, description: "24 lowercase hexadecimal characters (local shape, D-0060 P1)."}
+        email: {type: string}
+        email_verified: {type: boolean}
+        phone_number: {type: string}
+        phone_verified: {type: boolean}
     OAuthError:
       type: object
       required: [error, error_description]
@@ -1365,13 +1548,13 @@ components:
           description: Refresh token (grant_type=refresh_token).
         username:
           type: string
-          description: The user's email or username (password grants).
+          description: The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
         password:
           type: string
           description: The user's password (password grants).
         realm:
           type: string
-          description: Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory).
+          description: Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), or email/sms for the passwordless OTP grant.
         organization:
           type: string
           description: For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The password, password-realm and device code grants ignore it (D-0055).

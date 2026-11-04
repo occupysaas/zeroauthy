@@ -253,6 +253,57 @@ func (e MFARequiredError) Valid() bool {
 	}
 }
 
+// Defines values for PasswordlessStartRequestClientAssertionType.
+const (
+	UrnIetfParamsOauthClientAssertionTypeJwtBearer PasswordlessStartRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the PasswordlessStartRequestClientAssertionType enum.
+func (e PasswordlessStartRequestClientAssertionType) Valid() bool {
+	switch e {
+	case UrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PasswordlessStartRequestConnection.
+const (
+	PasswordlessStartRequestConnectionEmail PasswordlessStartRequestConnection = "email"
+	PasswordlessStartRequestConnectionSms   PasswordlessStartRequestConnection = "sms"
+)
+
+// Valid indicates whether the value is a known member of the PasswordlessStartRequestConnection enum.
+func (e PasswordlessStartRequestConnection) Valid() bool {
+	switch e {
+	case PasswordlessStartRequestConnectionEmail:
+		return true
+	case PasswordlessStartRequestConnectionSms:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PasswordlessStartRequestSend.
+const (
+	Code PasswordlessStartRequestSend = "code"
+	Link PasswordlessStartRequestSend = "link"
+)
+
+// Valid indicates whether the value is a known member of the PasswordlessStartRequestSend enum.
+func (e PasswordlessStartRequestSend) Valid() bool {
+	switch e {
+	case Code:
+		return true
+	case Link:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PushedAuthorizationResponseExpiresIn.
 const (
 	N30 PushedAuthorizationResponseExpiresIn = 30
@@ -262,6 +313,24 @@ const (
 func (e PushedAuthorizationResponseExpiresIn) Valid() bool {
 	switch e {
 	case N30:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PasswordlessVerifyRedirectParamsConnection.
+const (
+	PasswordlessVerifyRedirectParamsConnectionEmail PasswordlessVerifyRedirectParamsConnection = "email"
+	PasswordlessVerifyRedirectParamsConnectionSms   PasswordlessVerifyRedirectParamsConnection = "sms"
+)
+
+// Valid indicates whether the value is a known member of the PasswordlessVerifyRedirectParamsConnection enum.
+func (e PasswordlessVerifyRedirectParamsConnection) Valid() bool {
+	switch e {
+	case PasswordlessVerifyRedirectParamsConnectionEmail:
+		return true
+	case PasswordlessVerifyRedirectParamsConnectionSms:
 		return true
 	default:
 		return false
@@ -375,6 +444,7 @@ type MFAAssociateRequest struct {
 	ClientSecret       *string                                 `json:"client_secret,omitempty"`
 	Email              *string                                 `json:"email,omitempty"`
 	OobChannels        *[]MFAAssociateRequestOobChannels       `json:"oob_channels,omitempty"`
+	PhoneNumber        *string                                 `json:"phone_number,omitempty"`
 }
 
 // MFAAssociateRequestAuthenticatorTypes defines model for MFAAssociateRequest.AuthenticatorTypes.
@@ -509,6 +579,43 @@ type OpenIDConfiguration struct {
 	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
 }
 
+// PasswordlessStartRequest Unknown members (extra options auth0.js forwards) are accepted and ignored, as Auth0 does.
+type PasswordlessStartRequest struct {
+	// AuthParams Authorization parameters (scope, state, redirect_uri, response_type, ...) carried into the magic link.
+	AuthParams          *map[string]interface{}                      `json:"authParams,omitempty"`
+	ClientAssertion     *string                                      `json:"client_assertion,omitempty"`
+	ClientAssertionType *PasswordlessStartRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            string                                       `json:"client_id"`
+	ClientSecret        *string                                      `json:"client_secret,omitempty"`
+	Connection          PasswordlessStartRequestConnection           `json:"connection"`
+
+	// Email Required when connection is email.
+	Email *string `json:"email,omitempty"`
+
+	// PhoneNumber E.164 number; required when connection is sms.
+	PhoneNumber *string                       `json:"phone_number,omitempty"`
+	Send        *PasswordlessStartRequestSend `json:"send,omitempty"`
+}
+
+// PasswordlessStartRequestClientAssertionType defines model for PasswordlessStartRequest.ClientAssertionType.
+type PasswordlessStartRequestClientAssertionType string
+
+// PasswordlessStartRequestConnection defines model for PasswordlessStartRequest.Connection.
+type PasswordlessStartRequestConnection string
+
+// PasswordlessStartRequestSend defines model for PasswordlessStartRequest.Send.
+type PasswordlessStartRequestSend string
+
+// PasswordlessStartResponse defines model for PasswordlessStartResponse.
+type PasswordlessStartResponse struct {
+	// UnderscoreId 24 lowercase hexadecimal characters (local shape, D-0060 P1).
+	UnderscoreId  string  `json:"_id"`
+	Email         *string `json:"email,omitempty"`
+	EmailVerified *bool   `json:"email_verified,omitempty"`
+	PhoneNumber   *string `json:"phone_number,omitempty"`
+	PhoneVerified *bool   `json:"phone_verified,omitempty"`
+}
+
 // PushedAuthorizationRequest The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
 type PushedAuthorizationRequest struct {
 	Audience             *string           `json:"audience,omitempty"`
@@ -547,16 +654,17 @@ type RevokeRequest struct {
 // SignupFormRequest The form-encoded variant of SignupRequest. Form bodies cannot carry
 // the `user_metadata` object.
 type SignupFormRequest struct {
-	ClientId   string  `json:"client_id"`
-	Connection string  `json:"connection"`
-	Email      string  `json:"email"`
-	FamilyName *string `json:"family_name,omitempty"`
-	GivenName  *string `json:"given_name,omitempty"`
-	Name       *string `json:"name,omitempty"`
-	Nickname   *string `json:"nickname,omitempty"`
-	Password   string  `json:"password"`
-	Picture    *string `json:"picture,omitempty"`
-	Username   *string `json:"username,omitempty"`
+	ClientId    string  `json:"client_id"`
+	Connection  string  `json:"connection"`
+	Email       string  `json:"email"`
+	FamilyName  *string `json:"family_name,omitempty"`
+	GivenName   *string `json:"given_name,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Nickname    *string `json:"nickname,omitempty"`
+	Password    string  `json:"password"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	Picture     *string `json:"picture,omitempty"`
+	Username    *string `json:"username,omitempty"`
 }
 
 // SignupRequest defines model for SignupRequest.
@@ -571,6 +679,9 @@ type SignupRequest struct {
 	Name       *string `json:"name,omitempty"`
 	Nickname   *string `json:"nickname,omitempty"`
 	Password   string  `json:"password"`
+
+	// PhoneNumber E.164 phone number for connections with the phone_number attribute (Plan 34; enforced by Task 13).
+	PhoneNumber *string `json:"phone_number,omitempty"`
 
 	// Picture An absolute https URL of at most 2000 characters.
 	Picture *string `json:"picture,omitempty"`
@@ -622,7 +733,7 @@ type TokenRequest struct {
 	// Password The user's password (password grants).
 	Password *string `json:"password,omitempty"`
 
-	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory).
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), or email/sms for the passwordless OTP grant.
 	Realm        *string `json:"realm,omitempty"`
 	RecoveryCode *string `json:"recovery_code,omitempty"`
 
@@ -635,7 +746,7 @@ type TokenRequest struct {
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
-	// Username The user's email or username (password grants).
+	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
 	Username *string `json:"username,omitempty"`
 }
 
@@ -773,6 +884,40 @@ type OidcLogoutParams struct {
 	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
 }
 
+// PasswordlessStartParams defines parameters for PasswordlessStart.
+type PasswordlessStartParams struct {
+	XRequestLanguage  *string `json:"x-request-language,omitempty"`
+	Auth0ForwardedFor *string `json:"auth0-forwarded-for,omitempty"`
+}
+
+// PasswordlessVerifyRedirectParams defines parameters for PasswordlessVerifyRedirect.
+type PasswordlessVerifyRedirectParams struct {
+	ClientId            *string                                     `form:"client_id,omitempty" json:"client_id,omitempty"`
+	Connection          *PasswordlessVerifyRedirectParamsConnection `form:"connection,omitempty" json:"connection,omitempty"`
+	VerificationCode    *string                                     `form:"verification_code,omitempty" json:"verification_code,omitempty"`
+	Email               *string                                     `form:"email,omitempty" json:"email,omitempty"`
+	PhoneNumber         *string                                     `form:"phone_number,omitempty" json:"phone_number,omitempty"`
+	ResponseType        *string                                     `form:"response_type,omitempty" json:"response_type,omitempty"`
+	ResponseMode        *string                                     `form:"response_mode,omitempty" json:"response_mode,omitempty"`
+	RedirectUri         *string                                     `form:"redirect_uri,omitempty" json:"redirect_uri,omitempty"`
+	Scope               *string                                     `form:"scope,omitempty" json:"scope,omitempty"`
+	Audience            *string                                     `form:"audience,omitempty" json:"audience,omitempty"`
+	State               *string                                     `form:"state,omitempty" json:"state,omitempty"`
+	Nonce               *string                                     `form:"nonce,omitempty" json:"nonce,omitempty"`
+	Protocol            *string                                     `form:"protocol,omitempty" json:"protocol,omitempty"`
+	CodeChallenge       *string                                     `form:"code_challenge,omitempty" json:"code_challenge,omitempty"`
+	CodeChallengeMethod *string                                     `form:"code_challenge_method,omitempty" json:"code_challenge_method,omitempty"`
+}
+
+// PasswordlessVerifyRedirectParamsConnection defines parameters for PasswordlessVerifyRedirect.
+type PasswordlessVerifyRedirectParamsConnection string
+
+// PasswordlessVerifyRedirectConfirmFormdataBody defines parameters for PasswordlessVerifyRedirectConfirm.
+type PasswordlessVerifyRedirectConfirmFormdataBody struct {
+	StateToken       string  `form:"state_token" json:"state_token"`
+	VerificationCode *string `form:"verification_code,omitempty" json:"verification_code,omitempty"`
+}
+
 // UserinfoPostFormdataBody defines parameters for UserinfoPost.
 type UserinfoPostFormdataBody struct {
 	// AccessToken The access token, when no Authorization header is sent.
@@ -835,6 +980,12 @@ type OauthTokenFormdataRequestBody = TokenRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
+
+// PasswordlessStartJSONRequestBody defines body for PasswordlessStart for application/json ContentType.
+type PasswordlessStartJSONRequestBody = PasswordlessStartRequest
+
+// PasswordlessVerifyRedirectConfirmFormdataRequestBody defines body for PasswordlessVerifyRedirectConfirm for application/x-www-form-urlencoded ContentType.
+type PasswordlessVerifyRedirectConfirmFormdataRequestBody PasswordlessVerifyRedirectConfirmFormdataBody
 
 // UserinfoPostFormdataRequestBody defines body for UserinfoPost for application/x-www-form-urlencoded ContentType.
 type UserinfoPostFormdataRequestBody UserinfoPostFormdataBody
@@ -1453,6 +1604,15 @@ type ServerInterface interface {
 	// OidcLogoutPost Log the user out (form post)
 	// (POST /oidc/logout)
 	OidcLogoutPost(w http.ResponseWriter, r *http.Request)
+	// PasswordlessStart Send a passwordless code or link
+	// (POST /passwordless/start)
+	PasswordlessStart(w http.ResponseWriter, r *http.Request, params PasswordlessStartParams)
+	// PasswordlessVerifyRedirect Verify a passwordless code or magic link in the browser
+	// (GET /passwordless/verify_redirect)
+	PasswordlessVerifyRedirect(w http.ResponseWriter, r *http.Request, params PasswordlessVerifyRedirectParams)
+	// PasswordlessVerifyRedirectConfirm Confirm a magic link
+	// (POST /passwordless/verify_redirect)
+	PasswordlessVerifyRedirectConfirm(w http.ResponseWriter, r *http.Request)
 	// Userinfo Get the user's profile
 	// (GET /userinfo)
 	Userinfo(w http.ResponseWriter, r *http.Request)
@@ -1561,6 +1721,24 @@ func (_ Unimplemented) OidcLogout(w http.ResponseWriter, r *http.Request, params
 // OidcLogoutPost Log the user out (form post)
 // (POST /oidc/logout)
 func (_ Unimplemented) OidcLogoutPost(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PasswordlessStart Send a passwordless code or link
+// (POST /passwordless/start)
+func (_ Unimplemented) PasswordlessStart(w http.ResponseWriter, r *http.Request, params PasswordlessStartParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PasswordlessVerifyRedirect Verify a passwordless code or magic link in the browser
+// (GET /passwordless/verify_redirect)
+func (_ Unimplemented) PasswordlessVerifyRedirect(w http.ResponseWriter, r *http.Request, params PasswordlessVerifyRedirectParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PasswordlessVerifyRedirectConfirm Confirm a magic link
+// (POST /passwordless/verify_redirect)
+func (_ Unimplemented) PasswordlessVerifyRedirectConfirm(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2177,6 +2355,295 @@ func (siw *ServerInterfaceWrapper) OidcLogoutPost(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// PasswordlessStart operation middleware
+func (siw *ServerInterfaceWrapper) PasswordlessStart(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PasswordlessStartParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "x-request-language" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("x-request-language")]; found {
+		var XRequestLanguage string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "x-request-language", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "x-request-language", valueList[0], &XRequestLanguage, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "x-request-language", Err: err})
+			return
+		}
+
+		params.XRequestLanguage = &XRequestLanguage
+
+	}
+
+	// ------------- Optional header parameter "auth0-forwarded-for" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("auth0-forwarded-for")]; found {
+		var Auth0ForwardedFor string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "auth0-forwarded-for", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "auth0-forwarded-for", valueList[0], &Auth0ForwardedFor, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "auth0-forwarded-for", Err: err})
+			return
+		}
+
+		params.Auth0ForwardedFor = &Auth0ForwardedFor
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PasswordlessStart(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PasswordlessVerifyRedirect operation middleware
+func (siw *ServerInterfaceWrapper) PasswordlessVerifyRedirect(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PasswordlessVerifyRedirectParams
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "verification_code" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "verification_code", r.URL.Query(), &params.VerificationCode, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "verification_code"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "verification_code", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "email" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "email", r.URL.Query(), &params.Email, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "email"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "phone_number" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "phone_number", r.URL.Query(), &params.PhoneNumber, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "phone_number"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "phone_number", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "response_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "response_type", r.URL.Query(), &params.ResponseType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "response_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "response_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "response_mode" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "response_mode", r.URL.Query(), &params.ResponseMode, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "response_mode"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "response_mode", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "redirect_uri" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "redirect_uri", r.URL.Query(), &params.RedirectUri, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "redirect_uri"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "redirect_uri", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "audience" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "audience", r.URL.Query(), &params.Audience, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "audience"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "audience", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "nonce" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "nonce", r.URL.Query(), &params.Nonce, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "nonce"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "protocol" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "protocol", r.URL.Query(), &params.Protocol, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "protocol"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "protocol", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "code_challenge" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "code_challenge", r.URL.Query(), &params.CodeChallenge, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code_challenge"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code_challenge", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "code_challenge_method" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "code_challenge_method", r.URL.Query(), &params.CodeChallengeMethod, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code_challenge_method"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code_challenge_method", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PasswordlessVerifyRedirect(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PasswordlessVerifyRedirectConfirm operation middleware
+func (siw *ServerInterfaceWrapper) PasswordlessVerifyRedirectConfirm(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PasswordlessVerifyRedirectConfirm(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Userinfo operation middleware
 func (siw *ServerInterfaceWrapper) Userinfo(w http.ResponseWriter, r *http.Request) {
 
@@ -2421,6 +2888,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/dbconnections/change_password", wrapper.DbconnectionsChangePassword)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/passwordless/start", wrapper.PasswordlessStart)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/passwordless/verify_redirect", wrapper.PasswordlessVerifyRedirect)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/passwordless/verify_redirect", wrapper.PasswordlessVerifyRedirectConfirm)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/mfa/associate", wrapper.MFAAssociate)

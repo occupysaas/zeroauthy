@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zeroauthy/zeroauthy/internal/app"
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 )
 
 func newServeCmd() *cobra.Command {
@@ -22,6 +23,10 @@ func newServeCmd() *cobra.Command {
 				return err
 			}
 			log := newLogger(cmd.ErrOrStderr(), cfg.Log)
+			if cfg.TestPhone.Active() {
+				phone.SetTestEndpoints(cfg.TestPhone.Twilio, cfg.TestPhone.SNS, cfg.TestPhone.Gateway)
+				log.Warn("ZA_TEST_PHONE_ENDPOINTS active: phone providers redirected to local fakes (test mode only)")
+			}
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 			a, err := app.New(ctx, cfg, log)

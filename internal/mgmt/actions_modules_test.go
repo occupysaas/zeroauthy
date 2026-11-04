@@ -181,7 +181,7 @@ func TestActionsManagementTriggersDryRun(t *testing.T) {
 	}
 	triggers := out.(map[string]any)["triggers"].([]any)
 
-	want := map[string]string{"post-login": "v3", "credentials-exchange": "v2", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "v3", "custom-email-provider": "v3", "event-stream": "v1"}
+	want := map[string]string{"post-login": "v3", "credentials-exchange": "v2", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "v3", "custom-email-provider": "v3", "event-stream": "v1", "custom-phone-provider": "v1", "send-phone-message": "v2"}
 	if len(triggers) != len(want) {
 		t.Fatalf("triggers=%v", triggers)
 	}
@@ -212,7 +212,7 @@ func TestActionsManagementTriggersDryRun(t *testing.T) {
 				commands += `api.transaction.setResultUrl("https://example.test/result");`
 			case "event-stream":
 				commands += `api.cache.set("dry","value");if(api.cache.get("dry").value!=="value")throw Error("cache");api.cache.delete("dry");`
-			case "custom-email-provider":
+			case "custom-email-provider", "custom-phone-provider":
 				commands += `api.notification.retry("dry");api.notification.drop("dry");`
 			}
 			body := map[string]any{"name": tr.ID, "supported_triggers": []any{map[string]any{"id": tr.ID}}, "code": "exports." + tr.Handler + "=async(event,api)=>{" + commands + "};", "deploy": true}
@@ -239,7 +239,7 @@ func TestActionsManagementTriggersDryRun(t *testing.T) {
 	if err != nil || len(jobs) != 0 {
 		t.Fatal("dry-run queued jobs", jobs, err)
 	}
-	rec, _ = e.call(t, e.tn, caller, "POST", "/actions", map[string]any{"name": "deferred", "supported_triggers": []any{map[string]any{"id": "send-phone-message"}}}, e.h.CreateAction)
+	rec, _ = e.call(t, e.tn, caller, "POST", "/actions", map[string]any{"name": "deferred", "supported_triggers": []any{map[string]any{"id": "custom-token-exchange"}}}, e.h.CreateAction)
 	if rec.Code != 400 {
 		t.Fatal(rec.Code, rec.Body)
 	}

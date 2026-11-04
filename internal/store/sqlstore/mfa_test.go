@@ -104,7 +104,7 @@ func TestMFAMySQLMigrationResume33(t *testing.T) {
 			mustEvent(t, s.Migrate(t.Context()))
 			version, err = s.SchemaVersion(t.Context())
 			mustEvent(t, err)
-			if version != 33 {
+			if version != 34 {
 				t.Fatal(version)
 			}
 			mustEvent(t, s.Tenants().Create(t.Context(), &store.Tenant{ID: "t", Name: "t"}))

@@ -80,8 +80,23 @@ func (a *accum) applyMFA(c command) error {
 		}
 	}
 	group := []string{}
+	preferred := ""
 	for _, v := range factors {
 		typ := v.(map[string]any)["type"].(string)
+		if options, ok := v.(map[string]any)["options"].(map[string]any); ok {
+			if typ != "phone" {
+				return invalid(c.Op, "options require phone")
+			}
+			for key := range options {
+				if key != "preferredMethod" {
+					return invalid(c.Op, "invalid phone option")
+				}
+			}
+			preferred, _ = options["preferredMethod"].(string)
+			if preferred != "sms" && preferred != "voice" && preferred != "both" {
+				return invalid(c.Op, "invalid preferredMethod")
+			}
+		}
 		if !slices.Contains(m.AvailableFactors, typ) {
 			return invalid(c.Op, "factor %s is unavailable", typ)
 		}
@@ -96,7 +111,7 @@ func (a *accum) applyMFA(c command) error {
 	if old != nil && old.Mode != mode {
 		return invalid(c.Op, "challenge and enrollment cannot be combined")
 	}
-	next := &MFAEffects{Mode: mode, Any: strings.HasSuffix(c.Op, "Any"), Factors: [][]string{}}
+	next := &MFAEffects{PhonePreferredMethod: preferred, Mode: mode, Any: strings.HasSuffix(c.Op, "Any"), Factors: [][]string{}}
 	if old != nil {
 		next.Factors = slices.Clone(old.Factors)
 	}

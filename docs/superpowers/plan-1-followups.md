@@ -465,3 +465,44 @@ behaviour only where Auth0 is shown to differ.
   `TestRecorderNeverWaitsForTenantLookup` (50ms bounds) failed in full race
   runs and pass in isolation. Make them deterministic. See the Plan 33
   implementation record, Task 14d.
+
+## Plan 34 follow-ups
+
+### Passwordless and phone observation gaps (P1–P24, observation optional)
+
+Task 1 (D-0060) froze a local answer for each point; observe later in a
+firewalled observer session (`docs/compat/observations/passwordless-phone.md`)
+and change behaviour only where Auth0 is shown to differ.
+
+- **P1** `/passwordless/start` success bodies, `_id` format and per-strategy errors.
+- **P2** brute-force interplay: wrong passwordless codes also count toward the Plan 19 rule (`limit_wc`).
+- **P3** magic links: lifetime (= `totp.time_step`), same-browser binding only for browser-started flows, GET confirmation page with POST consumption.
+- **P4** passwordless identifier and signup-verification budgets (10/hour local); email exhaustion logs `api_limit`.
+- **P5** phone masking beyond authenticator names (Management enrollments, profile `phone_number`, logs).
+- **P6** passwordless `user_id` format (`email|`/`sms|` + 24 hex local).
+- **P7** consolidated experience: passwordless SMS template (`otp_verify` local) and overridden connection fields.
+- **P8** Guardian `auth0` provider routed to the branding provider.
+- **P9** default `phone_consolidated_experience` for new tenants (true local) and existing tenants (false).
+- **P10** bot detection on `/passwordless/start` (auth0.js captcha, `/passwordless/challenge`) not implemented.
+- **P11** OTP grant `redirect_uri` optional (docs say required); grant not advertised in discovery.
+- **P12** `send-phone-message` trigger version (`v2` local).
+- **P13** `/passwordless/verify-redirect` spelling in docs prose; only `verify_redirect` served.
+- **P14** phone-provider-protection availability (no plan gate), unset read, exponential backoff parameters.
+- **P15** `sns` extension provider fields.
+- **P16** provider response schema `credentials` contradiction in the published OpenAPI.
+- **P17** `twilio_token` never returned (Auth0 guide shows it returned).
+- **P18** passwordless connection naming (= strategy, one per tenant).
+- **P19** when `auth_email_by_code` replaces the connection email body.
+- **P20** `country_codes` applied to every SMS/voice destination.
+- **P21** phone uniqueness per connection (docs: across connection types).
+- **P22** `disable_signup` start error for unknown users (403 `access_denied` local).
+- **P23** passwordless on database connections (`/otp/challenge`), `/passwordless/verify`, `/oauth/ro`: out of scope.
+- **P24** magic links not offered by the hosted prompt (docs: not supported in Universal Login); narrows spec §3.
+
+### Plan 34 Task 1 carry-overs
+
+- Console types (`console/src/api/schema.d.ts`) were not regenerated in
+  Task 1 (no console toolchain installed in the worktree); the console task
+  regenerates them with `make console`.
+- The phone trigger dry-run cases in `internal/mgmt` skip until the runner
+  learns the handlers (Task 9).

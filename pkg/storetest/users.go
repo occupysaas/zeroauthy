@@ -41,6 +41,9 @@ func testUsers(t *testing.T, newStore Factory) {
 		s := open(t, newStore)
 		want := newUser("ten_a", "u1", "alice@example.test", "alice")
 		mustNoErr(t, s.Users().Create(ctx, want))
+		// Writers derive the normalized index; remote stores need not mutate
+		// the caller's original object to return the stored value.
+		want.PhoneNormalized = "+15550101"
 
 		got, err := s.Users().Get(ctx, "ten_a", "auth0|u1")
 		mustNoErr(t, err)
@@ -56,6 +59,28 @@ func testUsers(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		_, err = s.Users().Get(ctx, "ten_b", "auth0|u1")
 		mustErrIs(t, err, store.ErrNotFound)
+	})
+
+	t.Run("PhoneNormalizationOnWrite", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newUser("ten_a", "phone-index", "phone@example.test", "")
+		in.PhoneNumber = "+1 (415) 555-0100"
+		in.PhoneNormalized = "untrusted-input"
+		mustNoErr(t, s.Users().Create(ctx, in))
+		got, err := s.Users().Get(ctx, "ten_a", in.UserID)
+		mustNoErr(t, err)
+		mustEqual(t, got.PhoneNormalized, "+14155550100")
+		got.PhoneNumber = "+44 7700 900123"
+		got.PhoneNormalized = "stale"
+		mustNoErr(t, s.Users().Update(ctx, got))
+		got, err = s.Users().Get(ctx, "ten_a", in.UserID)
+		mustNoErr(t, err)
+		mustEqual(t, got.PhoneNormalized, "+447700900123")
+		got.PhoneNumber = "legacy invalid"
+		mustNoErr(t, s.Users().Update(ctx, got))
+		got, err = s.Users().Get(ctx, "ten_a", in.UserID)
+		mustNoErr(t, err)
+		mustEqual(t, got.PhoneNormalized, "")
 	})
 
 	t.Run("Uniqueness", func(t *testing.T) {

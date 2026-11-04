@@ -8,8 +8,10 @@
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
 {{if .Data.HostedRevision}}<input type="hidden" name="hosted_revision" value="{{.Data.HostedRevision}}">{{end}}
 {{.Tenant.Partials.FormContentStart}}
+{{if .Data.PhoneEnabled}}<label for="phone_number">{{t .Tenant.L "zeroauthy.phone.numberLabel"}}</label><input id="phone_number" name="phone_number" type="tel" value="{{.Data.PhoneNumber}}"><label for="phone_code">{{t .Tenant.L "zeroauthy.phone.phoneCodeLabel"}}</label><input id="phone_code" name="phone_code" inputmode="numeric" autocomplete="one-time-code">{{end}}
 <label for="email">{{t .Tenant.L "signup.signup.emailPlaceholder"}}</label>
-<input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" required autofocus>
+<input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" {{if not .Data.PhoneEnabled}}required{{end}} autofocus>
+{{if .Data.EmailCodeEnabled}}<label for="email_code">{{t .Tenant.L "zeroauthy.phone.emailCodeLabel"}}</label><input id="email_code" name="email_code" inputmode="numeric" autocomplete="one-time-code">{{end}}
 {{if .Data.RequiresUsername}}
 <label for="username">{{t .Tenant.L "signup.signup.usernamePlaceholder"}}</label>
 <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Username}}" required>

@@ -9,7 +9,7 @@
     },
     {
       "name": "sms",
-      "status": "stored"
+      "status": "enforced"
     },
     {
       "name": "email",
@@ -3577,7 +3577,8 @@
             "enum": [
               "totp",
               "email",
-              "webauthn-roaming"
+              "webauthn-roaming",
+              "phone"
             ]
           },
           "name": {
@@ -5176,12 +5177,12 @@
       "available_factors": [
         "otp",
         "email",
-        "recovery-code"
+        "recovery-code",
+        "phone"
       ],
       "unavailable_factors": [
         "webauthn-roaming",
         "webauthn-platform",
-        "phone",
         "push-notification"
       ]
     },
@@ -5206,6 +5207,20 @@
                   "phone",
                   "push-notification"
                 ]
+              },
+              "options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "preferredMethod": {
+                    "type": "string",
+                    "enum": [
+                      "sms",
+                      "voice",
+                      "both"
+                    ]
+                  }
+                }
               }
             },
             "required": [
@@ -5233,6 +5248,20 @@
                         "phone",
                         "push-notification"
                       ]
+                    },
+                    "options": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "preferredMethod": {
+                          "type": "string",
+                          "enum": [
+                            "sms",
+                            "voice",
+                            "both"
+                          ]
+                        }
+                      }
                     }
                   },
                   "required": [
@@ -5258,12 +5287,12 @@
       "available_factors": [
         "otp",
         "email",
-        "recovery-code"
+        "recovery-code",
+        "phone"
       ],
       "unavailable_factors": [
         "webauthn-roaming",
         "webauthn-platform",
-        "phone",
         "push-notification"
       ]
     },
@@ -5290,6 +5319,20 @@
                     "phone",
                     "push-notification"
                   ]
+                },
+                "options": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "preferredMethod": {
+                      "type": "string",
+                      "enum": [
+                        "sms",
+                        "voice",
+                        "both"
+                      ]
+                    }
+                  }
                 }
               },
               "required": [
@@ -5313,12 +5356,12 @@
       "available_factors": [
         "otp",
         "email",
-        "recovery-code"
+        "recovery-code",
+        "phone"
       ],
       "unavailable_factors": [
         "webauthn-roaming",
         "webauthn-platform",
-        "phone",
         "push-notification"
       ]
     },
@@ -5343,6 +5386,20 @@
                   "phone",
                   "push-notification"
                 ]
+              },
+              "options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "preferredMethod": {
+                    "type": "string",
+                    "enum": [
+                      "sms",
+                      "voice",
+                      "both"
+                    ]
+                  }
+                }
               }
             },
             "required": [
@@ -5370,6 +5427,20 @@
                         "phone",
                         "push-notification"
                       ]
+                    },
+                    "options": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "preferredMethod": {
+                          "type": "string",
+                          "enum": [
+                            "sms",
+                            "voice",
+                            "both"
+                          ]
+                        }
+                      }
                     }
                   },
                   "required": [
@@ -5394,12 +5465,12 @@
       "available_factors": [
         "otp",
         "email",
-        "recovery-code"
+        "recovery-code",
+        "phone"
       ],
       "unavailable_factors": [
         "webauthn-roaming",
         "webauthn-platform",
-        "phone",
         "push-notification"
       ]
     },
@@ -5426,6 +5497,20 @@
                     "phone",
                     "push-notification"
                   ]
+                },
+                "options": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "preferredMethod": {
+                      "type": "string",
+                      "enum": [
+                        "sms",
+                        "voice",
+                        "both"
+                      ]
+                    }
+                  }
                 }
               },
               "required": [
@@ -5448,12 +5533,12 @@
       "available_factors": [
         "otp",
         "email",
-        "recovery-code"
+        "recovery-code",
+        "phone"
       ],
       "unavailable_factors": [
         "webauthn-roaming",
         "webauthn-platform",
-        "phone",
         "push-notification"
       ]
     }

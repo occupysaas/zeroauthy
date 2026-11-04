@@ -109,6 +109,10 @@ func ValidateBindings(trigger string, b []store.Binding) []error {
 	if trigger == "custom-email-provider" && len(b) > limit("custom_email_provider_bindings_max") {
 		errs = append(errs, fmt.Errorf("at most %d Action can be bound to custom-email-provider", limit("custom_email_provider_bindings_max")))
 	}
+	// The same documented limit applies to custom-phone-provider (D-0060).
+	if trigger == "custom-phone-provider" && len(b) > limit("custom_phone_provider_bindings_max") {
+		errs = append(errs, fmt.Errorf("at most %d Action can be bound to custom-phone-provider", limit("custom_phone_provider_bindings_max")))
+	}
 	for i, v := range b {
 		if v.ActionID == "" {
 			errs = append(errs, fmt.Errorf("binding %d has no action", i))

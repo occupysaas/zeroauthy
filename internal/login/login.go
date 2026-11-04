@@ -26,6 +26,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -55,6 +56,9 @@ type Handlers struct {
 	// Verification sends the verification email after a signup; nil sends
 	// none.
 	Verification *VerificationMailer
+	// Passwordless serves the hosted passwordless prompt (Plan 34); nil
+	// offers no email or sms connection.
+	Passwordless *passwordless.Service
 	// Device code entry limits (/activate). Each counts misses; a code
 	// that is found refunds its attempt.
 	DeviceTxnThrottle    *identity.Throttle // key: transaction ID
@@ -232,6 +236,8 @@ func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error, f *fl
 		view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	}
 	switch {
+	case errors.Is(err, store.ErrPhoneUnavailable):
+		http.Error(w, "phone_unavailable", http.StatusNotImplemented)
 	case errors.Is(err, errOrganizationConnection) && f != nil:
 		h.Authz.RejectOrganizationConnection(w, r, f.res, f.txn)
 	case errors.Is(err, errTxn):
@@ -279,6 +285,13 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 			h.Authz.Resume(w, r, f.res, f.txn, sess)
 			return
 		}
+	}
+	if ok, err := h.passwordlessFlow(r, f); err != nil {
+		h.fail(w, r, err, f)
+		return
+	} else if ok {
+		h.passwordlessPage(w, r, f)
+		return
 	}
 	// An explicitly selected federated connection goes straight to the
 	// provider, unless a challenge is due: then the page is shown first.
@@ -363,6 +376,13 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.organizationStep(w, r, f) {
+		return
+	}
+	if ok, err := h.passwordlessFlow(r, f); err != nil {
+		h.fail(w, r, err, f)
+		return
+	} else if ok {
+		h.passwordlessIdentifierPost(w, r, f)
 		return
 	}
 	var err error
@@ -573,7 +593,11 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	// Nonempty passwords still reach policy validation after the reservation.
 	var malformed error
 	switch {
-	case strings.TrimSpace(email) == "":
+	case store.PhoneSignupStatus(f.conn) == "not_allowed" && r.PostForm.Get("phone_number") != "":
+		malformed = &identity.PolicyError{Reason: "Phone number is not allowed at signup"}
+	case store.PhoneSignupStatus(f.conn) == "required" && r.PostForm.Get("phone_number") == "":
+		malformed = &identity.PolicyError{Reason: "Phone number is required"}
+	case strings.TrimSpace(email) == "" && !store.PhoneIdentifierActive(f.conn):
 		malformed = identity.CheckEmail("")
 	case r.PostForm.Get("password") == "":
 		malformed = identity.CheckPassword(f.conn, identity.Person{}, "", nil)
@@ -689,8 +713,51 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
 	}
+
+	emailCodeVerified, phoneVerified := false, false
+	phoneNumber := r.PostForm.Get("phone_number")
+	type signupCode struct{ identifier, field string }
+	var proofs []signupCode
+	if email != "" && h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "verify_email_by_code") {
+		proofs = append(proofs, signupCode{email, "email_code"})
+	}
+	if store.PhoneIdentifierActive(f.conn) && store.PhoneSignupVerification(f.conn) && phoneNumber != "" {
+		proofs = append(proofs, signupCode{phoneNumber, "phone_code"})
+	}
+	missing := false
+	for _, proof := range proofs {
+		if r.PostForm.Get(proof.field) == "" {
+			missing = true
+			if e := h.sendIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, proof.identifier, "signup", ""); e != nil {
+				if errors.Is(e, store.ErrPhoneUnavailable) {
+					h.fail(w, r, e, f)
+					return
+				}
+				data.Error = f.view.L.T(i18n.KeyPhoneUnableSend)
+			}
+		}
+	}
+	if missing {
+		if data.Error == "" {
+			data.Error = f.view.L.T(i18n.KeyPhoneEnterCodes)
+		}
+		h.renderSignup(w, r, 200, f, data)
+		return
+	}
+	for _, proof := range proofs {
+		if _, e := h.consumeIdentifierCode(r.Context(), f.res.Tenant.ID, f.conn.ID, proof.identifier, "signup", r.PostForm.Get(proof.field)); e != nil {
+			data.Error = f.view.L.T(i18n.KeyPhoneInvalidCode)
+			h.renderSignup(w, r, 400, f, data)
+			return
+		}
+		if proof.field == "email_code" {
+			emailCodeVerified = true
+		} else {
+			phoneVerified = true
+		}
+	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
-		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,
+		EmailVerified: emailCodeVerified, PhoneNumber: phoneNumber, PhoneVerified: phoneVerified, ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,
 	})
 	if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
 		h.fail(w, r, riskErr, f)
@@ -740,7 +807,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 
 // complete starts the session and hands back to /authorize processing.
 func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, user *store.User) {
-	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: user.UserID, UserName: user.Name}))
+	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: user.UserID, UserName: passwordless.MaskIdentifier(f.conn.Strategy, user.Name)}))
 	ctx := r.Context()
 	now := h.now()
 	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now)

@@ -166,12 +166,14 @@ func (e ActionTriggerBindingPolicy) Valid() bool {
 const (
 	ActionTriggerIdCredentialsExchange        ActionTriggerId = "credentials-exchange"
 	ActionTriggerIdCustomEmailProvider        ActionTriggerId = "custom-email-provider"
+	ActionTriggerIdCustomPhoneProvider        ActionTriggerId = "custom-phone-provider"
 	ActionTriggerIdEventStream                ActionTriggerId = "event-stream"
 	ActionTriggerIdPasswordResetPostChallenge ActionTriggerId = "password-reset-post-challenge"
 	ActionTriggerIdPostChangePassword         ActionTriggerId = "post-change-password"
 	ActionTriggerIdPostLogin                  ActionTriggerId = "post-login"
 	ActionTriggerIdPostUserRegistration       ActionTriggerId = "post-user-registration"
 	ActionTriggerIdPreUserRegistration        ActionTriggerId = "pre-user-registration"
+	ActionTriggerIdSendPhoneMessage           ActionTriggerId = "send-phone-message"
 )
 
 // Valid indicates whether the value is a known member of the ActionTriggerId enum.
@@ -180,6 +182,8 @@ func (e ActionTriggerId) Valid() bool {
 	case ActionTriggerIdCredentialsExchange:
 		return true
 	case ActionTriggerIdCustomEmailProvider:
+		return true
+	case ActionTriggerIdCustomPhoneProvider:
 		return true
 	case ActionTriggerIdEventStream:
 		return true
@@ -192,6 +196,8 @@ func (e ActionTriggerId) Valid() bool {
 	case ActionTriggerIdPostUserRegistration:
 		return true
 	case ActionTriggerIdPreUserRegistration:
+		return true
+	case ActionTriggerIdSendPhoneMessage:
 		return true
 	default:
 		return false
@@ -1338,9 +1344,11 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 // Defines values for ConnectionCreateStrategy.
 const (
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
+	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
 	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
 	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
 	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
+	ConnectionCreateStrategySms          ConnectionCreateStrategy = "sms"
 	ConnectionCreateStrategyWaad         ConnectionCreateStrategy = "waad"
 	ConnectionCreateStrategyWindowslive  ConnectionCreateStrategy = "windowslive"
 )
@@ -1350,15 +1358,70 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	switch e {
 	case ConnectionCreateStrategyAuth0:
 		return true
+	case ConnectionCreateStrategyEmail:
+		return true
 	case ConnectionCreateStrategyGoogleOauth2:
 		return true
 	case ConnectionCreateStrategyOauth2:
 		return true
 	case ConnectionCreateStrategyOidc:
 		return true
+	case ConnectionCreateStrategySms:
+		return true
 	case ConnectionCreateStrategyWaad:
 		return true
 	case ConnectionCreateStrategyWindowslive:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsEmailEmailSyntax.
+const (
+	ConnectionOptionsEmailEmailSyntaxLiquid ConnectionOptionsEmailEmailSyntax = "liquid"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsEmailEmailSyntax enum.
+func (e ConnectionOptionsEmailEmailSyntax) Valid() bool {
+	switch e {
+	case ConnectionOptionsEmailEmailSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSMSProvider.
+const (
+	ConnectionOptionsSMSProviderSmsGateway ConnectionOptionsSMSProvider = "sms_gateway"
+	ConnectionOptionsSMSProviderTwilio     ConnectionOptionsSMSProvider = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSMSProvider enum.
+func (e ConnectionOptionsSMSProvider) Valid() bool {
+	switch e {
+	case ConnectionOptionsSMSProviderSmsGateway:
+		return true
+	case ConnectionOptionsSMSProviderTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsSMSSyntax.
+const (
+	ConnectionOptionsSMSSyntaxLiquid       ConnectionOptionsSMSSyntax = "liquid"
+	ConnectionOptionsSMSSyntaxMdWithMacros ConnectionOptionsSMSSyntax = "md_with_macros"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsSMSSyntax enum.
+func (e ConnectionOptionsSMSSyntax) Valid() bool {
+	switch e {
+	case ConnectionOptionsSMSSyntaxLiquid:
+		return true
+	case ConnectionOptionsSMSSyntaxMdWithMacros:
 		return true
 	default:
 		return false
@@ -5328,6 +5391,165 @@ func (e OrganizationEffectiveRoleSources) Valid() bool {
 	}
 }
 
+// Defines values for PhoneProviderChannel.
+const (
+	PhoneProviderChannelPhone PhoneProviderChannel = "phone"
+)
+
+// Valid indicates whether the value is a known member of the PhoneProviderChannel enum.
+func (e PhoneProviderChannel) Valid() bool {
+	switch e {
+	case PhoneProviderChannelPhone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhoneProviderName.
+const (
+	PhoneProviderNameCustom PhoneProviderName = "custom"
+	PhoneProviderNameSns    PhoneProviderName = "sns"
+	PhoneProviderNameTwilio PhoneProviderName = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the PhoneProviderName enum.
+func (e PhoneProviderName) Valid() bool {
+	switch e {
+	case PhoneProviderNameCustom:
+		return true
+	case PhoneProviderNameSns:
+		return true
+	case PhoneProviderNameTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhoneProviderConfigurationSmsType.
+const (
+	Promotional   PhoneProviderConfigurationSmsType = "Promotional"
+	Transactional PhoneProviderConfigurationSmsType = "Transactional"
+)
+
+// Valid indicates whether the value is a known member of the PhoneProviderConfigurationSmsType enum.
+func (e PhoneProviderConfigurationSmsType) Valid() bool {
+	switch e {
+	case Promotional:
+		return true
+	case Transactional:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhoneProviderCreateName.
+const (
+	PhoneProviderCreateNameCustom PhoneProviderCreateName = "custom"
+	PhoneProviderCreateNameSns    PhoneProviderCreateName = "sns"
+	PhoneProviderCreateNameTwilio PhoneProviderCreateName = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the PhoneProviderCreateName enum.
+func (e PhoneProviderCreateName) Valid() bool {
+	switch e {
+	case PhoneProviderCreateNameCustom:
+		return true
+	case PhoneProviderCreateNameSns:
+		return true
+	case PhoneProviderCreateNameTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhoneProviderProtectionType.
+const (
+	Default     PhoneProviderProtectionType = "default"
+	Exponential PhoneProviderProtectionType = "exponential"
+)
+
+// Valid indicates whether the value is a known member of the PhoneProviderProtectionType enum.
+func (e PhoneProviderProtectionType) Valid() bool {
+	switch e {
+	case Default:
+		return true
+	case Exponential:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhoneProviderUpdateName.
+const (
+	PhoneProviderUpdateNameCustom PhoneProviderUpdateName = "custom"
+	PhoneProviderUpdateNameSns    PhoneProviderUpdateName = "sns"
+	PhoneProviderUpdateNameTwilio PhoneProviderUpdateName = "twilio"
+)
+
+// Valid indicates whether the value is a known member of the PhoneProviderUpdateName enum.
+func (e PhoneProviderUpdateName) Valid() bool {
+	switch e {
+	case PhoneProviderUpdateNameCustom:
+		return true
+	case PhoneProviderUpdateNameSns:
+		return true
+	case PhoneProviderUpdateNameTwilio:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhoneTemplateType.
+const (
+	BlockedAccount PhoneTemplateType = "blocked_account"
+	ChangePassword PhoneTemplateType = "change_password"
+	OtpEnroll      PhoneTemplateType = "otp_enroll"
+	OtpVerify      PhoneTemplateType = "otp_verify"
+	PasswordBreach PhoneTemplateType = "password_breach"
+)
+
+// Valid indicates whether the value is a known member of the PhoneTemplateType enum.
+func (e PhoneTemplateType) Valid() bool {
+	switch e {
+	case BlockedAccount:
+		return true
+	case ChangePassword:
+		return true
+	case OtpEnroll:
+		return true
+	case OtpVerify:
+		return true
+	case PasswordBreach:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PhoneTestRequestDeliveryMethod.
+const (
+	PhoneTestRequestDeliveryMethodText  PhoneTestRequestDeliveryMethod = "text"
+	PhoneTestRequestDeliveryMethodVoice PhoneTestRequestDeliveryMethod = "voice"
+)
+
+// Valid indicates whether the value is a known member of the PhoneTestRequestDeliveryMethod enum.
+func (e PhoneTestRequestDeliveryMethod) Valid() bool {
+	switch e {
+	case PhoneTestRequestDeliveryMethodText:
+		return true
+	case PhoneTestRequestDeliveryMethodVoice:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RBACPermissionSourceSourceType.
 const (
 	DIRECT RBACPermissionSourceSourceType = "DIRECT"
@@ -7855,19 +8077,85 @@ type ConnectionCreate struct {
 	// `configuration`, ...). Unknown keys are stored and returned as
 	// sent. `configuration` values are strings or null; they are
 	// returned as opaque blobs.
-	Options      *map[string]interface{}  `json:"options,omitempty"`
-	Realms       *[]string                `json:"realms,omitempty"`
-	ShowAsButton *bool                    `json:"show_as_button,omitempty"`
-	Strategy     ConnectionCreateStrategy `json:"strategy"`
+	Options      *map[string]interface{} `json:"options,omitempty"`
+	Realms       *[]string               `json:"realms,omitempty"`
+	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
+
+	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34).
+	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy defines model for ConnectionCreate.Strategy.
+// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
 type ConnectionDeleted struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }
+
+// ConnectionOptionsEmail Options of the `email` passwordless connection (name `email`).
+// `authParams` is a JSON object encoded as a string, merged into magic
+// links. `email.body` is Liquid with `code`, `link`, `application.name`,
+// `request_language`, `operation` and `organization.*`.
+type ConnectionOptionsEmail struct {
+	AuthParams           *string `json:"authParams,omitempty"`
+	BruteForceProtection *bool   `json:"brute_force_protection,omitempty"`
+	DisableSignup        *bool   `json:"disable_signup,omitempty"`
+	Email                *struct {
+		Body    *string                            `json:"body,omitempty"`
+		From    *string                            `json:"from,omitempty"`
+		Subject *string                            `json:"subject,omitempty"`
+		Syntax  *ConnectionOptionsEmailEmailSyntax `json:"syntax,omitempty"`
+	} `json:"email,omitempty"`
+	Name                 *string                `json:"name,omitempty"`
+	NonPersistentAttrs   *[]string              `json:"non_persistent_attrs,omitempty"`
+	Totp                 *ConnectionTotp        `json:"totp,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsEmailEmailSyntax defines model for ConnectionOptionsEmail.Email.Syntax.
+type ConnectionOptionsEmailEmailSyntax string
+
+// ConnectionOptionsSMS Options of the `sms` passwordless connection (name `sms`).
+// `twilio_token` and `gateway_authentication.secret` are sealed,
+// write-only and never returned. With `phone_consolidated_experience`
+// on, `provider`, the Twilio and gateway fields, `from`, `template` and
+// `syntax` are ignored in favour of the tenant phone provider and the
+// `otp_verify` template (D-0060 P7).
+type ConnectionOptionsSMS struct {
+	BruteForceProtection  *bool                                       `json:"brute_force_protection,omitempty"`
+	DisableSignup         *bool                                       `json:"disable_signup,omitempty"`
+	ForwardReqInfo        *bool                                       `json:"forward_req_info,omitempty"`
+	From                  *string                                     `json:"from,omitempty"`
+	GatewayAuthentication *ConnectionOptionsSMS_GatewayAuthentication `json:"gateway_authentication,omitempty"`
+	GatewayUrl            *string                                     `json:"gateway_url,omitempty"`
+	MessagingServiceSid   *string                                     `json:"messaging_service_sid,omitempty"`
+	Name                  *string                                     `json:"name,omitempty"`
+	NonPersistentAttrs    *[]string                                   `json:"non_persistent_attrs,omitempty"`
+	Provider              *ConnectionOptionsSMSProvider               `json:"provider,omitempty"`
+	Syntax                *ConnectionOptionsSMSSyntax                 `json:"syntax,omitempty"`
+	Template              *string                                     `json:"template,omitempty"`
+	Totp                  *ConnectionTotp                             `json:"totp,omitempty"`
+	TwilioSid             *string                                     `json:"twilio_sid,omitempty"`
+	TwilioToken           *string                                     `json:"twilio_token,omitempty"`
+	AdditionalProperties  map[string]interface{}                      `json:"-"`
+}
+
+// ConnectionOptionsSMS_GatewayAuthentication defines model for ConnectionOptionsSMS.GatewayAuthentication.
+type ConnectionOptionsSMS_GatewayAuthentication struct {
+	Audience             string                 `json:"audience"`
+	Method               string                 `json:"method"`
+	Secret               *string                `json:"secret,omitempty"`
+	SecretBase64Encoded  *bool                  `json:"secret_base64_encoded,omitempty"`
+	Subject              *string                `json:"subject,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsSMSProvider defines model for ConnectionOptionsSMS.Provider.
+type ConnectionOptionsSMSProvider string
+
+// ConnectionOptionsSMSSyntax defines model for ConnectionOptionsSMS.Syntax.
+type ConnectionOptionsSMSSyntax string
 
 // ConnectionPage A page of connections with `include_totals=true`.
 type ConnectionPage struct {
@@ -7900,6 +8188,14 @@ type ConnectionSettings struct {
 	Options      *map[string]interface{} `json:"options,omitempty"`
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
+}
+
+// ConnectionTotp defines model for ConnectionTotp.
+type ConnectionTotp struct {
+	Length *int `json:"length,omitempty"`
+
+	// TimeStep Code and link lifetime in seconds.
+	TimeStep *int `json:"time_step,omitempty"`
 }
 
 // ConnectionUpdate Fields to change; at least one is required. `name`, `strategy` and
@@ -10951,6 +11247,149 @@ type PasswordChangeTicketCreate struct {
 	UserId *string `json:"user_id,omitempty"`
 }
 
+// PhoneDeliveryMethods defines model for PhoneDeliveryMethods.
+type PhoneDeliveryMethods = []string
+
+// PhoneProvider defines model for PhoneProvider.
+type PhoneProvider struct {
+	Channel *PhoneProviderChannel `json:"channel,omitempty"`
+
+	// Configuration Public provider settings. `twilio`: `sid` (required), `default_from`,
+	// `mssid`. `sns` (zeroauthy extension): `region` (required), `sender_id`,
+	// `sms_type` (`Transactional` or `Promotional`), `delivery_methods`
+	// limited to `text`. `custom`: `delivery_methods` only.
+	Configuration *PhoneProviderConfiguration `json:"configuration,omitempty"`
+	CreatedAt     *time.Time                  `json:"created_at,omitempty"`
+	Disabled      *bool                       `json:"disabled,omitempty"`
+	Id            *string                     `json:"id,omitempty"`
+	Name          PhoneProviderName           `json:"name"`
+	Tenant        *string                     `json:"tenant,omitempty"`
+	UpdatedAt     *time.Time                  `json:"updated_at,omitempty"`
+}
+
+// PhoneProviderChannel defines model for PhoneProvider.Channel.
+type PhoneProviderChannel string
+
+// PhoneProviderName defines model for PhoneProvider.Name.
+type PhoneProviderName string
+
+// PhoneProviderConfiguration Public provider settings. `twilio`: `sid` (required), `default_from`,
+// `mssid`. `sns` (zeroauthy extension): `region` (required), `sender_id`,
+// `sms_type` (`Transactional` or `Promotional`), `delivery_methods`
+// limited to `text`. `custom`: `delivery_methods` only.
+type PhoneProviderConfiguration struct {
+	DefaultFrom     *string                            `json:"default_from,omitempty"`
+	DeliveryMethods PhoneDeliveryMethods               `json:"delivery_methods"`
+	Mssid           *string                            `json:"mssid,omitempty"`
+	Region          *string                            `json:"region,omitempty"`
+	SenderId        *string                            `json:"sender_id,omitempty"`
+	Sid             *string                            `json:"sid,omitempty"`
+	SmsType         *PhoneProviderConfigurationSmsType `json:"sms_type,omitempty"`
+}
+
+// PhoneProviderConfigurationSmsType defines model for PhoneProviderConfiguration.SmsType.
+type PhoneProviderConfigurationSmsType string
+
+// PhoneProviderCreate defines model for PhoneProviderCreate.
+type PhoneProviderCreate struct {
+	// Configuration Public provider settings. `twilio`: `sid` (required), `default_from`,
+	// `mssid`. `sns` (zeroauthy extension): `region` (required), `sender_id`,
+	// `sms_type` (`Transactional` or `Promotional`), `delivery_methods`
+	// limited to `text`. `custom`: `delivery_methods` only.
+	Configuration *PhoneProviderConfiguration `json:"configuration,omitempty"`
+	Credentials   *PhoneProviderCredentials   `json:"credentials,omitempty"`
+	Disabled      *bool                       `json:"disabled,omitempty"`
+	Name          PhoneProviderCreateName     `json:"name"`
+}
+
+// PhoneProviderCreateName defines model for PhoneProviderCreate.Name.
+type PhoneProviderCreateName string
+
+// PhoneProviderCredentials Sealed with the master key and never returned. `twilio`: `auth_token`.
+// `sns`: `access_key_id` and `secret_access_key`. `custom`: empty.
+type PhoneProviderCredentials struct {
+	AccessKeyId     *string `json:"access_key_id,omitempty"`
+	AuthToken       *string `json:"auth_token,omitempty"`
+	SecretAccessKey *string `json:"secret_access_key,omitempty"`
+}
+
+// PhoneProviderProtection defines model for PhoneProviderProtection.
+type PhoneProviderProtection struct {
+	Type PhoneProviderProtectionType `json:"type"`
+}
+
+// PhoneProviderProtectionType defines model for PhoneProviderProtection.Type.
+type PhoneProviderProtectionType string
+
+// PhoneProviderUpdate defines model for PhoneProviderUpdate.
+type PhoneProviderUpdate struct {
+	// Configuration Public provider settings. `twilio`: `sid` (required), `default_from`,
+	// `mssid`. `sns` (zeroauthy extension): `region` (required), `sender_id`,
+	// `sms_type` (`Transactional` or `Promotional`), `delivery_methods`
+	// limited to `text`. `custom`: `delivery_methods` only.
+	Configuration *PhoneProviderConfiguration `json:"configuration,omitempty"`
+	Credentials   *PhoneProviderCredentials   `json:"credentials,omitempty"`
+	Disabled      *bool                       `json:"disabled,omitempty"`
+	Name          *PhoneProviderUpdateName    `json:"name,omitempty"`
+}
+
+// PhoneProviderUpdateName defines model for PhoneProviderUpdate.Name.
+type PhoneProviderUpdateName string
+
+// PhoneTemplate defines model for PhoneTemplate.
+type PhoneTemplate struct {
+	Channel      *string              `json:"channel,omitempty"`
+	Content      PhoneTemplateContent `json:"content"`
+	Customizable *bool                `json:"customizable,omitempty"`
+	Disabled     bool                 `json:"disabled"`
+	Id           *string              `json:"id,omitempty"`
+	Tenant       *string              `json:"tenant,omitempty"`
+	Type         PhoneTemplateType    `json:"type"`
+}
+
+// PhoneTemplateContent defines model for PhoneTemplateContent.
+type PhoneTemplateContent struct {
+	Body *struct {
+		Text  *string `json:"text,omitempty"`
+		Voice *string `json:"voice,omitempty"`
+	} `json:"body,omitempty"`
+	From   *string `json:"from,omitempty"`
+	Syntax *string `json:"syntax,omitempty"`
+}
+
+// PhoneTemplateCreate defines model for PhoneTemplateCreate.
+type PhoneTemplateCreate struct {
+	Content  *PhoneTemplateContent `json:"content,omitempty"`
+	Disabled *bool                 `json:"disabled,omitempty"`
+	Type     *PhoneTemplateType    `json:"type,omitempty"`
+}
+
+// PhoneTemplateType defines model for PhoneTemplateType.
+type PhoneTemplateType string
+
+// PhoneTemplateUpdate defines model for PhoneTemplateUpdate.
+type PhoneTemplateUpdate struct {
+	Content *struct {
+		Body *struct {
+			Text  *string `json:"text,omitempty"`
+			Voice *string `json:"voice,omitempty"`
+		} `json:"body,omitempty"`
+		From *string `json:"from,omitempty"`
+	} `json:"content,omitempty"`
+	Disabled *bool `json:"disabled,omitempty"`
+}
+
+// PhoneTestRequest defines model for PhoneTestRequest.
+type PhoneTestRequest struct {
+	DeliveryMethod *PhoneTestRequestDeliveryMethod `json:"delivery_method,omitempty"`
+
+	// To E.164 destination.
+	To string `json:"to"`
+}
+
+// PhoneTestRequestDeliveryMethod defines model for PhoneTestRequest.DeliveryMethod.
+type PhoneTestRequestDeliveryMethod string
+
 // RBACPermission defines model for RBACPermission.
 type RBACPermission struct {
 	Description              string                  `json:"description"`
@@ -12447,6 +12886,19 @@ type GetActionBindingsParams struct {
 // UpdateBrandingJSONBody defines parameters for UpdateBranding.
 type UpdateBrandingJSONBody map[string]interface{}
 
+// ListPhoneProvidersParams defines parameters for ListPhoneProviders.
+type ListPhoneProvidersParams struct {
+	Disabled *bool `form:"disabled,omitempty" json:"disabled,omitempty"`
+}
+
+// ListPhoneTemplatesParams defines parameters for ListPhoneTemplates.
+type ListPhoneTemplatesParams struct {
+	Disabled *bool `form:"disabled,omitempty" json:"disabled,omitempty"`
+}
+
+// ResetPhoneTemplateJSONBody defines parameters for ResetPhoneTemplate.
+type ResetPhoneTemplateJSONBody = map[string]interface{}
+
 // PutUniversalLoginTemplateJSONBody defines parameters for PutUniversalLoginTemplate.
 type PutUniversalLoginTemplateJSONBody map[string]interface{}
 
@@ -13325,11 +13777,35 @@ type UpdateBruteForceProtectionJSONRequestBody = BruteForceProtectionUpdate
 // UpdateCaptchaJSONRequestBody defines body for UpdateCaptcha for application/json ContentType.
 type UpdateCaptchaJSONRequestBody = CaptchaUpdate
 
+// UpdatePhoneProviderProtectionJSONRequestBody defines body for UpdatePhoneProviderProtection for application/json ContentType.
+type UpdatePhoneProviderProtectionJSONRequestBody = PhoneProviderProtection
+
 // UpdateSuspiciousIpThrottlingJSONRequestBody defines body for UpdateSuspiciousIpThrottling for application/json ContentType.
 type UpdateSuspiciousIpThrottlingJSONRequestBody = SuspiciousIpThrottlingUpdate
 
 // UpdateBrandingJSONRequestBody defines body for UpdateBranding for application/json ContentType.
 type UpdateBrandingJSONRequestBody UpdateBrandingJSONBody
+
+// CreatePhoneProviderJSONRequestBody defines body for CreatePhoneProvider for application/json ContentType.
+type CreatePhoneProviderJSONRequestBody = PhoneProviderCreate
+
+// UpdatePhoneProviderJSONRequestBody defines body for UpdatePhoneProvider for application/json ContentType.
+type UpdatePhoneProviderJSONRequestBody = PhoneProviderUpdate
+
+// TryPhoneProviderJSONRequestBody defines body for TryPhoneProvider for application/json ContentType.
+type TryPhoneProviderJSONRequestBody = PhoneTestRequest
+
+// CreatePhoneTemplateJSONRequestBody defines body for CreatePhoneTemplate for application/json ContentType.
+type CreatePhoneTemplateJSONRequestBody = PhoneTemplateCreate
+
+// UpdatePhoneTemplateJSONRequestBody defines body for UpdatePhoneTemplate for application/json ContentType.
+type UpdatePhoneTemplateJSONRequestBody = PhoneTemplateUpdate
+
+// ResetPhoneTemplateJSONRequestBody defines body for ResetPhoneTemplate for application/json ContentType.
+type ResetPhoneTemplateJSONRequestBody = ResetPhoneTemplateJSONBody
+
+// TryPhoneTemplateJSONRequestBody defines body for TryPhoneTemplate for application/json ContentType.
+type TryPhoneTemplateJSONRequestBody = PhoneTestRequest
 
 // PutUniversalLoginTemplateJSONRequestBody defines body for PutUniversalLoginTemplate for application/json ContentType.
 type PutUniversalLoginTemplateJSONRequestBody PutUniversalLoginTemplateJSONBody
@@ -13606,6 +14082,564 @@ type DeleteUserRolesJSONRequestBody = UserRoleBatch
 
 // PostUserRolesJSONRequestBody defines body for PostUserRoles for application/json ContentType.
 type PostUserRolesJSONRequestBody = UserRoleBatch
+
+// Getter for additional properties for ConnectionOptionsEmail. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsEmail) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsEmail
+func (a *ConnectionOptionsEmail) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsEmail to handle AdditionalProperties
+func (a *ConnectionOptionsEmail) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["authParams"]; found {
+		err = json.Unmarshal(raw, &a.AuthParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'authParams': %w", err)
+		}
+		delete(object, "authParams")
+	}
+
+	if raw, found := object["brute_force_protection"]; found {
+		err = json.Unmarshal(raw, &a.BruteForceProtection)
+		if err != nil {
+			return fmt.Errorf("error reading 'brute_force_protection': %w", err)
+		}
+		delete(object, "brute_force_protection")
+	}
+
+	if raw, found := object["disable_signup"]; found {
+		err = json.Unmarshal(raw, &a.DisableSignup)
+		if err != nil {
+			return fmt.Errorf("error reading 'disable_signup': %w", err)
+		}
+		delete(object, "disable_signup")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["totp"]; found {
+		err = json.Unmarshal(raw, &a.Totp)
+		if err != nil {
+			return fmt.Errorf("error reading 'totp': %w", err)
+		}
+		delete(object, "totp")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsEmail to handle AdditionalProperties
+func (a ConnectionOptionsEmail) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AuthParams != nil {
+		object["authParams"], err = json.Marshal(a.AuthParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'authParams': %w", err)
+		}
+	}
+
+	if a.BruteForceProtection != nil {
+		object["brute_force_protection"], err = json.Marshal(a.BruteForceProtection)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'brute_force_protection': %w", err)
+		}
+	}
+
+	if a.DisableSignup != nil {
+		object["disable_signup"], err = json.Marshal(a.DisableSignup)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'disable_signup': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Totp != nil {
+		object["totp"], err = json.Marshal(a.Totp)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'totp': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsSMS. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsSMS) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsSMS
+func (a *ConnectionOptionsSMS) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsSMS to handle AdditionalProperties
+func (a *ConnectionOptionsSMS) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["brute_force_protection"]; found {
+		err = json.Unmarshal(raw, &a.BruteForceProtection)
+		if err != nil {
+			return fmt.Errorf("error reading 'brute_force_protection': %w", err)
+		}
+		delete(object, "brute_force_protection")
+	}
+
+	if raw, found := object["disable_signup"]; found {
+		err = json.Unmarshal(raw, &a.DisableSignup)
+		if err != nil {
+			return fmt.Errorf("error reading 'disable_signup': %w", err)
+		}
+		delete(object, "disable_signup")
+	}
+
+	if raw, found := object["forward_req_info"]; found {
+		err = json.Unmarshal(raw, &a.ForwardReqInfo)
+		if err != nil {
+			return fmt.Errorf("error reading 'forward_req_info': %w", err)
+		}
+		delete(object, "forward_req_info")
+	}
+
+	if raw, found := object["from"]; found {
+		err = json.Unmarshal(raw, &a.From)
+		if err != nil {
+			return fmt.Errorf("error reading 'from': %w", err)
+		}
+		delete(object, "from")
+	}
+
+	if raw, found := object["gateway_authentication"]; found {
+		err = json.Unmarshal(raw, &a.GatewayAuthentication)
+		if err != nil {
+			return fmt.Errorf("error reading 'gateway_authentication': %w", err)
+		}
+		delete(object, "gateway_authentication")
+	}
+
+	if raw, found := object["gateway_url"]; found {
+		err = json.Unmarshal(raw, &a.GatewayUrl)
+		if err != nil {
+			return fmt.Errorf("error reading 'gateway_url': %w", err)
+		}
+		delete(object, "gateway_url")
+	}
+
+	if raw, found := object["messaging_service_sid"]; found {
+		err = json.Unmarshal(raw, &a.MessagingServiceSid)
+		if err != nil {
+			return fmt.Errorf("error reading 'messaging_service_sid': %w", err)
+		}
+		delete(object, "messaging_service_sid")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["provider"]; found {
+		err = json.Unmarshal(raw, &a.Provider)
+		if err != nil {
+			return fmt.Errorf("error reading 'provider': %w", err)
+		}
+		delete(object, "provider")
+	}
+
+	if raw, found := object["syntax"]; found {
+		err = json.Unmarshal(raw, &a.Syntax)
+		if err != nil {
+			return fmt.Errorf("error reading 'syntax': %w", err)
+		}
+		delete(object, "syntax")
+	}
+
+	if raw, found := object["template"]; found {
+		err = json.Unmarshal(raw, &a.Template)
+		if err != nil {
+			return fmt.Errorf("error reading 'template': %w", err)
+		}
+		delete(object, "template")
+	}
+
+	if raw, found := object["totp"]; found {
+		err = json.Unmarshal(raw, &a.Totp)
+		if err != nil {
+			return fmt.Errorf("error reading 'totp': %w", err)
+		}
+		delete(object, "totp")
+	}
+
+	if raw, found := object["twilio_sid"]; found {
+		err = json.Unmarshal(raw, &a.TwilioSid)
+		if err != nil {
+			return fmt.Errorf("error reading 'twilio_sid': %w", err)
+		}
+		delete(object, "twilio_sid")
+	}
+
+	if raw, found := object["twilio_token"]; found {
+		err = json.Unmarshal(raw, &a.TwilioToken)
+		if err != nil {
+			return fmt.Errorf("error reading 'twilio_token': %w", err)
+		}
+		delete(object, "twilio_token")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsSMS to handle AdditionalProperties
+func (a ConnectionOptionsSMS) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.BruteForceProtection != nil {
+		object["brute_force_protection"], err = json.Marshal(a.BruteForceProtection)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'brute_force_protection': %w", err)
+		}
+	}
+
+	if a.DisableSignup != nil {
+		object["disable_signup"], err = json.Marshal(a.DisableSignup)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'disable_signup': %w", err)
+		}
+	}
+
+	if a.ForwardReqInfo != nil {
+		object["forward_req_info"], err = json.Marshal(a.ForwardReqInfo)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'forward_req_info': %w", err)
+		}
+	}
+
+	if a.From != nil {
+		object["from"], err = json.Marshal(a.From)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'from': %w", err)
+		}
+	}
+
+	if a.GatewayAuthentication != nil {
+		object["gateway_authentication"], err = json.Marshal(a.GatewayAuthentication)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'gateway_authentication': %w", err)
+		}
+	}
+
+	if a.GatewayUrl != nil {
+		object["gateway_url"], err = json.Marshal(a.GatewayUrl)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'gateway_url': %w", err)
+		}
+	}
+
+	if a.MessagingServiceSid != nil {
+		object["messaging_service_sid"], err = json.Marshal(a.MessagingServiceSid)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'messaging_service_sid': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Provider != nil {
+		object["provider"], err = json.Marshal(a.Provider)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'provider': %w", err)
+		}
+	}
+
+	if a.Syntax != nil {
+		object["syntax"], err = json.Marshal(a.Syntax)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'syntax': %w", err)
+		}
+	}
+
+	if a.Template != nil {
+		object["template"], err = json.Marshal(a.Template)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'template': %w", err)
+		}
+	}
+
+	if a.Totp != nil {
+		object["totp"], err = json.Marshal(a.Totp)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'totp': %w", err)
+		}
+	}
+
+	if a.TwilioSid != nil {
+		object["twilio_sid"], err = json.Marshal(a.TwilioSid)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'twilio_sid': %w", err)
+		}
+	}
+
+	if a.TwilioToken != nil {
+		object["twilio_token"], err = json.Marshal(a.TwilioToken)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'twilio_token': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsSMS_GatewayAuthentication. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsSMS_GatewayAuthentication) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsSMS_GatewayAuthentication
+func (a *ConnectionOptionsSMS_GatewayAuthentication) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsSMS_GatewayAuthentication to handle AdditionalProperties
+func (a *ConnectionOptionsSMS_GatewayAuthentication) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["audience"]; found {
+		err = json.Unmarshal(raw, &a.Audience)
+		if err != nil {
+			return fmt.Errorf("error reading 'audience': %w", err)
+		}
+		delete(object, "audience")
+	}
+
+	if raw, found := object["method"]; found {
+		err = json.Unmarshal(raw, &a.Method)
+		if err != nil {
+			return fmt.Errorf("error reading 'method': %w", err)
+		}
+		delete(object, "method")
+	}
+
+	if raw, found := object["secret"]; found {
+		err = json.Unmarshal(raw, &a.Secret)
+		if err != nil {
+			return fmt.Errorf("error reading 'secret': %w", err)
+		}
+		delete(object, "secret")
+	}
+
+	if raw, found := object["secret_base64_encoded"]; found {
+		err = json.Unmarshal(raw, &a.SecretBase64Encoded)
+		if err != nil {
+			return fmt.Errorf("error reading 'secret_base64_encoded': %w", err)
+		}
+		delete(object, "secret_base64_encoded")
+	}
+
+	if raw, found := object["subject"]; found {
+		err = json.Unmarshal(raw, &a.Subject)
+		if err != nil {
+			return fmt.Errorf("error reading 'subject': %w", err)
+		}
+		delete(object, "subject")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsSMS_GatewayAuthentication to handle AdditionalProperties
+func (a ConnectionOptionsSMS_GatewayAuthentication) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["audience"], err = json.Marshal(a.Audience)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'audience': %w", err)
+	}
+
+	object["method"], err = json.Marshal(a.Method)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'method': %w", err)
+	}
+
+	object["secret"], err = json.Marshal(a.Secret)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'secret': %w", err)
+	}
+
+	if a.SecretBase64Encoded != nil {
+		object["secret_base64_encoded"], err = json.Marshal(a.SecretBase64Encoded)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'secret_base64_encoded': %w", err)
+		}
+	}
+
+	if a.Subject != nil {
+		object["subject"], err = json.Marshal(a.Subject)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'subject': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for EventsListEventStreamsResponseContent. Returns the specified
 // element and whether it was found
@@ -19163,6 +20197,12 @@ type ServerInterface interface {
 	// UpdateCaptcha Update captcha
 	// (PATCH /api/v2/attack-protection/captcha)
 	UpdateCaptcha(w http.ResponseWriter, r *http.Request)
+	// GetPhoneProviderProtection Get phone provider protection
+	// (GET /api/v2/attack-protection/phone-provider-protection)
+	GetPhoneProviderProtection(w http.ResponseWriter, r *http.Request)
+	// UpdatePhoneProviderProtection Update phone provider protection
+	// (PATCH /api/v2/attack-protection/phone-provider-protection)
+	UpdatePhoneProviderProtection(w http.ResponseWriter, r *http.Request)
 	// GetSuspiciousIpThrottling Get suspicious-ip-throttling
 	// (GET /api/v2/attack-protection/suspicious-ip-throttling)
 	GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request)
@@ -19175,6 +20215,45 @@ type ServerInterface interface {
 	// UpdateBranding UpdateBranding addressed to the current tenant
 	// (PATCH /api/v2/branding)
 	UpdateBranding(w http.ResponseWriter, r *http.Request)
+	// ListPhoneProviders List phone providers
+	// (GET /api/v2/branding/phone/providers)
+	ListPhoneProviders(w http.ResponseWriter, r *http.Request, params ListPhoneProvidersParams)
+	// CreatePhoneProvider Create the phone provider
+	// (POST /api/v2/branding/phone/providers)
+	CreatePhoneProvider(w http.ResponseWriter, r *http.Request)
+	// DeletePhoneProvider Delete the phone provider
+	// (DELETE /api/v2/branding/phone/providers/{id})
+	DeletePhoneProvider(w http.ResponseWriter, r *http.Request, id string)
+	// GetPhoneProvider Get the phone provider
+	// (GET /api/v2/branding/phone/providers/{id})
+	GetPhoneProvider(w http.ResponseWriter, r *http.Request, id string)
+	// UpdatePhoneProvider Update the phone provider
+	// (PATCH /api/v2/branding/phone/providers/{id})
+	UpdatePhoneProvider(w http.ResponseWriter, r *http.Request, id string)
+	// TryPhoneProvider Send a test message through the phone provider
+	// (POST /api/v2/branding/phone/providers/{id}/try)
+	TryPhoneProvider(w http.ResponseWriter, r *http.Request, id string)
+	// ListPhoneTemplates List phone templates
+	// (GET /api/v2/branding/phone/templates)
+	ListPhoneTemplates(w http.ResponseWriter, r *http.Request, params ListPhoneTemplatesParams)
+	// CreatePhoneTemplate Create a phone template
+	// (POST /api/v2/branding/phone/templates)
+	CreatePhoneTemplate(w http.ResponseWriter, r *http.Request)
+	// DeletePhoneTemplate Delete a phone template
+	// (DELETE /api/v2/branding/phone/templates/{id})
+	DeletePhoneTemplate(w http.ResponseWriter, r *http.Request, id string)
+	// GetPhoneTemplate Get a phone template
+	// (GET /api/v2/branding/phone/templates/{id})
+	GetPhoneTemplate(w http.ResponseWriter, r *http.Request, id string)
+	// UpdatePhoneTemplate Update a phone template
+	// (PATCH /api/v2/branding/phone/templates/{id})
+	UpdatePhoneTemplate(w http.ResponseWriter, r *http.Request, id string)
+	// ResetPhoneTemplate Reset a phone template to its default content
+	// (PATCH /api/v2/branding/phone/templates/{id}/reset)
+	ResetPhoneTemplate(w http.ResponseWriter, r *http.Request, id string)
+	// TryPhoneTemplate Send a test message with a phone template
+	// (POST /api/v2/branding/phone/templates/{id}/try)
+	TryPhoneTemplate(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteUniversalLoginTemplate DeleteUniversalLoginTemplate addressed to the current tenant
 	// (DELETE /api/v2/branding/templates/universal-login)
 	DeleteUniversalLoginTemplate(w http.ResponseWriter, r *http.Request)
@@ -20189,6 +21268,18 @@ func (_ Unimplemented) UpdateCaptcha(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetPhoneProviderProtection Get phone provider protection
+// (GET /api/v2/attack-protection/phone-provider-protection)
+func (_ Unimplemented) GetPhoneProviderProtection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdatePhoneProviderProtection Update phone provider protection
+// (PATCH /api/v2/attack-protection/phone-provider-protection)
+func (_ Unimplemented) UpdatePhoneProviderProtection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetSuspiciousIpThrottling Get suspicious-ip-throttling
 // (GET /api/v2/attack-protection/suspicious-ip-throttling)
 func (_ Unimplemented) GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
@@ -20210,6 +21301,84 @@ func (_ Unimplemented) GetBranding(w http.ResponseWriter, r *http.Request) {
 // UpdateBranding UpdateBranding addressed to the current tenant
 // (PATCH /api/v2/branding)
 func (_ Unimplemented) UpdateBranding(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListPhoneProviders List phone providers
+// (GET /api/v2/branding/phone/providers)
+func (_ Unimplemented) ListPhoneProviders(w http.ResponseWriter, r *http.Request, params ListPhoneProvidersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreatePhoneProvider Create the phone provider
+// (POST /api/v2/branding/phone/providers)
+func (_ Unimplemented) CreatePhoneProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeletePhoneProvider Delete the phone provider
+// (DELETE /api/v2/branding/phone/providers/{id})
+func (_ Unimplemented) DeletePhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPhoneProvider Get the phone provider
+// (GET /api/v2/branding/phone/providers/{id})
+func (_ Unimplemented) GetPhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdatePhoneProvider Update the phone provider
+// (PATCH /api/v2/branding/phone/providers/{id})
+func (_ Unimplemented) UpdatePhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TryPhoneProvider Send a test message through the phone provider
+// (POST /api/v2/branding/phone/providers/{id}/try)
+func (_ Unimplemented) TryPhoneProvider(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListPhoneTemplates List phone templates
+// (GET /api/v2/branding/phone/templates)
+func (_ Unimplemented) ListPhoneTemplates(w http.ResponseWriter, r *http.Request, params ListPhoneTemplatesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreatePhoneTemplate Create a phone template
+// (POST /api/v2/branding/phone/templates)
+func (_ Unimplemented) CreatePhoneTemplate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeletePhoneTemplate Delete a phone template
+// (DELETE /api/v2/branding/phone/templates/{id})
+func (_ Unimplemented) DeletePhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPhoneTemplate Get a phone template
+// (GET /api/v2/branding/phone/templates/{id})
+func (_ Unimplemented) GetPhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdatePhoneTemplate Update a phone template
+// (PATCH /api/v2/branding/phone/templates/{id})
+func (_ Unimplemented) UpdatePhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ResetPhoneTemplate Reset a phone template to its default content
+// (PATCH /api/v2/branding/phone/templates/{id}/reset)
+func (_ Unimplemented) ResetPhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TryPhoneTemplate Send a test message with a phone template
+// (POST /api/v2/branding/phone/templates/{id}/try)
+func (_ Unimplemented) TryPhoneTemplate(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -23174,6 +24343,34 @@ func (siw *ServerInterfaceWrapper) UpdateCaptcha(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetPhoneProviderProtection operation middleware
+func (siw *ServerInterfaceWrapper) GetPhoneProviderProtection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPhoneProviderProtection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePhoneProviderProtection operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePhoneProviderProtection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePhoneProviderProtection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSuspiciousIpThrottling operation middleware
 func (siw *ServerInterfaceWrapper) GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
 
@@ -23221,6 +24418,334 @@ func (siw *ServerInterfaceWrapper) UpdateBranding(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateBranding(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPhoneProviders operation middleware
+func (siw *ServerInterfaceWrapper) ListPhoneProviders(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPhoneProvidersParams
+
+	// ------------- Optional query parameter "disabled" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "disabled", r.URL.Query(), &params.Disabled, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "disabled"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "disabled", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPhoneProviders(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePhoneProvider operation middleware
+func (siw *ServerInterfaceWrapper) CreatePhoneProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePhoneProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePhoneProvider operation middleware
+func (siw *ServerInterfaceWrapper) DeletePhoneProvider(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePhoneProvider(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPhoneProvider operation middleware
+func (siw *ServerInterfaceWrapper) GetPhoneProvider(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPhoneProvider(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePhoneProvider operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePhoneProvider(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePhoneProvider(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TryPhoneProvider operation middleware
+func (siw *ServerInterfaceWrapper) TryPhoneProvider(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TryPhoneProvider(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPhoneTemplates operation middleware
+func (siw *ServerInterfaceWrapper) ListPhoneTemplates(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListPhoneTemplatesParams
+
+	// ------------- Optional query parameter "disabled" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "disabled", r.URL.Query(), &params.Disabled, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "disabled"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "disabled", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPhoneTemplates(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePhoneTemplate operation middleware
+func (siw *ServerInterfaceWrapper) CreatePhoneTemplate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePhoneTemplate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePhoneTemplate operation middleware
+func (siw *ServerInterfaceWrapper) DeletePhoneTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePhoneTemplate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPhoneTemplate operation middleware
+func (siw *ServerInterfaceWrapper) GetPhoneTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPhoneTemplate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePhoneTemplate operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePhoneTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePhoneTemplate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResetPhoneTemplate operation middleware
+func (siw *ServerInterfaceWrapper) ResetPhoneTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResetPhoneTemplate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TryPhoneTemplate operation middleware
+func (siw *ServerInterfaceWrapper) TryPhoneTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TryPhoneTemplate(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -31559,6 +33084,51 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v2/attack-protection/captcha", wrapper.UpdateCaptcha)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/attack-protection/phone-provider-protection", wrapper.GetPhoneProviderProtection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/attack-protection/phone-provider-protection", wrapper.UpdatePhoneProviderProtection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding/phone/providers", wrapper.ListPhoneProviders)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/branding/phone/providers", wrapper.CreatePhoneProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/branding/phone/providers/{id}", wrapper.DeletePhoneProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding/phone/providers/{id}", wrapper.GetPhoneProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/branding/phone/providers/{id}", wrapper.UpdatePhoneProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/branding/phone/providers/{id}/try", wrapper.TryPhoneProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding/phone/templates", wrapper.ListPhoneTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/branding/phone/templates", wrapper.CreatePhoneTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/branding/phone/templates/{id}", wrapper.DeletePhoneTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding/phone/templates/{id}", wrapper.GetPhoneTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/branding/phone/templates/{id}", wrapper.UpdatePhoneTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/branding/phone/templates/{id}/reset", wrapper.ResetPhoneTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/branding/phone/templates/{id}/try", wrapper.TryPhoneTemplate)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/user-blocks", wrapper.DeleteUserBlocksByIdentifier)

@@ -6,9 +6,11 @@ field-specific comparison rules in
 The local CLI lane covers the nonempty resource families marked `included`
 in that manifest, including organizations and federated connections. Database
 connections remain excluded from this matrix; the pinned handler does not
-establish their migration compatibility. `attackProtection` is marked
-`tool-unsupported` because it queries the unimplemented phone-provider-protection
-API. Direct SDK/API coverage remains authoritative for those resources.
+establish their migration compatibility. `attackProtection` includes phone-provider protection (`default` and
+`exponential`). Focused tests run unmodified Deploy CLI 9.1.0 handlers and the
+lockfile Auth0 SDK 7.4.0 against local Management handlers, including Guardian
+phone settings, selected-provider and message-types. Full YAML/directory
+migration acceptance remains a separate lane.
 Rules, hooks and their configurations are finite empty compatibility
 collections; they do not execute scripts.
 
@@ -369,3 +371,23 @@ Tool provenance: `auth0/auth0-deploy-cli` v9.1.0 (MIT),
 `lib/context/{yaml,directory}/handlers/eventStreams.js` and
 `lib/tools/auth0/handlers/eventStreams.js`. The tool is exercised only against
 local zeroauthy. No Auth0 tenant observation was performed.
+
+## Passwordless and phone provisioning
+
+Seed supports `email`/`sms` passwordless connections, one `phone_provider`,
+`phone_templates`, and Guardian `phone_settings`, `phone_selected_provider`,
+`phone_message_types`, `phone_providers`, and `phone_templates`. Provider and
+connection credentials use whole `${ENV_VAR}` references and are sealed before
+storage. Guardian write-only fields use the same references. Existing phone
+provider/template seed identities preserve operator edits; Guardian phone
+settings follow the enclosing tenant seed mode. Database phone identifier
+enables run the same conflict pre-check as the Management API.
+
+The Guardian phone handlers and `attackProtection` are included in the pinned
+manifest. Branding `phoneProviders` and `phoneTemplates` retain their explicitly
+excluded migration status until an unmodified pinned handler export/import
+lane proves secret reinjection, generated identities and template defaults.
+Native SNS is a zeroauthy extension and is outside the pinned provider schema.
+Use the direct API or seed for these resources; see [phone providers](phone-providers.md)
+and [passwordless](passwordless.md). This is not a claim of four-cell migration
+acceptance for new phone resources.

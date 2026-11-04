@@ -337,3 +337,51 @@ func deref(p *int) int {
 	}
 	return *p
 }
+
+// normalizePhoneAttributes validates the flexible phone signup controls while
+// preserving other attributes for their owning features.
+func normalizePhoneAttributes(o *Options) []error {
+	attrs, _ := o.Extra["attributes"].(map[string]any)
+	raw, has := attrs["phone_number"]
+	if !has {
+		return nil
+	}
+	var errs []error
+	obj, ok := raw.(map[string]any)
+	if !ok {
+		return []error{fmt.Errorf("attributes.phone_number must be an object")}
+	}
+	for _, part := range []string{"identifier", "signup"} {
+		val, has := obj[part]
+		if !has {
+			continue
+		}
+		m, ok := val.(map[string]any)
+		if !ok {
+			errs = append(errs, fmt.Errorf("phone_number.%s must be an object", part))
+			continue
+		}
+		active := m
+		if part == "signup" {
+			if status, has := m["status"]; has && !func() bool {
+				v, ok := status.(string)
+				return ok && slices.Contains([]string{"required", "optional", "not_allowed"}, v)
+			}() {
+				errs = append(errs, fmt.Errorf("invalid phone signup status"))
+			}
+			if v, has := m["verification"]; has {
+				var ok bool
+				active, ok = v.(map[string]any)
+				if !ok {
+					errs = append(errs, fmt.Errorf("phone signup verification must be an object"))
+				}
+			}
+		}
+		if v, has := active["active"]; has {
+			if _, ok := v.(bool); !ok {
+				errs = append(errs, fmt.Errorf("phone %s active must be boolean", part))
+			}
+		}
+	}
+	return errs
+}

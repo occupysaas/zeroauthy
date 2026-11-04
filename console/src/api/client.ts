@@ -548,8 +548,8 @@ export class Api {
     return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/client-grants/' + encodeURIComponent(id))
   }
 
-  listConnections(t: SystemTenant, q: { page: number; per_page: number; strategy?: string }): Promise<ConnectionPage> {
-    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections', { query: { ...q, include_totals: true } })
+  listConnections(t: SystemTenant, q: { page: number; per_page: number; strategy?: string; fields?: string }): Promise<ConnectionPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections', { query: { fields: 'id,name,strategy,is_domain_connection', ...q, include_fields: true, include_totals: true } })
   }
 
   // listUsers searches with Auth0's v3 query syntax; q goes out as typed.

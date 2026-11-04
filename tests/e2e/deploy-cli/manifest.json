@@ -103,14 +103,14 @@
       "name": "guardianFactorProviders",
       "status": "included",
       "owner": "Plan 34",
-      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "reason": "Guardian phone configuration round-trips through pinned 9.1.0 handlers; SMS and voice delivery follows the configured Plan 34 phone route",
       "fixture": "fixtures/guardian-factor-providers.json"
     },
     {
       "name": "guardianFactorTemplates",
       "status": "included",
       "owner": "Plan 34",
-      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "reason": "Guardian phone configuration round-trips through pinned 9.1.0 handlers; SMS and voice delivery follows the configured Plan 34 phone route",
       "fixture": "fixtures/guardian-factor-templates.json"
     },
     {
@@ -124,21 +124,21 @@
       "name": "guardianPhoneFactorSelectedProvider",
       "status": "included",
       "owner": "Plan 34",
-      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "reason": "Guardian phone configuration round-trips through pinned 9.1.0 handlers; SMS and voice delivery follows the configured Plan 34 phone route",
       "fixture": "fixtures/guardian-phone-factor-selected-provider.json"
     },
     {
       "name": "guardianPhoneFactorMessageTypes",
       "status": "included",
       "owner": "Plan 34",
-      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "reason": "Guardian phone configuration round-trips through pinned 9.1.0 handlers; SMS and voice delivery follows the configured Plan 34 phone route",
       "fixture": "fixtures/guardian-phone-factor-message-types.json"
     },
     {
       "name": "guardianPhoneFactorSettings",
       "status": "included",
       "owner": "Plan 34",
-      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "reason": "Guardian phone configuration round-trips through pinned 9.1.0 handlers; SMS and voice delivery follows the configured Plan 34 phone route",
       "fixture": "fixtures/guardian-phone-factor-settings.json"
     },
     {
@@ -220,10 +220,10 @@
     },
     {
       "name": "attackProtection",
-      "status": "tool-unsupported",
-      "owner": "roadmap: phone provider protection",
-      "reason": "Pinned 9.1.0 queries the unimplemented phone-provider-protection API; direct Plan 19 SDK/API coverage remains authoritative",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 34",
+      "reason": "Pinned 9.1.0 and lockfile SDK round-trip default/exponential phone provider protection and existing protection settings without adaptation",
+      "fixture": "fixtures/attack-protection.json"
     },
     {
       "name": "riskAssessment",

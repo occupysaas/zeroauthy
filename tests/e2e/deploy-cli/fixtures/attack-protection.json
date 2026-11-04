@@ -1,1 +1,5 @@
-{"breached_password_detection":{"shields":["block"]}}
+{
+  "phoneProviderProtection": {
+    "type": "exponential"
+  }
+}

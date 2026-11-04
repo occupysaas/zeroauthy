@@ -113,6 +113,9 @@ func loadCatalog() catalog {
 	if err := json.Unmarshal(catalogJSON, &c); err != nil {
 		panic(err)
 	}
+	for _, schema := range c.Schemas {
+		allowMaskedPhone(schema)
+	}
 	return c
 }
 
@@ -154,4 +157,25 @@ func ValidateEvent(body []byte) error {
 		return fmt.Errorf("unsupported event type %q", typ)
 	}
 	return s.Validate(v)
+}
+
+// Plan 34 requires masked numbers in emitted events. Keep the frozen upstream
+// catalog intact and apply this documented D-0060 runtime extension to its
+// phone properties, for both top-level and linked identity profiles.
+func allowMaskedPhone(v any) {
+	switch x := v.(type) {
+	case map[string]any:
+		if props, ok := x["properties"].(map[string]any); ok {
+			if field, ok := props["phone_number"].(map[string]any); ok {
+				field["pattern"] = `^(\+[0-9]{1,15}|X{4,12}[0-9]{4})$`
+			}
+		}
+		for _, child := range x {
+			allowMaskedPhone(child)
+		}
+	case []any:
+		for _, child := range x {
+			allowMaskedPhone(child)
+		}
+	}
 }

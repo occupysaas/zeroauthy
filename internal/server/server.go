@@ -33,6 +33,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
+	"github.com/zeroauthy/zeroauthy/internal/passwordless"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -101,6 +103,11 @@ type Deps struct {
 	// Actions runs post-login and credentials-exchange flows (Plan 27);
 	// nil runs none. Its effects are sealed with Wrapper.
 	Actions *actions.Engine
+
+	// Phone routes SMS and voice messages to the tenant's providers and
+	// phone Actions (Plan 34); passwordless, MFA and phone reset send
+	// through it. nil sends none.
+	Phone *phone.Dispatcher
 }
 
 // authAPI adapts the handler groups to the generated ServerInterface.
@@ -111,6 +118,8 @@ type authAPI struct {
 	oauth  *oauth.Handlers
 	authz  *authz.Handlers
 	dbconn *dbconn.Handlers
+
+	passwordless *passwordless.Handlers
 }
 
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)   { a.oidc.Discovery(w, r) }
@@ -182,7 +191,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
@@ -220,6 +229,12 @@ func New(d Deps) http.Handler {
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 	}
 	az.ResetContinue = lg.ResetContinue
+	pwl := &passwordless.Service{Store: d.Store, Wrapper: d.Wrapper, Email: d.EmailService, Protection: sharedProtection,
+		Actions: d.Actions, Database: db, Recorder: d.Recorder, Log: d.Log}
+	if d.Phone != nil {
+		pwl.SMS = d.Phone
+	}
+	lg.Passwordless = pwl
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
@@ -239,9 +254,11 @@ func New(d Deps) http.Handler {
 				Protection:        sharedProtection,
 				TrustProxyHeaders: d.TrustProxyHeaders,
 				Actions:           d.Actions,
+				Passwordless:      pwl,
 			},
-			authz:  az,
-			dbconn: dbconnHandlers,
+			authz:        az,
+			dbconn:       dbconnHandlers,
+			passwordless: &passwordless.Handlers{Service: pwl, Authz: az, Sessions: d.Sessions, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log},
 		}, authapi.ChiServerOptions{
 			BaseRouter: tr,
 			ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
@@ -255,15 +272,20 @@ func New(d Deps) http.Handler {
 		tr.Options("/userinfo", preflight)
 		tr.Options("/dbconnections/signup", preflight)
 		tr.Options("/dbconnections/change_password", preflight)
+		tr.Options("/passwordless/start", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
-		for _, path := range []string{"/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
+		for _, path := range []string{"/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
 			tr.Get(path, lg.MFAPage)
 			tr.Post(path, lg.MFASubmit)
 		}
 		tr.Get("/u/mfa-enroll-ticket", lg.MFATicket)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
+		for _, path := range []string{"/u/login-passwordless-email-code", "/u/login-passwordless-sms-otp"} {
+			tr.Get(path, lg.PasswordlessCodePage)
+			tr.Post(path, lg.PasswordlessCodeSubmit)
+		}
 		tr.Get("/u/login/password", lg.LoginPasswordGet)
 		tr.Post("/u/login/password", lg.LoginPasswordPost)
 		tr.Post("/u/login/identifier", lg.LoginIdentifierResetPost)

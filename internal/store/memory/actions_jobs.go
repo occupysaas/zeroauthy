@@ -22,7 +22,7 @@ func jobStatusValid(s string) bool {
 	return s == "pending" || s == "done" || s == "failed" || s == "dropped"
 }
 func jobTriggerValid(s string) bool {
-	return s == "post-user-registration" || s == "post-change-password" || s == "custom-email-provider" || s == "event-stream"
+	return s == "post-user-registration" || s == "post-change-password" || s == "custom-email-provider" || s == "custom-phone-provider" || s == "event-stream"
 }
 func (r actionsRepo) EnqueueJob(_ context.Context, j *store.ActionJob) error {
 	c := cloneActionJob(j)

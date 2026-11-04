@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/zeroauthy/zeroauthy/internal/events"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -48,7 +49,7 @@ func (h *Handlers) maskRequest(r *http.Request) {
 	}
 	ctx := events.WithContext(r.Context(), events.FromRequest(r))
 	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, values...), values...)
-	*r = *r.WithContext(logs.WithRecorder(ctx, h.Recorder))
+	*r = *r.WithContext(logs.WithRecorder(logs.WithEvent(ctx, logs.Event{IP: httpx.ClientIP(r, h.TrustProxyHeaders)}), h.Recorder))
 }
 
 // ticketEvent uses only the trusted identity and connection resolved by a ticket.

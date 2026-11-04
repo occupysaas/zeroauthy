@@ -62,7 +62,7 @@ func TestActionsManagementRoutes(t *testing.T) {
 		t.Fatalf("triggers=%d %s", rec.Code, rec.Body)
 	}
 
-	want := map[string]string{"post-login": "v3", "credentials-exchange": "v2", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "v3", "custom-email-provider": "v3", "event-stream": "v1"}
+	want := map[string]string{"post-login": "v3", "credentials-exchange": "v2", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "v3", "custom-email-provider": "v3", "event-stream": "v1", "custom-phone-provider": "v1", "send-phone-message": "v2"}
 	if len(out["triggers"].([]any)) != len(want) {
 		t.Fatalf("triggers=%v", out["triggers"].([]any))
 	}

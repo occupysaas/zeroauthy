@@ -208,21 +208,45 @@ func TestSSEFromTimestamp(t *testing.T) {
 }
 func TestSSEEventTypeFilter(t *testing.T) {
 	h, st, c := sseEnv(t)
-	sseAppend(t, st, "sse", "a", "user.created", c.now())
+	first := sseAppend(t, st, "sse", "a", "user.created", c.now())
 	b := sseAppend(t, st, "sse", "b", "user.updated", c.now())
 	c.advance(3 * time.Second)
-	w, _, _ := sseStart(t, h, "?from="+sseOffset(0)+"&event_type=user.created&event_type=organization.created", "")
+	ctx, cancel := context.WithCancel(t.Context())
+	// Advance time while the first matching frame is flushed, before the
+	// next filtered row is examined. This makes the previous load-only
+	// scheduling interleaving deterministic.
+	w := &sseTestWriter{header: make(http.Header), messages: make(chan string, 1000), onFlush: func(m string) {
+		if strings.HasPrefix(m, "event: user.created") {
+			c.ns.Add(int64(30 * time.Second))
+		}
+	}}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		h.SubscribeEvents(w, sseReq(ctx, "?from="+sseOffset(0)+"&event_type=user.created&event_type=organization.created", "", "sse"))
+	}()
+	t.Cleanup(func() { cancel(); sseDone(t, done) })
 	sseConnected(t, w)
 	if m := sseMessage(t, w); !strings.Contains(m, "\"id\":\"a\"") {
 		t.Fatal(m)
 	}
-	c.advance(30 * time.Second)
+	sawIntermediate := false
 	for {
 		m := sseMessage(t, w)
 		if strings.Contains(m, "user.updated") {
 			t.Fatal(m)
 		}
 		if strings.Contains(m, "event: offset-only") {
+			if !sawIntermediate {
+				// A progress frame may include only rows already examined, even
+				// when a later filtered row is present in the fetched snapshot.
+				if !strings.Contains(m, "id: "+sseOffset(first)) {
+					t.Fatal(m)
+				}
+				sawIntermediate = true
+				c.advance(30 * time.Second)
+				continue
+			}
 			if !strings.Contains(m, "id: "+sseOffset(b)) {
 				t.Fatal(m)
 			}

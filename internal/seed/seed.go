@@ -48,6 +48,8 @@ type File struct {
 }
 
 type Tenant struct {
+	PhoneProvider    *SeedPhoneProvider        `yaml:"phone_provider"`
+	PhoneTemplates   []SeedPhoneTemplate       `yaml:"phone_templates"`
 	Guardian         *Guardian                 `yaml:"guardian"`
 	EventStreams     []map[string]any          `yaml:"event_streams"`
 	LogStreams       []map[string]any          `yaml:"log_streams"`
@@ -93,8 +95,13 @@ type Tenant struct {
 // Guardian patches tenant MFA configuration. Omitted factors and a nil policy
 // list are preserved; an explicit empty policies list disables enforcement.
 type Guardian struct {
-	Factors  map[string]bool `yaml:"factors"`
-	Policies []string        `yaml:"policies"`
+	PhoneSettings         map[string]any            `yaml:"phone_settings"`
+	PhoneSelectedProvider map[string]any            `yaml:"phone_selected_provider"`
+	PhoneMessageTypes     map[string]any            `yaml:"phone_message_types"`
+	PhoneProviders        map[string]map[string]any `yaml:"phone_providers"`
+	PhoneTemplates        map[string]any            `yaml:"phone_templates"`
+	Factors               map[string]bool           `yaml:"factors"`
+	Policies              []string                  `yaml:"policies"`
 }
 
 // DeviceFlow shapes the user codes of the device authorization grant.
@@ -308,7 +315,7 @@ type Connection struct {
 
 	IsDomainConnection bool `yaml:"is_domain_connection"`
 
-	// Options are the options of a federated strategy (google-oauth2,
+	// Options are the options of a database, passwordless or federated strategy (google-oauth2,
 	// oauth2, oidc, windowslive, waad) in Auth0's names. options.client_secret is plaintext in
 	// the seed file and sealed when applied; it is required.
 	Options      map[string]any `yaml:"options"`
@@ -337,6 +344,18 @@ func (c *Connection) spec() connrules.Spec {
 	if c.Options != nil {
 		s.Options.Extra = cloneYAMLMap(c.Options)
 		s.DisplayName, s.ShowAsButton = c.DisplayName, c.ShowAsButton
+	}
+	// Validate secret reference syntax separately; wire schema validation uses a
+	// valid placeholder without reading the environment during Parse.
+	if s.Passwordless() && s.Strategy == connrules.StrategySMS {
+		if _, ok := s.Options.Extra["twilio_token"]; ok {
+			s.Options.Extra["twilio_token"] = "00000000000000000000000000000000"
+		}
+		if ga, ok := s.Options.Extra["gateway_authentication"].(map[string]any); ok {
+			if _, ok := ga["secret"]; ok {
+				ga["secret"] = "seed-reference-placeholder"
+			}
+		}
 	}
 	if c.Configuration != nil {
 		s.Options.Configuration = make(map[string]*string, len(c.Configuration))
@@ -368,7 +387,7 @@ func (c *Connection) spec() connrules.Spec {
 		s.Options.PasswordOptions = &cp
 		return s
 	}
-	if s.Federated() {
+	if s.Federated() || s.Passwordless() {
 		// No password model: a password_policy or password_options on a
 		// federated connection is refused by validation.
 		if c.PasswordPolicy != (PasswordPolicy{}) {

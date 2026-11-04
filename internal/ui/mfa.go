@@ -10,6 +10,11 @@ type MFAData struct {
 	State, CSRF, Action, Error, Secret, RecoveryCode, AnotherURL, Prefix string
 	// RedirectURI is the validated OAuth callback, as on other hosted forms.
 	RedirectURI                                        string
+	PhoneNumber                                        string
+	PhoneMethod                                        string
+	PhoneMethods                                       []string
+	PhoneCountries                                     []string
+	PhoneEnroll, SwitchPhone                           bool
 	Revision                                           int64
 	QR                                                 template.HTML
 	Options                                            []MFAOption
@@ -18,6 +23,12 @@ type MFAData struct {
 
 func MFAScreen(page string) (string, string) {
 	switch page {
+	case "mfa_phone_enroll":
+		return "mfa-phone", "mfa-phone-enrollment"
+	case "mfa_sms_challenge":
+		return "mfa-sms", "mfa-sms-challenge"
+	case "mfa_voice_challenge":
+		return "mfa-voice", "mfa-voice-challenge"
 	case "mfa_options":
 		return "mfa", "mfa-login-options"
 	case "mfa_enroll_options":
@@ -46,7 +57,7 @@ func RenderMFA(w http.ResponseWriter, status int, t Tenant, page string, d MFADa
 	render(w, status, page, t, d, formActionFor(d.RedirectURI))
 }
 func init() {
-	for page, file := range map[string]string{"mfa_options": "options", "mfa_enroll_options": "options", "mfa_otp_enroll": "otp_enroll", "mfa_otp_enroll_code": "otp_enroll", "mfa_otp_challenge": "otp_challenge", "mfa_email_challenge": "email_challenge", "mfa_email_list": "options", "mfa_recovery_enroll": "recovery_enroll", "mfa_recovery_challenge": "recovery_challenge", "mfa_result": "result"} {
+	for page, file := range map[string]string{"mfa_phone_enroll": "phone", "mfa_sms_challenge": "phone", "mfa_voice_challenge": "phone", "mfa_options": "options", "mfa_enroll_options": "options", "mfa_otp_enroll": "otp_enroll", "mfa_otp_enroll_code": "otp_enroll", "mfa_otp_challenge": "otp_challenge", "mfa_email_challenge": "email_challenge", "mfa_email_list": "options", "mfa_recovery_enroll": "recovery_enroll", "mfa_recovery_challenge": "recovery_challenge", "mfa_result": "result"} {
 		pages[page] = parsePage("templates/layout.html", "templates/mfa_"+file+".html")
 	}
 }

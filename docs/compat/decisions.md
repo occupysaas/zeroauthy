@@ -2246,3 +2246,272 @@ failed complete matrix, and distinguish any eight-handler diagnostic results.
 CLI policy assets use `{policies: [...]}`; the wire API and seed policy field
 remain arrays. Provider/template handler registries cover only a subset of
 the stored provider routes and are not a complete backup of them.
+
+## D-0060 — Passwordless and phone contracts and local rulings
+
+**2026-11-03; Plan 34 Task 1.** Evidence for the contract frozen in
+`internal/phonerules/inventory.json` and `api/*.yaml`: the [Management API
+OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+Auth0's public documentation (fetched as the published docs corpus on
+2026-11-03; every route, rule and limit carries its page URL in the
+inventory), the MIT [auth0.js](https://github.com/auth0/auth0.js) passwordless
+module (the `/passwordless/verify_redirect` parameters) and the pinned
+`@auth0/auth0-auth-js` 1.16.1 (request shapes of `/passwordless/start` and the
+OTP grant). No tenant was observed. Following the Plan 32/33 ruling,
+observation is optional: each open point has a local answer below and is
+listed as gap P1–P24 here and in the
+[follow-ups](../superpowers/plan-1-followups.md).
+
+**Documented values frozen.** Passwordless codes: only the latest code or link
+per identifier is valid, three wrong attempts invalidate it, default lifetime
+three minutes (`totp.time_step` 180, minimum 60), length 6 by default
+(`totp.length` 4–40 per the OpenAPI), no sends to blocked users;
+`/passwordless/start` is limited to 50 requests per hour per IP, `send`
+defaults to `link`, links are email only and never yield refresh tokens, and
+`auth0-forwarded-for` is honoured only for authenticated confidential clients.
+`enforce_client_authentication_on_passwordless_start` binds confidential
+clients only. SMS gateway body, JWT claims, 30-second timeout and
+`sms_provider_error` descriptions follow the gateway guide. Phone providers:
+one per tenant; `twilio` and `custom`; `delivery_methods` `text`/`voice`;
+MFA message types must be a subset of the provider's methods (409); `custom`
+without a deployed Action answers errorCode
+`custom_email_provider_deployed_action_not_found`. Templates: the five types
+`otp_verify`, `otp_enroll`, `change_password`, `blocked_account`,
+`password_breach`, Liquid, the documented variable list (`code` absent on
+`blocked_account`), body up to 20,000 characters, `from` up to 16. Default
+bodies are written in our own words. MFA SMS: 10 sends per user per hour
+refilling one per hour, at most one new voice request per hour, Guardian code
+length 4–10 (default 6) and lifetime 30–3600 s (default 300); voice codes are
+read digit by digit. Signup verification codes live 900 s; `limit_signup_otp`
+is scoped to tenant, identifier and connection. Actions:
+`custom-phone-provider` (`onExecuteCustomPhoneProvider`, v1, notification
+event, `api.notification.drop|retry`, up to five retries, one bound Action)
+and `send-phone-message` (`onExecuteSendPhoneMessage`, blocking,
+`message_options` event, cache API) are supported, no longer deferred. Phone
+masking follows the documented authenticator examples (`XXXXXXXX6220`: every
+character but the last four replaced with `X`). `disable_management_api_sms_obfuscation`
+keeps its documented default `true`. Under the consolidated (Unified Phone)
+experience the branding provider and templates serve MFA, passwordless SMS,
+phone reset and verification; phone identifiers always use the branding
+provider. The full routing table is `phonerules.Routing()`.
+
+**Local rulings (LR).** (1) Guardian `selected-provider: auth0` means Auth0's
+own SMS service; zeroauthy has none, so it sends through the tenant branding
+phone provider; with none configured delivery fails closed with
+`gd_send_sms_failure` and the factor is not offered to new enrollments. (2)
+`sns` (Amazon SNS, `text` only, `voice` reports unsupported delivery) is a
+marked zeroauthy extension provider name; `twilio`, `custom`, `auth0` and
+`phone-message-hook` keep Auth0's meaning everywhere. (3) A provider *works*
+when native (`twilio`, `sns`) and configured and not disabled, or Action-backed
+(`custom`, `phone-message-hook`) with a deployed, bound Action. Only a working
+provider makes a factor or SMS connection offerable; a send-time failure
+(provider error, Node runner unavailable, Action error) is a delivery failure
+that logs the documented failure code, returns Auth0's error and does not
+change what is offered. (4) Provider endpoints are fixed; tenants cannot set a
+Twilio or SNS base URL. Only the process setting `ZA_TEST_PHONE_ENDPOINTS`,
+honoured only with an explicit `ZA_TEST_MODE=1` and logged as a startup
+warning, redirects adapters to local fakes. (5) Existing user phone data is
+never rewritten by migration 0034. Enabling
+`attributes.phone_number.identifier.active` (PATCH, seed or Deploy CLI)
+pre-checks every number of the connection in memory (E.164, duplicates) and
+refuses with a conflict list of user IDs and masked numbers; nothing is
+enabled. (6) Numbers where the documents are silent: passwordless identifier
+and signup-verification budgets 10 per hour; magic-link lifetime equals
+`totp.time_step`; `/passwordless/start` `_id` is 24 lowercase hex; exponential
+backoff gives 3 immediate sends, then waits doubling from 60 s to 1920 s with
+±10% jitter, reset after 24 h idle; gateway JWT HS256 with a 300 s lifetime;
+E.164 numbers have 8–15 digits; short values (four characters or fewer) are
+fully masked.
+
+**Task 7 local rulings (phone Management routes).** (7) Phone templates not
+yet configured are listed under the ids `tem_default_<type>`; GET, reset and
+`try` work on them, PATCH and DELETE answer 404 until the type is created.
+(8) `try` failures map invalid number or unsupported delivery to 400,
+provider rate limiting and an exhausted send budget to 429 (the budget also
+logs `limit_phone`), a disabled or Action-backed provider to 409, and every
+other provider failure to 502 `phone_delivery_failed`. (9) `country_codes` is
+enforced on `try` as on every SMS and voice destination (P20). (10) PATCH of
+a provider `configuration` replaces it whole, as Auth0's schema requires its
+required fields on every write; credentials merge per key. (11) The tenant
+settings read always returns `phone_consolidated_experience` and
+`flags.disable_management_api_sms_obfuscation` with their effective values
+(absent on an existing tenant: false and true), and tenants created after
+Plan 34 start with `phone_consolidated_experience` true (P9). The eight
+`phone_providers` and `phone_templates` scopes join the Management API scope
+list; the phone routes check the persisted client grant on every request.
+
+**Task 8 local rulings (passwordless connections).** (12) An `sms`
+connection with `provider: sms_gateway` requires `gateway_url`; the URL must
+be `https`, carry no credentials and not name a local, loopback or private
+host (the resolved address is checked again at dial time). (13)
+`options.authParams` is accepted as a query string or as an object of
+strings. (14) `{"options":{"twilio_token":null}}` clears the sealed token;
+as Auth0 documents, a PATCH of `options` replaces the whole object.
+
+**Task 9 local rulings (dispatcher and phone Actions).** (15) The first
+`custom-phone-provider` attempt runs synchronously inside the request so the
+caller learns the delivery outcome. `api.notification.retry` accepts the
+message and queues the documented five retries as durable jobs (30 s, then
+doubling to 8 min, sealed envelope, code masked); a drop, a thrown error, a
+timeout or an unavailable runner is a delivery failure with no retry (LR3);
+a retry job is re-queued only when its Action calls `retry` again.
+`send-phone-message` is blocking and never retried. (16) Guardian phone
+settings are read from the `phone` factor records, falling back to the
+legacy `sms` records; an unset selected provider means `auth0`. (17) A
+disabled branding template sends nothing (`ErrTemplateDisabled`); the
+caller logs its failure code. (18) A template `from` is the Twilio sender;
+for `sns` it is used as the alphanumeric sender ID only when it is one
+(1–11 letters and digits), otherwise the provider's `sender_id` applies.
+Guardian Twilio and SMS-connection Twilio sends use their stored `from` or
+messaging service. (19) An SMS connection with `provider: twilio` but no
+`twilio_sid`/`twilio_token` does not work and its send fails with
+`provider_auth`. (20) The SMS gateway client refuses non-public addresses at
+dial time (CGNAT, loopback, numeric host forms included); only test
+endpoints under `ZA_TEST_MODE=1` relax this, as for the native adapters.
+Gateway failures carry the documented `sms_provider_error` descriptions.
+(21) Template `code` and SMS-connection `password` are passed to the Liquid
+renderer as trusted values (it drops code-like variables otherwise); voice
+bodies read the code digit by digit for branding, Guardian and Action
+`as_voice` alike; the code and its digit-separated spellings are all masked
+in Action logs, errors, records and slog output.
+(22) `/passwordless/start` accepts and ignores unknown body members (auth0.js
+forwards extra options), relaxing the frozen `additionalProperties: false`.
+(23) The passwordless OTP grant, like the password grants, is first-party
+only, is refused to `organization_usage: require` clients and ignores
+`organization`; Auth0 documents neither point. Its post-login
+`event.transaction.protocol` is `oauth2-resource-owner` and its access token
+`gty` is `password` (undocumented for this grant). (24) A grant refused for a
+blocked user or disabled signup answers 403 `access_denied` (frozen route
+errors), not the password grant's `invalid_grant`; wrong codes answer
+`invalid_grant` "Wrong email or verification code." / "Wrong phone number or
+verification code.". (25) A code is bound to the client it was sent for; a
+code submitted by another client is spent and refused. A wrong code is counted in the same atomic store step as the check, so parallel guesses never exceed the three-attempt limit; `email_verified`/`phone_verified` are only asserted for the user's own primary identifier, never through a linked identity. Starting a code
+expires an outstanding link for the identifier and vice versa (only the
+latest code or link is valid). (26) Start spends the per-IP (50/hour) and
+identifier (10/hour) budgets before the user lookup and even when delivery
+fails; blocked users and disabled-signup unknowns get 403 `access_denied` and
+no message. An email delivery failure answers 500 `server_error`; an SMS
+failure 400 `sms_provider_error` and logs `fn`. (27) The password and
+password-realm grants refuse `realm=email|sms` with their usual
+`invalid_request` (not a database connection). (28) `POST /api/v2/users` on
+`email`/`sms` creates a user without a password (`email|`/`sms|` + 24 hex,
+E.164 phone number, 409 on a duplicate email or number in the connection); a
+password or username is refused with 400. Auth0 documents creating
+passwordless users through the Management API but not these validation
+messages. (29) The magic-link confirmation form carries a sealed state token
+(tenant, link hash, authParams, 10-minute expiry); the POST consumes the link
+and resumes the authorization through a fresh session and transaction, so
+MFA, consent, organizations and post-login Actions apply as on the hosted
+login. Magic links drop `offline_access`.
+
+**Task 11 local rulings (hosted passwordless).** (30) Login CSRF on
+`/passwordless/verify_redirect`: a GET never consumes anything, a typed code
+included. Both a typed code and a magic link get the confirmation page, and its
+sealed state carries the hash of an `HttpOnly`, `SameSite=Strict` browser
+cookie (`za_pwl_confirm`, path `/passwordless/verify_redirect`, 10 minutes). The
+POST is refused (400, nothing consumed) unless it comes from the browser that
+rendered the form. The page shows the identifier being signed in. auth0.js's
+typed-code redirect therefore needs one extra click; Auth0 documents neither
+the confirmation step nor any binding. (31) The hosted prompt chooses
+passwordless per Auth0's documented table: `connection=email|sms` selects it,
+and without `connection` it is used only when the application has no database
+connection (the one created first; social buttons are shown alongside).
+Identifier-first sends the code from the identifier step instead of moving to
+the password step. Screens: identifier entry on `/u/login` (`login-id` text),
+then `/u/login-passwordless-email-code` or `/u/login-passwordless-sms-otp`.
+These paths and the `zeroauthy.login-passwordless.*` messages are local. The
+hosted send needs no passwordless OTP grant on the client and always sends a
+code (P24). The P3 same-browser rule has no hosted case, because hosted
+transactions never send links. (32) `challenge_passwordless_policy` governs the
+hosted identifier submit (CAPTCHA action `passwordless`) independently of
+`challenge_password_policy`. Resend obeys the same identifier and IP budgets
+as `/passwordless/start` and shows 429 with `limit_phone`/`api_limit` logged.
+(33) With `connection=email|sms` an existing session is not reused
+(documented); `prompt=none` answers `login_required`. Organization membership
+follows the password login (assign on login, otherwise the authorization
+refuses with `access_denied`). As with social connections, the database-only
+`is_signup_enabled` does not apply.
+
+**Interface ruling.** As in D-0059, the route lookup is `Route(op string)
+RouteSchema` because Go cannot declare a type and a function both named
+`Route`. Operation IDs carry a `#variant` suffix where one method and path
+serves several contracts (`POST /api/v2/connections#sms`). The
+phone-provider-protection routes use Auth0's own path,
+`/api/v2/attack-protection/phone-provider-protection`. Until Task 10 the three
+passwordless Authentication API routes answer 501 `passwordless_unavailable`;
+both phone triggers run on the Actions runner since Task 9.
+
+**Gaps (local answers; none is an observed upstream fact).**
+**P1** `/passwordless/start` success bodies (`{_id, email, email_verified}` or
+`{_id, phone_number, phone_verified}`) and per-strategy errors.
+**P2** each wrong code also counts toward the Plan 19 brute-force rule
+(`limit_wc`) when `brute_force_protection` is on.
+**P3** magic links: the documented same-browser rule is enforced when start
+came from a browser transaction (cookie binding); `GET
+/passwordless/verify_redirect` renders a confirmation page for link tokens and
+only the POST consumes them; typed codes are consumed on GET as auth0.js
+expects.
+**P4** send budgets beyond the documented MFA rate; email exhaustion logs
+`api_limit`.
+**P5** masking applies to authenticator names, to Management enrollments when
+obfuscation is on, and always to logs; the user profile `phone_number` is not
+masked.
+**P6** passwordless user IDs `email|<24 hex>` and `sms|<24 hex>`.
+**P7** under the consolidated experience passwordless SMS uses the `otp_verify`
+template and ignores the SMS connection's provider, Twilio, gateway, `from`,
+`template` and `syntax` fields.
+**P8** Guardian `auth0` routing (LR 1).
+**P9** tenants created after Plan 34 start with
+`phone_consolidated_experience: true` (Auth0 enrolls new tenants); existing
+tenants keep absent as false.
+**P10** bot detection applies to the hosted prompt only; `/passwordless/start`
+is not challenged (no auth0.js captcha or `/passwordless/challenge`).
+**P11** the OTP grant's documented required `redirect_uri` is optional (the
+pinned auth0-auth-js omits it) and validated when sent; the grant is not
+advertised in discovery.
+**P12** `send-phone-message` reports trigger version `v2` (no public statement).
+**P13** the docs prose spells `/passwordless/verify-redirect`; only auth0.js's
+`/passwordless/verify_redirect` is served.
+**P14** phone-provider-protection is always available (Auth0 gates it by plan
+with 403) and reads `{"type":"default"}` when unset (Auth0 documents 404).
+**P15** the `sns` configuration and credential fields.
+**P16** published provider responses require `credentials` without defining it;
+responses omit credentials.
+**P17** Auth0's guide shows `twilio_token` in connection responses; zeroauthy
+seals it and never returns it (spec secret rule) — a deliberate deviation.
+**P18** passwordless connection names equal their strategy, one per tenant.
+**P19** `auth_email_by_code` serves passwordless email codes when present and
+enabled, otherwise the connection's email settings.
+**P20** `country_codes` (documented for identifier input) applies to every
+SMS/voice destination and refuses with `invalid_request`.
+**P21** phone numbers are unique per connection, not across connection types
+as the docs state.
+**P22** start for an unknown user on a `disable_signup` connection fails with
+403 `access_denied`.
+**P23** passwordless on database connections (`/otp/challenge`), legacy
+`/passwordless/verify` and `/oauth/ro` are out of scope.
+**P24** the docs say magic links are not supported in Universal Login; the
+hosted prompt sends codes only and links come from `/passwordless/start`. The
+`login-passwordless-email-link` text serves the link confirmation page. This
+narrows spec §3's hosted description.
+
+**Plan 34 Task 13 local rulings (LR34–36).** Phone identifier normalization is
+shared through the internal `phonenumber` primitive package; the existing
+`phone` helpers retain their signatures. Phone signup uses a verification
+code before creating a user; an enabled `verify_email_by_code` template
+selects email code verification at hosted signup, and an enabled
+`reset_email_by_code` template selects hosted email reset codes. Codes expire
+after five minutes, permit three guesses, and are replaced on resend; reset
+codes carry a sealed reset ticket and only a successful code POST opens the
+normal password-reset form (policy, breach, Actions and MFA still apply).
+Phone verification is required when a phone identifier is supplied at signup
+unless its `signup.verification.active` is explicitly false.
+Phone codes for signup and reset share identifier and IP send budgets of
+10 and 50 per hour respectively. (LR) Tenant events mask phone values in
+both current and previous objects, including linked profile data, regardless
+of Management API obfuscation settings. The frozen upstream event catalog
+stays intact; the runtime event schema accepts the documented masked form
+alongside E.164 so emitted events remain valid. Consumers must treat event
+phone numbers as display values; use authorized Management API reads for
+full numbers. These choices can require an extra code step or a full-number
+lookup compared with clients expecting the unmasked upstream event schema.

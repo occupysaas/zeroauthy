@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { ApiError } from '../../api/client'
 import type { Connection, ConnectionUpdate, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
@@ -43,6 +44,8 @@ const stored: Spec[] = [
 const form = reactive({ brute: true, disableSignup: false, requiresUsername: false, domain: false, usernameMin: '', usernameMax: '' })
 const values = reactive<Record<string, string | boolean>>({})
 const errors = reactive<Record<string, string>>({})
+const phoneIdentifier = ref(false)
+const conflicts = ref<{user_ids:string[];reason:string}[]>([])
 const general = ref('')
 const status = ref('')
 const busy = ref(false)
@@ -68,6 +71,7 @@ function format(s: Spec): string | boolean {
 
 function reset(c: Connection) {
   const o = optionsOf(c)
+  phoneIdentifier.value = asRecord(asRecord(asRecord(o.attributes).phone_number).identifier).active === true
   form.brute = o.brute_force_protection !== false
   form.disableSignup = o.disable_signup === true
   form.requiresUsername = o.requires_username === true
@@ -91,6 +95,7 @@ function wholeNumber(text: string): number | null {
 
 async function save() {
   general.value = ''
+  conflicts.value = []
   status.value = ''
   for (const k of Object.keys(errors)) delete errors[k]
 
@@ -141,6 +146,10 @@ async function save() {
     if (s.where === 'top') topWrite[s.key] = next
     else edits[s.key] = s.kind === 'lines' && (next as string[]).length === 0 ? undefined : next
   }
+  if (phoneIdentifier.value !== (asRecord(asRecord(asRecord(cur.attributes).phone_number).identifier).active === true)) {
+    const attrs = asRecord(edits.attributes ?? cur.attributes), phone = asRecord(attrs.phone_number)
+    edits.attributes = {...attrs, phone_number: {...phone, identifier: {...asRecord(phone.identifier), active: phoneIdentifier.value}}}
+  }
   if (form.domain !== props.connection.is_domain_connection) top.is_domain_connection = form.domain
   if (Object.keys(errors).length) return
 
@@ -153,6 +162,9 @@ async function save() {
     emit('saved', c)
   } catch (e) {
     general.value = errorMessage(e)
+    if (e instanceof ApiError && e.errorCode === 'invalid_body' && e.message.startsWith('Phone identifier conflicts: ')) {
+      try { const items: unknown = JSON.parse(e.message.slice('Phone identifier conflicts: '.length)); if (Array.isArray(items)) conflicts.value = items.filter((item): item is {user_ids:string[];reason:string} => !!item && typeof item.reason === 'string' && Array.isArray(item.user_ids) && item.user_ids.every((id:unknown) => typeof id === 'string')) } catch { /* Keep the ordinary error if the structured suffix is absent. */ }
+    }
   } finally {
     busy.value = false
   }
@@ -163,6 +175,7 @@ async function save() {
   <form class="stack" novalidate @submit.prevent="save">
     <Banner v-if="general" kind="error">{{ general }}</Banner>
 
+    <ul v-if="conflicts.length" data-phone-conflicts class="card"><li v-for="(conflict,index) in conflicts" :key="index">{{ conflict.reason }}: <code v-for="id in conflict.user_ids" :key="id" class="mr-2">{{ id }}</code></li></ul>
     <section class="card stack" :aria-label="t('conns.enforcedGroup')">
       <h2 class="m-0 text-[1.05rem]">{{ t('conns.enforcedGroup') }}</h2>
       <label class="check">
@@ -187,6 +200,7 @@ async function save() {
       <Field id="conn-username-max" :label="t('conns.usernameMax')" :error="errors.usernameMax">
         <input id="conn-username-max" v-model="form.usernameMax" type="text" inputmode="numeric" :aria-invalid="!!errors.usernameMax" />
       </Field>
+      <label v-if="connection.strategy === 'auth0'" class="check"><input id="phone-identifier" v-model="phoneIdentifier" type="checkbox" /><span><strong>{{ t('phone.identifier') }}</strong><span class="muted">{{ t('phone.identifierHint') }}</span></span></label>
     </section>
 
     <section class="card stack" :aria-label="t('conns.storedGroup')" data-testid="stored-group">

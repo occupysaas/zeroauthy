@@ -232,3 +232,19 @@ func TestApplyPatchFields(t *testing.T) {
 		t.Fatalf("%+v", u)
 	}
 }
+
+func TestApplyPatchSetsPhoneNormalizedOnlyWhenItNormalizes(t *testing.T) {
+	u := &store.User{PhoneNumber: "+1 415 555 0100", PhoneNormalized: "+14155550100"}
+	ApplyPatch(u, &Patch{Name: ptr("n")})
+	if u.PhoneNormalized != "+14155550100" {
+		t.Fatalf("unrelated patch rewrote normalized: %q", u.PhoneNormalized)
+	}
+	ApplyPatch(u, &Patch{PhoneNumber: ptr("+44 20 7946 0958")})
+	if u.PhoneNormalized != "+442079460958" {
+		t.Fatalf("normalized = %q", u.PhoneNormalized)
+	}
+	ApplyPatch(u, &Patch{PhoneNumber: ptr("020 7946 0958")})
+	if u.PhoneNormalized != "" {
+		t.Fatalf("no-region number normalized to %q", u.PhoneNormalized)
+	}
+}

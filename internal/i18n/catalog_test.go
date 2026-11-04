@@ -57,6 +57,13 @@ func usedKeys(t *testing.T) []string {
 		}
 	}
 	used = append(used, "mfa.mfa-enroll-result.invalidTicket")
+	// Hosted passwordless code screens share one template with a screen
+	// prefix (internal/login passwordlessCodeSuffixes).
+	for _, screen := range []string{"login-passwordless-email-code", "login-passwordless-sms-otp"} {
+		for _, suffix := range []string{"pageTitle", "title", "description", "codePlaceholder", "buttonText", "resendText", "resendActionText", "editText", "logoAltText", "invalid-code"} {
+			used = append(used, "login-passwordless."+screen+"."+suffix)
+		}
+	}
 	return used
 }
 

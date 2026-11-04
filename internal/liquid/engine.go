@@ -13,6 +13,10 @@ type Limits struct {
 	// EscapeVariables escapes substitutions after evaluating expressions and
 	// filters. Email retains its existing explicitly escaped rendering mode.
 	EscapeVariables bool
+	// Codes are top-level one-time codes added after the sensitive-key
+	// projection, for templates whose documented variables include them
+	// (phone templates' code). They are never logged.
+	Codes map[string]string
 }
 
 var ErrLimit = errors.New("liquid limit exceeded")
@@ -34,7 +38,7 @@ func Render(ctx context.Context, source string, vars map[string]any, tags map[st
 		source = strings.ReplaceAll(source, "{% "+name+" %}", value)
 		source = strings.ReplaceAll(source, "{%- "+name+" -%}", value)
 	}
-	out, err := renderLiquid(ctx, source, vars, maxOutput, limits.EscapeVariables)
+	out, err := renderLiquid(ctx, source, vars, maxOutput, limits.EscapeVariables, limits.Codes)
 	if err != nil {
 		return "", err
 	}

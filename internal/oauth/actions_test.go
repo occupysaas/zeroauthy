@@ -624,6 +624,7 @@ var credentialsByGrant = map[string][]string{
 	clientrules.GrantMFAOTP:          {"mfa_token", "otp", "client_secret", "client_assertion"},
 	clientrules.GrantMFAOOB:          {"mfa_token", "oob_code", "binding_code", "client_secret", "client_assertion"},
 	clientrules.GrantMFARecoveryCode: {"mfa_token", "recovery_code", "client_secret", "client_assertion"},
+	clientrules.GrantPasswordlessOTP: {"otp", "client_secret", "client_assertion"},
 }
 
 func TestActionsBodyStripsEveryGrant(t *testing.T) {

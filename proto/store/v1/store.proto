@@ -90,6 +90,23 @@ service StoreService {
   rpc MFADeleteUserMFA(MFADeleteUserMFARequest) returns (MFADeleteUserMFAResponse);
   rpc MFADeleteTenantMFA(MFADeleteTenantMFARequest) returns (MFADeleteTenantMFAResponse);
   rpc SessionsMarkMFA(TouchRequest) returns (Result);
+  rpc PhoneCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc PhoneListProviders(PhoneTenantRequest) returns (PhoneListProvidersResponse);
+  rpc PhoneGetProvider(PhoneIDRequest) returns (PhoneProviderResponse);
+  rpc PhoneCreateProvider(PhoneProviderRequest) returns (PhoneErrorResponse);
+  rpc PhoneUpdateProvider(PhoneProviderRequest) returns (PhoneErrorResponse);
+  rpc PhoneDeleteProvider(PhoneIDRequest) returns (PhoneErrorResponse);
+  rpc PhoneListTemplates(PhoneTenantRequest) returns (PhoneListTemplatesResponse);
+  rpc PhoneGetTemplate(PhoneIDRequest) returns (PhoneTemplateResponse);
+  rpc PhonePutTemplate(PhoneTemplateRequest) returns (PhoneErrorResponse);
+  rpc PhoneDeleteTemplate(PhoneIDRequest) returns (PhoneErrorResponse);
+  rpc PhonePutPasswordlessCode(PhonePutCodeRequest) returns (PhoneErrorResponse);
+  rpc PhoneFailPasswordlessCode(PhoneCodeKeyRequest) returns (PhoneFailCodeResponse);
+  rpc PhoneConsumePasswordlessCode(PhoneConsumeCodeRequest) returns (PhoneCodeResponse);
+  rpc PhonePeekPasswordlessLink(PhonePeekLinkRequest) returns (PhoneCodeResponse);
+  rpc PhoneFindUsersByPhone(PhoneFindUsersRequest) returns (PhoneFindUsersResponse);
+  rpc PhonePurge(PhonePurgeRequest) returns (PhoneCountResponse);
+  rpc PhoneDeleteTenant(PhoneTenantRequest) returns (PhoneErrorResponse);
   rpc EventsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc AppendEvents(EventsRequest) returns (EventsResponse);
   rpc GetEvent(EventsRequest) returns (EventsResponse);
@@ -488,6 +505,7 @@ message Error {
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
     KIND_ORGANIZATIONS_II_UNAVAILABLE = 13; // store.ErrOrganizationsIIUnavailable
     KIND_MFA_UNAVAILABLE = 16;
+    KIND_PHONE_UNAVAILABLE = 17; // store.ErrPhoneUnavailable
     KIND_EVENTS_UNAVAILABLE = 15; // store.ErrEventsUnavailable
     KIND_LOGS_UNAVAILABLE = 14; // store.ErrLogsUnavailable
     KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
@@ -801,6 +819,7 @@ message User {
   string phone_number = 19; bool phone_verified = 20; string last_ip = 21;
   int64 version = 22;
   int64 remember_browser_epoch = 24;
+  string phone_normalized = 25;
   google.protobuf.Timestamp last_password_reset = 23; // absent = nil
 }
 
@@ -1577,3 +1596,28 @@ message MFADeleteUserMFARequest { string tx_id = 1; string tid = 2; string uid =
 message MFADeleteUserMFAResponse { Error error = 1;  }
 message MFADeleteTenantMFARequest { string tx_id = 1; string tid = 2; }
 message MFADeleteTenantMFAResponse { Error error = 1;  }
+
+// Phone v1 (capability "phone.v1", negotiated by PhoneCapabilities). Sealed
+// credentials, request blobs and code hashes are opaque and cross unchanged.
+message PhoneProvider { string tenant_id = 1; string id = 2; string name = 3; bool disabled = 4; bytes configuration = 5; bytes sealed_credentials = 6; google.protobuf.Timestamp created_at = 7; google.protobuf.Timestamp updated_at = 8; }
+message PhoneTemplate { string tenant_id = 1; string id = 2; string type = 3; bool disabled = 4; bytes content = 5; bool customizable = 6; google.protobuf.Timestamp created_at = 7; google.protobuf.Timestamp updated_at = 8; }
+message PasswordlessCode { string tenant_id = 1; string connection_id = 2; string identifier = 3; string client_id = 4; string kind = 5; string code_hash = 6; bytes request = 7; int64 attempts = 8; google.protobuf.Timestamp expires_at = 9; google.protobuf.Timestamp created_at = 10; }
+message PhoneErrorResponse { Error error = 1; }
+message PhoneTenantRequest { string tx_id = 1; string tid = 2; }
+message PhoneIDRequest { string tx_id = 1; string tid = 2; string id = 3; }
+message PhoneProviderRequest { string tx_id = 1; PhoneProvider v = 2; }
+message PhoneProviderResponse { Error error = 1; PhoneProvider value = 2; }
+message PhoneListProvidersResponse { Error error = 1; repeated PhoneProvider values = 2; }
+message PhoneTemplateRequest { string tx_id = 1; PhoneTemplate v = 2; }
+message PhoneTemplateResponse { Error error = 1; PhoneTemplate value = 2; }
+message PhoneListTemplatesResponse { Error error = 1; repeated PhoneTemplate values = 2; }
+message PhonePutCodeRequest { string tx_id = 1; PasswordlessCode v = 2; }
+message PhoneCodeKeyRequest { string tx_id = 1; string tid = 2; string connection = 3; string identifier = 4; string kind = 5; google.protobuf.Timestamp now = 6; }
+message PhoneFailCodeResponse { Error error = 1; int64 attempts = 2; }
+message PhoneConsumeCodeRequest { string tx_id = 1; string tid = 2; string connection = 3; string identifier = 4; string kind = 5; string hash = 6; int64 max_attempts = 7; google.protobuf.Timestamp now = 8; }
+message PhoneCodeResponse { Error error = 1; PasswordlessCode value = 2; }
+message PhonePeekLinkRequest { string tx_id = 1; string tid = 2; string hash = 3; google.protobuf.Timestamp now = 4; }
+message PhoneFindUsersRequest { string tx_id = 1; string tid = 2; string connection = 3; string e164 = 4; }
+message PhoneFindUsersResponse { Error error = 1; repeated User values = 2; }
+message PhonePurgeRequest { string tx_id = 1; google.protobuf.Timestamp before = 2; int64 limit = 3; }
+message PhoneCountResponse { Error error = 1; int64 count = 2; }

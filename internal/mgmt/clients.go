@@ -28,6 +28,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -78,6 +79,12 @@ type Handlers struct {
 	// sends nothing.
 	Verification VerificationSender
 	EmailService *email.Service
+	// PhoneHTTP is the HTTP client of the phone provider try routes; nil uses
+	// phone.NewHTTPClient (SSRF-guarded).
+	PhoneHTTP *http.Client
+	// PhoneActions runs the custom phone provider's Action for try; nil
+	// uses Actions.
+	PhoneActions phone.ActionRunner
 	// Notify wakes the job workers after a job is stored; nil does
 	// nothing (the workers poll).
 	Notify func()

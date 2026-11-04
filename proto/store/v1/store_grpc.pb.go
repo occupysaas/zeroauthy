@@ -49,6 +49,23 @@ const (
 	StoreService_MFADeleteUserMFA_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFADeleteUserMFA"
 	StoreService_MFADeleteTenantMFA_FullMethodName                      = "/zeroauthy.store.v1.StoreService/MFADeleteTenantMFA"
 	StoreService_SessionsMarkMFA_FullMethodName                         = "/zeroauthy.store.v1.StoreService/SessionsMarkMFA"
+	StoreService_PhoneCapabilities_FullMethodName                       = "/zeroauthy.store.v1.StoreService/PhoneCapabilities"
+	StoreService_PhoneListProviders_FullMethodName                      = "/zeroauthy.store.v1.StoreService/PhoneListProviders"
+	StoreService_PhoneGetProvider_FullMethodName                        = "/zeroauthy.store.v1.StoreService/PhoneGetProvider"
+	StoreService_PhoneCreateProvider_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneCreateProvider"
+	StoreService_PhoneUpdateProvider_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneUpdateProvider"
+	StoreService_PhoneDeleteProvider_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneDeleteProvider"
+	StoreService_PhoneListTemplates_FullMethodName                      = "/zeroauthy.store.v1.StoreService/PhoneListTemplates"
+	StoreService_PhoneGetTemplate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/PhoneGetTemplate"
+	StoreService_PhonePutTemplate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/PhonePutTemplate"
+	StoreService_PhoneDeleteTemplate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneDeleteTemplate"
+	StoreService_PhonePutPasswordlessCode_FullMethodName                = "/zeroauthy.store.v1.StoreService/PhonePutPasswordlessCode"
+	StoreService_PhoneFailPasswordlessCode_FullMethodName               = "/zeroauthy.store.v1.StoreService/PhoneFailPasswordlessCode"
+	StoreService_PhoneConsumePasswordlessCode_FullMethodName            = "/zeroauthy.store.v1.StoreService/PhoneConsumePasswordlessCode"
+	StoreService_PhonePeekPasswordlessLink_FullMethodName               = "/zeroauthy.store.v1.StoreService/PhonePeekPasswordlessLink"
+	StoreService_PhoneFindUsersByPhone_FullMethodName                   = "/zeroauthy.store.v1.StoreService/PhoneFindUsersByPhone"
+	StoreService_PhonePurge_FullMethodName                              = "/zeroauthy.store.v1.StoreService/PhonePurge"
+	StoreService_PhoneDeleteTenant_FullMethodName                       = "/zeroauthy.store.v1.StoreService/PhoneDeleteTenant"
 	StoreService_EventsCapabilities_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EventsCapabilities"
 	StoreService_AppendEvents_FullMethodName                            = "/zeroauthy.store.v1.StoreService/AppendEvents"
 	StoreService_GetEvent_FullMethodName                                = "/zeroauthy.store.v1.StoreService/GetEvent"
@@ -469,6 +486,23 @@ type StoreServiceClient interface {
 	MFADeleteUserMFA(ctx context.Context, in *MFADeleteUserMFARequest, opts ...grpc.CallOption) (*MFADeleteUserMFAResponse, error)
 	MFADeleteTenantMFA(ctx context.Context, in *MFADeleteTenantMFARequest, opts ...grpc.CallOption) (*MFADeleteTenantMFAResponse, error)
 	SessionsMarkMFA(ctx context.Context, in *TouchRequest, opts ...grpc.CallOption) (*Result, error)
+	PhoneCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	PhoneListProviders(ctx context.Context, in *PhoneTenantRequest, opts ...grpc.CallOption) (*PhoneListProvidersResponse, error)
+	PhoneGetProvider(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneProviderResponse, error)
+	PhoneCreateProvider(ctx context.Context, in *PhoneProviderRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
+	PhoneUpdateProvider(ctx context.Context, in *PhoneProviderRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
+	PhoneDeleteProvider(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
+	PhoneListTemplates(ctx context.Context, in *PhoneTenantRequest, opts ...grpc.CallOption) (*PhoneListTemplatesResponse, error)
+	PhoneGetTemplate(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneTemplateResponse, error)
+	PhonePutTemplate(ctx context.Context, in *PhoneTemplateRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
+	PhoneDeleteTemplate(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
+	PhonePutPasswordlessCode(ctx context.Context, in *PhonePutCodeRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
+	PhoneFailPasswordlessCode(ctx context.Context, in *PhoneCodeKeyRequest, opts ...grpc.CallOption) (*PhoneFailCodeResponse, error)
+	PhoneConsumePasswordlessCode(ctx context.Context, in *PhoneConsumeCodeRequest, opts ...grpc.CallOption) (*PhoneCodeResponse, error)
+	PhonePeekPasswordlessLink(ctx context.Context, in *PhonePeekLinkRequest, opts ...grpc.CallOption) (*PhoneCodeResponse, error)
+	PhoneFindUsersByPhone(ctx context.Context, in *PhoneFindUsersRequest, opts ...grpc.CallOption) (*PhoneFindUsersResponse, error)
+	PhonePurge(ctx context.Context, in *PhonePurgeRequest, opts ...grpc.CallOption) (*PhoneCountResponse, error)
+	PhoneDeleteTenant(ctx context.Context, in *PhoneTenantRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
 	EventsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	AppendEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	GetEvent(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
@@ -1125,6 +1159,176 @@ func (c *storeServiceClient) SessionsMarkMFA(ctx context.Context, in *TouchReque
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_SessionsMarkMFA_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_PhoneCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneListProviders(ctx context.Context, in *PhoneTenantRequest, opts ...grpc.CallOption) (*PhoneListProvidersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneListProvidersResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneListProviders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneGetProvider(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneProviderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneProviderResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneGetProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneCreateProvider(ctx context.Context, in *PhoneProviderRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneCreateProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneUpdateProvider(ctx context.Context, in *PhoneProviderRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneUpdateProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneDeleteProvider(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneDeleteProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneListTemplates(ctx context.Context, in *PhoneTenantRequest, opts ...grpc.CallOption) (*PhoneListTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneListTemplatesResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneListTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneGetTemplate(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneTemplateResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneGetTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhonePutTemplate(ctx context.Context, in *PhoneTemplateRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhonePutTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneDeleteTemplate(ctx context.Context, in *PhoneIDRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneDeleteTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhonePutPasswordlessCode(ctx context.Context, in *PhonePutCodeRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhonePutPasswordlessCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneFailPasswordlessCode(ctx context.Context, in *PhoneCodeKeyRequest, opts ...grpc.CallOption) (*PhoneFailCodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneFailCodeResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneFailPasswordlessCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneConsumePasswordlessCode(ctx context.Context, in *PhoneConsumeCodeRequest, opts ...grpc.CallOption) (*PhoneCodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneCodeResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneConsumePasswordlessCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhonePeekPasswordlessLink(ctx context.Context, in *PhonePeekLinkRequest, opts ...grpc.CallOption) (*PhoneCodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneCodeResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhonePeekPasswordlessLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneFindUsersByPhone(ctx context.Context, in *PhoneFindUsersRequest, opts ...grpc.CallOption) (*PhoneFindUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneFindUsersResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneFindUsersByPhone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhonePurge(ctx context.Context, in *PhonePurgeRequest, opts ...grpc.CallOption) (*PhoneCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneCountResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhonePurge_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PhoneDeleteTenant(ctx context.Context, in *PhoneTenantRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PhoneErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_PhoneDeleteTenant_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4504,6 +4708,23 @@ type StoreServiceServer interface {
 	MFADeleteUserMFA(context.Context, *MFADeleteUserMFARequest) (*MFADeleteUserMFAResponse, error)
 	MFADeleteTenantMFA(context.Context, *MFADeleteTenantMFARequest) (*MFADeleteTenantMFAResponse, error)
 	SessionsMarkMFA(context.Context, *TouchRequest) (*Result, error)
+	PhoneCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	PhoneListProviders(context.Context, *PhoneTenantRequest) (*PhoneListProvidersResponse, error)
+	PhoneGetProvider(context.Context, *PhoneIDRequest) (*PhoneProviderResponse, error)
+	PhoneCreateProvider(context.Context, *PhoneProviderRequest) (*PhoneErrorResponse, error)
+	PhoneUpdateProvider(context.Context, *PhoneProviderRequest) (*PhoneErrorResponse, error)
+	PhoneDeleteProvider(context.Context, *PhoneIDRequest) (*PhoneErrorResponse, error)
+	PhoneListTemplates(context.Context, *PhoneTenantRequest) (*PhoneListTemplatesResponse, error)
+	PhoneGetTemplate(context.Context, *PhoneIDRequest) (*PhoneTemplateResponse, error)
+	PhonePutTemplate(context.Context, *PhoneTemplateRequest) (*PhoneErrorResponse, error)
+	PhoneDeleteTemplate(context.Context, *PhoneIDRequest) (*PhoneErrorResponse, error)
+	PhonePutPasswordlessCode(context.Context, *PhonePutCodeRequest) (*PhoneErrorResponse, error)
+	PhoneFailPasswordlessCode(context.Context, *PhoneCodeKeyRequest) (*PhoneFailCodeResponse, error)
+	PhoneConsumePasswordlessCode(context.Context, *PhoneConsumeCodeRequest) (*PhoneCodeResponse, error)
+	PhonePeekPasswordlessLink(context.Context, *PhonePeekLinkRequest) (*PhoneCodeResponse, error)
+	PhoneFindUsersByPhone(context.Context, *PhoneFindUsersRequest) (*PhoneFindUsersResponse, error)
+	PhonePurge(context.Context, *PhonePurgeRequest) (*PhoneCountResponse, error)
+	PhoneDeleteTenant(context.Context, *PhoneTenantRequest) (*PhoneErrorResponse, error)
 	EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	AppendEvents(context.Context, *EventsRequest) (*EventsResponse, error)
 	GetEvent(context.Context, *EventsRequest) (*EventsResponse, error)
@@ -4955,6 +5176,57 @@ func (UnimplementedStoreServiceServer) MFADeleteTenantMFA(context.Context, *MFAD
 }
 func (UnimplementedStoreServiceServer) SessionsMarkMFA(context.Context, *TouchRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SessionsMarkMFA not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneListProviders(context.Context, *PhoneTenantRequest) (*PhoneListProvidersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneListProviders not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneGetProvider(context.Context, *PhoneIDRequest) (*PhoneProviderResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneGetProvider not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneCreateProvider(context.Context, *PhoneProviderRequest) (*PhoneErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneCreateProvider not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneUpdateProvider(context.Context, *PhoneProviderRequest) (*PhoneErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneUpdateProvider not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneDeleteProvider(context.Context, *PhoneIDRequest) (*PhoneErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneDeleteProvider not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneListTemplates(context.Context, *PhoneTenantRequest) (*PhoneListTemplatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneListTemplates not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneGetTemplate(context.Context, *PhoneIDRequest) (*PhoneTemplateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneGetTemplate not implemented")
+}
+func (UnimplementedStoreServiceServer) PhonePutTemplate(context.Context, *PhoneTemplateRequest) (*PhoneErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhonePutTemplate not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneDeleteTemplate(context.Context, *PhoneIDRequest) (*PhoneErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneDeleteTemplate not implemented")
+}
+func (UnimplementedStoreServiceServer) PhonePutPasswordlessCode(context.Context, *PhonePutCodeRequest) (*PhoneErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhonePutPasswordlessCode not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneFailPasswordlessCode(context.Context, *PhoneCodeKeyRequest) (*PhoneFailCodeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneFailPasswordlessCode not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneConsumePasswordlessCode(context.Context, *PhoneConsumeCodeRequest) (*PhoneCodeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneConsumePasswordlessCode not implemented")
+}
+func (UnimplementedStoreServiceServer) PhonePeekPasswordlessLink(context.Context, *PhonePeekLinkRequest) (*PhoneCodeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhonePeekPasswordlessLink not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneFindUsersByPhone(context.Context, *PhoneFindUsersRequest) (*PhoneFindUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneFindUsersByPhone not implemented")
+}
+func (UnimplementedStoreServiceServer) PhonePurge(context.Context, *PhonePurgeRequest) (*PhoneCountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhonePurge not implemented")
+}
+func (UnimplementedStoreServiceServer) PhoneDeleteTenant(context.Context, *PhoneTenantRequest) (*PhoneErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PhoneDeleteTenant not implemented")
 }
 func (UnimplementedStoreServiceServer) EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method EventsCapabilities not implemented")
@@ -6491,6 +6763,312 @@ func _StoreService_SessionsMarkMFA_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).SessionsMarkMFA(ctx, req.(*TouchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneListProviders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneTenantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneListProviders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneListProviders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneListProviders(ctx, req.(*PhoneTenantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneGetProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneGetProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneGetProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneGetProvider(ctx, req.(*PhoneIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneCreateProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneCreateProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneCreateProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneCreateProvider(ctx, req.(*PhoneProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneUpdateProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneUpdateProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneUpdateProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneUpdateProvider(ctx, req.(*PhoneProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneDeleteProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneDeleteProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneDeleteProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneDeleteProvider(ctx, req.(*PhoneIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneListTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneTenantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneListTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneListTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneListTemplates(ctx, req.(*PhoneTenantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneGetTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneGetTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneGetTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneGetTemplate(ctx, req.(*PhoneIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhonePutTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhonePutTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhonePutTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhonePutTemplate(ctx, req.(*PhoneTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneDeleteTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneDeleteTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneDeleteTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneDeleteTemplate(ctx, req.(*PhoneIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhonePutPasswordlessCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhonePutCodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhonePutPasswordlessCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhonePutPasswordlessCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhonePutPasswordlessCode(ctx, req.(*PhonePutCodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneFailPasswordlessCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneCodeKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneFailPasswordlessCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneFailPasswordlessCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneFailPasswordlessCode(ctx, req.(*PhoneCodeKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneConsumePasswordlessCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneConsumeCodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneConsumePasswordlessCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneConsumePasswordlessCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneConsumePasswordlessCode(ctx, req.(*PhoneConsumeCodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhonePeekPasswordlessLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhonePeekLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhonePeekPasswordlessLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhonePeekPasswordlessLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhonePeekPasswordlessLink(ctx, req.(*PhonePeekLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneFindUsersByPhone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneFindUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneFindUsersByPhone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneFindUsersByPhone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneFindUsersByPhone(ctx, req.(*PhoneFindUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhonePurge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhonePurgeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhonePurge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhonePurge_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhonePurge(ctx, req.(*PhonePurgeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PhoneDeleteTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PhoneTenantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PhoneDeleteTenant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PhoneDeleteTenant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PhoneDeleteTenant(ctx, req.(*PhoneTenantRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -12464,6 +13042,74 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SessionsMarkMFA",
 			Handler:    _StoreService_SessionsMarkMFA_Handler,
+		},
+		{
+			MethodName: "PhoneCapabilities",
+			Handler:    _StoreService_PhoneCapabilities_Handler,
+		},
+		{
+			MethodName: "PhoneListProviders",
+			Handler:    _StoreService_PhoneListProviders_Handler,
+		},
+		{
+			MethodName: "PhoneGetProvider",
+			Handler:    _StoreService_PhoneGetProvider_Handler,
+		},
+		{
+			MethodName: "PhoneCreateProvider",
+			Handler:    _StoreService_PhoneCreateProvider_Handler,
+		},
+		{
+			MethodName: "PhoneUpdateProvider",
+			Handler:    _StoreService_PhoneUpdateProvider_Handler,
+		},
+		{
+			MethodName: "PhoneDeleteProvider",
+			Handler:    _StoreService_PhoneDeleteProvider_Handler,
+		},
+		{
+			MethodName: "PhoneListTemplates",
+			Handler:    _StoreService_PhoneListTemplates_Handler,
+		},
+		{
+			MethodName: "PhoneGetTemplate",
+			Handler:    _StoreService_PhoneGetTemplate_Handler,
+		},
+		{
+			MethodName: "PhonePutTemplate",
+			Handler:    _StoreService_PhonePutTemplate_Handler,
+		},
+		{
+			MethodName: "PhoneDeleteTemplate",
+			Handler:    _StoreService_PhoneDeleteTemplate_Handler,
+		},
+		{
+			MethodName: "PhonePutPasswordlessCode",
+			Handler:    _StoreService_PhonePutPasswordlessCode_Handler,
+		},
+		{
+			MethodName: "PhoneFailPasswordlessCode",
+			Handler:    _StoreService_PhoneFailPasswordlessCode_Handler,
+		},
+		{
+			MethodName: "PhoneConsumePasswordlessCode",
+			Handler:    _StoreService_PhoneConsumePasswordlessCode_Handler,
+		},
+		{
+			MethodName: "PhonePeekPasswordlessLink",
+			Handler:    _StoreService_PhonePeekPasswordlessLink_Handler,
+		},
+		{
+			MethodName: "PhoneFindUsersByPhone",
+			Handler:    _StoreService_PhoneFindUsersByPhone_Handler,
+		},
+		{
+			MethodName: "PhonePurge",
+			Handler:    _StoreService_PhonePurge_Handler,
+		},
+		{
+			MethodName: "PhoneDeleteTenant",
+			Handler:    _StoreService_PhoneDeleteTenant_Handler,
 		},
 		{
 			MethodName: "EventsCapabilities",

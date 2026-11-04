@@ -45,7 +45,7 @@ async function save() {
 <template>
   <form class="card stack" :data-config="config.route" @submit.prevent="save">
     <h3>{{ t(`mfa.configTitles.${config.title}`) }}</h3>
-    <Banner kind="info">{{ t(future ? 'mfa.stored34' : 'mfa.notAvailable') }}</Banner>
+    <Banner kind="info">{{ t(future ? 'mfa.enforced' : 'mfa.notAvailable') }}</Banner>
     <p class="muted">{{ t('mfa.secretHint') }}</p>
     <Banner v-if="error" kind="error">{{ error }}</Banner><p v-if="saved" role="status">{{ t('mfa.saved') }}</p>
     <fieldset :disabled="busy || loading" class="stack border-0 p-0">

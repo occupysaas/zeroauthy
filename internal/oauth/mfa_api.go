@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -195,11 +196,23 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 			writeError(w, invalidRequest("one oob channel is required"))
 			return
 		}
-		if (*in.OobChannels)[0] != "email" {
+		if (*in.OobChannels)[0] != "email" && (*in.OobChannels)[0] != "sms" && (*in.OobChannels)[0] != "voice" {
 			writeError(w, invalidRequest("Unsupported challenge type"))
 			return
 		}
 		factor = "email"
+		if (*in.OobChannels)[0] != "email" {
+			factor = "phone"
+			if in.PhoneNumber == nil {
+				writeError(w, invalidRequest("phone_number is required"))
+				return
+			}
+			if _, err := phone.NormalizeE164(*in.PhoneNumber, ""); err != nil {
+				writeError(w, invalidRequest("Invalid phone number"))
+				return
+			}
+			break
+		}
 		u, x := h.activeUser(r.Context(), res.Tenant.ID, caller.uid)
 		if x != nil {
 			writeError(w, x)
@@ -230,7 +243,7 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 	// is confirmed. It is persisted only by the confirmation (see
 	// Service.WithPendingRecovery), so an abandoned association leaves none.
 	recovery := ""
-	if factor == "otp" {
+	if factor == "otp" || factor == "phone" {
 		list, err := h.Store.MFA().ListAuthenticators(r.Context(), res.Tenant.ID, caller.uid)
 		if err != nil {
 			writeError(w, mfaError(err))
@@ -241,7 +254,7 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 		// (whichever confirms first persists its code; a later confirmation
 		// without a displayed code receives a fresh one in the grant).
 		outstanding := func(a store.Authenticator) bool {
-			return a.Type == "recovery-code" || a.Type == "totp" && !a.Confirmed && a.CodeHash != "" && h.now().Before(a.CreatedAt.Add(mfaTokenLifetime))
+			return a.Type == "recovery-code" || (a.Type == "totp" || a.Type == "phone") && !a.Confirmed && a.CodeHash != "" && h.now().Before(a.CreatedAt.Add(mfaTokenLifetime))
 		}
 		if !slices.ContainsFunc(list, outstanding) {
 			recovery = mfa.NewRecoveryCode()
@@ -249,7 +262,13 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 			svc = svc.WithPendingRecovery(secrets.HashToken(recovery))
 		}
 	}
-	enrollment, err := svc.BeginEnroll(r.Context(), res.Tenant.ID, caller.uid, factor, "")
+	var enrollment *mfa.Enrollment
+	var err error
+	if factor == "phone" {
+		enrollment, err = svc.BeginPhoneEnroll(r.Context(), res.Tenant.ID, caller.uid, *in.PhoneNumber, string((*in.OobChannels)[0]))
+	} else {
+		enrollment, err = svc.BeginEnroll(r.Context(), res.Tenant.ID, caller.uid, factor, "")
+	}
 	if err != nil {
 		if actionEnroll && errors.Is(err, mfa.ErrNoFactor) {
 			writeError(w, accessDenied("authenticator type is already enrolled"))
@@ -268,7 +287,10 @@ func (h *Handlers) MFAAssociate(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		body["authenticator_type"] = "oob"
-		body["oob_channel"] = "email"
+		body["oob_channel"] = string((*in.OobChannels)[0])
+		if recovery != "" {
+			body["recovery_codes"] = []string{recovery}
+		}
 		body["binding_method"] = "prompt"
 		body["oob_code"] = enrollment.ChallengeID
 	}
@@ -313,13 +335,13 @@ func (h *Handlers) MFAChallenge(w http.ResponseWriter, r *http.Request) {
 		if factor == "totp" {
 			factor = "otp"
 		}
-		if !slices.Contains(p.Requirement.Factors, factor) || (factor != "otp" && factor != "email") {
+		if !slices.Contains(p.Requirement.Factors, factor) || (factor != "otp" && factor != "email" && factor != "phone") {
 			continue
 		}
-		if typ == "otp" && factor != "otp" || typ == "oob" && factor != "email" {
+		if typ == "otp" && factor != "otp" || typ == "oob" && factor != "email" && factor != "phone" {
 			continue
 		}
-		if id := form.Get("authenticator_id"); id != "" && id != a.ID {
+		if id := form.Get("authenticator_id"); id != "" && id != a.ID && !(a.Type == "phone" && (strings.TrimPrefix(id, "sms|") == strings.TrimPrefix(a.ID, "phone|") || strings.TrimPrefix(id, "voice|") == strings.TrimPrefix(a.ID, "phone|"))) {
 			continue
 		}
 		v := a
@@ -330,13 +352,24 @@ func (h *Handlers) MFAChallenge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, invalidRequest("invalid authenticator_id or challenge_type"))
 		return
 	}
-	ch, err := h.MFA.BeginChallenge(r.Context(), res.Tenant.ID, t.UserID, chosen.ID, "")
+	var ch *mfa.Challenge
+	if chosen.Type == "phone" {
+		method := chosen.PhoneMethod
+		if strings.HasPrefix(form.Get("authenticator_id"), "voice|") {
+			method = "voice"
+		} else if strings.HasPrefix(form.Get("authenticator_id"), "sms|") {
+			method = "sms"
+		}
+		ch, err = h.MFA.BeginPhoneChallenge(r.Context(), res.Tenant.ID, t.UserID, chosen.ID, method)
+	} else {
+		ch, err = h.MFA.BeginChallenge(r.Context(), res.Tenant.ID, t.UserID, chosen.ID, "")
+	}
 	if err != nil {
 		writeError(w, mfaError(err))
 		return
 	}
 	out := map[string]any{"challenge_type": "otp"}
-	if chosen.Type == "email" {
+	if chosen.Type == "email" || chosen.Type == "phone" {
 		out["challenge_type"] = "oob"
 		out["oob_code"] = ch.ID
 		out["binding_method"] = "prompt"
@@ -361,6 +394,19 @@ func (h *Handlers) MFAListAuthenticators(w http.ResponseWriter, r *http.Request)
 	out := []authapi.MFAAuthenticator{}
 	for _, a := range list {
 		typ := a.Type
+		if typ == "phone" {
+			methods, e := h.MFA.PhoneMethods(r.Context(), res.Tenant.ID)
+			if e != nil {
+				writeError(w, mfaError(e))
+				return
+			}
+			for _, method := range methods {
+				name := phone.Mask(a.Phone)
+				channel := method
+				out = append(out, authapi.MFAAuthenticator{Id: method + "|" + strings.TrimPrefix(a.ID, "phone|"), Active: a.Confirmed, AuthenticatorType: "oob", OobChannel: &channel, Name: &name})
+			}
+			continue
+		}
 		switch typ {
 		case "totp":
 			typ = "otp"
@@ -391,6 +437,10 @@ func (h *Handlers) MFADeleteAuthenticator(w http.ResponseWriter, r *http.Request
 	if e != nil {
 		writeError(w, e)
 		return
+	}
+	if strings.HasPrefix(id, "sms|") || strings.HasPrefix(id, "voice|") {
+		_, suffix, _ := strings.Cut(id, "|")
+		id = "phone|" + suffix
 	}
 	if err := h.MFA.Unenroll(r.Context(), res.Tenant.ID, caller.uid, id); err != nil {
 		if errors.Is(err, store.ErrNotFound) {

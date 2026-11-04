@@ -15,6 +15,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -38,6 +39,7 @@ const (
 )
 
 type Handlers struct {
+	MFA      *mfa.Service
 	Store    store.Store
 	Sessions *session.Manager
 	Log      *slog.Logger
@@ -256,6 +258,11 @@ func (h *Handlers) needsLogin(req Request, sess *store.LoginSession) bool {
 		return true
 	}
 	if req.Connection != "" && sess.Connection != req.Connection {
+		return true
+	}
+	// Documented: with connection=email|sms the existing session is not
+	// reused; the user is prompted (prompt=none: login_required).
+	if connrules.IsPasswordless(req.Connection) {
 		return true
 	}
 	if maxAge, ok := req.MaxAgeSeconds(); ok && (maxAge == 0 || h.now().Sub(sess.AuthenticatedAt) > time.Duration(maxAge)*time.Second) {
@@ -710,3 +717,10 @@ func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *st
 
 type silentAuthorizationKey struct{}
 type silentAuthorizationOutcome struct{ completed bool }
+
+// Deny answers an authorization request with an error, at its redirect_uri
+// (or the error page when the client shows one). Passwordless verification
+// uses it for wrong or used codes and links.
+func (h *Handlers) Deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, code, description string) {
+	h.deny(w, r, res, client, req, &Error{Code: code, Description: description})
+}

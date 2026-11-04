@@ -37,6 +37,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
+	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -371,6 +372,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 	engine := &actions.Engine{Recorder: recorder, Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
+	phoneDispatcher := &phone.Dispatcher{Store: st, Wrapper: wrapper, Actions: engine}
+	mfaService.Phone = phoneDispatcher
 	tenantEmail.Actions = engine
 	engine.InvitationEmail = tenantEmail
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
@@ -416,6 +419,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Scripts:        &customdb.Client{Exec: runner, Wrapper: wrapper},
 			Federation:     flows,
 			Actions:        engine,
+			Phone:          phoneDispatcher,
 
 			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,

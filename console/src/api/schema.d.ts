@@ -664,6 +664,190 @@ export interface paths {
         patch: operations["UpdateCaptcha"];
         trace?: never;
     };
+    "/api/v2/attack-protection/phone-provider-protection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get phone provider protection
+         * @description The SMS send policy: `default` (static per-user limits) or
+         *     `exponential` (exponential backoff between sends). Always available;
+         *     a tenant that never set it reads `{"type": "default"}` (D-0060 P14).
+         */
+        get: operations["GetPhoneProviderProtection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update phone provider protection */
+        patch: operations["UpdatePhoneProviderProtection"];
+        trace?: never;
+    };
+    "/api/v2/branding/phone/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List phone providers
+         * @description The tenant's phone provider in `{providers: [...]}` (at most one).
+         *     `disabled` filters. Credentials are never returned.
+         */
+        get: operations["ListPhoneProviders"];
+        put?: never;
+        /**
+         * Create the phone provider
+         * @description `twilio` and `custom` keep Auth0's meaning; `sns` (Amazon SNS, text
+         *     only) is a zeroauthy extension. A tenant has one provider: a second
+         *     create is `409`. `custom` requires a deployed `custom-phone-provider`
+         *     Action, otherwise `400` with errorCode
+         *     `custom_email_provider_deployed_action_not_found` (Auth0's documented
+         *     code). Credentials are sealed and write-only.
+         */
+        post: operations["CreatePhoneProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/branding/phone/providers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get the phone provider */
+        get: operations["GetPhoneProvider"];
+        put?: never;
+        post?: never;
+        /** Delete the phone provider */
+        delete: operations["DeletePhoneProvider"];
+        options?: never;
+        head?: never;
+        /**
+         * Update the phone provider
+         * @description Omitted credentials keep the stored secret.
+         */
+        patch: operations["UpdatePhoneProvider"];
+        trace?: never;
+    };
+    "/api/v2/branding/phone/providers/{id}/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test message through the phone provider
+         * @description Sends one real message to `to`. Obeys the phone send budget
+         *     (`limit_phone`) and logs the outcome.
+         */
+        post: operations["TryPhoneProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/branding/phone/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List phone templates
+         * @description `{templates: [...]}`. Types not yet configured are listed with
+         *     zeroauthy's default content (written for zeroauthy, not copied).
+         */
+        get: operations["ListPhoneTemplates"];
+        put?: never;
+        /**
+         * Create a phone template
+         * @description One template per type; a second create of a type is `409`.
+         */
+        post: operations["CreatePhoneTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/branding/phone/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get a phone template */
+        get: operations["GetPhoneTemplate"];
+        put?: never;
+        post?: never;
+        /** Delete a phone template */
+        delete: operations["DeletePhoneTemplate"];
+        options?: never;
+        head?: never;
+        /** Update a phone template */
+        patch: operations["UpdatePhoneTemplate"];
+        trace?: never;
+    };
+    "/api/v2/branding/phone/templates/{id}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Reset a phone template to its default content */
+        patch: operations["ResetPhoneTemplate"];
+        trace?: never;
+    };
+    "/api/v2/branding/phone/templates/{id}/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test message with a phone template */
+        post: operations["TryPhoneTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/user-blocks": {
         parameters: {
             query?: never;
@@ -1009,8 +1193,10 @@ export interface paths {
         put?: never;
         /**
          * Create a connection
-         * @description Requires `create:connections`. Only the `auth0` (database) strategy is
-         *     supported. Auth0's create defaults apply to what the body leaves out.
+         * @description Requires `create:connections`. Auth0's create defaults apply to what
+         *     the body leaves out. The passwordless strategies `email` and `sms`
+         *     are documented by Plan 34's contract (ConnectionOptionsEmail,
+         *     ConnectionOptionsSMS); their runtime lands with Plan 34 Task 8.
          *     `enabled_clients` is accepted here only, and every ID must be an
          *     application of the tenant (`400 inexistent_client`). A used name is
          *     `409 connection_conflict`. Unknown properties are `400 invalid_body`;
@@ -3887,6 +4073,177 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PhoneProviderProtection: {
+            /** @enum {string} */
+            type: "exponential" | "default";
+        };
+        PhoneDeliveryMethods: ("text" | "voice")[];
+        /**
+         * @description Public provider settings. `twilio`: `sid` (required), `default_from`,
+         *     `mssid`. `sns` (zeroauthy extension): `region` (required), `sender_id`,
+         *     `sms_type` (`Transactional` or `Promotional`), `delivery_methods`
+         *     limited to `text`. `custom`: `delivery_methods` only.
+         */
+        PhoneProviderConfiguration: {
+            sid?: string;
+            default_from?: string;
+            mssid?: string;
+            region?: string;
+            sender_id?: string;
+            /** @enum {string} */
+            sms_type?: "Transactional" | "Promotional";
+            delivery_methods: components["schemas"]["PhoneDeliveryMethods"];
+        };
+        /**
+         * @description Sealed with the master key and never returned. `twilio`: `auth_token`.
+         *     `sns`: `access_key_id` and `secret_access_key`. `custom`: empty.
+         */
+        PhoneProviderCredentials: {
+            auth_token?: string;
+            access_key_id?: string;
+            secret_access_key?: string;
+        };
+        PhoneProvider: {
+            id?: string;
+            tenant?: string;
+            /** @enum {string} */
+            name: "twilio" | "custom" | "sns";
+            /** @enum {string} */
+            channel?: "phone";
+            disabled?: boolean;
+            configuration?: components["schemas"]["PhoneProviderConfiguration"];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        PhoneProviderCreate: {
+            /** @enum {string} */
+            name: "twilio" | "custom" | "sns";
+            disabled?: boolean;
+            configuration?: components["schemas"]["PhoneProviderConfiguration"];
+            credentials: components["schemas"]["PhoneProviderCredentials"];
+        };
+        PhoneProviderUpdate: {
+            /** @enum {string} */
+            name?: "twilio" | "custom" | "sns";
+            disabled?: boolean;
+            configuration?: components["schemas"]["PhoneProviderConfiguration"];
+            credentials?: components["schemas"]["PhoneProviderCredentials"];
+        };
+        PhoneTestRequest: {
+            /** @description E.164 destination. */
+            to: string;
+            /** @enum {string} */
+            delivery_method?: "text" | "voice";
+        };
+        /** @enum {string} */
+        PhoneTemplateType: "otp_verify" | "otp_enroll" | "change_password" | "blocked_account" | "password_breach";
+        PhoneTemplateContent: {
+            syntax?: string;
+            from?: string;
+            body?: {
+                text?: string;
+                voice?: string;
+            };
+        };
+        PhoneTemplate: {
+            id?: string;
+            channel?: string;
+            customizable?: boolean;
+            tenant?: string;
+            content: components["schemas"]["PhoneTemplateContent"];
+            type: components["schemas"]["PhoneTemplateType"];
+            /** @default false */
+            disabled: boolean;
+        };
+        PhoneTemplateCreate: {
+            type?: components["schemas"]["PhoneTemplateType"];
+            /** @default false */
+            disabled?: boolean;
+            content?: components["schemas"]["PhoneTemplateContent"];
+        };
+        PhoneTemplateUpdate: {
+            content?: {
+                from?: string;
+                body?: {
+                    text?: string;
+                    voice?: string;
+                };
+            };
+            disabled?: boolean;
+        };
+        ConnectionTotp: {
+            /** @default 6 */
+            length?: number;
+            /**
+             * @description Code and link lifetime in seconds.
+             * @default 180
+             */
+            time_step?: number;
+        };
+        /**
+         * @description Options of the `email` passwordless connection (name `email`).
+         *     `authParams` is a JSON object encoded as a string, merged into magic
+         *     links. `email.body` is Liquid with `code`, `link`, `application.name`,
+         *     `request_language`, `operation` and `organization.*`.
+         */
+        ConnectionOptionsEmail: {
+            name?: string;
+            authParams?: string;
+            brute_force_protection?: boolean;
+            disable_signup?: boolean;
+            email?: {
+                body?: string;
+                from?: string;
+                subject?: string;
+                /** @constant */
+                syntax?: "liquid";
+            };
+            totp?: components["schemas"]["ConnectionTotp"];
+            non_persistent_attrs?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * @description Options of the `sms` passwordless connection (name `sms`).
+         *     `twilio_token` and `gateway_authentication.secret` are sealed,
+         *     write-only and never returned. With `phone_consolidated_experience`
+         *     on, `provider`, the Twilio and gateway fields, `from`, `template` and
+         *     `syntax` are ignored in favour of the tenant phone provider and the
+         *     `otp_verify` template (D-0060 P7).
+         */
+        ConnectionOptionsSMS: {
+            name?: string;
+            brute_force_protection?: boolean;
+            disable_signup?: boolean;
+            forward_req_info?: boolean;
+            from?: string;
+            /** @enum {string} */
+            provider?: "sms_gateway" | "twilio";
+            /** @enum {string} */
+            syntax?: "liquid" | "md_with_macros";
+            template?: string;
+            totp?: components["schemas"]["ConnectionTotp"];
+            twilio_sid?: string;
+            twilio_token?: string;
+            messaging_service_sid?: string;
+            /** Format: uri */
+            gateway_url?: string;
+            gateway_authentication?: ({
+                audience: string;
+                method: string;
+                secret: string;
+                /** @default false */
+                secret_base64_encoded?: boolean;
+                subject?: string;
+            } & {
+                [key: string]: unknown;
+            }) | null;
+            non_persistent_attrs?: string[];
+        } & {
+            [key: string]: unknown;
+        };
         MFACreateGuardianEnrollmentTicketResponse: {
             /** @default u2x2-u2x2-u2x2-u2x2-u2x2-u2x2 */
             ticket_id?: string;
@@ -5969,7 +6326,7 @@ export interface components {
         };
         ActionTrigger: {
             /** @enum {string} */
-            id: "post-login" | "credentials-exchange" | "pre-user-registration" | "post-user-registration" | "post-change-password" | "password-reset-post-challenge" | "custom-email-provider" | "event-stream";
+            id: "post-login" | "credentials-exchange" | "pre-user-registration" | "post-user-registration" | "post-change-password" | "password-reset-post-challenge" | "custom-email-provider" | "event-stream" | "custom-phone-provider" | "send-phone-message";
             version?: string;
             /** @enum {string} */
             readonly binding_policy?: "trigger-bound";
@@ -7540,8 +7897,11 @@ export interface components {
         ConnectionCreate: components["schemas"]["ConnectionSettings"] & {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
-            /** @enum {string} */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad";
+            /**
+             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34).
+             * @enum {string}
+             */
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -11753,6 +12113,435 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    GetPhoneProviderProtection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneProviderProtection"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    UpdatePhoneProviderProtection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneProviderProtection"];
+            };
+        };
+        responses: {
+            /** @description The updated policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneProviderProtection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    ListPhoneProviders: {
+        parameters: {
+            query?: {
+                disabled?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The providers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        providers?: components["schemas"]["PhoneProvider"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    CreatePhoneProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneProviderCreate"];
+            };
+        };
+        responses: {
+            /** @description The created provider. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneProvider"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    GetPhoneProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The provider; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneProvider"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    DeletePhoneProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    UpdatePhoneProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneProviderUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated provider. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneProvider"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    TryPhoneProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneTestRequest"];
+            };
+        };
+        responses: {
+            /** @description The message was handed to the provider. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: number;
+                        message?: string;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    ListPhoneTemplates: {
+        parameters: {
+            query?: {
+                disabled?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The templates. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        templates?: components["schemas"]["PhoneTemplate"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    CreatePhoneTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description The created template. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    GetPhoneTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The template. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    DeletePhoneTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted; the type falls back to the default content. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    UpdatePhoneTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated template. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    ResetPhoneTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description The template with default content. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    TryPhoneTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneTestRequest"];
+            };
+        };
+        responses: {
+            /** @description The test message was handed to the provider. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        message: string;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
     GetUserBlocksByIdentifier: {

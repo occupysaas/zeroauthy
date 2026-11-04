@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -181,5 +182,48 @@ func TestSweepPurgesExpiredMFARecords(t *testing.T) {
 	}
 	if _, err := st.MFA().GetBrowser(ctx, "t", "old", now.Add(-time.Hour)); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("expired browser kept: %v", err)
+	}
+}
+
+// Expired passwordless codes and links are purged by the general sweep in
+// bounded batches; unexpired rows remain.
+func TestSweepPurgesExpiredPhoneRecords(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 11, 3, 12, 0, 0, 0, time.UTC)
+	st := memory.New()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
+	put := func(ident, kind, hash string, exp time.Time) {
+		must(st.Phone().PutPasswordlessCode(ctx, &store.PasswordlessCode{TenantID: "t", ConnectionID: "c", Identifier: ident, Kind: kind, CodeHash: hash, ExpiresAt: exp}))
+	}
+	put("+14155550100", "code", "old-code", now.Add(-time.Second))
+	put("a@example.test", "link", "old-link", now.Add(-time.Second))
+	put("+14155550100", "link", "new-link", now.Add(time.Hour))
+	n, err := sweep(ctx, st, now)
+	if err != nil || n != 2 {
+		t.Fatalf("sweep = %d, %v; want 2, nil", n, err)
+	}
+	if _, err := st.Phone().PeekPasswordlessLink(ctx, "t", "new-link", now); err != nil {
+		t.Fatalf("unexpired link purged: %v", err)
+	}
+	if _, err := st.Phone().PeekPasswordlessLink(ctx, "t", "old-link", now.Add(-time.Hour)); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("expired link kept: %v", err)
+	}
+	// A backlog beyond one sweep's bound drains over several sweeps.
+	for i := range mfaPurgeBatch*mfaPurgeBatches + 1 {
+		put(fmt.Sprintf("+1415556%05d", i), "code", "h", now.Add(-time.Second))
+	}
+	n, err = purgePhone(ctx, st, now)
+	if err != nil || n != mfaPurgeBatch*mfaPurgeBatches {
+		t.Fatalf("bounded purge = %d, %v", n, err)
+	}
+	n, err = purgePhone(ctx, st, now)
+	if err != nil || n != 1 {
+		t.Fatalf("remaining purge = %d, %v", n, err)
 	}
 }

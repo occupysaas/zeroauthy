@@ -98,7 +98,26 @@ const (
 	KeyCaptchaUnavailable = "zeroauthy.captcha.unavailable"
 )
 
+// Hosted passwordless (Plan 34).
+const (
+	KeyPasswordlessInvalidEmail      = "zeroauthy.login-passwordless.invalid-email"
+	KeyPasswordlessInvalidPhone      = "zeroauthy.login-passwordless.invalid-phone"
+	KeyPasswordlessCountryNotAllowed = "zeroauthy.login-passwordless.country-not-allowed"
+	KeyPasswordlessTooManySends      = "zeroauthy.login-passwordless.too-many-sends"
+	KeyPasswordlessSendFailed        = "zeroauthy.login-passwordless.send-failed"
+)
+
 const (
 	KeyOrganizationInvalid       = "organizations.organization-selection.invalid-organization"
 	KeyOrganizationChoiceInvalid = "organizations.organization-picker.invalid-organization"
+)
+
+const (
+	KeyPhoneUnableSend        = "zeroauthy.phone.unableSend"
+	KeyPhoneEnterCodes        = "zeroauthy.phone.enterCodes"
+	KeyPhoneInvalidCode       = "zeroauthy.phone.invalidCode"
+	KeyPhoneInvalidNumber     = "zeroauthy.phone.invalidNumber"
+	KeyPhoneMethodUnavailable = "zeroauthy.phone.methodUnavailable"
+	KeyPhoneUnableEnroll      = "zeroauthy.phone.unableEnroll"
+	KeyPhoneFactor            = "zeroauthy.phone.factorLabel"
 )

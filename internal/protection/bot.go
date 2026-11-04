@@ -16,7 +16,7 @@ func (s *Service) RequireChallenge(ctx context.Context, a Attempt) (bool, error)
 	if a.Tenant == nil {
 		return false, store.ErrInvalid
 	}
-	if a.Flow != "login" && a.Flow != "signup" && a.Flow != "reset-send" && a.Flow != "reset" {
+	if a.Flow != "login" && a.Flow != "signup" && a.Flow != "reset-send" && a.Flow != "reset" && a.Flow != "passwordless" {
 		return false, nil
 	}
 	t, err := s.Store.Tenants().Get(ctx, a.Tenant.ID)
@@ -28,8 +28,12 @@ func (s *Service) RequireChallenge(ctx context.Context, a Attempt) (bool, error)
 		return false, nil
 	}
 	mode := p.ChallengePasswordPolicy
-	if a.Flow == "reset-send" || a.Flow == "reset" {
+	switch a.Flow {
+	case "reset-send", "reset":
 		mode = p.ChallengePasswordResetPolicy
+	case "passwordless":
+		// The hosted passwordless send (D-0060 P10: not the API path).
+		mode = p.ChallengePasswordlessPolicy
 	}
 	required := mode == "always"
 	if mode == "when_risky" {

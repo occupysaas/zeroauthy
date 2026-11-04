@@ -35,7 +35,7 @@ func TestEventsMigrationFrom30(t *testing.T) {
 			ctx := context.Background()
 			mustEvent(t, s.Tenants().Create(ctx, &store.Tenant{ID: "legacy", Name: "legacy"}))
 			mustEvent(t, s.Migrate(ctx))
-			if s.LatestVersion() != 33 {
+			if s.LatestVersion() != 34 {
 				t.Fatalf("latest version=%d", s.LatestVersion())
 			}
 			_, err := s.Tenants().Get(ctx, "legacy")
@@ -671,7 +671,7 @@ func TestEventsWatermarkMySQLResume32(t *testing.T) {
 			mustEvent(t, s.Migrate(t.Context()))
 			version, err = s.SchemaVersion(t.Context())
 			mustEvent(t, err)
-			if version != 33 {
+			if version != 34 {
 				t.Fatal(version)
 			}
 			n, err := s.Events().PurgedEventSeq(t.Context(), "unknown")

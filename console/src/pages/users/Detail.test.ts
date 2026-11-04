@@ -150,15 +150,15 @@ afterEach(() => {
 })
 
 describe('user detail', () => {
-  it('shows the profile, with the phone as stored only, and saves only what changed', async () => {
+  it('shows the profile, with phone verification status, and saves only what changed', async () => {
     const { handler } = world()
     const { wrapper, calls } = await mountAt(Detail, path, handler)
     expect(wrapper.find('[role="dialog"] h2').text()).toBe('Ada Lovelace')
     expect(wrapper.text()).toContain('ada@example.test')
     expect(wrapper.text()).toContain('auth0|abc')
     expect(wrapper.get('[data-testid="phone"]').text()).toContain('+15550100')
-    expect(wrapper.get('[data-testid="phone"]').text()).toContain('Stored only')
-    expect(wrapper.find('#user-phone').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="phone"]').text()).toContain('not verified')
+    expect(wrapper.find('#user-phone').exists()).toBe(true)
     await wrapper.get('#user-nickname').setValue('countess')
     await wrapper.get('#user-profile').trigger('submit')
     await flushPromises()

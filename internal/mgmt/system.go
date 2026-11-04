@@ -247,6 +247,10 @@ func (h *Handlers) CreateTenant(w http.ResponseWriter, r *http.Request) {
 // failTx writes an *Error from a transaction as itself and anything else
 // as a logged 500.
 func (h *Handlers) failTx(w http.ResponseWriter, r *http.Request, what string, err error) {
+	if errors.Is(err, store.ErrPhoneUnavailable) {
+		Fail(w, errPhoneUnavailable)
+		return
+	}
 	var e *Error
 	if errors.As(err, &e) {
 		Fail(w, e)
