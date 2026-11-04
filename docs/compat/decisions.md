@@ -764,6 +764,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **PostgreSQL locale:** Unicode case folding in user search needs a UTF-8 `LC_CTYPE`; with another one zeroauthy folds ASCII letters only and logs a warning at startup.
   - **`device.*_asn`:** not returned (zeroauthy has no ASN database); IPs and user agents are.
   - **`app_metadata` scope split:** not observed (the observer could not narrow its token); zeroauthy follows the reference: writing `app_metadata` needs `update:users_app_metadata` and reading it needs `read:users` or `read:users_app_metadata`.
+    *Correction 2026-11-04:* the user reads require `read:users` and always include `app_metadata`; `read:users_app_metadata` is not used (the OAS lists it on no user read).
 - **Rationale:** observed values are matched; the differences avoid depending on Auth0's infrastructure or data zeroauthy does not have.
 
 ## D-0044: Management API jobs (user import, export, verification email)
@@ -1055,6 +1056,39 @@ Explicit local decisions where public material leaves the contract open:
   upgrade all writers before enabling RBAC. No downgrade to permissive tokens.
 
 These are implementation contracts, not proof of completion or live parity.
+
+**Addendum 2026-11-04 — membership scopes are alternatives (pre-1.0 review,
+mgmt-resources F1).** The all-of reading above is withdrawn. It refused tokens
+configured the way Auth0's own RBAC guides say:
+[view user roles](https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/view-user-roles)
+uses "the scopes `read:users` and `read:roles`";
+[assign roles to users](https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/assign-roles-to-users)
+uses "`read:roles` and `update:users`";
+[remove roles from users](https://auth0.com/docs/manage-users/access-control/configure-core-rbac/rbac-users/remove-roles-from-users)
+uses "the scope `update:users`". None of them grants `*:role_members`. The
+[Management API OAS](https://auth0.com/docs/oas/management/v2/management-api-oas.json)
+(fetched 2026-11-04) lists, in one `oAuth2ClientCredentials` array per route:
+`GET /roles/{id}/users` and `GET /users/{id}/roles` `read:users, read:roles,
+read:role_members`; `POST /roles/{id}/users` `update:roles,
+create:role_members`; `POST /users/{id}/roles` `update:users,
+create:role_members`; `DELETE /users/{id}/roles` `update:users,
+delete:role_members`. The same file uses one array for alternatives elsewhere
+(`GET /clients`: `read:clients, read:client_keys, read:client_credentials,
+read:client_summary`; `PATCH /users/{id}`: `update:users,
+update:users_app_metadata, ...`), and zeroauthy reads every other route's list
+as any-of. The routes now accept (`internal/server/mgmtapi.go` `scopedAnyOf`,
+`internal/rbacrules/inventory.json` `scope_match: any_set`):
+
+- both reads: `read:users` **and** `read:roles`, or `read:role_members`;
+- `POST /roles/{id}/users`: `update:roles`, or `create:role_members`;
+- `POST /users/{id}/roles`: `update:users`, or `create:role_members`;
+- `DELETE /users/{id}/roles`: `update:users`, or `delete:role_members`.
+
+Local choice: the reads keep the classic pair together rather than accepting
+`read:users` or `read:roles` alone, because the guide names both and a single
+classic scope would expose the other resource (`read:roles` alone would list
+users and their emails). Auth0's runtime rule was not observed; if it accepts
+a single classic scope on the reads, such a client gets 403 here.
 
 ## D-0053 — Plan 27 Actions contract (2026-10-27)
 

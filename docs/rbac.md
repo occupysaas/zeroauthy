@@ -66,8 +66,16 @@ assignments. Permission keys contain `resource_server_identifier` and
 `permission_name`. Assignment batches validate and commit together; failed
 batches do not partially apply.
 
-Membership endpoints require all documented scopes together. For example,
-listing role members requires `read:users`, `read:roles` and `read:role_members`.
+Membership endpoints accept Auth0's classic scopes, as its RBAC guides
+configure them, or the fine-grained `*:role_members` scope (D-0052):
+
+| Operation | Accepted scopes |
+|---|---|
+| `GET /roles/{id}/users`, `GET /users/{id}/roles` | `read:users` and `read:roles`, or `read:role_members` |
+| `POST /roles/{id}/users` | `update:roles`, or `create:role_members` |
+| `POST /users/{id}/roles` | `update:users`, or `create:role_members` |
+| `DELETE /users/{id}/roles` | `update:users`, or `delete:role_members` |
+
 An existing restricted client grant does not automatically receive new scopes
 when the server's Management API inventory is upgraded.
 

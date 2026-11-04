@@ -208,7 +208,16 @@
         "read:roles",
         "read:role_members"
       ],
-      "scope_match": "all",
+      "scope_match": "any_set",
+      "accepted_scope_sets": [
+        [
+          "read:users",
+          "read:roles"
+        ],
+        [
+          "read:role_members"
+        ]
+      ],
       "request_shape": "none",
       "response_shape": "users[] or {start,limit,total,users} or {users,next?}",
       "pagination": "offset or checkpoint",
@@ -234,7 +243,15 @@
         "update:roles",
         "create:role_members"
       ],
-      "scope_match": "all",
+      "scope_match": "any_set",
+      "accepted_scope_sets": [
+        [
+          "update:roles"
+        ],
+        [
+          "create:role_members"
+        ]
+      ],
       "request_shape": "{users:[user_id]}",
       "response_shape": "empty",
       "pagination": "none",
@@ -261,7 +278,16 @@
         "read:roles",
         "read:role_members"
       ],
-      "scope_match": "all",
+      "scope_match": "any_set",
+      "accepted_scope_sets": [
+        [
+          "read:users",
+          "read:roles"
+        ],
+        [
+          "read:role_members"
+        ]
+      ],
       "request_shape": "none",
       "response_shape": "roles[] or {start,limit,total,roles}",
       "pagination": "offset",
@@ -287,7 +313,15 @@
         "update:users",
         "create:role_members"
       ],
-      "scope_match": "all",
+      "scope_match": "any_set",
+      "accepted_scope_sets": [
+        [
+          "update:users"
+        ],
+        [
+          "create:role_members"
+        ]
+      ],
       "request_shape": "{roles:[role_id]}",
       "response_shape": "empty",
       "pagination": "none",
@@ -313,7 +347,15 @@
         "update:users",
         "delete:role_members"
       ],
-      "scope_match": "all",
+      "scope_match": "any_set",
+      "accepted_scope_sets": [
+        [
+          "update:users"
+        ],
+        [
+          "delete:role_members"
+        ]
+      ],
       "request_shape": "{roles:[role_id]}",
       "response_shape": "empty",
       "pagination": "none",
