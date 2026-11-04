@@ -494,12 +494,16 @@ export function privacyScan(text, secrets, label) {
       Buffer.from(value).toString("base64url"),
     ];
     if (kind === "phone number") variants.push(value.slice(1));
-    if (kind.includes("OTP") || kind.includes("code"))
-      variants.push(value.split("").join(". "));
-    assert.ok(
-      !variants.some((v) => text.includes(v)),
-      `${label}: leaked ${kind}`,
-    );
+    const isCode = kind.includes("OTP") || kind.includes("code");
+    if (isCode) variants.push(value.split("").join(". "));
+    // A numeric code is disclosed only as a whole digit token; otherwise a
+    // random code like 000147 collides with zero-padded IDs such as log row 147.
+    const numeric = isCode && /^\d+$/.test(value);
+    const leaked = (v) =>
+      numeric && v === value
+        ? new RegExp(`(?<!\\d)${v}(?!\\d)`).test(text)
+        : text.includes(v);
+    assert.ok(!variants.some(leaked), `${label}: leaked ${kind}`);
   }
   if (
     !["responses.jsonl", "cli.jsonl", "browser-responses.jsonl"].includes(label)

@@ -274,3 +274,49 @@ handler exclusion or client pin was weakened and no passing Deploy matrix
 is claimed. Task 15's focused Guardian settings/protection boundary checks
 remain separate passing evidence. No rerun of the unchanged failing full
 Deploy matrix is warranted.
+
+### Final regression continuation (2026-11-03/04)
+
+- First full `ZA_REQUIRE_NODE=1 go test -race -timeout=50m ./...` (12:28–13:04
+  local, dirty snapshot) exited **1**: `TestSSEEventTypeFilter` (load-dependent
+  interleaving) and `Users/CreateGetFind` in the gRPC/plugin conformance lanes
+  (remote stores return the derived `PhoneNormalized`; the caller's object is
+  not mutated). The fixes are a deterministic SSE flush hook, a storetest
+  expectation for the stored normalized value, and a new
+  `PhoneNormalizationOnWrite` storetest case. The SQL run started at 13:14 was
+  interrupted before writing results; it is not counted.
+- Two continuation attempts produced no results: the external NVMe holding
+  `/mnt/nvme2` dropped off the PCIe bus under load (`CSTS=0xffffffff`;
+  filesystem read-only). They are not reported as runs. After the drive was
+  fixed, all work was committed as `1d4e74c` and pushed to
+  `origin/plan-34-passwordless-phone` before rerunning.
+- Final sequence at clean HEAD `1d4e74c` (`.tmp/task16/regression/run-final.sh`,
+  per-stage `.head/.status/.patch/.command/.exit/.log`):
+  - `make console` exit **0** (78 files; lint, typecheck, build; existing
+    >500 kB chunk advisory). Rebuilt dist unchanged.
+  - `make check-sources` exit **0**.
+  - `ZA_REQUIRE_NODE=1 go test -race -timeout=50m ./...` exit **0**, 23:04–23:35Z
+    (90 packages ok, 26 without test files; non-verbose, so individual skips
+    are not listed).
+  - `./scripts/test-sql.sh -timeout=90m ./internal/store/sqlstore/...` exit **0**,
+    23:35Z–00:16Z (2486.7 s; SQLite, PostgreSQL 17, MySQL 8.4).
+  - `make e2e-passwordless` with `E2E_M34_BACKENDS="sqlite memory postgres mysql"`
+    exit **2**: SQLite, memory and PostgreSQL passed. The MySQL privacy audit
+    reported `responses.jsonl: leaked email code`. Investigation: the random
+    code `000147` matched the zero-padded log `_id` for row 147, a false
+    positive and not a disclosure. `privacyScan` now matches digit-only codes
+    as whole digit tokens. Encoded, spoken and phone-number variants still
+    match as substrings. A RED-then-GREEN case was added to
+    `tests/e2e/m34-privacy.test.mjs`.
+  - Rerun of four-backend acceptance (`run-acceptance.sh`, HEAD `1d4e74c` plus
+    the harness fix) exit **0**, 00:23–00:28Z. Each of the four backends:
+    browser 8/8 passed, grants/SDK/CLI lanes passed, privacy audit clean
+    (12 sinks, 83 representative secrets absent).
+- Earlier results at the pre-commit snapshot stand as recorded: `make e2e-mfa`,
+  `make e2e` (24 passed, 67 skipped; skips are not passing coverage),
+  `make e2e-actions`, `make e2e-actions-ii`, `make e2e-logs`, `make e2e-events`,
+  `make e2e-domains` and `make conformance` all exited 0. `make e2e-deploy`
+  exited **2** (pinned Deploy CLI 9.1.0 Guardian provider export; see above).
+- Still pending before Plan 34 can be marked done: the whole-branch final
+  review (held at the user's earlier boundary), squashing or rewording the WIP
+  checkpoint commit, and a decision on the Deploy CLI gap.
