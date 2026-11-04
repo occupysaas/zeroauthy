@@ -114,3 +114,12 @@ test("mailbox waits for this delivery and cannot reuse an older code", async () 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("numeric codes inside timestamps are not leaks, standalone ones are", () => {
+  const values = [{ kind: "email code", value: "162258" }];
+  assert.doesNotThrow(() =>
+    scan('{"time":"2026-11-04T02:34:39.121622588-05:00"}', values, "server.log"),
+  );
+  for (const text of ['{"code":"162258"}', "code 162258."])
+    assert.throws(() => scan(text, values, "server.log"), /leaked email code/);
+});

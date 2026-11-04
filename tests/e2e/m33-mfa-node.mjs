@@ -116,10 +116,15 @@ export function scan(text, secrets, label) {
       Buffer.from(value).toString("base64url"),
       Buffer.from(value).toString("hex"),
     ];
-    assert.ok(
-      !variants.some((v) => text.includes(v)),
-      `${label}: leaked ${kind}`,
-    );
+    // A numeric code is disclosed only as a whole digit token; otherwise a
+    // random code collides with digits in timestamps or padded IDs (as in
+    // the Plan 34 scan).
+    const numeric = /^\d+$/.test(value);
+    const leaked = (v) =>
+      numeric && v === value
+        ? new RegExp(`(?<!\\d)${v}(?!\\d)`).test(text)
+        : text.includes(v);
+    assert.ok(!variants.some(leaked), `${label}: leaked ${kind}`);
   }
 }
 export async function until(fn, label, timeout = 30000) {
