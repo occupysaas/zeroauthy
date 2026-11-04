@@ -1,10 +1,17 @@
 name: conformance
-# On demand only: start it from the Actions tab. See tests/conformance/README.md.
+# On demand from the Actions tab, and as the last gate of the release
+# workflow. See tests/conformance/README.md.
 on:
   workflow_dispatch:
     inputs:
       plans:
         description: "Space-separated plans to run (basic, config, formpost, logout)"
+        required: false
+        default: "basic config formpost logout"
+        type: string
+  workflow_call:
+    inputs:
+      plans:
         required: false
         default: "basic config formpost logout"
         type: string

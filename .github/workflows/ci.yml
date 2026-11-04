@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The release workflow reuses these jobs as its test gate.
+  workflow_call:
 
 jobs:
   test:

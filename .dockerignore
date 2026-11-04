@@ -1,0 +1,19 @@
+# Keep the build context small and free of local data and secrets.
+.git
+.github
+.tmp
+.superpowers
+.claude
+bin
+dist
+**/node_modules
+tests/e2e/**/playwright-report
+tests/e2e/**/test-results
+tests/conformance/.cache
+tests/conformance/results
+*.db
+*.db-*
+*.key
+*.pem
+.env
+.env.*

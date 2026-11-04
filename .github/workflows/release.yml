@@ -1,0 +1,152 @@
+name: release
+# Builds, gates and publishes a release. It runs only on pushes to `release`
+# (or `release/**` patch lines), never on `main` (maintainer rule,
+# 2026-11-02). A release is: tag the commit on main, push the tag, then
+# fast-forward `release` to it. See RELEASING.md.
+#
+# Without a v* tag on the pushed commit the workflow runs every gate and
+# builds every artefact but publishes nothing (a dry run).
+on:
+  push:
+    branches: [release, "release/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: v
+        name: Resolve the version from the tag on this commit
+        run: |
+          set -euo pipefail
+          tag="$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n1)"
+          if [ -z "$tag" ]; then
+            echo "No v* tag on $GITHUB_SHA: dry run, nothing is published."
+            { echo "tag="; echo "version=0.0.0-dev.${GITHUB_SHA::12}"; echo "prerelease=true"; echo "publish=false"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          version="${tag#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::$tag is not semver"; exit 1; }
+          grep -q "^## \[$version\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for $version"; exit 1; }
+          if [ "$GITHUB_REF_NAME" = release ]; then
+            git merge-base --is-ancestor HEAD origin/main || { echo "::error::release must be a fast-forward of main"; exit 1; }
+          fi
+          prerelease=false; [[ "$version" == *-* ]] && prerelease=true
+          { echo "tag=$tag"; echo "version=$version"; echo "prerelease=$prerelease"; echo "publish=true"; } >> "$GITHUB_OUTPUT"
+          echo "Releasing $tag (prerelease=$prerelease)"
+
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  conformance:
+    needs: test
+    uses: ./.github/workflows/conformance.yml
+
+  binaries:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: ./scripts/dist.sh "${{ needs.version.outputs.version }}" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  image:
+    needs: [version, test, conformance]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.version.outputs.tag }},enable=${{ needs.version.outputs.publish == 'true' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.version.outputs.tag }},enable=${{ needs.version.outputs.publish == 'true' }}
+            type=raw,value=latest,enable=${{ needs.version.outputs.publish == 'true' && needs.version.outputs.prerelease == 'false' }}
+            type=sha,format=long
+      - if: needs.version.outputs.publish == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ needs.version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: ${{ needs.version.outputs.publish == 'true' }}
+          provenance: mode=max
+          sbom: true
+      - if: needs.version.outputs.publish == 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  publish:
+    needs: [version, test, conformance, binaries, image]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Verify checksums
+        run: cd dist && sha256sum -c SHA256SUMS
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.tar.gz
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
+          printf '\n**Container image:** `ghcr.io/%s:%s`\n' "${GITHUB_REPOSITORY,,}" "$VERSION" >> notes.md
+          flags=(--verify-tag --title "zeroauthy $TAG" --notes-file notes.md)
+          [ "$PRERELEASE" = true ] && flags+=(--prerelease) || flags+=(--latest)
+          gh release create "$TAG" "${flags[@]}" dist/*.tar.gz dist/SHA256SUMS
