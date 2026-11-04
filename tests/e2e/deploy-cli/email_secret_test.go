@@ -54,4 +54,10 @@ func TestE2EPrivateEmailProviderCredentialAfterImport(t *testing.T) {
 	}
 }
 
-func mapKeys(m map[string]any) []string { out:=make([]string,0,len(m)); for key:=range m { out=append(out,key) }; return out }
+func mapKeys(m map[string]any) []string {
+	out := make([]string, 0, len(m))
+	for key := range m {
+		out = append(out, key)
+	}
+	return out
+}

@@ -46,17 +46,15 @@ const version = spawnSync(bin, ['--version'], { encoding: 'utf8' });
 assert.equal(version.status, 0); assert.equal(version.stdout.trim(), '9.1.0');
 const manifest = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/manifest.json'), 'utf8'));
 const excluded = JSON.parse(comparator(['exclusions', '--manifest', 'tests/e2e/deploy-cli/manifest.json']).stdout);
-// Explicit diagnostic lane: the required default matrix still asserts all nine.
-const guardianPartial = process.env.E2E_M33_GUARDIAN_PARTIAL === '1';
+// guardianFactorProviders is tool-unsupported: the pinned CLI's exporter reads
+// provider.data, which its SDK never returns (D-0059). Prove the bug is still
+// present so the entry is re-included as soon as an upgraded CLI fixes it;
+// the documented provider wire is asserted directly in provisionGuardian.
+const providerEntry = manifest.resources.find(entry => entry.name === 'guardianFactorProviders');
+const guardianPartial = providerEntry.status === 'tool-unsupported';
 if (guardianPartial) {
-  assert.equal(mode, 'generated');
-  assert.equal(format, 'yaml');
-  const provider = manifest.resources.find(entry => entry.name === 'guardianFactorProviders');
-  provider.status = 'tool-unsupported';
-  provider.fixture = null;
-  provider.reason = 'Diagnostic partial lane: pinned CLI9.1.0 reads an absent SDK7.4 provider.data property';
-  excluded.push(provider.name);
-  console.log('Plan 33 PARTIAL diagnostic: guardianFactorProviders excluded due to demonstrated pinned-client export bug; this is not the required nine-handler matrix.');
+  const handler = await readFile(path.join(e2e, 'node_modules/auth0-deploy-cli/lib/tools/auth0/handlers/guardianFactorProviders.js'), 'utf8');
+  assert.match(handler, /\.\.\.provider\.data\b/, 'pinned CLI no longer reads provider.data: re-include guardianFactorProviders in the manifest');
 }
 // These handlers require APIs outside the implemented roadmap. Their absence
 // is reported explicitly, never counted as a successful migration.
@@ -543,7 +541,7 @@ assert.equal(repeated.client_id, imported.client_id); assert.ok(repeated.client_
 targetPath = await exportTo('target', 'target-repeat');
 assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'repeat import differs');
 await assertGuardianExport(targetPath);
-console.log(`Plan 33 ${guardianPartial ? 'PARTIAL diagnostic' : 'deploy'}: ${guardianIncluded.length} Guardian configuration handlers, strict field preservation, repeat import and missing-family negatives passed; documented provider GET/PUT passed; ${guardianPartial ? 'provider export remains blocked by pinned client; required matrix is not passing' : 'all nine handler matrix passed'}; methods are never exported; deferred delivery remains stored-only.`);
+console.log(`Plan 33 deploy: ${guardianIncluded.length} Guardian configuration handlers, strict field preservation, repeat import and missing-family negatives passed; documented provider GET/PUT passed; ${guardianPartial ? 'provider export is tool-unsupported (upstream CLI reads provider.data; bug presence asserted)' : 'all nine handler matrix passed'}; methods are never exported.`);
 await assertPrivateLogStreamSecrets();
 await eventStreamRuntime();
 console.log('Plan 32 deploy: webhook/action public configuration, strict field-loss negatives, target Action ownership, fresh credential reinjection, explicit token rotation, omitted-secret CLI import and actual runtime delivery passed');

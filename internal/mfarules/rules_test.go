@@ -77,7 +77,10 @@ func TestMFAInventory(t *testing.T) {
 			t.Errorf("missing Actions schema %s", name)
 		}
 	}
-	for _, name := range []string{"guardianFactors", "guardianFactorProviders", "guardianFactorTemplates", "guardianPolicies", "guardianPhoneFactorSelectedProvider", "guardianPhoneFactorMessageTypes", "guardianPhoneFactorSettings", "guardianEmailFactorSettings", "guardianSettings"} {
+	if mfarules.DeployHandlers()["guardianFactorProviders"] != "tool-unsupported" {
+		t.Error("guardianFactorProviders must stay tool-unsupported until the pinned CLI stops reading provider.data (D-0059)")
+	}
+	for _, name := range []string{"guardianFactors", "guardianFactorTemplates", "guardianPolicies", "guardianPhoneFactorSelectedProvider", "guardianPhoneFactorMessageTypes", "guardianPhoneFactorSettings", "guardianEmailFactorSettings", "guardianSettings"} {
 		if mfarules.DeployHandlers()[name] != "included" {
 			t.Errorf("handler missing: %s", name)
 		}

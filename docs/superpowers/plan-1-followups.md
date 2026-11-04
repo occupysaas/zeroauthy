@@ -439,15 +439,13 @@ behaviour only where Auth0 is shown to differ.
   `/mfa/associate` and `/mfa/challenge` response details; when MFA changes
   emit `user.updated`.
 
-- **Plan 33 Deploy CLI provider export (Task 13, actual tool blocker):**
-  Pinned Deploy CLI 9.1.0 plus node-auth0 7.4.0 exports an empty
-  `guardianFactorProviders` list because the handler reads `provider.data`
-  from an already unwrapped SDK body. The nine-handler required matrix
-  actually failed; do not count this family as round-tripped. Keep the
-  documented API and pins intact. Track an upstream client correction or
-  approved future dependency change, then rerun all formats and identity
-  modes. An explicitly labeled eight-handler diagnostic is partial evidence
-  only. See D-0059 and the Plan 33 implementation record.
+- **Plan 33 Deploy CLI provider export (resolved as tool-unsupported, 2026-11-03):**
+  Deploy CLI 9.1.0 and 9.2.0 export an empty `guardianFactorProviders` list
+  because the handler reads `provider.data` from an already unwrapped SDK
+  body; the same happens against Auth0. The maintainer chose to classify the
+  handler `tool-unsupported`; the server wire is asserted directly and the E2E
+  lane fails once the handler changes, so re-include it then. Optional: report
+  the bug upstream to auth0/auth0-deploy-cli. See D-0059.
 
 - **Plan 33 review Minors (deferred, not 1.0 blockers):** M1 consent is
   shown and persisted before MFA (Auth0 runs MFA first); M3 abandoned

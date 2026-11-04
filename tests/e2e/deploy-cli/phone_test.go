@@ -26,7 +26,14 @@ func TestManifestPhoneHandlers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"guardianFactorProviders", "guardianFactorTemplates", "guardianPhoneFactorSelectedProvider", "guardianPhoneFactorMessageTypes", "guardianPhoneFactorSettings", "attackProtection"} {
+	for _, r := range m.Resources {
+		// D-0059: the pinned CLI exporter reads provider.data, which its SDK
+		// never returns; provider wire coverage is asserted directly instead.
+		if r.Name == "guardianFactorProviders" && (r.Status != "tool-unsupported" || !strings.Contains(r.Reason, "provider.data")) {
+			t.Errorf("guardianFactorProviders must be tool-unsupported citing the provider.data CLI bug, got %q", r.Status)
+		}
+	}
+	for _, name := range []string{"guardianFactorTemplates", "guardianPhoneFactorSelectedProvider", "guardianPhoneFactorMessageTypes", "guardianPhoneFactorSettings", "attackProtection"} {
 		found := false
 		for _, r := range m.Resources {
 			if r.Name == name {

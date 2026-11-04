@@ -2247,6 +2247,15 @@ CLI policy assets use `{policies: [...]}`; the wire API and seed policy field
 remain arrays. Provider/template handler registries cover only a subset of
 the stored provider routes and are not a complete backup of them.
 
+**Addendum (2026-11-03, maintainer).** Deploy CLI 9.2.0 ships the identical
+handler, so no upgrade fixes it, and the empty export also happens against
+Auth0: the server already matches upstream. `guardianFactorProviders` is now
+`tool-unsupported` in the manifest and `internal/mfarules` inventory. The
+E2E lane still PUTs and GETs providers on the documented wire, and asserts the
+pinned handler still spreads `provider.data`; once that assertion fails, the
+handler is re-included. All four Deploy CLI cells pass with the remaining
+eight Guardian handlers. Server responses and dependency pins are unchanged.
+
 ## D-0060 — Passwordless and phone contracts and local rulings
 
 **2026-11-03; Plan 34 Task 1.** Evidence for the contract frozen in

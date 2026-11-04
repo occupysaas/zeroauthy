@@ -240,29 +240,21 @@ or policy/Action remember eligibility.
 
 ## Deploy CLI and troubleshooting
 
-The frozen Deploy CLI 9.1.0 coverage requires these nine configuration
-handlers: `guardianFactors`, `guardianFactorProviders`,
-`guardianFactorTemplates`, `guardianPolicies`,
+The pinned Deploy CLI 9.1.0 round-trips eight Guardian configuration
+handlers: `guardianFactors`, `guardianFactorTemplates`, `guardianPolicies`,
 `guardianPhoneFactorSelectedProvider`, `guardianPhoneFactorMessageTypes`,
 `guardianPhoneFactorSettings`, `guardianEmailFactorSettings`, and
-`guardianSettings`. **Provider export is blocked in the pinned client:**
-Deploy CLI 9.1.0 reads `provider.data`, but node-auth0 7.4.0 returns the
-provider body directly. A real local export dropped the provider records;
-the required nine-handler matrix failed. This is tracked in D-0059 and the
-follow-ups. The server's documented provider GET/PUT still works. Do not
-rely on this CLI version to back up or migrate Guardian provider fields.
-The remaining eight handlers passed a separate generated-ID/YAML diagnostic,
-including repeat import and exact public fields. Directory and preserved-ID
-round trips remain unverified; this partial result does not make the complete
-required matrix pass. CLI policy assets wrap the
-array as `guardianPolicies: {policies: [...]}`; seed and wire policy fields
-remain arrays. Push configuration portability does not enable
-runtime delivery. Write-only provider credentials must be supplied through
-a protected operator channel at the destination; exports do not contain
-them. User authentication methods, TOTP secrets, recovery codes, challenges,
-remembered browsers and enrollment tickets are never deployment assets.
-The pinned client's provider/template registry covers only a subset of
-the available stored provider routes; it is not a complete provider backup.
+`guardianSettings`. All four YAML/directory and generated/preserved-ID cells
+pass with exact public fields and repeat import.
+
+**`guardianFactorProviders` cannot be exported by the Deploy CLI itself.**
+Its exporter (unchanged in 9.1.0 and 9.2.0) reads `provider.data`, but its
+node-auth0 7.x SDK returns the provider body directly, so the export is an
+empty list against any server, Auth0 included. The server's documented
+provider GET/PUT work and are tested directly. Back up provider settings with
+the Management API instead. The handler is marked `tool-unsupported`, and the
+E2E lane fails once an upgraded CLI stops reading `provider.data`, so it can
+be re-included (D-0059).
 
 Use the user's MFA tab and tenant logs to investigate a failed login.
 `gd_start_auth`, `gd_auth_succeed`, `gd_auth_failed`, `gd_start_enroll`,

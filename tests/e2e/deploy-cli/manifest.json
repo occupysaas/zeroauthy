@@ -101,10 +101,9 @@
     },
     {
       "name": "guardianFactorProviders",
-      "status": "included",
-      "owner": "Plan 34",
-      "reason": "Guardian phone configuration round-trips through pinned 9.1.0 handlers; SMS and voice delivery follows the configured Plan 34 phone route",
-      "fixture": "fixtures/guardian-factor-providers.json"
+      "status": "tool-unsupported",
+      "owner": "Plan 33",
+      "reason": "Upstream tool bug, not a server gap: auth0-deploy-cli 9.1.0 (and 9.2.0, unchanged) lib/tools/auth0/handlers/guardianFactorProviders.js spreads provider.data, but its node-auth0 7.x SDK returns the provider body directly, so export yields [] against any server, Auth0 included. Provider PUT/GET are verified directly on the documented wire; the lane fails if the handler stops reading provider.data so the entry can be re-included (D-0059)"
     },
     {
       "name": "guardianFactorTemplates",

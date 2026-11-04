@@ -383,8 +383,9 @@ provider/template seed identities preserve operator edits; Guardian phone
 settings follow the enclosing tenant seed mode. Database phone identifier
 enables run the same conflict pre-check as the Management API.
 
-The Guardian phone handlers and `attackProtection` are included in the pinned
-manifest. Branding `phoneProviders` and `phoneTemplates` retain their explicitly
+The Guardian phone handlers (except `guardianFactorProviders`, which the CLI
+itself cannot export; see [mfa.md](mfa.md#deploy-cli-and-troubleshooting)) and
+`attackProtection` are included in the pinned manifest. Branding `phoneProviders` and `phoneTemplates` retain their explicitly
 excluded migration status until an unmodified pinned handler export/import
 lane proves secret reinjection, generated identities and template defaults.
 Native SNS is a zeroauthy extension and is outside the pinned provider schema.

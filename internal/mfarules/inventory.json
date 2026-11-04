@@ -5545,7 +5545,7 @@
   ],
   "deploy_handlers": {
     "guardianFactors": "included",
-    "guardianFactorProviders": "included",
+    "guardianFactorProviders": "tool-unsupported",
     "guardianFactorTemplates": "included",
     "guardianPolicies": "included",
     "guardianPhoneFactorSelectedProvider": "included",
@@ -5650,6 +5650,6 @@
     }
   },
   "deploy_limitations": {
-    "guardianFactorProviders": "Pinned auth0-deploy-cli 9.1.0 with node-auth0 7.4.0 drops provider public fields during export: lib/tools/auth0/handlers/guardianFactorProviders.js reads provider.data although SDK methods return the body directly. Actual local CLI export produced an empty list after documented API PUT/GET succeeded. Handler remains included as required coverage; its round trip is blocked, not passing. No production wire or dependency pin changes are permitted to hide the tool bug."
+    "guardianFactorProviders": "Pinned auth0-deploy-cli 9.1.0 with node-auth0 7.4.0 drops provider public fields during export: lib/tools/auth0/handlers/guardianFactorProviders.js reads provider.data although SDK methods return the body directly. Actual local CLI export produced an empty list after documented API PUT/GET succeeded. 9.2.0 ships the same handler. Classified tool-unsupported (maintainer, 2026-11-03): the same export is empty against Auth0. The documented provider PUT/GET wire is asserted directly and the E2E lane fails once the handler stops reading provider.data. No production wire or dependency pin changes hide the tool bug."
   }
 }
