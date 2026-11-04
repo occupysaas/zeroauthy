@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -42,6 +43,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
+	"github.com/zeroauthy/zeroauthy/internal/selfsigned"
 	"github.com/zeroauthy/zeroauthy/internal/server"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/storage"
@@ -72,6 +74,9 @@ type App struct {
 	// tls serves certificates when ACME is on; nil keeps static or
 	// externally terminated TLS exactly as configured.
 	tls *certificates.Manager
+	// selfSigned serves throwaway test certificates (server.tls_self_signed);
+	// nil otherwise.
+	selfSigned *selfsigned.Authority
 	// acme issues and renews managed certificates; domains proves ownership
 	// for it. Both are nil when ACME is off.
 	acme    *certificates.Worker
@@ -237,6 +242,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
+	selfSigned, err := selfSignedAuthority(ctx, cfg, st, systemHost, log)
+	if err != nil {
+		return nil, err
+	}
 	domains, err := domainService(cfg, st, tlsManager, systemHost, log)
 	if err != nil {
 		return nil, err
@@ -384,6 +393,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	return &App{
 		profiles:     profiles,
 		tls:          tlsManager,
+		selfSigned:   selfSigned,
 		acme:         acmeWorker,
 		domains:      domains,
 		cfg:          cfg,
@@ -541,6 +551,70 @@ func certificateManager(ctx context.Context, cfg *config.Config, st store.Store,
 	return m, nil
 }
 
+// selfSignedAuthority builds the in-memory test CA (server.tls_self_signed).
+// Its startup certificate covers loopback, the system host, the base domain
+// and its wildcard, every tenant domain registered now and the configured
+// extra hosts; tenant domains added later get certificates on demand.
+func selfSignedAuthority(ctx context.Context, cfg *config.Config, st store.Store, systemHost string, log *slog.Logger) (*selfsigned.Authority, error) {
+	s := cfg.Server
+	if !s.TLSSelfSigned {
+		return nil, nil
+	}
+	log.Warn("server.tls_self_signed is on: serving HTTPS from a throwaway CA generated at startup; this is for testing only, never production")
+	hosts := []string{"localhost", "127.0.0.1", "::1", systemHost}
+	if s.BaseDomain != "" {
+		base := tenant.NormalizeHost(s.BaseDomain)
+		if h, _, err := net.SplitHostPort(base); err == nil {
+			base = h
+		}
+		hosts = append(hosts, base, "*."+base)
+	}
+	tenants, err := st.Tenants().List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("app: self-signed TLS hosts: %w", err)
+	}
+	for _, tn := range tenants {
+		hosts = append(hosts, tn.Domains...)
+	}
+	hosts = append(hosts, s.SelfSignedHosts()...)
+	auth, err := selfsigned.New(selfsigned.Config{
+		Hosts: hosts,
+		Allow: func(ctx context.Context, host string) (bool, error) { return knownTenantHost(ctx, st.Tenants(), host) },
+	})
+	if err != nil {
+		return nil, fmt.Errorf("app: self-signed TLS: %w", err)
+	}
+	if s.TLSSelfSignedCAFile != "" {
+		if err := auth.WriteCAFile(s.TLSSelfSignedCAFile); err != nil {
+			return nil, fmt.Errorf("app: %w", err)
+		}
+	}
+	log.Info("self-signed TLS CA generated", "sha256_fingerprint", auth.Fingerprint(), "ca_file", s.TLSSelfSignedCAFile)
+	return auth, nil
+}
+
+// knownTenantHost reports whether host (a TLS server name, so portless) is
+// a registered tenant domain, with or without a port.
+func knownTenantHost(ctx context.Context, tenants store.Tenants, host string) (bool, error) {
+	if _, err := tenants.GetByDomain(ctx, host); err == nil {
+		return true, nil
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return false, err
+	}
+	all, err := tenants.List(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, tn := range all {
+		for _, d := range tn.Domains {
+			if h, _, err := net.SplitHostPort(d); err == nil && strings.EqualFold(h, host) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 // domainService builds the custom domain service: API operations, proxy
 // admission and ownership proof. Managed domains need ACME; self-managed
 // ones need origin TLS (the ACME manager's coverage, or a static certificate
@@ -671,11 +745,14 @@ func (a *App) Serve(ctx context.Context) error {
 		go func() { defer close(done); a.eventPurge.Run(purgeCtx) }()
 		defer func() { stopPurge(); <-done }()
 	}
-	useTLS := a.cfg.Server.TLSCertFile != "" || a.tls != nil
+	useTLS := a.cfg.Server.TLSCertFile != "" || a.tls != nil || a.selfSigned != nil
 	errc := make(chan error, 1)
 	go func() {
 		if a.tls != nil {
 			srv.TLSConfig, _ = a.tls.TLSConfig()
+			errc <- srv.ListenAndServeTLS("", "")
+		} else if a.selfSigned != nil {
+			srv.TLSConfig = a.selfSigned.TLSConfig()
 			errc <- srv.ListenAndServeTLS("", "")
 		} else if useTLS {
 			errc <- srv.ListenAndServeTLS(a.cfg.Server.TLSCertFile, a.cfg.Server.TLSKeyFile)

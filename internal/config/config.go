@@ -92,6 +92,64 @@ type Server struct {
 	CustomDomains     CustomDomains `koanf:"custom_domains"`
 	TLSCertFile       string        `koanf:"tls_cert_file"`
 	TLSKeyFile        string        `koanf:"tls_key_file"`
+	// TLSSelfSigned serves HTTPS with a certificate from a throwaway CA that
+	// is generated in memory at every start. It is for test environments
+	// (CI, E2E, docker compose), where Auth0 SDKs need an HTTPS issuer, and
+	// cannot be combined with tls_cert_file/tls_key_file or ACME. The
+	// certificate covers localhost, 127.0.0.1, ::1, the system host, the base
+	// domain and *.base_domain, tenant domains, and tls_self_signed_hosts;
+	// tenant domains added later get a certificate on first connection.
+	TLSSelfSigned bool `koanf:"tls_self_signed"`
+	// TLSSelfSignedCAFile receives the throwaway CA certificate (PEM, never
+	// its key) at startup so test clients can trust it, for example through
+	// NODE_EXTRA_CA_CERTS or SSL_CERT_FILE. Requires tls_self_signed.
+	TLSSelfSignedCAFile string `koanf:"tls_self_signed_ca_file"`
+	// TLSSelfSignedHosts lists extra DNS names or IP addresses (no port) the
+	// self-signed certificate covers, such as a docker compose service name.
+	// Entries may also be comma-separated (one environment variable).
+	// Requires tls_self_signed.
+	TLSSelfSignedHosts []string `koanf:"tls_self_signed_hosts"`
+}
+
+// SelfSignedHosts returns TLSSelfSignedHosts with comma-separated entries
+// split and blanks dropped.
+func (s Server) SelfSignedHosts() []string {
+	var out []string
+	for _, entry := range s.TLSSelfSignedHosts {
+		for _, raw := range strings.Split(entry, ",") {
+			if raw = strings.TrimSpace(raw); raw != "" {
+				out = append(out, raw)
+			}
+		}
+	}
+	return out
+}
+
+// validateSelfSigned keeps self-signed TLS out of production setups: it
+// never coexists with real certificate sources.
+func (s Server) validateSelfSigned() []error {
+	var errs []error
+	if !s.TLSSelfSigned {
+		if s.TLSSelfSignedCAFile != "" || len(s.SelfSignedHosts()) > 0 {
+			errs = append(errs, errors.New("server.tls_self_signed_ca_file and server.tls_self_signed_hosts need server.tls_self_signed"))
+		}
+		return errs
+	}
+	if s.TLSCertFile != "" || s.TLSKeyFile != "" {
+		errs = append(errs, errors.New("server.tls_self_signed cannot be combined with server.tls_cert_file/tls_key_file"))
+	}
+	if s.ACME.Enabled {
+		errs = append(errs, errors.New("server.tls_self_signed cannot be combined with server.acme"))
+	}
+	for _, h := range s.SelfSignedHosts() {
+		if net.ParseIP(h) != nil {
+			continue
+		}
+		if _, err := hostname.NormalizeOperatorHost(h); err != nil || strings.Contains(h, ":") {
+			errs = append(errs, fmt.Errorf("server.tls_self_signed_hosts: %q is not a DNS name or IP address", h))
+		}
+	}
+	return errs
 }
 
 // ACME is opt-in automatic certificate issuance for managed custom domains
@@ -529,6 +587,7 @@ func (c *Config) validate() error {
 		errs = append(errs, err)
 	}
 	errs = append(errs, c.Server.validateACME()...)
+	errs = append(errs, c.Server.validateSelfSigned()...)
 	if (c.Server.TLSCertFile == "") != (c.Server.TLSKeyFile == "") {
 		errs = append(errs, errors.New("set both server.tls_cert_file and server.tls_key_file, or neither"))
 	}

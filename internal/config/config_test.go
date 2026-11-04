@@ -596,3 +596,52 @@ security:
 		t.Errorf("disabled limiter validated: %v", err)
 	}
 }
+
+func TestSelfSignedTLSConfig(t *testing.T) {
+	base := []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost}
+	cfg, err := Load("", base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := cfg.Server; s.TLSSelfSigned || s.TLSSelfSignedCAFile != "" || len(s.TLSSelfSignedHosts) != 0 {
+		t.Fatalf("self-signed defaults = %+v", s)
+	}
+	on := append(slices.Clone(base), "ZEROAUTHY_SERVER__TLS_SELF_SIGNED=true",
+		"ZEROAUTHY_SERVER__TLS_SELF_SIGNED_CA_FILE=/shared/ca.pem",
+		"ZEROAUTHY_SERVER__TLS_SELF_SIGNED_HOSTS=zeroauthy, 10.0.0.7,auth.compose.test")
+	cfg, err = Load("", on)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Server.TLSSelfSigned || cfg.Server.TLSSelfSignedCAFile != "/shared/ca.pem" {
+		t.Fatalf("self-signed = %+v", cfg.Server)
+	}
+	if got := cfg.Server.SelfSignedHosts(); !slices.Equal(got, []string{"zeroauthy", "10.0.0.7", "auth.compose.test"}) {
+		t.Fatalf("hosts = %q", got)
+	}
+	yamlCfg := writeFile(t, "c.yaml", "storage: {dsn: \"memory://\"}\nserver:\n  system_host: system.localhost\n  tls_self_signed: true\n  tls_self_signed_hosts: [zeroauthy, \"::1\"]\n")
+	cfg, err = Load(yamlCfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.Server.SelfSignedHosts(); !slices.Equal(got, []string{"zeroauthy", "::1"}) {
+		t.Fatalf("yaml hosts = %q", got)
+	}
+	acme := []string{"ZEROAUTHY_SERVER__BASE_DOMAIN=auth.example.test", "ZEROAUTHY_SERVER__ACME__ENABLED=true", "ZEROAUTHY_SERVER__ACME__EMAIL=ops@example.test",
+		"ZEROAUTHY_SERVER__ACME__TERMS_ACCEPTED=true", "ZEROAUTHY_SERVER__ACME__DEPLOYMENT_ID=prod-1", "ZEROAUTHY_SERVER__ACME__CHALLENGE=tls-alpn-01"}
+	if _, err := Load("", append(slices.Clone(base), acme...)); err != nil {
+		t.Fatalf("acme baseline = %v", err)
+	}
+	for name, env := range map[string][]string{
+		"with cert files": append(slices.Clone(on), "ZEROAUTHY_SERVER__TLS_CERT_FILE=/c.pem", "ZEROAUTHY_SERVER__TLS_KEY_FILE=/k.pem"),
+		"with acme":       append(slices.Clone(on), acme...),
+		"ca file alone":   append(slices.Clone(base), "ZEROAUTHY_SERVER__TLS_SELF_SIGNED_CA_FILE=/shared/ca.pem"),
+		"hosts alone":     append(slices.Clone(base), "ZEROAUTHY_SERVER__TLS_SELF_SIGNED_HOSTS=zeroauthy"),
+		"bad host":        append(drop(on, "HOSTS"), "ZEROAUTHY_SERVER__TLS_SELF_SIGNED_HOSTS=https://zeroauthy/"),
+		"host with port":  append(drop(on, "HOSTS"), "ZEROAUTHY_SERVER__TLS_SELF_SIGNED_HOSTS=zeroauthy:8443"),
+	} {
+		if _, err := Load("", env); err == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+}

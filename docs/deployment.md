@@ -54,6 +54,37 @@ for the base or system hosts. zeroauthy does not send
 `Strict-Transport-Security` in 1.0; add it at your proxy or load balancer if
 you want it.
 
+### Self-signed TLS for testing
+
+For CI, E2E tests and docker compose setups where zeroauthy stands in for
+Auth0, `server.tls_self_signed: true` serves HTTPS without any certificate
+files. At every start zeroauthy generates an in-memory ECDSA P-256 CA (valid
+30 days) and a certificate it signs for `localhost`, `127.0.0.1`, `::1`, the
+system host, `base_domain` and `*.base_domain`, every tenant domain known at
+startup, and the names in `server.tls_self_signed_hosts`. Tenant domains
+added later through the Management API get their own certificate from the
+same CA on first connection; any other server name is refused.
+
+```yaml
+server:
+  listen: ":8443"
+  system_host: "localhost:8443"
+  tls_self_signed: true
+  tls_self_signed_ca_file: /shared/zeroauthy-ca.pem   # CA certificate only, never its key
+  tls_self_signed_hosts: [zeroauthy]                  # e.g. the compose service name
+```
+
+Point your test runner at the CA file (`NODE_EXTRA_CA_CERTS`,
+`SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`, a JVM truststore). The CA changes on
+every start, so read the file after zeroauthy is up; the startup log shows
+its SHA-256 fingerprint and path. With environment variables use
+`ZEROAUTHY_SERVER__TLS_SELF_SIGNED=true`,
+`ZEROAUTHY_SERVER__TLS_SELF_SIGNED_CA_FILE=...` and a comma-separated
+`ZEROAUTHY_SERVER__TLS_SELF_SIGNED_HOSTS=zeroauthy,10.0.0.5`.
+
+This is for testing only: zeroauthy logs a warning, and refuses to start if
+it is combined with `tls_cert_file`/`tls_key_file` or `server.acme`.
+
 ## Behind a reverse proxy
 
 Run zeroauthy on an internal port (`server.listen: ":8080"`, no `tls_*`
