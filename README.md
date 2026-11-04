@@ -322,6 +322,19 @@ No password is ever taken from configuration. Operators sign in to the
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
 sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
 
+**Request rate limits.** `security.rate_limit` limits every tenant
+Authentication API route with a token bucket per tenant, client IP (IPv6 by
+/64) and endpoint group: `token` (`/oauth/token`), `authorize`, `userinfo`,
+`discovery` (`/.well-known/*`, JWKS included) and `other` (PAR, device code,
+revoke, `/dbconnections/*`, `/passwordless/start`, `/mfa/*`, logout and the
+hosted pages). Defaults: `enabled: true`, `rate: 50` (requests per second)
+and `burst: 200` for each group, `max_tracked_keys: 50000` buckets per group,
+and `max_concurrent_secret_verifications: 0` (GOMAXPROCS, at least 4: legacy
+argon2id client secret checks running at once; this cap applies even when the
+limiter is disabled). Set a group with, for example,
+`ZEROAUTHY_SECURITY__RATE_LIMIT__TOKEN__RATE=20`. The counters are per server
+process; see [attack protection](docs/attack-protection.md#request-rate-limits).
+
 ## Job workers
 
 `jobs.workers` defaults to 2; set it to 0 to disable workers on a process

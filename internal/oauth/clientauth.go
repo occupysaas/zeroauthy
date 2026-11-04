@@ -69,7 +69,15 @@ func (h *Handlers) authenticateClient(ctx context.Context, r *http.Request, form
 			"tenant", tenantID, "client_id", clientID, "registered", c.TokenEndpointAuthMethod, "used", method)
 		return nil, invalidClient(authFailed, hasBasic)
 	}
-	if method != store.AuthMethodNone && !h.secretValid(ctx, c, secret) {
+	if method == store.AuthMethodNone {
+		return c, nil
+	}
+	valid, busy := h.secretValid(ctx, c, secret)
+	if busy {
+		h.log().WarnContext(ctx, "client authentication refused: too many concurrent secret verifications", "tenant", tenantID, "client_id", clientID)
+		return nil, secretVerificationBusy()
+	}
+	if !valid {
 		h.log().InfoContext(ctx, "client authentication failed: bad secret", "tenant", tenantID, "client_id", clientID)
 		return nil, invalidClient(authFailed, hasBasic)
 	}
@@ -79,8 +87,9 @@ func (h *Handlers) authenticateClient(ctx context.Context, r *http.Request, form
 // secretValid checks secret against the client's unexpired secrets: a sealed
 // one is opened and compared in constant time, a legacy one is verified
 // against its hash. A sealed secret that does not open (wrong master key,
-// corrupt row) fails closed and is logged.
-func (h *Handlers) secretValid(ctx context.Context, c *store.Client, secret string) bool {
+// corrupt row) fails closed and is logged. busy reports that a legacy hash
+// could not be checked because LegacySecretSlots were all taken.
+func (h *Handlers) secretValid(ctx context.Context, c *store.Client, secret string) (valid, busy bool) {
 	now := h.now()
 	for _, s := range c.Secrets {
 		if s.ExpiresAt != nil && !now.Before(*s.ExpiresAt) {
@@ -95,13 +104,26 @@ func (h *Handlers) secretValid(ctx context.Context, c *store.Client, secret stri
 			// Comparing digests keeps the time independent of the length too.
 			want, got := sha256.Sum256([]byte(plain)), sha256.Sum256([]byte(secret))
 			if subtle.ConstantTimeCompare(want[:], got[:]) == 1 {
-				return true
+				return true, false
 			}
 			continue
 		}
-		if ok, err := secrets.Verify(s.Hash, secret); err == nil && ok {
-			return true
+		release, ok := h.LegacySecretSlots.Acquire(ctx)
+		if !ok {
+			busy = true
+			continue
+		}
+		ok, err := secrets.Verify(s.Hash, secret)
+		release()
+		if err == nil && ok {
+			return true, false
 		}
 	}
-	return false
+	return false, busy
+}
+
+// secretVerificationBusy is Auth0's throttling error:
+// https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy/custom-rate-limit-policies
+func secretVerificationBusy() *Error {
+	return &Error{Status: http.StatusTooManyRequests, Code: "too_many_requests", Description: "Rate limit exceeded."}
 }

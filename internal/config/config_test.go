@@ -542,3 +542,57 @@ func TestGatewayTestEndpointRequiresTestMode(t *testing.T) {
 		t.Fatalf("gated gateway endpoint unavailable: %v", err)
 	}
 }
+
+func TestRateLimitSettings(t *testing.T) {
+	base := "ZEROAUTHY_STORAGE__DSN=memory://"
+	cfg, err := Load("", []string{base, sysHost})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rl := cfg.Security.RateLimit
+	if !rl.Enabled || rl.MaxTrackedKeys != 50000 || rl.MaxConcurrentSecretVerifications != 0 {
+		t.Fatalf("defaults = %+v", rl)
+	}
+	for name, g := range rl.Groups() {
+		if g.Rate != 50 || g.Burst != 200 {
+			t.Errorf("%s default = %+v, want 50 rps burst 200", name, g)
+		}
+	}
+	if len(rl.Groups()) != 5 {
+		t.Fatalf("groups = %v", rl.Groups())
+	}
+
+	path := writeFile(t, "zeroauthy.yaml", `
+security:
+  rate_limit:
+    enabled: false
+    max_tracked_keys: 10
+    max_concurrent_secret_verifications: 3
+    token: {rate: 0.5, burst: 5}
+    discovery: {rate: 100, burst: 1000}
+`)
+	cfg, err = Load(path, []string{base, sysHost, "ZEROAUTHY_SECURITY__RATE_LIMIT__USERINFO__BURST=7"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rl = cfg.Security.RateLimit
+	if rl.Enabled || rl.MaxTrackedKeys != 10 || rl.MaxConcurrentSecretVerifications != 3 ||
+		rl.Token != (RateLimitGroup{Rate: 0.5, Burst: 5}) || rl.Discovery != (RateLimitGroup{Rate: 100, Burst: 1000}) ||
+		rl.Userinfo != (RateLimitGroup{Rate: 50, Burst: 7}) || rl.Authorize != (RateLimitGroup{Rate: 50, Burst: 200}) {
+		t.Fatalf("loaded = %+v", rl)
+	}
+
+	for _, bad := range []string{
+		"RATE_LIMIT__TOKEN__RATE=0", "RATE_LIMIT__OTHER__RATE=-1", "RATE_LIMIT__AUTHORIZE__BURST=0",
+		"RATE_LIMIT__MAX_TRACKED_KEYS=0", "RATE_LIMIT__MAX_CONCURRENT_SECRET_VERIFICATIONS=-1",
+		"RATE_LIMIT__TOKEN__WINDOW=1", "RATE_LIMIT__PER_IP=true",
+	} {
+		if _, err := Load("", []string{base, sysHost, "ZEROAUTHY_SECURITY__" + bad}); err == nil {
+			t.Errorf("%s accepted", bad)
+		}
+	}
+	// A disabled limiter's rates are not interpreted.
+	if _, err := Load("", []string{base, sysHost, "ZEROAUTHY_SECURITY__RATE_LIMIT__ENABLED=false", "ZEROAUTHY_SECURITY__RATE_LIMIT__TOKEN__RATE=0"}); err != nil {
+		t.Errorf("disabled limiter validated: %v", err)
+	}
+}

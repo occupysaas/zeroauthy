@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -35,6 +36,10 @@ type Handlers struct {
 	// Wrapper opens sealed client secrets (D-0038). Nil makes every
 	// sealed secret fail to authenticate; legacy hashes still work.
 	Wrapper keys.Wrapper
+
+	// LegacySecretSlots caps concurrent legacy (argon2id) client secret
+	// verifications in this process; nil is unlimited.
+	LegacySecretSlots *ratelimit.Semaphore
 
 	// Database and Protection serve the password grants.
 	// The throttles are the hosted login's, so both paths share limits.
