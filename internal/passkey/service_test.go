@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"slices"
 	"strings"
 	"sync"
@@ -286,11 +287,15 @@ func TestEffective(t *testing.T) {
 	if err == nil || ok {
 		t.Fatal("cross-tenant effective")
 	}
-	s.RPID = rpid.Policy{Store: s.Store}
+	var warnings bytes.Buffer
+	s.RPID = rpid.Policy{Store: s.Store, Log: slog.New(slog.NewTextHandler(&warnings, nil))}
 	_, r, ok, err = s.Effective(ctx, "tenant", tenant.Resolved{Tenant: tn, Host: "unbound.example.test"}, conn)
 	must(t, err)
 	if r.Valid || ok {
 		t.Fatal("invalid host offered")
+	}
+	if !strings.Contains(warnings.String(), "WARN") || !strings.Contains(warnings.String(), "unbound.example.test") {
+		t.Fatalf("expected invalid-host warning: %s", warnings.String())
 	}
 }
 func TestCeremonyErrorsHideInput(t *testing.T) {

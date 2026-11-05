@@ -207,3 +207,5 @@ Executor: inline (maintainer chose native execution, 2026-11-05). Branch
   `.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/task-8-report.md`;
   consumer migration details are in `shared-contract.md` beside that report.
   Controller review owns the final completion gate.
+
+Task 8 review: spec and quality approved; captured/asserted the intentional invalid-host warning in TestEffective, focused test exit 0 (0.015s). No deferred findings.
