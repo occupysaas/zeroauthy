@@ -12,6 +12,9 @@ import (
 // Tenant is an isolated identity domain with its own clients, users,
 // connections and signing keys.
 type Tenant struct {
+	// DomainRPIDs maps an operator alias host (seed domains) to its WebAuthn
+	// relying party ID override (Plan 33b R2); absent hosts use themselves.
+	DomainRPIDs map[string]string
 	// CanonicalHost is the immutable canonical identity initialized by registry reconciliation.
 	CanonicalHost string
 	ID            string
@@ -132,6 +135,8 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	// Mobile holds native app identities for passkey association files.
+	Mobile                  *ClientMobile
 	InitiateLoginURI        string
 	TenantID                string
 	ClientID                string
@@ -800,7 +805,10 @@ type LoginSession struct {
 	Connection      string
 	AuthenticatedAt time.Time
 	ClientIDs       []string // clients that received tokens through this session
-	ExpiresAt       time.Time
+	// AuthMethods are the authentications the session performed, in order
+	// (Plan 33b; nil for sessions created before it).
+	AuthMethods []AuthMethod
+	ExpiresAt   time.Time
 	IdleExpiresAt   time.Time
 	CreatedAt       time.Time
 	// UpdatedAt and LastInteractedAt are the creation time until the
@@ -1238,6 +1246,7 @@ func (t *Tenant) Clone() *Tenant {
 	c.SettingsExtra = CloneSettings(t.SettingsExtra)
 	c.SettingsPresence = maps.Clone(t.SettingsPresence)
 	c.ProtectionSettings = t.ProtectionSettings.Clone()
+	c.DomainRPIDs = maps.Clone(t.DomainRPIDs)
 	return &c
 }
 

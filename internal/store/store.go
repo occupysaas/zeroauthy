@@ -38,6 +38,7 @@ var (
 type Store interface {
 	MFA() MFA
 	Phone() Phone
+	WebAuthn() WebAuthn
 	Events() Events
 	Logs() Logs
 	RBAC() RBAC

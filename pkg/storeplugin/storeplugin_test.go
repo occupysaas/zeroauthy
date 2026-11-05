@@ -43,13 +43,13 @@ func TestMain(m *testing.M) {
 // Spec §12: storetest runs against the sample gRPC plugin, one plugin
 // process per fresh store.
 func TestConformanceThroughPluginProcess(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store {
+	storetest.RunExcept(t, func(t *testing.T) store.Store {
 		s, err := storeplugin.Open(context.Background(), pluginBin)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return s
-	})
+	}, map[string]string{"WebAuthn": "WebAuthn storage arrives in Plan 33b Task 6"})
 }
 
 func TestOpenErrors(t *testing.T) {

@@ -241,4 +241,5 @@ func (s *Store) deleteTenantPhone(tid string) {
 	purge(s.phoneProviders, tid)
 	purge(s.phoneTemplates, tid)
 	purge(s.passwordlessCodes, tid)
+	purge(s.webauthnSnoozes, tid)
 }
