@@ -12,6 +12,14 @@ import (
 type (
 	MFASupporter                 = store.MFASupporter
 	PhoneSupporter               = store.PhoneSupporter
+	WebAuthnSupporter            = store.WebAuthnSupporter
+	WebAuthn                     = store.WebAuthn
+	WebAuthnSnooze               = store.WebAuthnSnooze
+	UnimplementedWebAuthn        = store.UnimplementedWebAuthn
+	AuthMethod                   = store.AuthMethod
+	ClientMobile                 = store.ClientMobile
+	ClientMobileIOS              = store.ClientMobileIOS
+	ClientMobileAndroid          = store.ClientMobileAndroid
 	OrganizationsIISupporter     = store.OrganizationsIISupporter
 	OrganizationsII              = store.OrganizationsII
 	OrganizationQuery            = store.OrganizationQuery
@@ -383,3 +391,6 @@ type (
 
 var ErrMFAUnavailable = store.ErrMFAUnavailable
 var ErrPhoneUnavailable = store.ErrPhoneUnavailable
+
+// ErrWebAuthnUnavailable means the driver lacks the webauthn.v1 capability.
+var ErrWebAuthnUnavailable = store.ErrWebAuthnUnavailable

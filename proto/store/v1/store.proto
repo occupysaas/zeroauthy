@@ -107,6 +107,16 @@ service StoreService {
   rpc PhoneFindUsersByPhone(PhoneFindUsersRequest) returns (PhoneFindUsersResponse);
   rpc PhonePurge(PhonePurgeRequest) returns (PhoneCountResponse);
   rpc PhoneDeleteTenant(PhoneTenantRequest) returns (PhoneErrorResponse);
+  rpc WebAuthnCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc WebAuthnGetByCredentialID(WebAuthnCredentialRequest) returns (WebAuthnAuthenticatorResponse);
+  rpc WebAuthnCreatePasskey(WebAuthnCreatePasskeyRequest) returns (WebAuthnErrorResponse);
+  rpc WebAuthnCreateUserWithPasskey(WebAuthnCreateUserWithPasskeyRequest) returns (WebAuthnErrorResponse);
+  rpc WebAuthnAcceptAssertion(WebAuthnAcceptAssertionRequest) returns (WebAuthnErrorResponse);
+  rpc WebAuthnMovePasskeys(WebAuthnMovePasskeysRequest) returns (WebAuthnErrorResponse);
+  rpc WebAuthnPutSnooze(WebAuthnPutSnoozeRequest) returns (WebAuthnErrorResponse);
+  rpc WebAuthnGetSnooze(WebAuthnGetSnoozeRequest) returns (WebAuthnSnoozeResponse);
+  rpc WebAuthnHostTenantsUnder(WebAuthnHostTenantsRequest) returns (WebAuthnHostTenantsResponse);
+  rpc WebAuthnPurge(WebAuthnPurgeRequest) returns (WebAuthnCountResponse);
   rpc EventsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc AppendEvents(EventsRequest) returns (EventsResponse);
   rpc GetEvent(EventsRequest) returns (EventsResponse);
@@ -506,6 +516,7 @@ message Error {
     KIND_ORGANIZATIONS_II_UNAVAILABLE = 13; // store.ErrOrganizationsIIUnavailable
     KIND_MFA_UNAVAILABLE = 16;
     KIND_PHONE_UNAVAILABLE = 17; // store.ErrPhoneUnavailable
+    KIND_WEBAUTHN_UNAVAILABLE = 18; // store.ErrWebAuthnUnavailable
     KIND_EVENTS_UNAVAILABLE = 15; // store.ErrEventsUnavailable
     KIND_LOGS_UNAVAILABLE = 14; // store.ErrLogsUnavailable
     KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
@@ -606,6 +617,7 @@ message Tenant {
   string session_cookie_mode = 31;
   string canonical_host = 32;
   int64 identity_epoch = 33; // Plan 24; absent = 0, maintained only by Federation
+  bytes domain_rp_ids = 34; // Plan 33b (webauthn.v1); JSON map, absent = unset
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -650,6 +662,7 @@ message Client {
   string organization_require_behavior = 22;
   string initiate_login_uri = 24;
   StringList organization_discovery_methods = 23;   // absent = unset
+  bytes mobile = 25; // Plan 33b (webauthn.v1); ClientMobile JSON, absent = unset
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -833,6 +846,7 @@ message LoginSession {
   string cookie_mode = 17; // creation-time persistent/non-persistent choice
   string origin = 18;
   google.protobuf.Timestamp mfa_at = 19;
+  bytes auth_methods = 20; // Plan 33b (webauthn.v1); JSON [{name,type,at}], absent = unset
 }
 
 message AuthTransaction {
@@ -1536,7 +1550,7 @@ message EventsResponse {
 message MFAGuardian { string tenant_id = 1; map<string,bool> factors = 2; repeated string policies = 3; map<string,bytes> stored = 4; map<string,bytes> sealed_secrets = 5; int64 version = 6; }
 message MFAAuthenticator { string tenant_id=1; string user_id=2; string id=3; string type=4; string name=5; bool confirmed=6; bool preferred=7; bytes sealed_secret=8; int64 last_step=9; string code_hash=10; string email=11; string phone=12; bytes credential_id=13; bytes public_key=14; string rp_id=15; uint32 sign_count=16; string created_at=17; string last_auth_at=18; string phone_method=19; bytes public_data=20; }
 message MFATokenMsg { string tenant_id=1; string hash=2; string client_id=3; string user_id=4; string connection=5; bytes request=6; string expires_at=7; }
-message MFAChallengeMsg { string tenant_id=1; string id=2; string user_id=3; string authenticator_id=4; string kind=5; string code_hash=6; bytes challenge=7; int64 attempts=8; string expires_at=9; }
+message MFAChallengeMsg { string tenant_id=1; string id=2; string user_id=3; string authenticator_id=4; string kind=5; string code_hash=6; bytes challenge=7; int64 attempts=8; string expires_at=9; bytes binding=10; }
 message MFAEnrollmentTicket { string tenant_id=1; string hash=2; string user_id=3; string factor=4; bool allow_multiple=5; string expires_at=6; }
 message MFABrowserMsg { string tenant_id=1; string hash=2; string user_id=3; string kind=4; int64 epoch=5; string expires_at=6; }
 message MFAGetGuardianRequest { string tx_id = 1; string tid = 2; }
@@ -1621,3 +1635,22 @@ message PhoneFindUsersRequest { string tx_id = 1; string tid = 2; string connect
 message PhoneFindUsersResponse { Error error = 1; repeated User values = 2; }
 message PhonePurgeRequest { string tx_id = 1; google.protobuf.Timestamp before = 2; int64 limit = 3; }
 message PhoneCountResponse { Error error = 1; int64 count = 2; }
+
+// WebAuthn v1 (capability "webauthn.v1", negotiated by WebAuthnCapabilities).
+// Passkeys are MFAAuthenticator rows of type "passkey". Challenge bytes and
+// user handles are opaque and never logged.
+message WebAuthnErrorResponse { Error error = 1; }
+message WebAuthnCredentialRequest { string tx_id = 1; string tid = 2; bytes credential_id = 3; }
+message WebAuthnAuthenticatorResponse { Error error = 1; MFAAuthenticator value = 2; }
+message WebAuthnCreatePasskeyRequest { string tx_id = 1; MFAAuthenticator v = 2; int64 limit = 3; }
+message WebAuthnCreateUserWithPasskeyRequest { string tx_id = 1; User user = 2; MFAAuthenticator v = 3; }
+message WebAuthnAcceptAssertionRequest { string tx_id = 1; string tid = 2; string uid = 3; string id = 4; uint32 count = 5; bool backed_up = 6; google.protobuf.Timestamp at = 7; }
+message WebAuthnMovePasskeysRequest { string tx_id = 1; string tid = 2; string from_uid = 3; string to_uid = 4; string identity_user_id = 5; }
+message WebAuthnSnoozeMsg { string tenant_id = 1; string user_id = 2; string kind = 3; string scope_key = 4; google.protobuf.Timestamp until = 5; }
+message WebAuthnPutSnoozeRequest { string tx_id = 1; WebAuthnSnoozeMsg v = 2; }
+message WebAuthnGetSnoozeRequest { string tx_id = 1; string tid = 2; string uid = 3; string kind = 4; string scope = 5; google.protobuf.Timestamp now = 6; }
+message WebAuthnSnoozeResponse { Error error = 1; WebAuthnSnoozeMsg value = 2; }
+message WebAuthnHostTenantsRequest { string tx_id = 1; string suffix = 2; int64 limit = 3; }
+message WebAuthnHostTenantsResponse { Error error = 1; repeated string tenant_ids = 2; }
+message WebAuthnPurgeRequest { string tx_id = 1; google.protobuf.Timestamp before = 2; int64 limit = 3; }
+message WebAuthnCountResponse { Error error = 1; int64 count = 2; }

@@ -882,10 +882,10 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 	}
 	return &storev1.LoginSession{
 		AuthMethods: methods,
-		MfaAt:      tsToPB(s.MFAAt),
-		Origin:     s.Origin,
-		CookieMode: s.CookieMode,
-		TenantId:   s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
+		MfaAt:       tsToPB(s.MFAAt),
+		Origin:      s.Origin,
+		CookieMode:  s.CookieMode,
+		TenantId:    s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
 		Connection: s.Connection, AuthenticatedAt: tsToPB(s.AuthenticatedAt),
 		ClientIds: stringsToPB(s.ClientIDs), ExpiresAt: tsToPB(s.ExpiresAt),
 		IdleExpiresAt: tsToPB(s.IdleExpiresAt), CreatedAt: tsToPB(s.CreatedAt),
@@ -907,10 +907,10 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 	}
 	return &store.LoginSession{
 		AuthMethods: methods,
-		MFAAt:      tsFromPB(pb.MfaAt),
-		Origin:     pb.Origin,
-		CookieMode: pb.CookieMode,
-		TenantID:   pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
+		MFAAt:       tsFromPB(pb.MfaAt),
+		Origin:      pb.Origin,
+		CookieMode:  pb.CookieMode,
+		TenantID:    pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, AuthenticatedAt: tsFromPB(pb.AuthenticatedAt),
 		ClientIDs: stringsFromPB(pb.ClientIds), ExpiresAt: tsFromPB(pb.ExpiresAt),
 		IdleExpiresAt: tsFromPB(pb.IdleExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
