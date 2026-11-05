@@ -457,12 +457,11 @@ behaviour only where Auth0 is shown to differ.
   scrubbing without a pinning test. See the Plan 33 implementation record,
   Task 14c.
 
-- **Timing-sensitive tests under full race load:** `internal/mgmt`
-  `TestSSEEventTypeFilter` (Plan 32; an `offset-only` frame can precede the
-  filtered event under load) and `internal/logs` `TestRecorderNeverBlocks` /
-  `TestRecorderNeverWaitsForTenantLookup` (50ms bounds) failed in full race
-  runs and pass in isolation. Make them deterministic. See the Plan 33
-  implementation record, Task 14d.
+- **Timing-sensitive tests under full race load (resolved 2026-11-04):**
+  `TestSSEEventTypeFilter` was made deterministic in Plan 34 Task 16;
+  `TestRecorderNeverBlocks`, `TestRecorderNeverWaitsForTenantLookup` and the
+  event-stream cancellation test now assert "returns while blocked" with
+  generous deadlines instead of tight wall-clock bounds.
 
 ## Plan 34 follow-ups
 

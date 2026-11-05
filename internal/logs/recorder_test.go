@@ -409,9 +409,11 @@ func TestRecorderNeverWaitsForTenantLookup(t *testing.T) {
 		}
 		close(done)
 	}()
+	// The lookup stays blocked, so a Record that waited on it would never
+	// return; 5s tolerates -race on busy CI hosts (50ms was flaky).
 	select {
 	case <-done:
-	case <-time.After(50 * time.Millisecond):
+	case <-time.After(5 * time.Second):
 		t.Fatal("Record waited for tenant lookup")
 	}
 	ctx, cancel := context.WithTimeout(bg, 10*time.Millisecond)
