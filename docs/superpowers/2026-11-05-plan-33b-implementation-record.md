@@ -127,3 +127,83 @@ Executor: inline (maintainer chose native execution, 2026-11-05). Branch
 - `git diff --check` exited 0. No SQL implementation changed in this round;
   no SQL or broad regression suite reran. No agents were spawned.
   Implementation verified; controller re-review owns final completion.
+
+### Task 8 — implementation verified / review pending
+
+- Base: `2fc2afc284ab9a2ef0d6f602e0de2e6c69c09a05`. Added the shared
+  `internal/passkey` service, hosted/native single-use challenges, exact
+  binding comparisons, credential-owner login, atomic assertion counter and
+  backup-state updates, passkey enrollment, creation/request options and
+  passwordless user creation through `CreateUserWithPasskey`.
+- Connection effectiveness, client enablement and realm checks use the
+  credential's saved database identity (including linked identities), not a
+  typed identifier. Possession is verified before returning the blocked-user
+  error. Enrollment rechecks the stored user's block and identity policy
+  inside its insertion transaction. Other first-factor login errors expose
+  only `ErrCeremony` and a bounded `webauthn.Reason`.
+- Added scrubber keys for WebAuthn response material at any casing/depth,
+  including JSON encoded in strings. Service operations register parsed
+  response fields, challenges, handles and native sessions in the existing
+  flow credential masks; tests verify free-text outcome attribution cannot
+  carry those values. No ceremony outcomes or HTTP/session flows are emitted
+  by this service; Tasks 9–15 own those consumers and their policy hooks.
+- App constructs the service with the deployment RP policy and supplies
+  `server.Deps.Passkeys`. No new dependency, generated file or module changed.
+- Controller-approved contract ruling: registration JSON does not contain the
+  WebAuthn user handle, so the initial plan's options/finish interface could
+  not preserve the offered handle across requests. `Issue` now generates or
+  reuses it and persists it in the challenge's binding metadata; `Issued`
+  gains `UserHandle`. `CreationOptions` takes `ch, userHandle []byte`.
+  `Take` returns `*Taken{Challenge, UserHandle, Binding}` from the consumed
+  row. `Enroll`/`Signup` take `raw []byte, taken *Taken`, replacing the old
+  raw/challenge/binding arguments. `Login` keeps its original arguments.
+  Only server-produced `Taken` is accepted by consumer code. Cost if wrong:
+  subsequent tasks must adapt to the explicit metadata contract. This avoids
+  storing a handle different from the one the authenticator registered.
+- Controller-approved handle race ruling: insert first to acquire the
+  store's per-user write lock, then compare the offered handle with the
+  canonical preexisting credential in the same transaction; a mismatch
+  rolls back and requires new options. Exclude the just-inserted row from
+  that comparison. Linked accounts can retain different original handles;
+  choose the oldest `CreatedAt` (ID breaks ties) for later enrollment and
+  verify every assertion against its credential's own saved handle. Cost if
+  wrong: a racing first enrollment retries; linking never rewrites a handle
+  that the browser already saved.
+- Storage ruling: keep `MFAChallenge.Kind = "webauthn"`, as Task 4's
+  no-existing-user path requires. Exact purpose and draft/enrollment user ID
+  remain in binding metadata. This supports signup before the user row
+  exists without changing a driver or a foreign key. Cost if wrong: future
+  purpose-specific storage filtering must inspect binding metadata.
+- Lifetime ruling: `Issue` treats native TTL as the navigator timeout and
+  adds the documented grace only to expiry; nonpositive values use defaults,
+  and longer supplied lifetimes are capped. Hosted bindings need transaction
+  and cookie; native bindings need client and realm. All fields, including
+  origin-list order, compare exactly. Cost if wrong: callers supplying a
+  precomputed native expiry must instead supply the timeout.
+- Identifier ruling: caller-supplied `UserDisplay` resolves linked or special
+  connection identifiers; the default uses email, phone, username and skips
+  explicitly inactive flexible identifiers. Older connections without
+  flexible attributes retain identifier fallback. Cost if wrong: a caller
+  must supply the documented identifier explicitly.
+- TDD evidence: initial focused runs failed on the absent service and 24
+  scrubber-key cases. Additional concrete red tests demonstrated unavailable
+  storage still being offered, stale blocked-user enrollment, inactive email
+  selection, response fields escaping free-text masks, and post-link
+  enrollment refusal. Each was fixed and the focused command passed.
+- Verification environment: every Go command used `GOTOOLCHAIN=go1.26.10`,
+  `TMPDIR=/mnt/nvme2/tmp/plan33b-task8` and the same `GOTMPDIR`.
+  Final focused `go test ./internal/passkey ./internal/logscrub -count=1`
+  exited 0. Final `go test -race -v ./internal/passkey ./internal/logscrub
+  -count=1` exited 0, including 20-way challenge/counter races, competing
+  first-handle enrollment, cross-instance handle preservation, atomic signup
+  rollback and linked-handle login. No selected tests skipped.
+  `go test ./internal/app ./internal/server ./internal/login ./internal/oauth
+  ./internal/mfa ./internal/mgmt -run '^$' -count=1` exited 0; this only
+  compiles, with no tests selected. `git diff --check` exited 0.
+- No SQL, external-service, browser or broad regression suite ran in Task 8;
+  Task 19 retains full regression ownership. Only this implementer monitored
+  the short focused commands; no agents were spawned. Detailed commands,
+  logs, actual failures/exits and snapshot identity are in
+  `.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/task-8-report.md`;
+  consumer migration details are in `shared-contract.md` beside that report.
+  Controller review owns the final completion gate.

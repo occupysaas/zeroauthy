@@ -33,6 +33,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -44,6 +45,8 @@ import (
 
 type Deps struct {
 	MFA *mfa.Service
+	// Passkeys is shared by hosted and native ceremony consumers.
+	Passkeys *passkey.Service
 	// LogsConfig carries the secure stream defaults and deployment opt-ins.
 	LogsConfig     logs.Config
 	EventsConfig   events.Config

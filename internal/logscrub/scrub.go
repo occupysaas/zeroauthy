@@ -27,7 +27,7 @@ func SensitiveKey(name string) bool {
 	if name == "code" || name == "ticket" || name == "cookie" || name == "bindingcode" {
 		return true
 	}
-	for _, part := range [...]string{"password", "passwd", "pwd", "secret", "token", "authorization", "apikey", "privatekey", "credential", "otp", "recoverycode", "mfacode", "oobcode", "challenge", "enrollmentticket", "rememberbrowsercookie"} {
+	for _, part := range [...]string{"password", "passwd", "pwd", "secret", "token", "authorization", "apikey", "privatekey", "credential", "otp", "recoverycode", "mfacode", "oobcode", "challenge", "enrollmentticket", "rememberbrowsercookie", "authnresponse", "authsession", "attestationobject", "authenticatordata", "clientdatajson", "signature", "userhandle"} {
 		if strings.Contains(name, part) {
 			return true
 		}
