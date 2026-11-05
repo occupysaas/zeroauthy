@@ -807,10 +807,10 @@ type LoginSession struct {
 	ClientIDs       []string // clients that received tokens through this session
 	// AuthMethods are the authentications the session performed, in order
 	// (Plan 33b; nil for sessions created before it).
-	AuthMethods []AuthMethod
-	ExpiresAt   time.Time
-	IdleExpiresAt   time.Time
-	CreatedAt       time.Time
+	AuthMethods   []AuthMethod
+	ExpiresAt     time.Time
+	IdleExpiresAt time.Time
+	CreatedAt     time.Time
 	// UpdatedAt and LastInteractedAt are the creation time until the
 	// session is touched; Touch sets both to its time.
 	UpdatedAt        time.Time

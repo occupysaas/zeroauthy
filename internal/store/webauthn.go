@@ -38,7 +38,7 @@ type WebAuthn interface {
 	// the authenticator is missing or belongs to another user.
 	AcceptAssertion(ctx context.Context, tid, uid, id string, count uint32, backedUp bool, at time.Time) error
 	MovePasskeys(ctx context.Context, tid, fromUID, toUID, identityUserID string) error // "" = all of fromUID's passkeys
-	PutSnooze(ctx context.Context, s *WebAuthnSnooze) error                            // upsert by (tid, uid, kind, scope)
+	PutSnooze(ctx context.Context, s *WebAuthnSnooze) error                             // upsert by (tid, uid, kind, scope)
 	GetSnooze(ctx context.Context, tid, uid, kind, scope string, now time.Time) (*WebAuthnSnooze, error)
 	// HostTenantsUnder returns distinct tenant IDs owning a host binding
 	// equal to suffix or ending in "."+suffix.

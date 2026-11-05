@@ -53,7 +53,9 @@ func testWebAuthn(t *testing.T, factory Factory) {
 			keys[i] = passkey("ten_a", "auth0|u1")
 		}
 		done := make(chan []error, 1)
-		go func() { done <- parallel(10, func(i int) error { return s.WebAuthn().CreatePasskey(ctx, keys[i], 20) }) }()
+		go func() {
+			done <- parallel(10, func(i int) error { return s.WebAuthn().CreatePasskey(ctx, keys[i], 20) })
+		}()
 		select {
 		case errs := <-done:
 			ok := 0
