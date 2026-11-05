@@ -503,3 +503,19 @@ and change behaviour only where Auth0 is shown to differ.
   regenerates them with `make console`.
 - The phone trigger dry-run cases in `internal/mgmt` skip until the runner
   learns the handlers (Task 9).
+
+## Plan 33b follow-ups
+
+### Passkeys and WebAuthn observation gaps (W1–W12, observation optional)
+
+D-0062 froze a local answer for each point; observe later and change
+behaviour only where Auth0 is shown to differ: W1 passkey/WebAuthn method ID
+formats and the passkey object in `GET /users/{id}/authentication-methods`;
+W2 Management API refusal of passkey enablement with unmet prerequisites; W3
+`POST` passkey create defaults and errors; W4 native endpoint error bodies,
+the 404 condition and grant error status; W5 progressive/local snooze
+semantics; W6 when local enrollment is offered; W7 `/mfa/authenticators`
+output for WebAuthn; W8 exact log `details`; W9 `DELETE`/`PUT`
+authentication methods on passkeys; W10 `amr` and
+`event.authentication.methods` after a passkey login; W11 linking and
+unlinking effects on passkeys; W12 hosted challenge lifetime.

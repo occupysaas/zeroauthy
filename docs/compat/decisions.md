@@ -2632,3 +2632,62 @@ opt-in Auth0 behaviour), an unusable refresh token is again `400`
 Auth0 does. Wrong-password answers keep Auth0's `403`: conformance does not
 exercise the password grant. Cost if wrong: an Auth0 SDK that branches on 403
 for refresh failures needs the setting.
+
+## D-0062 — Passkeys and WebAuthn MFA contracts and local rulings
+
+**2026-11-05; Plan 33b Task 1.** Evidence: the sources in the Plan 33b spec
+§2 (`docs/superpowers/specs/2026-11-05-zeroauthy-passkeys-webauthn-design.md`),
+fetched as published Markdown on 2026-11-04: Auth0's passkey, Passkey API,
+multiple-custom-domain, WebAuthn MFA, Actions and customize-text pages, the
+[Management API OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+the [logs schema](https://auth0.com/docs/oas/tenant-logs/logs-schema.json),
+the MIT `@auth0/auth0-auth-js` 1.16.1 passkey client (request shapes) and
+W3C WebAuthn Levels 2 and 3. The contract is frozen in
+`internal/webauthnrules/inventory.json` (every rule with its URL, the
+`passkeys` and `mfa-webauthn` screens, text keys, log detail fields and the
+limits). No tenant was observed; the maintainer asked that the documentation
+decide (2026-11-05).
+
+**Local rulings.** LR33b-1…37 with their cost if wrong are the table in spec
+§13; LR33b-4, -25, -27 and -30 as amended by spec §14a (R1–R3).
+
+**Documentation conflicts (controller calls, spec §14a).** K1 and K10: per-
+domain enrollment. K2 ignored. K3 snake case. K4: explicit
+`webauthn-platform` requests honoured after another factor (LR33b-20). K5 no
+tenant default RP ID. K6 security-key user verification behind an extension
+route; MFA RP ID from the custom-domain field. K7 `amr` unchanged. K8
+`password.api_behavior` stored only. K9 the native Passkey APIs are built as
+generally available with no tenant flag. K11 `event.authentication.methods`
+also lists `pwd`, `federated`, `email` and `sms` (pulled forward from Plan
+40). K12 `webauthn_platform_first_factor` stays Plan 44. K13 no `webauthn`
+method name. K14 a sign-count regression is rejected.
+
+**R1** `security.webauthn.restrict_shared_rp_ids` (default false) restores the
+strict "never cover the deployment's hosts" rule for shared hosting; invalid
+stored RP IDs fail closed. **R2** operator alias hosts are treated as
+verified custom domains with an optional seed `relying_party_identifier`.
+**R3** brute-force blocks refuse passkey logins, passkey success resets the
+counter, and passkey signup/login spend the suspicious-IP budgets through
+`internal/protection`.
+
+**Observe later (W1–W12):** spec §13; copied to the follow-ups file.
+
+**Execution rulings (Task 1).** Sources were not re-fetched: the spec's
+research is one day old (cost if wrong: a doc change in that day is missed
+until the next changelog review). New Management and Authentication API
+routes are added to `api/*.yaml` by the tasks that implement them (Tasks 14
+and 15), not here, because generated server interfaces would break the build
+until then.
+
+**Addenda (recorded as each task lands):** D-0042 (passkey options enforced
+when effective), D-0039 (client `mobile` stored), D-0059 (WebAuthn factors
+enforced; `passkey` method type; `DELETE`/`PUT` exclusions; MFA success log
+codes), D-0061 (passkey grant errors at 400).
+
+**Spike result (2026-11-05).** Chromium's CDP virtual authenticator
+(`ctap2`, `internal`, resident key, user verification) completed `create`,
+a button `get` and a conditional (`mediation: "conditional"`) `get` on a
+self-signed `https://spike.e2e.test` origin with `ignoreHTTPSErrors` alone;
+`--ignore-certificate-errors-spki-list` was not needed
+(`tests/e2e/m33b-spike.spec.mjs`). Autofill is therefore covered by browser
+tests in Tasks 9 and 19.

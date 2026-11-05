@@ -1302,14 +1302,13 @@
       "description": "The user declined an MFA push challenge.",
       "category": "other",
       "emitted": false,
-      "plan": 33,
+      "plan": 0,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-auth-rejected",
       "origin": "public-catalog",
-      "note": "Plan 33b owns WebAuthn MFA after 1.0; not emitted by Plan 33.",
+      "note": "not_planned: Guardian push delivery requires Auth0's app.",
       "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "status": "not_planned"
     },
     {
       "type": "gd_auth_succeed",
@@ -1727,7 +1726,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-webauthn-challenge-failed",
       "origin": "public-catalog",
-      "note": "Plan 33b owns WebAuthn MFA after 1.0; not emitted by Plan 33.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
       "status": "deferred",
       "owner": "Plan 33b"
@@ -1741,7 +1740,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-webauthn-enrollment-failed",
       "origin": "public-catalog",
-      "note": "Plan 33b owns WebAuthn MFA after 1.0; not emitted by Plan 33.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
       "status": "deferred",
       "owner": "Plan 33b"
@@ -2077,9 +2076,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/passkey-challenge-failed",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "passkey_challenge_started",
@@ -2090,9 +2090,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/passkey-challenge-started",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "pla",
@@ -2495,9 +2496,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seoobft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "seotpft",
@@ -2508,9 +2510,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seotpft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "sepft",
@@ -2539,9 +2542,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkoobft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "sepkotpft",
@@ -2552,9 +2556,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkotpft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "sepkrcft",
@@ -2565,9 +2570,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkrcft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "sercft",
@@ -2578,9 +2584,10 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sercft",
       "origin": "public-catalog",
-      "note": "Plan 33 target; emission remains deferred until real MFA runtime lands.",
+      "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
       "triggers": [],
-      "status": "deferred"
+      "status": "deferred",
+      "owner": "Plan 33b"
     },
     {
       "type": "sertft",

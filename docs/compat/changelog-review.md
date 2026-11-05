@@ -190,3 +190,14 @@ members (July 29, Beta) and Organizations Search filters (August 6) are
 dashboard and `/organizations/search` items (Plan 30); My Organization API
 member management EA (September 17) is Plan 42. See D-0055 and
 `internal/orgrules/inventory.json`.
+
+## 2026-11-05 — Plan 33b Task 1
+
+Read the official [full changelog text](https://auth0.com/changelog/llms-full.txt)
+on 2026-11-04 for the Plan 33b spec; coverage now runs to **2026-10-30**, the
+newest entry. Newer than the previous coverage date (2026-10-27): October 29,
+2026 HTTP message signatures for tenant ACLs (Plan 38) and October 30, 2026
+exponential SMS backoff for phone MFA (Plan 45; stored only in 1.0). The
+passkey and WebAuthn history (MFA 2020–2021, passkeys 2023–2024, ACUL screens
+2025, custom RP IDs 2026, multiple custom domains 2026-04-08) is mapped in
+the Plan 33b spec §2 and D-0062.
