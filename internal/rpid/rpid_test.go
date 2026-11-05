@@ -83,6 +83,72 @@ func TestRPIDHostWithPort(t *testing.T) {
 	}
 }
 
+func TestRPIDPortAliasOverride(t *testing.T) {
+	for _, tc := range []struct {
+		name, override, want string
+		valid                bool
+	}{
+		{"own override", "alias2.example.org", "alias2.example.org", true},
+		{"no override", "", "alias2.example.org", true},
+		{"invalid override", "unrelated.test", "unrelated.test", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			st, tn := fixture(t)
+			alias := "alias2.example.org:9543"
+			if err := st.CustomDomains().PutHost(context.Background(), &store.HostBinding{Host: alias, TenantID: tn.ID, Kind: store.HostOperator, Active: true}); err != nil {
+				t.Fatal(err)
+			}
+			if tc.override != "" {
+				tn.DomainRPIDs[alias] = tc.override
+			}
+			r, err := (Policy{Store: st}).For(context.Background(), tenant.Resolved{Tenant: tn, Host: "ALIAS2.example.org.:9543"})
+			if err != nil || r.Kind != KindOperator || r.RPID != tc.want || r.Origin != "https://alias2.example.org:9543" || r.Valid != tc.valid {
+				t.Fatalf("ported alias = %+v %v", r, err)
+			}
+		})
+	}
+}
+
+func TestRPIDPortAliasSharingCanonicalHostname(t *testing.T) {
+	for _, tc := range []struct {
+		name, override, want string
+		strict, valid        bool
+	}{
+		{"own override", "example.test", "example.test", false, true},
+		{"no override", "", "a.example.test", false, true},
+		{"invalid override", "unrelated.test", "unrelated.test", false, false},
+		{"strict override", "example.test", "example.test", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			st, tn := fixture(t)
+			alias := "a.example.test:9543"
+			if err := st.CustomDomains().PutHost(context.Background(), &store.HostBinding{Host: alias, TenantID: tn.ID, Kind: store.HostOperator, Active: true}); err != nil {
+				t.Fatal(err)
+			}
+			if tc.override != "" {
+				tn.DomainRPIDs[alias] = tc.override
+			}
+			p := Policy{Store: st, BaseDomain: "id.example.test", RestrictShared: tc.strict}
+			r, err := p.For(context.Background(), tenant.Resolved{Tenant: tn, Host: "A.example.test.:9543"})
+			if err != nil || r.Kind != KindOperator || r.RPID != tc.want || r.Origin != "https://a.example.test:9543" || r.Valid != tc.valid {
+				t.Fatalf("canonical-hostname alias = %+v %v", r, err)
+			}
+			canonical, err := p.For(context.Background(), tenant.Resolved{Tenant: tn, Host: "A.example.test."})
+			if err != nil || canonical.Kind != KindCanonical || canonical.RPID != "a.example.test" || !canonical.Valid {
+				t.Fatalf("canonical = %+v %v", canonical, err)
+			}
+		})
+	}
+}
+
+func TestRPIDPortAliasUnbound(t *testing.T) {
+	st, tn := fixture(t)
+	r, err := (Policy{Store: st}).For(context.Background(), tenant.Resolved{Tenant: tn, Host: "alias2.example.org:9543"})
+	if err != nil || r.Valid {
+		t.Fatalf("unbound port inherited bare alias: %+v %v", r, err)
+	}
+}
+
 func TestRPIDValidateShared(t *testing.T) {
 	st, _ := fixture(t)
 	ctx := context.Background()

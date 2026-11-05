@@ -97,3 +97,33 @@ Executor: inline (maintainer chose native execution, 2026-11-05). Branch
   the selected successful runs. Detailed commands, failure history and logs:
   `.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/task-7-report.md`.
   One implementer monitored each command; no additional agents were spawned.
+
+### Task 7 review fix round 1
+
+- Review base: `b07742495d86b33de00aafc66159851b9c4fd1d6`. Two important
+  findings reproduced: a distinct port alias inherited the unported alias's
+  override, and an alias sharing the canonical hostname was classified as
+  canonical because the comparison discarded ports.
+- Preserve the complete normalized host for canonical classification and
+  registry lookup. Read alias overrides by the matched binding's exact
+  `Host`; strip the port only when deriving the RP ID. A bound port alias
+  with no override defaults to its own bare hostname. Its invalid or
+  strict-policy-refused override fails closed, even when its hostname
+  equals the canonical hostname. The actual canonical host remains valid
+  with its own RP ID.
+- The same identity defect permitted an unregistered port to fall back to
+  an unported binding. A separate red test demonstrated that path; removed
+  the fallback so registry lookup matches tenant resolution's exact host
+  identity.
+- TDD: `go test ./internal/rpid -run '^TestRPIDPortAlias' -count=1`
+  exited 1 on seven subcases before the first fix, then exited 0.
+  `go test ./internal/rpid -run '^TestRPIDPortAliasUnbound$' -count=1`
+  exited 1 before removing the fallback. Final seven-package Task 7 focused
+  command (same selector and environment as above) exited 0, including all
+  new regressions. Logs: `task-7-review1-red.log`,
+  `task-7-review1-green.log`, `task-7-review1-unbound-red.log`, and
+  `task-7-review1-focused.log` under the task report directory. Actual exit
+  statuses are also stored in matching `.exit` files.
+- `git diff --check` exited 0. No SQL implementation changed in this round;
+  no SQL or broad regression suite reran. No agents were spawned.
+  Implementation verified; controller re-review owns final completion.

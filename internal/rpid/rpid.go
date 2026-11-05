@@ -67,11 +67,12 @@ func (p Policy) For(ctx context.Context, res tenant.Resolved) (Result, error) {
 	if res.Tenant == nil {
 		return r, nil
 	}
-	canonical, _ := splitHost(res.Tenant.CanonicalHost)
-	if host == canonical {
+	// A nondefault port identifies a distinct operator alias even when its
+	// hostname equals the canonical host. Strip the port only for the RP ID.
+	if tenant.NormalizeHost(res.Host) == tenant.NormalizeHost(res.Tenant.CanonicalHost) {
 		return r, nil
 	}
-	binding, err := p.binding(ctx, host, port)
+	binding, err := p.binding(ctx, tenant.NormalizeHost(res.Host))
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return r, err
 	}
@@ -90,10 +91,7 @@ func (p Policy) For(ctx context.Context, res tenant.Resolved) (Result, error) {
 		}
 	case binding != nil && binding.TenantID == res.Tenant.ID && binding.Kind == store.HostOperator && binding.Active:
 		r.Kind = KindOperator
-		stored = res.Tenant.DomainRPIDs[host]
-		if stored == "" && port != "" {
-			stored = res.Tenant.DomainRPIDs[host+":"+port]
-		}
+		stored = res.Tenant.DomainRPIDs[binding.Host]
 	default:
 		return p.invalid(ctx, res, r), nil
 	}
@@ -119,16 +117,9 @@ func (p Policy) invalid(ctx context.Context, res tenant.Resolved, r Result) Resu
 	return r
 }
 
-func (p Policy) binding(ctx context.Context, host, port string) (*store.HostBinding, error) {
+func (p Policy) binding(ctx context.Context, host string) (*store.HostBinding, error) {
 	if p.Store == nil {
 		return nil, store.ErrNotFound
-	}
-	if port != "" {
-		if b, err := p.Store.CustomDomains().GetHost(ctx, host+":"+port); err == nil {
-			return b, nil
-		} else if !errors.Is(err, store.ErrNotFound) {
-			return nil, err
-		}
 	}
 	return p.Store.CustomDomains().GetHost(ctx, host)
 }
