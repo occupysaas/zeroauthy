@@ -216,6 +216,17 @@ token. Always back up before an [upgrade](upgrading.md).
 
 ## Health and logs
 
-`GET /healthz` returns `{"status":"ok"}` on any host, over the configured listener. Logs are JSON on stdout
+Two endpoints answer on any host, over the configured listener:
+
+- `GET /healthz` (liveness) returns `{"status":"ok"}` whenever the process
+  serves requests. It never touches storage, so a database outage does not
+  get a healthy server restarted.
+- `GET /readyz` (readiness) checks that storage (the database or storage
+  plugin) answers within two seconds: `{"status":"ok"}`, or `503` with
+  `{"status":"unavailable"}`. Point load-balancer health checks and
+  orchestrator readiness probes here, so a server that cannot reach its
+  storage stops receiving traffic.
+
+Logs are JSON on stdout
 (`log.format: text` for humans); secrets are scrubbed. Tenant activity logs
 and log streams are in [logs](logs.md).

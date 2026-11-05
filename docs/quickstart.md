@@ -27,7 +27,7 @@ Every token zeroauthy issues names an `https://` issuer, and Auth0 SDKs talk
 to `https://<domain>`. The admin console also calls tenant APIs over HTTPS.
 So zeroauthy needs TLS even on your laptop: either it terminates TLS itself
 (this guide) or a reverse proxy does it for it ([deployment](deployment.md)).
-Plain HTTP is fine only for `/healthz`.
+Plain HTTP is fine only for `/healthz` and `/readyz`.
 
 ## 1. Make a local certificate and a master key
 
