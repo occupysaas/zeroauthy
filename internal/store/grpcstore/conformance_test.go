@@ -81,17 +81,17 @@ type limitForwarder struct {
 func (f limitForwarder) SetOrgLimits(l store.OrgLimits) { f.backing.SetOrgLimits(l) }
 
 func TestConformance(t *testing.T) {
-	storetest.RunExcept(t, func(t *testing.T) store.Store {
+	storetest.Run(t, func(t *testing.T) store.Store {
 		m := memory.New()
 		return limitForwarder{serve(t, m), m}
-	}, map[string]string{"WebAuthn": "WebAuthn storage arrives in Plan 33b Task 6"})
+	})
 }
 
 func TestConformanceSQLite(t *testing.T) {
-	storetest.RunExcept(t, func(t *testing.T) store.Store {
+	storetest.Run(t, func(t *testing.T) store.Store {
 		st := openSQLite(t)
 		return limitForwarder{serve(t, st), st}
-	}, map[string]string{"WebAuthn": "WebAuthn storage arrives in Plan 33b Task 6"})
+	})
 }
 
 // These assertions run against SQL savepoints behind real gRPC transaction

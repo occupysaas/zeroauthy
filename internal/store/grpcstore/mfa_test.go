@@ -123,7 +123,9 @@ func TestMFACapabilityCompatibility(t *testing.T) {
 func TestMFAPrePluginPriorFeatures(t *testing.T) {
 	var names []string
 	for n := range storetest.Suites {
-		if n != "MFA" {
+		// WebAuthn credentials are MFA authenticator rows, so a plugin
+		// without MFA storage cannot hold them either.
+		if n != "MFA" && n != "WebAuthn" {
 			names = append(names, n)
 		}
 	}
