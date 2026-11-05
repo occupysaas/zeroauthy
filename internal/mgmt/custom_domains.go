@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -39,6 +40,8 @@ func (h *Handlers) domainError(w http.ResponseWriter, r *http.Request, what stri
 		Fail(w, errCustomDomainNotFound)
 	case errors.Is(err, store.ErrInvalid):
 		Fail(w, badBody("Payload validation error: %s", strings.TrimPrefix(strings.TrimSuffix(err.Error(), ": "+store.ErrInvalid.Error()), "customdomain: ")))
+	case errors.Is(err, rpid.ErrInvalid):
+		Fail(w, badBody("Payload validation error: %s", rpid.ErrInvalid.Error()))
 	case errors.Is(err, store.ErrConflict):
 		Fail(w, errCustomDomainExists)
 	case errors.Is(err, customdomain.ErrNotReady):
@@ -211,6 +214,10 @@ func (h *Handlers) CreateCustomDomain(w http.ResponseWriter, r *http.Request) {
 		h.domainError(w, r, "create custom domain", err)
 		return
 	}
+	if err := h.rpidPolicy().Validate(r.Context(), resolved(r).ID, in.Domain, in.RelyingPartyIdentifier.Value); err != nil {
+		h.domainError(w, r, "create custom domain", err)
+		return
+	}
 	d, err := h.Domains.Create(r.Context(), resolved(r).ID, in)
 	if err != nil {
 		h.domainError(w, r, "create custom domain", err)
@@ -258,6 +265,16 @@ func (h *Handlers) UpdateCustomDomain(w http.ResponseWriter, r *http.Request, id
 		h.domainError(w, r, "update custom domain", err)
 		return
 	}
+	if in.RelyingPartyIdentifier.Present {
+		rp := in.RelyingPartyIdentifier.Value
+		if in.RelyingPartyIdentifier.Null {
+			rp = cur.Domain
+		}
+		if err := h.rpidPolicy().Validate(r.Context(), resolved(r).ID, cur.Domain, rp); err != nil {
+			h.domainError(w, r, "update custom domain", err)
+			return
+		}
+	}
 	d, err := h.Domains.Update(r.Context(), resolved(r).ID, id, in)
 	if err != nil {
 		h.domainError(w, r, "update custom domain", err)
@@ -266,6 +283,11 @@ func (h *Handlers) UpdateCustomDomain(w http.ResponseWriter, r *http.Request, id
 	def, _ := h.defaultID(r)
 	logDetails(r, "update custom domain", "id", d.ID)
 	writeJSON(w, http.StatusOK, h.customDomainJSON(r, d, def))
+}
+
+func (h *Handlers) rpidPolicy() rpid.Policy {
+	reserved := h.Domains.Reserved()
+	return rpid.Policy{BaseDomain: h.BaseDomain, SystemHost: h.SystemHost, OriginSuffix: reserved.OriginSuffix, RestrictShared: h.RestrictSharedRPIDs, Store: h.Store}
 }
 
 // DeleteCustomDomain serves DELETE /custom-domains/{id}.

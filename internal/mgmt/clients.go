@@ -60,6 +60,8 @@ type Handlers struct {
 	Protection *protection.Service
 	// Domains serves the custom-domain operations; nil answers 503.
 	Domains *customdomain.Service
+	// RestrictSharedRPIDs enforces the shared-hosting RP ID restriction (R1).
+	RestrictSharedRPIDs bool
 	// BreachCheckerAvailable reports an actually constructed server-side checker.
 	BreachCheckerAvailable bool
 

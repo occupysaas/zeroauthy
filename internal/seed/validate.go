@@ -1,6 +1,7 @@
 package seed
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -15,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/rbacrules"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -60,6 +62,11 @@ func (f *File) validate() error {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: name must be a valid DNS label (lowercase a-z, 0-9, '-', at most 63 characters)", t.Name))
 		}
 		errs = append(errs, t.validate()...)
+		for host, rp := range t.DomainRPIDs {
+			if err := (rpid.Policy{}).Validate(context.Background(), "", host, rp); err != nil {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: alias %q: %w", t.Name, host, err))
+			}
+		}
 		for _, d := range t.Domains {
 			if strings.TrimSpace(d) == "" {
 				errs = append(errs, fmt.Errorf("seed: tenant %q: empty domain", t.Name))

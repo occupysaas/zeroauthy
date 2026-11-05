@@ -41,7 +41,7 @@ type WebAuthn interface {
 	PutSnooze(ctx context.Context, s *WebAuthnSnooze) error                             // upsert by (tid, uid, kind, scope)
 	GetSnooze(ctx context.Context, tid, uid, kind, scope string, now time.Time) (*WebAuthnSnooze, error)
 	// HostTenantsUnder returns distinct tenant IDs owning a host binding
-	// equal to suffix or ending in "."+suffix.
+	// whose hostname (without its optional port) equals suffix or ends in "."+suffix.
 	HostTenantsUnder(ctx context.Context, suffix string, limit int) ([]string, error)
 	PurgeWebAuthn(ctx context.Context, before time.Time, limit int) (int, error) // expired snoozes
 }

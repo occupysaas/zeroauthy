@@ -63,7 +63,7 @@ func TestDomainValidation(t *testing.T) {
 			t.Fatalf("wrong create defaults: %+v", in)
 		}
 	})
-	for _, extra := range []string{`,"status":"ready"`, `,"primary":false`, `,"tls_policy":"compatible"`, `,"tls_policy":null`, `,"verification_method":"cname"`, `,"domain_metadata":null`, `,"domain_metadata":{"x":null}`, `,"domain_metadata":{"x":1}`, `,"custom_client_ip_header":"unknown"`, `,"relying_party_identifier":"other.example"`, `,"relying_party_identifier":"example"`, `,"relying_party_identifier":null`, `,"relying_party_identifier":""`} {
+	for _, extra := range []string{`,"status":"ready"`, `,"primary":false`, `,"tls_policy":"compatible"`, `,"tls_policy":null`, `,"verification_method":"cname"`, `,"domain_metadata":null`, `,"domain_metadata":{"x":null}`, `,"domain_metadata":{"x":1}`, `,"custom_client_ip_header":"unknown"`, `,"relying_party_identifier":"other.example"`, `,"relying_party_identifier":"example"`, `,"relying_party_identifier":""`} {
 		t.Run("bad create/"+extra, func(t *testing.T) {
 			if _, err := create(extra); !errors.Is(err, store.ErrInvalid) {
 				t.Fatalf("accepted %s: %v", extra, err)
@@ -86,6 +86,12 @@ func TestDomainValidation(t *testing.T) {
 			t.Errorf("ancestor RP %q: %+v, %v", rp, in, err)
 		}
 	}
+	t.Run("null RP ID on create", func(t *testing.T) {
+		in, err := create(`,"relying_party_identifier":null`)
+		if err != nil || !in.RelyingPartyIdentifier.Null || in.RelyingPartyIdentifier.Value != "login.customer.example" {
+			t.Fatalf("null RP ID = %+v, %v", in, err)
+		}
+	})
 	for _, n := range []int{255, 256} {
 		raw := `,"domain_metadata":{"label":"` + strings.Repeat("界", n) + `"}`
 		_, err := create(raw)

@@ -276,6 +276,7 @@ type BreachedPasswords struct {
 
 // Security holds the master key and server-wide attack protection limits.
 type Security struct {
+	WebAuthn                    WebAuthn          `koanf:"webauthn"`
 	BreachedPasswords           BreachedPasswords `koanf:"breached_passwords"`
 	LoginMaxAttemptsExplicit    bool              `koanf:"-"`
 	LoginLockoutSecondsExplicit bool              `koanf:"-"`
@@ -315,6 +316,13 @@ type Security struct {
 
 	// RateLimit is the general Authentication API request limit.
 	RateLimit RateLimit `koanf:"rate_limit"`
+}
+
+// WebAuthn controls deployment-wide relying party ID restrictions.
+type WebAuthn struct {
+	// RestrictSharedRPIDs refuses relying party IDs covering the deployment's
+	// own namespaces or another tenant's host. Enable for shared hosting.
+	RestrictSharedRPIDs bool `koanf:"restrict_shared_rp_ids"`
 }
 
 // RateLimit is security.rate_limit: a token bucket per tenant, client IP

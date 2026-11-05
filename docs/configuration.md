@@ -140,6 +140,14 @@ mount a certificate. The [quickstart](quickstart.md) shows a full `docker run`.
 | `security.device_activation_tenant_window_seconds` | `ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_TENANT_WINDOW_SECONDS` | integer | `600` | `security.device_activation_tenant_window_seconds` is the window the tenant limit counts misses in. |
 | `security.device_activation_tenant_lockout_seconds` | `ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_TENANT_LOCKOUT_SECONDS` | integer | `60` | `security.device_activation_tenant_lockout_seconds` is how long the tenant pause lasts. |
 
+#### `security.webauthn`
+
+`security.webauthn` controls deployment-wide relying party ID restrictions.
+
+| Key | Environment variable | Type | Default | Description |
+| --- | --- | --- | --- | --- |
+| `security.webauthn.restrict_shared_rp_ids` | `ZEROAUTHY_SECURITY__WEBAUTHN__RESTRICT_SHARED_RP_IDS` | bool | `false` | `security.webauthn.restrict_shared_rp_ids` refuses relying party IDs covering the deployment's own namespaces or another tenant's host. Enable for shared hosting. |
+
 #### `security.breached_passwords`
 
 `security.breached_passwords` configures the breached password checker used by tenants' breached password detection.

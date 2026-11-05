@@ -41,6 +41,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/selfsigned"
@@ -230,7 +231,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := f.CheckManagementAPI(cfg.Server.BaseDomain); err != nil {
 			return nil, err
 		}
-		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}, seed.Options{EventsMaxStreams: cfg.Events.MaxStreams}); err != nil {
+		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}, seed.Options{EventsMaxStreams: cfg.Events.MaxStreams, RPIDPolicy: rpid.Policy{BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginSuffix: cfg.Server.OriginDomain(), RestrictShared: cfg.Security.WebAuthn.RestrictSharedRPIDs}}); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))
@@ -432,11 +433,12 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Actions:        engine,
 			Phone:          phoneDispatcher,
 
-			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
-			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
-			BaseDomain:        cfg.Server.BaseDomain,
-			SystemHost:        systemHost,
-			Domains:           domains,
+			Protection:          &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
+			TrustProxyHeaders:   cfg.Server.TrustProxyHeaders,
+			BaseDomain:          cfg.Server.BaseDomain,
+			SystemHost:          systemHost,
+			RestrictSharedRPIDs: cfg.Security.WebAuthn.RestrictSharedRPIDs,
+			Domains:             domains,
 
 			RateLimit:         rateLimit(sec.RateLimit),
 			LegacySecretSlots: ratelimit.NewSecretVerifications(sec.RateLimit.MaxConcurrentSecretVerifications),

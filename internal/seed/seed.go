@@ -61,24 +61,26 @@ type Tenant struct {
 	Settings map[string]any `yaml:"settings"`
 	supplied map[string]any
 
-	Name                string           `yaml:"name"`
-	FriendlyName        string           `yaml:"friendly_name"`
-	Domains             []string         `yaml:"domains"`
-	DefaultAudience     string           `yaml:"default_audience"`
-	DefaultDirectory    string           `yaml:"default_directory"`
-	AllowedLogoutURLs   []string         `yaml:"allowed_logout_urls"`
-	ResourceServers     []ResourceServer `yaml:"resource_servers"`
-	Organizations       []Organization   `yaml:"organizations"`
-	Roles               []Role           `yaml:"roles"`
-	Clients             []Client         `yaml:"clients"`
-	ClientGrants        []ClientGrant    `yaml:"client_grants"`
-	SessionLifetime     int              `yaml:"session_lifetime"`
-	IdleSessionLifetime int              `yaml:"idle_session_lifetime"`
-	Branding            Branding         `yaml:"branding"`
-	Connections         []Connection     `yaml:"connections"`
-	Users               []User           `yaml:"users"`
-	EnabledLocales      []string         `yaml:"enabled_locales"`
-	CustomText          store.CustomText `yaml:"custom_text"`
+	Name         string   `yaml:"name"`
+	FriendlyName string   `yaml:"friendly_name"`
+	Domains      []string `yaml:"domains"`
+	// DomainRPIDs contains optional per-alias RP IDs decoded from domains objects.
+	DomainRPIDs         map[string]string `yaml:"-"`
+	DefaultAudience     string            `yaml:"default_audience"`
+	DefaultDirectory    string            `yaml:"default_directory"`
+	AllowedLogoutURLs   []string          `yaml:"allowed_logout_urls"`
+	ResourceServers     []ResourceServer  `yaml:"resource_servers"`
+	Organizations       []Organization    `yaml:"organizations"`
+	Roles               []Role            `yaml:"roles"`
+	Clients             []Client          `yaml:"clients"`
+	ClientGrants        []ClientGrant     `yaml:"client_grants"`
+	SessionLifetime     int               `yaml:"session_lifetime"`
+	IdleSessionLifetime int               `yaml:"idle_session_lifetime"`
+	Branding            Branding          `yaml:"branding"`
+	Connections         []Connection      `yaml:"connections"`
+	Users               []User            `yaml:"users"`
+	EnabledLocales      []string          `yaml:"enabled_locales"`
+	CustomText          store.CustomText  `yaml:"custom_text"`
 
 	DeviceFlow DeviceFlow `yaml:"device_flow"`
 
@@ -255,7 +257,11 @@ func Load(path string) (*File, error) {
 
 // Parse decodes seed YAML, rejecting unknown fields, and validates it.
 func Parse(data []byte) (*File, error) {
-	dec := yaml.NewDecoder(bytes.NewReader(data))
+	normalized, domainRPIDs, err := decodeDomainAliases(data)
+	if err != nil {
+		return nil, fmt.Errorf("seed: %w", err)
+	}
+	dec := yaml.NewDecoder(bytes.NewReader(normalized))
 	dec.KnownFields(true)
 	var f File
 	if err := dec.Decode(&f); err != nil {
@@ -272,6 +278,9 @@ func Parse(data []byte) (*File, error) {
 	}
 	for i := range f.Tenants {
 		f.Tenants[i].supplied = raw.Tenants[i]
+		if i < len(domainRPIDs) {
+			f.Tenants[i].DomainRPIDs = domainRPIDs[i]
+		}
 	}
 	if err := f.validate(); err != nil {
 		return nil, err

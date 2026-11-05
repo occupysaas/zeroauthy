@@ -86,8 +86,9 @@ type Deps struct {
 	// canonical host (tenant.SystemHost). They name the tenants'
 	// Management API identifiers, the operator-token issuer and the only
 	// origin CORS allows on /api/v2 and /api/system.
-	BaseDomain string
-	SystemHost string
+	BaseDomain          string
+	SystemHost          string
+	RestrictSharedRPIDs bool
 
 	// Console is the built admin console; nil means the embedded one.
 	Console fs.FS
@@ -376,8 +377,12 @@ func New(d Deps) http.Handler {
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
 		Protection:             sharedProtection,
 		Domains:                d.Domains,
+		RestrictSharedRPIDs:    d.RestrictSharedRPIDs,
 	}
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
+	mr.Get("/api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites", func(w http.ResponseWriter, r *http.Request) {
+		mh.PasskeyPrerequisites(w, r, chi.URLParam(r, "tenant"), chi.URLParam(r, "id"))
+	})
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}
 	}

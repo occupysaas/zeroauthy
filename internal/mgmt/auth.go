@@ -125,7 +125,8 @@ func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tena
 	attempt := len(parts) == 8 && parts[4] == "actions" && parts[5] == "executions" && parts[7] == "attempt"
 	streamStatus := len(parts) == 6 && parts[4] == "log-streams" && parts[5] == "status"
 	executions := (len(parts) == 6 || len(parts) == 7) && parts[4] == "actions" && parts[5] == "executions"
-	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus) {
+	passkeyPrerequisites := len(parts) == 7 && parts[4] == "connections" && parts[6] == "passkey-prerequisites"
+	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus || passkeyPrerequisites) {
 		return base, nil
 	}
 	t, err := cfg.Store.Tenants().GetByName(ctx, parts[3])

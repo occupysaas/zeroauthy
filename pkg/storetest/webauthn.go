@@ -216,6 +216,30 @@ func testWebAuthn(t *testing.T, factory Factory) {
 		got, _ = s.WebAuthn().HostTenantsUnder(ctx, "mple.com", 10)
 		mustEqual(t, len(got), 0)
 	})
+	t.Run("HostTenantsUnderWithPorts", func(t *testing.T) {
+		s := setup(t)
+		for _, h := range []store.HostBinding{
+			{Host: "example.com:9543", TenantID: "ten_a", Kind: store.HostOperator, Active: true},
+			{Host: "login.example.com:8443", TenantID: "ten_b", Kind: store.HostOperator, Active: true},
+			{Host: "other.example.com:9543", TenantID: "ten_b", Kind: store.HostOperator, Active: true},
+			{Host: "ample.com:9543", TenantID: "ten_b", Kind: store.HostOperator, Active: true},
+		} {
+			h := h
+			mustNoErr(t, s.CustomDomains().PutHost(ctx, &h))
+		}
+		got, err := s.WebAuthn().HostTenantsUnder(ctx, "example.com", 10)
+		mustNoErr(t, err)
+		mustEqual(t, got, []string{"ten_a", "ten_b"})
+		got, err = s.WebAuthn().HostTenantsUnder(ctx, "example.com", 1)
+		mustNoErr(t, err)
+		mustEqual(t, got, []string{"ten_a"})
+		got, err = s.WebAuthn().HostTenantsUnder(ctx, "mple.com", 10)
+		mustNoErr(t, err)
+		mustEqual(t, len(got), 0)
+		got, err = s.WebAuthn().HostTenantsUnder(ctx, "ex_mple.com", 10)
+		mustNoErr(t, err)
+		mustEqual(t, len(got), 0)
+	})
 	t.Run("SessionAuthMethodsRoundTrip", func(t *testing.T) {
 		s := setup(t)
 		sess := newSession("ten_a", "s1", "hash-s1")

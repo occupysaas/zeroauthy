@@ -165,9 +165,19 @@ func (r webauthnRepo) GetSnooze(ctx context.Context, tid, uid, kind, scope strin
 
 func (r webauthnRepo) HostTenantsUnder(ctx context.Context, suffix string, limit int) ([]string, error) {
 	// Suffix match by SUBSTR, not LIKE, so "_" in a host is not a wildcard
-	// and "ample.com" is never under "example.com".
+	// and "ample.com" is never under "example.com". Operator bindings may
+	// retain a port; RP IDs never include it. IPv6 literals cannot match a
+	// DNS suffix, so taking their prefix before ':' is harmless here.
+	colon := "INSTR(host, ':')"
+	switch r.s.d.name {
+	case "postgres":
+		colon = "STRPOS(host, ':')"
+	case "mysql":
+		colon = "LOCATE(':', host)"
+	}
+	host := "CASE WHEN " + colon + ">0 THEN SUBSTR(host,1," + colon + "-1) ELSE host END"
 	dotted := "." + suffix
-	rows, err := r.s.query(ctx, `SELECT DISTINCT tenant_id FROM host_bindings WHERE host=? OR (LENGTH(host)>? AND SUBSTR(host,LENGTH(host)-?+1)=?)`, suffix, len(dotted), len(dotted), dotted)
+	rows, err := r.s.query(ctx, `SELECT DISTINCT tenant_id FROM (SELECT tenant_id, `+host+` AS dns_host FROM host_bindings) bindings WHERE dns_host=? OR (LENGTH(dns_host)>? AND SUBSTR(dns_host,LENGTH(dns_host)-?+1)=?)`, suffix, len(dotted), len(dotted), dotted)
 	if err != nil {
 		return nil, err
 	}

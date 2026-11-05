@@ -149,7 +149,7 @@ func metadataField(body map[string]json.RawMessage) (Field[map[string]string], e
 var patchFields = map[string]bool{"tls_policy": true, "custom_client_ip_header": true, "domain_metadata": true, "relying_party_identifier": true}
 var createFields = map[string]bool{"domain": true, "type": true, "verification_method": true, "tls_policy": true, "custom_client_ip_header": true, "domain_metadata": true, "relying_party_identifier": true}
 
-func settings(body map[string]json.RawMessage, domain string, patch bool) (PatchInput, error) {
+func settings(body map[string]json.RawMessage, domain string) (PatchInput, error) {
 	var out PatchInput
 	var err error
 	if out.TLSPolicy, err = stringField(body, "tls_policy", false); err != nil {
@@ -169,7 +169,7 @@ func settings(body map[string]json.RawMessage, domain string, patch bool) (Patch
 	if out.DomainMetadata, err = metadataField(body); err != nil {
 		return out, err
 	}
-	if out.RelyingPartyIdentifier, err = stringField(body, "relying_party_identifier", patch); err != nil {
+	if out.RelyingPartyIdentifier, err = stringField(body, "relying_party_identifier", true); err != nil {
 		return out, err
 	}
 	if out.RelyingPartyIdentifier.Present && !out.RelyingPartyIdentifier.Null {
@@ -226,7 +226,7 @@ func ValidateCreate(raw []byte, reserved ReservedNames) (CreateInput, error) {
 	if !out.VerificationMethod.Present {
 		out.VerificationMethod.Value = "txt"
 	}
-	s, err := settings(body, out.Domain, false)
+	s, err := settings(body, out.Domain)
 	if err != nil {
 		return out, err
 	}
@@ -240,7 +240,7 @@ func ValidateCreate(raw []byte, reserved ReservedNames) (CreateInput, error) {
 	if !out.CustomClientIPHeader.Present {
 		out.CustomClientIPHeader.Value = "x-forwarded-for"
 	}
-	if !out.RelyingPartyIdentifier.Present {
+	if !out.RelyingPartyIdentifier.Present || out.RelyingPartyIdentifier.Null {
 		out.RelyingPartyIdentifier.Value = out.Domain
 	}
 	return out, nil
@@ -253,7 +253,7 @@ func ValidatePatch(raw []byte, current *store.CustomDomain) (PatchInput, error) 
 	if err != nil {
 		return PatchInput{}, err
 	}
-	return settings(body, current.Domain, true)
+	return settings(body, current.Domain)
 }
 
 // ValidateDomainCount is called within the transaction that creates an API row.

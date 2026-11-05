@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net"
 	"slices"
 	"sort"
 	"strings"
@@ -149,6 +150,9 @@ func (r webauthnRepo) HostTenantsUnder(_ context.Context, suffix string, limit i
 	defer r.s.readUnlock()
 	seen := map[string]bool{}
 	for host, b := range r.s.hostBindings {
+		if name, _, err := net.SplitHostPort(host); err == nil {
+			host = name
+		}
 		if host == suffix || strings.HasSuffix(host, "."+suffix) {
 			seen[b.TenantID] = true
 		}
