@@ -11,7 +11,7 @@ export const MAX_IMPORT_FILE_BYTES = 511000
 export const MAX_EXPORT_FIELDS = 30
 
 // The import guide's advice on weak password hashes and forcing a reset.
-export const weakHashAdviceURL = 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/user-import.md#weak-hashes'
+export const weakHashAdviceURL = 'https://github.com/occupysaas/zeroauthy/blob/main/docs/user-import.md#weak-hashes'
 
 export const POLL_MS = 3000
 
