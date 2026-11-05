@@ -81,8 +81,9 @@ func (UnimplementedWebAuthn) PurgeWebAuthn(context.Context, time.Time, int) (int
 // SessionAuthenticationSignal): Name is pwd, passkey, federated, email, sms
 // or mfa; Type is the MFA factor for mfa.
 type AuthMethod struct {
-	Name, Type string
-	At         time.Time
+	Name string    `json:"name"`
+	Type string    `json:"type,omitempty"`
+	At   time.Time `json:"at"`
 }
 
 // ClientMobile holds a client's native app identities (Auth0 `mobile`),

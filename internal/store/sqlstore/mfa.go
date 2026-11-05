@@ -161,6 +161,9 @@ func (r mfa) DeleteUserAuthenticators(ctx context.Context, tid, uid string, type
 	}
 	q := `DELETE FROM mfa_authenticators WHERE tenant_id=? AND user_id=?`
 	args := []any{tid, uid}
+	if types == nil {
+		q += ` AND type<>'passkey'` // nil means every MFA type; passkeys are first factors
+	}
 	if types != nil {
 		q += ` AND type IN (`
 		for i, t := range types {
@@ -234,7 +237,12 @@ func (r mfa) createJSON(ctx context.Context, table, keycol, tid, key, uid, clien
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(s *Store) error {
-		if err := (mfa{s}).user(ctx, tid, uid); err != nil {
+		// A passkey login challenge has no user until the assertion names it.
+		if c, ok := v.(*store.MFAChallenge); ok && uid == "" && c.Kind == "webauthn" {
+			if err := lockTenant(ctx, s, tid); err != nil {
+				return err
+			}
+		} else if err := (mfa{s}).user(ctx, tid, uid); err != nil {
 			return err
 		}
 		if client != "" {
@@ -495,7 +503,7 @@ func (r mfa) PurgeMFA(ctx context.Context, before time.Time, limit int) (int, er
 }
 func (r mfa) DeleteUserMFA(ctx context.Context, tid, uid string) error {
 	return r.s.atomicRetry(ctx, nil, func(s *Store) error {
-		for _, table := range []string{"mfa_authenticators", "mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers"} {
+		for _, table := range []string{"mfa_authenticators", "mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers", "webauthn_snoozes"} {
 			if _, err := s.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id=? AND user_id=?`, tid, uid); err != nil {
 				return err
 			}
@@ -505,7 +513,7 @@ func (r mfa) DeleteUserMFA(ctx context.Context, tid, uid string) error {
 }
 func (r mfa) DeleteTenantMFA(ctx context.Context, tid string) error {
 	return r.s.atomicRetry(ctx, nil, func(s *Store) error {
-		for _, table := range []string{"mfa_guardian", "mfa_authenticators", "mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers"} {
+		for _, table := range []string{"mfa_guardian", "mfa_authenticators", "mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers", "webauthn_snoozes"} {
 			if _, err := s.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id=?`, tid); err != nil {
 				return err
 			}

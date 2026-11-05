@@ -211,7 +211,7 @@ func (s *Store) migrateTo(ctx context.Context, version int64) error {
 // applyMigration runs one migration in a transaction. MySQL commits DDL
 // implicitly, so there the version check is what keeps a re-run safe.
 func (s *Store) applyMigration(ctx context.Context, m migration) error {
-	if s.d.name == "mysql" && (m.version == 20 || m.version == 21 || m.version == 29 || m.version == 30 || m.version == 31 || m.version == 32 || m.version == 33 || m.version == 34) {
+	if s.d.name == "mysql" && (m.version == 20 || m.version == 21 || m.version == 29 || m.version == 30 || m.version == 31 || m.version == 32 || m.version == 33 || m.version == 34 || m.version == 35) {
 		return s.applyResumableMySQL(ctx, m)
 	}
 	return s.atomic(ctx, nil, func(t *Store) error {
