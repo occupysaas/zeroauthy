@@ -193,6 +193,9 @@ func (h *Handlers) loginSucceeded(w http.ResponseWriter, r *http.Request, res te
 	e.UserID, e.Connection, e.OrganizationID = sess.UserID, sess.Connection, fr.OrgID
 	e.Audience, e.Scope = fr.Audience, fr.Scope
 	e.Type = "s"
+	if slices.ContainsFunc(sess.AuthMethods, func(m store.AuthMethod) bool { return m.Name == "passkey" }) {
+		e.Details = map[string]any{"prompts": []map[string]any{{"name": "login-id", "performed_amr": []string{"phr"}}}}
+	}
 	if slices.Contains(fr.Prompts(), "none") {
 		e.Type = "ssa"
 	}

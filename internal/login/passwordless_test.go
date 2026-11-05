@@ -275,6 +275,7 @@ func TestHostedEmailCodeLogin(t *testing.T) {
 		t.Fatal("no session after passwordless login")
 	}
 
+	assertSessionMethods(t, b, "email")
 	// Existing user: a second login reuses the account.
 	b2 := p.browser("acme.example.test")
 	appCode(t, p.loginEmail(t, b2, "ada@example.test"))
@@ -315,6 +316,7 @@ func TestHostedSMSCodeLogin(t *testing.T) {
 		t.Fatalf("success events = %+v", p.events.events)
 	}
 	p.events.noFullNumber(t, pwlNumber)
+	assertSessionMethods(t, b, "sms")
 	// A later silent authorization records its events with the session user.
 	q := url.Values{"client_id": {"spa"}, "redirect_uri": {"https://app.acme.test/cb"}, "response_type": {"code"}, "scope": {"openid"}, "code_challenge": {challenge}, "code_challenge_method": {"S256"}, "prompt": {"none"}}
 	appCode(t, b.do(t, "GET", "/authorize?"+q.Encode(), nil))

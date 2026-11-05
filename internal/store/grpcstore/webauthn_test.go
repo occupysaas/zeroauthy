@@ -66,6 +66,12 @@ func TestOldPluginWebAuthnUnavailable(t *testing.T) {
 	if gs, err := c.Sessions().Get(ctx, "t", "s"); err != nil || gs.AuthMethods != nil {
 		t.Fatalf("session methods not dropped: %+v %v", gs, err)
 	}
+	if err := c.Sessions().AddMethod(ctx, "t", "s", store.AuthMethod{Name: "mfa", Type: "otp", At: now}); err != nil {
+		t.Fatalf("old plugin append: %v", err)
+	}
+	if gs, err := c.Sessions().Get(ctx, "t", "s"); err != nil || gs.AuthMethods != nil {
+		t.Fatalf("old plugin appended methods: %+v %v", gs, err)
+	}
 	// MFA keeps working against the old plugin.
 	if _, err := c.MFA().ListAuthenticators(ctx, "t", "auth0|u"); err != nil {
 		t.Fatalf("MFA list: %v", err)

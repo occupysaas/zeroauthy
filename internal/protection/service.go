@@ -97,9 +97,9 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 			s.Event(ctx, tenant.ID, "brute-force", "monitor", conn.ID)
 		}
 	}
-	// Social flows (Plan 24) use the suspicious-IP budgets only: no email
-	// lookup and no password brute-force reservation.
-	social := a.Flow == "social-login" || a.Flow == "social-signup"
+	// Social flows and passkey failures use the suspicious-IP budgets only:
+	// no identifier lookup and no password brute-force reservation.
+	social := a.Flow == "social-login" || a.Flow == "social-signup" || a.Flow == "passkey-login-failure"
 	if (a.Flow == "login" || a.Flow == "signup" || social || discovery) && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
 		if slices.Contains(p.SuspiciousIP.Shields, "block") {
 			kind, rate := store.ProtectionSuspiciousIPLogin, p.SuspiciousIP.Stage.PreLogin
@@ -107,7 +107,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 				kind, rate = store.ProtectionSuspiciousIPRegistration, p.SuspiciousIP.Stage.PreUserRegistration
 			}
 			limit := store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tenant.ID, Kind: kind, IP: ip}, Algorithm: "token-bucket", Capacity: rate.MaxAttempts, Refill: time.Duration(rate.Rate) * time.Millisecond}
-			if a.Flow == "login" && p.LegacyIPMaxAttempts > 0 && p.LegacyLockoutSeconds > 0 {
+			if (a.Flow == "login" || a.Flow == "passkey-login-failure") && p.LegacyIPMaxAttempts > 0 && p.LegacyLockoutSeconds > 0 {
 				limit.Algorithm = "fixed-window"
 				limit.Capacity = p.LegacyIPMaxAttempts
 				limit.Window = time.Duration(p.LegacyLockoutSeconds) * time.Second

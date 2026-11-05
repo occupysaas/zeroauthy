@@ -26,6 +26,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -42,6 +43,8 @@ var errTxn = errors.New("login: invalid or expired transaction")
 var errOrganizationConnection = errors.New("login: connection is not enabled for the organization")
 
 type Handlers struct {
+	// Passkeys owns hosted ceremony verification; nil hides the option.
+	Passkeys   *passkey.Service
 	MFA        *mfa.Service
 	Recorder   logs.Recorder
 	Actions    *actions.Engine
@@ -807,10 +810,21 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 
 // complete starts the session and hands back to /authorize processing.
 func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, user *store.User) {
+	h.completeWithMethods(w, r, f, user, store.AuthMethod{Name: firstFactorMethod(f.conn)})
+}
+
+func firstFactorMethod(conn *store.Connection) string {
+	if conn.Strategy == "email" || conn.Strategy == "sms" {
+		return conn.Strategy
+	}
+	return "pwd"
+}
+
+func (h *Handlers) completeWithMethods(w http.ResponseWriter, r *http.Request, f *flow, user *store.User, methods ...store.AuthMethod) {
 	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: user.UserID, UserName: passwordless.MaskIdentifier(f.conn.Strategy, user.Name)}))
 	ctx := r.Context()
 	now := h.now()
-	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now)
+	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now, methods...)
 	if err != nil {
 		h.fail(w, r, err, f)
 		return

@@ -781,6 +781,10 @@ func (h *Handlers) finishMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow)
 			h.fail(w, r, err, f.flow)
 			return
 		}
+		if err := h.Sessions.AddMethod(r.Context(), f.sess, store.AuthMethod{Name: "mfa", Type: f.page.Factor}); err != nil {
+			h.fail(w, r, err, f.flow)
+			return
+		}
 		if f.page.Remember && f.pending.Requirement.AllowRemember {
 			u, err := h.Store.Users().Get(r.Context(), f.res.Tenant.ID, f.pending.UserID)
 			if err != nil {

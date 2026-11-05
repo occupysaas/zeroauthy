@@ -419,6 +419,7 @@ service StoreService {
   rpc SessionsListByUser(ScopedKey) returns (SessionList);           // key = user_id
   rpc SessionsTouch(TouchRequest) returns (Result);
   rpc SessionsAddClient(SessionsAddClientRequest) returns (Result);
+  rpc SessionsAddMethod(SessionsAddMethodRequest) returns (Result);
   rpc SessionsDelete(ScopedKey) returns (Result);
   rpc SessionsDeleteByUser(ScopedKey) returns (CountResult);
   rpc SessionsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
@@ -1654,3 +1655,6 @@ message WebAuthnHostTenantsRequest { string tx_id = 1; string suffix = 2; int64 
 message WebAuthnHostTenantsResponse { Error error = 1; repeated string tenant_ids = 2; }
 message WebAuthnPurgeRequest { string tx_id = 1; google.protobuf.Timestamp before = 2; int64 limit = 3; }
 message WebAuthnCountResponse { Error error = 1; int64 count = 2; }
+
+// Additive webauthn.v1 session method append; method is AuthMethod JSON.
+message SessionsAddMethodRequest { string tx_id = 1; string tenant_id = 2; string id = 3; bytes method = 4; }

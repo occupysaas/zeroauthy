@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"encoding/json"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"html/template"
 	"log/slog"
@@ -25,6 +26,9 @@ import (
 
 //go:embed templates/*.html
 var files embed.FS
+
+//go:embed webauthn.js
+var webAuthnScript string
 
 var funcs = template.FuncMap{
 	// t renders a catalog key: {{t .Tenant.L "login.login.title" "name" "value"}}.
@@ -168,7 +172,15 @@ type SocialButton struct {
 	Connection, Label string
 }
 
+// WebAuthnData is public ceremony configuration; JSON encoding escapes HTML.
+type WebAuthnData struct {
+	ChallengeID string          `json:"challenge_id"`
+	PublicKey   json.RawMessage `json:"publicKey"`
+	Mediation   string          `json:"mediation"`
+}
+
 type LoginStageData struct {
+	Passkey *WebAuthnData
 	LoginData
 	Revision int64
 }
@@ -193,9 +205,10 @@ type SignupData struct {
 }
 
 type page struct {
-	Tenant Tenant
-	Nonce  string
-	Data   any
+	Tenant         Tenant
+	Nonce          string
+	Data           any
+	WebAuthnScript template.JS
 }
 
 func RenderLogin(w http.ResponseWriter, status int, t Tenant, d LoginData) {
@@ -271,7 +284,7 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormFooterStart), nonce)), template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormFooterEnd), nonce)),
 	}
 	var buf bytes.Buffer
-	if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data}); err != nil {
+	if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data, WebAuthnScript: template.JS(webAuthnScript)}); err != nil {
 		slog.Error("render page", "template", name, "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -279,7 +292,7 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 	if buf.Len() > 512<<10 {
 		t.L = t.L.WithoutCustom()
 		buf.Reset()
-		if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data}); err != nil || buf.Len() > 512<<10 {
+		if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data, WebAuthnScript: template.JS(webAuthnScript)}); err != nil || buf.Len() > 512<<10 {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}

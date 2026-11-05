@@ -176,3 +176,28 @@ func optionalMFATime(t time.Time) any {
 	}
 	return micros(t)
 }
+
+func (r sessions) AddMethod(ctx context.Context, tid, id string, method store.AuthMethod) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var raw sql.NullString
+		err := tx.queryRow(ctx, `SELECT auth_methods FROM sessions WHERE tenant_id=? AND id=?`+tx.d.forUpdate, tid, id).Scan(&raw)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		var methods []store.AuthMethod
+		if raw.Valid {
+			if err := fromJSON(raw.String, &methods); err != nil {
+				return err
+			}
+		}
+		enc, err := toJSON(append(methods, method))
+		if err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `UPDATE sessions SET auth_methods=? WHERE tenant_id=? AND id=?`, enc, tid, id)
+		return err
+	})
+}

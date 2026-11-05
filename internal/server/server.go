@@ -255,6 +255,7 @@ func New(d Deps) http.Handler {
 		Recorder: d.Recorder,
 		Store:    d.Store, Sessions: d.Sessions, Authz: az,
 		Database:          db,
+		Passkeys:          d.Passkeys,
 		Actions:           d.Actions,
 		Resets:            dbconnHandlers,
 		Federation:        d.Federation,
@@ -335,6 +336,7 @@ func New(d Deps) http.Handler {
 		tr.Get("/u/login/password", lg.LoginPasswordGet)
 		tr.Post("/u/login/password", lg.LoginPasswordPost)
 		tr.Post("/u/login/identifier", lg.LoginIdentifierResetPost)
+		tr.Post("/u/login/passkey", lg.LoginPasskeyPost)
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)

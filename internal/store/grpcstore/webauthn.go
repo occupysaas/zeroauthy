@@ -2,7 +2,10 @@ package grpcstore
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -331,4 +334,26 @@ func (s *Server) WebAuthnPurge(ctx context.Context, q *storev1.WebAuthnPurgeRequ
 		return err
 	}))
 	return out, nil
+}
+
+func (a clientSessions) AddMethod(ctx context.Context, tid, id string, method store.AuthMethod) error {
+	if err := a.c.CheckWebAuthnSupport(ctx); err != nil {
+		if errors.Is(err, store.ErrWebAuthnUnavailable) {
+			return nil
+		}
+		return err
+	}
+	raw, err := json.Marshal(method)
+	if err != nil {
+		return err
+	}
+	result, err := a.c.rpc.SessionsAddMethod(ctx, &storev1.SessionsAddMethodRequest{TxId: a.c.txID, TenantId: tid, Id: id, Method: raw})
+	return do("SessionsAddMethod", result, err)
+}
+func (s *Server) SessionsAddMethod(ctx context.Context, r *storev1.SessionsAddMethodRequest) (*storev1.Result, error) {
+	var method store.AuthMethod
+	if err := json.Unmarshal(r.Method, &method); err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid authentication method")
+	}
+	return exec(s, r.TxId, func(st store.Store) error { return st.Sessions().AddMethod(ctx, r.TenantId, r.Id, method) }), nil
 }

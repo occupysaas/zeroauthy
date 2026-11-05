@@ -270,7 +270,14 @@
       "buttonText": "Continue",
       "invalid-identifier": "Enter your email or username.",
       "emailPlaceholder": "Email address",
-      "phonePlaceholder": "Phone number"
+      "phonePlaceholder": "Phone number",
+      "passkeyButtonText": "Sign in with a passkey",
+      "passkey-authentication-failed": "We could not verify that passkey. Try again or continue with your password.",
+      "passkey-not-allowed": "Passkeys are unavailable for this sign-in.",
+      "no-passkey": "Choose another way to sign in.",
+      "invalid-passkey": "We could not verify that passkey.",
+      "conflict-password-passkey": "Choose a password or a passkey to continue.",
+      "password-not-allowed": "Choose another way to sign in."
     }
   },
   "login-password": {

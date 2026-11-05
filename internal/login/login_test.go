@@ -301,6 +301,7 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("login not recorded: %+v", u)
 	}
 
+	assertSessionMethods(t, b, "pwd")
 	// The session now satisfies /authorize directly.
 	q := url.Values{"client_id": {"spa"}, "redirect_uri": {"https://app.acme.test/cb"}, "response_type": {"code"}, "code_challenge": {challenge}, "code_challenge_method": {"S256"}, "prompt": {"none"}}
 	rec = b.do(t, "GET", "/authorize?"+q.Encode(), nil)

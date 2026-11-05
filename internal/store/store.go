@@ -347,6 +347,8 @@ type Users interface {
 // unique within a tenant. Changes after creation are narrow atomic
 // methods, so concurrent requests cannot overwrite each other's writes.
 type Sessions interface {
+	// AddMethod atomically appends a performed method without changing other session fields.
+	AddMethod(ctx context.Context, tenantID, id string, method AuthMethod) error
 	MarkMFA(ctx context.Context, tenantID, id string, at time.Time) error
 	// Create returns ErrConflict if the ID or TokenHash exists.
 	Create(ctx context.Context, s *LoginSession) error

@@ -1721,14 +1721,20 @@
       "type": "gd_webauthn_challenge_failed",
       "description": "The browser could not complete a WebAuthn assertion.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-webauthn-challenge-failed",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
+      "triggers": [
+        {
+          "file": "internal/login/passkey.go",
+          "function": "passkeyFailure",
+          "when": "A hosted first-factor passkey assertion or browser ceremony fails."
+        }
+      ],
+      "status": "emitted",
       "owner": "Plan 33b"
     },
     {

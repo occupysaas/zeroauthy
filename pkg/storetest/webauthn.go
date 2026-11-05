@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -254,6 +255,31 @@ func testWebAuthn(t *testing.T, factory Factory) {
 		mustNoErr(t, err)
 		mustEqual(t, len(got.AuthMethods), 2)
 		mustEqual(t, got.AuthMethods[1].Type, "otp")
+	})
+
+	t.Run("SessionMethodsAtomicAppend", func(t *testing.T) {
+		s := setup(t)
+		sess := newSession("ten_a", "methods", "method-hash")
+		sess.AuthMethods = []store.AuthMethod{{Name: "passkey", At: now}}
+		mustNoErr(t, s.Sessions().Create(ctx, sess))
+		var wg sync.WaitGroup
+		for i := range 8 {
+			wg.Go(func() {
+				if err := s.Sessions().AddMethod(ctx, "ten_a", sess.ID, store.AuthMethod{Name: "mfa", Type: fmt.Sprint(i), At: now}); err != nil {
+					t.Error(err)
+				}
+				if err := s.Sessions().AddClient(ctx, "ten_a", sess.ID, fmt.Sprint(i)); err != nil {
+					t.Error(err)
+				}
+			})
+		}
+		wg.Wait()
+		got, err := s.Sessions().Get(ctx, "ten_a", sess.ID)
+		mustNoErr(t, err)
+		mustEqual(t, len(got.AuthMethods), 9)
+		mustEqual(t, len(got.ClientIDs), 9)
+		mustEqual(t, got.AuthMethods[0].Name, "passkey")
+		mustErrIs(t, s.Sessions().AddMethod(ctx, "ten_b", sess.ID, store.AuthMethod{Name: "mfa"}), store.ErrNotFound)
 	})
 	t.Run("ClientMobileRoundTrip", func(t *testing.T) {
 		s := setup(t)
