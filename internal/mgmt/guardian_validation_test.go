@@ -93,7 +93,7 @@ func TestGuardianAdminAuditCodes(t *testing.T) {
 
 func TestAuthMethodsRejectPrivateCOSE(t *testing.T) {
 	e, uid := mfaUser(t)
-	public, err := base64.RawURLEncoding.DecodeString("pQECAyYgASFYIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIlggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	public, err := base64.RawURLEncoding.DecodeString("pQECAyYgASFYILcoes0rNGrjTOXVEqXyq9CPe41x3PDQohuYsMQiLmHyIlggt4P6gUXrCQdKoWIfVcnC3BXZGdtI1ZqT9O7H8fsUcrA")
 	if err != nil {
 		t.Fatal(err)
 	}

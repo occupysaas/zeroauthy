@@ -9,6 +9,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
+	"github.com/zeroauthy/zeroauthy/internal/webauthn"
 	"net/http"
 	"net/url"
 	"strings"
@@ -357,4 +358,12 @@ func publicPhone(r *http.Request, a store.Authenticator) store.Authenticator {
 		a.Phone = phone.Mask(a.Phone)
 	}
 	return a
+}
+
+// validStoredCOSE checks an imported public COSE_Key with the WebAuthn
+// verifier's own parser, so stored keys are exactly the keys assertions can
+// verify (Plan 33b).
+func validStoredCOSE(raw []byte) bool {
+	_, err := webauthn.ParseCOSEKey(raw)
+	return err == nil
 }
