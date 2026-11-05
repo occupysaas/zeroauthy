@@ -150,6 +150,25 @@ func claim(t *testing.T, resp actionResponse, name string) json.RawMessage {
 	return nil
 }
 
+// TestPoolUnderSymlinkedTempDir: the pool writes its script under the
+// temporary directory, which is a symlink on macOS (/var -> /private/var).
+// Node checks permissions against the real path of the script it loads, so
+// the pool must still run when TMPDIR goes through a symlink.
+func TestPoolUnderSymlinkedTempDir(t *testing.T) {
+	link := filepath.Join(t.TempDir(), "tmp")
+	if err := os.Symlink(t.TempDir(), link); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TMPDIR", link)
+	p := actionsPool(t, t.TempDir())
+	resp := callAction(t, p, "t1", actionRequest{VersionKey: "v1", Code: `exports.onExecutePostLogin = async (event, api) => {
+	  api.accessToken.setCustomClaim("ran", true);
+	};`})
+	if got := string(claim(t, resp, "ran")); got != "true" {
+		t.Fatalf("claim ran = %s, want true", got)
+	}
+}
+
 // TestActionsRunnerIsolation: tenants never share a process, secrets or
 // cache; a busy Action is killed at the 20 s flow budget, failing only that
 // tenant's in-flight Actions calls; the tenant's custom database process is
