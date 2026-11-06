@@ -4,13 +4,14 @@ import fs from "node:fs";
 import vm from "node:vm";
 const source = fs.readFileSync(new URL("webauthn.js", import.meta.url), "utf8");
 const tick = () => new Promise(resolve => setImmediate(resolve));
-function harness(mode = "both", supported = true, creation = false, enrollment = "", platformSupported = true) {
+function harness(mode = "both", supported = true, creation = false, enrollment = "", platformSupported = true, platformAPI = true) {
   const calls = [], posts = [], listeners = {};
   const skips = [];
   const skip = {elements:{snooze:{checked:true}},submit(){skips.push({snooze:this.elements.snooze.checked});}};
   const form = {action:enrollment ? "/u/passkey-enrollment"+(enrollment === "local" ? "-local" : "") : undefined,elements: {platform_available:{value:"0"},credential: {value: ""}, webauthn_error: {value: ""}}, submit() {posts.push({credential: this.elements.credential.value, error: this.elements.webauthn_error.value, action: this.action, ...(enrollment ? {platform:this.elements.platform_available.value} : {})});}};
   const button = {addEventListener(name, fn) {listeners.click = fn;}};
   const pk = {isConditionalMediationAvailable: async () => true, isUserVerifyingPlatformAuthenticatorAvailable: async () => platformSupported};
+  if (!platformAPI) delete pk.isUserVerifyingPlatformAuthenticatorAvailable;
   const data = {textContent: JSON.stringify({enrollment,challenge_id: "id", publicKey: creation ? {challenge: "AQID", rp: {id:"a.test"}, user: {id:"BAU",name:"new@a.test",displayName:"New"}, excludeCredentials: [{type:"public-key",id:"Bgc"}]} : {challenge: "AQID", rpId: "a.test", allowCredentials: []}, mediation: mode, operation: creation ? "create" : undefined, action: creation ? "/u/signup/passkey" : undefined})};
   const context = {Uint8Array, ArrayBuffer, AbortController, DOMException, atob, btoa, PublicKeyCredential: pk, window: supported ? {PublicKeyCredential: pk} : {}, navigator: {credentials: {create(options) {return new Promise((resolve, reject) => calls.push({options, resolve, reject}));}, get(options) {return new Promise((resolve, reject) => calls.push({options, resolve, reject}));}}}, document: {getElementById(id) {return id === "za-webauthn" ? data : id === "za-passkey-form" ? form : id === "za-passkey-skip" ? (enrollment ? skip : null) : id === "za-passkey-button" && mode !== "autofill" ? button : null;}, addEventListener(name, fn) {listeners[name] = fn;}}};
   vm.runInNewContext(source, context);
@@ -45,4 +46,26 @@ test("plain password submit aborts creation and discards a late attestation",asy
 
 test("post-login creation keeps its bound progressive or local action",async()=>{for(const kind of ["progressive","local"]){const h=harness("button",true,true,kind);await tick();h.listeners.click();h.calls[0].resolve({...credential,authenticatorAttachment:"platform",response:{clientDataJSON:new Uint8Array([2]).buffer,attestationObject:new Uint8Array([3]).buffer}});await tick();assert.equal(h.posts[0].action,"/u/passkey-enrollment"+(kind==="local"?"-local":""));assert.equal(h.skips.length,0);}});
 test("unsupported enrollment auto-continues without snoozing",async()=>{for(const supported of [false,true]){const h=harness("button",supported,true,"local",false);await tick();assert.equal(h.skips.length,1);assert.equal(h.skips[0].snooze,false);assert.equal(h.calls.length,0);}});
+test("progressive enrollment can create a roaming passkey without a platform authenticator", async () => {
+  const h = harness("button", true, true, "progressive", false);
+  await tick();
+  assert.equal(h.skips.length, 0);
+  h.listeners.click();
+  assert.equal(h.calls.length, 1);
+  h.calls[0].resolve({...credential, authenticatorAttachment: "cross-platform", response: {clientDataJSON: new Uint8Array([2]).buffer, attestationObject: new Uint8Array([3]).buffer}});
+  await tick();
+  assert.equal(h.posts.length, 1);
+  assert.equal(h.posts[0].action, "/u/passkey-enrollment");
+  assert.equal(JSON.parse(h.posts[0].credential).authenticatorAttachment, "cross-platform");
+});
+test("missing WebAuthn or platform-check API skips either enrollment without snoozing", async () => {
+  for (const kind of ["progressive", "local"]) {
+    for (const [supported, platformAPI] of [[false, true], [true, false]]) {
+      const h = harness("button", supported, true, kind, true, platformAPI);
+      await tick();
+      assert.deepEqual(h.skips, [{snooze: false}]);
+      assert.equal(h.calls.length, 0);
+    }
+  }
+});
 test("assertion reports platform capability alongside the verified response",async()=>{for (const available of [true, false]) {const h=harness("button",true,false,"",available);await tick();h.listeners.click();h.calls[0].resolve({...credential,authenticatorAttachment:"cross-platform"});await tick();assert.equal(JSON.parse(h.posts[0].credential).authenticatorAttachment,"cross-platform");assert.equal(h.form.elements.platform_available.value,available ? "1" : "0");}});

@@ -18,7 +18,7 @@
   const platformCheck = platform ? platform.call(PublicKeyCredential).catch(() => false) : Promise.resolve(false);
   platformCheck.then(available => {
     platformAvailable = available;
-    if (skip && !available && !submitted) {
+    if (skip && (!platform || (config.enrollment === "local" && !available)) && !submitted) {
       submitted = true;
       abort();
       skip.elements.snooze.checked = false;

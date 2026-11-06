@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -241,7 +242,8 @@ func (h *Handlers) requirePasskeyPrompt(w http.ResponseWriter, r *http.Request, 
 // enrollment. Every final write rechecks the active session and policy.
 func (h *Handlers) CompletePasskeyPrompt(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession, snooze bool, enroll func(context.Context, store.Store) error) error {
 	var pending *passkeyPending
-	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
+	err := orglogin.WithMembershipEvents(r.Context(), h.Store, func(ctx context.Context, tx store.Store) error {
+		r := r.WithContext(ctx)
 		local := *h
 		local.Store = tx
 		sessions := *h.Sessions

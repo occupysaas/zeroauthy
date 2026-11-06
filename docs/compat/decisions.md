@@ -2763,8 +2763,18 @@ complete the optional local enrollment and can skip it instead.
 The local snooze scope is a hash of a random, secure, HTTP-only browser cookie;
 the stored scope contains no raw device cookie. Both snoozes last 30 days,
 with progressive scoped to the user and RP ID and local scoped to the user
-and browser. Missing WebAuthn or platform support auto-submits a skip without
-snoozing through the existing bound form. Cost: deleting the device cookie
+and browser. Missing WebAuthn or platform-check APIs auto-submit a skip without
+snoozing through the existing bound form. A supported platform check returning
+false skips only local enrollment; progressive enrollment can still register
+a roaming authenticator. Cost: deleting the device cookie
 allows the local prompt to appear again. No CSP or permissions policy change
 is needed, and the capability report and assertion attachment stay outside
 Actions and event payloads.
+
+**Task 11 review correction (2026-11-06).** The answer operation uses
+`orglogin.WithMembershipEvents` as its outer transaction, propagating the
+returned context into the request and nested policy, membership and enrollment
+calls. An automatic membership recreated during enrollment emits its success
+event only after the entire answer commits; invalid credentials roll back both
+membership and its pending event. Cost: membership success logging waits for
+the enclosing enrollment transaction instead of its nested savepoint.

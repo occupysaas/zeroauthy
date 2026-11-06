@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/rpid"
@@ -123,6 +124,47 @@ func TestEnrollmentPromptCannotCompleteThroughOtherPages(t *testing.T) {
 			rec := b.do(t, "POST", path, url.Values{"state": {parsed.Query().Get("state")}, "csrf": {csrfField.FindStringSubmatch(page.Body.String())[1]}, "action": {"accept"}, "password": {"alice password 1"}})
 			if rec.Header().Get("Location") != "" || !strings.Contains(rec.Body.String(), "expired") {
 				t.Fatalf("pending enrollment completed through %s: %d %s %s", path, rec.Code, rec.Header().Get("Location"), rec.Body)
+			}
+		})
+	}
+}
+
+func TestEnrollmentMembershipEventsCommitAndRollback(t *testing.T) {
+	for _, valid := range []bool{false, true} {
+		t.Run(map[bool]string{false: "invalid-registration", true: "valid-registration"}[valid], func(t *testing.T) {
+			e, b, u := enrollmentEnv(t, false)
+			org, _, _ := organizationFixture(t, e, store.OrgBehaviorNoPrompt, true, false)
+			capture := &pwlEvents{}
+			e.h.Recorder = capture
+			original := e.srv
+			e.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				original.ServeHTTP(w, r.WithContext(logs.WithRecorder(r.Context(), capture)))
+			})
+			loc := passwordEnrollment(t, b, "organization", org.ID)
+			page := b.do(t, "GET", loc, nil)
+			p := readPasskeyPage(t, page)
+			if err := e.st.Organizations().RemoveMembers(context.Background(), org.TenantID, org.ID, []string{u.UserID}); err != nil {
+				t.Fatal(err)
+			}
+			capture.events = nil
+			raw := []byte(`invalid credential`)
+			if valid {
+				raw = registrationFromPage(t, p, webauthntest.New(webauthntest.Options{}), "https://acme.example.test")
+			}
+			parsed, _ := url.Parse(loc)
+			rec := b.do(t, "POST", "/u/passkey-enrollment", url.Values{"state": {parsed.Query().Get("state")}, "csrf": {csrfField.FindStringSubmatch(page.Body.String())[1]}, "challenge_id": {p.ChallengeID}, "credential": {string(raw)}})
+			member, err := e.st.Organizations().IsMember(context.Background(), org.TenantID, org.ID, u.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !valid {
+				if rec.Code != 400 || member || len(capture.of("organization_member_added")) != 0 {
+					t.Fatalf("rolled-back enrollment: status=%d member=%v member events=%+v", rec.Code, member, capture.of("organization_member_added"))
+				}
+				return
+			}
+			if !strings.Contains(rec.Header().Get("Location"), "code=") || !member || len(capture.of("organization_member_added")) != 1 {
+				t.Fatalf("committed enrollment: status=%d member=%v member events=%+v", rec.Code, member, capture.of("organization_member_added"))
 			}
 		})
 	}
