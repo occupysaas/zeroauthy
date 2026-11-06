@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
@@ -733,5 +735,170 @@ func TestLoginIDPasskeyPrerequisites(t *testing.T) {
 				t.Fatalf("unmet prerequisite offered: %s", kind)
 			}
 		})
+	}
+}
+
+func TestHostedPasskeyDoubleSubmitAfterTransactionDeletion(t *testing.T) {
+	e, u, d, _ := passkeyEnv(t)
+	capture := &pwlEvents{}
+	e.h.Recorder = capture
+	b := e.browser("acme.example.test")
+	form, state := passkeyForm(t, b, d)
+	queued := e.browser(b.host)
+	for name, cookie := range b.cookies {
+		copy := *cookie
+		queued.cookies[name] = &copy
+	}
+	original, err := e.st.AuthTransactions().Get(context.Background(), u.TenantID, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	winner := b.do(t, "POST", "/u/login/passkey", form)
+	if winner.Code != 302 {
+		t.Fatalf("winner=%d %s", winner.Code, winner.Body)
+	}
+	if _, err := e.st.AuthTransactions().Get(context.Background(), u.TenantID, state); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("winner did not delete transaction: %v", err)
+	}
+	// This queued request has not loaded anything until the winner commits and
+	// deletes the original transaction. It carries the original browser cookie.
+	loser := queued.do(t, "POST", "/u/login/passkey", form)
+	if loser.Code != 401 || !strings.Contains(loser.Body.String(), "We could not verify that passkey") {
+		t.Fatalf("loser=%d %s", loser.Code, loser.Body)
+	}
+	options := readPasskeyPage(t, loser)
+	if options.ChallengeID == form.Get("challenge_id") {
+		t.Fatal("replayed challenge")
+	}
+	nextState := regexp.MustCompile(`name="state" value="([^"]+)"`).FindStringSubmatch(loser.Body.String())[1]
+	next, err := e.st.AuthTransactions().Get(context.Background(), u.TenantID, nextState)
+	if err != nil || next.ClientID != original.ClientID || !next.ExpiresAt.Equal(original.ExpiresAt) || next.Params["redirect_uri"] != original.Params["redirect_uri"] {
+		t.Fatalf("retry snapshot=%+v %v", next, err)
+	}
+	eventJSON, err := json.Marshal(capture.events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, secret := range []string{original.CSRFToken, original.CookieHash, form.Get("credential")} {
+		if strings.Contains(string(eventJSON), secret) || strings.Contains(e.logs.String(), secret) {
+			t.Fatal("retry snapshot secret reached an event/log")
+		}
+	}
+	rows, err := e.st.Sessions().ListByUser(context.Background(), u.TenantID, u.UserID)
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("replay created sessions: %d %v", len(rows), err)
+	}
+	var offered struct {
+		Challenge string `json:"challenge"`
+		RPID      string `json:"rpId"`
+	}
+	if err := json.Unmarshal(options.Options, &offered); err != nil {
+		t.Fatal(err)
+	}
+	challenge, _ := base64.RawURLEncoding.DecodeString(offered.Challenge)
+	retry := url.Values{"state": {nextState}, "csrf": {next.CSRFToken}, "hosted_revision": {revisionFrom(t, loser.Body.String())}, "challenge_id": {options.ChallengeID}, "credential": {string(d.Get(webauthn.RequestOptions{RPID: offered.RPID, Challenge: challenge}, "https://"+queued.host))}}
+	if result := queued.do(t, "POST", "/u/login/passkey", retry); result.Code != 302 {
+		t.Fatalf("fresh retry unusable: %d %s", result.Code, result.Body)
+	}
+}
+
+func TestHostedPasskeyDeletedTransactionRetryBinding(t *testing.T) {
+	for _, kind := range []string{"cookie", "csrf", "host", "tenant", "expired", "client-disabled", "connection-disabled", "organization-disabled"} {
+		t.Run(kind, func(t *testing.T) {
+			e, u, d, _ := passkeyEnv(t)
+			ctx := context.Background()
+			b := e.browser("acme.example.test")
+			var extra []string
+			var org *store.Organization
+			var connection *store.Connection
+			if kind == "organization-disabled" {
+				org, connection, _ = organizationFixture(t, e, store.OrgBehaviorNoPrompt, true, false)
+				extra = []string{"organization", org.ID}
+			}
+			form, state := passkeyForm(t, b, d, extra...)
+			queued := e.browser(b.host)
+			for name, cookie := range b.cookies {
+				copy := *cookie
+				queued.cookies[name] = &copy
+			}
+			if winner := b.do(t, "POST", "/u/login/passkey", form); winner.Code != 302 {
+				t.Fatalf("winner=%d %s", winner.Code, winner.Body)
+			}
+			switch kind {
+			case "cookie":
+				queued.cookies[authz.TxnCookiePrefix+state].Value = "different-browser"
+			case "csrf":
+				form.Set("csrf", "different-csrf")
+			case "host":
+				queued.host = "other.acme.test"
+				if err := e.st.CustomDomains().Create(ctx, &store.CustomDomain{TenantID: u.TenantID, ID: "other-retry", Domain: queued.host, Status: "ready"}); err != nil {
+					t.Fatal(err)
+				}
+				if err := e.st.CustomDomains().PutHost(ctx, &store.HostBinding{Host: queued.host, TenantID: u.TenantID, DomainID: "other-retry", Kind: store.HostPublic, Active: true}); err != nil {
+					t.Fatal(err)
+				}
+			case "tenant":
+				queued.host = "globex.example.test"
+			case "expired":
+				e.h.Now = func() time.Time { return fixedNow().Add(16 * time.Minute) }
+			case "client-disabled":
+				c, _ := e.st.Clients().Get(ctx, u.TenantID, "spa")
+				if err := e.st.Clients().Delete(ctx, c.TenantID, c.ClientID); err != nil {
+					t.Fatal(err)
+				}
+			case "connection-disabled", "organization-disabled":
+				if kind == "organization-disabled" {
+					if err := e.st.Organizations().DeleteConnection(ctx, u.TenantID, org.ID, connection.ID); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					c, _ := e.st.Connections().GetByName(ctx, u.TenantID, "Username-Password-Authentication")
+					c.EnabledClients = nil
+					if err := e.st.Connections().Update(ctx, c); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			// Posted authorization input is never a replacement for saved server state.
+			form.Set("redirect_uri", "https://evil.example/cb")
+			form.Set("client_id", "closed")
+			result := queued.do(t, "POST", "/u/login/passkey", form)
+			if result.Code != 401 || strings.Contains(result.Body.String(), "za-webauthn") || strings.Contains(result.Body.String(), "evil.example") {
+				t.Fatalf("retry binding bypass %d %s", result.Code, result.Body)
+			}
+			if queued.cookies[session.CookieName] != nil {
+				t.Fatal("replay created session")
+			}
+		})
+	}
+}
+func TestHostedPasskeyRetrySnapshotCollision(t *testing.T) {
+	e, _, d, _ := passkeyEnv(t)
+	b := e.browser("acme.example.test")
+	_, state := passkeyForm(t, b, d)
+	tn := mustTenant(t, e, "acme")
+	ctx := context.Background()
+	row, err := e.st.MFA().GetChallenge(ctx, tn.ID, passkeyRetryID(state), fixedNow())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The second page load must accept the identical immutable snapshot.
+	if page := b.do(t, "GET", "/u/login?state="+state, nil); page.Code != 200 {
+		t.Fatalf("identical snapshot refused %d %s", page.Code, page.Body)
+	}
+	if err := e.st.MFA().ConsumeChallenge(ctx, tn.ID, row.ID, fixedNow()); err != nil {
+		t.Fatal(err)
+	}
+	row.Binding = []byte(`{"purpose":"untrusted-collision"}`)
+	if err := e.st.MFA().CreateChallenge(ctx, row); err != nil {
+		t.Fatal(err)
+	}
+	page := b.do(t, "GET", "/u/login?state="+state, nil)
+	if page.Code < 400 || strings.Contains(page.Body.String(), "za-webauthn") {
+		t.Fatalf("snapshot collision replaced %d %s", page.Code, page.Body)
+	}
+	saved, err := e.st.MFA().GetChallenge(ctx, tn.ID, row.ID, fixedNow())
+	if err != nil || string(saved.Binding) != string(row.Binding) {
+		t.Fatal("collision overwrote immutable snapshot")
 	}
 }

@@ -118,6 +118,14 @@ func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 	if !h.now().Before(txn.ExpiresAt) {
 		return nil, errTxn
 	}
+	return h.flowForTxn(r, res, txn)
+}
+
+// flowForTxn rechecks current presentation, client and organization policy for
+// a trusted transaction whose origin, browser binding and expiry are validated.
+func (h *Handlers) flowForTxn(r *http.Request, res tenant.Resolved, txn *store.AuthTransaction) (*flow, error) {
+	ctx := r.Context()
+	var err error
 	config := hostedlogin.Configuration(ctx)
 	if config == nil && !res.Tenant.Reserved {
 		config, err = (hostedlogin.Service{Store: h.Store}).Load(ctx, res.Tenant.ID)

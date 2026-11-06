@@ -6,6 +6,7 @@ import (
 	"errors"
 	"maps"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
@@ -38,6 +39,9 @@ func (h *Handlers) preparePasskey(r *http.Request, f *flow, data *ui.LoginStageD
 	}
 	if !effective {
 		return nil
+	}
+	if err := h.savePasskeyRetry(r, f); err != nil {
+		return err
 	}
 	issued, err := h.Passkeys.Issue(r.Context(), f.res.Tenant.ID, passkeyBinding(f, rp.RPID, rp.Origin), hostedPasskeyLifetime)
 	if err != nil {
@@ -248,6 +252,16 @@ func (h *Handlers) postedPasskeyTxn(w http.ResponseWriter, r *http.Request) (*fl
 	if err == nil {
 		f, err = h.loadTxn(r, r.PostForm.Get("state"))
 	}
+	if err != nil && r.PostForm.Get("state") != "" {
+		if res, ok := tenant.FromContext(r.Context()); ok {
+			if _, lookupErr := h.Store.AuthTransactions().Get(r.Context(), res.Tenant.ID, r.PostForm.Get("state")); errors.Is(lookupErr, store.ErrNotFound) {
+				if retry, retryErr := h.loadPasskeyRetry(r, res); retryErr == nil {
+					h.passkeyFailure(w, r, retry, "challenge")
+					return nil, false
+				}
+			}
+		}
+	}
 	if err == nil && subtle.ConstantTimeCompare([]byte(r.PostForm.Get("csrf")), []byte(f.txn.CSRFToken)) != 1 {
 		err = errTxn
 	}
@@ -262,4 +276,69 @@ func (h *Handlers) postedPasskeyTxn(w http.ResponseWriter, r *http.Request) (*fl
 		return nil, false
 	}
 	return f, true
+}
+
+// Retry snapshots are immutable no-user challenge metadata, never assertion
+// challenges. The namespaced digest cannot collide with a random ceremony ID.
+// Existing challenge expiry/purge and webauthn.v1 storage apply unchanged.
+type hostedPasskeyRetry struct {
+	Purpose      string                `json:"purpose"`
+	Transaction  store.AuthTransaction `json:"transaction"`
+	ConnectionID string                `json:"connection_id"`
+}
+
+func passkeyRetryID(state string) string { return "hosted-passkey-retry:" + secrets.HashToken(state) }
+func (h *Handlers) savePasskeyRetry(r *http.Request, f *flow) error {
+	txn := *f.txn
+	txn.Params = maps.Clone(txn.Params)
+	// Form revisions and captured partial values are mutable, whereas retry
+	// authority is only the validated authorization and original browser binding.
+	txn.HostedState = store.HostedLoginState{Step: "identifier"}
+	snapshot := hostedPasskeyRetry{Purpose: "hosted-passkey-retry", Transaction: txn, ConnectionID: f.conn.ID}
+	raw, err := json.Marshal(snapshot)
+	if err != nil {
+		return err
+	}
+	logs.AddCredentials(r.Context(), string(raw), txn.CSRFToken, txn.CookieHash)
+	row := &store.MFAChallenge{TenantID: txn.TenantID, ID: passkeyRetryID(txn.ID), Kind: "webauthn", Binding: raw, ExpiresAt: txn.ExpiresAt}
+	if err = h.Store.MFA().CreateChallenge(r.Context(), row); !errors.Is(err, store.ErrConflict) {
+		return err
+	}
+	existing, err := h.Store.MFA().GetChallenge(r.Context(), txn.TenantID, row.ID, h.now())
+	if err != nil {
+		return err
+	}
+	var saved hostedPasskeyRetry
+	if existing.Kind != "webauthn" || !existing.ExpiresAt.Equal(row.ExpiresAt) || json.Unmarshal(existing.Binding, &saved) != nil || !reflect.DeepEqual(saved, snapshot) {
+		return errTxn
+	}
+	return nil
+}
+func (h *Handlers) loadPasskeyRetry(r *http.Request, res tenant.Resolved) (*flow, error) {
+	state := r.PostForm.Get("state")
+	row, err := h.Store.MFA().GetChallenge(r.Context(), res.Tenant.ID, passkeyRetryID(state), h.now())
+	if err != nil {
+		return nil, errTxn
+	}
+	var snapshot hostedPasskeyRetry
+	if row.Kind != "webauthn" || json.Unmarshal(row.Binding, &snapshot) != nil || snapshot.Purpose != "hosted-passkey-retry" {
+		return nil, errTxn
+	}
+	txn := &snapshot.Transaction
+	logs.AddCredentials(r.Context(), string(row.Binding), txn.CSRFToken, txn.CookieHash)
+	cookie, err := r.Cookie(authz.TxnCookiePrefix + state)
+	if err != nil || txn.ID != state || txn.TenantID != res.Tenant.ID || res.CheckOrigin(txn.Origin) != nil || !h.now().Before(txn.ExpiresAt) || !row.ExpiresAt.Equal(txn.ExpiresAt) || subtle.ConstantTimeCompare([]byte(secrets.HashToken(cookie.Value)), []byte(txn.CookieHash)) != 1 || subtle.ConstantTimeCompare([]byte(r.PostForm.Get("csrf")), []byte(txn.CSRFToken)) != 1 {
+		return nil, errTxn
+	}
+	f, err := h.flowForTxn(r, res, txn)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := h.connection(r.Context(), res.Tenant.ID, txn)
+	if err != nil || conn.ID != snapshot.ConnectionID {
+		return nil, errTxn
+	}
+	f.conn = conn
+	h.withFlowEvent(r, f)
+	return f, nil
 }
