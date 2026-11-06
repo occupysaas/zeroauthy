@@ -240,6 +240,7 @@ func (h *Handlers) LoginPasskeyPost(w http.ResponseWriter, r *http.Request) {
 		h.passkeyFailure(w, r, f, "challenge")
 		return
 	}
+	*r = *r.WithContext(authz.WithPasskeyLogin(r.Context(), result.Assertion.Attachment, r.PostForm.Get("platform_available") == "1"))
 	h.completeWithMethods(w, r, f, result.User, store.AuthMethod{Name: "passkey"})
 }
 

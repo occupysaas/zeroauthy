@@ -2724,3 +2724,47 @@ and producer integrations land with their first consumer. Storage conflicts
 are classified after rollback: only canonical identifier collisions receive
 the budget-protected existence answer; credential-only collisions retain a
 bounded, generic ceremony failure.
+
+**Task 11 execution rulings (post-login enrollment, 2026-11-06).**
+Progressive enrollment applies to a successful password signup, including an
+invitation signup's first password continuation, once every required ownership
+verification and MFA step is complete. Passkey signup does not trigger the
+progressive prompt. This controller ruling treats the password continuation
+consistently with a password login; the standalone Task 10 fixture explicitly
+disables progressive enrollment to keep its assertions scoped. Cost if wrong:
+password signup users see one additional skippable prompt.
+
+The post-login order is Actions and access policy, required MFA, optional
+passkey enrollment, consent or callback confirmation, then authorization.
+`approve` retains its defensive MFA check for direct internal callers. The
+completed MFA marker survives the enrollment and consent transitions so an
+Action-forced challenge is satisfied once while its restrictions and sealed
+effects remain in force. Cost: both the early decision and final defensive
+approval check evaluate MFA policy.
+
+The stored `za_pk_prompt` decision carries the session, user, RP ID, decision
+time, MFA timestamp and Guardian configuration version. A separate expiring
+no-user `webauthn` challenge is an atomic answer gate; enrollment or snooze,
+gate consumption and transaction deletion commit together. Final completion
+rechecks the active browser session, current authorization and organization
+policy, blocking, connection, RP ID and MFA policy through transaction-bound
+copies of the handlers and session/passkey services. Cost: one extra expiring
+row per offered prompt, and a Guardian configuration change invalidates an
+outstanding prompt even if the change would not affect its factor.
+
+Progressive and local registration use separate server-owned challenge
+purposes, `passkey-progressive-register` and `passkey-local-register`, so a
+challenge cannot cross signup or enrollment kinds. Both retain the existing
+exact origin, browser, transaction, client, connection and authenticated-user
+bindings. Local registration requests a platform authenticator and refuses a
+non-platform result. Cost: a browser omitting registration attachment cannot
+complete the optional local enrollment and can skip it instead.
+
+The local snooze scope is a hash of a random, secure, HTTP-only browser cookie;
+the stored scope contains no raw device cookie. Both snoozes last 30 days,
+with progressive scoped to the user and RP ID and local scoped to the user
+and browser. Missing WebAuthn or platform support auto-submits a skip without
+snoozing through the existing bound form. Cost: deleting the device cookie
+allows the local prompt to appear again. No CSP or permissions policy change
+is needed, and the capability report and assertion attachment stay outside
+Actions and event payloads.

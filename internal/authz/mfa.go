@@ -32,6 +32,7 @@ const mfaPendingKey = "za_mfa_pending"
 // marks its session then calls MFAComplete; reset and ticket purposes never do.
 // Completion reloads this state rather than trusting caller edits.
 type MFAPending struct {
+	PasskeyHint         PasskeyLoginHint
 	Requirement         mfa.Requirement
 	Effects             actions.Effects
 	SessionID, UserID   string
@@ -128,7 +129,8 @@ func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant
 		h.refuse(w, r, res, client, fr, errServer())
 		return true
 	}
-	pending := MFAPending{Requirement: req, SessionID: sess.ID, UserID: sess.UserID, PreviousMFAAt: sess.MFAAt, RememberEpoch: u.RememberBrowserEpoch}
+	hint, _ := r.Context().Value(passkeyLoginKey{}).(PasskeyLoginHint)
+	pending := MFAPending{PasskeyHint: hint, Requirement: req, SessionID: sess.ID, UserID: sess.UserID, PreviousMFAAt: sess.MFAAt, RememberEpoch: u.RememberBrowserEpoch}
 	if eff != nil {
 		pending.Effects = *eff
 	}
@@ -281,8 +283,8 @@ func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenan
 		return
 	}
 	h.clearTxnCookie(w, stored)
-	*r = *r.WithContext(context.WithValue(r.Context(), mfaCompletedKey{}, current.ID))
-	h.finish(w, r, res, client, fr, current, &pending.Effects, true, true)
+	*r = *r.WithContext(context.WithValue(context.WithValue(r.Context(), mfaCompletedKey{}, current.ID), passkeyLoginKey{}, pending.PasskeyHint))
+	h.finish(w, r, res, client, fr, current, &pending.Effects, false, true)
 }
 func (h *Handlers) invalidMFA(w http.ResponseWriter, r *http.Request, res tenant.Resolved) {
 	h.invalidTxn(w, r, res, &store.AuthTransaction{Params: map[string]string{}})
@@ -339,7 +341,8 @@ func (h *Handlers) StartMFAReset(w http.ResponseWriter, r *http.Request, res ten
 		return store.ErrInvalid
 	}
 	req.Reason, req.AllowRemember = "reset", false
-	pending := MFAPending{Requirement: req, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, ResetTicketHash: tk.TokenHash, ResetPageHash: secrets.HashToken(page), ResetResultURL: resultURL, ResetUserVersion: u.Version, ResetEmail: u.Email, ResetEmailVerified: u.EmailVerified}
+	hint, _ := r.Context().Value(passkeyLoginKey{}).(PasskeyLoginHint)
+	pending := MFAPending{PasskeyHint: hint, Requirement: req, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, ResetTicketHash: tk.TokenHash, ResetPageHash: secrets.HashToken(page), ResetResultURL: resultURL, ResetUserVersion: u.Version, ResetEmail: u.Email, ResetEmailVerified: u.EmailVerified}
 	p := map[string]string{ParamStage: StageMFA, "za_mfa_reset": "1"}
 	txn, err := h.createTxn(w, r, res, "", p, "/u", func(id string, p map[string]string) error {
 		plain, e := json.Marshal(pending)

@@ -45,10 +45,13 @@ func (s *Service) now() time.Time {
 type Purpose string
 
 const (
-	PasskeyRegister  Purpose = "passkey-register"
-	PasskeyLogin     Purpose = "passkey-login"
-	WebAuthnRegister Purpose = "webauthn-register"
-	WebAuthnAssert   Purpose = "webauthn-assert"
+	PasskeyRegister Purpose = "passkey-register"
+	// PasskeyProgressiveRegister and PasskeyLocalRegister bind post-login purposes.
+	PasskeyProgressiveRegister Purpose = "passkey-progressive-register"
+	PasskeyLocalRegister       Purpose = "passkey-local-register"
+	PasskeyLogin               Purpose = "passkey-login"
+	WebAuthnRegister           Purpose = "webauthn-register"
+	WebAuthnAssert             Purpose = "webauthn-assert"
 )
 
 // Binding contains only request values known before a challenge is taken.

@@ -4,15 +4,17 @@ import fs from "node:fs";
 import vm from "node:vm";
 const source = fs.readFileSync(new URL("webauthn.js", import.meta.url), "utf8");
 const tick = () => new Promise(resolve => setImmediate(resolve));
-function harness(mode = "both", supported = true, creation = false) {
+function harness(mode = "both", supported = true, creation = false, enrollment = "", platformSupported = true) {
   const calls = [], posts = [], listeners = {};
-  const form = {elements: {credential: {value: ""}, webauthn_error: {value: ""}}, submit() {posts.push({credential: this.elements.credential.value, error: this.elements.webauthn_error.value, action: this.action});}};
+  const skips = [];
+  const skip = {elements:{snooze:{checked:true}},submit(){skips.push({snooze:this.elements.snooze.checked});}};
+  const form = {action:enrollment ? "/u/passkey-enrollment"+(enrollment === "local" ? "-local" : "") : undefined,elements: {platform_available:{value:"0"},credential: {value: ""}, webauthn_error: {value: ""}}, submit() {posts.push({credential: this.elements.credential.value, error: this.elements.webauthn_error.value, action: this.action, ...(enrollment ? {platform:this.elements.platform_available.value} : {})});}};
   const button = {addEventListener(name, fn) {listeners.click = fn;}};
-  const pk = {isConditionalMediationAvailable: async () => true};
-  const data = {textContent: JSON.stringify({challenge_id: "id", publicKey: creation ? {challenge: "AQID", rp: {id:"a.test"}, user: {id:"BAU",name:"new@a.test",displayName:"New"}, excludeCredentials: [{type:"public-key",id:"Bgc"}]} : {challenge: "AQID", rpId: "a.test", allowCredentials: []}, mediation: mode, operation: creation ? "create" : undefined, action: creation ? "/u/signup/passkey" : undefined})};
-  const context = {Uint8Array, ArrayBuffer, AbortController, DOMException, atob, btoa, PublicKeyCredential: pk, window: supported ? {PublicKeyCredential: pk} : {}, navigator: {credentials: {create(options) {return new Promise((resolve, reject) => calls.push({options, resolve, reject}));}, get(options) {return new Promise((resolve, reject) => calls.push({options, resolve, reject}));}}}, document: {getElementById(id) {return id === "za-webauthn" ? data : id === "za-passkey-form" ? form : mode !== "autofill" ? button : null;}, addEventListener(name, fn) {listeners[name] = fn;}}};
+  const pk = {isConditionalMediationAvailable: async () => true, isUserVerifyingPlatformAuthenticatorAvailable: async () => platformSupported};
+  const data = {textContent: JSON.stringify({enrollment,challenge_id: "id", publicKey: creation ? {challenge: "AQID", rp: {id:"a.test"}, user: {id:"BAU",name:"new@a.test",displayName:"New"}, excludeCredentials: [{type:"public-key",id:"Bgc"}]} : {challenge: "AQID", rpId: "a.test", allowCredentials: []}, mediation: mode, operation: creation ? "create" : undefined, action: creation ? "/u/signup/passkey" : undefined})};
+  const context = {Uint8Array, ArrayBuffer, AbortController, DOMException, atob, btoa, PublicKeyCredential: pk, window: supported ? {PublicKeyCredential: pk} : {}, navigator: {credentials: {create(options) {return new Promise((resolve, reject) => calls.push({options, resolve, reject}));}, get(options) {return new Promise((resolve, reject) => calls.push({options, resolve, reject}));}}}, document: {getElementById(id) {return id === "za-webauthn" ? data : id === "za-passkey-form" ? form : id === "za-passkey-skip" ? (enrollment ? skip : null) : id === "za-passkey-button" && mode !== "autofill" ? button : null;}, addEventListener(name, fn) {listeners[name] = fn;}}};
   vm.runInNewContext(source, context);
-  return {calls, posts, listeners};
+  return {calls, posts, listeners, skips, form};
 }
 const credential = {id: "id", rawId: new Uint8Array([1]).buffer, type: "public-key", response: {clientDataJSON: new Uint8Array([2]).buffer, authenticatorData: new Uint8Array([3]).buffer, signature: new Uint8Array([4]).buffer, userHandle: new Uint8Array([5]).buffer}, getClientExtensionResults: () => ({})};
 test("button aborts conditional request and only current ceremony posts", async () => {
@@ -40,3 +42,7 @@ test("registration decodes creation options and posts attestation through the si
  const body=JSON.parse(h.posts[0].credential); assert.equal(body.response.attestationObject,"Aw"); assert.deepEqual(body.response.transports,["internal"]); assert.equal(body.response.signature,undefined);
 });
 test("plain password submit aborts creation and discards a late attestation",async()=>{const h=harness("button",true,true);h.listeners.click();h.listeners.submit();assert.equal(h.calls[0].options.signal.aborted,true);h.calls[0].resolve(credential);await tick();assert.equal(h.posts.length,0);});
+
+test("post-login creation keeps its bound progressive or local action",async()=>{for(const kind of ["progressive","local"]){const h=harness("button",true,true,kind);await tick();h.listeners.click();h.calls[0].resolve({...credential,authenticatorAttachment:"platform",response:{clientDataJSON:new Uint8Array([2]).buffer,attestationObject:new Uint8Array([3]).buffer}});await tick();assert.equal(h.posts[0].action,"/u/passkey-enrollment"+(kind==="local"?"-local":""));assert.equal(h.skips.length,0);}});
+test("unsupported enrollment auto-continues without snoozing",async()=>{for(const supported of [false,true]){const h=harness("button",supported,true,"local",false);await tick();assert.equal(h.skips.length,1);assert.equal(h.skips[0].snooze,false);assert.equal(h.calls.length,0);}});
+test("assertion reports platform capability alongside the verified response",async()=>{for (const available of [true, false]) {const h=harness("button",true,false,"",available);await tick();h.listeners.click();h.calls[0].resolve({...credential,authenticatorAttachment:"cross-platform"});await tick();assert.equal(JSON.parse(h.posts[0].credential).authenticatorAttachment,"cross-platform");assert.equal(h.form.elements.platform_available.value,available ? "1" : "0");}});

@@ -1,10 +1,30 @@
 (() => {
   "use strict";
   const data = document.getElementById("za-webauthn");
-  if (!data || !window.PublicKeyCredential || !navigator.credentials) return;
+  if (!data) return;
   const config = JSON.parse(data.textContent);
   const form = document.getElementById("za-passkey-form");
   const button = document.getElementById("za-passkey-button");
+  const skip = config.enrollment ? document.getElementById("za-passkey-skip") : null;
+  if (!window.PublicKeyCredential || !navigator.credentials) {
+    if (skip) {
+      skip.elements.snooze.checked = false;
+      skip.submit();
+    }
+    return;
+  }
+  let platformAvailable = false;
+  const platform = PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable;
+  const platformCheck = platform ? platform.call(PublicKeyCredential).catch(() => false) : Promise.resolve(false);
+  platformCheck.then(available => {
+    platformAvailable = available;
+    if (skip && !available && !submitted) {
+      submitted = true;
+      abort();
+      skip.elements.snooze.checked = false;
+      skip.submit();
+    }
+  });
   let pending = null;
   let generation = 0;
   let submitted = false;
@@ -31,7 +51,8 @@
     submitted = true;
     abort();
     form.elements[name].value = value;
-    form.action = config.operation === "create" ? "/u/signup/passkey" : "/u/login/passkey";
+    if (!config.enrollment) form.action = config.operation === "create" ? "/u/signup/passkey" : "/u/login/passkey";
+    if (form.elements.platform_available) form.elements.platform_available.value = platformAvailable ? "1" : "0";
     form.submit();
   }
   async function get(conditional) {
@@ -43,6 +64,8 @@
     try {
       const credential = await navigator.credentials[config.operation === "create" ? "create" : "get"]({publicKey: options(), signal: controller.signal, ...(conditional ? {mediation: "conditional"} : {})});
       if (serial !== generation || submitted || !credential) return;
+      platformAvailable = await platformCheck;
+      if (serial !== generation || submitted) return;
       const response = credential.response;
       const result = config.operation === "create" ? {clientDataJSON: encode(response.clientDataJSON), attestationObject: encode(response.attestationObject), transports: response.getTransports ? response.getTransports() : []} : {clientDataJSON: encode(response.clientDataJSON), authenticatorData: encode(response.authenticatorData), signature: encode(response.signature), userHandle: response.userHandle ? encode(response.userHandle) : null};
       post("credential", JSON.stringify({id: credential.id, rawId: encode(credential.rawId), type: credential.type, authenticatorAttachment: credential.authenticatorAttachment, response: result, clientExtensionResults: credential.getClientExtensionResults()}));

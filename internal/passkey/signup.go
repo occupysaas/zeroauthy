@@ -112,7 +112,7 @@ func (s *Service) RequestOptions(rpID string, ch []byte, timeout time.Duration) 
 }
 
 func (s *Service) registration(ctx context.Context, tid string, u *store.User, identityUserID string, raw []byte, taken *Taken, userAgent string) (*store.Authenticator, error) {
-	if u == nil || u.TenantID != tid || taken == nil || taken.Binding.Purpose != PasskeyRegister || taken.Binding.UserID != u.UserID || len(taken.UserHandle) != webauthnrules.Limits.UserHandleBytes || len(taken.Challenge) != webauthnrules.Limits.ChallengeBytes {
+	if u == nil || u.TenantID != tid || taken == nil || (taken.Binding.Purpose != PasskeyRegister && taken.Binding.Purpose != PasskeyProgressiveRegister && taken.Binding.Purpose != PasskeyLocalRegister) || taken.Binding.UserID != u.UserID || len(taken.UserHandle) != webauthnrules.Limits.UserHandleBytes || len(taken.Challenge) != webauthnrules.Limits.ChallengeBytes {
 		return nil, ceremonyError("challenge")
 	}
 	if u.Blocked {
@@ -131,6 +131,9 @@ func (s *Service) registration(ctx context.Context, tid string, u *store.User, i
 	r, err := webauthn.VerifyRegistration(c, webauthn.Expect{RPID: taken.Binding.RPID, Origins: taken.Binding.Origins, Challenge: taken.Challenge, RequireUV: params.EnforceUV})
 	if err != nil {
 		return nil, verificationError(err)
+	}
+	if taken.Binding.Purpose == PasskeyLocalRegister && r.Attachment != "platform" {
+		return nil, ceremonyError("key")
 	}
 	p := publicData{BackupEligible: r.BE, BackedUp: r.BS, AAGUID: formatAAGUID(r.AAGUID), UserAgent: userAgent, Transports: r.Transports, IdentityUserID: identityUserID, UserHandle: base64.RawURLEncoding.EncodeToString(taken.UserHandle), Attachment: r.Attachment}
 	pub, err := json.Marshal(p)

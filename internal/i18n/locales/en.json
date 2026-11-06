@@ -559,11 +559,20 @@
   "passkeys": {
     "passkey-enrollment": {
       "title": "Create a passkey",
-      "description": "Use your device to protect your new account.",
+      "description": "Use a passkey for a faster sign-in.",
       "createButtonText": "Create a passkey",
       "usePasswordButtonText": "Create a password",
       "backButtonText": "Back",
-      "passkey-enrollment-failure": "We could not create your passkey. Please try again."
+      "passkey-enrollment-failure": "We could not create your passkey. Please try again.",
+      "continueButtonText": "Continue without a passkey",
+      "checkboxText": "Wait 30 days before asking again"
+    },
+    "passkey-enrollment-local": {
+      "title": "Create a passkey on this device",
+      "description": "Save a passkey here for your next sign-in.",
+      "createButtonText": "Create a passkey",
+      "continueButtonText": "Continue without a passkey",
+      "checkboxText": "Wait 30 days before asking again"
     }
   }
 }

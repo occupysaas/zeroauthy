@@ -17,6 +17,7 @@
 <input type="hidden" name="challenge_id" value="{{.Data.Passkey.ChallengeID}}">
 <input type="hidden" name="credential" value="">
 <input type="hidden" name="webauthn_error" value="">
+<input type="hidden" name="platform_available" value="0">
 {{if ne .Data.Passkey.Mediation "autofill"}}<button id="za-passkey-button" type="button">{{t .Tenant.L "login-id.login-id.passkeyButtonText"}}</button>{{end}}
 {{end}}
 </form>

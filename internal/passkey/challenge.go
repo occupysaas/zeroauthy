@@ -73,7 +73,7 @@ func (s *Service) Issue(ctx context.Context, tid string, b Binding, ttl time.Dur
 		i.Session = token
 		i.ID = secrets.HashToken(token)
 	}
-	if b.Purpose == PasskeyRegister || b.Purpose == WebAuthnRegister {
+	if b.Purpose == PasskeyRegister || b.Purpose == PasskeyProgressiveRegister || b.Purpose == PasskeyLocalRegister || b.Purpose == WebAuthnRegister {
 		i.UserHandle, err = s.userHandle(ctx, tid, b.UserID)
 		if err != nil {
 			return nil, err
@@ -96,7 +96,7 @@ func (s *Service) Issue(ctx context.Context, tid string, b Binding, ttl time.Dur
 }
 func validBinding(b Binding) bool {
 	switch b.Purpose {
-	case PasskeyLogin, WebAuthnAssert, PasskeyRegister, WebAuthnRegister:
+	case PasskeyLogin, WebAuthnAssert, PasskeyRegister, PasskeyProgressiveRegister, PasskeyLocalRegister, WebAuthnRegister:
 	default:
 		return false
 	}

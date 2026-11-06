@@ -226,7 +226,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
@@ -337,6 +337,10 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/login/password", lg.LoginPasswordPost)
 		tr.Post("/u/login/identifier", lg.LoginIdentifierResetPost)
 		tr.Post("/u/login/passkey", lg.LoginPasskeyPost)
+		tr.Get("/u/passkey-enrollment", lg.PasskeyEnrollmentPage)
+		tr.Post("/u/passkey-enrollment", lg.PasskeyEnrollmentPost)
+		tr.Get("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPage)
+		tr.Post("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPost)
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)

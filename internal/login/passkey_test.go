@@ -68,6 +68,7 @@ func passkeyEnv(t *testing.T) (*env, *store.User, *webauthntest.Authenticator, *
 		t.Fatal(err)
 	}
 	e.h.Passkeys = passkey.NewService(e.st, rpid.Policy{}, fixedNow)
+	e.h.Authz.Passkeys = e.h.Passkeys
 	// Exercise the same HTTP dispatch and tenant middleware as the hosted fixtures.
 	original := e.srv
 	e.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

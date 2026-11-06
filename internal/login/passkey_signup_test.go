@@ -31,6 +31,14 @@ import (
 func signupPasskeyEnv(t *testing.T) (*env, *pwlEvents) {
 	t.Helper()
 	e, _, _, _ := passkeyEnv(t)
+	// These Task 10 tests isolate signup. Task 11 exercises the subsequent prompt.
+	ctx := context.Background()
+	tn := mustTenant(t, e, "acme")
+	conn, _ := e.st.Connections().GetByName(ctx, tn.ID, "Username-Password-Authentication")
+	conn.Extra["passkey_options"] = map[string]any{"progressive_enrollment_enabled": false}
+	if err := e.st.Connections().Update(ctx, conn); err != nil {
+		t.Fatal(err)
+	}
 	capture := &pwlEvents{}
 	e.h.Recorder = capture
 	original := e.srv
