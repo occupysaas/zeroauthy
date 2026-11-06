@@ -12,9 +12,16 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
-func (h *Handlers) event(r *http.Request, f *flow, code string, u *store.User) {
+func (h *Handlers) event(r *http.Request, f *flow, code string, u *store.User, methods ...string) {
 	e := logs.FromRequest(r)
 	e.Type = code
+	if code == "ss" {
+		method := "pwd"
+		if len(methods) > 0 {
+			method = methods[0]
+		}
+		e.Details = map[string]any{"authentication_methods": []string{method}}
+	}
 	if f != nil {
 		e.TenantID = f.res.Tenant.ID
 		e.ClientID = f.txn.ClientID

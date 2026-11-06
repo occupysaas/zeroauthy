@@ -1,0 +1,23 @@
+{{define "title"}}{{t .Tenant.L "signup-id.signup-id.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "signup-id.signup-id.description"}}{{end}}
+{{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+<form method="post" action="/u/signup/identifier" novalidate>
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{if .Data.HostedRevision}}<input type="hidden" name="hosted_revision" value="{{.Data.HostedRevision}}">{{end}}
+{{.Tenant.Partials.FormContentStart}}
+<label for="email">{{t .Tenant.L "signup.signup.emailPlaceholder"}}</label>
+<input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" {{if not .Data.PhoneEnabled}}required{{end}} autofocus>
+{{if .Data.EmailCodeEnabled}}<label for="email_code">{{t .Tenant.L "zeroauthy.phone.emailCodeLabel"}}</label><input id="email_code" name="email_code" inputmode="numeric" autocomplete="one-time-code">{{end}}
+{{if .Data.PhoneEnabled}}<label for="phone_number">{{t .Tenant.L "zeroauthy.phone.numberLabel"}}</label><input id="phone_number" name="phone_number" type="tel" value="{{.Data.PhoneNumber}}"><label for="phone_code">{{t .Tenant.L "zeroauthy.phone.phoneCodeLabel"}}</label><input id="phone_code" name="phone_code" inputmode="numeric" autocomplete="one-time-code">{{end}}
+{{if .Data.RequiresUsername}}<label for="username">{{t .Tenant.L "signup.signup.usernamePlaceholder"}}</label><input id="username" name="username" autocomplete="username" value="{{.Data.Username}}" required>{{end}}
+<label for="name">{{t .Tenant.L "signup-id.signup-id.nameLabel"}}</label><input id="name" name="name" autocomplete="name" maxlength="300" value="{{index .Data.Profile "name"}}">
+<label for="given_name">{{t .Tenant.L "signup-id.signup-id.givenNameLabel"}}</label><input id="given_name" name="given_name" autocomplete="given-name" maxlength="300" value="{{index .Data.Profile "given_name"}}">
+<label for="family_name">{{t .Tenant.L "signup-id.signup-id.familyNameLabel"}}</label><input id="family_name" name="family_name" autocomplete="family-name" maxlength="300" value="{{index .Data.Profile "family_name"}}">
+<label for="nickname">{{t .Tenant.L "signup-id.signup-id.nicknameLabel"}}</label><input id="nickname" name="nickname" autocomplete="nickname" maxlength="300" value="{{index .Data.Profile "nickname"}}">
+{{template "captcha" .}}
+{{.Tenant.Partials.FormContentEnd}}
+<button type="submit">{{t .Tenant.L "signup-id.signup-id.buttonText"}}</button>
+</form>
+{{end}}

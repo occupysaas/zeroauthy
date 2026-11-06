@@ -48,6 +48,9 @@ var (
 		"login_id":               parsePage("templates/layout.html", "templates/login_id.html"),
 		"login_password":         parsePage("templates/layout.html", "templates/login_password.html"),
 		"signup":                 parsePage("templates/layout.html", "templates/signup.html"),
+		"signup-id":              parsePage("templates/layout.html", "templates/signup_id.html"),
+		"signup-password":        parsePage("templates/layout.html", "templates/signup_password.html"),
+		"passkey-enrollment":     parsePage("templates/layout.html", "templates/passkey_enrollment.html"),
 		"consent":                parsePage("templates/layout.html", "templates/consent.html"),
 		"error":                  parsePage("templates/layout.html", "templates/error.html"),
 		"logout_confirm":         parsePage("templates/layout.html", "templates/logout_confirm.html"),
@@ -174,6 +177,7 @@ type SocialButton struct {
 
 // WebAuthnData is public ceremony configuration; JSON encoding escapes HTML.
 type WebAuthnData struct {
+	Operation   string          `json:"operation,omitempty"`
 	ChallengeID string          `json:"challenge_id"`
 	PublicKey   json.RawMessage `json:"publicKey"`
 	Mediation   string          `json:"mediation"`
@@ -193,6 +197,8 @@ func RenderLoginPassword(w http.ResponseWriter, status int, t Tenant, d LoginSta
 }
 
 type SignupData struct {
+	Profile                      map[string]string
+	Passkey                      *WebAuthnData
 	EmailCodeEnabled             bool
 	PhoneEnabled                 bool
 	PhoneNumber                  string
@@ -217,6 +223,10 @@ func RenderLogin(w http.ResponseWriter, status int, t Tenant, d LoginData) {
 
 func RenderSignup(w http.ResponseWriter, status int, t Tenant, d SignupData) {
 	render(w, status, "signup", t, d, formActionFor(d.RedirectURI))
+}
+
+func RenderSignupStage(w http.ResponseWriter, status int, stage string, t Tenant, d SignupData) {
+	render(w, status, stage, t, d, formActionFor(d.RedirectURI))
 }
 
 type errorData struct{ Message, Detail, Reference string }

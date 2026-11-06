@@ -16,6 +16,9 @@ import (
 )
 
 type Attempt struct {
+	// RegistrationAdmitted is set only after a hosted caller validates its
+	// server-owned, single-use signup admission. Other flows ignore it.
+	RegistrationAdmitted bool
 	Tenant               *store.Tenant
 	Connection           *store.Connection
 	Identifier, IP, Flow string
@@ -100,7 +103,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	// Social flows and passkey failures use the suspicious-IP budgets only:
 	// no identifier lookup and no password brute-force reservation.
 	social := a.Flow == "social-login" || a.Flow == "social-signup" || a.Flow == "passkey-login-failure"
-	if (a.Flow == "login" || a.Flow == "signup" || social || discovery) && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
+	if (a.Flow == "login" || a.Flow == "signup" || social || discovery) && !(a.Flow == "signup" && a.RegistrationAdmitted) && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
 		if slices.Contains(p.SuspiciousIP.Shields, "block") {
 			kind, rate := store.ProtectionSuspiciousIPLogin, p.SuspiciousIP.Stage.PreLogin
 			if a.Flow == "signup" || a.Flow == "social-signup" {

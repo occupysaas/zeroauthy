@@ -126,9 +126,13 @@ func (h *Handlers) renderSignup(w http.ResponseWriter, r *http.Request, status i
 	data.EmailCodeEnabled = h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "verify_email_by_code")
 	data.PhoneEnabled = store.PhoneIdentifierActive(f.conn) && store.PhoneSignupStatus(f.conn) != "not_allowed"
 	data.PhoneNumber = r.PostForm.Get("phone_number")
-	if !h.prepareHostedForm(w, r, f, "signup", "signup") {
+	if !h.prepareHostedForm(w, r, f, signupPrompt(f), signupPrompt(f)) {
 		return
 	}
 	data.HostedRevision = hostedRevision(f)
-	ui.RenderSignup(w, status, f.view, data)
+	if signupPrompt(f) == signupPasswordStep {
+		ui.RenderSignupStage(w, status, signupPasswordStep, f.view, data)
+	} else {
+		ui.RenderSignup(w, status, f.view, data)
+	}
 }

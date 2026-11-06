@@ -2691,3 +2691,36 @@ self-signed `https://spike.e2e.test` origin with `ignoreHTTPSErrors` alone;
 `--ignore-certificate-errors-spki-list` was not needed
 (`tests/e2e/m33b-spike.spec.mjs`). Autofill is therefore covered by browser
 tests in Tasks 9 and 19.
+
+**Task 10 execution rulings (hosted signup, 2026-11-06).** LR33b-15/32/36
+and R3 use existing no-user `MFAChallenge` metadata for a bounded immutable
+signup draft, with a random namespaced ID, stable prospective user ID,
+transaction/browser/connection binding and the authorization's original
+expiry. Draft profile state supplies the password fallback as well as passkey
+registration; posted profiles and authorization parameters cannot replace it.
+Cost: draft rows remain until expiry/purge, including drafts abandoned by
+back navigation. Registration still consumes the Task 8 service's trusted
+`Taken` and offered handle; metadata is never accepted as browser authority.
+
+The registration admission is paid before the first existence lookup. A
+separate bound row gives the first actual credential attempt a single-use
+credit for that paid admission. CAPTCHA rejection leaves the credit intact;
+it is never recreated after deletion. Concurrent consumers have one winner;
+a loser reserves normally before credential checks. A changed IP discards
+the old credit and uses its own current budget. The in-process protection
+admission flag applies only to signup's registration reservation and comes
+only from trusted server metadata; it is not a request or seed field. Cost:
+one additional expiring metadata row, with explicit conditional consumption
+and normal charging for later actual failures. This prevents a capacity-one
+budget from blocking the plain password fallback after identifier entry.
+
+Producer dependencies pulled forward with controller approval: activate
+`gd_webauthn_enrollment_failed` only at the hosted first-factor signup
+failure boundary; intercept atomic `CreateUserWithPasskey` in the events
+store decorator so `user.created` commits or rolls back with the user and
+credential. Preserve WebAuthn capability forwarding through that decorator.
+No other passkey mutation emits `user.updated`. Cost: these small Task 16
+and producer integrations land with their first consumer. Storage conflicts
+are classified after rollback: only canonical identifier collisions receive
+the budget-protected existence answer; credential-only collisions retain a
+bounded, generic ceremony failure.

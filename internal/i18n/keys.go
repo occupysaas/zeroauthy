@@ -8,6 +8,7 @@ const KeyPasswordPolicyAlias = "signup.signup.password-policy-not-conformant"
 
 // Keys used from Go code. The catalog test checks each exists in en.json.
 const (
+	KeyPasskeyEnrollmentFailure      = "passkeys.passkey-enrollment.passkey-enrollment-failure"
 	KeyPasskeyAuthenticationFailed   = "login-id.login-id.passkey-authentication-failed"
 	KeyPasskeyNotAllowed             = "login-id.login-id.passkey-not-allowed"
 	KeyNoPasskey                     = "login-id.login-id.no-passkey"

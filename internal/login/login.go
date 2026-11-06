@@ -563,6 +563,10 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
+	if h.signupStagePage(w, r, f) {
+		return
+	}
+
 	if !organizationSignupAllowed(f) {
 		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
 		return
@@ -578,10 +582,23 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/u/signup/identifier" {
+		h.SignupIdentifierPost(w, r)
+		return
+	}
+	if r.URL.Path == "/u/signup/passkey" {
+		h.SignupPasskeyPost(w, r)
+		return
+	}
+
 	f, ok := h.postedFlow(w, r)
 	if !ok {
 		return
 	}
+	if !h.signupPasswordGate(w, r, f) {
+		return
+	}
+
 	*r = *r.WithContext(logscrub.WithCredentials(r.Context(), identity.EffectivePassword(f.conn, r.PostForm.Get("password"))))
 	h.withFlowEvent(r, f)
 	code := "fs"
@@ -597,7 +614,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
 		RedirectURI: f.txn.Params["redirect_uri"],
 	}
-	if !h.guardHostedForm(w, r, f, "signup", "signup", func(status int, message string) { data.Error = message; h.renderSignup(w, r, status, f, data) }) {
+	if !h.guardHostedForm(w, r, f, signupPrompt(f), signupPrompt(f), func(status int, message string) { data.Error = message; h.renderSignup(w, r, status, f, data) }) {
 		return
 	}
 	// Missing required fields are malformed forms, not registration attempts.
@@ -626,8 +643,17 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		h.renderSignup(w, r, http.StatusBadRequest, f, data)
 		return
 	}
+	var credit *store.MFAChallenge
+	if f.txn.HostedState.Step == signupPasswordStep {
+		var err error
+		credit, err = h.peekSignupAdmission(r, f)
+		if err != nil {
+			h.fail(w, r, err, f)
+			return
+		}
+	}
 	svc := h.protectionService()
-	decision, err := svc.Begin(r.Context(), protection.Attempt{Tenant: f.res.Tenant, Connection: f.conn, Identifier: email, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "signup"})
+	decision, err := svc.Begin(r.Context(), protection.Attempt{Tenant: f.res.Tenant, Connection: f.conn, Identifier: email, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "signup", RegistrationAdmitted: credit != nil})
 	if err != nil {
 		h.fail(w, r, err, f)
 		return
@@ -647,6 +673,32 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		data.Error = f.view.L.T(key)
 		h.renderSignup(w, r, status, f, data)
 		return
+	}
+
+	if credit != nil {
+		admitted, err := h.consumeSignupAdmission(r, f, credit)
+		if err != nil {
+			h.fail(w, r, err, f)
+			return
+		}
+		if !admitted {
+			// A concurrent attempt spent this credit after our initial policy check.
+			// Reserve normally before any password or breached-password work.
+			if err := svc.Finish(r.Context(), decision.Receipt, "refund"); err != nil {
+				h.fail(w, r, err, f)
+				return
+			}
+			decision, err = svc.Begin(r.Context(), protection.Attempt{Tenant: f.res.Tenant, Connection: f.conn, Identifier: email, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "signup"})
+			if err != nil {
+				h.fail(w, r, err, f)
+				return
+			}
+			if !decision.Allowed {
+				data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
+				h.renderSignup(w, r, 429, f, data)
+				return
+			}
+		}
 	}
 
 	// Registration spends its token regardless of the credential outcome.
@@ -672,67 +724,28 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		h.renderSignup(w, r, status, f, data)
 		return
 	}
-	var callbacks identity.SignupActions
-	if h.Actions != nil {
-		client, err := h.Store.Clients().Get(r.Context(), f.res.Tenant.ID, f.txn.ClientID)
-		if err != nil {
-			h.fail(w, r, err, f)
-			return
-		}
-		body := map[string]any{}
-		for k, v := range r.PostForm {
-			if len(v) == 1 {
-				body[k] = v[0]
-			} else {
-				body[k] = v
-			}
-		}
-		input := signupactions.Input(r, f.res, client, f.conn, body, h.TrustProxyHeaders)
-		p := f.txn.Params
-		input = signupactions.WithOrganization(input, f.org.Org)
-		input.Transaction = &actions.TransactionInfo{ID: f.txn.ID, Locale: f.view.L.Lang(), Protocol: actions.ProtocolOIDCBasicProfile, RedirectURI: p["redirect_uri"], RequestedScopes: strings.Fields(p["scope"]), ResponseMode: p["response_mode"], ResponseType: p["response_type"], State: p["state"], UILocales: p["ui_locales"], Prompt: p["prompt"], LoginHint: p["login_hint"], ACRValues: p["acr_values"]}
-		callbacks = signupactions.Callbacks(h.Store, h.Actions, input)
-	} else {
-		callbacks = signupactions.Callbacks(h.Store, nil, actions.RegistrationInput{Tenant: f.res})
-	}
-	callbacks.Commit = func(ctx context.Context, tx store.Store, u *store.User) error {
-		oc, e := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
-		if e != nil {
-			return e
-		}
-		if oc.Org != nil {
-			link, e := tx.Organizations().GetConnection(ctx, oc.Org.TenantID, oc.Org.ID, f.conn.ID)
-			if e != nil {
-				return e
-			}
-			if (link.IsEnabledSet && !link.IsEnabled) || !link.IsSignupEnabled || (!link.AssignMembershipOnLogin && f.txn.Params[orglogin.InvitationIDParam] == "") {
-				return identity.ErrSignupDisabled
-			}
-		}
-		if oc.Org != nil {
-			if err := orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID); err != nil {
-				return err
-			}
-		}
-		if f.txn.Params[orglogin.InvitationIDParam] != "" {
-			cur, err := tx.AuthTransactions().Get(ctx, f.res.Tenant.ID, f.txn.ID)
-			if err != nil {
-				return err
-			}
-			cur.Params[orglogin.InvitationSignupParam] = "1"
-			return orglogin.SaveInvitationTransaction(ctx, tx, cur, h.now())
-		}
-		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+	callbacks, ok := h.signupCallbacks(w, r, f)
+	if !ok {
+		return
 	}
 
 	emailCodeVerified, phoneVerified := false, false
+	if f.txn.HostedState.Step == signupPasswordStep {
+		draft, e := h.loadSignupDraft(r, f)
+		if e != nil {
+			h.fail(w, r, errTxn, f)
+			return
+		}
+		emailCodeVerified = draft.User.EmailVerified
+		phoneVerified = draft.User.PhoneVerified
+	}
 	phoneNumber := r.PostForm.Get("phone_number")
 	type signupCode struct{ identifier, field string }
 	var proofs []signupCode
-	if email != "" && h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "verify_email_by_code") {
+	if !emailCodeVerified && email != "" && h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "verify_email_by_code") {
 		proofs = append(proofs, signupCode{email, "email_code"})
 	}
-	if store.PhoneIdentifierActive(f.conn) && store.PhoneSignupVerification(f.conn) && phoneNumber != "" {
+	if !phoneVerified && store.PhoneIdentifierActive(f.conn) && store.PhoneSignupVerification(f.conn) && phoneNumber != "" {
 		proofs = append(proofs, signupCode{phoneNumber, "phone_code"})
 	}
 	missing := false
@@ -769,6 +782,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
 		EmailVerified: emailCodeVerified, PhoneNumber: phoneNumber, PhoneVerified: phoneVerified, ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,
+		GivenName: r.PostForm.Get("given_name"), FamilyName: r.PostForm.Get("family_name"), Name: r.PostForm.Get("name"), Nickname: r.PostForm.Get("nickname"), Picture: r.PostForm.Get("picture"),
 	})
 	if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
 		h.fail(w, r, riskErr, f)
@@ -889,4 +903,73 @@ func breachFailure(err error, status int) (int, string) {
 		return status, i18n.KeyPasswordLeaked
 	}
 	return http.StatusServiceUnavailable, i18n.KeyBreachUnavailable
+}
+
+func (h *Handlers) signupCallbacks(w http.ResponseWriter, r *http.Request, f *flow) (identity.SignupActions, bool) {
+	var callbacks identity.SignupActions
+	if h.Actions != nil {
+		client, err := h.Store.Clients().Get(r.Context(), f.res.Tenant.ID, f.txn.ClientID)
+		if err != nil {
+			h.fail(w, r, err, f)
+			return callbacks, false
+		}
+		body := map[string]any{}
+		for k, v := range r.PostForm {
+			if r.URL.Path == "/u/signup/passkey" {
+				allowed := false
+				for _, field := range signupProfileFields {
+					if k == field {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					continue
+				}
+			}
+			if len(v) == 1 {
+				body[k] = v[0]
+			} else {
+				body[k] = v
+			}
+		}
+		input := signupactions.Input(r, f.res, client, f.conn, body, h.TrustProxyHeaders)
+		p := f.txn.Params
+		input = signupactions.WithOrganization(input, f.org.Org)
+		input.Transaction = &actions.TransactionInfo{ID: f.txn.ID, Locale: f.view.L.Lang(), Protocol: actions.ProtocolOIDCBasicProfile, RedirectURI: p["redirect_uri"], RequestedScopes: strings.Fields(p["scope"]), ResponseMode: p["response_mode"], ResponseType: p["response_type"], State: p["state"], UILocales: p["ui_locales"], Prompt: p["prompt"], LoginHint: p["login_hint"], ACRValues: p["acr_values"]}
+		callbacks = signupactions.Callbacks(h.Store, h.Actions, input)
+	} else {
+		callbacks = signupactions.Callbacks(h.Store, nil, actions.RegistrationInput{Tenant: f.res})
+	}
+	callbacks.Commit = func(ctx context.Context, tx store.Store, u *store.User) error {
+		oc, e := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
+		if e != nil {
+			return e
+		}
+		if oc.Org != nil {
+			link, e := tx.Organizations().GetConnection(ctx, oc.Org.TenantID, oc.Org.ID, f.conn.ID)
+			if e != nil {
+				return e
+			}
+			if (link.IsEnabledSet && !link.IsEnabled) || !link.IsSignupEnabled || (!link.AssignMembershipOnLogin && f.txn.Params[orglogin.InvitationIDParam] == "") {
+				return identity.ErrSignupDisabled
+			}
+		}
+		if oc.Org != nil {
+			if err := orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID); err != nil {
+				return err
+			}
+		}
+		if f.txn.Params[orglogin.InvitationIDParam] != "" {
+			cur, err := tx.AuthTransactions().Get(ctx, f.res.Tenant.ID, f.txn.ID)
+			if err != nil {
+				return err
+			}
+			cur.Params[orglogin.InvitationSignupParam] = "1"
+			return orglogin.SaveInvitationTransaction(ctx, tx, cur, h.now())
+		}
+		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+	}
+
+	return callbacks, true
 }

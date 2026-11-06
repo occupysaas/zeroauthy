@@ -538,5 +538,32 @@
       "logoAltText": "${companyName}",
       "invalid-code": "That code is wrong or has expired. Check it or ask for a new one."
     }
+  },
+  "signup-id": {
+    "signup-id": {
+      "title": "Create your account",
+      "description": "Enter your details to continue.",
+      "nameLabel": "Full name",
+      "givenNameLabel": "Given name",
+      "familyNameLabel": "Family name",
+      "nicknameLabel": "Nickname",
+      "buttonText": "Continue"
+    }
+  },
+  "signup-password": {
+    "signup-password": {
+      "title": "Choose a password",
+      "description": "Create a password for your account."
+    }
+  },
+  "passkeys": {
+    "passkey-enrollment": {
+      "title": "Create a passkey",
+      "description": "Use your device to protect your new account.",
+      "createButtonText": "Create a passkey",
+      "usePasswordButtonText": "Create a password",
+      "backButtonText": "Back",
+      "passkey-enrollment-failure": "We could not create your passkey. Please try again."
+    }
   }
 }

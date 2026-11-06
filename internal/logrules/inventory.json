@@ -1741,14 +1741,20 @@
       "type": "gd_webauthn_enrollment_failed",
       "description": "The browser could not complete WebAuthn registration.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/gd-webauthn-enrollment-failed",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
+      "triggers": [
+        {
+          "file": "internal/login/passkey_signup.go",
+          "function": "signupEnrollmentFailure",
+          "when": "Hosted first-factor passkey signup registration fails."
+        }
+      ],
+      "status": "emitted",
       "owner": "Plan 33b"
     },
     {
