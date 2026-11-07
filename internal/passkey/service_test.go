@@ -434,3 +434,23 @@ func TestLinkedAccountHandles(t *testing.T) {
 		}
 	}
 }
+
+// TestEffectiveWithoutHostedLoginConfig: a tenant whose hosted login settings
+// were never written (the system tenant, a fresh tenant) has the default
+// prompts. Passkeys are then simply not effective; a login must not fail.
+func TestEffectiveWithoutHostedLoginConfig(t *testing.T) {
+	s, _ := fixture(t)
+	ctx := context.Background()
+	must(t, s.Store.Tenants().Create(ctx, &store.Tenant{ID: "fresh", Name: "fresh", CanonicalHost: "fresh.example.test"}))
+	conn := &store.Connection{TenantID: "fresh", ID: "fresh-db", Name: "Database", Strategy: store.StrategyDatabase, Extra: map[string]any{"authentication_methods": map[string]any{"passkey": map[string]any{"enabled": true}}}}
+	must(t, s.Store.Connections().Create(ctx, conn))
+	tn, err := s.Store.Tenants().Get(ctx, "fresh")
+	must(t, err)
+	p, r, ok, err := s.Effective(ctx, "fresh", tenant.Resolved{Tenant: tn, Host: tn.CanonicalHost}, conn)
+	if err != nil {
+		t.Fatalf("effective without hosted login config: %v", err)
+	}
+	if ok || p.Effective || !p.Enabled || !r.Valid {
+		t.Fatalf("effective = %+v %+v %v; want stored-only, not offered", p, r, ok)
+	}
+}

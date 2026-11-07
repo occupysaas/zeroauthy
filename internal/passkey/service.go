@@ -118,11 +118,17 @@ func (s *Service) Effective(ctx context.Context, tid string, res tenant.Resolved
 	if res.Tenant == nil || res.Tenant.ID != tid || conn == nil || conn.TenantID != tid {
 		return connrules.PasskeyPolicy{}, rpid.Result{}, false, ErrCeremony
 	}
+	// A tenant whose hosted login settings were never written has the default
+	// prompts (no identifier first): passkeys are stored-only, not an error.
+	var prompts map[string]any
 	cfg, err := s.Store.HostedLogins().Get(ctx, tid)
-	if err != nil {
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return connrules.PasskeyPolicy{}, rpid.Result{}, false, err
 	}
-	p, _ := connrules.Passkeys(conn, cfg.Prompts)
+	if cfg != nil {
+		prompts = cfg.Prompts
+	}
+	p, _ := connrules.Passkeys(conn, prompts)
 	policy := s.RPID
 	policy.Store = s.Store
 	rp, err := policy.For(ctx, res)
