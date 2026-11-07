@@ -1084,3 +1084,17 @@ func TestPasskeyGrantMFARequiredOrganization(t *testing.T) {
 		})
 	}
 }
+
+// Without webauthn.v1 the native endpoints answer 404 on every host,
+// including the canonical host that would otherwise get a 400 for lacking a
+// custom domain: an old plugin must look exactly like "no passkey API".
+func TestPasskeyEndpointsUnavailableOnCanonicalHost(t *testing.T) {
+	for _, path := range []string{"/passkey/register", "/passkey/challenge"} {
+		f, _ := nativeFixture(t)
+		f.h.Store = nativeUnavailable{f.st}
+		w, b := f.native(t, path, "acme.example.test", nativeBody(), false)
+		if w.Code != 404 || b["error"] != "not_found" || len(b) != 1 {
+			t.Fatalf("%s: %d %v", path, w.Code, b)
+		}
+	}
+}

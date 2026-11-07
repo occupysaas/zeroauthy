@@ -45,6 +45,22 @@ func (h *Handlers) nativeSetup(ctx context.Context, res tenant.Resolved, c *stor
 	if h.Passkeys == nil {
 		return nil, rpid.Result{}, nil, passkeyNotFound()
 	}
+	// Capability first: without webauthn.v1 every host answers 404, the
+	// canonical host included.
+	if cap, ok := h.Store.(store.WebAuthnSupporter); ok {
+		if err := cap.CheckWebAuthnSupport(ctx); errors.Is(err, store.ErrWebAuthnUnavailable) {
+			return nil, rpid.Result{}, nil, passkeyNotFound()
+		} else if err != nil {
+			return nil, rpid.Result{}, nil, serverError()
+		}
+		if !cap.WebAuthnSupported() {
+			return nil, rpid.Result{}, nil, passkeyNotFound()
+		}
+	}
+	switch h.Store.WebAuthn().(type) {
+	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
+		return nil, rpid.Result{}, nil, passkeyNotFound()
+	}
 	policy := h.Passkeys.RPID
 	policy.Store = h.Store
 	rp, err := policy.For(ctx, res)
@@ -56,20 +72,6 @@ func (h *Handlers) nativeSetup(ctx context.Context, res tenant.Resolved, c *stor
 	}
 	if rp.Kind == rpid.KindCanonical || !rp.Valid {
 		return nil, rp, nil, invalidRequest("Passkeys require a usable custom domain")
-	}
-	if cap, ok := h.Store.(store.WebAuthnSupporter); ok {
-		if err := cap.CheckWebAuthnSupport(ctx); errors.Is(err, store.ErrWebAuthnUnavailable) {
-			return nil, rp, nil, passkeyNotFound()
-		} else if err != nil {
-			return nil, rp, nil, serverError()
-		}
-		if !cap.WebAuthnSupported() {
-			return nil, rp, nil, passkeyNotFound()
-		}
-	}
-	switch h.Store.WebAuthn().(type) {
-	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
-		return nil, rp, nil, passkeyNotFound()
 	}
 	cfg, err := h.Store.HostedLogins().Get(ctx, res.Tenant.ID)
 	if errors.Is(err, store.ErrNotFound) {
