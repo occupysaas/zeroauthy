@@ -330,18 +330,30 @@ func (h *Handlers) nativeProfile(ctx context.Context, res tenant.Resolved, conn 
 	}
 	metadata := map[string]any{}
 	if raw := form.Get("user_metadata"); raw != "" {
-		var m map[string]string
+		var m map[string]any
 		if json.Unmarshal([]byte(raw), &m) != nil || m == nil || len(m) > 10 {
 			return nil, invalidRequest("user_metadata must contain at most ten string fields")
 		}
 		for k, v := range m {
-			metadata[k] = v
+			text, ok := v.(string)
+			if !ok {
+				return nil, invalidRequest("user_metadata must contain at most ten string fields")
+			}
+			metadata[k] = text
 		}
 	}
 	in := identity.SignupInput{Email: profile["email"], Username: profile["username"], PhoneNumber: profile["phone_number"], Name: profile["name"], GivenName: profile["given_name"], FamilyName: profile["family_name"], Nickname: profile["nickname"], Picture: profile["picture"], UserMetadata: metadata}
 	email, username, err := identity.CheckSignupProfile(conn, in)
 	if err != nil {
 		return nil, invalidRequest("Invalid signup profile")
+	}
+	// The legacy helper clears optional usernames. Flexible identifier policy
+	// independently enables them, so validate and retain the normalized value.
+	if store.IdentifierActive(conn, "username") && in.Username != "" {
+		username = identity.NormalizeLogin(in.Username)
+		if err := identity.CheckUsername(conn, username); err != nil {
+			return nil, invalidRequest("Invalid signup profile")
+		}
 	}
 	// Enforce every explicit flexible signup identifier, including email/username.
 	for _, name := range []string{"email", "username", "phone_number"} {

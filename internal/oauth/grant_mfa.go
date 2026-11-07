@@ -88,7 +88,9 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 		}
 		phoneEnroll = len(methods) > 0
 	}
-	req, err := mfa.Decide(mfa.DecideInput{PhoneEnroll: phoneEnroll, Settings: g, Effects: effect, User: u, Authenticators: list, CustomizeInActions: customize, MFAAPI: aud != "" && h.isMFAAudience(ctx, res.Tenant.ID, aud)})
+	// Native cannot offer WebAuthn MFA, but an enrolled key at its valid RP
+	// still requires another existing proof. Availability must not erase ownership.
+	req, err := mfa.Decide(mfa.DecideInput{WebAuthn: mfa.WebAuthnCapabilities{RPID: flow.RPID}, PhoneEnroll: phoneEnroll, Settings: g, Effects: effect, User: u, Authenticators: list, CustomizeInActions: customize, MFAAPI: aud != "" && h.isMFAAudience(ctx, res.Tenant.ID, aud)})
 	if err != nil {
 		return accessDenied("multifactor authentication is unavailable")
 	}

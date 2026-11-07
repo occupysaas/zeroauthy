@@ -29,6 +29,8 @@ import (
 // firstFactorTokens preserves the initial factor and organization through a
 // sealed MFA continuation and the normal user-token/refresh issuance path.
 type firstFactorTokens struct {
+	// RPID scopes enrolled MFA keys independently of native factor availability.
+	RPID         string
 	Passkey      bool
 	Organization *store.Organization
 	ConnectionID string
@@ -284,7 +286,7 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 		}
 	}
 	ceiling := actions.CeilingOf(d.Scopes, before)
-	flow := firstFactorTokens{Passkey: true, Organization: org, ConnectionID: conn.ID}
+	flow := firstFactorTokens{Passkey: true, Organization: org, ConnectionID: conn.ID, RPID: rp.RPID}
 	if required := h.passwordMFA(ctx, res, c, user, conn, aud, d.Scopes, ceiling, eff, now, flow); required != nil {
 		return nil, required
 	}

@@ -857,3 +857,51 @@ current-policy mint checks, association HTTP routing/cache and generation. No
 known remaining Task15 finding. One implementer monitored blocking waits; no new
 agents, full-repository suite, broad E2E, push or merge. Later Task19 SQL matrix,
 real-browser/native hardware acceptance remains deferred and is not passing.
+
+### Task15 review1 — native MFA RP scope and flexible signup values
+
+Base `34aa5812a7ef3f38ed1bad004b6c79a9e9dae231`. Both Important findings and
+the related metadata type minor were reproduced through native endpoints before
+production changes. Native confidence MFA lacked the effective RP scope, so an
+owned WebAuthn MFA key could be treated as no enrollment and tokens issued.
+The internal native first-factor call now supplies its already-validated effective
+RP to mfa.Decide while Available stays false. An owned key requires an existing
+native alternate/recovery proof or fails closed; foreign-RP keys do not count.
+The native capability gate still refuses unavailable WebAuthn earlier. No RP wire,
+persisted, token claim or Actions field is added; no native MFA method is expanded.
+
+The native signup adapter now independently normalizes and validates an active
+flexible username when RequiresUsername=false, preserving it for existence checks
+and atomic signup. Legacy shared helper behavior and inactive/required checks stay
+intact. Native metadata requires actual JSON string values, rejecting null in both
+JSON and form bodies while accepting valid empty strings. Costs/rulings in D-0062:
+one internal RP value and local validation; no schema/store/plugin/generated or
+extra lookup change. Regression proves actual passkey token responses, required
+OTP/recovery completion, actual username credential signup and username lookup.
+
+All Go commands use `GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp
+GOTMPDIR=/mnt/nvme2/tmp`, `-count=1 -timeout=15m`. Evidence in task-15-report.md
+and task-15-review1 named logs/exits/scripts under the existing SDD directory.
+Focused RED command:
+`go test -json ./internal/oauth -run '^TestPasskey(MFAConfidenceRP|FlexibleUsername|MetadataStringValues)$' -count=1 -timeout=15m`.
+Initial60361 exit1,16PASS/12FAIL included one OTP fixture expectation missing its
+generated enabled recovery fallback; disclosed and corrected without production
+change. Corrected RED89455 exit1,17PASS/11FAIL (including parents), exact tree
+`56064bcb7acb58b3f31460acbf63fe0b34d5dc74`: owned roaming/platform/recovery MFA
+bypasses; dropped/unvalidated/existing flexible usernames; JSON/form null metadata.
+Foreign-RP/capability absence/OTP alternate/missing/inactive/type controls passed.
+
+Final source/test tree `1d776a1877360f7636351aef040cdeb2eb274705`, unchanged:
+- focused GREEN48466, same command, actual exit0,28PASS/no failures/skips.
+- sequential chain99784, affected:
+  `go test -json ./internal/oauth -run 'Passkey|NativeOrigin|MFA|^TestAssociateOTPThenOTPGrant$|^TestAssociateEmailOOBAndGrant$|^TestRecoveryCodeGrantReturnsNewCode$|^TestActionsBodyStripsEveryGrant$' -count=1 -timeout=15m`, actual exit0,191PASS/no failures/skips.
+- same chain, scoped race:
+  `go test -race -json ./internal/oauth -run 'Passkey|NativeOrigin|^TestMFAConcurrentTokenConsumption$|^TestMFAProofTransactionRollback$' -count=1 -timeout=15m`, actual exit0,115PASS/no failures/skips/race reports.
+Chain actual exit0. Source comparison to verified tree is empty; gofmt and staged/
+unstaged diff checks pass. Self-review confirmed effective RP comes only from
+nativeSetup, availability stays false, no serialization leaks, existing proof or
+fail-closed behavior, foreign/capability gates, username normalization/validation/
+existence/atomic persistence, inactive behavior and strict metadata string values.
+IMPLEMENTATION VERIFIED / SCOPED RE-REVIEW PENDING. Controller owns acceptance.
+No subagents, SQL rerun, unchanged-package/broad/full repository suite, push or
+merge. Earlier Task15 evidence and Task19 deferrals retain their original status.

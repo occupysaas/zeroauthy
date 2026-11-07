@@ -3016,3 +3016,24 @@ fixture ruling, only its disposable SQLite DSN uses `synchronous(OFF)`. The real
 file/WAL, 20-second context, transaction barrier and all revocation assertions
 remain intact. Production settings are unchanged. Cost: this fixture does not
 exercise crash durability, which its policy-serialization assertions do not claim.
+
+Task15 review1 clarification: native MFA does not offer WebAuthn challenge types,
+but the current valid RP ID still scopes ownership of enrolled WebAuthn MFA keys.
+The passkey grant carries its already-resolved effective RP in its internal
+first-factor call to the shared MFA decision; availability remains false. Under
+confidence policy, an owned current-RP key therefore requires an existing native
+alternate or recovery proof, or fails closed. A foreign-RP key does not establish
+current-RP enrollment. Native capability absence still refuses the native API
+before first-factor verification. Cost: one internal request value, no persisted,
+wire, Actions or token claim field, and no expansion of native MFA methods.
+
+Native signup preserves and validates a normalized active flexible username even
+when the independent legacy RequiresUsername flag is false. Required/forbidden
+signup checks still use the submitted profile, and the normalized username now
+reaches existence lookup and atomic credential signup. Inactive usernames remain
+refused. The legacy shared signup helper is unchanged; this is scoped native
+integration. Native metadata values are checked as actual JSON strings, so null
+cannot become an empty string through map[string]string decoding. Both JSON and
+form encodings follow the same check; ordinary empty strings remain permitted.
+Cost: a local normalization/validation step and strict value type check, with no
+schema, store or generated adapter change.
