@@ -179,6 +179,7 @@ type SocialButton struct {
 // WebAuthnData is public ceremony configuration; JSON encoding escapes HTML.
 type WebAuthnData struct {
 	Enrollment  string          `json:"enrollment,omitempty"`
+	MFA         bool            `json:"mfa,omitempty"`
 	Operation   string          `json:"operation,omitempty"`
 	ChallengeID string          `json:"challenge_id"`
 	PublicKey   json.RawMessage `json:"publicKey"`

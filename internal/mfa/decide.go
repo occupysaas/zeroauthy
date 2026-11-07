@@ -15,6 +15,7 @@ type Requirement struct {
 	Reason                                        string
 	SelectFactor                                  bool
 	PhonePreferredMethod                          string
+	DetectWebAuthn                                bool
 }
 type DecideInput struct {
 	Settings                   *store.GuardianSettings
@@ -30,6 +31,7 @@ type DecideInput struct {
 	// A user with a usable primary factor must complete MFA for it.
 	MFAAPI      bool
 	PhoneEnroll bool
+	WebAuthn    WebAuthnCapabilities
 }
 
 // Decide is shared by hosted authorization and password grants. Only OTP and
@@ -51,7 +53,7 @@ func Decide(in DecideInput) (Requirement, error) {
 	if e != nil && e.Provider == "none" && !apiMFA {
 		return Requirement{}, nil
 	}
-	requested := []string{"otp", "email", "phone", "recovery-code"}
+	requested := []string{"otp", "email", "phone", "webauthn-roaming", "recovery-code"}
 	action := e != nil && e.Provider != "none" && (e.Provider != "" || e.Mode != "")
 	if action {
 		r.Required, r.Reason, r.AllowRemember = true, "action", e.AllowRememberBrowser
@@ -67,7 +69,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			requested = nil
 			for _, group := range e.Factors {
 				for _, f := range group {
-					if f != "otp" && f != "email" && f != "phone" && f != "recovery-code" {
+					if f != "otp" && f != "email" && f != "phone" && f != "recovery-code" && f != "webauthn-roaming" {
 						return r, ErrNoFactor
 					}
 					if !slices.Contains(requested, f) {
@@ -81,7 +83,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			case "google-authenticator":
 				requested = []string{"otp"}
 			case "guardian":
-				requested = []string{"otp", "phone", "recovery-code"}
+				requested = []string{"otp", "phone", "webauthn-roaming", "recovery-code"}
 			default:
 				return r, ErrNoFactor
 			}
@@ -109,9 +111,11 @@ func Decide(in DecideInput) (Requirement, error) {
 	preferred := ""
 	for _, a := range in.Authenticators {
 		f := factorName(a.Type)
-		if UsableMethod(in.User, a, enabled) {
+		if UsableMethod(in.User, a, enabled) && (a.Type != "webauthn-roaming" || a.RPID == in.WebAuthn.RPID) {
 			primary = true
-			confirmed[f] = true
+			if a.Type != "webauthn-roaming" || in.WebAuthn.Available {
+				confirmed[f] = true
+			}
 			if a.Preferred {
 				preferred = f
 			}
@@ -130,10 +134,10 @@ func Decide(in DecideInput) (Requirement, error) {
 	}
 	var usable, enroll []string
 	for _, f := range requested {
-		if !enabled[guardianFactor(f)] {
+		if !enabled[guardianFactor(f)] || f == "webauthn-roaming" && !in.WebAuthn.Available {
 			continue
 		}
-		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll {
+		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll || f == "webauthn-roaming" && in.WebAuthn.Available {
 			if e == nil || e.Mode != "enroll" || !confirmed[f] {
 				enroll = append(enroll, f)
 			}
@@ -143,6 +147,11 @@ func Decide(in DecideInput) (Requirement, error) {
 		}
 	}
 	if e != nil && e.Mode == "challenge" && len(usable) == 0 {
+		return r, ErrNoFactor
+	}
+	// An enrolled key that this browser cannot use still requires an existing
+	// proof. It cannot turn a required challenge into fresh factor enrollment.
+	if primary && len(usable) == 0 && !r.Enroll {
 		return r, ErrNoFactor
 	}
 	if r.Enroll || len(usable) == 0 {
@@ -178,6 +187,8 @@ func UsableMethod(u *store.User, a store.Authenticator, enabled map[string]bool)
 	switch a.Type {
 	case "totp":
 		return true
+	case "webauthn-roaming":
+		return a.RPID != "" && len(a.CredentialID) > 0 && len(a.PublicKey) > 0
 	case "phone":
 		return a.Phone != ""
 	case "email":

@@ -69,6 +69,12 @@
       "descriptionUsed": "This link has already been used. To reset your password, return to the login page and select \"Forgot Your Password\" to send a new email.",
       "eventTitleGeneric": "Link Expired",
       "descriptionGeneric": "To reset your password, return to the login page and select \"Forgot Your Password\" to send a new email."
+    },
+    "reset-password-mfa-webauthn-roaming-challenge": {
+      "title": "Verify your reset with a security key",
+      "description": "Use your registered security key before choosing a new password.",
+      "buttonText": "Use security key",
+      "tryAnotherMethodText": "Use another verification method"
     }
   },
   "email-verification": {
@@ -325,7 +331,8 @@
       "emailText": "Email",
       "recovery-codeText": "Recovery code",
       "invalidCode": "The code is invalid or expired. Try again.",
-      "tooManyAttempts": "Too many attempts. Try again later."
+      "tooManyAttempts": "Too many attempts. Try again later.",
+      "webauthn-roamingText": "Security key"
     },
     "mfa-enroll-result": {
       "title": "Multi-factor authentication",
@@ -364,7 +371,13 @@
       "emailText": "Email",
       "recovery-codeText": "Recovery code",
       "invalidCode": "The code is invalid or expired. Try again.",
-      "tooManyAttempts": "Too many attempts. Try again later."
+      "tooManyAttempts": "Too many attempts. Try again later.",
+      "webauthn-roamingText": "Security key"
+    },
+    "mfa-detect-browser-capabilities": {
+      "title": "Check your browser",
+      "description": "Checking which verification methods this browser supports. If the check does not run, continue to see your other methods.",
+      "buttonText": "Continue"
     }
   },
   "mfa-otp": {
@@ -573,6 +586,47 @@
       "createButtonText": "Create a passkey",
       "continueButtonText": "Continue without a passkey",
       "checkboxText": "Wait 30 days before asking again"
+    }
+  },
+  "mfa-webauthn": {
+    "mfa-webauthn-roaming-enrollment": {
+      "title": "Add a security key",
+      "description": "Connect your security key and follow the instructions from your browser.",
+      "buttonText": "Set up security key",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-roaming-challenge": {
+      "title": "Verify with your security key",
+      "description": "Connect the security key you registered for this site.",
+      "buttonText": "Use security key",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-change-key-nickname": {
+      "title": "Name your security key",
+      "description": "Choose a name with 1 to 20 characters so you can recognize this key.",
+      "nameLabel": "Security key name",
+      "buttonText": "Save name",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-enrollment-success": {
+      "title": "Security key added",
+      "description": "Your security key is ready for future verification.",
+      "buttonText": "Continue"
+    },
+    "mfa-webauthn-not-available-error": {
+      "title": "Security keys are unavailable",
+      "description": "This browser cannot use a security key. Choose another verification method or return with a supported browser.",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-error": {
+      "title": "Security key verification failed",
+      "description": "We could not verify this security key. Try again or use another method.",
+      "too-many-webauthn-challenge-attempts-error": "There have been too many security key attempts. Wait before trying again.",
+      "tryAnotherMethodText": "Use another verification method",
+      "buttonText": "Try security key again",
+      "rememberMeText": "Remember this browser"
     }
   }
 }

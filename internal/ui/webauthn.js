@@ -5,6 +5,16 @@
   const config = JSON.parse(data.textContent);
   const form = document.getElementById("za-passkey-form");
   const button = document.getElementById("za-passkey-button");
+  if (config.operation === "detect") {
+    const available = !!(window.PublicKeyCredential && navigator.credentials);
+    form.elements.webauthn.value = available ? "1" : "0";
+    const check = available && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable;
+    Promise.resolve(check ? check.call(PublicKeyCredential) : false).catch(() => false).then(platform => {
+      form.elements.platform.value = platform ? "1" : "0";
+      form.submit();
+    });
+    return;
+  }
   const skip = config.enrollment ? document.getElementById("za-passkey-skip") : null;
   if (!window.PublicKeyCredential || !navigator.credentials) {
     if (skip) {
@@ -51,7 +61,7 @@
     submitted = true;
     abort();
     form.elements[name].value = value;
-    if (!config.enrollment) form.action = config.operation === "create" ? "/u/signup/passkey" : "/u/login/passkey";
+    if (!config.enrollment && !config.mfa) form.action = config.operation === "create" ? "/u/signup/passkey" : "/u/login/passkey";
     if (form.elements.platform_available) form.elements.platform_available.value = platformAvailable ? "1" : "0";
     form.submit();
   }

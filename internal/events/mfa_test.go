@@ -93,3 +93,39 @@ func TestUserUpdatedOnEnrollNestedRollbackAndProofUpdates(t *testing.T) {
 		t.Fatal("proof/recovery/remember mutation emitted user.updated")
 	}
 }
+
+func TestWebAuthnMultifactorEventsIgnorePasskeys(t *testing.T) {
+	ctx, s := fixture(t)
+	if err := s.Users().Create(ctx, user("passkey-user")); err != nil {
+		t.Fatal(err)
+	}
+	passkey := &store.Authenticator{TenantID: "ten", UserID: "passkey-user", ID: "passkey|dev_12345678901234567890", Type: "passkey", Confirmed: true, RPID: "ten.example", CredentialID: []byte{1}, PublicKey: []byte{1}}
+	if err := s.MFA().CreateAuthenticator(ctx, passkey); err != nil {
+		t.Fatal(err)
+	}
+	if len(all(t, ctx, s)) != 1 {
+		t.Fatal("passkey alone changed multifactor")
+	}
+	roaming := &store.Authenticator{TenantID: "ten", UserID: "passkey-user", ID: "webauthn-roaming|dev_12345678901234567890", Type: "webauthn-roaming", Confirmed: true, RPID: "ten.example", CredentialID: []byte{2}, PublicKey: []byte{2}}
+	if err := s.MFA().CreateAuthenticator(ctx, roaming); err != nil {
+		t.Fatal(err)
+	}
+	if len(all(t, ctx, s)) != 2 {
+		t.Fatal("first roaming factor did not emit user.updated")
+	}
+	if err := s.MFA().DeleteAuthenticator(ctx, "ten", "passkey-user", roaming.ID); err != nil {
+		t.Fatal(err)
+	}
+	ev := all(t, ctx, s)
+	if len(ev) != 3 || ev[2].Type != "user.updated" {
+		t.Fatal("last MFA removal while passkey remains did not emit")
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(ev[2].Body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	data := payload["data"].(map[string]any)
+	if len(data["object"].(map[string]any)["multifactor"].([]any)) != 0 || len(data["previous_object"].(map[string]any)["multifactor"].([]any)) != 1 {
+		t.Fatal(payload)
+	}
+}

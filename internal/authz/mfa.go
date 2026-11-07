@@ -94,10 +94,30 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		}
 		in.PhoneEnroll = len(methods) > 0
 	}
+	// This is a provisional decision only. Hosted MFA detects capabilities before
+	// showing any factor and recomputes this requirement from the browser result.
+	detectWebAuthn := false
+	if h.MFA != nil && h.Passkeys != nil && g.Factors["webauthn-roaming"] {
+		available, e := h.MFA.WithStore(h.Store).WebAuthnAvailable(r.Context())
+		if e != nil {
+			return mfa.Requirement{}, e
+		}
+		policy := h.Passkeys.RPID
+		policy.Store = h.Store
+		rp, e := policy.For(r.Context(), res)
+		if e != nil {
+			return mfa.Requirement{}, e
+		}
+		if available && rp.Valid {
+			in.WebAuthn = mfa.WebAuthnCapabilities{Available: true, RPID: rp.RPID}
+			detectWebAuthn = true
+		}
+	}
 	in.MFAAPI = fr.Request.Audience != "" && mfa.APIAudience(r.Context(), h.Store, res.Tenant.ID, fr.Request.Audience)
 	// Validate the original Action factor restrictions before satisfying its
 	// forced prompt. Disabling its chosen factor must still fail closed.
 	req, err := mfa.Decide(in)
+	req.DetectWebAuthn = detectWebAuthn && req.Required
 	if err == nil && !sess.MFAAt.IsZero() {
 		if completed, ok := r.Context().Value(mfaCompletedKey{}).(string); ok && completed == sess.ID {
 			req.Required = false

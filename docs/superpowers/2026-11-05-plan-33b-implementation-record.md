@@ -281,3 +281,100 @@ Task 8 review: spec and quality approved; captured/asserted the intentional inva
 - A nested organization transaction flushed its staged membership success log before the outer enrollment answer committed. The outer operation now uses `orglogin.WithMembershipEvents`; its returned context is installed on the request used by nested policy, membership, enrollment and store calls. Cost: a recreated membership's success log waits for the complete enrollment commit. The new hosted behavior regression removes automatic membership while enrollment is pending, then checks that invalid registration leaves no membership and no success log, and valid registration commits membership with exactly one log. RED handle7765 actual exit1 observed status400/member=false/event count1; GREEN handle40326 actual exit0, parent and both cases passed,login0.253s. Retained `task-11-review1-membership-{red,green}.log/.exit`. D-0062 records both corrections and the commit-bound event cost.
 - Focused race command `GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp go test -race ./internal/login -run '^TestEnrollment(MembershipEventsCommitAndRollback|PromptConcurrentAnswer)$' -count=1 -v -timeout=10m`, handle48358, actual exit0: four PASS lines, no failures/skips/race reports,login2.382s. Retained `task-11-review1-race.log/.exit`.
 - Final affected command `GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp go test ./internal/login ./internal/authz ./internal/orglogin ./internal/ui -run 'Enrollment|HostedPasskey|Gate|Organization|Consent|WebAuthn|LoginID|Membership|Invitation' -count=1 -v -timeout=15m`, handle98175, actual exit0:391 PASS lines, no failures/skips; login142.476s, authz2.370s, orglogin0.140s, ui0.014s. Retained `task-11-review1-affected.log/.exit`. Source stayed unchanged after the recorded staged snapshot; formatting and both diff checks passed. Status: **implementation verified / scoped re-review pending**. This implementer alone monitored retained sessions with blocking completion waits, with no active log scans, quietness-driven rerun, broad suite, new agent, push or merge.
+
+## Task 12: WebAuthn security-key MFA
+
+- Base: `a38387d5837a9b201a0871b5c5d84500a99d1177`, worktree
+  `/mnt/nvme2/code/zeroauthy-plan33b`, branch `plan-33b-passkeys`.
+- Added roaming enrollment and assertion services using `ParamsFor`,
+  passkey `Issue`/`Take`, persisted per-factor throttles and proof commits.
+  Hosted detection, registration, nickname, recovery, success, assertion and
+  remember-browser paths use the existing CSRF/revision/session guards.
+  Actions and Guardian enrollment tickets now accept the enforced factor.
+- Added the operator GET/PUT UV settings extension and exact target-tenant
+  authentication binding. Stored key is `webauthn-roaming/settings`; default
+  is `discouraged`, and only `discouraged`, `preferred`, `required` are accepted.
+  No v2 route or generated API edit was introduced; Tasks 14/15 own generation.
+- Binding ruling: `WithWebAuthnBinding` receives the server's full RP/origin,
+  transaction, cookie hash, client, connection and organization binding. Empty
+  or mismatching binding fails closed; metadata from a submitted form is never
+  deserialized as trusted ceremony state. Cost: downstream consumers must pass
+  this explicit request-local binding.
+- Persistence ruling: namespaced `Kind=webauthn` options/verified rows retain
+  authoritative factor, parameters and enrollment restrictions. Registration
+  spends its ceremony before parsing; a verified credential, without raw
+  browser response, survives nickname retries and service replicas. Its
+  conditional consumption, insertion, first recovery and ticket callback share
+  one transaction and the original expiry. Cost: three expiring registration
+  rows and a fresh ceremony after expiration.
+- Decision ruling: provisional authorization only determines whether detection
+  is needed. No factor is offered before detection; an absent browser result
+  disables WebAuthn, retaining alternate methods and recovery. Only current-RP
+  credentials count for enrollment/challenge and first-only restrictions.
+  Cost: one additional hosted form submission when a WebAuthn factor is possible.
+- UV remains enforced if an operator tightens the setting after issuance or
+  registration verification. Existing imported roaming methods can verify an
+  assertion with no user handle; a supplied handle still requires a match.
+  Cost: imported methods returning an unrecorded handle require metadata repair.
+- Controller approved pulling the small shared passkey exclusion in
+  `resourceview.Multifactor` forward from Task 14: passkeys alone must not mask
+  the first/last MFA change or its transactional `user.updated`. A red event
+  regression reproduced it. Broader Management projections remain Task 14.
+  The roaming reset capability/screen hook was also tested here; platform and
+  device progression remain Task 13. Cost: these narrow producer integrations
+  arrive earlier than their surrounding task.
+- Required WebAuthn failure log codes were already activated by Tasks 9/10;
+  Task 12 records the new producers and emits bounded reasons, factor type and
+  `first_factor:false`. Secret masking includes decoded and encoded credential
+  components. Existing decorators/outbox own user-change events.
+- Final focused/catalog verification: 39 PASS/no failures/skips, actual exit 0;
+  complete affected core packages: 966 PASS/no test failures/skips, actual exit 0
+  (`resourceview` has no test files; events exercises the predicate). Browser
+  script: 14 PASS/no failures/skips, exit 0. Code/test tree
+  `e92695201047970e9ee6994de44c82ab4f8204cb`. Hosted/management/server: 315 PASS/no failures/skips,
+  actual exit 0. Initial focused race: 36 PASS/no failures/skips/race reports, actual exit 0 (pre-guard correction). Evidence and every preliminary failure are in
+  `.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/task-12-report.md`.
+  Full `./...` and broad browser coverage remain Task 19 and are not claimed
+  passing. No subagents, push or merge.
+
+Task 12 final guard correction: scoped self-review found that recognizing
+roaming methods in the shared predicate made an only-foreign-RP key block
+ordinary first-only OTP/email confirmation after the hosted decision offered
+it. It also exposed a no-script path where an owned unavailable key could
+lead to fresh OTP enrollment instead of an existing proof. Three focused RED
+regressions reproduced both decision and confirmation failures plus the hosted
+redirect loop (`task-12-guard-red.log/.exit`, session 81835, exit 1). Added an
+ordinary guard-only `WithWebAuthnRPID` view, populated from the hosted server's
+resolved RP; it grants no WebAuthn issuance/verification authority. Full binding
+also supplies this scope. Decide now refuses that unavailable-owned-key
+fallback unless a trusted Action explicitly requested enrollment. Cost: users
+with no usable alternate/recovery proof see the unavailable page rather than
+enroll around their key. Per controller direction, the final delta repeats
+full MFA tests, bounded login regressions and focused guard races; unchanged
+packages retain the earlier green results rather than rerunning broad checks.
+
+Task 12 implementation verified / REVIEW PENDING. Final guard-correction code/test
+tree `ed5919dbf25bfe7cad63f4fea8421eed6f2da364`; final full MFA: 97 PASS, bounded
+login: 185 PASS, guard race: 42 PASS, all actual exit 0 with no failures or test
+skips, and no race reports. Exact final commands (all with
+`GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp`):
+
+- `go test -json ./internal/mfa -count=1 -timeout=15m`
+  (`task-12-guard-mfa.log/.exit`, sequential session 38822).
+- `go test -json ./internal/login -run 'MFA|WebAuthn|Roaming|Passkey|ResetPostChallenge|HostedPhone|PhoneMFA' -count=1 -timeout=20m`
+  (`task-12-guard-login.log/.exit`, same sequential session).
+- `go test -race -json ./internal/mfa ./internal/login -run 'WebAuthn|Roaming|EnrollConcurrent|EnrollNewFactorConcurrent|MFAEnrollmentConfirmRace|MFAConfirmFirstEnroll|MFAOTPConcurrentSubmit|MFATicketConcurrentNoMultiple' -count=1 -timeout=20m`
+  (`task-12-guard-race.log/.exit`, session 73139).
+
+Pre-correction snapshot `e92695201047970e9ee6994de44c82ab4f8204cb` retained the
+39-test focused/catalog run, 966-test full affected core run, 315-test bounded
+hosted/management/server run and 36-test initial focused race, all exit 0.
+`resourceview` had no test files; its predicate is exercised by the events
+regression. Unchanged script tests passed 14/14 with exit 0. Per controller,
+unchanged packages were not rerun after the guard correction. All preliminary
+failures, invalid first imported-key RED setup, exact commands, process handles,
+actual statuses, snapshot limits and deferred breadth are retained in
+`task-12-report.md`; none are omitted or called passing. Final scoped review,
+formatting and diff checks found no remaining blocker. The implementation commit
+containing this entry is recorded by SHA in the retained report and progress
+ledger after creation. Controller owns final review and task completion.

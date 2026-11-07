@@ -1,0 +1,31 @@
+{{define "title"}}{{t .Tenant.L (printf "%stitle" .Data.Prefix)}}{{end}}
+{{define "description"}}{{t .Tenant.L (printf "%sdescription" .Data.Prefix)}}{{end}}
+{{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+{{if not .Data.WebAuthnUnavailable}}
+<form id="za-passkey-form" method="post" action="{{.Data.Action}}">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
+{{.Tenant.Partials.FormContentStart}}
+{{if .Data.Nickname}}
+<label for="name">{{t .Tenant.L (printf "%snameLabel" .Data.Prefix)}}</label>
+<input id="name" name="name" required minlength="1" maxlength="20" autocomplete="off">
+<button type="submit">{{t .Tenant.L (printf "%sbuttonText" .Data.Prefix)}}</button>
+{{else if .Data.WebAuthnSuccess}}
+<button type="submit">{{t .Tenant.L (printf "%sbuttonText" .Data.Prefix)}}</button>
+{{else}}
+<input type="hidden" name="challenge_id" value="{{.Data.Passkey.ChallengeID}}">
+<input type="hidden" name="credential" value="">
+<input type="hidden" name="webauthn_error" value="">
+{{if .Data.AllowRemember}}<label><input type="checkbox" name="remember" value="yes">{{t .Tenant.L (printf "%srememberMeText" .Data.Prefix)}}</label>{{end}}
+<button id="za-passkey-button" type="button">{{t .Tenant.L (printf "%sbuttonText" .Data.Prefix)}}</button>
+<script nonce="{{.Nonce}}" type="application/json" id="za-webauthn">{{.Data.Passkey}}</script>
+<script nonce="{{.Nonce}}">{{.WebAuthnScript}}</script>
+{{end}}
+{{.Tenant.Partials.FormContentEnd}}</form>
+{{end}}
+{{.Tenant.Partials.FormFooterStart}}
+{{if .Data.AnotherURL}}<p><a href="{{.Data.AnotherURL}}">{{t .Tenant.L (printf "%stryAnotherMethodText" .Data.Prefix)}}</a></p>{{end}}
+{{.Tenant.Partials.FormFooterEnd}}
+{{end}}

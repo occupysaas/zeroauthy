@@ -322,7 +322,7 @@ func New(d Deps) http.Handler {
 		tr.Options("/passwordless/start", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
-		for _, path := range []string{"/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
+		for _, path := range []string{"/u/mfa-detect-browser-capabilities", "/u/mfa-webauthn-roaming-enrollment", "/u/mfa-webauthn-roaming-challenge", "/u/mfa-webauthn-change-key-nickname", "/u/mfa-webauthn-enrollment-success", "/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
 			tr.Get(path, lg.MFAPage)
 			tr.Post(path, lg.MFASubmit)
 		}
@@ -395,6 +395,9 @@ func New(d Deps) http.Handler {
 		RestrictSharedRPIDs:    d.RestrictSharedRPIDs,
 	}
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
+	for _, method := range []string{"GET", "PUT"} {
+		mr.MethodFunc(method, "/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings", func(w http.ResponseWriter, r *http.Request) { mh.RoamingUVSettings(w, r, chi.URLParam(r, "tenant")) })
+	}
 	mr.Get("/api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites", func(w http.ResponseWriter, r *http.Request) {
 		mh.PasskeyPrerequisites(w, r, chi.URLParam(r, "tenant"), chi.URLParam(r, "id"))
 	})

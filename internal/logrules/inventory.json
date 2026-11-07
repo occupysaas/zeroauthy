@@ -1732,6 +1732,11 @@
           "file": "internal/login/passkey.go",
           "function": "passkeyFailure",
           "when": "A hosted first-factor passkey assertion or browser ceremony fails."
+        },
+        {
+          "file": "internal/mfa/webauthn.go",
+          "function": "VerifyWebAuthn",
+          "when": "An MFA security-key assertion or browser ceremony fails."
         }
       ],
       "status": "emitted",
@@ -1752,6 +1757,11 @@
           "file": "internal/login/passkey_signup.go",
           "function": "signupEnrollmentFailure",
           "when": "Hosted first-factor passkey signup registration fails."
+        },
+        {
+          "file": "internal/mfa/webauthn.go",
+          "function": "StageWebAuthnEnroll",
+          "when": "An MFA security-key registration or browser ceremony fails."
         }
       ],
       "status": "emitted",

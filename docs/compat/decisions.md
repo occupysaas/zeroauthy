@@ -2778,3 +2778,57 @@ calls. An automatic membership recreated during enrollment emits its success
 event only after the entire answer commits; invalid credentials roll back both
 membership and its pending event. Cost: membership success logging waits for
 the enclosing enrollment transaction instead of its nested savepoint.
+
+**Task 12 integration rulings (2026-11-06).** WebAuthn MFA uses a
+request-local service view with the real authorization transaction, browser
+cookie hash, client, connection, organization, user and exact resolved RP
+origin. Missing or inconsistent binding is refused. The existing ceremony
+row retains `Kind=webauthn`; independent `webauthn-register` and
+`webauthn-assert` purposes stay inside its binding. Namespaced companion rows
+persist the offered options and, after verification, only the verified
+credential for nickname entry. They expire at the original ceremony deadline.
+Nickname confirmation conditionally consumes that verified proof in the same
+transaction as authenticator insertion, initial recovery and enrollment-ticket
+consumption. Raw registration responses never become nickname state. Cost:
+three short-lived rows for registration, and a new ceremony after expiry.
+
+The authorization decision may provisionally determine that a WebAuthn factor
+could be used, but it never renders that factor before the capability page.
+The hosted page recomputes the requirement from the persisted browser result;
+missing JavaScript reports no capability and offers alternate factors or
+recovery. A browser with no usable factor gets a stable unavailable page,
+without another detection redirect. RP IDs filter usable keys before deciding
+challenge versus enrollment, including the first-only enrollment guard. Cost:
+one extra hosted form submission when WebAuthn could be offered.
+
+Security-key UV uses the existing parameter table and is checked for both
+registration and assertion. Tightening the setting during the ceremony cannot
+accept a previously UV-less proof. The system settings route checks both the
+signed and current operator tenant grants through the existing target resolver;
+API schema generation remains assigned to Tasks 14/15. Existing imported MFA
+keys may lack a saved user handle, so an assertion that omits it can still
+verify using its owned credential; a supplied handle must match the saved
+value. Cost: imported keys that supply an unknown handle need corrected
+metadata, while FIDO-1-style assertions remain usable when UV is not required.
+
+Controller-approved producer integration: the shared `multifactor` predicate
+excludes passkeys now, so adding the first WebAuthn MFA factor or deleting the
+last one while keeping a passkey emits `user.updated` through the existing
+transactional decorator. Task 14 retains the broader API projections. Cost:
+this small Task 14 predicate correction lands with Task 12. The roaming
+password-reset capability hook and reset screen were also tested here; Task 13
+retains platform/device progression. No organization event producer changes
+were needed; completion uses the existing outer-commit flow.
+
+**Task 12 final guard correction (2026-11-06).** A known current-RP key
+still represents an enrolled factor when the browser cannot use WebAuthn;
+ordinary MFA policy must then require an existing alternate/recovery proof,
+not authorize enrollment of a fresh factor. An explicit trusted Action that
+requests enrollment keeps its existing behavior. Conversely, a foreign-RP key
+must not block first-only OTP/email enrollment offered for this RP. Hosted
+ordinary enrollment now supplies a request-local RP scope to that shared guard;
+it conveys no WebAuthn ceremony authority. Unscoped non-hosted service callers
+retain the prior conservative guard. Cost: a user with an unavailable key and
+no usable alternate/recovery method receives the unavailable answer instead
+of enrolling around that key. Three red regressions reproduced both decision
+and confirmation errors, including the hosted redirect loop.

@@ -125,8 +125,9 @@ func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tena
 	attempt := len(parts) == 8 && parts[4] == "actions" && parts[5] == "executions" && parts[7] == "attempt"
 	streamStatus := len(parts) == 6 && parts[4] == "log-streams" && parts[5] == "status"
 	executions := (len(parts) == 6 || len(parts) == 7) && parts[4] == "actions" && parts[5] == "executions"
+	roamingSettings := len(parts) == 8 && parts[4] == "guardian" && parts[5] == "factors" && parts[6] == "webauthn-roaming" && parts[7] == "settings"
 	passkeyPrerequisites := len(parts) == 7 && parts[4] == "connections" && parts[6] == "passkey-prerequisites"
-	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus || passkeyPrerequisites) {
+	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus || passkeyPrerequisites || roamingSettings) {
 		return base, nil
 	}
 	t, err := cfg.Store.Tenants().GetByName(ctx, parts[3])

@@ -57,6 +57,24 @@ func usedKeys(t *testing.T) []string {
 		}
 	}
 	used = append(used, "mfa.mfa-enroll-result.invalidTicket")
+	// WebAuthn MFA shares dynamic templates, with screen-specific controls.
+	for screen, suffixes := range map[string][]string{
+		"mfa.mfa-detect-browser-capabilities":                          {"title", "description", "buttonText"},
+		"mfa.mfa-login-options":                                        {"webauthn-roamingText"},
+		"mfa.mfa-begin-enroll-options":                                 {"webauthn-roamingText"},
+		"mfa-webauthn.mfa-webauthn-roaming-enrollment":                 {"title", "description", "buttonText", "rememberMeText", "tryAnotherMethodText"},
+		"mfa-webauthn.mfa-webauthn-roaming-challenge":                  {"title", "description", "buttonText", "rememberMeText", "tryAnotherMethodText"},
+		"mfa-webauthn.mfa-webauthn-change-key-nickname":                {"title", "description", "buttonText", "nameLabel", "tryAnotherMethodText"},
+		"mfa-webauthn.mfa-webauthn-enrollment-success":                 {"title", "description", "buttonText"},
+		"mfa-webauthn.mfa-webauthn-error":                              {"title", "description", "buttonText", "rememberMeText", "tryAnotherMethodText", "too-many-webauthn-challenge-attempts-error"},
+		"mfa-webauthn.mfa-webauthn-not-available-error":                {"title", "description", "tryAnotherMethodText"},
+		"reset-password.reset-password-mfa-webauthn-roaming-challenge": {"title", "description", "buttonText", "tryAnotherMethodText"},
+	} {
+		for _, suffix := range suffixes {
+			used = append(used, screen+"."+suffix)
+		}
+	}
+
 	// Hosted passwordless code screens share one template with a screen
 	// prefix (internal/login passwordlessCodeSuffixes).
 	for _, screen := range []string{"login-passwordless-email-code", "login-passwordless-sms-otp"} {

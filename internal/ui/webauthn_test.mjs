@@ -69,3 +69,20 @@ test("missing WebAuthn or platform-check API skips either enrollment without sno
   }
 });
 test("assertion reports platform capability alongside the verified response",async()=>{for (const available of [true, false]) {const h=harness("button",true,false,"",available);await tick();h.listeners.click();h.calls[0].resolve({...credential,authenticatorAttachment:"cross-platform"});await tick();assert.equal(JSON.parse(h.posts[0].credential).authenticatorAttachment,"cross-platform");assert.equal(h.form.elements.platform_available.value,available ? "1" : "0");}});
+
+function mfaHarness(operation, supported = true, platform = false) {
+ const posts = [], calls = [], listeners = {};
+ const form = {action:"/u/mfa-webauthn-roaming-challenge",elements:{webauthn:{value:"0"},platform:{value:"0"},credential:{value:""},webauthn_error:{value:""}},submit(){posts.push({action:this.action,webauthn:this.elements.webauthn.value,platform:this.elements.platform.value,credential:this.elements.credential.value});}};
+ const config = {operation,mfa:true,mediation:"button",publicKey:{challenge:"AQID",rpId:"example.test",allowCredentials:[{type:"public-key",id:"BAU"}]}};
+ const pk = supported ? {isUserVerifyingPlatformAuthenticatorAvailable:()=>Promise.resolve(platform)} : undefined;
+ const context = {AbortController,DOMException,Uint8Array,atob,btoa,window:{PublicKeyCredential:pk},PublicKeyCredential:pk,navigator:{credentials:{get:options=>new Promise(resolve=>calls.push({options,resolve}))}},document:{getElementById(id){return id==="za-webauthn"?{textContent:JSON.stringify(config)}:id==="za-passkey-form"?form:id==="za-passkey-button"?{addEventListener(name,fn){listeners[name]=fn;}}:null;},addEventListener(name,fn){listeners[name]=fn;}}};
+ vm.runInNewContext(source,context);return {posts,calls,listeners};
+}
+test("MFA detection posts only browser capability flags through the bound form", async()=>{
+ for(const [supported,platform] of [[false,false],[true,false],[true,true]]){
+ const h=mfaHarness("detect",supported,platform);await tick();assert.equal(h.posts.length,1);assert.equal(h.posts[0].webauthn,supported?"1":"0");assert.equal(h.posts[0].platform,platform?"1":"0");assert.equal(h.calls.length,0);
+ }
+});
+test("MFA security-key assertion retains its own form action", async()=>{
+ const h=mfaHarness("get");await tick();h.listeners.click();assert.deepEqual(Array.from(h.calls[0].options.publicKey.allowCredentials[0].id),[4,5]);h.calls[0].resolve({...credential,response:{...credential.response,userHandle:null}});await tick();assert.equal(h.posts.length,1);assert.equal(h.posts[0].action,"/u/mfa-webauthn-roaming-challenge");assert.equal(JSON.parse(h.posts[0].credential).response.userHandle,null);
+});

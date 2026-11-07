@@ -5,7 +5,7 @@ import "github.com/zeroauthy/zeroauthy/internal/store"
 // Multifactor is a derived public value. Recovery alone is not enrollment.
 func Multifactor(methods []store.Authenticator) []string {
 	for _, a := range methods {
-		if a.Confirmed && a.Type != "recovery-code" {
+		if a.Confirmed && a.Type != "recovery-code" && a.Type != "passkey" {
 			return []string{"guardian"}
 		}
 	}
