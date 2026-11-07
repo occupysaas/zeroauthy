@@ -400,13 +400,16 @@ func (h *Handlers) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id
 		} else if err != nil {
 			return err
 		}
-		available, err := webAuthnAvailable(ctx, h.Store)
-		if err != nil {
-			return err
-		}
-		if available {
-			if err = tx.WebAuthn().MovePasskeys(ctx, tn.ID, id, secondary, moved.UserID); err != nil {
+		// Passkeys name database identities; a social provider can reuse the raw ID.
+		if moved.Provider == store.StrategyDatabase {
+			available, err := webAuthnAvailable(ctx, h.Store)
+			if err != nil {
 				return err
+			}
+			if available {
+				if err = tx.WebAuthn().MovePasskeys(ctx, tn.ID, id, secondary, moved.UserID); err != nil {
+					return err
+				}
 			}
 		}
 		// A fresh Version: nothing issued to the user before the link

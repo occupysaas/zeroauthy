@@ -15163,7 +15163,6 @@ components:
           - email
           - email-verification
           - webauthn-roaming
-          - passkey
           - webauthn-platform
           - guardian
           - passkey

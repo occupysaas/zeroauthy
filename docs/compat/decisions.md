@@ -2952,3 +2952,15 @@ without narrowing that schema. Generated adapters apply the extensions' existing
 scope intent, replacing their temporary direct registrations. These extensions
 have no invented `/api/v2` counterparts. Native endpoints and association files
 remain Task15, Actions projections Task16, and console/seed work later tasks.
+
+Task14 review1 clarification: a raw identity user ID is unique only within its
+provider namespace. Passkeys name database identities, so unlink invokes
+MovePasskeys only for `moved.Provider == store.StrategyDatabase`. A linked social
+identity with the same raw ID must not inherit a database credential. The
+provider check also keeps non-database unlink independent of WebAuthn capability
+negotiation. This adds no wire field or store argument and changes no valid
+passkey ownership rule; database unlink retains the existing atomic move.
+Regression coverage uses real assertions before, concurrently with, and after
+social unlink, then verifies database unlink still resolves to the recreated
+secondary user. The duplicate passkey enum value in the shared Management
+method schema is removed without removing passkey from the GET schema.

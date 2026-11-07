@@ -727,3 +727,60 @@ No full repository, SQL matrix, broad browser/hardware, console, seed or native
 endpoint tests were run for this task. Later plan coverage remains deferred and
 is not called passing. No subagents, push or merge. Commit metadata follows in
 workspace report/ledger and handoff; controller owns review and completion.
+
+### Task14 review1 — provider-qualified unlink ownership
+
+Review found an Important ownership bug: unlink filtered passkeys by raw identity
+ID for every provider. A linked `auth0|X` and `google-oauth2|X` therefore allowed
+social unlink to move a database credential to a social-only user, breaking its
+next assertion. The capability/move block now runs only for database identities.
+No stored handle, metadata, store method or API shape changes. The minor duplicate
+passkey enum in MFAAuthenticationMethod was removed; GET still accepts passkey.
+Pinned make generate completed exit0; final regenerated Go matches the base
+because duplicate enum removal does not change its generated value set.
+
+RED session85648 at source/test tree
+`5b338e8739b3e97eaf181043dfdc3dffb73ae562`,
+`task-14-review1-red.log/.exit`, actual exit1: normal database linked
+login/unlink PASS; provider-collision actual assertion after social unlink FAIL
+with bounded verifier reason key. Regression now also runs a real assertion
+concurrently with social unlink, verifies afterward primary ownership and saved
+handle, no social credentials, and subsequent normal database unlink/login.
+
+Initial fixed-Go chain23392 at tree
+`475e3aa34c29a62d7589a33dcc790182aa9af51e`:
+focused `task-14-review1-green.log/.exit` actual exit0, 4 PASS/no skips. A mistaken
+schema cleanup removed the adjacent GET enum's sole passkey value instead of the
+duplicate. `task-14-review1-affected.log/.exit` actual exit1: 41 PASS/3 FAIL
+(TestPasskeyWireContracts, TestPasskeyMethodsPatchDelete,
+TestPasskeyMethodsNoResourceEvents), no skips. Race did NOT RUN. Corrected exact
+named schema and restored GET before regeneration. Two ad hoc source-inspection
+scripts also failed (PyYAML rejected pre-existing repeated anchors; a string
+section helper used an incorrect boundary); these are inspection errors, not
+passing checks or production failures. Final source review confirms one passkey
+entry in each schema; generated GET validator retains passkey.
+
+Corrected source/test tree `4c35f7dc01179b121523c28687780a1ee734db0e`
+(`task-14-review1-verified-code-tree.txt`), final generate-2 exit0. Chain19266
+runs the corrected affected selection, then scoped linking races only on exit0.
+Source Go/tests are unchanged from the successful focused4 snapshot. Sole
+implementer blocks for completion and forwards stage notices, no active-log
+scans or duplicate monitor. No broad suites, subagents, push or merge.
+RE-REVIEW PENDING; actual final results follow.
+
+Review1 final chain19266 actual exit0 at unchanged corrected tree
+`4c35f7dc01179b121523c28687780a1ee734db0e`:
+- `task-14-review1-affected-2.log/.exit`: actual exit0, 44 PASS/no failures/skips
+  (mgmt35, passkey1, server5, api3). Every selected package executed tests.
+- `task-14-review1-race.log/.exit`: actual exit0, 4 PASS/no failures/skips or race
+  reports, including concurrent real assertion/social unlink. Ordinary database
+  login/unlink and injected move rollback remain covered.
+
+Source/test comparison to corrected tree is empty; final generated Go matches
+base, retaining GET's passkey validator. Named YAML sections each contain one
+passkey value. Staged/unstaged whitespace and gofmt checks pass. Self-review
+confirms the provider gate surrounds both capability and move, keeps the existing
+transaction, preserves saved handles and avoids social credential inheritance.
+No known remaining finding in this reviewed scope. IMPLEMENTATION VERIFIED /
+SCOPED RE-REVIEW PENDING. No broad reruns, subagents, push or merge. Controller
+owns review and completion; commit metadata retained in workspace report/ledger.

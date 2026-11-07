@@ -427,7 +427,9 @@ func TestLinkMovesPasskeysRollback(t *testing.T) {
 		t.Fatalf("partial unlink identities: %v %v", p, err)
 	}
 }
-func TestLinkMovesPasskeysLogin(t *testing.T) {
+func TestLinkMovesPasskeysLogin(t *testing.T)             { testLinkMovesPasskeysLogin(t, false) }
+func TestLinkMovesPasskeysProviderCollision(t *testing.T) { testLinkMovesPasskeysLogin(t, true) }
+func testLinkMovesPasskeysLogin(t *testing.T, socialCollision bool) {
 	e, primary := mfaUser(t)
 	ctx := context.Background()
 	secondary := e.mustCreate(t, map[string]any{"email": "login-linked@example.test"})["user_id"].(string)
@@ -474,11 +476,73 @@ func TestLinkMovesPasskeysLogin(t *testing.T) {
 	if err != nil || login.User.UserID != primary {
 		t.Fatalf("linked login %v %v", login, err)
 	}
+	if socialCollision {
+		rawID := strings.TrimPrefix(secondary, "auth0|")
+		socialID := "google-oauth2|" + rawID
+		socialConn := &store.Connection{TenantID: e.tn.ID, ID: "con_google", Name: "google", Strategy: "google-oauth2", CreatedAt: now}
+		if err := e.st.Connections().Create(ctx, socialConn); err != nil {
+			t.Fatal(err)
+		}
+		social := &store.User{TenantID: e.tn.ID, UserID: socialID, Email: "social-collision@example.test", Identities: []store.Identity{{Connection: socialConn.Name, Provider: socialConn.Strategy, UserID: rawID}}, CreatedAt: now, UpdatedAt: now}
+		if err := e.st.Users().Create(ctx, social); err != nil {
+			t.Fatal(err)
+		}
+		r, _ = e.link(t, primary, map[string]any{"provider": "google-oauth2", "user_id": rawID})
+		if r.Code != 201 {
+			t.Fatal(r.Body)
+		}
+		device.Opts.SignCount = 2
+		login, err = svc.Login(ctx, e.tn.ID, device.Get(svc.RequestOptions(rp, ch, time.Minute), origin), ch, binding)
+		if err != nil || login.User.UserID != primary {
+			t.Fatalf("before social unlink login %v %v", login, err)
+		}
+		device.Opts.SignCount = 3
+		concurrentAssertion := device.Get(svc.RequestOptions(rp, ch, time.Minute), origin)
+		loginDone := make(chan error, 1)
+		go func() {
+			result, err := svc.Login(ctx, e.tn.ID, concurrentAssertion, ch, binding)
+			if err == nil && result.User.UserID != primary {
+				err = fmt.Errorf("concurrent login resolved %s", result.User.UserID)
+			}
+			loginDone <- err
+		}()
+		r, _ = e.unlink(t, primary, "google-oauth2", rawID)
+		if r.Code != 200 {
+			t.Fatal(r.Body)
+		}
+		select {
+		case err := <-loginDone:
+			if err != nil {
+				t.Fatalf("login during social unlink: %v", err)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatal("login during social unlink did not finish")
+		}
+		device.Opts.SignCount = 4
+		login, err = svc.Login(ctx, e.tn.ID, device.Get(svc.RequestOptions(rp, ch, time.Minute), origin), ch, binding)
+		if err != nil || login.User.UserID != primary {
+			t.Fatalf("after social unlink login %v %v", login, err)
+		}
+		credential, err := e.st.WebAuthn().GetAuthenticatorByCredentialID(ctx, e.tn.ID, proof.CredentialID)
+		if err != nil || credential.UserID != primary {
+			t.Fatalf("social unlink moved database credential: %v %v", credential, err)
+		}
+		var public struct {
+			Handle string `json:"user_handle"`
+		}
+		if err = json.Unmarshal(credential.PublicData, &public); err != nil || public.Handle != b["user_handle"] {
+			t.Fatalf("saved handle changed: %v %v", public, err)
+		}
+		methods, err := e.st.MFA().ListAuthenticators(ctx, e.tn.ID, socialID)
+		if err != nil || len(methods) != 0 {
+			t.Fatalf("social account inherited passkeys: %v %v", methods, err)
+		}
+	}
 	r, _ = e.unlink(t, primary, "auth0", strings.TrimPrefix(secondary, "auth0|"))
 	if r.Code != 200 {
 		t.Fatal(r.Body)
 	}
-	device.Opts.SignCount = 2
+	device.Opts.SignCount = 5
 	assertion = device.Get(svc.RequestOptions(rp, ch, time.Minute), origin)
 	login, err = svc.Login(ctx, e.tn.ID, assertion, ch, binding)
 	if err != nil || login.User.UserID != secondary {
