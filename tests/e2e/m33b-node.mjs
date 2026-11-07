@@ -116,8 +116,24 @@ export function scan(text, secrets, label) {
 }
 // Documented Management fields that are public: credential IDs and public keys
 // appear where the API documents them; they are not representative secrets.
+// The Management authentication-methods responses document user_handle
+// beside key_id and public_key; that documented field is the one place a
+// handle may appear. Only that key is replaced; the rest is still scanned.
+export function documented(value) {
+  if (Array.isArray(value)) return value.map(documented);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, k === "user_handle" && typeof v === "string" ? "<documented-management-field>" : documented(v)]));
+  return value;
+}
+// Token endpoint results are one-time displays to their caller: those named
+// fields are replaced in the record; everything else is scanned.
+const oneTime = new Set(["access_token", "id_token", "refresh_token", "mfa_token", "auth_session", "recovery_code", "cname_api_key"]);
+function display(value) {
+  if (Array.isArray(value)) return value.map(display);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, oneTime.has(k) && typeof v === "string" ? "<one-time-display>" : display(v)]));
+  return value;
+}
 export async function capture(name, value) {
-  await appendFile(`${work}/responses.jsonl`, JSON.stringify({ name, value }) + "\n");
+  await appendFile(`${work}/responses.jsonl`, JSON.stringify({ name, value: display(value) }) + "\n");
   return value;
 }
 export async function until(fn, label, timeout = 30000) {
@@ -157,7 +173,7 @@ export async function mgmt(path, method = "GET", body, host = "sdk.e2e.test") {
   } catch {
     value = text;
   }
-  await capture(`${host} ${method} ${path}`, { status: r.status, value });
+  await capture(`${host} ${method} ${path}`, { status: r.status, value: /\/authentication-methods/.test(path) ? documented(value) : value });
   return { status: r.status, body: value };
 }
 export async function api(path, method = "GET", body, host = "sdk.e2e.test") {
@@ -339,7 +355,7 @@ async function sdk() {
   assert.equal(created.credential_device_type, "multi_device");
   await m.users.authenticationMethods.create(id, { type: "totp", totp_secret: newTOTPSeed() });
   let list = (await m.users.authenticationMethods.list(id)).data;
-  await capture("SDK list", list);
+  await capture("SDK list", documented(list));
   const passkey = list.find((x) => x.type === "passkey");
   assert.ok(passkey, "passkey listed");
   assert.equal(passkey.relying_party_identifier, sharedRP);

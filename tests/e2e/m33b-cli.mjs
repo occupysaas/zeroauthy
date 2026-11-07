@@ -6,7 +6,7 @@ import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promise
 import https from "node:https";
 import net from "node:net";
 import tls from "node:tls";
-import { work, admin, capture, password, realm, sharedRP, softKey, softBody, receiverBearer } from "./m33b-node.mjs";
+import { work, admin, capture, documented, password, realm, sharedRP, softKey, softBody, receiverBearer } from "./m33b-node.mjs";
 
 async function cli() {
   const home = `${work}/private-cli-home`;
@@ -26,7 +26,11 @@ async function cli() {
     const args = ["api", method, path, "--no-input", "--no-color", ...(method === "DELETE" ? ["--force"] : []), ...(body === undefined ? [] : ["--data", JSON.stringify(body)])];
     const r = spawnSync(process.env.AUTH0_BIN, args, { env, encoding: "utf8", timeout: 90000 });
     assert.ifError(r.error);
-    await appendFile(`${work}/cli.jsonl`, JSON.stringify({ path, method, status: r.status, stdout: r.stdout, stderr: r.stderr }) + "\n");
+    let stdout = r.stdout;
+    try {
+      if (/authentication-methods/.test(path) && stdout.trim()) stdout = documented(JSON.parse(stdout));
+    } catch {}
+    await appendFile(`${work}/cli.jsonl`, JSON.stringify({ path, method, status: r.status, stdout, stderr: r.stderr }) + "\n");
     if (expectFailure) {
       assert.notEqual(r.status, 0, `${method} ${path} unexpectedly succeeded`);
       return r.stderr + r.stdout;
@@ -41,7 +45,7 @@ async function cli() {
   assert.equal(created.type, "passkey");
   await run(path, "POST", { type: "email", email: user.email });
   let list = await run(path);
-  await capture("CLI list", list);
+  await capture("CLI list", documented(list));
   const passkey = list.find((m) => m.type === "passkey");
   assert.equal(passkey.key_id, key.credId.toString("base64url"));
   assert.equal(passkey.relying_party_identifier, sharedRP);
