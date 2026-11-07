@@ -4,7 +4,7 @@ import logInventory from '../../../internal/logrules/inventory.json'
 const en = {
   passkeys: {
     passwordEnabled: 'Enable password login', yes: 'Yes', no: 'No', title: 'Passkeys', enabled: 'Enable passkey login', challengeUI: 'Passkey authentication UI', both: 'Autofill and button', autofill: 'Autofill', button: 'Button',
-    progressive: 'Offer enrollment after login', local: 'Offer a passkey on this device after cross-device login', prerequisites: 'Prerequisites', met: 'Ready', unmet: 'Needs attention',
+    progressive: 'Offer enrollment after login', local: 'Offer a passkey on this device after cross-device login', prerequisites: 'Prerequisites', unchecked: 'Not checked', met: 'Ready', unmet: 'Needs attention',
     prerequisite: { universal_login: 'Use the new login experience', identifier_first: 'Enable identifier first', username_or_flexible: 'Turn off required usernames or use flexible identifiers', custom_db_import: 'Turn off custom database scripts or enable import mode', password_enabled: 'Keep passwords enabled' },
     rpidTitle: 'Relying party IDs', host: 'Host', origin: 'Origin', kind: 'Host type', rpid: 'RP ID', valid: 'Valid', invalid: 'Invalid — ceremonies are unavailable', edit: 'Edit custom domain',
     kinds: { canonical: 'Canonical', custom: 'Custom domain', operator: 'Operator alias' },

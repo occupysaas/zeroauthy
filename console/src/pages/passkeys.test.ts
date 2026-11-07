@@ -146,3 +146,44 @@ it('does not rewrite untouched mobile platform objects while saving an applicati
  await wrapper.get('#app-name').setValue('Renamed app');await wrapper.get('form').trigger('submit');await flushPromises()
  expect(calls.find(c=>c.method==='PATCH')?.body).not.toHaveProperty('mobile');wrapper.unmount()
 })
+it.each(['password', 'passkey'] as const)('serializes %s-first connection saves and preserves both drafts and saved options',async first=>{
+ let stored=connection('db')
+ const pending:{body:{options:Record<string,unknown>};finish:(reply:Reply)=>void}[]=[]
+ const page=defineComponent({setup(){const current=ref(stored);return ()=>h(PasswordTab,{tenant:tenant('acme'),connection:current.value,onSaved:(value)=>{current.value=value}})}})
+ const {wrapper}=await mountAt(page,'/t/acme/connections/db',c=>{
+  if(c.method==='PATCH')return new Promise(finish=>{pending.push({body:c.body as {options:Record<string,unknown>},finish})})
+  return {status:200,body:{effective:false,unmet:[]}}
+ })
+ await wrapper.get('#pw-min').setValue('12');await wrapper.get('#passkey-ui').setValue('button')
+ const firstForm=first==='password'?'#password-settings':'#passkey-settings',secondForm=first==='password'?'#passkey-settings':'#password-settings'
+ await wrapper.get(firstForm).trigger('submit');await flushPromises()
+ expect(pending).toHaveLength(1)
+ // Submit events bypass disabled controls: the shared guard must reject them too.
+ await wrapper.get(secondForm).trigger('submit');await flushPromises();expect(pending).toHaveLength(1)
+ expect(wrapper.get('#password-settings button[type="submit"]').element.matches(':disabled')).toBe(true)
+ expect(wrapper.get('#passkey-settings button[type="submit"]').element.matches(':disabled')).toBe(true)
+ stored={...stored,...pending[0]!.body};pending[0]!.finish({status:200,body:stored});await flushPromises()
+ expect((wrapper.get('#pw-min').element as HTMLInputElement).value).toBe('12')
+ expect((wrapper.get('#passkey-ui').element as HTMLSelectElement).value).toBe('button')
+ await wrapper.get(secondForm).trigger('submit');await flushPromises();expect(pending).toHaveLength(2)
+ stored={...stored,...pending[1]!.body};pending[1]!.finish({status:200,body:stored});await flushPromises()
+ expect(stored.options).toMatchObject({password_options:{complexity:{min_length:12}},passkey_options:{challenge_ui:'button'},acme_custom_flag:{keep:['me']}})
+ expect((wrapper.get('#pw-min').element as HTMLInputElement).value).toBe('12')
+ expect((wrapper.get('#passkey-ui').element as HTMLSelectElement).value).toBe('button');wrapper.unmount()
+})
+it('shows unknown prerequisite status while loading or failed and ready only after a successful read',async()=>{
+ let finish!:(reply:Reply)=>void,first=true
+ const page=defineComponent({render:()=>h(PasswordTab,{tenant:tenant('acme'),connection:connection('db')})})
+ const {wrapper}=await mountAt(page,'/t/acme/connections/db',()=>{
+  if(first){first=false;return new Promise(resolve=>{finish=resolve})}
+  return {status:200,body:{effective:false,unmet:[]}}
+ })
+ const statuses=()=>wrapper.findAll('[data-prerequisite] > span').map(row=>row.text())
+ expect(statuses()).toEqual(Array(5).fill('Not checked'))
+ expect(wrapper.get('#passkey-settings button[type="submit"]').element.matches(':disabled')).toBe(true)
+ finish({status:503,body:{message:'Prerequisite read unavailable'}});await flushPromises()
+ expect(statuses()).toEqual(Array(5).fill('Not checked'))
+ expect(wrapper.get('#passkey-settings button[type="submit"]').element.matches(':disabled')).toBe(true)
+ await wrapper.get('#passkey-settings').findAll('button').find(button=>button.text()==='Try again')!.trigger('click');await flushPromises()
+ expect(statuses()).toEqual(Array(5).fill('Ready'));wrapper.unmount()
+})
