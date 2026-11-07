@@ -86,18 +86,22 @@ func sameSet(a, b []string) bool {
 	return slices.Equal(a, b)
 }
 
+// plan33bLogCodes are the ten codes Plan 33b took over from earlier plans and
+// emits (D-0062).
+var plan33bLogCodes = []string{
+	"gd_webauthn_enrollment_failed", "gd_webauthn_challenge_failed", "passkey_challenge_started",
+	"passkey_challenge_failed", "sepkotpft", "sepkoobft", "sepkrcft", "seotpft", "seoobft", "sercft",
+}
+
 func TestPlan33bLogCodes(t *testing.T) {
 	byType := map[string]logrules.Code{}
 	for _, c := range logrules.Codes() {
 		byType[c.Type] = c
 	}
-	for _, code := range []string{
-		"gd_webauthn_enrollment_failed", "gd_webauthn_challenge_failed", "passkey_challenge_started",
-		"passkey_challenge_failed", "sepkotpft", "sepkoobft", "sepkrcft", "seotpft", "seoobft", "sercft",
-	} {
+	for _, code := range plan33bLogCodes {
 		c, ok := byType[code]
-		if !ok || c.Owner != "Plan 33b" {
-			t.Errorf("%s owner = %q, want Plan 33b", code, c.Owner)
+		if !ok || c.Plan != 33 || c.Owner != "" {
+			t.Errorf("%s = %+v, want Plan 33 without a deferred owner", code, c)
 		}
 	}
 	if c := byType["gd_auth_rejected"]; c.Status != "not_planned" || c.Owner != "" {
@@ -105,6 +109,22 @@ func TestPlan33bLogCodes(t *testing.T) {
 	}
 }
 
+// TestPlan33bLogCodesEmitted: every Plan 33b code is recorded as emitted, with
+// at least one trigger naming the emitting function.
 func TestPlan33bLogCodesEmitted(t *testing.T) {
-	t.Skip("flipped in Task 19")
+	byType := map[string]logrules.Code{}
+	for _, c := range logrules.Codes() {
+		byType[c.Type] = c
+	}
+	for _, code := range plan33bLogCodes {
+		c := byType[code]
+		if !c.Emitted || c.Status != "emitted" || len(c.Triggers) == 0 {
+			t.Errorf("%s = %+v, want emitted with status emitted and a trigger", code, c)
+		}
+		for _, tr := range c.Triggers {
+			if tr.File == "" || tr.Function == "" {
+				t.Errorf("%s trigger %+v incomplete", code, tr)
+			}
+		}
+	}
 }

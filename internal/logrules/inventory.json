@@ -1738,7 +1738,8 @@
           "function": "VerifyWebAuthn",
           "when": "An MFA security-key assertion or browser ceremony fails."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "gd_webauthn_enrollment_failed",
@@ -1761,7 +1762,8 @@
           "function": "StageWebAuthnEnroll",
           "when": "An MFA security-key registration or browser ceremony fails."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "idjag_exchange_failed",
@@ -2101,7 +2103,8 @@
           "function": "nativeEvent",
           "when": "A native passkey request or proof is refused."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "passkey_challenge_started",
@@ -2119,7 +2122,8 @@
           "function": "nativePasskey",
           "when": "A native passkey challenge is issued."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "pla",
@@ -2529,7 +2533,8 @@
           "function": "mfaGrant",
           "when": "The bound first-factor MFA continuation succeeds."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "seotpft",
@@ -2547,7 +2552,8 @@
           "function": "mfaGrant",
           "when": "The bound first-factor MFA continuation succeeds."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "sepft",
@@ -2583,7 +2589,8 @@
           "function": "mfaGrant",
           "when": "The bound first-factor MFA continuation succeeds."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "sepkotpft",
@@ -2601,7 +2608,8 @@
           "function": "mfaGrant",
           "when": "The bound first-factor MFA continuation succeeds."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "sepkrcft",
@@ -2619,7 +2627,8 @@
           "function": "mfaGrant",
           "when": "The bound first-factor MFA continuation succeeds."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "sercft",
@@ -2637,7 +2646,8 @@
           "function": "mfaGrant",
           "when": "The bound first-factor MFA continuation succeeds."
         }
-      ]
+      ],
+      "status": "emitted"
     },
     {
       "type": "sertft",
