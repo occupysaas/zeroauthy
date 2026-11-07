@@ -142,6 +142,10 @@ async function save() {
   const tn = tenant.value
   if (!tn || !domain.value || !readable.value || pending.value) return
   const current = generation
+  if (rp.value !== (domain.value.relying_party_identifier ?? '')) {
+    if (!(await prompt.ask(t('passkeys.rpWarning'), t('customDomain.save')))) return
+    if (current !== generation || tenant.value !== tn || !domain.value || !readable.value || pending.value) return
+  }
   pending.value = true
   error.value = ''
   notice.value = ''
@@ -222,6 +226,7 @@ async function remove() {
         <label for="rp">{{ t('customDomain.rp') }}</label>
         <input id="rp" v-model="rp" type="text" aria-describedby="rp-help">
         <p id="rp-help">{{ t('customDomain.rpHelp') }}</p>
+        <Banner kind="warn">{{ t('passkeys.rpWarning') }}</Banner>
         <button type="submit" class="button" :disabled="!readable || pending">{{ t('customDomain.save') }}</button>
       </form>
       <Button variant="danger" class="mt-4" :disabled="!readable || pending" @click="remove">{{ t('customDomain.delete') }}</Button>

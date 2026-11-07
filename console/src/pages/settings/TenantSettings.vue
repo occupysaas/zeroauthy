@@ -16,6 +16,7 @@ const tab = ref('general')
   <div v-if="tenant">
     <h1>{{ t('nav.settings') }}</h1>
     <Banner v-if="tenant.seeded" kind="warn">{{ t('seededBanner') }}</Banner>
+    <p><RouterLink :to="{ name: 'relying-party-ids', params: { tenant: tenant.name } }">{{ t('passkeys.rpidTitle') }}</RouterLink></p>
     <TabsRoot v-model="tab">
       <TabsList class="tabs flex-wrap" :aria-label="t('nav.settings')"><TabsTrigger v-for="panel in settingsPanels" :key="panel.key" class="tab" :value="panel.key">{{ t(panel.title) }}</TabsTrigger><TabsTrigger class="tab" value="signing-keys">{{ t('signingKeys.managedTitle') }}</TabsTrigger><TabsTrigger class="tab" value="custom-signing-keys">{{ t('signingKeys.customTitle') }}</TabsTrigger></TabsList>
       <TabsContent v-for="panel in settingsPanels" :key="panel.key" :value="panel.key"><PolicyForm :tenant="tenant" :panel="panel" /></TabsContent>

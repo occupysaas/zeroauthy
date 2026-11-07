@@ -1428,6 +1428,45 @@ func (e ConnectionOptionsSMSSyntax) Valid() bool {
 	}
 }
 
+// Defines values for ConsoleAuthenticationMethodCredentialDeviceType.
+const (
+	ConsoleAuthenticationMethodCredentialDeviceTypeMultiDevice  ConsoleAuthenticationMethodCredentialDeviceType = "multi_device"
+	ConsoleAuthenticationMethodCredentialDeviceTypeSingleDevice ConsoleAuthenticationMethodCredentialDeviceType = "single_device"
+)
+
+// Valid indicates whether the value is a known member of the ConsoleAuthenticationMethodCredentialDeviceType enum.
+func (e ConsoleAuthenticationMethodCredentialDeviceType) Valid() bool {
+	switch e {
+	case ConsoleAuthenticationMethodCredentialDeviceTypeMultiDevice:
+		return true
+	case ConsoleAuthenticationMethodCredentialDeviceTypeSingleDevice:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConsoleRelyingPartyIdKind.
+const (
+	ConsoleRelyingPartyIdKindCanonical ConsoleRelyingPartyIdKind = "canonical"
+	ConsoleRelyingPartyIdKindCustom    ConsoleRelyingPartyIdKind = "custom"
+	ConsoleRelyingPartyIdKindOperator  ConsoleRelyingPartyIdKind = "operator"
+)
+
+// Valid indicates whether the value is a known member of the ConsoleRelyingPartyIdKind enum.
+func (e ConsoleRelyingPartyIdKind) Valid() bool {
+	switch e {
+	case ConsoleRelyingPartyIdKindCanonical:
+		return true
+	case ConsoleRelyingPartyIdKindCustom:
+		return true
+	case ConsoleRelyingPartyIdKindOperator:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CustomDomainCertificateStatus.
 const (
 	CustomDomainCertificateStatusProvisioned        CustomDomainCertificateStatus = "provisioned"
@@ -8199,6 +8238,36 @@ type ConnectionTotp struct {
 // `enabled_clients` are unknown properties.
 type ConnectionUpdate = ConnectionSettings
 
+// ConsoleAuthenticationMethod defines model for ConsoleAuthenticationMethod.
+type ConsoleAuthenticationMethod struct {
+	Aaguid                 *string                                          `json:"aaguid,omitempty"`
+	CreatedAt              time.Time                                        `json:"created_at"`
+	CredentialBackedUp     *bool                                            `json:"credential_backed_up,omitempty"`
+	CredentialDeviceType   *ConsoleAuthenticationMethodCredentialDeviceType `json:"credential_device_type,omitempty"`
+	Id                     string                                           `json:"id"`
+	LastAuthAt             *time.Time                                       `json:"last_auth_at,omitempty"`
+	Name                   string                                           `json:"name"`
+	PhoneNumber            *string                                          `json:"phone_number,omitempty"`
+	RelyingPartyIdentifier *string                                          `json:"relying_party_identifier,omitempty"`
+	Type                   string                                           `json:"type"`
+}
+
+// ConsoleAuthenticationMethodCredentialDeviceType defines model for ConsoleAuthenticationMethod.CredentialDeviceType.
+type ConsoleAuthenticationMethodCredentialDeviceType string
+
+// ConsoleRelyingPartyId defines model for ConsoleRelyingPartyId.
+type ConsoleRelyingPartyId struct {
+	CustomDomainId         *string                   `json:"custom_domain_id,omitempty"`
+	Host                   string                    `json:"host"`
+	Kind                   ConsoleRelyingPartyIdKind `json:"kind"`
+	Origin                 string                    `json:"origin"`
+	RelyingPartyIdentifier string                    `json:"relying_party_identifier"`
+	Valid                  bool                      `json:"valid"`
+}
+
+// ConsoleRelyingPartyIdKind defines model for ConsoleRelyingPartyId.Kind.
+type ConsoleRelyingPartyIdKind string
+
 // CustomDomain defines model for CustomDomain.
 type CustomDomain struct {
 	Certificate *struct {
@@ -12801,6 +12870,11 @@ type GetTenantJobs200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// RenameTenantConsoleAuthenticationMethodJSONBody defines parameters for RenameTenantConsoleAuthenticationMethod.
+type RenameTenantConsoleAuthenticationMethodJSONBody struct {
+	Name string `json:"name"`
+}
+
 // GetActionsParams defines parameters for GetActions.
 type GetActionsParams struct {
 	// Page Page index of the results, from 0.
@@ -13724,6 +13798,9 @@ type TestTenantEmailJSONRequestBody = EmailTestRequest
 
 // SetTenantRoamingUVSettingsJSONRequestBody defines body for SetTenantRoamingUVSettings for application/json ContentType.
 type SetTenantRoamingUVSettingsJSONRequestBody = RoamingUVSettings
+
+// RenameTenantConsoleAuthenticationMethodJSONRequestBody defines body for RenameTenantConsoleAuthenticationMethod for application/json ContentType.
+type RenameTenantConsoleAuthenticationMethodJSONRequestBody RenameTenantConsoleAuthenticationMethodJSONBody
 
 // CreateActionJSONRequestBody defines body for CreateAction for application/json ContentType.
 type CreateActionJSONRequestBody = ActionCreate
@@ -20254,6 +20331,15 @@ type ServerInterface interface {
 	// GetTenantLogStreamStatus Read tenant log stream delivery health
 	// (GET /api/system/tenants/{tenant}/log-streams/status)
 	GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request, tenant string)
+	// GetTenantRelyingPartyIds Inspect effective relying party IDs for every tenant host
+	// (GET /api/system/tenants/{tenant}/relying-party-ids)
+	GetTenantRelyingPartyIds(w http.ResponseWriter, r *http.Request, tenant string)
+	// GetTenantConsoleAuthenticationMethods Read credential-free authenticator metadata
+	// (GET /api/system/tenants/{tenant}/users/{id}/authentication-methods)
+	GetTenantConsoleAuthenticationMethods(w http.ResponseWriter, r *http.Request, tenant string, id string)
+	// RenameTenantConsoleAuthenticationMethod Rename a method and return safe display metadata
+	// (PATCH /api/system/tenants/{tenant}/users/{id}/authentication-methods/{method})
+	RenameTenantConsoleAuthenticationMethod(w http.ResponseWriter, r *http.Request, tenant string, id string, method string)
 	// GetActions GetActions addressed to the current tenant
 	// (GET /api/v2/actions/actions)
 	GetActions(w http.ResponseWriter, r *http.Request, params GetActionsParams)
@@ -21238,6 +21324,24 @@ func (_ Unimplemented) GetTenantJobs(w http.ResponseWriter, r *http.Request, ten
 // GetTenantLogStreamStatus Read tenant log stream delivery health
 // (GET /api/system/tenants/{tenant}/log-streams/status)
 func (_ Unimplemented) GetTenantLogStreamStatus(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantRelyingPartyIds Inspect effective relying party IDs for every tenant host
+// (GET /api/system/tenants/{tenant}/relying-party-ids)
+func (_ Unimplemented) GetTenantRelyingPartyIds(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantConsoleAuthenticationMethods Read credential-free authenticator metadata
+// (GET /api/system/tenants/{tenant}/users/{id}/authentication-methods)
+func (_ Unimplemented) GetTenantConsoleAuthenticationMethods(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RenameTenantConsoleAuthenticationMethod Rename a method and return safe display metadata
+// (PATCH /api/system/tenants/{tenant}/users/{id}/authentication-methods/{method})
+func (_ Unimplemented) RenameTenantConsoleAuthenticationMethod(w http.ResponseWriter, r *http.Request, tenant string, id string, method string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -23595,6 +23699,111 @@ func (siw *ServerInterfaceWrapper) GetTenantLogStreamStatus(w http.ResponseWrite
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTenantLogStreamStatus(w, r, tenant)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantRelyingPartyIds operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantRelyingPartyIds(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantRelyingPartyIds(w, r, tenant)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantConsoleAuthenticationMethods operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantConsoleAuthenticationMethods(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantConsoleAuthenticationMethods(w, r, tenant, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RenameTenantConsoleAuthenticationMethod operation middleware
+func (siw *ServerInterfaceWrapper) RenameTenantConsoleAuthenticationMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "method" -------------
+	var method string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "method", chi.URLParam(r, "method"), &method, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "method", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RenameTenantConsoleAuthenticationMethod(w, r, tenant, id, method)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -33627,6 +33836,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings", wrapper.SetTenantRoamingUVSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/relying-party-ids", wrapper.GetTenantRelyingPartyIds)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/users/{id}/authentication-methods", wrapper.GetTenantConsoleAuthenticationMethods)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/system/tenants/{tenant}/users/{id}/authentication-methods/{method}", wrapper.RenameTenantConsoleAuthenticationMethod)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/log-streams/status", wrapper.GetTenantLogStreamStatus)

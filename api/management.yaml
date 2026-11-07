@@ -5950,6 +5950,79 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "501": {description: MFA storage is unavailable.}
+  /api/system/tenants/{tenant}/relying-party-ids:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantRelyingPartyIds
+      tags: [system]
+      summary: Inspect effective relying party IDs for every tenant host
+      description: Local D-0062 operator extension. Uses the live deployment RP policy. Requires read:custom_domains for the target tenant.
+      x-source: [https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy]
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Host status including unusable stored RP IDs.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: "#/components/schemas/ConsoleRelyingPartyId"}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/system/tenants/{tenant}/users/{id}/authentication-methods:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantConsoleAuthenticationMethods
+      tags: [system]
+      summary: Read credential-free authenticator metadata
+      description: Local D-0062 operator extension. Returns every method with an allowlist of display fields only. Requires read:authentication_methods for the target tenant.
+      x-source: [https://auth0.com/docs/api/management/v2/users/get-authentication-methods]
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Safe method metadata; credential identifiers, public keys and user handles are excluded.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: "#/components/schemas/ConsoleAuthenticationMethod"}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: MFA storage is unavailable.}
+  /api/system/tenants/{tenant}/users/{id}/authentication-methods/{method}:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+      - {name: id, in: path, required: true, schema: {type: string}}
+      - {name: method, in: path, required: true, schema: {type: string}}
+    patch:
+      operationId: renameTenantConsoleAuthenticationMethod
+      tags: [system]
+      summary: Rename a method and return safe display metadata
+      description: Local D-0062 operator extension. Requires update:authentication_methods for the target tenant. Never returns credential data.
+      x-source: [https://auth0.com/docs/api/management/v2/users/patch-authentication-methods-by-authentication-method-id]
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, maxLength: 20}
+      responses:
+        "200":
+          description: Safe metadata for the renamed method.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConsoleAuthenticationMethod"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: MFA storage is unavailable.}
   /api/system/tenants/{tenant}/log-streams/status:
     parameters:
       - {name: tenant, in: path, required: true, schema: {type: string}}
@@ -22164,6 +22237,32 @@ components:
       required: [available]
       properties:
         available: {type: boolean}
+    ConsoleRelyingPartyId:
+      type: object
+      additionalProperties: false
+      required: [host, origin, kind, relying_party_identifier, valid]
+      properties:
+        host: {type: string}
+        origin: {type: string}
+        kind: {type: string, enum: [canonical, custom, operator]}
+        relying_party_identifier: {type: string}
+        valid: {type: boolean}
+        custom_domain_id: {type: string}
+    ConsoleAuthenticationMethod:
+      type: object
+      additionalProperties: false
+      required: [id, type, name, created_at]
+      properties:
+        id: {type: string}
+        type: {type: string}
+        name: {type: string}
+        created_at: {type: string, format: date-time}
+        last_auth_at: {type: string, format: date-time}
+        phone_number: {type: string}
+        relying_party_identifier: {type: string}
+        credential_device_type: {type: string, enum: [single_device, multi_device]}
+        credential_backed_up: {type: boolean}
+        aaguid: {type: string}
     SystemTenant:
       type: object
       description: A tenant, as the system API reports it.

@@ -3061,3 +3061,40 @@ after a proven passkey login and leaves password login challenged. Enrollment
 or a submitted passkey flag cannot select the skip. Neither branch marks the
 first-factor session as MFA. Cost: one narrow hosted integration test beyond the
 plan's file list; there is no new wire, store, schema or runner contract.
+
+### D-0062 Task 17 — Console-safe authenticator metadata and RP status
+
+The documented Management method list and rename responses include public keys
+and user handles and offer no documented field-selection parameter. The console
+must not receive those responses and discard fields afterward. Controller
+approved a minimal system operator extension: GET the target user's
+`authentication-methods` and PATCH `authentication-methods/{method}` beneath
+`/api/system/tenants/{tenant}/users/{id}`. The server constructs a display
+allowlist before serialization, including rename results, excluding credential
+IDs, public keys, handles and raw proof data. PATCH accepts only a 1–20 character
+name. DELETE keeps using the documented204 response. Existing v2 shapes stay
+unchanged. Cost: two local operations outside v2 and an allowlist to maintain.
+
+GET `/api/system/tenants/{tenant}/relying-party-ids` is a third marked local
+extension. Every canonical/custom/operator host uses the live ceremony resolver
+and deployment policy; origin ports remain present and invalid or pending
+custom-domain overrides remain visible for repair. A nil custom-domain service
+means no optional origin suffix; it does not disable the base/system/shared-host
+policy or store checks. Cost: a local inspection route, avoiding a browser-side
+policy approximation. All three routes share exact target-tenant signed/live
+operator grant checks, existing system-only exposure and read/update scopes.
+The safe method route binds the target tenant before applying existing phone
+masking, rather than inheriting system-tenant presentation settings.
+
+The console replaces the old unrestricted stored-only authentication_methods and
+passkey_options JSON fields with dedicated password/passkey controls. Unknown
+nested wire fields remain preserved; enabling is blocked by computed server
+prerequisites and links open the actual settings tabs. Cost: those two raw JSON
+fields are no longer edited in their old location. RP IDs are linked from Tenant
+Settings as a settings subpage, retaining established navigation (one extra click).
+App saves use route-aware tenant/client scope and omit unchanged mobile platform
+objects; no mobile identifier/fingerprint format restriction is invented.
+
+Task17 remains REVIEW PENDING. Full browser/backend/hardware acceptance remains
+Task19. The Browser runtime connected but failed documented navigation and CUA
+commands before a page could be inspected; no visual pass is claimed.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { ApiError, type Client, type ClientUpdate, type SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
@@ -8,6 +8,7 @@ import Button from '../../ui/Button.vue'
 import CopyButton from '../../ui/CopyButton.vue'
 import Field from '../../ui/Field.vue'
 import { fieldErrors, lines } from './defaults'
+import { useMfaScope } from '../security/scope'
 import SecretField from './SecretField.vue'
 
 const { t } = useI18n()
@@ -17,6 +18,7 @@ const emit = defineEmits<{ saved: [Client] }>()
 const { api } = useServices()
 
 const form = reactive({ name: '', callbacks: '', logout: '', webOrigins: '', allowedOrigins: '',
+  passkeyGrant: false, iosEnabled: false, androidEnabled: false, iosTeam: '', iosBundle: '', androidPackage: '', fingerprints: '',
   organizationUsage: 'deny' as 'deny' | 'allow' | 'require',
   organizationBehavior: 'no_prompt' as 'no_prompt' | 'pre_login_prompt' | 'post_login_prompt',
   discovery: [] as ('email' | 'organization_name')[],
@@ -25,11 +27,16 @@ const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
 const busy = ref(false)
-let epoch = 0
-watch(() => props.tenant.host + '\0' + props.client.client_id, () => { ++epoch; busy.value = false; general.value = ''; status.value = ''; for (const k of Object.keys(errors)) delete errors[k] })
-onBeforeUnmount(() => { ++epoch })
+const { key, capture, current } = useMfaScope(() => props.tenant, () => props.client.client_id)
+let initialMobile = ''
+watch(key, () => { busy.value = false; general.value = ''; status.value = ''; reset(props.client); for (const k of Object.keys(errors)) delete errors[k] }, { flush: 'sync' })
 
 function reset(c: Client) {
+  form.passkeyGrant = c.grant_types.includes('urn:okta:params:oauth:grant-type:webauthn')
+  form.iosEnabled = !!c.mobile?.ios; form.androidEnabled = !!c.mobile?.android
+  form.iosTeam = c.mobile?.ios?.team_id ?? ''; form.iosBundle = c.mobile?.ios?.app_bundle_identifier ?? ''
+  form.androidPackage = c.mobile?.android?.app_package_name ?? ''; form.fingerprints = (c.mobile?.android?.sha256_cert_fingerprints ?? []).join('\n')
+  initialMobile = JSON.stringify(mobileSettings())
   form.organizationUsage = c.organization_usage ?? 'deny'
   form.organizationBehavior = c.organization_require_behavior ?? 'no_prompt'
   form.discovery = [...(c.organization_discovery_methods ?? [])]
@@ -50,9 +57,18 @@ const fieldKeys = {
   allowedOrigins: ['allowed_origins'],
 }
 
+function mobileSettings(): NonNullable<ClientUpdate['mobile']> {
+  const iosPresent = form.iosEnabled || !!form.iosTeam || !!form.iosBundle
+  const androidPresent = form.androidEnabled || !!form.androidPackage || !!form.fingerprints
+  const mobile: NonNullable<ClientUpdate['mobile']> = {}
+  if (iosPresent) mobile.ios = { team_id: form.iosTeam, app_bundle_identifier: form.iosBundle }
+  if (androidPresent) mobile.android = { app_package_name: form.androidPackage, ...(form.fingerprints ? { sha256_cert_fingerprints: lines(form.fingerprints) } : {}) }
+  return mobile
+}
+
 async function save() {
   if (busy.value) return
-  const mine = epoch
+  const captured = capture(); if (!captured) return
   busy.value = true
   general.value = ''
   status.value = ''
@@ -71,13 +87,17 @@ async function save() {
     web_origins: lines(form.webOrigins),
     allowed_origins: lines(form.allowedOrigins),
   }
+  const grant = 'urn:okta:params:oauth:grant-type:webauthn'
+  if (form.passkeyGrant !== props.client.grant_types.includes(grant)) body.grant_types = form.passkeyGrant ? [...props.client.grant_types, grant] : props.client.grant_types.filter(item => item !== grant)
+  const mobile = mobileSettings()
+  if (JSON.stringify(mobile) !== initialMobile) body.mobile = mobile
   try {
-    const c = await api.updateClient(props.tenant, props.client.client_id, body)
-    if (mine !== epoch) return
+    const c = await api.updateClient(captured.tenant, captured.id, body)
+    if (!current(captured)) return
     status.value = t('saved')
     emit('saved', c)
   } catch (e) {
-    if (mine !== epoch) return
+    if (!current(captured)) return
     if (e instanceof ApiError && e.errorCode === 'invalid_body') {
       const split = fieldErrors(e.message, fieldKeys)
       Object.assign(errors, split.byField)
@@ -86,7 +106,7 @@ async function save() {
       general.value = errorMessage(e)
     }
   } finally {
-    if (mine === epoch) busy.value = false
+    if (current(captured)) busy.value = false
   }
 }
 
@@ -136,6 +156,15 @@ function describedBy(id: string, hint: boolean): string {
       <Field id="app-organization-behavior" :label="t('orgs.behavior')"><select id="app-organization-behavior" v-model="form.organizationBehavior"><option value="no_prompt">{{ t('orgs.noPrompt') }}</option><option value="pre_login_prompt">{{ t('orgs.prePrompt') }}</option><option value="post_login_prompt" :disabled="!client.oidc_conformant">{{ t('orgs.postPrompt') }}</option></select></Field>
       <fieldset class="stack"><legend>{{ t('orgs.discovery') }}</legend><p id="organization-discovery-hint">{{ t('orgs.discoveryHint') }}</p>
         <label v-for="method in ['email', 'organization_name'] as const" :key="method"><input :id="'app-organization-discovery-' + method" v-model="form.discovery" type="checkbox" :value="method" :disabled="form.organizationBehavior !== 'pre_login_prompt'" aria-describedby="organization-discovery-hint" /> {{ method === 'email' ? t('orgs.email') : t('orgs.organizationName') }}</label>
+      </fieldset>
+      <label><input id="app-passkey-grant" v-model="form.passkeyGrant" type="checkbox" /> {{ t('passkeys.grant') }}</label>
+      <fieldset class="stack"><legend>{{ t('passkeys.devices') }}</legend>
+        <label><input id="app-ios-enabled" v-model="form.iosEnabled" type="checkbox" @change="!form.iosEnabled && (form.iosTeam = '', form.iosBundle = '')" /> {{ t('passkeys.iosEnabled') }}</label>
+        <Field id="app-ios-team" :label="t('passkeys.iosTeam')"><input id="app-ios-team" v-model="form.iosTeam" /></Field>
+        <Field id="app-ios-bundle" :label="t('passkeys.iosBundle')"><input id="app-ios-bundle" v-model="form.iosBundle" /></Field>
+        <label><input id="app-android-enabled" v-model="form.androidEnabled" type="checkbox" @change="!form.androidEnabled && (form.androidPackage = '', form.fingerprints = '')" /> {{ t('passkeys.androidEnabled') }}</label>
+        <Field id="app-android-package" :label="t('passkeys.androidPackage')"><input id="app-android-package" v-model="form.androidPackage" /></Field>
+        <Field id="app-android-fingerprints" :label="t('passkeys.fingerprints')" :hint="t('passkeys.fingerprintsHint')"><textarea id="app-android-fingerprints" v-model="form.fingerprints" rows="3" /></Field>
       </fieldset>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy || !form.name.trim()">{{ busy ? t('saving') : t('save') }}</Button>

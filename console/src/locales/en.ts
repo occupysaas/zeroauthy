@@ -2,6 +2,18 @@ import logInventory from '../../../internal/logrules/inventory.json'
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+  passkeys: {
+    passwordEnabled: 'Enable password login', yes: 'Yes', no: 'No', title: 'Passkeys', enabled: 'Enable passkey login', challengeUI: 'Passkey authentication UI', both: 'Autofill and button', autofill: 'Autofill', button: 'Button',
+    progressive: 'Offer enrollment after login', local: 'Offer a passkey on this device after cross-device login', prerequisites: 'Prerequisites', met: 'Ready', unmet: 'Needs attention',
+    prerequisite: { universal_login: 'Use the new login experience', identifier_first: 'Enable identifier first', username_or_flexible: 'Turn off required usernames or use flexible identifiers', custom_db_import: 'Turn off custom database scripts or enable import mode', password_enabled: 'Keep passwords enabled' },
+    rpidTitle: 'Relying party IDs', host: 'Host', origin: 'Origin', kind: 'Host type', rpid: 'RP ID', valid: 'Valid', invalid: 'Invalid — ceremonies are unavailable', edit: 'Edit custom domain',
+    kinds: { canonical: 'Canonical', custom: 'Custom domain', operator: 'Operator alias' },
+    rpWarning: 'Changing an RP ID can make existing passkeys and WebAuthn security keys stop working. Users may need to enroll again.',
+    uv: 'Security-key user verification', uvValues: { discouraged: 'Never', preferred: 'If supported', required: 'Required' },
+    platformWarning: 'Device biometrics needs another enabled factor before users can enroll.',
+    synced: 'Synced', backedUp: 'Backed up', aaguid: 'Authenticator model (AAGUID)', created: 'Created', rename: 'Rename', delete: 'Delete passkey', renameTitle: 'Rename passkey', deleteTitle: 'Delete this passkey?', deleteBody: 'This passkey will no longer sign the user in.', noPasskeys: 'No passkeys enrolled.',
+    grant: 'Passkey', devices: 'Device Settings', iosEnabled: 'Configure iOS', androidEnabled: 'Configure Android', iosTeam: 'iOS team ID', iosBundle: 'iOS bundle ID', androidPackage: 'Android package name', fingerprints: 'Android SHA-256 certificate fingerprints', fingerprintsHint: 'Enter one fingerprint per line.',
+  },
   phone: {
     providers: 'Phone providers', templates: 'Phone templates', passwordlessEmail: 'Passwordless email', passwordlessSMS: 'Passwordless SMS',
     provider: 'Provider', custom: 'Custom Action', disabled: 'Disabled', default: 'Provider default', text: 'SMS', voice: 'Voice',

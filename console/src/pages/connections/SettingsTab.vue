@@ -32,8 +32,6 @@ const stored: Spec[] = [
   { key: 'metadata', where: 'top', kind: 'json' },
   { key: 'connected_accounts', where: 'top', kind: 'json' },
   { key: 'authentication', where: 'top', kind: 'json' },
-  { key: 'authentication_methods', where: 'options', kind: 'json' },
-  { key: 'passkey_options', where: 'options', kind: 'json' },
   { key: 'attributes', where: 'options', kind: 'json' },
   { key: 'precedence', where: 'options', kind: 'lines' },
   { key: 'mfa', where: 'options', kind: 'json' },

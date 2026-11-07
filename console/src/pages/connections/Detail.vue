@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
+import { useMfaScope } from '../security/scope'
 import ClientsTab from './ClientsTab.vue'
 import CustomDbTab from './CustomDbTab.vue'
 import DangerZone from './DangerZone.vue'
@@ -31,22 +32,25 @@ const connection = ref<Connection | null>(null)
 const error = ref('')
 const notFound = ref(false)
 const tab = ref('settings')
+const { key, capture, current } = useMfaScope(() => tenant.value, () => String(route.params.id ?? ''))
+watch(() => route.query.tab, value => { tab.value = typeof value === 'string' && ['settings', 'password', 'customdb', 'clients', 'danger'].includes(value) ? value : 'settings' }, { immediate: true })
 
 async function load() {
-  const tn = tenant.value
-  const id = route.params.id
-  if (!tn || typeof id !== 'string') return
+  const c = capture()
+  if (!c) return
   error.value = ''
   notFound.value = false
   connection.value = null
   try {
-    connection.value = await api.getConnection(tn, id)
+    const result = await api.getConnection(c.tenant, c.id)
+    if (current(c)) connection.value = result
   } catch (e) {
+    if (!current(c)) return
     if (e instanceof ApiError && e.status === 404) notFound.value = true
     else error.value = errorMessage(e)
   }
 }
-watch([tenant, () => route.params.id], load, { immediate: true })
+watch(key, load, { immediate: true, flush: 'sync' })
 </script>
 
 <template>

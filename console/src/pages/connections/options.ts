@@ -11,6 +11,8 @@ export const SCRIPT_NAMES = ['login', 'get_user', 'create', 'verify', 'change_pa
 // The option keys a tab edits and zeroauthy enforces.
 export const ENFORCED_KEYS = [
   'password_options',
+  'authentication_methods',
+  'passkey_options',
   'brute_force_protection',
   'disable_signup',
   'requires_username',
@@ -24,8 +26,6 @@ export const ENFORCED_KEYS = [
 
 // The option keys zeroauthy stores without enforcing (D-0042).
 export const STORED_KEYS = [
-  'authentication_methods',
-  'passkey_options',
   'attributes',
   'precedence',
   'mfa',

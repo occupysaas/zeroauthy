@@ -2179,6 +2179,124 @@ export interface paths {
         patch: operations["updateOperator"];
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read the prerequisites for passkey login
+         * @description Local operator extension. Requires read:connections for the target tenant.
+         */
+        get: operations["getTenantPasskeyPrerequisites"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read security-key user verification policy
+         * @description Local operator extension. Requires read:guardian_factors for the target tenant.
+         */
+        get: operations["getTenantRoamingUVSettings"];
+        /**
+         * Set security-key user verification policy
+         * @description Local operator extension. Requires update:guardian_factors for the target tenant.
+         */
+        put: operations["setTenantRoamingUVSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/relying-party-ids": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Inspect effective relying party IDs for every tenant host
+         * @description Local D-0062 operator extension. Uses the live deployment RP policy. Requires read:custom_domains for the target tenant.
+         */
+        get: operations["getTenantRelyingPartyIds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/users/{id}/authentication-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read credential-free authenticator metadata
+         * @description Local D-0062 operator extension. Returns every method with an allowlist of display fields only. Requires read:authentication_methods for the target tenant.
+         */
+        get: operations["getTenantConsoleAuthenticationMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/users/{id}/authentication-methods/{method}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+                method: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Rename a method and return safe display metadata
+         * @description Local D-0062 operator extension. Requires update:authentication_methods for the target tenant. Never returns credential data.
+         */
+        patch: operations["renameTenantConsoleAuthenticationMethod"];
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/log-streams/status": {
         parameters: {
             query?: never;
@@ -4284,6 +4402,8 @@ export interface components {
         MFAGetGuardianFactorsResponse: {
             /** @default true */
             enabled: boolean;
+            /** @description zeroauthy extension (D-0062): on the platform factor row, true when enabled without another enforced primary factor. */
+            requires_other_factor?: boolean;
             /** @default true */
             trial_expired?: boolean;
             /**
@@ -4631,7 +4751,7 @@ export interface components {
         MFAGetAuthenticationMethodsResponse: {
             id: string;
             /** @enum {string} */
-            type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "webauthn-platform" | "guardian" | "password";
+            type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "passkey" | "webauthn-platform" | "guardian" | "password";
             confirmed?: boolean;
             name?: string;
             authentication_methods?: ({
@@ -4670,7 +4790,7 @@ export interface components {
             authenticators?: {
                 id: string;
                 /** @enum {string} */
-                type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "webauthn-platform" | "guardian" | "password";
+                type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "passkey" | "webauthn-platform" | "guardian" | "password";
                 confirmed?: boolean;
                 name?: string;
                 authentication_methods?: ({
@@ -4708,7 +4828,7 @@ export interface components {
             /** Format: authenticator-id */
             id?: string;
             /** @enum {string} */
-            type: "phone" | "email" | "totp" | "webauthn-roaming";
+            type: "phone" | "email" | "totp" | "webauthn-roaming" | "passkey";
             name?: string;
             phone_number?: string;
             email?: string;
@@ -4738,7 +4858,7 @@ export interface components {
         };
         MFACreateAuthenticationMethod: {
             /** @enum {string} */
-            type: "totp" | "email" | "webauthn-roaming";
+            type: "totp" | "email" | "webauthn-roaming" | "passkey";
             name?: string;
             totp_secret?: string;
             phone_number?: string;
@@ -4797,7 +4917,7 @@ export interface components {
         MFAGetAuthenticationMethodResponse: {
             id: string;
             /** @enum {string} */
-            type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "webauthn-platform" | "guardian" | "password";
+            type: "recovery-code" | "totp" | "push" | "phone" | "email" | "email-verification" | "webauthn-roaming" | "passkey" | "webauthn-platform" | "guardian" | "password";
             confirmed?: boolean;
             name?: string;
             authentication_methods?: ({
@@ -4866,32 +4986,7 @@ export interface components {
             aaguid?: string;
             relying_party_identifier?: string;
         };
-        MFAUpdateAuthenticationMethodResponse: {
-            /** Format: authenticator-id */
-            id?: string;
-            /** @enum {string} */
-            type: "phone" | "email" | "totp" | "webauthn-roaming";
-            name?: string;
-            phone_number?: string;
-            email?: string;
-            authentication_methods?: ({
-                /** @enum {string} */
-                type?: "totp" | "push" | "sms" | "voice";
-                /** Format: authenticator-id */
-                id?: string;
-            } & {
-                [key: string]: unknown;
-            })[];
-            /** @enum {string} */
-            preferred_authentication_method?: "voice" | "sms";
-            key_id?: string;
-            public_key?: string;
-            aaguid?: string;
-            relying_party_identifier?: string;
-            confirmed?: boolean;
-            /** Format: date-time */
-            created_at?: string;
-        };
+        MFAUpdateAuthenticationMethodResponse: components["schemas"]["MFAGetAuthenticationMethodResponse"];
         MFAUpdateAuthenticationMethodRequest: {
             name?: string;
             /** @enum {string} */
@@ -7503,6 +7598,35 @@ export interface components {
             /** @description True for non-expiring tokens; derived from `expiration_type`. */
             infinite_idle_token_lifetime?: boolean;
         };
+        RoamingUVSettings: {
+            /**
+             * @default discouraged
+             * @enum {string}
+             */
+            user_verification: "discouraged" | "preferred" | "required";
+        };
+        /** @description Native application identities. Unknown settings are accepted and ignored. */
+        ClientMobile: {
+            ios?: components["schemas"]["ClientMobileIOS"];
+            android?: components["schemas"]["ClientMobileAndroid"];
+        } & {
+            [key: string]: unknown;
+        };
+        ClientMobileIOS: {
+            /** @default  */
+            team_id?: string;
+            /** @default  */
+            app_bundle_identifier?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        ClientMobileAndroid: {
+            /** @default  */
+            app_package_name?: string;
+            sha256_cert_fingerprints?: string[];
+        } & {
+            [key: string]: unknown;
+        };
         /** @description The writable settings of an application. */
         ClientSettings: {
             /** @description The application's name. */
@@ -7513,7 +7637,8 @@ export interface components {
              * @description Grant types the application may use. zeroauthy serves
              *     authorization_code, refresh_token, client_credentials, password,
              *     password-realm and device_code; implicit and the MFA grants are
-             *     stored but not served.
+             *     stored but not served. The native passkey grant is
+             *     urn:okta:params:oauth:grant-type:webauthn.
              */
             grant_types?: string[];
             /** @description Allowed redirect URIs. */
@@ -7563,8 +7688,7 @@ export interface components {
             initiate_login_uri?: string;
             /** @description Accepted and ignored. */
             native_social_login?: unknown;
-            /** @description Accepted and ignored. */
-            mobile?: unknown;
+            mobile?: components["schemas"]["ClientMobile"];
             /**
              * @description Whether the application logs users in through organizations:
              *     `deny` (the default when unset), `allow` or `require`. null unsets
@@ -7625,6 +7749,7 @@ export interface components {
         };
         /** @description An application. */
         Client: {
+            mobile?: components["schemas"]["ClientMobile"];
             /**
              * Format: uri
              * @description HTTPS application login route used for organization invitation links.
@@ -7982,6 +8107,30 @@ export interface components {
         BreachCheckerCapability: {
             available: boolean;
         };
+        ConsoleRelyingPartyId: {
+            host: string;
+            origin: string;
+            /** @enum {string} */
+            kind: "canonical" | "custom" | "operator";
+            relying_party_identifier: string;
+            valid: boolean;
+            custom_domain_id?: string;
+        };
+        ConsoleAuthenticationMethod: {
+            id: string;
+            type: string;
+            name: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            last_auth_at?: string;
+            phone_number?: string;
+            relying_party_identifier?: string;
+            /** @enum {string} */
+            credential_device_type?: "single_device" | "multi_device";
+            credential_backed_up?: boolean;
+            aaguid?: string;
+        };
         /** @description A tenant, as the system API reports it. */
         SystemTenant: {
             breached_password_checker?: components["schemas"]["BreachCheckerCapability"];
@@ -8070,8 +8219,10 @@ export interface components {
             authenticated_at: string;
             authentication: {
                 methods: {
-                    /** @description `pwd` for a database login. */
+                    /** @description Recorded authentication method; legacy sessions use pwd. */
                     name: string;
+                    /** @description Factor used for an MFA proof. */
+                    type?: string;
                     /** Format: date-time */
                     timestamp: string;
                 }[];
@@ -14704,6 +14855,203 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    getTenantPasskeyPrerequisites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Computed connection prerequisites. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        effective: boolean;
+                        unmet: string[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getTenantRoamingUVSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Security-key verification policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoamingUVSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description MFA storage is unavailable. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setTenantRoamingUVSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoamingUVSettings"];
+            };
+        };
+        responses: {
+            /** @description Updated security-key verification policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoamingUVSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description MFA storage is unavailable. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getTenantRelyingPartyIds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Host status including unusable stored RP IDs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleRelyingPartyId"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getTenantConsoleAuthenticationMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Safe method metadata; credential identifiers, public keys and user handles are excluded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleAuthenticationMethod"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description MFA storage is unavailable. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    renameTenantConsoleAuthenticationMethod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+                method: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Safe metadata for the renamed method. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleAuthenticationMethod"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description MFA storage is unavailable. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     getTenantLogStreamStatus: {
@@ -22002,6 +22350,15 @@ export interface operations {
             };
             /** @description Request rate exceeded. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The storage plugin lacks WebAuthn support. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

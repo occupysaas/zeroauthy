@@ -3,6 +3,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import type { Connection, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
+import PasskeyPanel from './PasskeyPanel.vue'
+import { useMfaScope } from '../security/scope'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
@@ -15,6 +17,7 @@ const { t, te } = useI18n()
 const props = defineProps<{ tenant: SystemTenant; connection: Connection }>()
 const emit = defineEmits<{ saved: [Connection] }>()
 const { api } = useServices()
+const { key, capture, current } = useMfaScope(() => props.tenant, () => props.connection.id)
 
 const DEFAULT_BLOCKED = ['name', 'username', 'nickname', 'email', 'phone_number', 'user_metadata.name', 'user_metadata.first', 'user_metadata.last']
 
@@ -33,12 +36,14 @@ const form = reactive({
   profileActive: false,
   blocked: DEFAULT_BLOCKED.join('\n'),
 })
+const passwordEnabled = ref(true)
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
 const busy = ref(false)
 
 function reset(c: Connection) {
+  passwordEnabled.value = asRecord(asRecord(optionsOf(c).authentication_methods).password).enabled !== false
   const po = asRecord(optionsOf(c).password_options)
   const cx = asRecord(po.complexity)
   const h = asRecord(po.history)
@@ -64,7 +69,9 @@ function whole(text: string, min: number, max: number): number | null {
   return /^\d+$/.test(text.trim()) && Number(text) >= min && Number(text) <= max ? Number(text) : null
 }
 
+watch(key, () => { busy.value = false; general.value = ''; status.value = ''; reset(props.connection) }, { flush: 'sync' })
 async function save() {
+  const captured = capture(); if (!captured || busy.value) return
   general.value = ''
   status.value = ''
   for (const k of Object.keys(errors)) delete errors[k]
@@ -95,13 +102,14 @@ async function save() {
   }
   busy.value = true
   try {
-    const c = await api.updateConnection(props.tenant, props.connection.id, { options: mergeOptions(optionsOf(props.connection), { password_options: next }) })
+    const c = await api.updateConnection(captured.tenant, captured.id, { options: mergeOptions(optionsOf(props.connection), { password_options: next, authentication_methods: { ...asRecord(optionsOf(props.connection).authentication_methods), password: { ...asRecord(asRecord(optionsOf(props.connection).authentication_methods).password), enabled: passwordEnabled.value } } }) })
+    if (!current(captured)) return
     status.value = t('saved')
     emit('saved', c)
   } catch (e) {
-    general.value = errorMessage(e)
+    if (current(captured)) general.value = errorMessage(e)
   } finally {
-    busy.value = false
+    if (current(captured)) busy.value = false
   }
 }
 
@@ -146,7 +154,8 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
 
 <template>
   <div class="stack">
-    <form class="card stack" novalidate @submit.prevent="save">
+    <form id="password-settings" class="card stack" novalidate @submit.prevent="save">
+      <label><input id="password-enabled" v-model="passwordEnabled" type="checkbox" /> {{ t('passkeys.passwordEnabled') }}</label>
       <Banner v-if="general" kind="error">{{ general }}</Banner>
       <h2 class="m-0 text-[1.05rem]">{{ t('conns.complexity') }}</h2>
       <Field id="pw-min" :label="t('conns.minLength')" :hint="t('conns.minLengthHint')" :error="errors.minLength">
@@ -224,6 +233,7 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
       </div>
     </form>
 
+    <PasskeyPanel :tenant="tenant" :connection="connection" @saved="emit('saved', $event)" />
     <section class="card stack" :aria-label="t('conns.checker.title')" data-testid="checker">
       <h2 class="m-0 text-[1.05rem]">{{ t('conns.checker.title') }}</h2>
       <p class="muted">{{ t('conns.checker.intro') }}</p>

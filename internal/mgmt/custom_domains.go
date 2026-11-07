@@ -286,8 +286,11 @@ func (h *Handlers) UpdateCustomDomain(w http.ResponseWriter, r *http.Request, id
 }
 
 func (h *Handlers) rpidPolicy() rpid.Policy {
-	reserved := h.Domains.Reserved()
-	return rpid.Policy{BaseDomain: h.BaseDomain, SystemHost: h.SystemHost, OriginSuffix: reserved.OriginSuffix, RestrictShared: h.RestrictSharedRPIDs, Store: h.Store}
+	originSuffix := ""
+	if h.Domains != nil {
+		originSuffix = h.Domains.Reserved().OriginSuffix
+	}
+	return rpid.Policy{BaseDomain: h.BaseDomain, SystemHost: h.SystemHost, OriginSuffix: originSuffix, RestrictShared: h.RestrictSharedRPIDs, Store: h.Store}
 }
 
 // DeleteCustomDomain serves DELETE /custom-domains/{id}.

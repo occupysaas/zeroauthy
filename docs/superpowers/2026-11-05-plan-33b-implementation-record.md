@@ -947,3 +947,66 @@ session timestamp semantics, continuation freshness/effect preservation and real
 hosted policy outcomes. No known remaining scoped issue. Gofmt and staged/unstaged
 diff checks pass; source comparison to verified tree is empty. IMPLEMENTATION
 VERIFIED / REVIEW PENDING. Controller owns independent review and acceptance.
+
+## Task 17 — Passkey and WebAuthn console management
+
+BASE `1afd18aac4bdc5f2ce5984829d7644b2c112f6f5`; branch/worktree unchanged.
+Added connection passkey policy/prerequisite controls and actual settings-tab
+links, enforced WebAuthn MFA/UV and server-driven biometrics warning, all-host RP
+status with edit warning, safe user method/passkey metadata and rename/delete,
+and application passkey grant/native device settings. New strings use the sole
+English catalog. Captured tenant/user/client/route scope drops late replies.
+Rebuilt and committed console/dist; generated OAS bindings/types regenerated.
+
+Controller-approved marked system extensions provide safe method GET/name PATCH
+and all-host RP status. Management v2 fields remain unchanged. Server allowlists
+exclude credential IDs, public keys, handles and proof data before transport;
+all extensions use system-only/operator-only exposure and signed/live target
+permissions. Actual RP policy, alias ports and inactive/custom-domain state are
+preserved. D-0062 records costs: three local operations; raw policy JSON editors
+replaced by dedicated controls while unknown keys remain; RP view is a settings
+subpage (one extra navigation click). The shared policy helper now handles nil
+optional custom-domain service; target context preserves phone masking.
+
+RED evidence: make console session2091 actualexit2,642PASS/10newFAIL; backend
+route tests showed404 (initial fixture compile typo corrected, initial wrapper
+failed to retain Go inner exit/handle, recorded rather than guessed). Subsequent
+focused failures: old label/host/portal fixtures, wrong seeded host count5 vs6,
+nil domain service500, actual target-phone masking bug, ignored deep-link tab and
+raw JSON policy bypass. All actual results and commands are retained in the
+workspace task-17-report.md and named logs; none are called passing.
+
+Full `make console` session95745 actualexit0:79files/654PASS/0FAIL/0SKIP, generated
+types/lint/typecheck/build successful, before the final two frontend regressions.
+Full affected backend once, session67306, `GOTOOLCHAIN=go1.26.10
+TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp go test -json ./internal/mgmt
+./internal/server ./api -count=1 -timeout=20m`, actualexit0:1267PASS/0FAIL/0SKIP
+(mgmt878,server372,api17; parents/subtests counted). No Go/API changes followed.
+Verified source SHA256 `a135c7c3b22557fc1b8817ee819bcc195bebf8c0c28c08dd8ca804a94d19eb4c`
+for sorted path/content across api,console/src,internal including new files.
+One implementer retained both handles/logs/exits and used blocking completion
+waits; no other agent monitored them and no suite was rerun for quiet/time.
+
+Author review reproduced app-save navigation staleness and untouched partial
+mobile rewrites: session68507 actualexit1,12PASS/2FAIL. Route-aware scope and
+initial mobile-form comparison fixed them. First delta7485 actualexit1,
+21PASS/7FAIL because direct OrganizationSettings fixtures omitted the now-needed
+router; added existing memoryRouter. Final delta55234 actualexit0,28PASS/0FAIL/
+0SKIP (passkeys,application Detail,OrganizationSettings). Controller directed
+focused/build-only final verification; prior backend remains valid. Final
+lint/typecheck/build64757 actualexit0 with pinned Node26.8.1, final source SHA256
+`e9e6387f51c79c9af68ccb5f86d2d6d978f001e984ede8e98bd88532d43594b0`, final bundle
+`index-C9Nu_5m2.js` SHA256 `845a7b5ba1a86b1dae6ba6c29e06d2e54bce7c6a13fecd13542841c3e6f619be`.
+Existing Vite chunk-size warning only; diff checks clean. No final656-test full
+console run is claimed. Detailed logs/exits/snapshots are beside task-17-report.md.
+
+Visual check attempted with Browser skill/Brave and synthetic local fixture:
+documented goto and CUA keypress failed with undefined timeoutMs runtime errors;
+no page navigation/screenshot/visual pass. Temporary fixture removed and Vite
+stopped130; blank-tab close also failed. Task19 owns native Playwright acceptance,
+SQL/race/full E2E and hardware/backend matrices; all remain deferred, not passing.
+
+Scoped author review complete. Deferred minor: prerequisite rows initially say
+Ready while a read is loading/failed; visible loading/error state and locked
+controls prevent policy enabling/saving. IMPLEMENTATION VERIFIED / REVIEW PENDING;
+controller owns independent review and acceptance. No subagents/push/merge.

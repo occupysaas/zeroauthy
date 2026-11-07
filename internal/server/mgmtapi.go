@@ -1017,3 +1017,15 @@ func (a mgmtAPI) GetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Reque
 func (a mgmtAPI) SetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request, tenant string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RoamingUVSettings(w, r, tenant) }, "update:guardian_factors")
 }
+
+func (a mgmtAPI) GetTenantRelyingPartyIds(w http.ResponseWriter, r *http.Request, tenant string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RelyingPartyIds(w, r, tenant) }, "read:custom_domains")
+}
+func (a mgmtAPI) GetTenantConsoleAuthenticationMethods(w http.ResponseWriter, r *http.Request, tenant, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ConsoleAuthenticationMethods(w, r, tenant, id, "") }, "read:authentication_methods")
+}
+func (a mgmtAPI) RenameTenantConsoleAuthenticationMethod(w http.ResponseWriter, r *http.Request, tenant, id, method string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) {
+		a.h.ConsoleAuthenticationMethods(w, r, tenant, id, method)
+	}, "update:authentication_methods")
+}
