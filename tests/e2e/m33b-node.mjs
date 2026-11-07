@@ -124,11 +124,12 @@ export function documented(value) {
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, k === "user_handle" && typeof v === "string" ? "<documented-management-field>" : documented(v)]));
   return value;
 }
-// Token endpoint results and the Management enrollment ticket
-// (POST /api/v2/guardian/enrollments/ticket documents ticket_id and
-// ticket_url) are one-time displays to their caller: those named fields are
-// replaced in the record; everything else is scanned.
-const oneTime = new Set(["access_token", "id_token", "refresh_token", "mfa_token", "auth_session", "recovery_code", "cname_api_key", "ticket_id", "ticket_url"]);
+// Token endpoint results and Management tickets (POST
+// /api/v2/guardian/enrollments/ticket documents ticket_id and ticket_url;
+// POST /api/v2/tickets/password-change documents ticket) are one-time
+// displays to their caller: those named fields are replaced in the record;
+// everything else is scanned.
+const oneTime = new Set(["access_token", "id_token", "refresh_token", "mfa_token", "auth_session", "recovery_code", "cname_api_key", "ticket_id", "ticket_url", "ticket"]);
 function display(value) {
   if (Array.isArray(value)) return value.map(display);
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, oneTime.has(k) && typeof v === "string" ? "<one-time-display>" : display(v)]));
