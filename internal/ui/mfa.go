@@ -19,6 +19,8 @@ type MFAData struct {
 	Passkey                                            *WebAuthnData
 	WebAuthnScreen                                     string
 	WebAuthnPrompt                                     string
+	Name                                               string
+	PlatformEnrollment                                 bool
 	Nickname, WebAuthnSuccess, WebAuthnUnavailable     bool
 	QR                                                 template.HTML
 	Options                                            []MFAOption

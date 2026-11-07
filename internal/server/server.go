@@ -322,7 +322,7 @@ func New(d Deps) http.Handler {
 		tr.Options("/passwordless/start", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
-		for _, path := range []string{"/u/mfa-detect-browser-capabilities", "/u/mfa-webauthn-roaming-enrollment", "/u/mfa-webauthn-roaming-challenge", "/u/mfa-webauthn-change-key-nickname", "/u/mfa-webauthn-enrollment-success", "/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
+		for _, path := range []string{"/u/mfa-detect-browser-capabilities", "/u/mfa-webauthn-platform-enrollment", "/u/mfa-webauthn-platform-challenge", "/u/mfa-webauthn-roaming-enrollment", "/u/mfa-webauthn-roaming-challenge", "/u/mfa-webauthn-change-key-nickname", "/u/mfa-webauthn-enrollment-success", "/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
 			tr.Get(path, lg.MFAPage)
 			tr.Post(path, lg.MFASubmit)
 		}

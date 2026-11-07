@@ -75,6 +75,12 @@
       "description": "Use your registered security key before choosing a new password.",
       "buttonText": "Use security key",
       "tryAnotherMethodText": "Use another verification method"
+    },
+    "reset-password-mfa-webauthn-platform-challenge": {
+      "title": "Verify your reset with this device",
+      "description": "Confirm the password reset using your device biometrics or screen lock.",
+      "buttonText": "Continue",
+      "tryAnotherMethodText": "Try another method"
     }
   },
   "email-verification": {
@@ -332,7 +338,8 @@
       "recovery-codeText": "Recovery code",
       "invalidCode": "The code is invalid or expired. Try again.",
       "tooManyAttempts": "Too many attempts. Try again later.",
-      "webauthn-roamingText": "Security key"
+      "webauthn-roamingText": "Security key",
+      "webauthn-platformText": "Device biometrics"
     },
     "mfa-enroll-result": {
       "title": "Multi-factor authentication",
@@ -372,7 +379,8 @@
       "recovery-codeText": "Recovery code",
       "invalidCode": "The code is invalid or expired. Try again.",
       "tooManyAttempts": "Too many attempts. Try again later.",
-      "webauthn-roamingText": "Security key"
+      "webauthn-roamingText": "Security key",
+      "webauthn-platformText": "Device biometrics"
     },
     "mfa-detect-browser-capabilities": {
       "title": "Check your browser",
@@ -604,15 +612,15 @@
       "tryAnotherMethodText": "Use another verification method"
     },
     "mfa-webauthn-change-key-nickname": {
-      "title": "Name your security key",
-      "description": "Choose a name with 1 to 20 characters so you can recognize this key.",
-      "nameLabel": "Security key name",
+      "title": "Name your authenticator",
+      "description": "Choose a name with 1 to 20 characters so you can recognize this authenticator.",
+      "nameLabel": "Authenticator name",
       "buttonText": "Save name",
       "tryAnotherMethodText": "Use another verification method"
     },
     "mfa-webauthn-enrollment-success": {
-      "title": "Security key added",
-      "description": "Your security key is ready for future verification.",
+      "title": "Authenticator added",
+      "description": "Your authenticator is ready for future verification.",
       "buttonText": "Continue"
     },
     "mfa-webauthn-not-available-error": {
@@ -627,6 +635,23 @@
       "tryAnotherMethodText": "Use another verification method",
       "buttonText": "Try security key again",
       "rememberMeText": "Remember this browser"
+    },
+    "mfa-webauthn-platform-enrollment": {
+      "title": "Add device biometrics",
+      "description": "Use this device to verify future sign-ins.",
+      "continueButtonText": "Continue",
+      "snoozeEnrollmentButtonText": "Remind me later",
+      "refuseAddingDeviceText": "Not on this device",
+      "skipAddingDeviceText": "Not now",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Try another method"
+    },
+    "mfa-webauthn-platform-challenge": {
+      "title": "Verify with this device",
+      "description": "Use your device biometrics or screen lock to continue.",
+      "buttonText": "Continue",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Try another method"
     }
   }
 }

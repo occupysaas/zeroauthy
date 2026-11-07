@@ -30,7 +30,7 @@ func newRoamingMFAFixture(t *testing.T) *mfaFixture {
 	f.h.Authz.MFA = f.h.MFA
 	old := f.srv
 	mux := http.NewServeMux()
-	for _, p := range []string{"/u/mfa-detect-browser-capabilities", "/u/mfa-webauthn-roaming-enrollment", "/u/mfa-webauthn-roaming-challenge", "/u/mfa-webauthn-change-key-nickname", "/u/mfa-webauthn-enrollment-success"} {
+	for _, p := range []string{"/u/mfa-detect-browser-capabilities", "/u/mfa-webauthn-platform-enrollment", "/u/mfa-webauthn-platform-challenge", "/u/mfa-webauthn-roaming-enrollment", "/u/mfa-webauthn-roaming-challenge", "/u/mfa-webauthn-change-key-nickname", "/u/mfa-webauthn-enrollment-success"} {
 		mux.HandleFunc("GET "+p, f.h.MFAPage)
 		mux.HandleFunc("POST "+p, f.h.MFASubmit)
 	}
@@ -245,71 +245,87 @@ func TestWebAuthnEnrollmentTicket(t *testing.T) {
 	}
 }
 
-func TestResetPostChallengeWebAuthn(t *testing.T) {
-	f := newRoamingMFAFixture(t)
-	ctx := context.Background()
-	rp := rpid.Result{Valid: true, RPID: "acme.example.test", Origin: "https://acme.example.test"}
-	svc := f.h.MFA.WithWebAuthnBinding(passkey.Binding{RPID: rp.RPID, Origins: []string{rp.Origin}, TxnID: "setup", CookieHash: "setup"})
-	e, o, err := svc.BeginWebAuthnEnroll(ctx, f.tn.ID, f.uid, "webauthn-roaming", rp, passkey.UserDisplay{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	key := webauthntest.New(webauthntest.Options{})
-	if _, err = svc.ConfirmWebAuthnEnroll(ctx, f.tn.ID, f.uid, e, key.Create(o, rp.Origin), "Key", "ua"); err != nil {
-		t.Fatal(err)
-	}
-	tn, _ := f.st.Tenants().Get(ctx, f.tn.ID)
-	tn.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
-	if err = f.st.Tenants().Update(ctx, tn); err != nil {
-		t.Fatal(err)
-	}
-	a := actionstest.NewOffline(t, f.st, f.h.Authz.Wrapper)
-	f.h.Actions = a.Engine
-	a.Bind(t, tn.ID, actions.TriggerResetPostChallenge, a.Deploy(t, tn.ID, actions.TriggerResetPostChallenge, "reset-roaming", `exports.onExecutePostChallenge=(event,api)=>api.authentication.challengeWith({type:'webauthn-roaming'});`))
-	raw := f.issueTicket(t, aliceLogin, time.Hour)
-	rec := f.b.do(t, "GET", "/u/reset-password?ticket="+raw, nil)
-	loc, _ := url.Parse(rec.Header().Get("Location"))
-	if rec.Code != 303 || loc.Path != "/u/mfa" {
-		t.Fatalf("reset MFA %d %s %s", rec.Code, loc, rec.Body)
-	}
-	f.state = loc.Query().Get("state")
-	f.page(t, "/u/mfa-detect-browser-capabilities")
-	rec = f.post(t, "/u/mfa-detect-browser-capabilities", url.Values{"webauthn": {"1"}})
-	if rec.Code != 303 {
-		t.Fatalf("detect %d %s", rec.Code, rec.Body)
-	}
-	page := f.page(t, "/u/mfa")
-	if !strings.Contains(page.Body.String(), "Verify your reset with a security key") {
-		t.Fatalf("reset screen %s", page.Body)
-	}
-	p := readPasskeyPage(t, page)
-	var request struct {
-		Challenge string `json:"challenge"`
-		RPID      string `json:"rpId"`
-		Allow     []struct {
-			ID string `json:"id"`
-		} `json:"allowCredentials"`
-	}
-	if err = json.Unmarshal(p.Options, &request); err != nil {
-		t.Fatal(err)
-	}
-	assertion := key.Get(webauthn.RequestOptions{RPID: request.RPID, Challenge: decode64(t, request.Challenge), Allow: []webauthn.Descriptor{{ID: decode64(t, request.Allow[0].ID)}}}, rp.Origin)
-	rec = f.post(t, "/u/mfa-webauthn-roaming-challenge", url.Values{"challenge_id": {p.ChallengeID}, "credential": {string(assertion)}})
-	loc, _ = url.Parse(rec.Header().Get("Location"))
-	if rec.Code != 303 || loc.Path != "/u/reset-password" {
-		t.Fatalf("reset proof %d %s %s", rec.Code, loc, rec.Body)
-	}
-	tk, err := f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
-	if err != nil || tk.ChallengePassedAt == nil || tk.UsedAt != nil {
-		t.Fatalf("reset ticket %+v %v", tk, err)
-	}
-	for _, cookie := range rec.Result().Cookies() {
-		if cookie.Name == "za_session" {
-			t.Fatal("reset proof created SSO")
-		}
+func TestResetPasswordWebAuthnChallenge(t *testing.T) {
+	for _, factor := range []string{"webauthn-roaming", "webauthn-platform"} {
+		t.Run(factor, func(t *testing.T) {
+			f := newRoamingMFAFixture(t)
+			f.policy(t, "otp", factor)
+			f.enrolled(t, "otp", false)
+			ctx := context.Background()
+			rp := rpid.Result{Valid: true, RPID: "acme.example.test", Origin: "https://acme.example.test"}
+			svc := f.h.MFA.WithWebAuthnBinding(passkey.Binding{RPID: rp.RPID, Origins: []string{rp.Origin}, TxnID: "setup", CookieHash: "setup"}).WithPlatformEnrollmentProof()
+			e, o, err := svc.BeginWebAuthnEnroll(ctx, f.tn.ID, f.uid, factor, rp, passkey.UserDisplay{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			key := webauthntest.New(webauthntest.Options{UV: true})
+			if _, err = svc.ConfirmWebAuthnEnroll(ctx, f.tn.ID, f.uid, e, key.Create(o, rp.Origin), "Key", "ua"); err != nil {
+				t.Fatal(err)
+			}
+			tn, _ := f.st.Tenants().Get(ctx, f.tn.ID)
+			tn.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+			if err = f.st.Tenants().Update(ctx, tn); err != nil {
+				t.Fatal(err)
+			}
+			a := actionstest.NewOffline(t, f.st, f.h.Authz.Wrapper)
+			f.h.Actions = a.Engine
+			a.Bind(t, tn.ID, actions.TriggerResetPostChallenge, a.Deploy(t, tn.ID, actions.TriggerResetPostChallenge, "reset-webauthn", "exports.onExecutePostChallenge=(event,api)=>api.authentication.challengeWith({type:'"+factor+"'});"))
+			raw := f.issueTicket(t, aliceLogin, time.Hour)
+			rec := f.b.do(t, "GET", "/u/reset-password?ticket="+raw, nil)
+			loc, _ := url.Parse(rec.Header().Get("Location"))
+			if rec.Code != 303 || loc.Path != "/u/mfa" {
+				t.Fatalf("reset MFA %d %s %s", rec.Code, loc, rec.Body)
+			}
+			f.state = loc.Query().Get("state")
+			f.page(t, "/u/mfa-detect-browser-capabilities")
+			rec = f.post(t, "/u/mfa-detect-browser-capabilities", url.Values{"webauthn": {"1"}, "platform": {"1"}})
+			if rec.Code != 303 {
+				t.Fatalf("detect %d %s", rec.Code, rec.Body)
+			}
+			page := f.page(t, "/u/mfa")
+			if !strings.Contains(page.Body.String(), "reset-password-mfa-"+factor+"-challenge") && !strings.Contains(page.Body.String(), "Verify your reset") {
+				t.Fatalf("reset screen %s", page.Body)
+			}
+			if factor == "webauthn-platform" && !strings.Contains(page.Body.String(), "action=another") {
+				t.Fatal("platform challenge lost alternate methods")
+			}
+			p := readPasskeyPage(t, page)
+			var request struct {
+				Challenge string `json:"challenge"`
+				RPID      string `json:"rpId"`
+				Allow     []struct {
+					ID string `json:"id"`
+				} `json:"allowCredentials"`
+			}
+			if err = json.Unmarshal(p.Options, &request); err != nil {
+				t.Fatal(err)
+			}
+			assertion := key.Get(webauthn.RequestOptions{RPID: request.RPID, Challenge: decode64(t, request.Challenge), Allow: []webauthn.Descriptor{{ID: decode64(t, request.Allow[0].ID)}}}, rp.Origin)
+			rec = f.post(t, "/u/mfa-"+factor+"-challenge", url.Values{"challenge_id": {p.ChallengeID}, "credential": {string(assertion)}})
+			loc, _ = url.Parse(rec.Header().Get("Location"))
+			if rec.Code != 303 || loc.Path != "/u/reset-password" {
+				t.Fatalf("reset proof %d %s %s", rec.Code, loc, rec.Body)
+			}
+			tk, err := f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
+			if err != nil || tk.ChallengePassedAt == nil || tk.UsedAt != nil {
+				t.Fatalf("reset ticket %+v %v", tk, err)
+			}
+			for _, cookie := range rec.Result().Cookies() {
+				if cookie.Name == "za_session" {
+					t.Fatal("reset proof created SSO")
+				}
+			}
+			rec = completeReset(t, f.b, raw, "replacement password 123")
+			if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Password changed") {
+				t.Fatalf("reset completion %d %s", rec.Code, rec.Body)
+			}
+			tk, err = f.st.PasswordResetTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(raw))
+			if err != nil || tk.UsedAt == nil {
+				t.Fatalf("reset not spent %+v %v", tk, err)
+			}
+		})
 	}
 }
-
 func TestHostedWebAuthnThrottle(t *testing.T) {
 	f := newRoamingMFAFixture(t)
 	ctx := context.Background()

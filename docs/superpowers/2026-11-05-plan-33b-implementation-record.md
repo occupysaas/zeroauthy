@@ -426,3 +426,78 @@ VERIFIED / SCOPED RE-REVIEW PENDING; controller owns approval. Prior Task 19
 broad/dialect/real-browser/hardware deferrals remain. The resulting commit SHA
 is recorded in the retained report/ledger after creation. No broad suite,
 subagent, push or merge.
+
+### Task 13 — Device biometrics, reset screens and MFA API
+
+IMPLEMENTATION VERIFIED / REVIEW PENDING. Base
+`c373f03007ac2a95b4d37bc8a9a363e2bae818b6`; final renderer source/test snapshot
+`c836e65d8a30c6955d7406d3c705a71a2071396d`. Worktree/branch remain
+`/mnt/nvme2/code/zeroauthy-plan33b`, `plan-33b-passkeys`.
+
+Platform enrollment follows successful proof with another MFA factor, including
+explicit Actions and tickets. Trusted proof comes from sealed hosted state and
+is persisted only in bound service metadata. Another confirmed enabled primary
+method must still exist at issue/commit; passkeys and recovery records do not
+qualify as that method. Device class uniqueness is checked inside the existing
+user-lock transaction; challenge allow lists use the saved user-agent device
+key, and platform UV is always required. Current RP ownership remains independent
+of plugin/browser capability, preserving the Task12 confidence/recovery guards.
+
+Ordinary progression offers 14-day remind, 365-day refuse (durable row and bound
+secure cookie), and login-only skip. Names default to browser/OS labels, with the
+existing validated nickname screen. Both WebAuthn reset screens complete actual
+password resets. MFA API lists/deletes confirmed WebAuthn methods, excludes and
+protects passkeys, and rejects WebAuthn associate/challenge operations. Platform
+is activated in the frozen factor and Actions inventories. Guardian permits
+platform alone and returns boolean `requires_other_factor` on its platform row;
+other rows omit it. This optional zeroauthy schema extension and its generated
+Go type were pulled forward with controller approval. Costs: older strict
+response schemas need the optional property; explicit enrollment requires another
+proof; same-class devices can be refused as specified by LR33b-19.
+
+Controller ruling permits optional progression after a successful recovery proof
+only while another confirmed enabled primary method remains. Recovery does not
+establish eligibility. Cost: an extra optional prompt after recovery. Final
+renderer correction hides a broken another-method loop during platform enrollment
+and nickname entry; challenge alternatives remain. No route or policy changed.
+
+All Go commands use `GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp`.
+Detailed commands, actual statuses, failures and snapshot limits are retained in
+`.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/task-13-report.md`
+and its log/exit files. Meaningful REDs reproduced unsupported platform rules,
+missing progression/reset/API listing, platform-only/unavailable explicit guards,
+recovery progression and the broken alternate-method link. Intermediate fixture
+errors, a compile edit error and the initial lost process-handle recovery are
+explicitly disclosed, never counted as feature RED or passing evidence.
+
+Verification:
+
+- Focused eleven-package Task13/catalog selector: session37085, exit0,
+  19 PASS/no failures/skips. Packages without selected tests establish compilation.
+- Full affected core/API: session45395, `task-13-affected-core.log/.exit`, exit0,
+  856 PASS/no failures/skips at snapshot4667f3c00298bfb938062eb3ac0141d54735f5aa.
+- Bounded login/OAuth/management/server: same retained chain, hosted exit1,
+  381 PASS/one fixture FAIL/no skips. Only the new repeated-login snooze fixture
+  replayed a TOTP step; its clock advance was restored. OAuth, management and
+  server selected cases passed. The planned race had not run at this failure.
+- Final recovery delta: session84959 at snapshot4fd13ef0371674f90a75c774fbbc84cbc1c6e666,
+  focused login15 PASS, affected login205 PASS and scoped mfa/login/authz race87
+  PASS; all actual exit0/no failures/skips/race reports. Unchanged core/other
+  hosted-package results remain attached to their earlier snapshot.
+- Final renderer-only delta: RED7393 exit1 reproduced five broken-link cases;
+  GREEN41961 exit0, 11 PASS/no failures/skips at final snapshotc836e65d8a30c6955d7406d3c705a71a2071396d.
+  Selector covers platform enrollment/nickname, roaming alternatives and both
+  reset types, including a platform challenge alternative-method assertion.
+- `make generate`: session12200, actual exit0; only the approved Guardian schema
+  generated type changes. Pins unchanged.
+
+One implementer monitored retained processes with blocking completion waits;
+commands were not rerun for quietness. No full repository suite, broad browser
+suite, subagent, push or merge. Task19 broad/dialect/real-browser/hardware checks
+remain deferred and are not labelled passing. Self-review covered the requested
+rules, trusted proof/ticket boundaries, atomic class refusal, RP/UV filtering,
+snooze clocks/cookie, reset completion, API exclusion and warning contract. The
+identified guard, recovery and navigation findings were reproduced and corrected.
+No known remaining blocker. Formatting, staged/unstaged diff checks and final
+source-snapshot comparison pass. Controller owns review and task completion;
+the resulting commit SHA is recorded in the retained report/ledger after creation.

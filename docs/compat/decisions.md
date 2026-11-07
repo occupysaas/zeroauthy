@@ -2846,3 +2846,29 @@ recovery proof, or fails closed when none is usable. Cost: legacy-plugin users
 with only a security key cannot authorize until an existing proof is available
 or the plugin supports the ceremony; fresh-factor enrollment is not a fallback.
 No new storage calls, capability, or ceremony authority are introduced.
+
+### D-0062 Task 13 implementation amendment — platform proof and warning data
+
+Platform MFA enrollment follows another successful MFA proof in the same bound
+hosted flow, including explicit Action and enrollment-ticket requests. The
+server carries the successful proof in sealed page state and bound ceremony
+metadata; another confirmed enabled primary factor must still exist at commit.
+Recovery and passkeys do not qualify. Class uniqueness is checked after locking
+the user in the insertion transaction. Device recognition uses the saved user
+agent classification; RP ownership remains independent of browser/plugin support.
+The cost of the conservative proof rule is an additional challenge for explicit
+platform enrollment, preserving the required MFA boundary.
+
+The platform row of Guardian's factor-list response exposes optional boolean
+`requires_other_factor`; it is true when platform is enabled without another
+enabled enforced primary factor (recovery excluded), false otherwise. Other rows
+omit it. This is a zeroauthy extension for the console warning required by
+LR33b-20, with no console strings in the API. The controller approved its minimal
+schema/generated-type delta in Task13. Older strict response schemas need the
+optional property; the runtime API still accepts enabling platform alone.
+
+Task13 controller clarification: a successful recovery proof may trigger optional
+platform enrollment while another confirmed enabled primary method remains.
+Recovery itself never supplies eligibility. This can add one optional prompt
+after recovery. The hosted preflight checks eligibility before showing it, and
+the service repeats the authoritative check in the insertion transaction.

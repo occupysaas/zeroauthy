@@ -25,6 +25,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
+	"github.com/zeroauthy/zeroauthy/internal/webauthn"
 )
 
 // resetCookie holds the CSRF token of the new-password form.
@@ -439,7 +440,7 @@ func (h *Handlers) resetOutcome(w http.ResponseWriter, r *http.Request, res tena
 		}
 		customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
 		caps := mfa.WebAuthnCapabilities{}
-		if h.MFA != nil && h.Passkeys != nil && g.Factors["webauthn-roaming"] {
+		if h.MFA != nil && h.Passkeys != nil && (g.Factors["webauthn-roaming"] || g.Factors["webauthn-platform"]) {
 			available, x := h.MFA.WebAuthnAvailable(ctx)
 			if x != nil {
 				h.fail(w, r, x, nil)
@@ -452,7 +453,7 @@ func (h *Handlers) resetOutcome(w http.ResponseWriter, r *http.Request, res tena
 				h.fail(w, r, x, nil)
 				return false
 			}
-			caps = mfa.WebAuthnCapabilities{Available: available && rp.Valid, RPID: rp.RPID}
+			caps = mfa.WebAuthnCapabilities{Available: available && rp.Valid, Platform: true, Device: webauthn.DeviceOf(r.UserAgent()), RPID: rp.RPID}
 		}
 		req, e := mfa.Decide(mfa.DecideInput{Settings: g, Effects: result.Effects.MFA, User: u, Authenticators: aa, CustomizeInActions: customize, WebAuthn: caps})
 		req.DetectWebAuthn = caps.Available

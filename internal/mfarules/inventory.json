@@ -29,7 +29,7 @@
     },
     {
       "name": "webauthn-platform",
-      "status": "stored"
+      "status": "enforced"
     },
     {
       "name": "recovery-code",
@@ -5179,10 +5179,10 @@
         "email",
         "recovery-code",
         "phone",
-        "webauthn-roaming"
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5289,10 +5289,10 @@
         "email",
         "recovery-code",
         "phone",
-        "webauthn-roaming"
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5358,10 +5358,10 @@
         "email",
         "recovery-code",
         "phone",
-        "webauthn-roaming"
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5467,10 +5467,10 @@
         "email",
         "recovery-code",
         "phone",
-        "webauthn-roaming"
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5535,10 +5535,10 @@
         "email",
         "recovery-code",
         "phone",
-        "webauthn-roaming"
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-platform",
         "push-notification"
       ]
     }

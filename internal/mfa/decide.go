@@ -16,6 +16,8 @@ type Requirement struct {
 	SelectFactor                                  bool
 	PhonePreferredMethod                          string
 	DetectWebAuthn                                bool
+	// PlatformAfterProof requires another factor before explicit biometrics enrollment.
+	PlatformAfterProof bool
 }
 type DecideInput struct {
 	Settings                   *store.GuardianSettings
@@ -53,7 +55,7 @@ func Decide(in DecideInput) (Requirement, error) {
 	if e != nil && e.Provider == "none" && !apiMFA {
 		return Requirement{}, nil
 	}
-	requested := []string{"otp", "email", "phone", "webauthn-roaming", "recovery-code"}
+	requested := []string{"otp", "email", "phone", "webauthn-roaming", "webauthn-platform", "recovery-code"}
 	action := e != nil && e.Provider != "none" && (e.Provider != "" || e.Mode != "")
 	if action {
 		r.Required, r.Reason, r.AllowRemember = true, "action", e.AllowRememberBrowser
@@ -69,7 +71,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			requested = nil
 			for _, group := range e.Factors {
 				for _, f := range group {
-					if f != "otp" && f != "email" && f != "phone" && f != "recovery-code" && f != "webauthn-roaming" {
+					if f != "otp" && f != "email" && f != "phone" && f != "recovery-code" && f != "webauthn-roaming" && f != "webauthn-platform" {
 						return r, ErrNoFactor
 					}
 					if !slices.Contains(requested, f) {
@@ -83,7 +85,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			case "google-authenticator":
 				requested = []string{"otp"}
 			case "guardian":
-				requested = []string{"otp", "phone", "webauthn-roaming", "recovery-code"}
+				requested = []string{"otp", "phone", "webauthn-roaming", "webauthn-platform", "recovery-code"}
 			default:
 				return r, ErrNoFactor
 			}
@@ -106,14 +108,23 @@ func Decide(in DecideInput) (Requirement, error) {
 	if !r.Required {
 		return r, nil
 	}
+	// Explicit biometrics enrollment requires another factor's proof first.
+	if r.Enroll && slices.Contains(requested, "webauthn-platform") {
+		if !enabled["webauthn-platform"] || !in.WebAuthn.Available || !in.WebAuthn.Platform {
+			return r, ErrNoFactor
+		}
+		r.PlatformAfterProof = true
+		r.Enroll = false
+		requested = []string{"otp", "email", "phone", "webauthn-roaming"}
+	}
 	confirmed := map[string]bool{}
 	primary := false
 	preferred := ""
 	for _, a := range in.Authenticators {
 		f := factorName(a.Type)
-		if UsableMethod(in.User, a, enabled) && (a.Type != "webauthn-roaming" || a.RPID == in.WebAuthn.RPID) {
+		if UsableMethod(in.User, a, enabled) && (!isWebAuthnFactor(a.Type) || a.RPID == in.WebAuthn.RPID) {
 			primary = true
-			if a.Type != "webauthn-roaming" || in.WebAuthn.Available {
+			if !isWebAuthnFactor(a.Type) || in.WebAuthn.Available && (a.Type != "webauthn-platform" || in.WebAuthn.Platform && hasOtherPlatformFactor(in.User, in.Authenticators, enabled, in.WebAuthn.RPID) && authenticatorDevice(a).Key() == in.WebAuthn.Device.Key()) {
 				confirmed[f] = true
 			}
 			if a.Preferred {
@@ -134,11 +145,11 @@ func Decide(in DecideInput) (Requirement, error) {
 	}
 	var usable, enroll []string
 	for _, f := range requested {
-		if !enabled[guardianFactor(f)] || f == "webauthn-roaming" && !in.WebAuthn.Available {
+		if !enabled[guardianFactor(f)] || isWebAuthnFactor(f) && !in.WebAuthn.Available || f == "webauthn-platform" && !in.WebAuthn.Platform {
 			continue
 		}
 		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll || f == "webauthn-roaming" && in.WebAuthn.Available {
-			if e == nil || e.Mode != "enroll" || !confirmed[f] {
+			if e == nil || e.Mode != "enroll" || r.PlatformAfterProof || !confirmed[f] {
 				enroll = append(enroll, f)
 			}
 		}
@@ -187,7 +198,7 @@ func UsableMethod(u *store.User, a store.Authenticator, enabled map[string]bool)
 	switch a.Type {
 	case "totp":
 		return true
-	case "webauthn-roaming":
+	case "webauthn-roaming", "webauthn-platform":
 		return a.RPID != "" && len(a.CredentialID) > 0 && len(a.PublicKey) > 0
 	case "phone":
 		return a.Phone != ""

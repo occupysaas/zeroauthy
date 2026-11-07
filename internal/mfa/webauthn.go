@@ -120,6 +120,7 @@ type webAuthnMetadata struct {
 	Request            webauthn.RequestOptions
 	FirstOnly, NewOnly bool
 	VerifiedUV         bool
+	PlatformProof      bool
 	Authenticator      *store.Authenticator
 }
 
@@ -152,6 +153,9 @@ func (s *Service) webMetadata(ctx context.Context, tid, uid, id, stage string) (
 	return m, row, nil
 }
 func webParams(factor string, g *store.GuardianSettings) (webauthn.Params, error) {
+	if factor == "webauthn-platform" {
+		return webauthn.ParamsFor(webauthn.CeremonyPlatform, "required"), nil
+	}
 	if factor != "webauthn-roaming" {
 		return webauthn.Params{}, ErrNoFactor
 	}
@@ -165,7 +169,7 @@ func (s *Service) webEnabled(ctx context.Context, tid, uid, factor string) (*sto
 	if !available {
 		return nil, ErrNoFactor
 	}
-	if factor != "webauthn-roaming" {
+	if !isWebAuthnFactor(factor) {
 		return nil, ErrNoFactor
 	}
 	g, err := s.st.MFA().GetGuardian(ctx, tid)
@@ -181,6 +185,15 @@ func (s *Service) webEnabled(ctx context.Context, tid, uid, factor string) (*sto
 	}
 	if u.Blocked {
 		return nil, ErrInvalidCode
+	}
+	if factor == "webauthn-platform" {
+		list, x := s.st.MFA().ListAuthenticators(ctx, tid, uid)
+		if x != nil {
+			return nil, x
+		}
+		if !hasOtherPlatformFactor(u, list, g.Factors, s.webAuthnBinding.RPID) {
+			return nil, ErrNoFactor
+		}
 	}
 	return g, nil
 }
@@ -214,6 +227,19 @@ func (s *Service) BeginWebAuthnEnroll(ctx context.Context, tid, uid, factor stri
 	g, err := s.webEnabled(ctx, tid, uid, factor)
 	if err != nil {
 		return nil, zero, err
+	}
+	if factor == "webauthn-platform" {
+		list, x := s.st.MFA().ListAuthenticators(ctx, tid, uid)
+		if x != nil {
+			return nil, zero, x
+		}
+		u, x := s.st.Users().Get(ctx, tid, uid)
+		if x != nil {
+			return nil, zero, x
+		}
+		if !s.platformEnrollmentProof || !hasOtherPlatformFactor(u, list, g.Factors, rp.RPID) {
+			return nil, zero, ErrNoFactor
+		}
 	}
 	b, err := s.webBinding(uid, passkey.WebAuthnRegister, rp)
 	if err != nil {
@@ -262,7 +288,7 @@ func (s *Service) BeginWebAuthnEnroll(ctx context.Context, tid, uid, factor stri
 		}
 	}
 	e := &Enrollment{Factor: factor, ChallengeID: issued.ID, AuthenticatorID: NewMethodID(factor)}
-	m := webAuthnMetadata{Binding: b, Factor: factor, Params: params, Creation: o, FirstOnly: s.webAuthnFirstOnly, NewOnly: s.newFactorOnly, Authenticator: &store.Authenticator{ID: e.AuthenticatorID}}
+	m := webAuthnMetadata{Binding: b, Factor: factor, Params: params, Creation: o, PlatformProof: s.platformEnrollmentProof, FirstOnly: s.webAuthnFirstOnly, NewOnly: s.newFactorOnly, Authenticator: &store.Authenticator{ID: e.AuthenticatorID}}
 	if err = s.saveWebMetadata(ctx, tid, issued.ID, "options", m, issued.ExpiresAt); err != nil {
 		return nil, zero, err
 	}
@@ -391,10 +417,21 @@ func (s *Service) ConfirmWebAuthnEnroll(ctx context.Context, tid, uid string, e 
 		if currentParams.EnforceUV && !m.VerifiedUV {
 			return &webauthn.Error{Code: "user_verified"}
 		}
+		if m.Factor == "webauthn-platform" {
+			if !m.PlatformProof || !hasOtherPlatformFactor(u, list, g.Factors, m.Binding.RPID) {
+				return ErrNoFactor
+			}
+			device := authenticatorDevice(*m.Authenticator)
+			for _, a := range list {
+				if a.Type == m.Factor && a.Confirmed && a.RPID == m.Binding.RPID && authenticatorDevice(a).Class == device.Class {
+					return ErrAlreadyEnrolled
+				}
+			}
+		}
 		hasRecovery := false
 		for _, a := range list {
 			hasRecovery = hasRecovery || a.Type == "recovery-code"
-			if m.FirstOnly && UsableMethod(u, a, g.Factors) && (a.Type != "webauthn-roaming" || a.RPID == m.Binding.RPID) {
+			if m.FirstOnly && UsableMethod(u, a, g.Factors) && (!isWebAuthnFactor(a.Type) || a.RPID == m.Binding.RPID) {
 				return ErrAlreadyEnrolled
 			}
 			if m.NewOnly && a.Confirmed && a.Type == m.Factor && a.RPID == m.Binding.RPID {
@@ -450,7 +487,7 @@ func (s *Service) BeginWebAuthnChallenge(ctx context.Context, tid, uid, factor s
 	}
 	o := webauthn.RequestOptions{RPID: rp.RPID, UserVerification: p.UserVerification, Timeout: webauthnrules.Limits.HostedChallengeTTL}
 	for _, a := range aa {
-		if a.Type == factor && a.Confirmed && a.RPID == rp.RPID {
+		if a.Type == factor && a.Confirmed && a.RPID == rp.RPID && (factor != "webauthn-platform" || authenticatorDevice(a).Key() == device.Key()) {
 			o.Allow = append(o.Allow, webauthn.Descriptor{ID: a.CredentialID})
 		}
 	}
@@ -576,4 +613,29 @@ func (s *Service) VerifyWebAuthn(ctx context.Context, tid, uid string, c *Challe
 		outcome = "success"
 	}
 	return err
+}
+
+func isWebAuthnFactor(f string) bool { return f == "webauthn-roaming" || f == "webauthn-platform" }
+func authenticatorDevice(a store.Authenticator) webauthn.Device {
+	var p struct {
+		UserAgent string `json:"user_agent"`
+	}
+	_ = json.Unmarshal(a.PublicData, &p)
+	return webauthn.DeviceOf(p.UserAgent)
+}
+func hasOtherPlatformFactor(u *store.User, list []store.Authenticator, enabled map[string]bool, rp string) bool {
+	for _, a := range list {
+		if a.Type != "webauthn-platform" && UsableMethod(u, a, enabled) && (!isWebAuthnFactor(a.Type) || a.RPID == rp) {
+			return true
+		}
+	}
+	return false
+}
+
+// WithPlatformEnrollmentProof records trusted successful other-factor proof for
+// this bound login. Hosted callers obtain it only from their sealed proven page.
+func (s *Service) WithPlatformEnrollmentProof() *Service {
+	c := *s
+	c.platformEnrollmentProof = true
+	return &c
 }

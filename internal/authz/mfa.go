@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
+	"github.com/zeroauthy/zeroauthy/internal/webauthn"
 )
 
 const StageMFA = "mfa"
@@ -97,7 +98,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 	// This is a provisional decision only. Hosted MFA detects capabilities before
 	// showing any factor and recomputes this requirement from the browser result.
 	detectWebAuthn := false
-	if h.MFA != nil && h.Passkeys != nil && g.Factors["webauthn-roaming"] {
+	if h.MFA != nil && h.Passkeys != nil && (g.Factors["webauthn-roaming"] || g.Factors["webauthn-platform"]) {
 		available, e := h.MFA.WithStore(h.Store).WebAuthnAvailable(r.Context())
 		if e != nil {
 			return mfa.Requirement{}, e
@@ -111,7 +112,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		if rp.Valid {
 			// Legacy MFA storage can retain an enrolled key without webauthn.v1.
 			// Keep its RP scope so policy still requires an existing proof.
-			in.WebAuthn = mfa.WebAuthnCapabilities{Available: available, RPID: rp.RPID}
+			in.WebAuthn = mfa.WebAuthnCapabilities{Available: available, Platform: true, Device: webauthn.DeviceOf(r.UserAgent()), RPID: rp.RPID}
 			detectWebAuthn = available
 		}
 	}
@@ -313,9 +314,14 @@ func (h *Handlers) invalidMFA(w http.ResponseWriter, r *http.Request, res tenant
 }
 
 // StartMFATicket establishes enrollment-only authority, without an SSO session.
-func (h *Handlers) StartMFATicket(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, ticketHash string, factors []string, allowMultiple bool) error {
+func (h *Handlers) StartMFATicket(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, ticketHash string, factors []string, allowMultiple bool, override ...mfa.Requirement) error {
 	p := map[string]string{ParamStage: StageMFA, "za_mfa_ticket": "1"}
 	pending := MFAPending{Requirement: mfa.Requirement{Required: true, Enroll: true, Factors: factors, Reason: "ticket"}, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, TicketAllowMultiple: allowMultiple, TicketHash: ticketHash}
+	if len(override) > 0 && override[0].PlatformAfterProof {
+		pending.Requirement = override[0]
+		pending.Requirement.Reason = "ticket"
+		pending.Requirement.DetectWebAuthn = true
+	}
 	txn, err := h.createTxn(w, r, res, "", p, "/u", func(id string, p map[string]string) error {
 		plain, e := json.Marshal(pending)
 		if e != nil {

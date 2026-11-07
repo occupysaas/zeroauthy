@@ -58,11 +58,12 @@ type Service struct {
 	Phone PhoneSender
 	// pendingRecovery is the hash of a recovery code already displayed at
 	// association; it is persisted only when the enrollment is confirmed.
-	pendingRecovery      string
-	webAuthnBinding      passkey.Binding
-	webAuthnRPID         *string
-	webAuthnFirstOnly    bool
-	webAuthnBrowserError string
+	pendingRecovery         string
+	webAuthnBinding         passkey.Binding
+	webAuthnRPID            *string
+	webAuthnFirstOnly       bool
+	platformEnrollmentProof bool
+	webAuthnBrowserError    string
 }
 
 // NewService uses the repository's master-key wrapper and atomic protection
@@ -419,7 +420,7 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 				if other.ID == current.ID {
 					continue
 				}
-				if firstOnly && UsableMethod(u, other, g.Factors) && (other.Type != "webauthn-roaming" || s.webAuthnRPID == nil || other.RPID == *s.webAuthnRPID) {
+				if firstOnly && UsableMethod(u, other, g.Factors) && (!isWebAuthnFactor(other.Type) || s.webAuthnRPID == nil || other.RPID == *s.webAuthnRPID) {
 					return ErrAlreadyEnrolled
 				}
 				if s.newFactorOnly && other.Confirmed && other.Type == current.Type {

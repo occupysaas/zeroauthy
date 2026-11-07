@@ -39,13 +39,16 @@ func (h *Handlers) webAuthnMFAService(r *http.Request, f *mfaFlow) (*mfa.Service
 	}
 	b := passkey.Binding{RPID: rp.RPID, Origins: []string{rp.Origin}, TxnID: f.txn.ID, CookieHash: f.txn.CookieHash, ClientID: f.txn.ClientID, Realm: realm, Organization: f.txn.Params[store.TxnParamOrgID], UserID: f.pending.UserID}
 	svc := h.MFA.WithWebAuthnBinding(b).WithWebAuthnBrowserError(r.PostForm.Get("webauthn_error"))
-	if f.pending.Requirement.Reason == "action" {
+	if f.page.PlatformProof {
+		svc = svc.WithPlatformEnrollmentProof()
+	}
+	if f.pending.Requirement.Reason == "action" && f.page.Factor != "webauthn-platform" {
 		svc = svc.WithNewFactorEnrollment()
 	}
-	if firstOnlyEnrollment(f.pending) || f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple {
+	if f.page.Factor != "webauthn-platform" && (firstOnlyEnrollment(f.pending) || f.pending.Requirement.Reason == "ticket" && !f.pending.TicketAllowMultiple) {
 		svc = svc.WithFirstWebAuthnEnrollment()
 	}
-	if f.pending.Requirement.Reason == "ticket" {
+	if f.pending.Requirement.Reason == "ticket" && (!f.pending.Requirement.PlatformAfterProof || f.page.Factor == "webauthn-platform") {
 		svc = svc.WithProofCommit(func(tx store.Store) error {
 			ticket, e := tx.MFA().ConsumeTicket(r.Context(), f.res.Tenant.ID, f.pending.TicketHash, h.now())
 			if errors.Is(e, store.ErrNotFound) || e == nil && ticket.UserID != f.pending.UserID {
@@ -80,7 +83,7 @@ func (h *Handlers) detectMFARequirement(r *http.Request, f *mfaFlow) error {
 		req.DetectWebAuthn = false
 		var factors []string
 		for _, factor := range req.Factors {
-			if factor != "webauthn-roaming" || f.page.WebAuthn.Available {
+			if !isWebAuthnMFA(factor) || f.page.WebAuthn.Available && (factor != "webauthn-platform" || f.page.WebAuthn.Platform && mfaPlatformDevicePresent(aa, f.page.WebAuthn)) {
 				factors = append(factors, factor)
 			}
 		}
@@ -90,9 +93,13 @@ func (h *Handlers) detectMFARequirement(r *http.Request, f *mfaFlow) error {
 			err = mfa.ErrNoFactor
 		}
 	}
+	if req.PlatformAfterProof && (!f.page.WebAuthn.Available || !f.page.WebAuthn.Platform) {
+		return mfa.ErrNoFactor
+	}
 	if err != nil {
 		return err
 	}
+	req.PlatformAfterProof = req.PlatformAfterProof || f.pending.Requirement.PlatformAfterProof
 	req.Reason = f.pending.Requirement.Reason
 	req.AllowRemember = req.AllowRemember && f.pending.Requirement.AllowRemember
 	f.pending.Requirement = req
@@ -110,12 +117,12 @@ func webAuthnMFAScreen(f *mfaFlow) (string, string) {
 		return "mfa-webauthn", f.page.WebAuthnStage
 	}
 	if f.pending.Requirement.Enroll {
-		return "mfa-webauthn", "mfa-webauthn-roaming-enrollment"
+		return "mfa-webauthn", "mfa-" + f.page.Factor + "-enrollment"
 	}
 	if f.pending.Requirement.Reason == "reset" {
-		return "reset-password", "reset-password-mfa-webauthn-roaming-challenge"
+		return "reset-password", "reset-password-mfa-" + f.page.Factor + "-challenge"
 	}
-	return "mfa-webauthn", "mfa-webauthn-roaming-challenge"
+	return "mfa-webauthn", "mfa-" + f.page.Factor + "-challenge"
 }
 func (h *Handlers) renderWebAuthnMFA(w http.ResponseWriter, r *http.Request, status int, f *mfaFlow, message string) {
 	page := "mfa_webauthn"
@@ -132,6 +139,13 @@ func (h *Handlers) renderWebAuthnMFA(w http.ResponseWriter, r *http.Request, sta
 	if page == "mfa_detect" {
 		d.Action = "/u/mfa-detect-browser-capabilities"
 		d.Passkey = &ui.WebAuthnData{Operation: "detect", Mediation: "button", MFA: true}
+	}
+	if f.page.Factor == "webauthn-platform" && f.pending.Requirement.Enroll {
+		d.AnotherURL = ""
+	}
+	if f.page.Factor == "webauthn-platform" {
+		d.PlatformEnrollment = f.pending.Requirement.Enroll && f.page.WebAuthnStage == ""
+		d.Name = platformDefaultName(f.page.WebAuthn.Device)
 	}
 	if f.page.WebAuthnStage == "mfa-webauthn-change-key-nickname" {
 		d.Nickname = true
@@ -187,14 +201,14 @@ func (h *Handlers) startWebAuthnMFA(w http.ResponseWriter, r *http.Request, f *m
 	}
 	if f.pending.Requirement.Enroll {
 		var e *mfa.Enrollment
-		e, _, err = svc.BeginWebAuthnEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, "webauthn-roaming", rp, passkey.UserDisplay{})
+		e, _, err = svc.BeginWebAuthnEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.Factor, rp, passkey.UserDisplay{})
 		if err == nil {
 			f.page.AuthenticatorID = e.AuthenticatorID
 			f.page.ChallengeID = e.ChallengeID
 		}
 	} else {
 		var c *mfa.Challenge
-		c, _, err = svc.BeginWebAuthnChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, "webauthn-roaming", rp, f.page.WebAuthn.Device)
+		c, _, err = svc.BeginWebAuthnChallenge(r.Context(), f.res.Tenant.ID, f.pending.UserID, f.page.Factor, rp, f.page.WebAuthn.Device)
 		if err == nil {
 			f.page.ChallengeID = c.ID
 		}
@@ -222,7 +236,7 @@ func (h *Handlers) webAuthnMFAPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, mfaURL(f, "/u/mfa-detect-browser-capabilities"), 303)
 		return
 	}
-	if f.page.Factor != "webauthn-roaming" || r.URL.Path != mfaPath(f) {
+	if !isWebAuthnMFA(f.page.Factor) || r.URL.Path != mfaPath(f) {
 		h.fail(w, r, errTxn, f.flow)
 		return
 	}
@@ -274,12 +288,16 @@ func (h *Handlers) webAuthnMFASubmit(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, mfaURL(f, "/u/mfa"), 303)
 		return
 	}
-	if f.page.Factor != "webauthn-roaming" || r.URL.Path != mfaPath(f) || !f.page.WebAuthn.Available {
+	if !isWebAuthnMFA(f.page.Factor) || r.URL.Path != mfaPath(f) || !f.page.WebAuthn.Available {
 		h.fail(w, r, errTxn, f.flow)
 		return
 	}
 	prompt, screen := webAuthnMFAScreen(f)
 	if !h.guardHostedForm(w, r, f.flow, prompt, screen, func(status int, msg string) { h.renderWebAuthnMFA(w, r, status, f, msg) }) {
+		return
+	}
+	if f.page.Factor == "webauthn-platform" && f.pending.Requirement.Enroll && f.page.WebAuthnStage == "" && r.PostForm.Get("platform_choice") != "" {
+		h.skipPlatformMFA(w, r, f, r.PostForm.Get("platform_choice"))
 		return
 	}
 	if err := h.saveMFAPage(r, f, "mfa-busy"); err != nil {
@@ -319,7 +337,7 @@ func (h *Handlers) webAuthnMFASubmit(w http.ResponseWriter, r *http.Request) {
 			err = svc.StageWebAuthnEnroll(r.Context(), f.res.Tenant.ID, f.pending.UserID, enrollment, raw, r.UserAgent())
 			if err == nil {
 				f.page.WebAuthnStage = "mfa-webauthn-change-key-nickname"
-				f.page.Remember = f.pending.Requirement.AllowRemember && r.PostForm.Get("remember") == "yes"
+				f.page.Remember = f.page.OtherRemember || f.pending.Requirement.AllowRemember && r.PostForm.Get("remember") == "yes"
 			}
 		}
 	} else {
@@ -367,7 +385,7 @@ func (h *Handlers) webAuthnMFASubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	f.page.Proven = true
 	if !f.pending.Requirement.Enroll {
-		f.page.Remember = f.pending.Requirement.AllowRemember && r.PostForm.Get("remember") == "yes"
+		f.page.Remember = f.page.OtherRemember || f.pending.Requirement.AllowRemember && r.PostForm.Get("remember") == "yes"
 	}
 	if recovery != "" {
 		f.page.RecoveryPending = true
