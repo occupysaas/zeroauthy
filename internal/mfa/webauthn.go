@@ -257,7 +257,7 @@ func (s *Service) BeginWebAuthnEnroll(ctx context.Context, tid, uid, factor stri
 		return nil, zero, err
 	}
 	for _, a := range aa {
-		if a.RPID == rp.RPID && (a.Type == "webauthn-roaming" || a.Type == "webauthn-platform" || a.Type == "passkey") {
+		if a.RPID == rp.RPID && a.Type == factor {
 			o.Exclude = append(o.Exclude, webauthn.Descriptor{ID: a.CredentialID})
 		}
 	}

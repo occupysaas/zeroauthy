@@ -378,3 +378,51 @@ actual statuses, snapshot limits and deferred breadth are retained in
 formatting and diff checks found no remaining blocker. The implementation commit
 containing this entry is recorded by SHA in the retained report and progress
 ledger after creation. Controller owns final review and task completion.
+
+
+### Task 12 review round 1 — requested-factor exclusions and legacy capability
+
+Base `5ccc548b070132aad08be3bfd9b54494f28376b6`; final verified source/test
+snapshot `4fc2c5ba8977c2bd077d1bb5e15dc376b880572d`. Registration now excludes only the user's requested factor at the
+current RP, allowing a security key holding a passkey/platform credential to
+remain available for roaming MFA enrollment. Authorization preserves the valid
+RP scope even when `webauthn.v1` is absent; legacy MFA list results still count
+as enrolled for confidence policy and recovery. Availability still gates the
+ceremony and detection. Existing alternate/recovery proof is required, with
+access denied if no proof is usable. The ordinary all-applications guard was
+already protected and is unchanged. Costs and consumer duties are in D-0062
+and the shared contract; no new RPC, storage state or ceremony authority.
+
+Focused tests first reproduced the authorization bypass (no-fallback and
+recovery cases issued codes, existing OTP correctly challenged), session 9413,
+`task-12-review1-red.log/.exit`, actual exit 1. The initial registration fixture
+failed before exclusions because its synthetic passkey lacked a handle; this
+is retained as setup failure, not exclusion RED evidence. Correcting the
+fixture produced exclusion RED4807, actual exit 1: passkey/platform IDs were
+included. Minimal fixes followed, then focused GREEN39106, actual exit 0,
+5 passing tests/subtests, no failures/skips. Exact commands, log paths and
+snapshot limits are in the Task 12 retained report. All Go commands use
+`GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp`.
+Final verification on that unchanged snapshot:
+
+- `go test -json ./internal/mfa ./internal/authz -run 'TestWebAuthnEnrollExcludesOnlyRequestedFactorAtOwnedRP|TestGateWebAuthnUnavailableConfidenceRequiresExistingProof' -count=1 -timeout=5m`
+  — session 39106, `task-12-review1-green.log/.exit`, actual exit 0,
+  5 PASS/no failures/skips.
+- `go test -json ./internal/mfa ./internal/authz ./internal/login -run 'WebAuthn|Roaming|Gate' -count=1 -timeout=15m`
+  — session 38444, `task-12-review1-affected.log/.exit`, actual exit 0,
+  69 PASS/no failures/skips.
+- `go test -race -json ./internal/mfa ./internal/authz ./internal/login -run 'WebAuthn|Roaming|Gate' -count=1 -timeout=15m`
+  — session 96266, `task-12-review1-race.log/.exit`, actual exit 0,
+  69 PASS/no failures/skips/race reports.
+
+Retained logs/exits and report/ledger live in
+`.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/`.
+One monitor used blocking completion waits without active-log scans or reruns
+due to quietness. The first RED used baseline production source; the second
+used baseline MFA source and the corrected final exclusion fixture. Self-review
+found no remaining blocker in the two fixes. Post-run source/test snapshot
+comparison, formatting and staged/unstaged diff checks pass. IMPLEMENTATION
+VERIFIED / SCOPED RE-REVIEW PENDING; controller owns approval. Prior Task 19
+broad/dialect/real-browser/hardware deferrals remain. The resulting commit SHA
+is recorded in the retained report/ledger after creation. No broad suite,
+subagent, push or merge.

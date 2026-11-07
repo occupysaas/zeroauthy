@@ -2832,3 +2832,17 @@ retain the prior conservative guard. Cost: a user with an unavailable key and
 no usable alternate/recovery method receives the unavailable answer instead
 of enrolling around that key. Three red regressions reproduced both decision
 and confirmation errors, including the hosted redirect loop.
+
+
+**Task 12 review round 1 (2026-11-06).** Registration exclusions follow
+spec §4.5: only the user's credentials of the requested MFA factor at the
+current RP are excluded. Passkeys and platform methods do not block roaming
+MFA enrollment on the same authenticator. The current RP is also retained in
+authorization's provisional MFA decision when an older plugin lacks
+`webauthn.v1`: the legacy MFA list still identifies an enrolled roaming key.
+Capability continues to gate offering the key and browser detection. Confidence
+policy for an unknown browser therefore requires an existing alternate or
+recovery proof, or fails closed when none is usable. Cost: legacy-plugin users
+with only a security key cannot authorize until an existing proof is available
+or the plugin supports the ceremony; fresh-factor enrollment is not a fallback.
+No new storage calls, capability, or ceremony authority are introduced.

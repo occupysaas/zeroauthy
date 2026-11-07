@@ -108,9 +108,11 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		if e != nil {
 			return mfa.Requirement{}, e
 		}
-		if available && rp.Valid {
-			in.WebAuthn = mfa.WebAuthnCapabilities{Available: true, RPID: rp.RPID}
-			detectWebAuthn = true
+		if rp.Valid {
+			// Legacy MFA storage can retain an enrolled key without webauthn.v1.
+			// Keep its RP scope so policy still requires an existing proof.
+			in.WebAuthn = mfa.WebAuthnCapabilities{Available: available, RPID: rp.RPID}
+			detectWebAuthn = available
 		}
 	}
 	in.MFAAPI = fr.Request.Audience != "" && mfa.APIAudience(r.Context(), h.Store, res.Tenant.ID, fr.Request.Audience)

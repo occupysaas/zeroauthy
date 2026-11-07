@@ -10,6 +10,9 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -485,5 +488,69 @@ func TestGateKnownDeviceOnlyForConfidenceAndReused(t *testing.T) {
 		if deviceCookie(rec) != nil {
 			t.Fatal("valid device cookie was replaced with a new row")
 		}
+	}
+}
+
+// This models an older plugin: legacy MFA methods remain readable while the
+// independent WebAuthn capability is absent.
+type noWebAuthnCapabilityStore struct{ store.Store }
+
+func (noWebAuthnCapabilityStore) CheckWebAuthnSupport(context.Context) error {
+	return store.ErrWebAuthnUnavailable
+}
+func (noWebAuthnCapabilityStore) WebAuthnSupported() bool  { return false }
+func (noWebAuthnCapabilityStore) WebAuthn() store.WebAuthn { return store.UnimplementedWebAuthn{} }
+
+func TestGateWebAuthnUnavailableConfidenceRequiresExistingProof(t *testing.T) {
+	for _, fallback := range []string{"none", "otp", "recovery-code"} {
+		t.Run(fallback, func(t *testing.T) {
+			e := newEnv(t)
+			ck := e.login(t, fixedNow())
+			ctx := context.Background()
+			s := gateSession(t, e, ck)
+			gatePolicy(t, e, map[string]bool{"otp": true, "webauthn-roaming": true, "recovery-code": true})
+			g, err := e.st.MFA().GetGuardian(ctx, e.tenant.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			g.Policies = []string{"confidence-score"}
+			if err = e.st.MFA().PutGuardian(ctx, g, g.Version); err != nil {
+				t.Fatal(err)
+			}
+			a := &store.Authenticator{TenantID: e.tenant.ID, UserID: s.UserID, ID: "roaming", Type: "webauthn-roaming", Confirmed: true, RPID: "acme.example.test", CredentialID: []byte("credential"), PublicKey: []byte("key")}
+			if err = e.st.MFA().CreateAuthenticator(ctx, a); err != nil {
+				t.Fatal(err)
+			}
+			if fallback != "none" {
+				factor := "totp"
+				if fallback == "recovery-code" {
+					factor = fallback
+				}
+				if err = e.st.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: e.tenant.ID, UserID: s.UserID, ID: "fallback", Type: factor, Confirmed: true}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			e.h.Store = noWebAuthnCapabilityStore{e.st}
+			e.h.MFA = mfa.NewService(e.h.Store, e.h.Wrapper, nil, nil, nil, fixedNow)
+			e.h.Passkeys = passkey.NewService(e.h.Store, rpid.Policy{}, fixedNow)
+			rec := e.get(t, goodQuery(), ck)
+			if fallback == "none" {
+				loc := location(t, rec)
+				if loc.Query().Get("error") != "access_denied" || loc.Query().Get("code") != "" {
+					t.Fatalf("unavailable enrolled key bypassed confidence MFA: %s", loc)
+				}
+				return
+			}
+			txn := e.txnAt(t, rec, "/u/mfa")
+			r := gateRequest(e, ck, rec)
+			pending, err := e.h.PendingMFA(ctx, r, e.res(), txn, s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req := pending.Requirement
+			if !req.Required || req.Enroll || req.DetectWebAuthn || len(req.Factors) != 1 || req.Factors[0] != fallback {
+				t.Fatalf("existing-proof requirement = %+v", req)
+			}
+		})
 	}
 }

@@ -3,6 +3,7 @@ package mfa
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/actionresult"
@@ -429,6 +430,32 @@ func TestWebAuthnChallengeFiltersOwnedRP(t *testing.T) {
 	_, opts, err := svc.BeginWebAuthnChallenge(f.ctx, "tenant", "user", "webauthn-roaming", rp, webauthn.Device{})
 	if err != nil || len(opts.Allow) != 1 || !bytes.Equal(opts.Allow[0].ID, own.CredentialID) {
 		t.Fatalf("owned RP credential list %+v %v", opts.Allow, err)
+	}
+}
+
+// Registration excludes only this user's credentials for the requested factor
+// at this RP; a passkey on the same security key must not prevent MFA setup.
+func TestWebAuthnEnrollExcludesOnlyRequestedFactorAtOwnedRP(t *testing.T) {
+	f, svc, rp := roamingFixture(t)
+	for _, a := range []store.Authenticator{
+		{ID: "roaming", UserID: "user", Type: "webauthn-roaming", RPID: "example.test", CredentialID: []byte("roaming")},
+		{ID: "passkey", UserID: "user", Type: "passkey", RPID: "example.test", CredentialID: []byte("passkey")},
+		{ID: "platform", UserID: "user", Type: "webauthn-platform", RPID: "example.test", CredentialID: []byte("platform")},
+		{ID: "foreign", UserID: "user", Type: "webauthn-roaming", RPID: "foreign.test", CredentialID: []byte("foreign")},
+		{ID: "other", UserID: "other", Type: "webauthn-roaming", RPID: "example.test", CredentialID: []byte("other")},
+	} {
+		a.TenantID, a.Confirmed = "tenant", true
+		a.PublicData, _ = json.Marshal(map[string]string{"user_handle": base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32))})
+		if err := f.st.MFA().CreateAuthenticator(f.ctx, &a); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, opts, err := svc.BeginWebAuthnEnroll(f.ctx, "tenant", "user", "webauthn-roaming", rp, passkey.UserDisplay{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(opts.Exclude) != 1 || !bytes.Equal(opts.Exclude[0].ID, []byte("roaming")) {
+		t.Fatalf("requested-factor exclusions = %+v", opts.Exclude)
 	}
 }
 
