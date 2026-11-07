@@ -501,3 +501,156 @@ identified guard, recovery and navigation findings were reproduced and corrected
 No known remaining blocker. Formatting, staged/unstaged diff checks and final
 source-snapshot comparison pass. Controller owns review and task completion;
 the resulting commit SHA is recorded in the retained report/ledger after creation.
+
+
+## Task 13 review round 1 — enrollment alternatives and controls
+
+Base `78b73d0fc4f15f14d02e19d29125781be285f886`; implementation source/test
+snapshot `e707a3703c494a22e91260c1eba76e99a80e8f34` (retained in
+`task-13-review1-code-tree.txt`). IMPLEMENTATION VERIFICATION RUNNING /
+SCOPED RE-REVIEW PENDING. No architecture blocker, subagents, broad/full suites,
+push or merge. All Go commands below use
+`GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp`.
+
+Reviewer findings confirmed and addressed:
+- Important 1: platform presence in `enrollWithAny` replaced requested choices
+  with all other factors, then made platform mandatory. Preserve the actual
+  requested alternatives, filter unavailable/disabled/enrolled methods, and
+  enter the existing mandatory other-proof sequence only after platform is
+  selected. A selected OTP enrollment completes the requested Action without
+  optional platform progression. Platform selection recomputes trusted decision
+  data and persists its target in the existing revision-guarded sealed page;
+  no browser input supplies proof authority. Pure platform Actions and tickets
+  still require the other proof and mandatory final platform confirmation.
+- Important 2: the initial platform presentation flag also rendered deferrals
+  during mandatory Action/ticket enrollment, although submission rejects them.
+  Split presentation from optional-deferral eligibility. Mandatory screens keep
+  their Continue button and omit all deferrals; manual mandatory skip remains
+  refused by the existing handler.
+- Related minor: optional platform cancellation used the error-screen prefix
+  for platform-only control keys. Error retry uses the existing error button
+  key, while optional deferrals use their platform enrollment keys. No raw keys
+  remain; optional deferral after cancellation completes successfully.
+
+Ruling/cost: mixed Actions retain their requested choice semantics. Another
+factor becomes a prerequisite only after platform is the selected target; that
+prerequisite cannot substitute for platform completion. A completed Action
+request for another enrollment does not add an unsolicited biometric prompt.
+The selection incurs the existing store-backed decision reads and sealed-page
+revision transition. No schema, capability, RP/origin, UV, ticket-consumption,
+trusted-proof, or service-insertion boundary changes. Current-RP same-class
+platform enrollment is filtered; foreign-RP methods do not suppress eligibility.
+
+RED/GREEN evidence, logs and actual-status files beside this report:
+- `go test -json ./internal/mfa ./internal/login -run '^(TestPlatformEnrollWithAnyKeepsAlternatives|TestPlatformActionEnrollmentAlternatives|TestPlatformActionChoiceRequiresOtherProof)$' -count=1 -timeout=15m`
+  session1480, `task-13-review1-mixed-red.log/.exit`, actual exit1. Unit RED
+  shows unrequested email substitution/mandatory platform when available and
+  ErrNoFactor despite OTP when unavailable/disabled. Hosted fixtures initially
+  expected303 for an existing302 login gate; those setup failures are NOT
+  claimed as meaningful hosted RED (10 FAIL events total, no passes/skips).
+- `go test -json ./internal/login -run '^(TestPlatformActionEnrollmentAlternatives|TestPlatformActionChoiceRequiresOtherProof|TestPlatformMandatoryActionControls|TestPlatformRulesTicketOtherProofFirst|TestPlatformOptionalEnrollmentErrorControls)$' -count=1 -timeout=15m`
+  session59886, `task-13-review1-hosted-red.log/.exit`, actual exit1; corrected
+  login-gate fixture. 10 FAIL events/no passes/skips: missing requested platform
+  choice; unavailable/no-script detection400 despite requested OTP; selection400;
+  mandatory Action and both ticket sequences exposing optional deferrals; error
+  controls showing raw catalog keys. These are meaningful hosted RED results.
+- `go test -json ./internal/mfa ./internal/login -run '^(TestPlatformEnrollWithAnyKeepsAlternatives|TestPlatformActionEnrollmentAlternatives|TestPlatformActionChoiceRequiresOtherProof|TestPlatformMandatoryActionControls|TestPlatformRulesTicketOtherProofFirst|TestPlatformOptionalEnrollmentErrorControls)$' -count=1 -timeout=15m`
+  session18022, `task-13-review1-green.log/.exit`, actual exit0, 15 PASS events,
+  no failures/skips. This interim snapshot precedes the final test extensions:
+  selected platform now completes registration/nickname/login; mandatory manual
+  skip is refused; enrolled/current-RP/foreign-RP alternatives are asserted.
+
+Final frozen-snapshot commands run once sequentially under retained session74894:
+1. `go test -json ./internal/mfa ./internal/login ./internal/authz ./internal/ui ./internal/i18n -run 'Decide|MFA|Platform|WebAuthn|Roaming|Gate|CatalogMatchesUsage' -count=1 -timeout=15m`
+   `task-13-review1-affected.log/.exit`.
+2. `go test -race -json ./internal/mfa ./internal/login ./internal/authz -run 'Decide|Platform|WebAuthn|Roaming|Gate' -count=1 -timeout=15m`
+   `task-13-review1-race.log/.exit`.
+The chain stops on an actual failure. Sole implementer uses blocking completion
+waits; no active-log scans or routine process checks. Results remain pending
+until completion. Task19's broad/dialect/hardware/browser checks remain deferred,
+not passing. No tests silently skipped. Parent controller owns scoped re-review.
+
+
+Review1 final-extension fixture correction: affected chain74894 returned actual
+exit1 (`task-13-review1-affected.log/.exit`), 126 PASS/one FAIL/no skips.
+`TestPlatformActionChoiceRequiresOtherProof` completed platform registration and
+nickname, then panicked in `mfaFixture.post` because its form-map argument was
+nil. Replaced only that fixture call with `url.Values{}`; no production delta.
+The scoped race had NOT RUN and is not passing. This is a test fixture failure,
+not an implementation regression or a meaningful new RED result.
+
+Corrected final source/test snapshot `6102e6828a666ded6b29645137b9e7148f63cc9c` is retained in
+`task-13-review1-final-code-tree.txt`. Retained session55877 runs the same affected
+command to `task-13-review1-affected-2.log/.exit`, then the same scoped race command
+to `task-13-review1-race.log/.exit`, stopping on actual failure. Commands run once
+for this corrected snapshot, sole implementer uses blocking completion waits.
+Results pending. No broad suites, subagents, push or merge.
+
+
+## Exact completed-enrollment validation
+
+Corrected affected chain55877 returned actual exit1
+(`task-13-review1-affected-2.log/.exit`), 207 PASS/one FAIL/no skips.
+`TestPlatformActionChoiceRequiresOtherProof` completed registration/nickname,
+then received callback `access_denied`: the original mixed enrollment was
+re-evaluated after both requested types had become enrolled, so no NEW candidate
+remained. This is a meaningful dependent completion RED. Race still had NOT RUN.
+
+Controller approved minimal trusted completion handling, requiring exact factor
+binding and live disabled/capability/RP/unproven guards. The final proven hosted
+enrollment page passes its server-owned factor to `MFAComplete`. Its trusted
+context marker is separate from the session's ordinary MFA completion marker.
+Authorization checks membership in the original requested enrollment alternatives
+and validates only that exact confirmed factor as a live challenge before
+satisfying the forced prompt. It does not mutate the original Effects. Missing,
+unrelated or unproven enrollment markers cannot satisfy explicit enrollment;
+platform's intermediate other-factor proof never reaches this final path.
+Consent carries the marker only in its server transaction, tied to the same
+session's exact MFA timestamp, and restores it only after that timestamp matches.
+Cost: one internal optional completion argument and a server-only consent field;
+there is no browser, public API, plugin or schema extension. Factor enablement,
+capability revocation, current RP/device eligibility and platform's separate
+other-proof insertion guard remain enforced.
+
+`go test -json ./internal/authz ./internal/login -run 'TestGateCompleted(Enrollment|PlatformEnrollment)|^TestPlatformActionChoiceRequiresOtherProof$' -count=1 -timeout=15m`
+with the stated Go1.26.10/tmp prefix, session24857,
+`task-13-review1-completion-green.log/.exit`, actual exit0: 14 PASS,
+no failures/skips. Covers actual platform-choice registration/nickname/login,
+exact requested factor vs unrelated/missing/unproven marker, disabled factor,
+platform current/foreign RP, revoked capability, original Effects immutability,
+and consent continuation. The final source/test tree is now
+`e726b9f4d4c188840d058aeb61aae5b847a94603` (`task-13-review1-verified-code-tree.txt`); earlier snapshots are not
+relabeled. Session92654 runs once: the same affected command to
+`task-13-review1-affected-3.log/.exit`, then the same scoped race command to
+`task-13-review1-race.log/.exit`. Sole monitor blocks for completion; no active-log
+scans. Results pending; SCOPED RE-REVIEW PENDING. No optional expansion, broad
+suites, subagents, push or merge.
+
+
+## Review1 final verification and self-review
+
+Final chain92654 completed actual exit0 at unchanged source/test snapshot
+`e726b9f4d4c188840d058aeb61aae5b847a94603`:
+- `task-13-review1-affected-3.log/.exit`: actual exit0, 221 PASS/no failures/skips
+  (mfa64, login98, authz47, ui11, i18n1). Exact command, with the stated prefix:
+  `go test -json ./internal/mfa ./internal/login ./internal/authz ./internal/ui ./internal/i18n -run 'Decide|MFA|Platform|WebAuthn|Roaming|Gate|CatalogMatchesUsage' -count=1 -timeout=15m`.
+- `task-13-review1-race.log/.exit`: actual exit0, 144 PASS/no failures/skips or
+  race reports (mfa64, login33, authz47). Exact command, with the stated prefix:
+  `go test -race -json ./internal/mfa ./internal/login ./internal/authz -run 'Decide|Platform|WebAuthn|Roaming|Gate' -count=1 -timeout=15m`.
+
+No package lacked selected tests in these runs. Source comparison
+`git diff e726b9f4d4c188840d058aeb61aae5b847a94603 -- internal` is empty.
+`git diff --check`, `git diff --cached --check` and gofmt checks pass. Self-review
+checked requested-alternative membership/eligibility, selected-platform-only
+prerequisite transition, mandatory Action/ticket controls and manual-skip denial,
+optional retry labels/deferral, exact final enrollment proof vs ordinary MFA,
+unchanged original Effects, server-only consent continuation, disabled/revoked
+capability/current-RP/device filtering and unchanged service/ticket insertion
+boundaries. No known remaining finding. The two setup mistakes and dependent
+completion failure above are retained, not omitted or called passing.
+
+IMPLEMENTATION VERIFIED / SCOPED RE-REVIEW PENDING. Controller owns approval and
+Task13 completion. No full/broad suites, extra audits/agents, push or merge.
+Task19 broad/dialect/real-browser/hardware checks remain deferred and are not
+passing. Final scoped commit metadata is supplied after creation in the retained
+workspace report/ledger and handoff.

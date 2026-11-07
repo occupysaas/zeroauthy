@@ -318,6 +318,9 @@ func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tena
 	params[ParamStage] = stageConsent
 	if completed, _ := r.Context().Value(mfaCompletedKey{}).(string); completed == sess.ID {
 		params["za_mfa_satisfied"] = sess.MFAAt.Format(time.RFC3339Nano)
+		if factor, _ := r.Context().Value(mfaEnrollmentCompletedKey{}).(string); factor != "" {
+			params["za_mfa_enrollment_factor"] = factor
+		}
 	}
 	params[sessionKey] = sess.ID
 	params["za_log_executions"] = strings.Join(logs.Enrich(r.Context(), logs.Event{}).ExecutionIDs, ",")
@@ -674,6 +677,9 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 	}
 	if txn.Params["za_mfa_satisfied"] != "" && txn.Params["za_mfa_satisfied"] == sess.MFAAt.Format(time.RFC3339Nano) {
 		r = r.WithContext(context.WithValue(r.Context(), mfaCompletedKey{}, sess.ID))
+		if factor := txn.Params["za_mfa_enrollment_factor"]; factor != "" {
+			r = r.WithContext(context.WithValue(r.Context(), mfaEnrollmentCompletedKey{}, factor))
+		}
 	}
 	h.finish(w, r, res, client, fr, sess, eff, true, true)
 }

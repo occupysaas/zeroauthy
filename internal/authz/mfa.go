@@ -50,6 +50,9 @@ type MFAPending struct {
 
 type mfaCompletedKey struct{}
 
+// mfaEnrollmentCompletedKey carries only the final server-proven enrollment type.
+type mfaEnrollmentCompletedKey struct{}
+
 func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq, sess *store.LoginSession, eff *actions.Effects) (mfa.Requirement, error) {
 	var effects *actions.MFAEffects
 	if eff != nil {
@@ -117,8 +120,24 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		}
 	}
 	in.MFAAPI = fr.Request.Audience != "" && mfa.APIAudience(r.Context(), h.Store, res.Tenant.ID, fr.Request.Audience)
-	// Validate the original Action factor restrictions before satisfying its
-	// forced prompt. Disabling its chosen factor must still fail closed.
+	// A completed enrollment must still have its exact requested factor usable.
+	// Requiring a new factor again would reject the factor just enrolled.
+	completed, _ := r.Context().Value(mfaCompletedKey{}).(string)
+	if completed == sess.ID && !sess.MFAAt.IsZero() && effects != nil && effects.Mode == "enroll" {
+		factor, _ := r.Context().Value(mfaEnrollmentCompletedKey{}).(string)
+		requested := false
+		for _, group := range effects.Factors {
+			requested = requested || slices.Contains(group, factor)
+		}
+		if factor == "" || !requested {
+			return mfa.Requirement{}, mfa.ErrNoFactor
+		}
+		validated := *effects
+		validated.Mode, validated.Any = "challenge", false
+		validated.Factors = [][]string{{factor}}
+		in.Effects = &validated
+	}
+	// Validate live factor restrictions before satisfying the forced prompt.
 	req, err := mfa.Decide(in)
 	req.DetectWebAuthn = detectWebAuthn && req.Required
 	if err == nil && !sess.MFAAt.IsZero() {
@@ -256,7 +275,8 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 
 // MFAComplete resumes only after a fresh proof marked the bound active session.
 // Consuming the transaction is single-use; Actions are carried and never rerun.
-func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) {
+// enrolledFactor is supplied only by the final server-proven enrollment page.
+func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession, enrolledFactor ...string) {
 	pending, err := h.PendingMFA(r.Context(), r, res, txn, sess)
 	if err != nil {
 		h.invalidMFA(w, r, res)
@@ -307,6 +327,9 @@ func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenan
 	}
 	h.clearTxnCookie(w, stored)
 	*r = *r.WithContext(context.WithValue(context.WithValue(r.Context(), mfaCompletedKey{}, current.ID), passkeyLoginKey{}, pending.PasskeyHint))
+	if len(enrolledFactor) == 1 && enrolledFactor[0] != "" {
+		*r = *r.WithContext(context.WithValue(r.Context(), mfaEnrollmentCompletedKey{}, enrolledFactor[0]))
+	}
 	h.finish(w, r, res, client, fr, current, &pending.Effects, false, true)
 }
 func (h *Handlers) invalidMFA(w http.ResponseWriter, r *http.Request, res tenant.Resolved) {

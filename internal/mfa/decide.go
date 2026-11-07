@@ -108,8 +108,9 @@ func Decide(in DecideInput) (Requirement, error) {
 	if !r.Required {
 		return r, nil
 	}
-	// Explicit biometrics enrollment requires another factor's proof first.
-	if r.Enroll && slices.Contains(requested, "webauthn-platform") {
+	// A sole explicit biometrics target requires another factor's proof first.
+	// Mixed enrollment alternatives keep their requested choices until selection.
+	if r.Enroll && len(requested) == 1 && requested[0] == "webauthn-platform" {
 		if !enabled["webauthn-platform"] || !in.WebAuthn.Available || !in.WebAuthn.Platform {
 			return r, ErrNoFactor
 		}
@@ -120,8 +121,12 @@ func Decide(in DecideInput) (Requirement, error) {
 	confirmed := map[string]bool{}
 	primary := false
 	preferred := ""
+	platformEnrolled := false
 	for _, a := range in.Authenticators {
 		f := factorName(a.Type)
+		if a.Type == "webauthn-platform" && a.Confirmed && a.RPID == in.WebAuthn.RPID && authenticatorDevice(a).Class == in.WebAuthn.Device.Class {
+			platformEnrolled = true
+		}
 		if UsableMethod(in.User, a, enabled) && (!isWebAuthnFactor(a.Type) || a.RPID == in.WebAuthn.RPID) {
 			primary = true
 			if !isWebAuthnFactor(a.Type) || in.WebAuthn.Available && (a.Type != "webauthn-platform" || in.WebAuthn.Platform && hasOtherPlatformFactor(in.User, in.Authenticators, enabled, in.WebAuthn.RPID) && authenticatorDevice(a).Key() == in.WebAuthn.Device.Key()) {
@@ -148,7 +153,7 @@ func Decide(in DecideInput) (Requirement, error) {
 		if !enabled[guardianFactor(f)] || isWebAuthnFactor(f) && !in.WebAuthn.Available || f == "webauthn-platform" && !in.WebAuthn.Platform {
 			continue
 		}
-		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll || f == "webauthn-roaming" && in.WebAuthn.Available {
+		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll || f == "webauthn-roaming" && in.WebAuthn.Available || f == "webauthn-platform" && r.Enroll && !platformEnrolled {
 			if e == nil || e.Mode != "enroll" || r.PlatformAfterProof || !confirmed[f] {
 				enroll = append(enroll, f)
 			}

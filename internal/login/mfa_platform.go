@@ -40,6 +40,10 @@ func platformDefaultName(d webauthn.Device) string {
 // requires a separate confirmed primary method; a remembered browser is no proof.
 func (h *Handlers) offerPlatformMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow) bool {
 	explicit := f.pending.Requirement.PlatformAfterProof
+	// Completing a requested enrollment alternative satisfies the Action.
+	if !explicit && f.pending.Requirement.Reason == "action" && f.pending.Effects.MFA != nil && f.pending.Effects.MFA.Mode == "enroll" {
+		return false
+	}
 	if f.page.Factor == "webauthn-platform" || f.pending.Requirement.Reason == "ticket" && !explicit {
 		return false
 	}

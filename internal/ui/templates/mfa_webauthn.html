@@ -20,10 +20,10 @@
 <input type="hidden" name="webauthn_error" value="">
 {{if .Data.AllowRemember}}<label><input type="checkbox" name="remember" value="yes">{{t .Tenant.L (printf "%srememberMeText" .Data.Prefix)}}</label>{{end}}
 <button id="za-passkey-button" type="button">{{if .Data.PlatformEnrollment}}{{t .Tenant.L (printf "%scontinueButtonText" .Data.Prefix)}}{{else}}{{t .Tenant.L (printf "%sbuttonText" .Data.Prefix)}}{{end}}</button>
-{{if .Data.PlatformEnrollment}}
-<button type="submit" name="platform_choice" value="remind">{{t .Tenant.L (printf "%ssnoozeEnrollmentButtonText" .Data.Prefix)}}</button>
-<button type="submit" name="platform_choice" value="refuse">{{t .Tenant.L (printf "%srefuseAddingDeviceText" .Data.Prefix)}}</button>
-<button type="submit" name="platform_choice" value="skip">{{t .Tenant.L (printf "%sskipAddingDeviceText" .Data.Prefix)}}</button>
+{{if .Data.AllowPlatformDeferral}}
+<button type="submit" name="platform_choice" value="remind">{{t .Tenant.L "mfa-webauthn.mfa-webauthn-platform-enrollment.snoozeEnrollmentButtonText"}}</button>
+<button type="submit" name="platform_choice" value="refuse">{{t .Tenant.L "mfa-webauthn.mfa-webauthn-platform-enrollment.refuseAddingDeviceText"}}</button>
+<button type="submit" name="platform_choice" value="skip">{{t .Tenant.L "mfa-webauthn.mfa-webauthn-platform-enrollment.skipAddingDeviceText"}}</button>
 {{end}}
 <script nonce="{{.Nonce}}" type="application/json" id="za-webauthn">{{.Data.Passkey}}</script>
 <script nonce="{{.Nonce}}">{{.WebAuthnScript}}</script>

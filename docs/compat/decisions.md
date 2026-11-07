@@ -2872,3 +2872,25 @@ platform enrollment while another confirmed enabled primary method remains.
 Recovery itself never supplies eligibility. This can add one optional prompt
 after recovery. The hosted preflight checks eligibility before showing it, and
 the service repeats the authoritative check in the insertion transaction.
+
+
+Task13 review1 clarification: a mixed Action enrollment request retains only its
+requested eligible alternatives. The other-factor prerequisite sequence begins
+when platform is the selected target; completing another requested alternative
+satisfies the enrollment Action without an optional platform offer. Explicit
+platform-only Actions and tickets remain mandatory after their prerequisite
+proof. This adds a store-backed decision/revision transition at platform choice,
+while retaining the existing sealed proof and final insertion boundaries.
+Optional deferrals are presented only for optional post-proof offers, including
+retry screens; mandatory enrollment does not display controls the server refuses.
+
+
+Completed Action enrollment is validated against the exact final server-proven
+factor, rather than requiring another new enrollment candidate. A separate
+trusted enrollment marker must name one of the Action's original requested
+factors; ordinary MFA completion or another factor's proof does not qualify.
+Live factor enablement, capability and RP/device eligibility still apply. The
+hosted final handler supplies that marker only after proof; the original Action
+effects remain unchanged. Consent retains it in server state tied to the same
+session MFA timestamp. Cost: an internal completion argument and consent-state
+field, with no public API or schema change.

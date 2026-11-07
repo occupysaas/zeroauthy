@@ -364,6 +364,26 @@ func (h *Handlers) startMFAMethod(w http.ResponseWriter, r *http.Request, f *mfa
 	if f.page.Factor == factor && (f.page.ChallengeID != "" || factor == "phone" && f.pending.Requirement.Enroll) {
 		return true
 	}
+	// Choosing platform from an Action's alternatives commits that target, then
+	// starts the existing other-factor sequence before issuing platform options.
+	if factor == "webauthn-platform" && f.pending.Requirement.Enroll && !f.pending.Requirement.PlatformAfterProof {
+		if f.pending.Effects.MFA == nil || f.pending.Effects.MFA.Mode != "enroll" {
+			h.fail(w, r, errTxn, f.flow)
+			return false
+		}
+		effects := *f.pending.Effects.MFA
+		effects.Factors = [][]string{{"webauthn-platform"}}
+		if err := h.detectMFARequirement(r, f, &effects); err != nil {
+			h.fail(w, r, err, f.flow)
+			return false
+		}
+		f.page = mfaPageState{Switched: f.page.Switched, WebAuthnDetected: true, WebAuthn: f.page.WebAuthn}
+		if err := h.saveMFAPage(r, f, "mfa-page"); err != nil {
+			h.fail(w, r, errTxn, f.flow)
+			return false
+		}
+		return true
+	}
 	// Claim the revision before sending an email or creating a method.
 	if err := h.saveMFAPage(r, f, "mfa-busy"); err != nil {
 		h.fail(w, r, errTxn, f.flow)
@@ -880,7 +900,11 @@ func (h *Handlers) finishMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow)
 			}
 		}
 	}
-	h.Authz.MFAComplete(w, r, f.res, f.txn, f.sess)
+	enrolledFactor := ""
+	if f.pending.Requirement.Enroll {
+		enrolledFactor = f.page.Factor
+	}
+	h.Authz.MFAComplete(w, r, f.res, f.txn, f.sess, enrolledFactor)
 }
 func (h *Handlers) MFATicket(w http.ResponseWriter, r *http.Request) {
 	h.maskRequest(r)

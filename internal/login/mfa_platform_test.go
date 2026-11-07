@@ -3,6 +3,8 @@ package login
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -131,6 +133,7 @@ func TestPlatformRulesTicketOtherProofFirst(t *testing.T) {
 				t.Fatalf("ticket spent before platform %v", err)
 			}
 			page = f.page(t, "/u/mfa-webauthn-platform-enrollment")
+			assertMandatoryPlatformControls(t, page)
 			p := readPasskeyPage(t, page)
 			key := webauthntest.New(webauthntest.Options{UV: true, Attachment: "platform"})
 			rec = f.post(t, "/u/mfa-webauthn-platform-enrollment", url.Values{"challenge_id": {p.ChallengeID}, "credential": {string(registrationFromPage(t, p, key, "https://acme.example.test"))}})
@@ -292,5 +295,194 @@ func TestPlatformProgressiveEnrollmentAfterRecovery(t *testing.T) {
 				t.Fatalf("recovery-only completion %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
 			}
 		})
+	}
+}
+
+func beginPlatformAction(t *testing.T, call string, available, platform bool) *mfaFixture {
+	t.Helper()
+	f := newRoamingMFAFixture(t)
+	f.policy(t, "otp", "email", "webauthn-platform")
+	f.tn.SettingsExtra["customize_mfa_in_postlogin_action"] = true
+	if err := f.st.Tenants().Update(context.Background(), f.tn); err != nil {
+		t.Fatal(err)
+	}
+	a := actionstest.NewOffline(t, f.st, f.h.Authz.Wrapper)
+	f.h.Actions, f.h.Authz.Actions = a.Engine, a.Engine
+	a.Bind(t, f.tn.ID, actions.TriggerPostLogin, a.Deploy(t, f.tn.ID, actions.TriggerPostLogin, "platform-choices", "exports.onExecutePostLogin=(event,api)=>api.authentication."+call+";"))
+	_, s, c := f.b.begin(t)
+	rec := f.b.do(t, "POST", "/u/login", url.Values{"state": {s}, "csrf": {c}, "username": {aliceLogin}, "password": {"alice password 1"}})
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	if rec.Code != 302 || loc.Path != "/u/mfa" {
+		t.Fatalf("action gate %d %s %s", rec.Code, loc, rec.Body)
+	}
+	f.state = loc.Query().Get("state")
+	f.page(t, "/u/mfa-detect-browser-capabilities")
+	value := func(v bool) string {
+		if v {
+			return "1"
+		}
+		return "0"
+	}
+	rec = f.post(t, "/u/mfa-detect-browser-capabilities", url.Values{"webauthn": {value(available)}, "platform": {value(platform)}})
+	if rec.Code != 303 {
+		t.Fatalf("action detection %d %s", rec.Code, rec.Body)
+	}
+	return f
+}
+
+func TestPlatformActionEnrollmentAlternatives(t *testing.T) {
+	for _, caps := range []struct {
+		name                string
+		available, platform bool
+	}{
+		{"available", true, true}, {"no-platform", true, false}, {"no-script", false, false},
+	} {
+		t.Run(caps.name, func(t *testing.T) {
+			f := beginPlatformAction(t, "enrollWithAny([{type:'otp'},{type:'webauthn-platform'}])", caps.available, caps.platform)
+			page := f.page(t, "/u/mfa")
+			if caps.platform {
+				for _, factor := range []string{"otp", "webauthn-platform"} {
+					if !strings.Contains(page.Body.String(), `value="`+factor+`"`) {
+						t.Fatalf("missing requested choice %s: %s", factor, page.Body)
+					}
+				}
+				if strings.Contains(page.Body.String(), `value="email"`) {
+					t.Fatal("unrequested email offered")
+				}
+				rec := f.post(t, "/u/mfa", url.Values{"factor": {"otp"}})
+				if rec.Code != 303 {
+					t.Fatalf("OTP choice %d %s", rec.Code, rec.Body)
+				}
+				page = f.page(t, "/u/mfa-otp-enrollment")
+			}
+			match := regexp.MustCompile(`<code[^>]*>([A-Z2-7]+)</code>`).FindStringSubmatch(page.Body.String())
+			if match == nil {
+				t.Fatalf("missing OTP enrollment %s", page.Body)
+			}
+			rec := f.post(t, "/u/mfa-otp-enrollment", url.Values{"code": {otpAt(match[1], *f.clock)}})
+			if rec.Code != 200 {
+				t.Fatalf("OTP proof %d %s", rec.Code, rec.Body)
+			}
+			rec = f.post(t, "/u/mfa-recovery-code-enrollment", url.Values{"ack": {"yes"}})
+			if rec.Code != 302 || !strings.Contains(rec.Header().Get("Location"), "code=") {
+				t.Fatalf("requested OTP must complete %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
+			}
+		})
+	}
+}
+
+func TestPlatformActionChoiceRequiresOtherProof(t *testing.T) {
+	f := beginPlatformAction(t, "enrollWithAny([{type:'otp'},{type:'webauthn-platform'}])", true, true)
+	f.page(t, "/u/mfa")
+	rec := f.post(t, "/u/mfa", url.Values{"factor": {"webauthn-platform"}})
+	if rec.Code != 303 || strings.Contains(rec.Header().Get("Location"), "platform-enrollment") {
+		t.Fatalf("platform before other proof %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
+	}
+	page := f.page(t, "/u/mfa")
+	// Another enabled factor may be used only after platform was chosen.
+	if !strings.Contains(page.Body.String(), `value="otp"`) {
+		t.Fatalf("missing prerequisite choice %s", page.Body)
+	}
+	rec = f.post(t, "/u/mfa", url.Values{"factor": {"otp"}})
+	if rec.Code != 303 {
+		t.Fatalf("other choice %d %s", rec.Code, rec.Body)
+	}
+	page = f.page(t, "/u/mfa-otp-enrollment")
+	match := regexp.MustCompile(`<code[^>]*>([A-Z2-7]+)</code>`).FindStringSubmatch(page.Body.String())
+	if match == nil {
+		t.Fatalf("missing prerequisite OTP %s", page.Body)
+	}
+	rec = f.post(t, "/u/mfa-otp-enrollment", url.Values{"code": {otpAt(match[1], *f.clock)}})
+	if rec.Code != 200 {
+		t.Fatalf("other proof %d %s", rec.Code, rec.Body)
+	}
+	rec = f.post(t, "/u/mfa-recovery-code-enrollment", url.Values{"ack": {"yes"}})
+	if rec.Code != 303 || !strings.Contains(rec.Header().Get("Location"), "platform-enrollment") {
+		t.Fatalf("platform after proof %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
+	}
+	page = f.page(t, "/u/mfa-webauthn-platform-enrollment")
+	assertMandatoryPlatformControls(t, page)
+	p := readPasskeyPage(t, page)
+	key := webauthntest.New(webauthntest.Options{UV: true, Attachment: "platform"})
+	rec = f.post(t, "/u/mfa-webauthn-platform-enrollment", url.Values{"challenge_id": {p.ChallengeID}, "credential": {string(registrationFromPage(t, p, key, "https://acme.example.test"))}})
+	if rec.Code != 303 {
+		t.Fatalf("selected platform registration %d %s", rec.Code, rec.Body)
+	}
+	f.page(t, "/u/mfa-webauthn-change-key-nickname")
+	rec = f.post(t, "/u/mfa-webauthn-change-key-nickname", url.Values{"name": {"Selected device"}})
+	if rec.Code != 303 {
+		t.Fatalf("selected platform nickname %d %s", rec.Code, rec.Body)
+	}
+	f.page(t, "/u/mfa-webauthn-enrollment-success")
+	rec = f.post(t, "/u/mfa-webauthn-enrollment-success", url.Values{})
+	if rec.Code != 302 || !strings.Contains(rec.Header().Get("Location"), "code=") {
+		t.Fatalf("selected platform completion %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
+	}
+}
+
+func assertMandatoryPlatformControls(t *testing.T, page *httptest.ResponseRecorder) {
+	t.Helper()
+	if strings.Contains(page.Body.String(), `name="platform_choice"`) {
+		t.Fatal("mandatory enrollment exposed optional deferrals")
+	}
+	if !strings.Contains(page.Body.String(), `id="za-passkey-button" type="button">Continue</button>`) {
+		t.Fatalf("missing enrollment continue control %s", page.Body)
+	}
+}
+
+func TestPlatformMandatoryActionControls(t *testing.T) {
+	f := beginPlatformAction(t, "enrollWith({type:'webauthn-platform'})", true, true)
+	page := f.page(t, "/u/mfa")
+	match := regexp.MustCompile(`<code[^>]*>([A-Z2-7]+)</code>`).FindStringSubmatch(page.Body.String())
+	if match == nil {
+		t.Fatalf("missing prerequisite OTP %s", page.Body)
+	}
+	rec := f.post(t, "/u/mfa-otp-enrollment", url.Values{"code": {otpAt(match[1], *f.clock)}})
+	if rec.Code != 200 {
+		t.Fatalf("other proof %d %s", rec.Code, rec.Body)
+	}
+	rec = f.post(t, "/u/mfa-recovery-code-enrollment", url.Values{"ack": {"yes"}})
+	if rec.Code != 303 {
+		t.Fatalf("platform next %d %s", rec.Code, rec.Body)
+	}
+	assertMandatoryPlatformControls(t, f.page(t, "/u/mfa-webauthn-platform-enrollment"))
+	rec = f.post(t, "/u/mfa-webauthn-platform-enrollment", url.Values{"platform_choice": {"skip"}})
+	if rec.Code != 400 || strings.Contains(rec.Header().Get("Location"), "code=") {
+		t.Fatalf("mandatory platform accepted deferral %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestPlatformOptionalEnrollmentErrorControls(t *testing.T) {
+	f := newRoamingMFAFixture(t)
+	f.policy(t, "otp", "webauthn-platform")
+	secret := f.enrolled(t, "otp", false)
+	_, s, c := f.b.begin(t)
+	rec := f.b.do(t, "POST", "/u/login", url.Values{"state": {s}, "csrf": {c}, "username": {aliceLogin}, "password": {"alice password 1"}})
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	f.state = loc.Query().Get("state")
+	f.page(t, "/u/mfa-detect-browser-capabilities")
+	f.post(t, "/u/mfa-detect-browser-capabilities", url.Values{"webauthn": {"1"}, "platform": {"1"}})
+	f.page(t, "/u/mfa")
+	rec = f.post(t, "/u/mfa-otp-challenge", url.Values{"code": {otpAt(secret, *f.clock)}})
+	if rec.Code != 303 {
+		t.Fatalf("offer %d %s", rec.Code, rec.Body)
+	}
+	p := readPasskeyPage(t, f.page(t, "/u/mfa-webauthn-platform-enrollment"))
+	rec = f.post(t, "/u/mfa-webauthn-platform-enrollment", url.Values{"challenge_id": {p.ChallengeID}, "webauthn_error": {"NotAllowedError"}})
+	if rec.Code != 400 {
+		t.Fatalf("cancellation %d %s", rec.Code, rec.Body)
+	}
+	for _, text := range []string{"Try security key again", "Remind me later", "Not on this device", "Not now"} {
+		if !strings.Contains(rec.Body.String(), text) {
+			t.Errorf("error page missing %q", text)
+		}
+	}
+	if strings.Contains(rec.Body.String(), "mfa-webauthn.mfa-webauthn-error.") {
+		t.Error("raw catalog key on platform error page")
+	}
+	// The optional controls are usable even after the canceled ceremony.
+	rec = f.post(t, "/u/mfa-webauthn-platform-enrollment", url.Values{"platform_choice": {"skip"}})
+	if rec.Code != 302 || !strings.Contains(rec.Header().Get("Location"), "code=") {
+		t.Fatalf("error deferral %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/rpid"
@@ -59,7 +60,7 @@ func (h *Handlers) webAuthnMFAService(r *http.Request, f *mfaFlow) (*mfa.Service
 	}
 	return svc, rp, nil
 }
-func (h *Handlers) detectMFARequirement(r *http.Request, f *mfaFlow) error {
+func (h *Handlers) detectMFARequirement(r *http.Request, f *mfaFlow, effects *actionresult.MFAEffects) error {
 	g, err := h.Store.MFA().GetGuardian(r.Context(), f.res.Tenant.ID)
 	if err != nil {
 		return err
@@ -77,7 +78,7 @@ func (h *Handlers) detectMFARequirement(r *http.Request, f *mfaFlow) error {
 		return err
 	}
 	customize, _ := f.res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	req, err := mfa.Decide(mfa.DecideInput{Settings: g, User: u, Authenticators: aa, Effects: f.pending.Effects.MFA, CustomizeInActions: customize, PhoneEnroll: len(methods) > 0, WebAuthn: f.page.WebAuthn, MFAAPI: f.pending.Requirement.Reason == "mfa-api"})
+	req, err := mfa.Decide(mfa.DecideInput{Settings: g, User: u, Authenticators: aa, Effects: effects, CustomizeInActions: customize, PhoneEnroll: len(methods) > 0, WebAuthn: f.page.WebAuthn, MFAAPI: f.pending.Requirement.Reason == "mfa-api"})
 	if f.pending.Requirement.Reason == "ticket" || f.pending.Requirement.Reason == "reset" {
 		req = f.pending.Requirement
 		req.DetectWebAuthn = false
@@ -144,7 +145,8 @@ func (h *Handlers) renderWebAuthnMFA(w http.ResponseWriter, r *http.Request, sta
 		d.AnotherURL = ""
 	}
 	if f.page.Factor == "webauthn-platform" {
-		d.PlatformEnrollment = f.pending.Requirement.Enroll && f.page.WebAuthnStage == ""
+		d.PlatformEnrollment = f.pending.Requirement.Enroll && f.page.WebAuthnStage == "" && !f.page.WebAuthnError
+		d.AllowPlatformDeferral = f.pending.Requirement.Enroll && f.page.WebAuthnStage == "" && f.page.PlatformProof && !f.pending.Requirement.PlatformAfterProof
 		d.Name = platformDefaultName(f.page.WebAuthn.Device)
 	}
 	if f.page.WebAuthnStage == "mfa-webauthn-change-key-nickname" {
@@ -267,7 +269,7 @@ func (h *Handlers) webAuthnMFASubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		f.page.WebAuthnDetected = true
 		f.page.WebAuthn = mfa.WebAuthnCapabilities{Available: available && r.PostForm.Get("webauthn") == "1", Platform: available && r.PostForm.Get("platform") == "1", RPID: rp.RPID, Device: webauthn.DeviceOf(r.UserAgent())}
-		if err = h.detectMFARequirement(r, f); err != nil {
+		if err = h.detectMFARequirement(r, f, f.pending.Effects.MFA); err != nil {
 			if !errors.Is(err, mfa.ErrNoFactor) {
 				h.fail(w, r, err, f.flow)
 				return
