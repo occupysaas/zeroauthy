@@ -37,7 +37,7 @@ export E2E_CHROMIUM="${E2E_CHROMIUM:-$(command -v chromium || true)}"
 pids=()
 start() { setsid "$@" & pids+=("$!"); }
 stop() { for p in "${pids[@]}"; do kill -TERM -- "-$p" 2>/dev/null || true; done; for p in "${pids[@]}"; do wait "$p" 2>/dev/null || true; done; pids=(); }
-cleanup() { trap - EXIT INT TERM; stop; echo "Plan33b artifacts: $root"; }
+cleanup() { trap - EXIT INT TERM; stop; if [[ -n "${sqlite_dir:-}" && "$sqlite_dir" == /dev/shm/plan33b-sqlite-* ]]; then cp "$sqlite_dir"/passkeys.db* "$root/sqlite/" 2>/dev/null || true; rm -rf "$sqlite_dir"; fi; echo "Plan33b artifacts: $root"; }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
