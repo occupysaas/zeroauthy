@@ -34,8 +34,14 @@ Redirects resume in `exports.onContinuePostLogin`.
 
 The post-login event includes user, client, connection, request, transaction,
 resource server, role names, login count, tenant and secrets, plus
-`event.user.enrolledFactors` and `event.authentication.methods` (in 1.0
-`methods` lists only a completed `mfa` step, not the first factor).
+`event.user.enrolledFactors` and `event.authentication.methods`. Since Plan
+33b, `methods` lists the session's recorded first factor (`pwd`, `passkey`,
+`federated`, `email` or `sms`) with its time, then `mfa` once a second factor
+completed; sessions created before that record no first factor.
+`enrolledFactors` includes confirmed `webauthn-roaming` and
+`webauthn-platform` enrollments; passkeys are not MFA factors and are not
+listed. A passkey login alone leaves the ID token `amr` unchanged (see
+[passkeys](passkeys.md)).
 `event.session` appears for browser logins; `event.refresh_token` is not
 provided. `request.geoip`, `asn`, prompt, agent and Enterprise data are
 omitted. Earlier
@@ -44,7 +50,8 @@ are visible to later Actions. Absent features are not synthesized.
 
 Protocols are `oidc-basic-profile`, `oauth2-device-code`, `oauth2-password`
 (plain password), `oauth2-resource-owner` (password-realm),
-`oauth2-refresh-token` and `oauth2-client-credentials`. Browser authorization
+`oauth2-refresh-token`, `oauth2-client-credentials` and `oauth2-webauthn`
+(the native passkey grant). Browser authorization
 passes the authorization query and an empty body. Internal `za_*` query keys
 are omitted. Token request bodies omit password, client secret/assertion,
 PKCE verifier, refresh token, device code and authorization code credentials.
@@ -74,7 +81,7 @@ and `org_name` are reserved claims; Actions cannot overwrite them. See
 | `groups.getUserGroups`, `groups.hasGroupMembership` | Empty groups / false membership |
 | `rules.wasExecuted` | Always false |
 | `multifactor.enable` | Require MFA for this login ([MFA](mfa.md#actions)) |
-| `authentication.challengeWith`, `challengeWithAny`, `enrollWith`, `enrollWithAny` | Choose the MFA factor to challenge or enroll ([MFA](mfa.md#actions)) |
+| `authentication.challengeWith`, `challengeWithAny`, `enrollWith`, `enrollWithAny` | Choose the MFA factor to challenge or enroll, including `webauthn-roaming` and `webauthn-platform` ([MFA](mfa.md#actions)) |
 
 The `session.*`, `refreshToken.*`, `prompt.*` and `samlResponse.*` APIs
 throw "not supported by zeroauthy" and
@@ -345,8 +352,8 @@ excluded from that demonstrated matrix.
 
 | Trigger | Handler | When it runs | API members |
 |---|---|---|---|
-| `pre-user-registration` | `onExecutePreUserRegistration` | Before database or legacy custom-DB signup creates a user | `access.deny`, `validation.error`, metadata setters, cache |
-| `post-user-registration` | `onExecutePostUserRegistration` | Queued with the new signup user | Cache |
+| `pre-user-registration` | `onExecutePreUserRegistration` | Before database or legacy custom-DB signup creates a user, including hosted and native passkey signups | `access.deny`, `validation.error`, metadata setters, cache |
+| `post-user-registration` | `onExecutePostUserRegistration` | Queued with the new signup user, including passkey signups | Cache |
 | `post-change-password` | `onExecutePostChangePassword` | Queued with a hosted reset or Management password PATCH | Cache |
 | `password-reset-post-challenge` | `onExecutePostChallenge`, `onContinuePostChallenge` | Before the hosted new-password form | Deny, redirect, cache, `transaction.setResultUrl` |
 | `custom-email-provider` | `onExecuteCustomEmailProvider` | Queued instead of a provider transport when `custom` is enabled | Cache, `notification.retry`, `notification.drop` |

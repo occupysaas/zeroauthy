@@ -3098,3 +3098,44 @@ objects; no mobile identifier/fingerprint format restriction is invented.
 Task17 remains REVIEW PENDING. Full browser/backend/hardware acceptance remains
 Task19. The Browser runtime connected but failed documented navigation and CUA
 commands before a page could be inspected; no visual pass is claimed.
+
+### D-0062 Task 18 — Seed, Deploy CLI and the operator guide
+
+The seed gains `guardian.webauthn_roaming.user_verification` (LR33b-22). It
+writes the same Guardian stored record as the operator extension route; the
+object requires one of `discouraged`, `preferred` or `required`, and omitting
+it keeps the stored value. Cost if wrong: none known; seed Guardian writes
+emit no `gd_tenant_update`, as before.
+
+Client `mobile` in the seed is decoded strictly: unknown platform or member
+keys are refused, as every unknown seed key is, and the result is then checked
+with the Management API's `clientrules.ParseMobile`. The API itself ignores
+unknown members. Cost if wrong: a seed copied from an API body with extra
+`mobile` members needs those members removed. In apply mode an omitted
+`mobile` clears the stored value, like any other seed-owned client field.
+
+A seed that names client `mobile` or an alias `relying_party_identifier` fails
+with `ErrWebAuthnUnavailable` before its transaction when the store plugin did
+not negotiate `webauthn.v1`, because such a plugin drops both on write. The
+passkey grant, connection passkey options and security-key user verification
+are kept by older plugins and stay accepted (stored only, as §10 says). Cost if
+wrong: a create-only reseed with `mobile` on an old plugin fails even when it
+would change nothing; upgrade the plugin or remove the field.
+
+Deploy CLI 9.1.0 exports database connections, and so passkey options, only
+through its `databases` handler; its `connections` handler filters out
+strategy `auth0`. A focused pinned test (`TestPinnedPasskeyHandlers`) runs the
+unmodified `clients`, `databases`, `customDomains` and `guardianFactors`
+handlers against the local Management handlers. `databases` stays excluded
+from the four-cell matrix with its reason updated. Security-key user
+verification is recorded in the manifest's new `noHandler` list, which may not
+name a registered handler. The harness re-imports a custom domain from its
+declared fields rather than the raw export, because the export carries the
+server-generated `origin_domain_name`, which PATCH refuses (the Plan 23
+read-only normalization). Cost if wrong: database-connection migration is
+still not accepted end to end; Task 19's four-cell lane remains the
+acceptance.
+
+`docs/passkeys.md` is the operator guide. `TestPasskeysGuideCitesKnownRulings`
+accepts an LR33b number that D-0062 names or adopts through its
+"LR33b-1…37" range, and checks that range against the spec §13 rows.

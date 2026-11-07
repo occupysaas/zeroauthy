@@ -1,13 +1,19 @@
 package seed
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/mfarules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
+
+// roamingSettingsKey is the Guardian stored record of security-key user
+// verification, shared with mfa.RoamingUV and the system route.
+const roamingSettingsKey = "webauthn-roaming/settings"
 
 func validateGuardian(in *Tenant) error {
 	bad := func(message string) error { return fmt.Errorf("guardian %s: %w", message, store.ErrInvalid) }
@@ -30,6 +36,9 @@ func validateGuardian(in *Tenant) error {
 		}
 		if value, ok := object["policies"]; ok && value == nil {
 			return bad("policies must be a list")
+		}
+		if err := validateRoamingUV(in); err != nil {
+			return bad(err.Error())
 		}
 	}
 	if in.Guardian == nil {
@@ -58,7 +67,7 @@ func applyGuardian(ctx context.Context, st store.Store, tid string, in *Tenant) 
 		return err
 	}
 	patch := in.Guardian
-	if patch == nil || len(patch.Factors) == 0 && patch.Policies == nil {
+	if patch == nil || len(patch.Factors) == 0 && patch.Policies == nil && patch.WebAuthnRoaming == nil {
 		return nil
 	}
 	g, err := st.MFA().GetGuardian(ctx, tid)
@@ -78,6 +87,17 @@ func applyGuardian(ctx context.Context, st store.Store, tid string, in *Tenant) 
 	if patch.Policies != nil && !slices.Equal(patch.Policies, g.Policies) {
 		g.Policies = slices.Clone(patch.Policies)
 		changed = true
+	}
+	// The same record the operator extension route writes (LR33b-22).
+	if uv := patch.WebAuthnRoaming; uv != nil {
+		want, _ := json.Marshal(map[string]string{"user_verification": uv.UserVerification})
+		if !bytes.Equal(g.Stored[roamingSettingsKey], want) {
+			if g.Stored == nil {
+				g.Stored = map[string]json.RawMessage{}
+			}
+			g.Stored[roamingSettingsKey] = want
+			changed = true
+		}
 	}
 	if !changed {
 		return nil

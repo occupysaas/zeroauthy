@@ -239,6 +239,14 @@ func (t *Tenant) validate() []error {
 		// A confidential client may omit client_secret: an existing client
 		// then keeps its stored secret (Plan 13). Creating one without a
 		// secret fails when the seed is applied.
+		c.mobile = nil
+		if c.Mobile != nil {
+			m, err := parseMobile(c.Mobile)
+			if err != nil {
+				fail("client %q: %v", c.ClientID, err)
+			}
+			c.mobile = m
+		}
 		spec := c.spec()
 		for _, err := range clientrules.Normalize(&spec, t.PushedAuthorizationRequestsSupported) {
 			fail("client %q: %v", c.ClientID, err)

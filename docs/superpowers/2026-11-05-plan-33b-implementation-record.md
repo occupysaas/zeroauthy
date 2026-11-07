@@ -1010,3 +1010,30 @@ Scoped author review complete. Deferred minor: prerequisite rows initially say
 Ready while a read is loading/failed; visible loading/error state and locked
 controls prevent policy enabling/saving. IMPLEMENTATION VERIFIED / REVIEW PENDING;
 controller owns independent review and acceptance. No subagents/push/merge.
+
+## Task 18 — Seed, Deploy CLI and docs
+
+- Base `e112fd272a29970d15f41784fc5b373b240e3f38`. Seed: `guardian.webauthn_roaming.user_verification`,
+  client `mobile` (strict keys, then `clientrules.ParseMobile`), passkey grant;
+  client `mobile` and alias `relying_party_identifier` refused with
+  `ErrWebAuthnUnavailable` on a store without `webauthn.v1`. Deploy CLI:
+  manifest reasons for `clients`, `connections`, `databases`, `customDomains`,
+  `guardianFactors`; new validated `noHandler` list recording security-key UV
+  (LR33b-22); passkey client fixture; `TestPinnedPasskeyHandlers` runs the
+  unmodified pinned 9.1.0 handlers (`clients`, `databases`, `customDomains`,
+  `guardianFactors`) against local Management handlers. Docs: new
+  `docs/passkeys.md` and the listed updates; rulings in D-0062 Task 18.
+- RED (`go test ./internal/seed ./internal/webauthnrules ./tests/e2e/deploy-cli/... -count=1`):
+  exit 1 — seed passkey tests failed (unknown fields; alias RP ID silently
+  accepted by a webauthn-less store), guide missing, deploy-cli build failed.
+- GREEN (same packages, `-v`, `ZA_REQUIRE_DEPLOY_CLI=1`): exit 1, 375 PASS /
+  1 FAIL / 3 SKIP. The one failure, `TestPlan33bLogCodes`, predates this task:
+  earlier tasks marked the ten Plan 33b log codes emitted (no owner) while the
+  Task 1 test still expects owner "Plan 33b"; Task 19 owns that flip. It also
+  failed in RED. Skips: `TestPlan33bLogCodesEmitted` (Task 19) and two
+  isolated Plan 21/31 deploy-lane tests. `go test ./internal/webauthnrules
+  -skip '^TestPlan33bLogCodes$'`: exit 0. `make check-sources`: exit 0, first
+  attempt. Logs/exits: `.superpowers/sdd/…/task-18-*.log/.exit`; report
+  `task-18-report.md`.
+- Deferred to Task 19: four-cell Deploy CLI lane on all backends, SQL/gRPC
+  seed paths, full regression.

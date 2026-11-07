@@ -137,7 +137,8 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `mfa_factors` in profiles (MFA, sub-project 2).
 - Custom signup prompt fields passed to `create` (changelog 2026-04-02, sub-project 2).
 - Custom user IDs at signup (changelog 2026-09-17, early access).
-- Passkeys on custom databases.
+- Passkeys on custom databases. Plan 33b offers them only in import mode;
+  a custom database without import mode stays open.
 - Bcrypt hashes from bulk import.
 - An egress allowlist for scripts. Network access is open; operators firewall it.
 - Pinning the Node version through a config option; today any Node 22.13 or later is accepted.
@@ -259,7 +260,7 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 ## Plan 15 follow-ups
 
 - **SQL suite and conformance:** the cloud session ran the Postgres suite for the connection migrations but not MySQL, and could not run `make conformance` (no container runtime). Run `scripts/test-sql.sh` and `make conformance` where containers exist.
-- **Stored, not enforced** (D-0042): `authentication_methods` and `passkey_options`, `attributes` and `precedence`, `mfa`, `disable_self_service_change_password`, `non_persistent_attrs`, `display_name`, `show_as_button`, `metadata`, `realms` beyond the default, `connected_accounts`, `authentication`, unknown option keys, and `set_user_root_attributes: never_on_login` (behaves as `on_each_login`). Each becomes work when the feature behind it exists (passwordless and passkeys, MFA, attributes, social and enterprise connections).
+- **Stored, not enforced** (D-0042): `authentication_methods` and `passkey_options` (enforced for passkeys since Plan 33b when their prerequisites hold; `password.api_behavior` and `signup_behavior` stay stored only, LR33b-3), `attributes` and `precedence`, `mfa`, `disable_self_service_change_password`, `non_persistent_attrs`, `display_name`, `show_as_button`, `metadata`, `realms` beyond the default, `connected_accounts`, `authentication`, unknown option keys, and `set_user_root_attributes: never_on_login` (behaves as `on_each_login`). Each becomes work when the feature behind it exists (passwordless and passkeys, MFA, attributes, social and enterprise connections).
 - **Closed in Plan 19:** `brute_force_protection` gates only the connection's shared brute-force policy; tenant thresholds and independent protection settings are live.
 - **Users API (slice 4):** `/api/v2/users` would let the E2E checks confirm that deleting a connection deleted its users through the API instead of through sign-in.
 - **Seed vs API rules:** seeded connections keep the seed's defaults (minimum length 8) and skip the API-only checks (name pattern, 72-character cap, the `set_user_root_attributes` rule). Tightening the seed is open.
@@ -375,8 +376,8 @@ imported hashes require reset, and cleartext password schemes are refused.
 
 Custom-domain registry, console administration, shared automatic TLS and public
 origin binding supersede the earlier generic custom-domain deferral. See
-[operator guide](../custom-domains.md). Keep custom public signing JWKS publication,
-WebAuthn RP enforcement, ACUL, additional DNS providers and challenge delegation
+[operator guide](../custom-domains.md). WebAuthn RP enforcement is closed by
+Plan 33b. Keep custom public signing JWKS publication, ACUL, additional DNS providers and challenge delegation
 open. Full-page hosted/email context includes public domain metadata; prompt
 partials do not yet receive it. Hosted wildcard retry backoff is per worker and
 can restart early; a durable deployment-resource retry schedule remains a follow-up.
@@ -519,3 +520,13 @@ output for WebAuthn; W8 exact log `details`; W9 `DELETE`/`PUT`
 authentication methods on passkeys; W10 `amr` and
 `event.authentication.methods` after a passkey login; W11 linking and
 unlinking effects on passkeys; W12 hosted challenge lifetime.
+
+- **Deploy CLI and security-key user verification (LR33b-22).** Auth0 sets
+  it only in its Dashboard, so no pinned handler exports it; the manifest's
+  `noHandler` list records it. Revisit if Auth0 documents an API field or the
+  Deploy CLI gains a handler.
+- **Deploy CLI database connections.** The `databases` handler stays
+  excluded from the four-cell matrix; only a focused pinned test proves the
+  passkey options round trip. Including it needs database-connection
+  migration acceptance (roadmap owner unchanged).
+- **Operator guide:** [passkeys](../passkeys.md).

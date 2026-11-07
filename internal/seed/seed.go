@@ -104,6 +104,16 @@ type Guardian struct {
 	PhoneTemplates        map[string]any            `yaml:"phone_templates"`
 	Factors               map[string]bool           `yaml:"factors"`
 	Policies              []string                  `yaml:"policies"`
+	// WebAuthnRoaming is a zeroauthy extension: Auth0 sets security-key user
+	// verification only in its Dashboard, so no Management API or Deploy CLI
+	// handler carries it (LR33b-22). Omitted keeps the stored value.
+	WebAuthnRoaming *GuardianWebAuthnRoaming `yaml:"webauthn_roaming"`
+}
+
+// GuardianWebAuthnRoaming is the security-key factor's user-verification
+// setting: discouraged (the default, "Never"), preferred or required.
+type GuardianWebAuthnRoaming struct {
+	UserVerification string `yaml:"user_verification"`
 }
 
 // DeviceFlow shapes the user codes of the device authorization grant.
@@ -199,6 +209,13 @@ type Client struct {
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool  `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	RequirePushedAuthorizationRequests             bool   `yaml:"require_pushed_authorization_requests"`
 
+	// Mobile is Auth0's client mobile object (ios.team_id,
+	// ios.app_bundle_identifier, android.app_package_name,
+	// android.sha256_cert_fingerprints), used for native passkeys and the
+	// association files. It needs a store with webauthn.v1.
+	Mobile map[string]any `yaml:"mobile"`
+	mobile *store.ClientMobile
+
 	// normalized is the client after clientrules.Normalize, set by validate.
 	normalized *clientrules.Spec
 }
@@ -219,6 +236,7 @@ func (c *Client) spec() clientrules.Spec {
 		RedirectionPolicy: c.RedirectionPolicy,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
+		Mobile:                                         c.mobile.Clone(),
 	}
 }
 

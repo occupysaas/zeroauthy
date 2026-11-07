@@ -71,6 +71,9 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 			}
 		}
 	}
+	if err := checkWebAuthnStorage(ctx, st, f); err != nil {
+		return err
+	}
 	return st.WithTx(ctx, func(tx store.Store) error {
 		validateRPIDs := []string{}
 		for _, t := range f.Tenants {

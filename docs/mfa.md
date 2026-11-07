@@ -1,6 +1,7 @@
 # Multi-factor authentication
 
-Plan 33 supports authenticator apps, verified-email codes and recovery codes.
+Plan 33 supports authenticator apps, verified-email codes and recovery codes;
+Plan 33b adds security keys and device biometrics (WebAuthn).
 Configure a tenant in **Security → Multi-factor auth**, through the Guardian
 Management API, or with seed configuration. Start by enabling `otp`, `email`
 and `recovery-code`, then choose a policy. Enabling a factor alone does not
@@ -12,7 +13,8 @@ require users to enroll.
 | `email` | Enforced. Sends a six-digit code to the user's verified email. |
 | `recovery-code` | Enforced fallback after another factor is enrolled. |
 | `sms` / phone configuration | SMS and voice enrollment/challenges through the configured phone route. |
-| `webauthn-roaming`, `webauthn-platform` | Stored for Plan 33b, after 1.0. No WebAuthn challenge or passkey login. |
+| `webauthn-roaming` | Enforced. Security keys, with a user-verification setting (see below). |
+| `webauthn-platform` | Enforced. Device biometrics, offered only after another confirmed factor. |
 | `push-notification`, `duo` | Configuration is stored; delivery is not planned and these factors are never offered. |
 
 The factor API lists eight names; `phone` is a method/configuration type,
@@ -52,6 +54,8 @@ only `[]`, `[all-applications]`, or `[confidence-score]`. Omitted Guardian
 configuration, omitted policy fields and omitted factor flags preserve
 existing values. `policies: []` explicitly clears enforcement; `otp: false`
 explicitly disables OTP. An empty factors map does not clear other flags.
+`webauthn_roaming: {user_verification: discouraged|preferred|required}` sets
+security-key user verification; omitting it keeps the stored value.
 Null is invalid. Applying the same configuration does not advance its
 Guardian version. All changes join the seed transaction; a later failure
 rolls them back. In `create_only` mode, an existing tenant's MFA settings
@@ -193,8 +197,9 @@ For explicit factor selection, enable the tenant's
 `enrollWith`, or `enrollWithAny`. Challenges require an enabled, already
 enrolled eligible factor and do not enroll one automatically. Enrollment
 requires an enabled factor not already enrolled; recovery code cannot be
-a first enrollment target. Unsupported WebAuthn and push selections
-fail the login. Do not mix these calls with `multifactor.enable` in one
+a first enrollment target. `webauthn-roaming` and `webauthn-platform` are
+accepted; an explicit `webauthn-platform` enrollment still needs another
+confirmed factor first. Push selections fail the login. Do not mix these calls with `multifactor.enable` in one
 execution.
 
 `event.user.enrolledFactors` is available in post-login. The post-login
@@ -238,6 +243,26 @@ Guardian email OTP and session/remember settings retain their Plan 33 runtime
 boundaries: storing them does not change email proof format, cookie lifetime
 or policy/Action remember eligibility.
 
+## Security keys and device biometrics
+
+Both factors share the host's relying party ID with passkeys, so a key
+enrolled on one custom domain is not offered on another with a different
+RP ID; the user enrolls again there. Hosted pages first check what the
+browser supports; without JavaScript or WebAuthn the user gets another
+factor or the recovery code. After a security key is registered, the user
+names it (1–20 characters); a device-biometrics enrollment gets a default
+"browser on OS" name. Failed WebAuthn attempts count in the same throttle
+as wrong codes. `GET /mfa/authenticators` lists WebAuthn authenticators with
+the factor name as `authenticator_type`; they cannot be associated or
+challenged through the MFA API.
+
+Security-key user verification is `discouraged` ("Never", the default),
+`preferred` or `required`. Auth0 sets it only in its Dashboard, so zeroauthy
+exposes it in the console, the seed and the extension route
+`/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings`.
+No Deploy CLI handler carries it. See [passkeys](passkeys.md) for RP IDs,
+limits and the device-biometrics prompt choices.
+
 ## Deploy CLI and troubleshooting
 
 The pinned Deploy CLI 9.1.0 round-trips eight Guardian configuration
@@ -245,7 +270,8 @@ handlers: `guardianFactors`, `guardianFactorTemplates`, `guardianPolicies`,
 `guardianPhoneFactorSelectedProvider`, `guardianPhoneFactorMessageTypes`,
 `guardianPhoneFactorSettings`, `guardianEmailFactorSettings`, and
 `guardianSettings`. All four YAML/directory and generated/preserved-ID cells
-pass with exact public fields and repeat import.
+pass with exact public fields and repeat import. The `webauthn-roaming` and
+`webauthn-platform` flags round-trip with `guardianFactors`.
 
 **`guardianFactorProviders` cannot be exported by the Deploy CLI itself.**
 Its exporter (unchanged in 9.1.0 and 9.2.0) reads `provider.data`, but its
@@ -263,8 +289,11 @@ Use the user's MFA tab and tenant logs to investigate a failed login.
 `gd_send_email`, `gd_send_email_verification`, `gd_auth_email_verification`,
 `gd_otp_rate_limit_exceed`, `gd_tenant_update`, `gd_email_settings_update`
 and `mfar` cover MFA activity and administration. Grant failures use
-`fertft`, `feotpft`, `feoobft`, and `fercft`. WebAuthn rejection logs remain
-Plan 33b; SMS/voice logs remain Plan 34; push delivery logs are not planned.
+`fertft`, `feotpft`, `feoobft`, and `fercft`; successful MFA grants log
+`seotpft`, `seoobft` and `sercft` (after a passkey grant, `sepkotpft`,
+`sepkoobft` and `sepkrcft`). WebAuthn failures log
+`gd_webauthn_challenge_failed` and `gd_webauthn_enrollment_failed`; push
+delivery logs are not planned.
 Codes, credentials, recovery codes and tokens must never appear in logs.
 
 With an older gRPC plugin lacking the separately negotiated MFA v1
@@ -284,7 +313,7 @@ public ROPG documentation describes a different replenishing attempt
 budget. None of these local rules is claimed as an observed upstream
 result. First-email-enrollment `recovery_code` is the local response
 extension described above. Discovery advertisement remains unresolved.
-WebAuthn and passkeys await Plan 33b after 1.0.
+WebAuthn rules and their local rulings are in [D-0062](compat/decisions.md#d-0062--passkeys-and-webauthn-mfa-contracts-and-local-rulings).
 
 The contract is based on the [public Management API description](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
 [Authentication API reference](https://auth0.com/docs/api/authentication),
