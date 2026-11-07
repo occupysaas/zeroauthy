@@ -762,6 +762,127 @@ paths:
           $ref: "#/components/responses/OAuthErrorResponse"
         default:
           $ref: "#/components/responses/ServerError"
+  /passkey/register:
+    post:
+      operationId: passkeyRegister
+      tags: [Login]
+      summary: Begin a passkey signup
+      x-source:
+        - https://auth0.com/docs/api/authentication/passkey/register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PasskeyRegisterRequest"}
+          application/x-www-form-urlencoded:
+            schema: {$ref: "#/components/schemas/PasskeyRegisterForm"}
+      responses:
+        "200":
+          description: A single-use registration session and WebAuthn creation parameters.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyOptionsResponse"}
+        "400": {$ref: "#/components/responses/OAuthErrorResponse"}
+        "401": {$ref: "#/components/responses/OAuthErrorResponse"}
+        "404":
+          description: Passkeys are unavailable for this tenant or storage plugin.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyNotFound"}
+        "429": {$ref: "#/components/responses/OAuthErrorResponse"}
+        default: {$ref: "#/components/responses/ServerError"}
+  /passkey/challenge:
+    post:
+      operationId: passkeyChallenge
+      tags: [Login]
+      summary: Begin a discoverable passkey login
+      x-source:
+        - https://auth0.com/docs/api/authentication/passkey/challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PasskeyChallengeRequest"}
+          application/x-www-form-urlencoded:
+            schema: {$ref: "#/components/schemas/PasskeyChallengeRequest"}
+      responses:
+        "200":
+          description: A single-use login session and WebAuthn request parameters.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyOptionsResponse"}
+        "400": {$ref: "#/components/responses/OAuthErrorResponse"}
+        "401": {$ref: "#/components/responses/OAuthErrorResponse"}
+        "404":
+          description: Passkeys are unavailable for this tenant or storage plugin.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyNotFound"}
+        "429": {$ref: "#/components/responses/OAuthErrorResponse"}
+        default: {$ref: "#/components/responses/ServerError"}
+  /.well-known/apple-app-site-association:
+    get:
+      operationId: passkeyAppleAssociation
+      tags: [Discovery]
+      summary: Native Apple credential associations
+      description: Verified custom domains and operator aliases publish eligible first-party applications. Canonical hosts return 404. Successful responses are cached for five minutes.
+      x-source:
+        - https://auth0.com/docs/authenticate/database-connections/passkeys
+        - https://developer.apple.com/documentation/xcode/supporting-associated-domains
+      responses:
+        "200":
+          description: Credential association document.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [webcredentials]
+                properties:
+                  webcredentials:
+                    type: object
+                    required: [apps]
+                    properties:
+                      apps: {type: array, items: {type: string}}
+        "404":
+          description: No eligible applications or domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyNotFound"}
+        default: {$ref: "#/components/responses/ServerError"}
+  /.well-known/assetlinks.json:
+    get:
+      operationId: passkeyAndroidAssociation
+      tags: [Discovery]
+      summary: Native Android credential associations
+      description: One credential-sharing statement per eligible first-party application on a verified custom domain or operator alias. Successful responses are cached for five minutes.
+      x-source:
+        - https://auth0.com/docs/authenticate/database-connections/passkeys
+        - https://developers.google.com/digital-asset-links/v1/getting-started
+      responses:
+        "200":
+          description: Credential-sharing statements.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [relation, target]
+                  properties:
+                    relation: {type: array, items: {type: string}}
+                    target:
+                      type: object
+                      required: [namespace, package_name, sha256_cert_fingerprints]
+                      properties:
+                        namespace: {type: string, const: android_app}
+                        package_name: {type: string}
+                        sha256_cert_fingerprints: {type: array, items: {type: string}}
+        "404":
+          description: No eligible applications or domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PasskeyNotFound"}
+        default: {$ref: "#/components/responses/ServerError"}
   /passwordless/start:
     post:
       operationId: passwordlessStart
@@ -1435,6 +1556,60 @@ components:
         code: {type: string}
         description: {type: string}
         statusCode: {type: integer, enum: [400]}
+    PasskeyNotFound:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error: {type: string, const: not_found}
+    PasskeyChallengeRequest:
+      type: object
+      properties:
+        client_id: {type: string}
+        client_secret: {type: string, writeOnly: true}
+        realm: {type: string}
+        organization: {type: string}
+    PasskeyRegisterRequest:
+      allOf:
+        - {$ref: "#/components/schemas/PasskeyChallengeRequest"}
+        - type: object
+          required: [user_profile]
+          properties:
+            user_profile: {$ref: "#/components/schemas/PasskeyUserProfile"}
+            user_metadata:
+              type: object
+              maxProperties: 10
+              additionalProperties: {type: string}
+    PasskeyRegisterForm:
+      allOf:
+        - {$ref: "#/components/schemas/PasskeyChallengeRequest"}
+        - type: object
+          required: [user_profile]
+          properties:
+            user_profile: {type: string, description: JSON-encoded signup profile.}
+            user_metadata: {type: string, description: JSON-encoded object with at most ten string fields.}
+    PasskeyUserProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        email: {type: string}
+        phone_number: {type: string}
+        username: {type: string}
+        name: {type: string, minLength: 1, maxLength: 300}
+        given_name: {type: string, minLength: 1, maxLength: 150}
+        family_name: {type: string, minLength: 1, maxLength: 150}
+        nickname: {type: string, minLength: 1, maxLength: 300}
+        picture: {type: string}
+    PasskeyOptionsResponse:
+      type: object
+      additionalProperties: false
+      required: [auth_session, authn_params_public_key]
+      properties:
+        auth_session: {type: string, description: Opaque single-use session.}
+        authn_params_public_key:
+          type: object
+          additionalProperties: true
+          description: WebAuthn creation or request parameters with a 60000 millisecond timeout.
     PasswordlessStartRequest:
       type: object
       description: Unknown members (extra options auth0.js forwards) are accepted and ignored, as Auth0 does.
@@ -1557,10 +1732,16 @@ components:
           description: The user's password (password grants).
         realm:
           type: string
-          description: Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), or email/sms for the passwordless OTP grant.
+          description: Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), email/sms for the passwordless OTP grant, or a database realm for the native passkey grant.
         organization:
           type: string
-          description: For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The password, password-realm and device code grants ignore it (D-0055).
+          description: For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The native passkey grant binds an organization through membership, connection and application policy. The password, password-realm and device code grants ignore it (D-0055).
+        auth_session: {type: string, writeOnly: true}
+        authn_response:
+          writeOnly: true
+          oneOf:
+            - {type: string}
+            - {type: object, additionalProperties: true}
         mfa_token: {type: string, writeOnly: true}
         otp: {type: string, writeOnly: true}
         oob_code: {type: string, writeOnly: true}

@@ -2,6 +2,7 @@
 package oauth
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -19,9 +21,10 @@ const maxTokenRequestBytes = 64 << 10
 
 // parseTokenRequest reads the body of a token endpoint request. Auth0 SDKs
 // send both form-encoded and JSON bodies, so both are accepted. JSON
-// values must be scalars and are converted to strings. Query parameters
+// scalars become strings; authn_response and explicitly named native profile
+// objects are reserialized while preserving their submitted member order. Query parameters
 // are never read: credentials must not travel in URLs.
-func parseTokenRequest(w http.ResponseWriter, r *http.Request) (form url.Values, failure *Error) {
+func parseTokenRequest(w http.ResponseWriter, r *http.Request, objectFields ...string) (form url.Values, failure *Error) {
 	registerOAuthAuthorization(r)
 	defer func() { registerOAuthForm(r, r.PostForm) }()
 	r.Body = http.MaxBytesReader(w, r.Body, maxTokenRequestBytes)
@@ -58,14 +61,37 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request) (form url.Values,
 				return nil, repeatedParam(key)
 			}
 			seen[key] = true
-			var v any
-			if err := dec.Decode(&v); err != nil {
+			var raw json.RawMessage
+			if err := dec.Decode(&raw); err != nil {
 				return nil, bad
+			}
+			var v any
+			valueDecoder := json.NewDecoder(bytes.NewReader(raw))
+			valueDecoder.UseNumber()
+			if err := valueDecoder.Decode(&v); err != nil {
+				return nil, bad
+			}
+			if slices.Contains(objectFields, key) {
+				if _, ok := v.(map[string]any); !ok {
+					return nil, invalidRequest(fmt.Sprintf("parameter %q must be an object", key))
+				}
 			}
 			if key == "organization" || key == "invitation" {
 				if _, ok := v.(string); !ok {
 					return nil, invalidRequest(fmt.Sprintf("parameter %q must be a string", key))
 				}
+			}
+			if _, ok := v.(map[string]any); ok && (key == "authn_response" || slices.Contains(objectFields, key)) {
+				// Preserve field order and duplicate/case semantics for the same
+				// credential JSON submitted as a form string. RawMessage reserialization
+				// compacts the object without rebuilding its untrusted members.
+				encoded, err := json.Marshal(raw)
+				if err != nil {
+					return nil, bad
+				}
+				form.Set(key, string(encoded))
+				registerOAuthForm(r, url.Values{key: form[key]})
+				continue
 			}
 			switch x := v.(type) {
 			case string:

@@ -15,7 +15,9 @@ import (
 
 // Protocol values of event.transaction.protocol (frozen in Task 1).
 const (
-	ProtocolOIDCBasicProfile  = "oidc-basic-profile"
+	ProtocolOIDCBasicProfile = "oidc-basic-profile"
+	// ProtocolWebAuthn identifies the native passkey token exchange.
+	ProtocolWebAuthn          = "oauth2-webauthn"
 	ProtocolDeviceCode        = "oauth2-device-code"
 	ProtocolPassword          = "oauth2-password"
 	ProtocolResourceOwner     = "oauth2-resource-owner"
@@ -169,7 +171,7 @@ func obj(m map[string]any) map[string]any {
 // allowlist: Auth0 passes the request body, and Actions read non-secret
 // custom parameters from it. Every token grant's credentials must be
 // listed; oauth's TestActionsBodyStripsEveryGrant enforces that.
-var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code"}
+var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code", "auth_session", "authn_response", "clientDataJSON", "attestationObject", "authenticatorData", "signature", "userHandle", "user_handle", "challenge_id"}
 
 // StripCredentials is body without its credentials (the authorization code
 // grant's code is one too), as event.request.body carries it.
@@ -196,7 +198,7 @@ func requestEvent(r RequestInfo, host string, query bool) map[string]any {
 	out := map[string]any{"ip": r.IP, "hostname": hostname, "method": r.Method, "user_agent": r.UserAgent,
 		"language": r.Language, "body": requestBody(r.Body)}
 	if query {
-		out["query"] = obj(r.Query)
+		out["query"] = requestBody(r.Query)
 	}
 	return out
 }
@@ -312,6 +314,13 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 		user["enrolledFactors"] = factors
 	}
 	methods := []any{}
+	if in.Session != nil {
+		for _, m := range in.Session.AuthMethods {
+			if slices.Contains([]string{"pwd", "passkey", "federated", "email", "sms"}, m.Name) {
+				methods = append(methods, map[string]any{"name": m.Name, "timestamp": rfc3339(m.At)})
+			}
+		}
+	}
 	if in.Session != nil && !in.Session.MFAAt.IsZero() {
 		methods = append(methods, map[string]any{"name": "mfa", "timestamp": rfc3339(in.Session.MFAAt)})
 	}

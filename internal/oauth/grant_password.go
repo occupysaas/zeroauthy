@@ -280,10 +280,22 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 // preparePasswordTokens shares the original password issuance path with its
 // MFA continuation. Signing happens outside store locks; callers return these
 // tokens only after their authorization/proof transaction commits.
-func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolved, c *store.Client, user *store.User, rs *store.ResourceServer, lifetime time.Duration, aud string, scopes, ceiling []string, eff *actions.Effects, now, mfaAt time.Time) (*authapi.TokenResponse, func(store.Store) error, *Error) {
+func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolved, c *store.Client, user *store.User, rs *store.ResourceServer, lifetime time.Duration, aud string, scopes, ceiling []string, eff *actions.Effects, now, mfaAt time.Time, flows ...firstFactorTokens) (*authapi.TokenResponse, func(store.Store) error, *Error) {
 	tenantID := res.Tenant.ID
+	flow := firstFactorTokens{}
+	if len(flows) > 0 {
+		flow = flows[0]
+	}
+	grantType := "password"
+	orgID := ""
+	if flow.Passkey {
+		grantType = "webauthn"
+	}
+	if flow.Organization != nil {
+		orgID = flow.Organization.ID
+	}
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: "password", effects: eff, mfaAt: mfaAt,
+		organization: flow.Organization, user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: grantType, effects: eff, mfaAt: mfaAt,
 	})
 	if oerr != nil {
 		return nil, nil, oerr
@@ -297,6 +309,7 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 			expiresAt = now.Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+			organizationID: orgID, organizationConnectionID: flow.ConnectionID,
 			origin:   res.Origin(),
 			familyID: "rtf_" + secrets.RandomString(32), userID: user.UserID,
 			audience: aud, scopes: ceiling, authTime: now, expiresAt: expiresAt,

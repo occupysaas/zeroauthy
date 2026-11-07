@@ -2964,3 +2964,55 @@ Regression coverage uses real assertions before, concurrently with, and after
 social unlink, then verifies database unlink still resolves to the recreated
 secondary user. The duplicate passkey enum value in the shared Management
 method schema is removed without removing passkey from the GET schema.
+
+### D-0062 Task 15 — Native passkey continuations and association serving
+
+Native APIs use the existing no-user WebAuthn challenge contract. Each native
+ceremony has its hashed session row plus a separately addressed sealed metadata
+row containing the trusted binding and signup draft, with the same expiry.
+The metadata is conditionally consumed before parsing proof or accepting submitted
+context; the ceremony is consumed even when context does not match. Cost: two
+short-lived rows per native ceremony. The signup admission applies only after
+that single-use server record is taken and only at its original IP; a changed
+IP pays a normal registration reservation. This preserves R3 before the native
+existence answer and introduces no public admission field.
+
+Task15 consumes Task14's permissive mobile storage by omitting unusable IDs and
+fingerprints from association documents and Android origins. Team IDs are
+bounded uppercase ASCII letters/digits; bundle IDs and packages use bounded
+segmented ASCII identities; Android package segments begin with letters.
+SHA256 fingerprints have exactly 32 colon-separated hex bytes. Serving guards
+confer no claim that an app is registered or owned. Cost: a stored mobile value
+may remain visible in Management while providing no native trust.
+
+The minimum Task16 producer dependency is pulled forward: native post-login
+Actions receive `oauth2-webauthn` and the recorded passkey method; the same
+producer exposes other already-recorded first factors under K11. It preserves
+legacy MFA-only sessions and strips native proof fields from Action request
+body and query projections. Passkey-only ID-token `amr` remains unchanged.
+Native refresh and sealed MFA requests preserve their canonical organization
+ID and connection. All six password/passkey OTP, OOB and recovery success codes
+are emitted under LR33b-28, alongside the required native/WebAuthn inventory
+emitters. Task16 still owns its remaining event members and coverage.
+
+Controller clarification, 2026-11-07: organization-required clients may use only
+the three MFA continuation grants when a trusted pending MFA token proves a
+passkey first factor bound to an organization. The authenticated token endpoint
+peeks and unseals it once, verifies client, origin, active user/version and enabled
+connection, then requires the stored organization and matching connection.
+A private request-only context carries that validated pending request to the
+grant. The proof transaction remains the sole consumer and rechecks live client
+organization usage, organization existence, membership, connection and application
+entitlement. Public organization parameters cannot authorize the exception;
+password, organization-less, expired/reused and other-client tokens retain the
+organization guard's refusal. Cost: a small private request-context handoff;
+there is no new public parameter, capability or persisted field. Reviewers should
+check this exception together with the final mint transaction, rather than infer
+organization authority from the MFA grant name.
+
+The affected SQL revocation fixture reproduced migration commits blocked inside
+SQLite `_unixSync`/`Xfsync` before grant execution. Under the existing controller
+fixture ruling, only its disposable SQLite DSN uses `synchronous(OFF)`. The real
+file/WAL, 20-second context, transaction barrier and all revocation assertions
+remain intact. Production settings are unchanged. Cost: this fixture does not
+exercise crash durability, which its policy-serialization assertions do not claim.

@@ -16,8 +16,8 @@ import (
 )
 
 type Attempt struct {
-	// RegistrationAdmitted is set only after a hosted caller validates its
-	// server-owned, single-use signup admission. Other flows ignore it.
+	// RegistrationAdmitted follows a server-owned, single-use signup
+	// admission, including a bound native registration. Other flows ignore it.
 	RegistrationAdmitted bool
 	Tenant               *store.Tenant
 	Connection           *store.Connection

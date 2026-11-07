@@ -341,7 +341,11 @@ func TestOrganizationM2MRevocationRace(t *testing.T) {
 
 // Each configured server dialect gets a fresh database for every race case.
 func machineSQLDatabases(t *testing.T) map[string]func(*testing.T) string {
-	out := map[string]func(*testing.T) string{"sqlite": func(t *testing.T) string { return "sqlite://" + filepath.Join(t.TempDir(), "machine.db") }}
+	// This disposable fixture checks policy serialization, not crash durability.
+	// Avoid host fsync latency exhausting the unchanged migration/race deadline.
+	out := map[string]func(*testing.T) string{"sqlite": func(t *testing.T) string {
+		return "sqlite://" + filepath.Join(t.TempDir(), "machine.db") + "?_pragma=synchronous(OFF)"
+	}}
 	for kind, env := range map[string]string{"postgres": "ZA_TEST_POSTGRES_DSN", "mysql": "ZA_TEST_MYSQL_DSN"} {
 		raw := os.Getenv(env)
 		if raw == "" {

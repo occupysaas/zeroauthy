@@ -784,3 +784,76 @@ transaction, preserves saved handles and avoids social credential inheritance.
 No known remaining finding in this reviewed scope. IMPLEMENTATION VERIFIED /
 SCOPED RE-REVIEW PENDING. No broad reruns, subagents, push or merge. Controller
 owns review and completion; commit metadata retained in workspace report/ledger.
+
+### Task15 — Native Passkey APIs, grant and association files
+
+Base `619e6e80a06f066a63f36f4146b8e6cf0f4f8c4e`; isolated branch
+`plan-33b-passkeys`. IMPLEMENTATION VERIFIED / REVIEW PENDING. Controller owns
+acceptance. Native registration/challenge and the passkey grant now share trusted
+single-use bindings, exact RP/origin/client/realm/organization checks, R3
+registration/failure budgets, signup Actions and atomic user/credential/events,
+post-login Actions, normal token/refresh/MFA/version/block rules. Registration
+accepts the documented bounded profile/metadata and existence behavior only after
+admission; JSON objects preserve form credential semantics. Association files
+serve only usable first-party native identities on verified custom/operator hosts,
+with five-minute caching. OAS/adapters are generated with the pinned generator;
+CORS and general rate limiting use normal server middleware. Grant stays absent
+from discovery. Required native and MFA success/failure inventory emitters enabled.
+
+D-0062 records costs and controller calls: two short-lived rows per native
+ceremony; sealed server draft/admission; changed IP pays again; permissive mobile
+storage confers trust only for usable serving identities; minimum Task16 Actions
+producer pulled forward under K11, with native proof body/query scrubbing.
+Organization-required MFA permits only a trusted sealed organization-bound passkey
+continuation for OTP/OOB/recovery. The authenticated guard peeks once and uses a
+private request-only context; final proof transaction consumes once and rechecks
+live user/client/org/membership/connection/app policy. Public organization fields,
+password/no-org/other-client tokens cannot authorize this exception. No new
+public/store/plugin interface. Reviewer attention: context admission never replaces
+MFA proof or the final transaction. SQL revocation fixture alone disables sync
+on its disposable SQLite DSN after exact migration fsync stack confirmation;
+deadline/barrier/assertions and production settings unchanged, no crash-durability
+coverage claimed there.
+
+All Go commands use `GOTOOLCHAIN=go1.26.10 TMPDIR=/mnt/nvme2/tmp
+GOTMPDIR=/mnt/nvme2/tmp`, `-count=1`, test timeout15m except the explicitly
+intentional15s SQL stack diagnostic. Full original/resumed commands, failures,
+preliminary fixture errors, snapshots and actual exits are retained in
+`.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/task-15-report.md`
+and its named logs/exits. Pinned final `make generate`, session83126, exit0.
+
+Original chain85143, tree `a41a5b9b532c99aa0148e79e28773e53f263cd2b`:
+focused80PASS exit0; full affected1032PASS/10FAIL exit1/no skips. Failures were
+Actions coverage table missing the new grant and seven SQLite revocation cases
+failing fixture migration plus parents. Other affected packages passed:
+actions288/rpid17/logs43/passkey35/signupactions1/logrules9/api17. Stopped chain's
+hosted/race/source stages did NOT RUN. Isolated predecessor retry exit1 retained:
+Actions and association2PASS, six migration cases+parents8FAIL; exact predecessor
+command/session were not retained, not invented. SQL stack diagnostic91582 actual
+exit1 captures Migrate→Tx.Commit→_unixSync→Xfsync under intentional15s timeout.
+
+Required-org endpoint RED23386 exit1: bound success/live-policy4FAIL+parent;
+password/no-org/other-client3PASS. Earlier compile/negative-status/secret fixture
+mistakes disclosed separately. Minimal fix followed valid RED. Failed-group90136
+exit1,16PASS/2FAIL: SQL7+parents and Actions PASS; successful MFA failed only on
+replay fixture expecting400 instead of retained403. Corrected that assertion;
+no production change. Final delta16524 command:
+`go test -json ./internal/oauth -run 'Passkey|NativeOrigin|MFA|^TestAssociateOTPThenOTPGrant$|^TestAssociateEmailOOBAndGrant$|^TestRecoveryCodeGrantReturnsNewCode$|^TestActionsBodyStripsEveryGrant$' -count=1 -timeout=15m`, exit0,163PASS/no failures/skips.
+Includes all six success codes and required-org OTP/OOB/recovery, current
+membership/connection/app/client-usage/org-existence and token/replay guards.
+
+Final source/test tree `31c9c7c17ce2e922871707e83c2729f66baf7443`; remaining
+chain75802 actual exit0 at that unchanged tree, exact script `task-15-resume-verify.sh`:
+- `go test -json ./internal/login ./internal/authz ./internal/server -run 'Passkey|WebAuthn|MFA|Actions|CORS|RateLimited|TestAPIRoutesThroughServer|TestRateLimitThroughServer|TestHostedLoginOutcomeEvents' -count=1 -timeout=15m`: hosted-server316PASS (login160/authz68/server88), exit0/no failures/skips.
+- `go test -race -json ./internal/oauth ./internal/passkey -run 'Passkey|NativeOrigin|AssociationFiles' -count=1 -timeout=15m`: race86PASS (oauth85/passkey1), exit0/no failures/skips/race reports.
+- `./scripts/check-sources.sh api/authentication.yaml`: sources exit0.
+All selected packages executed tests in final remaining stages. Prior successful
+unchanged-package evidence is attributed to its original tree; no aggregate full
+suite passing claim replaces the recorded affected failure. Source/test comparison
+to final frozen tree is empty; gofmt and staged/unstaged diff checks pass.
+Self-review covered task/spec contracts, single-use/binding, atomic signup/events,
+rate budgets, exact native origins/mobile trust, Actions scrubbing, org-bound MFA,
+current-policy mint checks, association HTTP routing/cache and generation. No
+known remaining Task15 finding. One implementer monitored blocking waits; no new
+agents, full-repository suite, broad E2E, push or merge. Later Task19 SQL matrix,
+real-browser/native hardware acceptance remains deferred and is not passing.

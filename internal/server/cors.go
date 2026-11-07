@@ -20,7 +20,7 @@ func cors(st store.Store) func(http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				next.ServeHTTP(w, r)
 				return
-			case "/oauth/token", "/oauth/device/code", "/oauth/revoke", "/userinfo", "/dbconnections/signup", "/dbconnections/change_password", "/passwordless/start":
+			case "/oauth/token", "/oauth/device/code", "/oauth/revoke", "/userinfo", "/dbconnections/signup", "/dbconnections/change_password", "/passwordless/start", "/passkey/register", "/passkey/challenge":
 			default:
 				next.ServeHTTP(w, r)
 				return

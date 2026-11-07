@@ -154,8 +154,20 @@ type authAPI struct {
 	passwordless *passwordless.Handlers
 }
 
-func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)   { a.oidc.Discovery(w, r) }
-func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)        { a.oidc.Jwks(w, r) }
+func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request) { a.oidc.Discovery(w, r) }
+func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)      { a.oidc.Jwks(w, r) }
+func (a authAPI) PasskeyRegister(w http.ResponseWriter, r *http.Request) {
+	a.oauth.PasskeyRegister(w, r)
+}
+func (a authAPI) PasskeyChallenge(w http.ResponseWriter, r *http.Request) {
+	a.oauth.PasskeyChallenge(w, r)
+}
+func (a authAPI) PasskeyAppleAssociation(w http.ResponseWriter, r *http.Request) {
+	a.oauth.Passkeys.WellKnown(w, r)
+}
+func (a authAPI) PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Request) {
+	a.oauth.Passkeys.WellKnown(w, r)
+}
 func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request)  { a.oauth.OauthToken(w, r) }
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.OauthRevoke(w, r) }
 func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request)    { a.oauth.OauthPar(w, r) }
@@ -252,10 +264,10 @@ func New(d Deps) http.Handler {
 	}
 	lg := &login.Handlers{
 		MFA:      d.MFA,
+		Passkeys: d.Passkeys,
 		Recorder: d.Recorder,
 		Store:    d.Store, Sessions: d.Sessions, Authz: az,
 		Database:          db,
-		Passkeys:          d.Passkeys,
 		Actions:           d.Actions,
 		Resets:            dbconnHandlers,
 		Federation:        d.Federation,
@@ -292,6 +304,7 @@ func New(d Deps) http.Handler {
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
 				MFA:      d.MFA,
+				Passkeys: d.Passkeys,
 				Recorder: d.Recorder,
 				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
 				LegacySecretSlots:       d.LegacySecretSlots,
@@ -320,6 +333,8 @@ func New(d Deps) http.Handler {
 		tr.Options("/dbconnections/signup", preflight)
 		tr.Options("/dbconnections/change_password", preflight)
 		tr.Options("/passwordless/start", preflight)
+		tr.Options("/passkey/register", preflight)
+		tr.Options("/passkey/challenge", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
 		for _, path := range []string{"/u/mfa-detect-browser-capabilities", "/u/mfa-webauthn-platform-enrollment", "/u/mfa-webauthn-platform-challenge", "/u/mfa-webauthn-roaming-enrollment", "/u/mfa-webauthn-roaming-challenge", "/u/mfa-webauthn-change-key-nickname", "/u/mfa-webauthn-enrollment-success", "/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {

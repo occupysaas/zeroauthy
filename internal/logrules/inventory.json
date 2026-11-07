@@ -1738,9 +1738,7 @@
           "function": "VerifyWebAuthn",
           "when": "An MFA security-key assertion or browser ceremony fails."
         }
-      ],
-      "status": "emitted",
-      "owner": "Plan 33b"
+      ]
     },
     {
       "type": "gd_webauthn_enrollment_failed",
@@ -1763,9 +1761,7 @@
           "function": "StageWebAuthnEnroll",
           "when": "An MFA security-key registration or browser ceremony fails."
         }
-      ],
-      "status": "emitted",
-      "owner": "Plan 33b"
+      ]
     },
     {
       "type": "idjag_exchange_failed",
@@ -2093,29 +2089,37 @@
       "type": "passkey_challenge_failed",
       "description": "A native passkey assertion could not complete.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/passkey-challenge-failed",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/passkey.go",
+          "function": "nativeEvent",
+          "when": "A native passkey request or proof is refused."
+        }
+      ]
     },
     {
       "type": "passkey_challenge_started",
       "description": "A native passkey assertion challenge began.",
       "category": "other",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/other/passkey-challenge-started",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/passkey.go",
+          "function": "nativePasskey",
+          "when": "A native passkey challenge is issued."
+        }
+      ]
     },
     {
       "type": "pla",
@@ -2513,29 +2517,37 @@
       "type": "seoobft",
       "description": "A password grant passed an out-of-band challenge.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seoobft",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "The bound first-factor MFA continuation succeeds."
+        }
+      ]
     },
     {
       "type": "seotpft",
       "description": "A password grant passed a one-time challenge.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/seotpft",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "The bound first-factor MFA continuation succeeds."
+        }
+      ]
     },
     {
       "type": "sepft",
@@ -2559,57 +2571,73 @@
       "type": "sepkoobft",
       "description": "A passkey grant passed an out-of-band challenge.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkoobft",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "The bound first-factor MFA continuation succeeds."
+        }
+      ]
     },
     {
       "type": "sepkotpft",
       "description": "A passkey grant passed a one-time challenge.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkotpft",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "The bound first-factor MFA continuation succeeds."
+        }
+      ]
     },
     {
       "type": "sepkrcft",
       "description": "A passkey grant passed an MFA recovery challenge.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sepkrcft",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "The bound first-factor MFA continuation succeeds."
+        }
+      ]
     },
     {
       "type": "sercft",
       "description": "A password grant passed an MFA recovery challenge.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 33,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/sercft",
       "origin": "public-catalog",
       "note": "Plan 33b emits this code (passkeys and WebAuthn MFA; D-0062).",
-      "triggers": [],
-      "status": "deferred",
-      "owner": "Plan 33b"
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_mfa.go",
+          "function": "mfaGrant",
+          "when": "The bound first-factor MFA continuation succeeds."
+        }
+      ]
     },
     {
       "type": "sertft",

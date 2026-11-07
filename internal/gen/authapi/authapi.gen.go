@@ -253,6 +253,21 @@ func (e MFARequiredError) Valid() bool {
 	}
 }
 
+// Defines values for PasskeyNotFoundError.
+const (
+	NotFound PasskeyNotFoundError = "not_found"
+)
+
+// Valid indicates whether the value is a known member of the PasskeyNotFoundError enum.
+func (e PasskeyNotFoundError) Valid() bool {
+	switch e {
+	case NotFound:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PasswordlessStartRequestClientAssertionType.
 const (
 	UrnIetfParamsOauthClientAssertionTypeJwtBearer PasswordlessStartRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
@@ -313,6 +328,21 @@ const (
 func (e PushedAuthorizationResponseExpiresIn) Valid() bool {
 	switch e {
 	case N30:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PasskeyAndroidAssociation200JSONResponseBodyTargetNamespace.
+const (
+	AndroidApp PasskeyAndroidAssociation200JSONResponseBodyTargetNamespace = "android_app"
+)
+
+// Valid indicates whether the value is a known member of the PasskeyAndroidAssociation200JSONResponseBodyTargetNamespace enum.
+func (e PasskeyAndroidAssociation200JSONResponseBodyTargetNamespace) Valid() bool {
+	switch e {
+	case AndroidApp:
 		return true
 	default:
 		return false
@@ -579,6 +609,67 @@ type OpenIDConfiguration struct {
 	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
 }
 
+// PasskeyChallengeRequest defines model for PasskeyChallengeRequest.
+type PasskeyChallengeRequest struct {
+	ClientId     *string `json:"client_id,omitempty"`
+	ClientSecret *string `json:"client_secret,omitempty"`
+	Organization *string `json:"organization,omitempty"`
+	Realm        *string `json:"realm,omitempty"`
+}
+
+// PasskeyNotFound defines model for PasskeyNotFound.
+type PasskeyNotFound struct {
+	Error PasskeyNotFoundError `json:"error"`
+}
+
+// PasskeyNotFoundError defines model for PasskeyNotFound.Error.
+type PasskeyNotFoundError string
+
+// PasskeyOptionsResponse defines model for PasskeyOptionsResponse.
+type PasskeyOptionsResponse struct {
+	// AuthSession Opaque single-use session.
+	AuthSession string `json:"auth_session"`
+
+	// AuthnParamsPublicKey WebAuthn creation or request parameters with a 60000 millisecond timeout.
+	AuthnParamsPublicKey map[string]interface{} `json:"authn_params_public_key"`
+}
+
+// PasskeyRegisterForm defines model for PasskeyRegisterForm.
+type PasskeyRegisterForm struct {
+	ClientId     *string `json:"client_id,omitempty"`
+	ClientSecret *string `json:"client_secret,omitempty"`
+	Organization *string `json:"organization,omitempty"`
+	Realm        *string `json:"realm,omitempty"`
+
+	// UserMetadata JSON-encoded object with at most ten string fields.
+	UserMetadata *string `json:"user_metadata,omitempty"`
+
+	// UserProfile JSON-encoded signup profile.
+	UserProfile string `json:"user_profile"`
+}
+
+// PasskeyRegisterRequest defines model for PasskeyRegisterRequest.
+type PasskeyRegisterRequest struct {
+	ClientId     *string            `json:"client_id,omitempty"`
+	ClientSecret *string            `json:"client_secret,omitempty"`
+	Organization *string            `json:"organization,omitempty"`
+	Realm        *string            `json:"realm,omitempty"`
+	UserMetadata *map[string]string `json:"user_metadata,omitempty"`
+	UserProfile  PasskeyUserProfile `json:"user_profile"`
+}
+
+// PasskeyUserProfile defines model for PasskeyUserProfile.
+type PasskeyUserProfile struct {
+	Email       *string `json:"email,omitempty"`
+	FamilyName  *string `json:"family_name,omitempty"`
+	GivenName   *string `json:"given_name,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Nickname    *string `json:"nickname,omitempty"`
+	PhoneNumber *string `json:"phone_number,omitempty"`
+	Picture     *string `json:"picture,omitempty"`
+	Username    *string `json:"username,omitempty"`
+}
+
 // PasswordlessStartRequest Unknown members (extra options auth0.js forwards) are accepted and ignored, as Auth0 does.
 type PasswordlessStartRequest struct {
 	// AuthParams Authorization parameters (scope, state, redirect_uri, response_type, ...) carried into the magic link.
@@ -710,10 +801,12 @@ type SignupResponse struct {
 // TokenRequest defines model for TokenRequest.
 type TokenRequest struct {
 	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
-	Audience     *string `json:"audience,omitempty"`
-	BindingCode  *string `json:"binding_code,omitempty"`
-	ClientId     *string `json:"client_id,omitempty"`
-	ClientSecret *string `json:"client_secret,omitempty"`
+	Audience      *string                     `json:"audience,omitempty"`
+	AuthSession   *string                     `json:"auth_session,omitempty"`
+	AuthnResponse *TokenRequest_AuthnResponse `json:"authn_response,omitempty"`
+	BindingCode   *string                     `json:"binding_code,omitempty"`
+	ClientId      *string                     `json:"client_id,omitempty"`
+	ClientSecret  *string                     `json:"client_secret,omitempty"`
 
 	// Code Authorization code (grant_type=authorization_code).
 	Code *string `json:"code,omitempty"`
@@ -726,14 +819,14 @@ type TokenRequest struct {
 	MfaToken  *string `json:"mfa_token,omitempty"`
 	OobCode   *string `json:"oob_code,omitempty"`
 
-	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The password, password-realm and device code grants ignore it (D-0055).
+	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The native passkey grant binds an organization through membership, connection and application policy. The password, password-realm and device code grants ignore it (D-0055).
 	Organization *string `json:"organization,omitempty"`
 	Otp          *string `json:"otp,omitempty"`
 
 	// Password The user's password (password grants).
 	Password *string `json:"password,omitempty"`
 
-	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), or email/sms for the passwordless OTP grant.
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), email/sms for the passwordless OTP grant, or a database realm for the native passkey grant.
 	Realm        *string `json:"realm,omitempty"`
 	RecoveryCode *string `json:"recovery_code,omitempty"`
 
@@ -748,6 +841,17 @@ type TokenRequest struct {
 
 	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
 	Username *string `json:"username,omitempty"`
+}
+
+// TokenRequestAuthnResponse0 defines model for TokenRequest.AuthnResponse.0.
+type TokenRequestAuthnResponse0 = string
+
+// TokenRequestAuthnResponse1 defines model for TokenRequest.AuthnResponse.1.
+type TokenRequestAuthnResponse1 map[string]interface{}
+
+// TokenRequest_AuthnResponse defines model for TokenRequest.AuthnResponse.
+type TokenRequest_AuthnResponse struct {
+	union json.RawMessage
 }
 
 // TokenResponse defines model for TokenResponse.
@@ -789,6 +893,9 @@ type ServerError = OAuthError
 
 // UnknownTenant defines model for UnknownTenant.
 type UnknownTenant = OAuthError
+
+// PasskeyAndroidAssociation200JSONResponseBodyTargetNamespace defines parameters for PasskeyAndroidAssociation.
+type PasskeyAndroidAssociation200JSONResponseBodyTargetNamespace string
 
 // AuthorizeParams defines parameters for Authorize.
 type AuthorizeParams struct {
@@ -980,6 +1087,18 @@ type OauthTokenFormdataRequestBody = TokenRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
+
+// PasskeyChallengeJSONRequestBody defines body for PasskeyChallenge for application/json ContentType.
+type PasskeyChallengeJSONRequestBody = PasskeyChallengeRequest
+
+// PasskeyChallengeFormdataRequestBody defines body for PasskeyChallenge for application/x-www-form-urlencoded ContentType.
+type PasskeyChallengeFormdataRequestBody = PasskeyChallengeRequest
+
+// PasskeyRegisterJSONRequestBody defines body for PasskeyRegister for application/json ContentType.
+type PasskeyRegisterJSONRequestBody = PasskeyRegisterRequest
+
+// PasskeyRegisterFormdataRequestBody defines body for PasskeyRegister for application/x-www-form-urlencoded ContentType.
+type PasskeyRegisterFormdataRequestBody = PasskeyRegisterForm
 
 // PasswordlessStartJSONRequestBody defines body for PasswordlessStart for application/json ContentType.
 type PasswordlessStartJSONRequestBody = PasswordlessStartRequest
@@ -1430,6 +1549,68 @@ func (a UserInfo) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// AsTokenRequestAuthnResponse0 returns the union data inside the TokenRequest_AuthnResponse as a TokenRequestAuthnResponse0
+func (t TokenRequest_AuthnResponse) AsTokenRequestAuthnResponse0() (TokenRequestAuthnResponse0, error) {
+	var body TokenRequestAuthnResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestAuthnResponse0 overwrites any union data inside the TokenRequest_AuthnResponse as the provided TokenRequestAuthnResponse0
+func (t *TokenRequest_AuthnResponse) FromTokenRequestAuthnResponse0(v TokenRequestAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestAuthnResponse0 performs a merge with any union data inside the TokenRequest_AuthnResponse, using the provided TokenRequestAuthnResponse0
+func (t *TokenRequest_AuthnResponse) MergeTokenRequestAuthnResponse0(v TokenRequestAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenRequestAuthnResponse1 returns the union data inside the TokenRequest_AuthnResponse as a TokenRequestAuthnResponse1
+func (t TokenRequest_AuthnResponse) AsTokenRequestAuthnResponse1() (TokenRequestAuthnResponse1, error) {
+	var body TokenRequestAuthnResponse1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestAuthnResponse1 overwrites any union data inside the TokenRequest_AuthnResponse as the provided TokenRequestAuthnResponse1
+func (t *TokenRequest_AuthnResponse) FromTokenRequestAuthnResponse1(v TokenRequestAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestAuthnResponse1 performs a merge with any union data inside the TokenRequest_AuthnResponse, using the provided TokenRequestAuthnResponse1
+func (t *TokenRequest_AuthnResponse) MergeTokenRequestAuthnResponse1(v TokenRequestAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenRequest_AuthnResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenRequest_AuthnResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsOAuthError returns the union data inside the DbconnectionsSignup400JSONResponseBody as a OAuthError
 func (t DbconnectionsSignup400JSONResponseBody) AsOAuthError() (OAuthError, error) {
 	var body OAuthError
@@ -1556,6 +1737,12 @@ func (t *OauthToken403JSONResponseBody) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// PasskeyAppleAssociation Native Apple credential associations
+	// (GET /.well-known/apple-app-site-association)
+	PasskeyAppleAssociation(w http.ResponseWriter, r *http.Request)
+	// PasskeyAndroidAssociation Native Android credential associations
+	// (GET /.well-known/assetlinks.json)
+	PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Request)
 	// Jwks JSON Web Key Set
 	// (GET /.well-known/jwks.json)
 	Jwks(w http.ResponseWriter, r *http.Request)
@@ -1604,6 +1791,12 @@ type ServerInterface interface {
 	// OidcLogoutPost Log the user out (form post)
 	// (POST /oidc/logout)
 	OidcLogoutPost(w http.ResponseWriter, r *http.Request)
+	// PasskeyChallenge Begin a discoverable passkey login
+	// (POST /passkey/challenge)
+	PasskeyChallenge(w http.ResponseWriter, r *http.Request)
+	// PasskeyRegister Begin a passkey signup
+	// (POST /passkey/register)
+	PasskeyRegister(w http.ResponseWriter, r *http.Request)
 	// PasswordlessStart Send a passwordless code or link
 	// (POST /passwordless/start)
 	PasswordlessStart(w http.ResponseWriter, r *http.Request, params PasswordlessStartParams)
@@ -1627,6 +1820,18 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// PasskeyAppleAssociation Native Apple credential associations
+// (GET /.well-known/apple-app-site-association)
+func (_ Unimplemented) PasskeyAppleAssociation(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PasskeyAndroidAssociation Native Android credential associations
+// (GET /.well-known/assetlinks.json)
+func (_ Unimplemented) PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Jwks JSON Web Key Set
 // (GET /.well-known/jwks.json)
@@ -1724,6 +1929,18 @@ func (_ Unimplemented) OidcLogoutPost(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// PasskeyChallenge Begin a discoverable passkey login
+// (POST /passkey/challenge)
+func (_ Unimplemented) PasskeyChallenge(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PasskeyRegister Begin a passkey signup
+// (POST /passkey/register)
+func (_ Unimplemented) PasskeyRegister(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // PasswordlessStart Send a passwordless code or link
 // (POST /passwordless/start)
 func (_ Unimplemented) PasswordlessStart(w http.ResponseWriter, r *http.Request, params PasswordlessStartParams) {
@@ -1768,6 +1985,34 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// PasskeyAppleAssociation operation middleware
+func (siw *ServerInterfaceWrapper) PasskeyAppleAssociation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PasskeyAppleAssociation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PasskeyAndroidAssociation operation middleware
+func (siw *ServerInterfaceWrapper) PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PasskeyAndroidAssociation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // Jwks operation middleware
 func (siw *ServerInterfaceWrapper) Jwks(w http.ResponseWriter, r *http.Request) {
@@ -2355,6 +2600,34 @@ func (siw *ServerInterfaceWrapper) OidcLogoutPost(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// PasskeyChallenge operation middleware
+func (siw *ServerInterfaceWrapper) PasskeyChallenge(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PasskeyChallenge(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PasskeyRegister operation middleware
+func (siw *ServerInterfaceWrapper) PasskeyRegister(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PasskeyRegister(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PasswordlessStart operation middleware
 func (siw *ServerInterfaceWrapper) PasswordlessStart(w http.ResponseWriter, r *http.Request) {
 
@@ -2888,6 +3161,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/dbconnections/change_password", wrapper.DbconnectionsChangePassword)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/passkey/register", wrapper.PasskeyRegister)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/passkey/challenge", wrapper.PasskeyChallenge)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/.well-known/apple-app-site-association", wrapper.PasskeyAppleAssociation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/.well-known/assetlinks.json", wrapper.PasskeyAndroidAssociation)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/passwordless/start", wrapper.PasswordlessStart)

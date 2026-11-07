@@ -24,13 +24,24 @@ import (
 // The entire request is sealed: Action custom claims and their values may
 // contain credentials. No raw token or unsealed Action material is persisted.
 type mfaRequest struct {
-	Audience, Origin string
-	Scopes, Ceiling  []string
-	Effects          *actions.Effects
-	Requirement      mfa.Requirement
-	AuthTime         time.Time
-	UserVersion      int64
+	Passkey                      bool
+	OrganizationID, ConnectionID string
+	Audience, Origin             string
+	Scopes, Ceiling              []string
+	Effects                      *actions.Effects
+	Requirement                  mfa.Requirement
+	AuthTime                     time.Time
+	UserVersion                  int64
 }
+
+// pendingMFARequest is valid only within the authenticated token request. It
+// conveys no proof and never replaces the final transaction's live policy checks.
+type pendingMFARequestKey struct{}
+type pendingMFARequest struct {
+	token   *store.MFAToken
+	request *mfaRequest
+}
+
 type mfaEnvelope struct {
 	Sealed []byte `json:"sealed"`
 }
@@ -41,7 +52,15 @@ const mfaTokenLifetime = 10 * time.Minute
 func mfaBinding(t *store.MFAToken) []string {
 	return []string{t.TenantID, t.Hash, t.ClientID, t.UserID, t.Connection}
 }
-func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *store.Client, u *store.User, conn *store.Connection, aud string, scopes, ceiling []string, eff *actions.Effects, now time.Time) *Error {
+func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *store.Client, u *store.User, conn *store.Connection, aud string, scopes, ceiling []string, eff *actions.Effects, now time.Time, flows ...firstFactorTokens) *Error {
+	flow := firstFactorTokens{}
+	if len(flows) > 0 {
+		flow = flows[0]
+	}
+	orgID := ""
+	if flow.Organization != nil {
+		orgID = flow.Organization.ID
+	}
 	g, err := h.Store.MFA().GetGuardian(ctx, res.Tenant.ID)
 	var effect *actions.MFAEffects
 	if eff != nil {
@@ -81,7 +100,7 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 	}
 	raw := secrets.RandomString(48)
 	t := &store.MFAToken{TenantID: res.Tenant.ID, Hash: secrets.HashToken(raw), ClientID: c.ClientID, UserID: u.UserID, Connection: conn.ID, ExpiresAt: now.Add(mfaTokenLifetime)}
-	p, err := json.Marshal(mfaRequest{Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
+	p, err := json.Marshal(mfaRequest{Passkey: flow.Passkey, OrganizationID: orgID, ConnectionID: flow.ConnectionID, Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
 	if err != nil {
 		return serverError()
 	}
@@ -182,10 +201,15 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 	if h.MFA == nil {
 		return nil, mfaUnavailableError()
 	}
-	t, p, e := h.pendingMFAToken(ctx, res, form.Get("mfa_token"), c.ClientID)
-	if e != nil {
-		return nil, e
+	pending, _ := ctx.Value(pendingMFARequestKey{}).(*pendingMFARequest)
+	if pending == nil {
+		t, p, e := h.pendingMFAToken(ctx, res, form.Get("mfa_token"), c.ClientID)
+		if e != nil {
+			return nil, e
+		}
+		pending = &pendingMFARequest{token: t, request: p}
 	}
+	t, p := pending.token, pending.request
 	uid = t.UserID
 	if factor == "email" {
 		saved, x := h.Store.MFA().GetChallenge(ctx, t.TenantID, secrets.HashToken(form.Get("oob_code")), h.now())
@@ -209,11 +233,18 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 	if e != nil {
 		return nil, e
 	}
-	resp, write, e := h.preparePasswordTokens(ctx, res, c, u, rs, lifetime, p.Audience, d.Scopes, p.Ceiling, p.Effects, p.AuthTime, h.now())
+	org, e := h.organizationForToken(ctx, t.TenantID, uid, p.OrganizationID, p.ConnectionID, c)
+	if e != nil {
+		return nil, e
+	}
+	resp, write, e := h.preparePasswordTokens(ctx, res, c, u, rs, lifetime, p.Audience, d.Scopes, p.Ceiling, p.Effects, p.AuthTime, h.now(), firstFactorTokens{Passkey: p.Passkey, Organization: org, ConnectionID: p.ConnectionID})
 	if e != nil {
 		return nil, e
 	}
 	svc := h.MFA.WithProofCommit(func(tx store.Store) error {
+		if err := checkTokenOrganization(ctx, tx, t.TenantID, uid, p.OrganizationID, p.ConnectionID, c.ClientID); err != nil {
+			return err
+		}
 		current, err := tx.Users().GetForUpdate(ctx, t.TenantID, uid)
 		if err != nil {
 			return err
@@ -282,5 +313,23 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 		resp.RecoveryCode = &next
 		logs.AddCredentials(ctx, next)
 	}
+	code := "seotpft"
+	if factor == "email" || factor == "phone" {
+		code = "seoobft"
+	}
+	if factor == "recovery-code" {
+		code = "sercft"
+	}
+	if p.Passkey {
+		switch code {
+		case "seotpft":
+			code = "sepkotpft"
+		case "seoobft":
+			code = "sepkoobft"
+		case "sercft":
+			code = "sepkrcft"
+		}
+	}
+	h.event(ctx, res, c, code, nil, uid)
 	return resp, nil
 }
