@@ -155,13 +155,15 @@ async function operator(browser) {
     await op.goto(setup);
     await op.fill("#password", operatorPassword);
     await op.fill("#password_confirm", operatorPassword);
-    await op.click("button[type=submit]");
+    // Submit with Enter: the button can still be settling while the page's
+    // web font loads on a busy host; the form submission is the same.
+    await Promise.all([op.waitForResponse((r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/u/reset-password"), op.press("#password_confirm", "Enter")]);
     await saveState({ operatorReady: true });
   }
   await op.goto("https://system.e2e.test/admin/");
   await op.fill("#username", "operator33b@e2e.local");
   await op.fill("#password", operatorPassword);
-  await op.click("button[type=submit]");
+  await op.press("#password", "Enter");
   await op.waitForURL(/\/admin\/t\//);
   return { context, op };
 }
