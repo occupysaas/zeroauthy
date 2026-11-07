@@ -5881,6 +5881,75 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantPasskeyPrerequisites
+      tags: [system]
+      summary: Read the prerequisites for passkey login
+      description: Local operator extension. Requires read:connections for the target tenant.
+      x-source: [https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy]
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Computed connection prerequisites.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [effective, unmet]
+                additionalProperties: false
+                properties:
+                  effective: {type: boolean}
+                  unmet: {type: array, items: {type: string}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantRoamingUVSettings
+      tags: [system]
+      summary: Read security-key user verification policy
+      description: Local operator extension. Requires read:guardian_factors for the target tenant.
+      x-source: [https://auth0.com/docs/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-security-keys-for-mfa]
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Security-key verification policy.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RoamingUVSettings"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: MFA storage is unavailable.}
+    put:
+      operationId: setTenantRoamingUVSettings
+      tags: [system]
+      summary: Set security-key user verification policy
+      description: Local operator extension. Requires update:guardian_factors for the target tenant.
+      x-source: [https://auth0.com/docs/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-security-keys-for-mfa]
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RoamingUVSettings"}
+      responses:
+        "200":
+          description: Updated security-key verification policy.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RoamingUVSettings"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {description: MFA storage is unavailable.}
   /api/system/tenants/{tenant}/log-streams/status:
     parameters:
       - {name: tenant, in: path, required: true, schema: {type: string}}
@@ -12705,6 +12774,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ManagementError'
+        '501':
+          description: The storage plugin lacks WebAuthn support.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ManagementError'}
         '429':
           description: Request rate exceeded.
           content:
@@ -14594,6 +14668,7 @@ components:
               - email
               - email-verification
               - webauthn-roaming
+              - passkey
               - webauthn-platform
               - guardian
               - password
@@ -14691,6 +14766,7 @@ components:
                   - email
                   - email-verification
                   - webauthn-roaming
+                  - passkey
                   - webauthn-platform
                   - guardian
                   - password
@@ -14773,6 +14849,7 @@ components:
           - email
           - totp
           - webauthn-roaming
+          - passkey
         name:
           type: string
         phone_number:
@@ -14842,6 +14919,7 @@ components:
           - totp
           - email
           - webauthn-roaming
+          - passkey
         name:
           type: string
         totp_secret:
@@ -14997,6 +15075,7 @@ components:
           - email
           - email-verification
           - webauthn-roaming
+          - passkey
           - webauthn-platform
           - guardian
           - password
@@ -15084,6 +15163,7 @@ components:
           - email
           - email-verification
           - webauthn-roaming
+          - passkey
           - webauthn-platform
           - guardian
           - passkey
@@ -15152,63 +15232,7 @@ components:
         relying_party_identifier:
           type: string
     MFAUpdateAuthenticationMethodResponse:
-      type: object
-      additionalProperties: false
-      required:
-      - type
-      properties:
-        id:
-          type: string
-          format: authenticator-id
-        type:
-          type: string
-          enum:
-          - phone
-          - email
-          - totp
-          - webauthn-roaming
-        name:
-          type: string
-        phone_number:
-          type: string
-          minLength: 2
-          maxLength: 30
-        email:
-          type: string
-        authentication_methods:
-          type: array
-          items:
-            type: object
-            additionalProperties: true
-            properties:
-              type:
-                type: string
-                enum:
-                - totp
-                - push
-                - sms
-                - voice
-              id:
-                type: string
-                format: authenticator-id
-        preferred_authentication_method:
-          type: string
-          enum:
-          - voice
-          - sms
-        key_id:
-          type: string
-        public_key:
-          type: string
-        aaguid:
-          type: string
-        relying_party_identifier:
-          type: string
-        confirmed:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
+      $ref: '#/components/schemas/MFAGetAuthenticationMethodResponse'
     MFAUpdateAuthenticationMethodRequest:
       type: object
       additionalProperties: false
@@ -21609,6 +21633,35 @@ components:
         infinite_idle_token_lifetime:
           type: boolean
           description: True for non-expiring tokens; derived from `expiration_type`.
+    RoamingUVSettings:
+      type: object
+      additionalProperties: false
+      required: [user_verification]
+      properties:
+        user_verification: {type: string, enum: [discouraged, preferred, required], default: discouraged}
+    ClientMobile:
+      type: object
+      additionalProperties: true
+      description: Native application identities. Unknown settings are accepted and ignored.
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        ios: {$ref: "#/components/schemas/ClientMobileIOS"}
+        android: {$ref: "#/components/schemas/ClientMobileAndroid"}
+    ClientMobileIOS:
+      type: object
+      additionalProperties: true
+      properties:
+        team_id: {type: string, default: ""}
+        app_bundle_identifier: {type: string, default: ""}
+    ClientMobileAndroid:
+      type: object
+      additionalProperties: true
+      properties:
+        app_package_name: {type: string, default: ""}
+        sha256_cert_fingerprints:
+          type: array
+          minItems: 1
+          items: {type: string, minLength: 1}
     ClientSettings:
       type: object
       description: The writable settings of an application.
@@ -21623,7 +21676,8 @@ components:
             Grant types the application may use. zeroauthy serves
             authorization_code, refresh_token, client_credentials, password,
             password-realm and device_code; implicit and the MFA grants are
-            stored but not served.
+            stored but not served. The native passkey grant is
+            urn:okta:params:oauth:grant-type:webauthn.
         callbacks: {type: array, items: {type: string}, description: Allowed redirect URIs.}
         allowed_logout_urls: {type: array, items: {type: string}, description: Where logout may return to.}
         web_origins: {type: array, items: {type: string}, description: Origins allowed for web message and silent authentication.}
@@ -21661,7 +21715,7 @@ components:
           format: uri
           description: HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
         native_social_login: {description: Accepted and ignored.}
-        mobile: {description: Accepted and ignored.}
+        mobile: {$ref: "#/components/schemas/ClientMobile"}
         organization_usage:
           type: [string, "null"]
           enum: [deny, allow, require, null]
@@ -21726,6 +21780,7 @@ components:
       description: An application.
       required: [tenant, client_id, name, app_type, is_first_party, oidc_conformant, callbacks, allowed_logout_urls, web_origins, allowed_origins, grant_types, token_endpoint_auth_method, jwt_configuration, refresh_token, global, callback_url_template, require_pushed_authorization_requests]
       properties:
+        mobile: {$ref: "#/components/schemas/ClientMobile"}
         initiate_login_uri:
           type: string
           format: uri
@@ -22236,7 +22291,8 @@ components:
                 type: object
                 required: [name, timestamp]
                 properties:
-                  name: {type: string, description: "`pwd` for a database login."}
+                  name: {type: string, description: Recorded authentication method; legacy sessions use pwd.}
+                  type: {type: string, description: Factor used for an MFA proof.}
                   timestamp: {type: string, format: date-time}
         idle_expires_at: {type: string, format: date-time}
         expires_at: {type: string, format: date-time}

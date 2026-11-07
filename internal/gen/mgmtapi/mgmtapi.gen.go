@@ -4461,6 +4461,7 @@ func (e MFACreateAuthenticationMethodPreferredAuthenticationMethod) Valid() bool
 // Defines values for MFACreateAuthenticationMethodType.
 const (
 	MFACreateAuthenticationMethodTypeEmail           MFACreateAuthenticationMethodType = "email"
+	MFACreateAuthenticationMethodTypePasskey         MFACreateAuthenticationMethodType = "passkey"
 	MFACreateAuthenticationMethodTypeTotp            MFACreateAuthenticationMethodType = "totp"
 	MFACreateAuthenticationMethodTypeWebauthnRoaming MFACreateAuthenticationMethodType = "webauthn-roaming"
 )
@@ -4469,6 +4470,8 @@ const (
 func (e MFACreateAuthenticationMethodType) Valid() bool {
 	switch e {
 	case MFACreateAuthenticationMethodTypeEmail:
+		return true
+	case MFACreateAuthenticationMethodTypePasskey:
 		return true
 	case MFACreateAuthenticationMethodTypeTotp:
 		return true
@@ -4542,6 +4545,7 @@ func (e MFACreateAuthenticationMethodsResponsePreferredAuthenticationMethod) Val
 // Defines values for MFACreateAuthenticationMethodsResponseType.
 const (
 	MFACreateAuthenticationMethodsResponseTypeEmail           MFACreateAuthenticationMethodsResponseType = "email"
+	MFACreateAuthenticationMethodsResponseTypePasskey         MFACreateAuthenticationMethodsResponseType = "passkey"
 	MFACreateAuthenticationMethodsResponseTypePhone           MFACreateAuthenticationMethodsResponseType = "phone"
 	MFACreateAuthenticationMethodsResponseTypeTotp            MFACreateAuthenticationMethodsResponseType = "totp"
 	MFACreateAuthenticationMethodsResponseTypeWebauthnRoaming MFACreateAuthenticationMethodsResponseType = "webauthn-roaming"
@@ -4551,6 +4555,8 @@ const (
 func (e MFACreateAuthenticationMethodsResponseType) Valid() bool {
 	switch e {
 	case MFACreateAuthenticationMethodsResponseTypeEmail:
+		return true
+	case MFACreateAuthenticationMethodsResponseTypePasskey:
 		return true
 	case MFACreateAuthenticationMethodsResponseTypePhone:
 		return true
@@ -4640,6 +4646,7 @@ const (
 	MFAGetAuthenticationMethodResponseTypeEmail             MFAGetAuthenticationMethodResponseType = "email"
 	MFAGetAuthenticationMethodResponseTypeEmailVerification MFAGetAuthenticationMethodResponseType = "email-verification"
 	MFAGetAuthenticationMethodResponseTypeGuardian          MFAGetAuthenticationMethodResponseType = "guardian"
+	MFAGetAuthenticationMethodResponseTypePasskey           MFAGetAuthenticationMethodResponseType = "passkey"
 	MFAGetAuthenticationMethodResponseTypePassword          MFAGetAuthenticationMethodResponseType = "password"
 	MFAGetAuthenticationMethodResponseTypePhone             MFAGetAuthenticationMethodResponseType = "phone"
 	MFAGetAuthenticationMethodResponseTypePush              MFAGetAuthenticationMethodResponseType = "push"
@@ -4657,6 +4664,8 @@ func (e MFAGetAuthenticationMethodResponseType) Valid() bool {
 	case MFAGetAuthenticationMethodResponseTypeEmailVerification:
 		return true
 	case MFAGetAuthenticationMethodResponseTypeGuardian:
+		return true
+	case MFAGetAuthenticationMethodResponseTypePasskey:
 		return true
 	case MFAGetAuthenticationMethodResponseTypePassword:
 		return true
@@ -4724,6 +4733,7 @@ const (
 	MFAGetAuthenticationMethodsResponse0TypeEmail             MFAGetAuthenticationMethodsResponse0Type = "email"
 	MFAGetAuthenticationMethodsResponse0TypeEmailVerification MFAGetAuthenticationMethodsResponse0Type = "email-verification"
 	MFAGetAuthenticationMethodsResponse0TypeGuardian          MFAGetAuthenticationMethodsResponse0Type = "guardian"
+	MFAGetAuthenticationMethodsResponse0TypePasskey           MFAGetAuthenticationMethodsResponse0Type = "passkey"
 	MFAGetAuthenticationMethodsResponse0TypePassword          MFAGetAuthenticationMethodsResponse0Type = "password"
 	MFAGetAuthenticationMethodsResponse0TypePhone             MFAGetAuthenticationMethodsResponse0Type = "phone"
 	MFAGetAuthenticationMethodsResponse0TypePush              MFAGetAuthenticationMethodsResponse0Type = "push"
@@ -4741,6 +4751,8 @@ func (e MFAGetAuthenticationMethodsResponse0Type) Valid() bool {
 	case MFAGetAuthenticationMethodsResponse0TypeEmailVerification:
 		return true
 	case MFAGetAuthenticationMethodsResponse0TypeGuardian:
+		return true
+	case MFAGetAuthenticationMethodsResponse0TypePasskey:
 		return true
 	case MFAGetAuthenticationMethodsResponse0TypePassword:
 		return true
@@ -4808,6 +4820,7 @@ const (
 	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeEmail             MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "email"
 	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeEmailVerification MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "email-verification"
 	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeGuardian          MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "guardian"
+	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePasskey           MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "passkey"
 	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePassword          MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "password"
 	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePhone             MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "phone"
 	MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePush              MFAGetAuthenticationMethodsResponse1AuthenticatorsType = "push"
@@ -4825,6 +4838,8 @@ func (e MFAGetAuthenticationMethodsResponse1AuthenticatorsType) Valid() bool {
 	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeEmailVerification:
 		return true
 	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypeGuardian:
+		return true
+	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePasskey:
 		return true
 	case MFAGetAuthenticationMethodsResponse1AuthenticatorsTypePassword:
 		return true
@@ -5310,72 +5325,6 @@ func (e MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod) Valid
 	}
 }
 
-// Defines values for MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType.
-const (
-	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypePush  MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "push"
-	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeSms   MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "sms"
-	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeTotp  MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "totp"
-	MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeVoice MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType = "voice"
-)
-
-// Valid indicates whether the value is a known member of the MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType enum.
-func (e MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType) Valid() bool {
-	switch e {
-	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypePush:
-		return true
-	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeSms:
-		return true
-	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeTotp:
-		return true
-	case MFAUpdateAuthenticationMethodResponseAuthenticationMethodsTypeVoice:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod.
-const (
-	MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodSms   MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod = "sms"
-	MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodVoice MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod = "voice"
-)
-
-// Valid indicates whether the value is a known member of the MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod enum.
-func (e MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod) Valid() bool {
-	switch e {
-	case MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodSms:
-		return true
-	case MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethodVoice:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for MFAUpdateAuthenticationMethodResponseType.
-const (
-	MFAUpdateAuthenticationMethodResponseTypeEmail           MFAUpdateAuthenticationMethodResponseType = "email"
-	MFAUpdateAuthenticationMethodResponseTypePhone           MFAUpdateAuthenticationMethodResponseType = "phone"
-	MFAUpdateAuthenticationMethodResponseTypeTotp            MFAUpdateAuthenticationMethodResponseType = "totp"
-	MFAUpdateAuthenticationMethodResponseTypeWebauthnRoaming MFAUpdateAuthenticationMethodResponseType = "webauthn-roaming"
-)
-
-// Valid indicates whether the value is a known member of the MFAUpdateAuthenticationMethodResponseType enum.
-func (e MFAUpdateAuthenticationMethodResponseType) Valid() bool {
-	switch e {
-	case MFAUpdateAuthenticationMethodResponseTypeEmail:
-		return true
-	case MFAUpdateAuthenticationMethodResponseTypePhone:
-		return true
-	case MFAUpdateAuthenticationMethodResponseTypeTotp:
-		return true
-	case MFAUpdateAuthenticationMethodResponseTypeWebauthnRoaming:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for OrganizationEffectiveRoleSources.
 const (
 	OrganizationEffectiveRoleSourcesDirect OrganizationEffectiveRoleSources = "direct"
@@ -5754,6 +5703,27 @@ func (e ResourceServerSettingsTokenDialect) Valid() bool {
 	case ResourceServerSettingsTokenDialectRfc9068Profile:
 		return true
 	case ResourceServerSettingsTokenDialectRfc9068ProfileAuthz:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RoamingUVSettingsUserVerification.
+const (
+	Discouraged RoamingUVSettingsUserVerification = "discouraged"
+	Preferred   RoamingUVSettingsUserVerification = "preferred"
+	Required    RoamingUVSettingsUserVerification = "required"
+)
+
+// Valid indicates whether the value is a known member of the RoamingUVSettingsUserVerification enum.
+func (e RoamingUVSettingsUserVerification) Valid() bool {
+	switch e {
+	case Discouraged:
+		return true
+	case Preferred:
+		return true
+	case Required:
 		return true
 	default:
 		return false
@@ -7402,9 +7372,12 @@ type Client struct {
 	IsFirstParty     bool    `json:"is_first_party"`
 
 	// JwtConfiguration ID token settings.
-	JwtConfiguration JwtConfiguration     `json:"jwt_configuration"`
-	Name             string               `json:"name"`
-	OidcConformant   ClientOidcConformant `json:"oidc_conformant"`
+	JwtConfiguration JwtConfiguration `json:"jwt_configuration"`
+
+	// Mobile Native application identities. Unknown settings are accepted and ignored.
+	Mobile         *ClientMobile        `json:"mobile,omitempty"`
+	Name           string               `json:"name"`
+	OidcConformant ClientOidcConformant `json:"oidc_conformant"`
 
 	// OrganizationDiscoveryMethods Left out when unset.
 	OrganizationDiscoveryMethods *[]ClientOrganizationDiscoveryMethods `json:"organization_discovery_methods,omitempty"`
@@ -7505,7 +7478,8 @@ type ClientCreate struct {
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
 	// password-realm and device_code; implicit and the MFA grants are
-	// stored but not served.
+	// stored but not served. The native passkey grant is
+	// urn:okta:params:oauth:grant-type:webauthn.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
 	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
@@ -7523,8 +7497,8 @@ type ClientCreate struct {
 	// LogoUri Accepted and ignored.
 	LogoUri interface{} `json:"logo_uri,omitempty"`
 
-	// Mobile Accepted and ignored.
-	Mobile interface{} `json:"mobile,omitempty"`
+	// Mobile Native application identities. Unknown settings are accepted and ignored.
+	Mobile *ClientMobile `json:"mobile,omitempty"`
 
 	// Name The application's name.
 	Name string `json:"name"`
@@ -7710,6 +7684,27 @@ type ClientGrantSettingsOrganizationUsage string
 // `subject_type` among them.
 type ClientGrantUpdate = ClientGrantSettings
 
+// ClientMobile Native application identities. Unknown settings are accepted and ignored.
+type ClientMobile struct {
+	Android              *ClientMobileAndroid   `json:"android,omitempty"`
+	Ios                  *ClientMobileIOS       `json:"ios,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ClientMobileAndroid defines model for ClientMobileAndroid.
+type ClientMobileAndroid struct {
+	AppPackageName         *string                `json:"app_package_name,omitempty"`
+	Sha256CertFingerprints *[]string              `json:"sha256_cert_fingerprints,omitempty"`
+	AdditionalProperties   map[string]interface{} `json:"-"`
+}
+
+// ClientMobileIOS defines model for ClientMobileIOS.
+type ClientMobileIOS struct {
+	AppBundleIdentifier  *string                `json:"app_bundle_identifier,omitempty"`
+	TeamId               *string                `json:"team_id,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
 // ClientPage A page of applications with `include_totals=true`.
 type ClientPage struct {
 	Clients []Client `json:"clients"`
@@ -7769,7 +7764,8 @@ type ClientSettings struct {
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
 	// password-realm and device_code; implicit and the MFA grants are
-	// stored but not served.
+	// stored but not served. The native passkey grant is
+	// urn:okta:params:oauth:grant-type:webauthn.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
 	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
@@ -7784,8 +7780,8 @@ type ClientSettings struct {
 	// LogoUri Accepted and ignored.
 	LogoUri interface{} `json:"logo_uri,omitempty"`
 
-	// Mobile Accepted and ignored.
-	Mobile interface{} `json:"mobile,omitempty"`
+	// Mobile Native application identities. Unknown settings are accepted and ignored.
+	Mobile *ClientMobile `json:"mobile,omitempty"`
 
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
@@ -7905,7 +7901,8 @@ type ClientUpdate struct {
 	// GrantTypes Grant types the application may use. zeroauthy serves
 	// authorization_code, refresh_token, client_credentials, password,
 	// password-realm and device_code; implicit and the MFA grants are
-	// stored but not served.
+	// stored but not served. The native passkey grant is
+	// urn:okta:params:oauth:grant-type:webauthn.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
 	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
@@ -7921,8 +7918,8 @@ type ClientUpdate struct {
 	// LogoUri Accepted and ignored.
 	LogoUri interface{} `json:"logo_uri,omitempty"`
 
-	// Mobile Accepted and ignored.
-	Mobile interface{} `json:"mobile,omitempty"`
+	// Mobile Native application identities. Unknown settings are accepted and ignored.
+	Mobile *ClientMobile `json:"mobile,omitempty"`
 
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
@@ -10747,37 +10744,7 @@ type MFAUpdateAuthenticationMethodRequest struct {
 type MFAUpdateAuthenticationMethodRequestPreferredAuthenticationMethod string
 
 // MFAUpdateAuthenticationMethodResponse defines model for MFAUpdateAuthenticationMethodResponse.
-type MFAUpdateAuthenticationMethodResponse struct {
-	Aaguid                        *string                                                             `json:"aaguid,omitempty"`
-	AuthenticationMethods         *[]MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item `json:"authentication_methods,omitempty"`
-	Confirmed                     *bool                                                               `json:"confirmed,omitempty"`
-	CreatedAt                     *time.Time                                                          `json:"created_at,omitempty"`
-	Email                         *string                                                             `json:"email,omitempty"`
-	Id                            *string                                                             `json:"id,omitempty"`
-	KeyId                         *string                                                             `json:"key_id,omitempty"`
-	Name                          *string                                                             `json:"name,omitempty"`
-	PhoneNumber                   *string                                                             `json:"phone_number,omitempty"`
-	PreferredAuthenticationMethod *MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod `json:"preferred_authentication_method,omitempty"`
-	PublicKey                     *string                                                             `json:"public_key,omitempty"`
-	RelyingPartyIdentifier        *string                                                             `json:"relying_party_identifier,omitempty"`
-	Type                          MFAUpdateAuthenticationMethodResponseType                           `json:"type"`
-}
-
-// MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType defines model for MFAUpdateAuthenticationMethodResponse.AuthenticationMethods.Type.
-type MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType string
-
-// MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item defines model for MFAUpdateAuthenticationMethodResponse.authentication_methods.Item.
-type MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item struct {
-	Id                   *string                                                         `json:"id,omitempty"`
-	Type                 *MFAUpdateAuthenticationMethodResponseAuthenticationMethodsType `json:"type,omitempty"`
-	AdditionalProperties map[string]interface{}                                          `json:"-"`
-}
-
-// MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod defines model for MFAUpdateAuthenticationMethodResponse.PreferredAuthenticationMethod.
-type MFAUpdateAuthenticationMethodResponsePreferredAuthenticationMethod string
-
-// MFAUpdateAuthenticationMethodResponseType defines model for MFAUpdateAuthenticationMethodResponse.Type.
-type MFAUpdateAuthenticationMethodResponseType string
+type MFAUpdateAuthenticationMethodResponse = MFAGetAuthenticationMethodResponse
 
 // MFAUpdateGuardianFactorsDuoSettingsRequest defines model for MFAUpdateGuardianFactorsDuoSettingsRequest.
 type MFAUpdateGuardianFactorsDuoSettingsRequest struct {
@@ -11643,6 +11610,14 @@ type ResourceServerSettingsTokenDialect string
 // refused (`invalid_body`), `identifier`, `id` and `is_system`
 // among them. An empty body changes nothing.
 type ResourceServerUpdate = ResourceServerSettings
+
+// RoamingUVSettings defines model for RoamingUVSettings.
+type RoamingUVSettings struct {
+	UserVerification RoamingUVSettingsUserVerification `json:"user_verification"`
+}
+
+// RoamingUVSettingsUserVerification defines model for RoamingUVSettings.UserVerification.
+type RoamingUVSettingsUserVerification string
 
 // Role defines model for Role.
 type Role struct {
@@ -12614,9 +12589,12 @@ type UserSession struct {
 	AuthenticatedAt time.Time `json:"authenticated_at"`
 	Authentication  struct {
 		Methods []struct {
-			// Name `pwd` for a database login.
+			// Name Recorded authentication method; legacy sessions use pwd.
 			Name      string    `json:"name"`
 			Timestamp time.Time `json:"timestamp"`
+
+			// Type Factor used for an MFA proof.
+			Type *string `json:"type,omitempty"`
 		} `json:"methods"`
 	} `json:"authentication"`
 	Clients []struct {
@@ -13744,6 +13722,9 @@ type PreviewTenantEmailJSONRequestBody = EmailPreviewRequest
 // TestTenantEmailJSONRequestBody defines body for TestTenantEmail for application/json ContentType.
 type TestTenantEmailJSONRequestBody = EmailTestRequest
 
+// SetTenantRoamingUVSettingsJSONRequestBody defines body for SetTenantRoamingUVSettings for application/json ContentType.
+type SetTenantRoamingUVSettingsJSONRequestBody = RoamingUVSettings
+
 // CreateActionJSONRequestBody defines body for CreateAction for application/json ContentType.
 type CreateActionJSONRequestBody = ActionCreate
 
@@ -14085,6 +14066,255 @@ type DeleteUserRolesJSONRequestBody = UserRoleBatch
 
 // PostUserRolesJSONRequestBody defines body for PostUserRoles for application/json ContentType.
 type PostUserRolesJSONRequestBody = UserRoleBatch
+
+// Getter for additional properties for ClientMobile. Returns the specified
+// element and whether it was found
+func (a ClientMobile) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ClientMobile
+func (a *ClientMobile) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ClientMobile to handle AdditionalProperties
+func (a *ClientMobile) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["android"]; found {
+		err = json.Unmarshal(raw, &a.Android)
+		if err != nil {
+			return fmt.Errorf("error reading 'android': %w", err)
+		}
+		delete(object, "android")
+	}
+
+	if raw, found := object["ios"]; found {
+		err = json.Unmarshal(raw, &a.Ios)
+		if err != nil {
+			return fmt.Errorf("error reading 'ios': %w", err)
+		}
+		delete(object, "ios")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ClientMobile to handle AdditionalProperties
+func (a ClientMobile) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Android != nil {
+		object["android"], err = json.Marshal(a.Android)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'android': %w", err)
+		}
+	}
+
+	if a.Ios != nil {
+		object["ios"], err = json.Marshal(a.Ios)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ios': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ClientMobileAndroid. Returns the specified
+// element and whether it was found
+func (a ClientMobileAndroid) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ClientMobileAndroid
+func (a *ClientMobileAndroid) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ClientMobileAndroid to handle AdditionalProperties
+func (a *ClientMobileAndroid) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["app_package_name"]; found {
+		err = json.Unmarshal(raw, &a.AppPackageName)
+		if err != nil {
+			return fmt.Errorf("error reading 'app_package_name': %w", err)
+		}
+		delete(object, "app_package_name")
+	}
+
+	if raw, found := object["sha256_cert_fingerprints"]; found {
+		err = json.Unmarshal(raw, &a.Sha256CertFingerprints)
+		if err != nil {
+			return fmt.Errorf("error reading 'sha256_cert_fingerprints': %w", err)
+		}
+		delete(object, "sha256_cert_fingerprints")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ClientMobileAndroid to handle AdditionalProperties
+func (a ClientMobileAndroid) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AppPackageName != nil {
+		object["app_package_name"], err = json.Marshal(a.AppPackageName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'app_package_name': %w", err)
+		}
+	}
+
+	if a.Sha256CertFingerprints != nil {
+		object["sha256_cert_fingerprints"], err = json.Marshal(a.Sha256CertFingerprints)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'sha256_cert_fingerprints': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ClientMobileIOS. Returns the specified
+// element and whether it was found
+func (a ClientMobileIOS) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ClientMobileIOS
+func (a *ClientMobileIOS) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ClientMobileIOS to handle AdditionalProperties
+func (a *ClientMobileIOS) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["app_bundle_identifier"]; found {
+		err = json.Unmarshal(raw, &a.AppBundleIdentifier)
+		if err != nil {
+			return fmt.Errorf("error reading 'app_bundle_identifier': %w", err)
+		}
+		delete(object, "app_bundle_identifier")
+	}
+
+	if raw, found := object["team_id"]; found {
+		err = json.Unmarshal(raw, &a.TeamId)
+		if err != nil {
+			return fmt.Errorf("error reading 'team_id': %w", err)
+		}
+		delete(object, "team_id")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ClientMobileIOS to handle AdditionalProperties
+func (a ClientMobileIOS) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AppBundleIdentifier != nil {
+		object["app_bundle_identifier"], err = json.Marshal(a.AppBundleIdentifier)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'app_bundle_identifier': %w", err)
+		}
+	}
+
+	if a.TeamId != nil {
+		object["team_id"], err = json.Marshal(a.TeamId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'team_id': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for ConnectionOptionsEmail. Returns the specified
 // element and whether it was found
@@ -16305,89 +16535,6 @@ func (a *MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) Unmarsh
 
 // Override default JSON handling for MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item to handle AdditionalProperties
 func (a MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	if a.Id != nil {
-		object["id"], err = json.Marshal(a.Id)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'id': %w", err)
-		}
-	}
-
-	if a.Type != nil {
-		object["type"], err = json.Marshal(a.Type)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'type': %w", err)
-		}
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item. Returns the specified
-// element and whether it was found
-func (a MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item
-func (a *MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item to handle AdditionalProperties
-func (a *MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["id"]; found {
-		err = json.Unmarshal(raw, &a.Id)
-		if err != nil {
-			return fmt.Errorf("error reading 'id': %w", err)
-		}
-		delete(object, "id")
-	}
-
-	if raw, found := object["type"]; found {
-		err = json.Unmarshal(raw, &a.Type)
-		if err != nil {
-			return fmt.Errorf("error reading 'type': %w", err)
-		}
-		delete(object, "type")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item to handle AdditionalProperties
-func (a MFAUpdateAuthenticationMethodResponse_AuthenticationMethods_Item) MarshalJSON() ([]byte, error) {
 	var err error
 	object := make(map[string]json.RawMessage)
 
@@ -20083,6 +20230,9 @@ type ServerInterface interface {
 	// PreviewTenantBranding Preview tenant Universal Login branding.
 	// (POST /api/system/tenants/{tenant}/branding/preview)
 	PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string)
+	// GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
+	// (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
+	GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
@@ -20092,6 +20242,12 @@ type ServerInterface interface {
 	// TestTenantEmail Send a saved tenant email template to the verified operator.
 	// (POST /api/system/tenants/{tenant}/emails/test)
 	TestTenantEmail(w http.ResponseWriter, r *http.Request, tenant string)
+	// GetTenantRoamingUVSettings Read security-key user verification policy
+	// (GET /api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings)
+	GetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request, tenant string)
+	// SetTenantRoamingUVSettings Set security-key user verification policy
+	// (PUT /api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings)
+	SetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request, tenant string)
 	// GetTenantJobs List a tenant's jobs
 	// (GET /api/system/tenants/{tenant}/jobs)
 	GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams)
@@ -21037,6 +21193,12 @@ func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
+// (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
+func (_ Unimplemented) GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // TryConnectionScript Try a custom database script
 // (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 func (_ Unimplemented) TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string) {
@@ -21052,6 +21214,18 @@ func (_ Unimplemented) PreviewTenantEmail(w http.ResponseWriter, r *http.Request
 // TestTenantEmail Send a saved tenant email template to the verified operator.
 // (POST /api/system/tenants/{tenant}/emails/test)
 func (_ Unimplemented) TestTenantEmail(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantRoamingUVSettings Read security-key user verification policy
+// (GET /api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings)
+func (_ Unimplemented) GetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetTenantRoamingUVSettings Set security-key user verification policy
+// (PUT /api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings)
+func (_ Unimplemented) SetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request, tenant string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -23153,6 +23327,41 @@ func (siw *ServerInterfaceWrapper) PreviewTenantBranding(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// GetTenantPasskeyPrerequisites operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantPasskeyPrerequisites(w, r, tenant, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // TryConnectionScript operation middleware
 func (siw *ServerInterfaceWrapper) TryConnectionScript(w http.ResponseWriter, r *http.Request) {
 
@@ -23240,6 +23449,58 @@ func (siw *ServerInterfaceWrapper) TestTenantEmail(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.TestTenantEmail(w, r, tenant)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantRoamingUVSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantRoamingUVSettings(w, r, tenant)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetTenantRoamingUVSettings operation middleware
+func (siw *ServerInterfaceWrapper) SetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetTenantRoamingUVSettings(w, r, tenant)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -33357,6 +33618,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/system/operators/{id}", wrapper.UpdateOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites", wrapper.GetTenantPasskeyPrerequisites)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings", wrapper.GetTenantRoamingUVSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings", wrapper.SetTenantRoamingUVSettings)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/log-streams/status", wrapper.GetTenantLogStreamStatus)

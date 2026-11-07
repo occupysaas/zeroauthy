@@ -1,17 +1,24 @@
 package mgmt
 
 import (
+	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mfarules"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 	"github.com/zeroauthy/zeroauthy/internal/webauthn"
+	"github.com/zeroauthy/zeroauthy/internal/webauthnrules"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -44,10 +51,23 @@ func methodJSON(a store.Authenticator) map[string]any {
 		if a.PhoneMethod != "" {
 			out["preferred_authentication_method"] = a.PhoneMethod
 		}
-	case "webauthn-roaming", "webauthn-platform":
+	case "passkey", "webauthn-roaming", "webauthn-platform":
 		out["key_id"] = base64.RawURLEncoding.EncodeToString(a.CredentialID)
 		out["public_key"] = base64.RawURLEncoding.EncodeToString(a.PublicKey)
 		out["relying_party_identifier"] = a.RPID
+	}
+	if a.Type == "passkey" {
+		delete(out, "confirmed")
+		var data struct {
+			BE bool `json:"backup_eligible"`
+			BS bool `json:"backed_up"`
+		}
+		_ = json.Unmarshal(a.PublicData, &data)
+		out["credential_device_type"] = "single_device"
+		if data.BE {
+			out["credential_device_type"] = "multi_device"
+		}
+		out["credential_backed_up"] = data.BS
 	}
 	return out
 }
@@ -121,7 +141,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 		out := []any{}
 		if route.Operation == "GetUserEnrollments" {
 			for _, a := range all {
-				if a.Confirmed {
+				if a.Confirmed && a.Type != "passkey" {
 					out = append(out, enrollmentJSON(publicPhone(r, a)))
 				}
 			}
@@ -156,20 +176,38 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 	var out any
 	status := 204
 	code := "gd_unenroll"
+	passkeyChange := false
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		// Same user lock as service enrollment/proof commits: replace-all,
 		// regeneration and deletions serialize with concurrent authenticators.
-		if _, e := tx.Users().GetForUpdate(r.Context(), tid, uid); e != nil {
+		current, e := tx.Users().GetForUpdate(r.Context(), tid, uid)
+		if e != nil {
 			return e
 		}
 		repo := tx.MFA()
 		switch route.Operation {
 		case "CreateAuthenticationMethods":
-			a, e := h.newMethod(tid, uid, body.(map[string]any))
+			b := body.(map[string]any)
+			var a store.Authenticator
+			var e error
+			if b["type"] == "passkey" {
+				a, e = h.newPasskey(r.Context(), tx, resolved(r), current, b)
+				passkeyChange = true
+			} else {
+				a, e = h.newMethod(tid, uid, b)
+			}
 			if e != nil {
 				return e
 			}
-			if e = repo.CreateAuthenticator(r.Context(), &a); e != nil {
+			if a.Type == "passkey" {
+				e = tx.WebAuthn().CreatePasskey(r.Context(), &a, webauthnrules.Limits.MaxPasskeys)
+				if errors.Is(e, store.ErrPrecondition) {
+					return badBody("passkey enrollment limit reached")
+				}
+			} else {
+				e = repo.CreateAuthenticator(r.Context(), &a)
+			}
+			if e != nil {
 				return e
 			}
 			out = methodJSON(publicPhone(r, a))
@@ -210,6 +248,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 			if e != nil {
 				return e
 			}
+			passkeyChange = a.Type == "passkey"
 			patch := body.(map[string]any)
 			if v, ok := patch["name"]; ok {
 				if utf8.RuneCountInString(v.(string)) > 20 {
@@ -218,21 +257,34 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 				a.Name = v.(string)
 			}
 			if v, ok := patch["preferred_authentication_method"]; ok {
+				if passkeyChange {
+					return store.ErrInvalid
+				}
 				a.PhoneMethod = v.(string)
 			}
 			if e = repo.UpdateAuthenticator(r.Context(), a); e != nil {
 				return e
 			}
 			view := methodJSON(publicPhone(r, *a))
-			for _, key := range []string{"credential_device_type", "credential_backed_up", "identity_user_id", "user_agent", "user_handle", "transports", "last_auth_at"} {
-				delete(view, key)
+			if !passkeyChange {
+				for _, key := range []string{"credential_device_type", "credential_backed_up", "identity_user_id", "user_agent", "user_handle", "transports", "last_auth_at"} {
+					delete(view, key)
+				}
 			}
 			out = view
 			status = 200
 			code = "gd_update_device_account"
 		case "DeleteAuthenticationMethod":
+			a, e := repo.GetAuthenticator(r.Context(), tid, uid, id)
+			if e != nil {
+				return e
+			}
+			passkeyChange = a.Type == "passkey"
 			if e := repo.DeleteAuthenticator(r.Context(), tid, uid, id); e != nil {
 				return e
+			}
+			if passkeyChange {
+				return nil
 			}
 			return repo.BumpRememberEpoch(r.Context(), tid, uid)
 		case "DeleteAuthenticationMethods", "DeleteUserAuthenticators":
@@ -265,7 +317,7 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 			old := ""
 			hasFactor := false
 			for _, a := range all {
-				if a.Confirmed && a.Type != "recovery-code" {
+				if a.Confirmed && a.Type != "recovery-code" && a.Type != "passkey" {
 					hasFactor = true
 				}
 				if a.Type == "recovery-code" {
@@ -291,7 +343,9 @@ func (h *Handlers) userMFA(w http.ResponseWriter, r *http.Request, route mfarule
 		h.mfaFail(w, r, err)
 		return
 	}
-	h.domainEvent(r, code, u, nil, nil)
+	if !passkeyChange {
+		h.domainEvent(r, code, u, nil, nil)
+	}
 	logDetails(r, "manage user authentication methods", "user_id", uid, "operation", route.Operation)
 	if status == 204 {
 		w.WriteHeader(status)
@@ -305,6 +359,9 @@ func enrollmentJSON(a store.Authenticator) map[string]any {
 		id = v
 	}
 	out := map[string]any{"id": id, "status": "confirmed", "identifier": a.Email, "enrolled_at": userTime(a.CreatedAt)}
+	if a.Type == "webauthn-roaming" || a.Type == "webauthn-platform" {
+		out["auth_method"] = a.Type
+	}
 	if a.Name != "" {
 		out["name"] = a.Name
 	}
@@ -322,7 +379,7 @@ func (h *Handlers) guardianEnrollment(w http.ResponseWriter, r *http.Request, id
 	// or a walk over the tenant's users.
 	tid := resolved(r).ID
 	a, err := h.Store.MFA().GetAuthenticatorByEnrollmentID(r.Context(), tid, id)
-	if err == nil && !a.Confirmed {
+	if err == nil && (!a.Confirmed || a.Type == "passkey") {
 		err = store.ErrNotFound
 	}
 	if err != nil {
@@ -366,4 +423,150 @@ func publicPhone(r *http.Request, a store.Authenticator) store.Authenticator {
 func validStoredCOSE(raw []byte) bool {
 	_, err := webauthn.ParseCOSEKey(raw)
 	return err == nil
+}
+
+// webAuthnAvailable negotiates before accepting capability-dependent fields.
+// A failed negotiation is different from the explicit absence of the feature.
+func webAuthnAvailable(ctx context.Context, st store.Store) (bool, error) {
+	if cap, ok := st.(store.WebAuthnSupporter); ok {
+		if err := cap.CheckWebAuthnSupport(ctx); err != nil {
+			if errors.Is(err, store.ErrWebAuthnUnavailable) {
+				return false, nil
+			}
+			return false, err
+		}
+		return cap.WebAuthnSupported(), nil
+	}
+	switch st.WebAuthn().(type) {
+	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
+		return false, nil
+	}
+	return true, nil
+}
+
+func (h *Handlers) newPasskey(ctx context.Context, tx store.Store, tn *store.Tenant, u *store.User, b map[string]any) (store.Authenticator, error) {
+	a := store.Authenticator{TenantID: tn.ID, UserID: u.UserID, ID: "passkey|dev_" + secrets.RandomString(20), Type: "passkey", Confirmed: true, LastStep: -1, CreatedAt: h.now()}
+	available, err := webAuthnAvailable(ctx, h.Store)
+	if err != nil {
+		return a, err
+	}
+	if !available {
+		return a, store.ErrWebAuthnUnavailable
+	}
+	text := func(k string) string { v, _ := b[k].(string); return v }
+	a.Name = text("name")
+	if utf8.RuneCountInString(a.Name) > webauthnrules.Limits.NicknameMax {
+		return a, store.ErrInvalid
+	}
+	a.CredentialID, err = decodeMFAKey(text("key_id"))
+	if err != nil || len(a.CredentialID) > webauthnrules.Limits.CredentialIDMax {
+		return a, store.ErrInvalid
+	}
+	a.PublicKey, err = decodeMFAKey(text("public_key"))
+	if err != nil || !validStoredCOSE(a.PublicKey) {
+		return a, store.ErrInvalid
+	}
+	a.RPID = text("relying_party_identifier")
+	if a.RPID == "" {
+		host := tn.CanonicalHost
+		did, e := tx.CustomDomains().GetDefault(ctx, tn.ID)
+		if e != nil {
+			return a, e
+		}
+		if did != "" {
+			d, e := tx.CustomDomains().Get(ctx, tn.ID, did)
+			if e != nil {
+				return a, e
+			}
+			host = d.Domain
+		}
+		policy := rpid.Policy{BaseDomain: h.BaseDomain, SystemHost: h.SystemHost, RestrictShared: h.RestrictSharedRPIDs, Store: tx}
+		if h.Domains != nil {
+			policy.OriginSuffix = h.Domains.Reserved().OriginSuffix
+		}
+		rp, e := policy.For(ctx, tenant.Resolved{Tenant: tn, Host: host})
+		if e != nil {
+			return a, e
+		}
+		if !rp.Valid {
+			return a, store.ErrInvalid
+		}
+		a.RPID = rp.RPID
+	}
+	parsed, e := url.Parse("https://" + a.RPID)
+	if e != nil || a.RPID == "" || len(a.RPID) > webauthnrules.Limits.RPIDMax || parsed.Host != a.RPID || parsed.Hostname() != a.RPID || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" || strings.ContainsAny(a.RPID, " *@") {
+		return a, store.ErrInvalid
+	}
+	identityID := text("identity_user_id")
+	if _, supplied := b["identity_user_id"]; supplied && identityID == "" {
+		return a, store.ErrInvalid
+	}
+	if identityID == "" {
+		if id := u.OwnIdentity(); id != nil && id.Provider == store.StrategyDatabase {
+			identityID = id.UserID
+		} else {
+			for _, id := range u.Identities {
+				if id.Provider == store.StrategyDatabase {
+					identityID = id.UserID
+					break
+				}
+			}
+		}
+	}
+	if identityID == "" || !slices.ContainsFunc(u.Identities, func(id store.Identity) bool { return id.Provider == store.StrategyDatabase && id.UserID == identityID }) {
+		return a, store.ErrInvalid
+	}
+	public := map[string]any{"identity_user_id": identityID, "backup_eligible": text("credential_device_type") == "multi_device"}
+	for _, k := range []string{"aaguid", "user_agent", "transports"} {
+		if v, ok := b[k]; ok {
+			public[k] = v
+		}
+	}
+	if utf8.RuneCountInString(text("user_agent")) > 4096 {
+		return a, store.ErrInvalid
+	}
+	backed, _ := b["credential_backed_up"].(bool)
+	public["backed_up"] = backed
+	handle := text("user_handle")
+	if _, supplied := b["user_handle"]; supplied && handle == "" {
+		return a, store.ErrInvalid
+	}
+	if handle == "" {
+		all, e := tx.MFA().ListAuthenticators(ctx, tn.ID, u.UserID)
+		if e != nil {
+			return a, e
+		}
+		slices.SortFunc(all, func(a, b store.Authenticator) int {
+			if c := a.CreatedAt.Compare(b.CreatedAt); c != 0 {
+				return c
+			}
+			return strings.Compare(a.ID, b.ID)
+		})
+		for _, existing := range all {
+			if existing.Type == "passkey" {
+				var p struct {
+					Handle string `json:"user_handle"`
+				}
+				if json.Unmarshal(existing.PublicData, &p) != nil || p.Handle == "" {
+					return a, store.ErrInvalid
+				}
+				handle = p.Handle
+				break
+			}
+		}
+		if handle == "" {
+			raw := make([]byte, webauthnrules.Limits.UserHandleBytes)
+			if _, e = rand.Read(raw); e != nil {
+				return a, e
+			}
+			handle = base64.RawURLEncoding.EncodeToString(raw)
+		}
+	}
+	raw, e := decodeMFAKey(handle)
+	if e != nil || len(raw) != webauthnrules.Limits.UserHandleBytes {
+		return a, store.ErrInvalid
+	}
+	public["user_handle"] = base64.RawURLEncoding.EncodeToString(raw)
+	a.PublicData, err = json.Marshal(public)
+	return a, err
 }

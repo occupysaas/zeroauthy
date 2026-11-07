@@ -2894,3 +2894,61 @@ hosted final handler supplies that marker only after proof; the original Action
 effects remain unchanged. Consent retains it in server state tied to the same
 session MFA timestamp. Cost: an internal completion argument and consent-state
 field, with no public API or schema change.
+
+### D-0062 Task 14 — Management imports and native client schema
+
+The public Management OpenAPI fetched for Task14 on 2026-11-06
+(`https://auth0.com/docs/oas/management/v2/management-api-oas.json`, retained
+SHA-256 `bda18e1169f3b8aec18a0d9385e6f8d5c34dd69a24cb3509fefc0a336f6e7aac`)
+defines `ClientMobile`, `ClientMobileiOS` and `ClientMobileAndroid` as objects
+with `additionalProperties: true`. Team, bundle and package IDs are strings
+with empty-string defaults. A supplied fingerprint array has at least one
+entry, and each entry is a string of at least one character. None of these
+fields has a format or pattern constraint. The controller therefore resolved
+the task brief's request for fingerprint/team/bundle format validation in favor
+of those actual schema constraints. Empty or unusual string IDs and short
+nonempty fingerprints may be stored; unknown properties are accepted and
+ignored. Supplied known platform children must be objects. `mobile: null` is
+refused; an empty object replaces the native settings with no platforms.
+Omission preserves them on PATCH. Without `webauthn.v1`, mobile is ignored
+before validation, preserving old-plugin behavior. Negotiation errors propagate.
+Cost: accepted settings can be unusable for native passkeys. `NativeOrigins`
+already skips fingerprints that cannot represent a SHA-256 certificate; Task15
+must similarly omit unusable association identities rather than trust them.
+No identifier or fingerprint regex was added to the Management boundary.
+
+Passkey imports require a bounded credential ID and a COSE public key accepted
+by the verifier. An explicit user handle must decode to 32 bytes; omission
+reuses the oldest credential's handle (ID breaks timestamp ties), or creates a
+random handle. Existing linked handles are preserved. Explicit empty handles
+or identity IDs are invalid. The identity is a raw database identity `user_id`,
+matching the existing passkey service; it must belong to this user's database
+identities. Omission prefers the own database identity, then the first linked
+database identity in stored order. Cost: a user with multiple database identities
+should supply the intended identity explicitly. Imported user-agent text is
+capped at 4096 characters; the remaining public metadata uses the documented
+schema and request-size bounds. Cost: unusually large user-agent imports are
+refused. An omitted RP ID uses the default custom domain's effective RP ID or
+the canonical host. An invalid configured default fails closed. An explicit
+foreign RP ID is retained for credential portability and listing; ceremonies
+still enforce their actual RP ID and exact origins.
+
+Create uses the store's atomic 20-passkey limit and tenant credential uniqueness.
+The limit maps to `400 invalid_body`, duplicates to 409, and unavailable
+WebAuthn storage to `501 webauthn_unavailable`. Linking moves credentials inside
+the existing identity transaction before secondary deletion; unlinking moves
+only credentials for that raw identity ID. Neither operation changes saved
+handles or credential metadata. Passkey create, rename and deletion emit no
+Guardian domain or `user.updated` resource event. Ordinary Management `sapi`
+audit logging remains in force and scrubs credential fields. MFA-only bulk
+operations, enrollments, multifactor projection and recovery eligibility exclude
+passkeys. Session methods expose the saved names, optional factor types and
+timestamps; legacy sessions retain the password projection.
+
+Task1's deferred schemas now cover passkey Management types, native mobile
+settings and the two existing operator-only system extensions. The client grant
+list already uses open strings, so the accepted passkey grant is documented
+without narrowing that schema. Generated adapters apply the extensions' existing
+scope intent, replacing their temporary direct registrations. These extensions
+have no invented `/api/v2` counterparts. Native endpoints and association files
+remain Task15, Actions projections Task16, and console/seed work later tasks.

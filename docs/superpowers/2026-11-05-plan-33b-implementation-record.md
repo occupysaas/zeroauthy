@@ -654,3 +654,76 @@ Task13 completion. No full/broad suites, extra audits/agents, push or merge.
 Task19 broad/dialect/real-browser/hardware checks remain deferred and are not
 passing. Final scoped commit metadata is supplied after creation in the retained
 workspace report/ledger and handoff.
+
+## Task 14 — Management passkeys, linked credentials and native settings
+
+Implementation based on `4e7b89cb39b41de8ef50e6b06a39e05f3c63a4d2` in isolated
+branch `plan-33b-passkeys`. The authorized predecessor test file was preserved
+and extended. Retained workspace evidence is under
+`.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/`; details and
+actual outcomes are collected in `task-14-report.md`.
+
+The initial predecessor RED log contains six missing-feature failures. The
+resumed expanded RED (`task-14-red-2.log/.exit`, session48164, actual exit1)
+confirms all nine top-level checks fail on the baseline. Tests correct the
+predecessor's full-user-ID identity fixtures to the raw identity convention and
+replace invented mobile regex expectations with the fetched public schema.
+D-0062 and the shared contract record the public OAS hash, controller ruling,
+compatibility costs and Task15 fail-closed association requirement.
+
+Passkey create uses the atomic store API after the user lock; it validates COSE,
+identity ownership and handle length, applies default RP and stable-handle
+selection, and maps limits/conflicts/capability errors. List/get/rename project
+only documented credential fields, with BE/BS-derived flags. MFA-only operations
+and recovery eligibility exclude passkeys. Passkey changes suppress Guardian and
+resource events while retaining normal scrubbed Management audit logs. Linking
+moves credentials before deletion in the existing transaction; unlinking moves
+only the selected identity's credentials, preserving saved handles. Tests cover
+real assertions before/after unlink and injected post-move transaction failures.
+Session views expose recorded proofs and preserve the legacy password view.
+Client mobile settings follow actual schema types/defaults/minimum lengths and
+are ignored before validation on old plugins. Passkey grant accepted. Deferred
+system-extension/mobile/passkey schemas generated with `make generate`; no
+hand-edited generated files.
+
+Verification in progress at source/test tree
+`badb9e057b3aa9c8ec8a1a6df050e0e51d3800e3` (`task-14-final-code-tree.txt`),
+focused session29661. `task-14-generate-final.log/.exit` actual exit0. Initial
+generation failed on an implementation YAML indentation error, corrected before
+successful generation. First green found two predecessor fixture assumptions:
+MFA.UpdateAuthenticator deliberately does not rewrite saved credential metadata,
+and normal sapi audit logging is expected. Second green found the new linked-login
+fixture had not created a hosted-login configuration. These are disclosed fixture
+failures, not passing results. Additional empty-handle RED reproduced an invalid
+explicit empty handle being defaulted; the empty-identity and limit failures in
+that run also reflect the unintended insert. Both explicit empties are now
+validated and failed subtests use distinct credential IDs.
+
+REVIEW PENDING. No full repository suite, broad browser suite, subagents, push or
+merge. Task19 dialect/browser/hardware verification is deferred and not passing.
+
+Task14 final verification, unchanged source/test tree
+`badb9e057b3aa9c8ec8a1a6df050e0e51d3800e3`:
+- focused session29661 `task-14-green-3.log/.exit`: actual exit0,
+  29 PASS/no failures/skips (mgmt20, clientrules2, server2, api3, mfarules2).
+- final chain61023, `task-14-affected.log/.exit`: actual exit0,
+  1,048 PASS/no failures/skips (mgmt877, clientrules5, session17, passkey34,
+  mfarules4, events94, api17). resourceview has no standalone test files; its
+  new projection is verified through Management sessions.
+- `task-14-server.log/.exit`: actual exit0, 61 PASS/no failures/skips in selected
+  Management HTTP integration checks.
+- `task-14-race.log/.exit`: actual exit0, 23 PASS/no failures/skips or race
+  reports (mgmt20, clientrules2, events1). Every selected package ran tests.
+
+Exact commands and prior failure/fixture details remain in task-14-report.md.
+Source comparison against the recorded final tree is empty for api/internal.
+Whitespace and gofmt checks pass; Management provenance script exit0. Self-review
+checked the Task14 requirements, atomic limits/uniqueness, database-identity
+ownership, stable handles and RP defaults, public projection and event isolation,
+link/unlink rollback and live login resolution, legacy session fallback, mobile
+schema/old-plugin handling and generated system-extension routing/scopes. No
+known remaining Task14 finding. IMPLEMENTATION VERIFIED / REVIEW PENDING.
+No full repository, SQL matrix, broad browser/hardware, console, seed or native
+endpoint tests were run for this task. Later plan coverage remains deferred and
+is not called passing. No subagents, push or merge. Commit metadata follows in
+workspace report/ledger and handoff; controller owns review and completion.

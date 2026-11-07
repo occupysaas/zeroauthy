@@ -395,12 +395,6 @@ func New(d Deps) http.Handler {
 		RestrictSharedRPIDs:    d.RestrictSharedRPIDs,
 	}
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
-	for _, method := range []string{"GET", "PUT"} {
-		mr.MethodFunc(method, "/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings", func(w http.ResponseWriter, r *http.Request) { mh.RoamingUVSettings(w, r, chi.URLParam(r, "tenant")) })
-	}
-	mr.Get("/api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites", func(w http.ResponseWriter, r *http.Request) {
-		mh.PasskeyPrerequisites(w, r, chi.URLParam(r, "tenant"), chi.URLParam(r, "id"))
-	})
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}
 	}

@@ -1007,3 +1007,13 @@ func (a mgmtAPI) GetPhoneProviderProtection(w http.ResponseWriter, r *http.Reque
 func (a mgmtAPI) UpdatePhoneProviderProtection(w http.ResponseWriter, r *http.Request) {
 	a.liveScoped(w, r, a.h.UpdatePhoneProviderProtection, "update:attack_protection")
 }
+
+func (a mgmtAPI) GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PasskeyPrerequisites(w, r, tenant, id) }, "read:connections")
+}
+func (a mgmtAPI) GetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request, tenant string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RoamingUVSettings(w, r, tenant) }, "read:guardian_factors")
+}
+func (a mgmtAPI) SetTenantRoamingUVSettings(w http.ResponseWriter, r *http.Request, tenant string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RoamingUVSettings(w, r, tenant) }, "update:guardian_factors")
+}

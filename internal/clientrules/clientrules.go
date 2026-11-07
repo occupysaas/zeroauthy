@@ -31,13 +31,15 @@ const (
 	GrantMFARecoveryCode   = "http://auth0.com/oauth/grant-type/mfa-recovery-code"
 	// GrantPasswordlessOTP exchanges a passwordless email or SMS code (Plan 34).
 	GrantPasswordlessOTP = "http://auth0.com/oauth/grant-type/passwordless/otp"
+	// GrantPasskey exchanges a native WebAuthn assertion.
+	GrantPasskey = "urn:okta:params:oauth:grant-type:webauthn"
 )
 
 // GrantTypes lists every grant type a client may name.
 var GrantTypes = []string{
 	GrantAuthorizationCode, GrantImplicit, GrantRefreshToken, GrantClientCredentials,
 	GrantPassword, GrantPasswordRealm, GrantDeviceCode,
-	GrantMFAOOB, GrantMFAOTP, GrantMFARecoveryCode, GrantPasswordlessOTP,
+	GrantMFAOOB, GrantMFAOTP, GrantMFARecoveryCode, GrantPasswordlessOTP, GrantPasskey,
 }
 
 // AppTypes lists the application types.
@@ -67,6 +69,8 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // Spec is a client's settings. Empty strings and nil pointers mean "the
 // default", which Normalize fills in.
 type Spec struct {
+	// Mobile configures native app associations.
+	Mobile                  *store.ClientMobile
 	InitiateLoginURI        string
 	Name                    string
 	AppType                 string
@@ -374,6 +378,7 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 // Apply copies a normalized s into c. It leaves the identity (tenant,
 // client ID, creation time, origin) and the secrets alone.
 func Apply(c *store.Client, s *Spec) {
+	c.Mobile = s.Mobile.Clone()
 	c.InitiateLoginURI = s.InitiateLoginURI
 	c.Name, c.AppType = s.Name, store.AppType(s.AppType)
 	c.TokenEndpointAuthMethod = s.TokenEndpointAuthMethod
@@ -405,6 +410,7 @@ func Apply(c *store.Client, s *Spec) {
 func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
+		Mobile:           c.Mobile.Clone(),
 		InitiateLoginURI: c.InitiateLoginURI, Name: c.Name, AppType: string(c.AppType),
 		TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
 		GrantTypes:              slices.Clone(c.GrantTypes),

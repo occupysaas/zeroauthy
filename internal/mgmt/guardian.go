@@ -182,6 +182,8 @@ func mfaText(v any) bool {
 }
 func (h *Handlers) mfaFail(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
+	case errors.Is(err, store.ErrWebAuthnUnavailable):
+		Fail(w, &Error{Status: 501, Code: "webauthn_unavailable", Message: "WebAuthn is unavailable"})
 	case errors.Is(err, store.ErrMFAUnavailable):
 		Fail(w, errMFAUnavailable)
 	case errors.Is(err, store.ErrNotFound):
