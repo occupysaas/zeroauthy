@@ -3037,3 +3037,27 @@ cannot become an empty string through map[string]string decoding. Both JSON and
 form encodings follow the same check; ordinary empty strings remain permitted.
 Cost: a local normalization/validation step and strict value type check, with no
 schema, store or generated adapter change.
+
+### D-0062 Task 16 — Actions session and enrollment regression boundary
+
+Task15 already supplied the K11 first-factor projection, and the Actions factor
+inventory and producer already support both WebAuthn MFA types. Task16 retains
+those implementations and adds consumer regressions rather than replacing code
+to manufacture a failing test. The named plan tests initially pass against the
+Task15 implementation; this is existing-behavior evidence, not a RED/GREEN fix.
+Cost: no production change, with additional real Node-runner tests to maintain.
+
+Actions list recorded pwd/passkey/federated/email/sms methods with their exact
+timestamps, followed by one MFA entry only when MFAAt records completed proof.
+Legacy sessions gain no inferred first factor; recorded MFA entries cannot
+replace MFAAt, and neither an unknown name nor webauthn is emitted (K13).
+Confirmed roaming and platform enrollments expose only their public type;
+pending enrollments and passkeys are omitted. Continuations reload the live
+session and enrolled factors while retaining earlier Action challenge effects.
+
+The scoped hosted regression supplements the planned Actions-package check:
+with the same enrolled account and mandatory OTP policy, a real Action skips MFA
+after a proven passkey login and leaves password login challenged. Enrollment
+or a submitted passkey flag cannot select the skip. Neither branch marks the
+first-factor session as MFA. Cost: one narrow hosted integration test beyond the
+plan's file list; there is no new wire, store, schema or runner contract.

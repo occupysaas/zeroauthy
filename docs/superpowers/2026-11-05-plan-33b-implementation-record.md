@@ -905,3 +905,45 @@ existence/atomic persistence, inactive behavior and strict metadata string value
 IMPLEMENTATION VERIFIED / SCOPED RE-REVIEW PENDING. Controller owns acceptance.
 No subagents, SQL rerun, unchanged-package/broad/full repository suite, push or
 merge. Earlier Task15 evidence and Task19 deferrals retain their original status.
+
+### Task16 — Actions session methods and WebAuthn enrollment regressions
+
+Base `dd36b4e6beff276cb7b3192b508b58c470062792`. Exact Task16 brief,
+global/shared constraints, Task15 handoff, spec §§8.1/14a K11/K13/LR33b-12,
+CLEAN_ROOM and AGENTS read. Task15 already implemented the K11 producer;
+prior MFA work already supports confirmed roaming/platform factors and inventory.
+Ruling: retain existing producers; the named tests initially pass rather than
+manufacturing RED or production churn. Cost: test maintenance, no runtime change.
+Ruling: add a narrow hosted integration beyond the planned production file list
+with controller authorization, proving actual passkey skip/password challenge.
+Cost: one extra test file, no wire/store/schema/runner interface. D-0062 and
+progress.md preserve both rulings.
+
+Added required named tests for all five first factors and exact timestamps/order,
+MFAAt-only/deduplicated MFA, legacy/nil/unknown/K13 exclusions, strict public factor
+shapes and pending/passkey omission. Continuation regression uses the live session
+MFA timestamp/new factors and retains previous roaming challenge effects. Real
+Node Action plus policy test and real hosted software-authenticator/password flow
+prove conditional enable("none"): passkey obtains code, password redirects to MFA
+despite forged passkey input, and neither first factor marks MFA. Production,
+runner, inventories and generated artifacts remain unchanged.
+
+Verified source/test tree `abd955d73a99b1849af79304df462bcff6c0e8c8`, unchanged
+through all runs. Every Go command uses `GOTOOLCHAIN=go1.26.10 ZA_REQUIRE_NODE=1
+TMPDIR=/mnt/nvme2/tmp GOTMPDIR=/mnt/nvme2/tmp`, `-count=1 -timeout=15m`:
+- Focused session11770: `go test -json ./internal/actions -run 'AuthenticationMethods|EnrolledFactorsWebAuthn|SkipMFAAfterPasskey' -count=1 -timeout=15m`, actual exit0,21PASS/0FAIL/0SKIP.
+- Hosted session85331: `go test -json ./internal/login -run '^TestHostedSkipMFAAfterPasskeyAction$' -count=1 -timeout=15m`, actual exit0,3PASS/0FAIL/0SKIP.
+- Full Actions session66072: `go test -json ./internal/actions -count=1 -timeout=15m`, actual exit0,309PASS/0FAIL/0SKIP,37.453s package elapsed.
+Counts include parent/subtests. All selected packages executed tests. No failing
+or skipped attempt, compile error, suite rerun or RED/GREEN fix is claimed.
+Full named logs/exits/commands and snapshot identity are retained beside
+`.superpowers/sdd/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn/task-16-report.md`.
+One implementer owned the once-started full Actions handle/blocking completion;
+no second monitor or live-log scanner. No subagents/full-repo/broad E2E/SQL/push/merge.
+Task19 matrices and later browser/hardware acceptance remain deferred, not passing.
+
+Scoped author self-review covered plan alignment, public data boundaries, exact
+session timestamp semantics, continuation freshness/effect preservation and real
+hosted policy outcomes. No known remaining scoped issue. Gofmt and staged/unstaged
+diff checks pass; source comparison to verified tree is empty. IMPLEMENTATION
+VERIFIED / REVIEW PENDING. Controller owns independent review and acceptance.
