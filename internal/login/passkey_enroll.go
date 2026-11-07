@@ -126,7 +126,7 @@ func (h *Handlers) renderEnrollment(w http.ResponseWriter, r *http.Request, stat
 		h.fail(w, r, err, f)
 		return
 	}
-	d := ui.SignupData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Error: message, HostedRevision: hostedRevision(f), EnrollmentKind: kind, EnrollmentAction: "/u/" + stage, Passkey: &ui.WebAuthnData{Operation: "create", ChallengeID: issued.ID, PublicKey: raw, Mediation: "button", Enrollment: kind}}
+	d := ui.SignupData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Error: message, HostedRevision: hostedRevision(f), RedirectURI: f.txn.Params["redirect_uri"], EnrollmentKind: kind, EnrollmentAction: "/u/" + stage, Passkey: &ui.WebAuthnData{Operation: "create", ChallengeID: issued.ID, PublicKey: raw, Mediation: "button", Enrollment: kind}}
 	ui.RenderSignupStage(w, status, stage, f.view, d)
 }
 

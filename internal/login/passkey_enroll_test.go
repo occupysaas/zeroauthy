@@ -591,3 +591,19 @@ func TestProgressiveEnrollmentInvitationWaitsForVerification(t *testing.T) {
 		t.Fatalf("invitation membership: %v %v", member, err)
 	}
 }
+
+// The enrollment pages' forms redirect straight to the client callback, and
+// browsers apply form-action across that redirect: the client's origin must
+// be allowed, or "Continue" and "Create a passkey" never return to the app.
+func TestEnrollmentPagesAllowClientOriginInFormAction(t *testing.T) {
+	want := "form-action 'self' https://app.acme.test;"
+	_, b, _ := enrollmentEnv(t, false)
+	loc := passwordEnrollment(t, b)
+	if csp := b.do(t, "GET", loc, nil).Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+		t.Errorf("progressive enrollment CSP %q lacks %q", csp, want)
+	}
+	_, lb, _, local := localEnrollment(t, "cross-platform", true)
+	if csp := lb.do(t, "GET", local, nil).Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+		t.Errorf("local enrollment CSP %q lacks %q", csp, want)
+	}
+}
