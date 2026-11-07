@@ -152,6 +152,16 @@ func New(cfg Config, log *slog.Logger) (*Pool, error) {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("noderunner: %w", err)
 	}
+	// Run the script by its real path. Loading it, Node resolves the path and
+	// stats every component, so a symlink above dir (macOS: /var ->
+	// /private/var) falls outside the --allow-fs-read grant and the process
+	// exits before it reads a request.
+	resolved, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("noderunner: %w", err)
+	}
+	dir = resolved
 	if err := os.WriteFile(filepath.Join(dir, "guard.mjs"), guardJS, 0o600); err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("noderunner: %w", err)
