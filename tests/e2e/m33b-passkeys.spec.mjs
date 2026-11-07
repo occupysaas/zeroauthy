@@ -220,14 +220,14 @@ test("journey 1: console prerequisites, passkey signup, autofill and button logi
   await expect(editor).toBeVisible();
   await expect(editor).toBeEnabled();
   await editor.fill(JSON.stringify({ universal_login_experience: "new", identifier_first: true }));
-  await editor.locator("xpath=ancestor::form").getByRole("button", { name: /^Save( changes)?$/ }).click({ force: true });
+  await editor.locator("xpath=ancestor::form").getByRole("button", { name: /^Save( changes)?$/ }).click();
   await until(async () => (await api("prompts")).identifier_first === true, "identifier first saved by the console");
   await op.goto(`https://system.e2e.test/admin/t/sdk/connections/${conn}?tab=password`);
   for (const item of ["universal_login", "identifier_first", "username_or_flexible", "custom_db_import", "password_enabled"])
     await expect(op.locator(`[data-prerequisite="${item}"]`)).toContainText("Ready");
-  await op.locator("#passkey-enabled").check({ force: true });
+  await op.locator("#passkey-enabled").check();
   await op.locator("#passkey-ui").selectOption("both");
-  await op.locator("#passkey-settings").getByRole("button", { name: /^Save( changes)?$/ }).click({ force: true });
+  await op.locator("#passkey-settings").getByRole("button", { name: /^Save( changes)?$/ }).click();
   await until(async () => (await api(`connections/${conn}`)).options?.authentication_methods?.passkey?.enabled === true, "passkeys enabled by the console");
   expect((await api(`connections/${conn}`)).options.passkey_options.challenge_ui).toBe("both");
 
@@ -278,7 +278,7 @@ test("journey 1: console prerequisites, passkey signup, autofill and button logi
 
   // The console shows the passkey through its safe projection.
   await op.goto(`https://system.e2e.test/admin/t/sdk/users/${encodeURIComponent(uid)}`);
-  await op.getByRole("tab", { name: "MFA", exact: true }).click({ force: true });
+  await op.getByRole("tab", { name: "MFA", exact: true }).click();
   await expect(op.getByRole("heading", { name: "Passkeys" })).toBeVisible();
   await expect(op.getByText("Synced").first()).toBeVisible({ timeout: 30000 });
   await settle();
