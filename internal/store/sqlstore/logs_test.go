@@ -31,9 +31,7 @@ func TestLogsMigrationFrom27(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := openAtVersion(t, mk(t), 27)
 			ctx := context.Background()
-			if err := s.Tenants().Create(ctx, &store.Tenant{ID: "legacy", Name: "legacy"}); err != nil {
-				t.Fatal(err)
-			}
+			seedLegacyTenant(t, s, "legacy")
 			if err := s.Migrate(ctx); err != nil {
 				t.Fatal(err)
 			}

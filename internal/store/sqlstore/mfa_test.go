@@ -23,7 +23,7 @@ func TestMFAMigrationFrom32(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := openAtVersion(t, mk(t), 32)
 			ctx := context.Background()
-			mustEvent(t, s.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
+			seedLegacyTenant(t, s, "t")
 			u := &store.User{TenantID: "t", UserID: "u"}
 			args, err := userArgs(u)
 			mustEvent(t, err)
@@ -104,7 +104,7 @@ func TestMFAMySQLMigrationResume33(t *testing.T) {
 			mustEvent(t, s.Migrate(t.Context()))
 			version, err = s.SchemaVersion(t.Context())
 			mustEvent(t, err)
-			if version != 34 {
+			if version != s.LatestVersion() {
 				t.Fatal(version)
 			}
 			mustEvent(t, s.Tenants().Create(t.Context(), &store.Tenant{ID: "t", Name: "t"}))
