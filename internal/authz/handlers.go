@@ -23,6 +23,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -39,6 +40,8 @@ const (
 )
 
 type Handlers struct {
+	// Passkeys decides post-MFA enrollment prompts.
+	Passkeys *passkey.Service
 	MFA      *mfa.Service
 	Store    store.Store
 	Sessions *session.Manager
@@ -313,6 +316,12 @@ func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant
 func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, eff *actions.Effects) {
 	params := fr.params()
 	params[ParamStage] = stageConsent
+	if completed, _ := r.Context().Value(mfaCompletedKey{}).(string); completed == sess.ID {
+		params["za_mfa_satisfied"] = sess.MFAAt.Format(time.RFC3339Nano)
+		if factor, _ := r.Context().Value(mfaEnrollmentCompletedKey{}).(string); factor != "" {
+			params["za_mfa_enrollment_factor"] = factor
+		}
+	}
 	params[sessionKey] = sess.ID
 	params["za_log_executions"] = strings.Join(logs.Enrich(r.Context(), logs.Event{}).ExecutionIDs, ",")
 	var prepare func(string, map[string]string) error
@@ -391,6 +400,9 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 	} else {
 		h.EndTxn(w, r, res, txn)
 	}
+	hint, _ := r.Context().Value(passkeyLoginKey{}).(PasskeyLoginHint)
+	hint.Fresh = true
+	*r = *r.WithContext(context.WithValue(r.Context(), passkeyLoginKey{}, hint))
 	// The login or signup page was just shown, so no confirmation (D-0027).
 	h.finish(w, r, res, client, fr, sess, nil, false, true)
 }
@@ -572,10 +584,17 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 		in.Scopes = eff.Target.Scopes
 	}
 	d := access.Decide(in)
-	switch {
-	case d.Err != nil:
+	if d.Err != nil {
 		h.refuse(w, r, res, client, fr, &Error{d.Err.Code, d.Err.Description})
 		return
+	}
+	if h.requireMFA(w, r, res, client, fr, sess, eff) {
+		return
+	}
+	if h.requirePasskeyPrompt(w, r, res, client, fr, sess, eff) {
+		return
+	}
+	switch {
 	case (d.Consent || d.Confirmation) && !accepted:
 		h.startConsent(w, r, res, client, fr, sess, eff)
 		return
@@ -655,6 +674,12 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 	}
 	for _, id := range strings.Split(txn.Params["za_log_executions"], ",") {
 		logs.AddExecution(r.Context(), id)
+	}
+	if txn.Params["za_mfa_satisfied"] != "" && txn.Params["za_mfa_satisfied"] == sess.MFAAt.Format(time.RFC3339Nano) {
+		r = r.WithContext(context.WithValue(r.Context(), mfaCompletedKey{}, sess.ID))
+		if factor := txn.Params["za_mfa_enrollment_factor"]; factor != "" {
+			r = r.WithContext(context.WithValue(r.Context(), mfaEnrollmentCompletedKey{}, factor))
+		}
 	}
 	h.finish(w, r, res, client, fr, sess, eff, true, true)
 }

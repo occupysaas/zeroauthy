@@ -15,6 +15,9 @@ type Requirement struct {
 	Reason                                        string
 	SelectFactor                                  bool
 	PhonePreferredMethod                          string
+	DetectWebAuthn                                bool
+	// PlatformAfterProof requires another factor before explicit biometrics enrollment.
+	PlatformAfterProof bool
 }
 type DecideInput struct {
 	Settings                   *store.GuardianSettings
@@ -30,6 +33,7 @@ type DecideInput struct {
 	// A user with a usable primary factor must complete MFA for it.
 	MFAAPI      bool
 	PhoneEnroll bool
+	WebAuthn    WebAuthnCapabilities
 }
 
 // Decide is shared by hosted authorization and password grants. Only OTP and
@@ -51,7 +55,7 @@ func Decide(in DecideInput) (Requirement, error) {
 	if e != nil && e.Provider == "none" && !apiMFA {
 		return Requirement{}, nil
 	}
-	requested := []string{"otp", "email", "phone", "recovery-code"}
+	requested := []string{"otp", "email", "phone", "webauthn-roaming", "webauthn-platform", "recovery-code"}
 	action := e != nil && e.Provider != "none" && (e.Provider != "" || e.Mode != "")
 	if action {
 		r.Required, r.Reason, r.AllowRemember = true, "action", e.AllowRememberBrowser
@@ -67,7 +71,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			requested = nil
 			for _, group := range e.Factors {
 				for _, f := range group {
-					if f != "otp" && f != "email" && f != "phone" && f != "recovery-code" {
+					if f != "otp" && f != "email" && f != "phone" && f != "recovery-code" && f != "webauthn-roaming" && f != "webauthn-platform" {
 						return r, ErrNoFactor
 					}
 					if !slices.Contains(requested, f) {
@@ -81,7 +85,7 @@ func Decide(in DecideInput) (Requirement, error) {
 			case "google-authenticator":
 				requested = []string{"otp"}
 			case "guardian":
-				requested = []string{"otp", "phone", "recovery-code"}
+				requested = []string{"otp", "phone", "webauthn-roaming", "webauthn-platform", "recovery-code"}
 			default:
 				return r, ErrNoFactor
 			}
@@ -104,14 +108,42 @@ func Decide(in DecideInput) (Requirement, error) {
 	if !r.Required {
 		return r, nil
 	}
+	// A sole explicit biometrics target requires another factor's proof first.
+	// Mixed enrollment alternatives keep their requested choices until selection.
+	if r.Enroll && len(requested) == 1 && requested[0] == "webauthn-platform" {
+		if !enabled["webauthn-platform"] || !in.WebAuthn.Available || !in.WebAuthn.Platform {
+			return r, ErrNoFactor
+		}
+		r.PlatformAfterProof = true
+		r.Enroll = false
+		requested = []string{"otp", "email", "phone", "webauthn-roaming"}
+	}
 	confirmed := map[string]bool{}
 	primary := false
 	preferred := ""
+	platformEnrolled := false
+	// Without an RP scope (password and other native grants) every WebAuthn
+	// key counts as enrolled: a key bound to another RP is foreign only to a
+	// request that has an RP ID of its own (LR33b-5).
+	scoped := in.WebAuthn.RPID != ""
+	// held: an enrolled WebAuthn key this request cannot verify.
+	// foreign: a usable WebAuthn key bound to another RP ID (domain).
+	held, foreign := false, false
 	for _, a := range in.Authenticators {
 		f := factorName(a.Type)
-		if UsableMethod(in.User, a, enabled) {
+		if a.Type == "webauthn-platform" && a.Confirmed && a.RPID == in.WebAuthn.RPID && authenticatorDevice(a).Class == in.WebAuthn.Device.Class {
+			platformEnrolled = true
+		}
+		if scoped && isWebAuthnFactor(a.Type) && a.RPID != in.WebAuthn.RPID && UsableMethod(in.User, a, enabled) {
+			foreign = true
+		}
+		if UsableMethod(in.User, a, enabled) && (!isWebAuthnFactor(a.Type) || !scoped || a.RPID == in.WebAuthn.RPID) {
 			primary = true
-			confirmed[f] = true
+			if !isWebAuthnFactor(a.Type) || scoped && in.WebAuthn.Available && (a.Type != "webauthn-platform" || in.WebAuthn.Platform && hasOtherPlatformFactor(in.User, in.Authenticators, enabled, in.WebAuthn.RPID) && authenticatorDevice(a).Key() == in.WebAuthn.Device.Key()) {
+				confirmed[f] = true
+			} else {
+				held = true
+			}
 			if a.Preferred {
 				preferred = f
 			}
@@ -130,11 +162,11 @@ func Decide(in DecideInput) (Requirement, error) {
 	}
 	var usable, enroll []string
 	for _, f := range requested {
-		if !enabled[guardianFactor(f)] {
+		if !enabled[guardianFactor(f)] || isWebAuthnFactor(f) && !in.WebAuthn.Available || f == "webauthn-platform" && !in.WebAuthn.Platform {
 			continue
 		}
-		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll {
-			if e == nil || e.Mode != "enroll" || !confirmed[f] {
+		if f == "otp" || f == "email" || f == "phone" && in.PhoneEnroll || f == "webauthn-roaming" && in.WebAuthn.Available || f == "webauthn-platform" && r.Enroll && !platformEnrolled {
+			if e == nil || e.Mode != "enroll" || r.PlatformAfterProof || !confirmed[f] {
 				enroll = append(enroll, f)
 			}
 		}
@@ -144,6 +176,20 @@ func Decide(in DecideInput) (Requirement, error) {
 	}
 	if e != nil && e.Mode == "challenge" && len(usable) == 0 {
 		return r, ErrNoFactor
+	}
+	// An enrolled key that this request cannot use still requires an existing
+	// proof. It cannot turn a required challenge into fresh factor enrollment.
+	// Other factors keep their behavior: an Action requesting a factor the
+	// user lacks still enrolls it.
+	if held && len(usable) == 0 && !r.Enroll {
+		return r, ErrNoFactor
+	}
+	// A user whose only factor is a WebAuthn key on another domain enrolls a
+	// key for this domain, never a different factor kind, so a password alone
+	// cannot add OTP or email here (LR33b-5, D-0062). An Action enroll
+	// request keeps its explicit factor list.
+	if foreign && len(usable) == 0 && !r.Enroll {
+		enroll = slices.DeleteFunc(enroll, func(f string) bool { return !isWebAuthnFactor(f) })
 	}
 	if r.Enroll || len(usable) == 0 {
 		r.Enroll = true
@@ -178,6 +224,8 @@ func UsableMethod(u *store.User, a store.Authenticator, enabled map[string]bool)
 	switch a.Type {
 	case "totp":
 		return true
+	case "webauthn-roaming", "webauthn-platform":
+		return a.RPID != "" && len(a.CredentialID) > 0 && len(a.PublicKey) > 0
 	case "phone":
 		return a.Phone != ""
 	case "email":

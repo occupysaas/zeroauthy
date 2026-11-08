@@ -2,17 +2,29 @@
 {{define "description"}}{{t .Tenant.L "login-id.login-id.description"}}{{end}}
 {{define "content"}}
 {{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
-<form method="post" action="/u/login" novalidate>
+<form{{if .Data.Passkey}} id="za-passkey-form"{{end}} method="post" action="/u/login" novalidate>
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
 <input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
 {{.Tenant.Partials.FormContentStart}}
 <label for="username">{{t .Tenant.L "login-id.login-id.usernamePlaceholder"}}</label>
-<input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Login}}" required autofocus>
+<input id="username" name="username" type="text" autocomplete="username{{if and .Data.Passkey (ne .Data.Passkey.Mediation "button")}} webauthn{{end}}" autocapitalize="none" value="{{.Data.Login}}" required autofocus>
 {{.Tenant.Partials.FormContentEnd}}
 <button type="submit">{{t .Tenant.L "login-id.login-id.buttonText"}}</button>
 {{template "social-buttons" .}}
+{{if .Data.Passkey}}
+{{template "captcha" .}}
+<input type="hidden" name="challenge_id" value="{{.Data.Passkey.ChallengeID}}">
+<input type="hidden" name="credential" value="">
+<input type="hidden" name="webauthn_error" value="">
+<input type="hidden" name="platform_available" value="0">
+{{if ne .Data.Passkey.Mediation "autofill"}}<button id="za-passkey-button" type="button">{{t .Tenant.L "login-id.login-id.passkeyButtonText"}}</button>{{end}}
+{{end}}
 </form>
+{{if .Data.Passkey}}
+<script nonce="{{.Nonce}}" type="application/json" id="za-webauthn">{{.Data.Passkey}}</script>
+<script nonce="{{.Nonce}}">{{.WebAuthnScript}}</script>
+{{end}}
 {{.Tenant.Partials.FormFooterStart}}
 {{if .Data.SignupURL}}<p class="alt"><a href="{{.Data.SignupURL}}">{{t .Tenant.L "login.login.signupActionLinkText"}}</a></p>{{end}}
 {{.Tenant.Partials.FormFooterEnd}}

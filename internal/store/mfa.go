@@ -19,7 +19,7 @@ type GuardianSettings struct {
 	Version       int
 }
 type Authenticator struct {
-	TenantID, UserID, ID, Type, Name string // Type: totp|email|recovery-code|webauthn-roaming|webauthn-platform|phone
+	TenantID, UserID, ID, Type, Name string // Type: totp|email|recovery-code|webauthn-roaming|webauthn-platform|phone|passkey
 	PhoneMethod                      string // preferred_authentication_method: sms or voice; separate from runtime Preferred.
 	PublicData                       []byte // JSON of the bounded public WebAuthn metadata allowlist, never secrets.
 	Confirmed, Preferred             bool
@@ -41,6 +41,7 @@ type MFAChallenge struct {
 	TenantID, ID, UserID, AuthenticatorID, Kind string // Kind: email|webauthn|oob
 	CodeHash                                    string
 	Challenge                                   []byte
+	Binding                                     []byte // JSON ceremony binding (Plan 33b passkey/WebAuthn challenges)
 	Attempts                                    int
 	ExpiresAt                                   time.Time
 }
@@ -57,7 +58,7 @@ type MFABrowser struct {
 
 // AuthenticatorTypes are every Authenticator.Type, sorted so the derived
 // method IDs are in byte order; method IDs are "<type>|<enrollment id>".
-var AuthenticatorTypes = []string{"email", "phone", "recovery-code", "totp", "webauthn-platform", "webauthn-roaming"}
+var AuthenticatorTypes = []string{"email", "passkey", "phone", "recovery-code", "totp", "webauthn-platform", "webauthn-roaming"}
 
 // AuthenticatorIDsForEnrollment returns each possible method ID for an
 // enrollment ID in byte order, or nil when the enrollment ID cannot be one.
@@ -91,7 +92,7 @@ type MFA interface {
 	GetAuthenticatorByEnrollmentID(ctx context.Context, tid, enrollmentID string) (*Authenticator, error)
 	UpdateAuthenticator(ctx context.Context, a *Authenticator) error // name, preferred, confirmed
 	DeleteAuthenticator(ctx context.Context, tid, uid, id string) error
-	DeleteUserAuthenticators(ctx context.Context, tid, uid string, types []string) error     // nil = all
+	DeleteUserAuthenticators(ctx context.Context, tid, uid string, types []string) error     // nil = every type except passkey
 	AcceptTOTPStep(ctx context.Context, tid, uid, id string, step int64, at time.Time) error // ErrPrecondition unless step > LastStep
 	// ReplaceRecoveryCode atomically replaces the existing recovery hash. An empty oldHash
 	// means no recovery authenticator exists yet; in that case create a confirmed record

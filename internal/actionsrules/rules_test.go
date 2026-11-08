@@ -1,6 +1,7 @@
 package actionsrules
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -142,5 +143,29 @@ func TestModuleRules(t *testing.T) {
 	}
 	if len(NormalizeModule(&store.ActionModule{Name: "m", Code: strings.Repeat("é", 65537)})) == 0 {
 		t.Fatal("oversized module")
+	}
+}
+
+// Plan 33b: WebAuthn factors are accepted by the MFA members of post-login.
+func TestWebAuthnFactorsSupported(t *testing.T) {
+	members := map[string]APIMember{}
+	for _, tr := range Inventory().Triggers {
+		if tr.ID != "post-login" {
+			continue
+		}
+		for _, m := range tr.API {
+			members[m.Name] = m
+		}
+	}
+	for _, name := range []string{"authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny"} {
+		m, ok := members[name]
+		if !ok || m.Support != "supported" {
+			t.Fatalf("%s = %+v", name, m)
+		}
+		for _, f := range []string{"webauthn-roaming", "webauthn-platform"} {
+			if !slices.Contains(m.Factors, f) {
+				t.Errorf("%s factors %v lack %s", name, m.Factors, f)
+			}
+		}
 	}
 }

@@ -214,6 +214,7 @@ func TestMFAOTPEnrollFlow(t *testing.T) {
 	if !strings.Contains(r.Header().Get("Location"), "code=") {
 		t.Fatalf("ack %d %s %s", r.Code, r.Header().Get("Location"), r.Body)
 	}
+	assertSessionMethods(t, f.b, "pwd", "mfa:otp")
 }
 func TestMFAChallengePreferredFirst(t *testing.T) {
 	f := newMFAFixture(t)

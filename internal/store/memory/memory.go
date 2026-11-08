@@ -38,6 +38,7 @@ type state struct {
 	browsers               map[key]*store.MFABrowser
 	phoneProviders         map[key]*store.PhoneProvider
 	phoneTemplates         map[key]*store.PhoneTemplate
+	webauthnSnoozes        map[key]*store.WebAuthnSnooze
 	passwordlessCodes      map[key]*store.PasswordlessCode
 	tenantEvents           map[string]*eventRing
 	eventStreams           map[key]*store.EventStream
@@ -128,7 +129,7 @@ func NewWithClock(now func() time.Time) *Store {
 func New() *Store {
 	return &Store{state: &state{
 		guardian: map[string]*store.GuardianSettings{}, authenticators: map[key]*store.Authenticator{}, mfaTokens: map[key]*store.MFAToken{}, challenges: map[key]*store.MFAChallenge{}, tickets: map[key]*store.EnrollmentTicket{}, browsers: map[key]*store.MFABrowser{},
-		phoneProviders: map[key]*store.PhoneProvider{}, phoneTemplates: map[key]*store.PhoneTemplate{}, passwordlessCodes: map[key]*store.PasswordlessCode{},
+		phoneProviders: map[key]*store.PhoneProvider{}, phoneTemplates: map[key]*store.PhoneTemplate{}, passwordlessCodes: map[key]*store.PasswordlessCode{}, webauthnSnoozes: map[key]*store.WebAuthnSnooze{},
 		tenantEvents: map[string]*eventRing{}, eventStreams: map[key]*store.EventStream{}, eventDeliveries: map[deliveryKey]*store.EventDelivery{},
 		logEvents: map[string]*logRing{}, logStreams: map[key]*store.LogStream{}, logStats: map[key]*store.DailyStat{},
 		modules: map[key]*store.ActionModule{}, moduleVersions: map[key]*store.ActionModuleVersion{}, actionJobs: map[key]*store.ActionJob{},

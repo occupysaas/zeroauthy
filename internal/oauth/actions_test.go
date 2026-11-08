@@ -615,6 +615,7 @@ func assertOneBindingsRead(t *testing.T, without, with map[string]int) {
 // registered grant must be listed, so a new grant cannot leak its
 // credentials into event.request.body unnoticed.
 var credentialsByGrant = map[string][]string{
+	clientrules.GrantPasskey:         {"auth_session", "authn_response", "client_secret", "client_assertion"},
 	"authorization_code":             {"code", "code_verifier", "client_secret", "client_assertion"},
 	"client_credentials":             {"client_secret", "client_assertion"},
 	"refresh_token":                  {"refresh_token", "client_secret", "client_assertion"},

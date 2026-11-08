@@ -25,11 +25,11 @@
     },
     {
       "name": "webauthn-roaming",
-      "status": "stored"
+      "status": "enforced"
     },
     {
       "name": "webauthn-platform",
-      "status": "stored"
+      "status": "enforced"
     },
     {
       "name": "recovery-code",
@@ -183,6 +183,28 @@
         "last_auth_at",
         "preferred_authentication_method",
         "authentication_methods"
+      ],
+      "secret": []
+    },
+    {
+      "type": "passkey",
+      "creatable": true,
+      "fields": [
+        "id",
+        "type",
+        "name",
+        "created_at",
+        "last_auth_at",
+        "key_id",
+        "public_key",
+        "relying_party_identifier",
+        "credential_device_type",
+        "credential_backed_up",
+        "aaguid",
+        "identity_user_id",
+        "user_agent",
+        "user_handle",
+        "transports"
       ],
       "secret": []
     }
@@ -3578,7 +3600,8 @@
               "totp",
               "email",
               "webauthn-roaming",
-              "phone"
+              "phone",
+              "passkey"
             ]
           },
           "name": {
@@ -3650,7 +3673,8 @@
         "403": "Permission denied.",
         "404": "Resource not found.",
         "409": "Conflicting authentication method.",
-        "429": "Request rate exceeded."
+        "429": "Request rate exceeded.",
+        "501": "WebAuthn capability is unavailable."
       },
       "responses": {
         "201": {
@@ -3715,6 +3739,16 @@
         },
         "429": {
           "description": "Request rate exceeded.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementError"
+              }
+            }
+          }
+        },
+        "501": {
+          "description": "WebAuthn capability is unavailable.",
           "content": {
             "application/json": {
               "schema": {
@@ -5178,11 +5212,11 @@
         "otp",
         "email",
         "recovery-code",
-        "phone"
+        "phone",
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-roaming",
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5288,11 +5322,11 @@
         "otp",
         "email",
         "recovery-code",
-        "phone"
+        "phone",
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-roaming",
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5357,11 +5391,11 @@
         "otp",
         "email",
         "recovery-code",
-        "phone"
+        "phone",
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-roaming",
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5466,11 +5500,11 @@
         "otp",
         "email",
         "recovery-code",
-        "phone"
+        "phone",
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-roaming",
-        "webauthn-platform",
         "push-notification"
       ]
     },
@@ -5534,11 +5568,11 @@
         "otp",
         "email",
         "recovery-code",
-        "phone"
+        "phone",
+        "webauthn-roaming",
+        "webauthn-platform"
       ],
       "unavailable_factors": [
-        "webauthn-roaming",
-        "webauthn-platform",
         "push-notification"
       ]
     }

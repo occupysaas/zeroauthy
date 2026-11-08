@@ -1,0 +1,22 @@
+name: plan-branch
+# Full verification of a plan branch while work continues on the next plan
+# (maintainer, 2026-11-07): every push to a plan-* branch runs the whole ci
+# workflow (race tests, SQL databases, console, every E2E suite in parallel)
+# and the OpenID conformance plans. main and pull requests are not affected.
+on:
+  push:
+    branches: ["plan-*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  # A newer push to the same branch supersedes the running verification.
+  group: plan-branch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+  conformance:
+    uses: ./.github/workflows/conformance.yml

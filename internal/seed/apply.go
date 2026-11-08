@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -29,7 +31,10 @@ import (
 )
 
 // Options carries deployment limits shared with the Management API.
-type Options struct{ EventsMaxStreams int }
+type Options struct {
+	EventsMaxStreams int
+	RPIDPolicy       rpid.Policy
+}
 
 // Apply upserts everything in f. It never deletes. With f.Mode set to
 // ModeCreateOnly it only creates what does not exist yet and leaves every
@@ -66,10 +71,40 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 			}
 		}
 	}
+	if err := checkWebAuthnStorage(ctx, st, f); err != nil {
+		return err
+	}
 	return st.WithTx(ctx, func(tx store.Store) error {
+		validateRPIDs := []string{}
 		for _, t := range f.Tenants {
+			old, err := tx.Tenants().GetByName(ctx, t.Name)
+			if err != nil && !errors.Is(err, store.ErrNotFound) {
+				return err
+			}
+			_, supplied := t.supplied["domains"]
+			if (old == nil || old.Origin != store.OriginAPI && f.Mode != ModeCreateOnly) && (supplied || t.supplied == nil || old == nil) {
+				validateRPIDs = append(validateRPIDs, t.Name)
+			}
 			if err := applyTenant(ctx, tx, f, t, now().UTC(), w, options...); err != nil {
 				return fmt.Errorf("seed: tenant %q: %w", t.Name, err)
+			}
+		}
+		policy := rpid.Policy{BaseDomain: f.baseDomain}
+		if len(options) > 0 {
+			policy = options[0].RPIDPolicy
+		}
+		policy.Store = tx
+		// Validate after every alias has been reconciled: later seed entries
+		// must participate in the shared-host restriction too.
+		for _, name := range validateRPIDs {
+			tn, err := tx.Tenants().GetByName(ctx, name)
+			if err != nil {
+				return err
+			}
+			for host, rp := range tn.DomainRPIDs {
+				if err := policy.Validate(ctx, tn.ID, host, rp); err != nil {
+					return fmt.Errorf("seed: tenant %q alias %q: %w", name, host, err)
+				}
 			}
 		}
 		return nil
@@ -119,6 +154,7 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		tn, err = tenantsetup.UpsertTenant(ctx, st, in.Name, now, func(tn *store.Tenant) error {
 			before := tn.Clone()
 			tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
+			tn.DomainRPIDs = maps.Clone(in.DomainRPIDs)
 			tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
 			tn.EnabledLocales = slices.Clone(in.EnabledLocales)
 			tn.CustomText = in.CustomText.Clone()
@@ -131,6 +167,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
 			if exists {
 				preserveOmittedTenant(tn, before, in.supplied)
+				if _, supplied := in.supplied["domains"]; in.supplied != nil && !supplied {
+					tn.DomainRPIDs = maps.Clone(before.DomainRPIDs)
+				}
 			}
 			if exists {
 				tn.CanonicalHost = existing.CanonicalHost

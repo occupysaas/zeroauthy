@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { GuardianFactors, GuardianPolicies, TenantSettingsPatch } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import Field from '../../ui/Field.vue'
 import Button from '../../ui/Button.vue'
 import { providers } from '../branding/phone'
 import MfaConfiguration from './MfaConfiguration.vue'
@@ -35,14 +36,24 @@ const phoneReady = ref(false),
   voiceReady = ref(false),
   providerError = ref(''),
   messageTypes = ref<('sms' | 'voice')[]>(['sms'])
-const status = (name: string) =>
-  name.startsWith('webauthn-') ? 'stored33b' : ['duo', 'push-notification'].includes(name) ? 'notPlanned' : 'enforced'
+const uv = ref<'discouraged' | 'preferred' | 'required'>('discouraged')
+const uvReady = ref(false)
+const status = (name: string) => ['duo', 'push-notification'].includes(name) ? 'notPlanned' : 'enforced'
+// Device biometrics enabled with no other enforced primary factor (recovery
+// codes do not count) leaves users unable to enroll it; Auth0's factor rows
+// carry no such flag, so it is derived here from the enabled factors.
+const platformAlone = computed(() => {
+  const on = (name: string) => factors.value.some(f => f.name === name && f.enabled)
+  return on('webauthn-platform') && !names.some(n => n !== 'webauthn-platform' && n !== 'recovery-code' && status(n) === 'enforced' && on(n))
+})
 function fail(e: unknown) {
   unavailable.value = mfaUnavailable(e)
   error.value = unavailable.value ? t('mfa.unavailable') : errorMessage(e)
 }
 async function load() {
   const c = capture()
+  uvReady.value = false
+  uv.value = 'discouraged'
   phoneReady.value = false
   voiceReady.value = false
   providerError.value = ''
@@ -60,12 +71,15 @@ async function load() {
   }
   loading.value = true
   try {
-    const [f, p, settings] = await Promise.all([
+    const [f, p, settings, roaming] = await Promise.all([
       api.getGuardianFactors(c.tenant),
       api.getGuardianPolicies(c.tenant),
       api.getTenantSettings(c.tenant),
+      api.getRoamingUV(c.tenant),
     ])
     if (!current(c)) return
+    uv.value = roaming.user_verification ?? 'discouraged'
+    uvReady.value = true
     factors.value = f
     policy.value = p[0] ?? ''
     showList.value = settings.flags?.mfa_show_factor_list_on_enrollment ?? false
@@ -152,12 +166,23 @@ async function toggle(name: (typeof names)[number], event: Event) {
   error.value = ''
   try {
     const result = await api.setGuardianFactor(c.tenant, name, enabled)
-    if (current(c)) factors.value = factors.value.map((f) => (f.name === name ? { ...f, enabled: result.enabled } : f))
+    if (!current(c)) return
+    factors.value = factors.value.map((f) => (f.name === name ? { ...f, enabled: result.enabled } : f))
+    const refreshed = await api.getGuardianFactors(c.tenant)
+    if (current(c)) factors.value = refreshed
   } catch (e) {
     if (current(c)) fail(e)
   } finally {
     if (current(c)) busy.value = false
   }
+}
+async function setUV(event: Event) {
+  const c = capture(); if (!c || busy.value || !uvReady.value) return
+  const value = (event.target as HTMLSelectElement).value as typeof uv.value
+  const previous = uv.value; uv.value = value; busy.value = true; error.value = ''
+  try { const result = await api.setRoamingUV(c.tenant, value); if (current(c)) uv.value = result.user_verification }
+  catch (e) { if (current(c)) { uv.value = previous; fail(e) } }
+  finally { if (current(c)) busy.value = false }
 }
 async function setMessageType(value: 'sms' | 'voice', event: Event) {
   const c = capture()
@@ -250,6 +275,8 @@ async function setFlag(name: 'mfa_show_factor_list_on_enrollment' | 'customize_m
           <span v-if="factors.some((f) => f.name === name && f.trial_expired)">{{ t('mfa.trialExpired') }}</span>
         </p>
       </div>
+      <Field id="webauthn-uv" :label="t('passkeys.uv')"><select id="webauthn-uv" :value="uv" :disabled="!uvReady" @change="setUV"><option v-for="value in ['discouraged', 'preferred', 'required']" :key="value" :value="value">{{ t(`passkeys.uvValues.${value}`) }}</option></select></Field>
+      <Banner v-if="platformAlone" kind="warn">{{ t('passkeys.platformWarning') }}</Banner>
       <fieldset class="stack">
         <legend>{{ t('phone.delivery') }}</legend>
         <label

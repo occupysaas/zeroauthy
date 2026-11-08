@@ -173,8 +173,8 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 34 {
-			t.Errorf("%s LatestVersion = %d, want 34", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 35 {
+			t.Errorf("%s LatestVersion = %d, want 35", d.name, v)
 		}
 	}
 }
@@ -189,8 +189,9 @@ func TestMigration0019PreservesLegacyHostedData(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(args)-1), ",")
-			if _, err := s.exec(ctx, "INSERT INTO tenants ("+strings.TrimSuffix(tenantCols, ", canonical_host")+") VALUES ("+placeholders+")", args[:len(args)-1]...); err != nil {
+			// Version 18 predates canonical_host (0020) and domain_rp_ids (0035).
+			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(args)-2), ",")
+			if _, err := s.exec(ctx, "INSERT INTO tenants ("+strings.TrimSuffix(tenantCols, ", canonical_host, domain_rp_ids")+") VALUES ("+placeholders+")", args[:len(args)-2]...); err != nil {
 				t.Fatal(err)
 			}
 			mustExec(t, s, `INSERT INTO auth_transactions (tenant_id,id,cookie_hash,csrf_token,client_id,params,expires_at,created_at) VALUES ('legacy','flow','cookie','csrf','spa','{"scope":"openid"}',9999999999999999,1)`)
@@ -272,6 +273,14 @@ func openAtVersion(t *testing.T, dsn string, version int64) *Store {
 		t.Fatal(err)
 	}
 	return s
+}
+
+// seedLegacyTenant inserts a tenant using only the columns version 1
+// created, for tests that start from an older schema: Tenants().Create writes
+// columns that later migrations add.
+func seedLegacyTenant(t *testing.T, s *Store, id string) {
+	t.Helper()
+	mustExec(t, s, `INSERT INTO tenants (id,name,friendly_name,default_audience,allowed_logout_urls,enabled_locales,custom_text,session_lifetime,idle_session_lifetime,logo_url,primary_color,default_directory,created_at) VALUES (?,?,'','','[]','[]','{}',0,0,'','','',1)`, id, id)
 }
 
 func mustExec(t *testing.T, s *Store, q string, args ...any) {

@@ -29,6 +29,8 @@ type APIMember struct {
 	Support  string `json:"support"`
 	Evidence string `json:"evidence"`
 	Note     string `json:"note,omitempty"`
+	// Factors lists the MFA factor types an authentication member accepts.
+	Factors []string `json:"factors,omitempty"`
 }
 
 type TriggerContract struct {

@@ -301,6 +301,7 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatalf("login not recorded: %+v", u)
 	}
 
+	assertSessionMethods(t, b, "pwd")
 	// The session now satisfies /authorize directly.
 	q := url.Values{"client_id": {"spa"}, "redirect_uri": {"https://app.acme.test/cb"}, "response_type": {"code"}, "code_challenge": {challenge}, "code_challenge_method": {"S256"}, "prompt": {"none"}}
 	rec = b.do(t, "GET", "/authorize?"+q.Encode(), nil)
@@ -420,6 +421,24 @@ func TestSignup(t *testing.T) {
 	loc, _ := url.Parse(rec.Header().Get("Location"))
 	if rec.Code != 302 || loc.Query().Get("code") == "" || b.cookies[session.CookieName] == nil {
 		t.Fatalf("signup = %d %s", rec.Code, rec.Body)
+	}
+}
+
+// Review finding: hosted signup ignores root profile attributes posted with
+// the form; only the identifiers and password are taken (as before Plan 33b).
+func TestSignupIgnoresPostedProfileAttributes(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "screen_hint", "signup")
+	rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"anything@mailinator.com"}, "password": {"long enough pw"},
+		"name": {"Admin"}, "given_name": {"A"}, "family_name": {"B"}, "nickname": {"root"}, "picture": {"https://attacker.example/x.png"}})
+	if rec.Code != 302 {
+		t.Fatalf("signup = %d %s", rec.Code, rec.Body)
+	}
+	tn := mustTenant(t, e, "acme")
+	u, err := e.st.Users().FindByLogin(context.Background(), tn.ID, "Username-Password-Authentication", "anything@mailinator.com")
+	if err != nil || u.Name != "anything@mailinator.com" || u.Nickname != "anything" || u.GivenName != "" || u.FamilyName != "" || strings.Contains(u.Picture, "attacker") {
+		t.Fatalf("user %+v %v", u, err)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"encoding/json"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"html/template"
 	"log/slog"
@@ -26,6 +27,9 @@ import (
 //go:embed templates/*.html
 var files embed.FS
 
+//go:embed webauthn.js
+var webAuthnScript string
+
 var funcs = template.FuncMap{
 	// t renders a catalog key: {{t .Tenant.L "login.login.title" "name" "value"}}.
 	"t": func(l *i18n.Localizer, key string, kv ...string) template.HTML { return renderText(l.T(key, kv...)) },
@@ -38,26 +42,30 @@ func parsePage(names ...string) *template.Template {
 
 var (
 	pages = map[string]*template.Template{
-		"organization-selection": parsePage("templates/layout.html", "templates/organization-selection.html"),
-		"organization-picker":    parsePage("templates/layout.html", "templates/organization-picker.html"),
-		"login":                  parsePage("templates/layout.html", "templates/login.html"),
-		"login_id":               parsePage("templates/layout.html", "templates/login_id.html"),
-		"login_password":         parsePage("templates/layout.html", "templates/login_password.html"),
-		"signup":                 parsePage("templates/layout.html", "templates/signup.html"),
-		"consent":                parsePage("templates/layout.html", "templates/consent.html"),
-		"error":                  parsePage("templates/layout.html", "templates/error.html"),
-		"logout_confirm":         parsePage("templates/layout.html", "templates/logout_confirm.html"),
-		"logged_out":             parsePage("templates/layout.html", "templates/logged_out.html"),
-		"reset_request":          parsePage("templates/layout.html", "templates/reset_request.html"),
-		"reset_email_sent":       parsePage("templates/layout.html", "templates/reset_email_sent.html"),
-		"reset_password":         parsePage("templates/layout.html", "templates/reset_password.html"),
-		"reset_success":          parsePage("templates/layout.html", "templates/reset_success.html"),
-		"reset_error":            parsePage("templates/layout.html", "templates/reset_error.html"),
-		"email_verification":     parsePage("templates/layout.html", "templates/email_verification.html"),
-		"device_code":            parsePage("templates/layout.html", "templates/device_code.html"),
-		"device_confirm":         parsePage("templates/layout.html", "templates/device_confirm.html"),
-		"device_result":          parsePage("templates/layout.html", "templates/device_result.html"),
-		"passwordless_link":      parsePage("templates/layout.html", "templates/passwordless_link.html"),
+		"organization-selection":   parsePage("templates/layout.html", "templates/organization-selection.html"),
+		"organization-picker":      parsePage("templates/layout.html", "templates/organization-picker.html"),
+		"login":                    parsePage("templates/layout.html", "templates/login.html"),
+		"login_id":                 parsePage("templates/layout.html", "templates/login_id.html"),
+		"login_password":           parsePage("templates/layout.html", "templates/login_password.html"),
+		"signup":                   parsePage("templates/layout.html", "templates/signup.html"),
+		"signup-id":                parsePage("templates/layout.html", "templates/signup_id.html"),
+		"signup-password":          parsePage("templates/layout.html", "templates/signup_password.html"),
+		"passkey-enrollment-local": parsePage("templates/layout.html", "templates/passkey_enrollment.html"),
+		"passkey-enrollment":       parsePage("templates/layout.html", "templates/passkey_enrollment.html"),
+		"consent":                  parsePage("templates/layout.html", "templates/consent.html"),
+		"error":                    parsePage("templates/layout.html", "templates/error.html"),
+		"logout_confirm":           parsePage("templates/layout.html", "templates/logout_confirm.html"),
+		"logged_out":               parsePage("templates/layout.html", "templates/logged_out.html"),
+		"reset_request":            parsePage("templates/layout.html", "templates/reset_request.html"),
+		"reset_email_sent":         parsePage("templates/layout.html", "templates/reset_email_sent.html"),
+		"reset_password":           parsePage("templates/layout.html", "templates/reset_password.html"),
+		"reset_success":            parsePage("templates/layout.html", "templates/reset_success.html"),
+		"reset_error":              parsePage("templates/layout.html", "templates/reset_error.html"),
+		"email_verification":       parsePage("templates/layout.html", "templates/email_verification.html"),
+		"device_code":              parsePage("templates/layout.html", "templates/device_code.html"),
+		"device_confirm":           parsePage("templates/layout.html", "templates/device_confirm.html"),
+		"device_result":            parsePage("templates/layout.html", "templates/device_result.html"),
+		"passwordless_link":        parsePage("templates/layout.html", "templates/passwordless_link.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
 	formGet    = parsePage("templates/form_get.html")
@@ -168,7 +176,18 @@ type SocialButton struct {
 	Connection, Label string
 }
 
+// WebAuthnData is public ceremony configuration; JSON encoding escapes HTML.
+type WebAuthnData struct {
+	Enrollment  string          `json:"enrollment,omitempty"`
+	MFA         bool            `json:"mfa,omitempty"`
+	Operation   string          `json:"operation,omitempty"`
+	ChallengeID string          `json:"challenge_id"`
+	PublicKey   json.RawMessage `json:"publicKey"`
+	Mediation   string          `json:"mediation"`
+}
+
 type LoginStageData struct {
+	Passkey *WebAuthnData
 	LoginData
 	Revision int64
 }
@@ -181,21 +200,25 @@ func RenderLoginPassword(w http.ResponseWriter, status int, t Tenant, d LoginSta
 }
 
 type SignupData struct {
-	EmailCodeEnabled             bool
-	PhoneEnabled                 bool
-	PhoneNumber                  string
-	State, CSRF, Email, Username string
-	RequiresUsername             bool
-	LoginURL                     string
-	Error                        string
-	RedirectURI                  string // the client's callback; its origin is allowed as form-action
-	HostedRevision               *int64
+	EnrollmentKind, EnrollmentAction string
+	Profile                          map[string]string
+	Passkey                          *WebAuthnData
+	EmailCodeEnabled                 bool
+	PhoneEnabled                     bool
+	PhoneNumber                      string
+	State, CSRF, Email, Username     string
+	RequiresUsername                 bool
+	LoginURL                         string
+	Error                            string
+	RedirectURI                      string // the client's callback; its origin is allowed as form-action
+	HostedRevision                   *int64
 }
 
 type page struct {
-	Tenant Tenant
-	Nonce  string
-	Data   any
+	Tenant         Tenant
+	Nonce          string
+	Data           any
+	WebAuthnScript template.JS
 }
 
 func RenderLogin(w http.ResponseWriter, status int, t Tenant, d LoginData) {
@@ -204,6 +227,10 @@ func RenderLogin(w http.ResponseWriter, status int, t Tenant, d LoginData) {
 
 func RenderSignup(w http.ResponseWriter, status int, t Tenant, d SignupData) {
 	render(w, status, "signup", t, d, formActionFor(d.RedirectURI))
+}
+
+func RenderSignupStage(w http.ResponseWriter, status int, stage string, t Tenant, d SignupData) {
+	render(w, status, stage, t, d, formActionFor(d.RedirectURI))
 }
 
 type errorData struct{ Message, Detail, Reference string }
@@ -271,7 +298,7 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormFooterStart), nonce)), template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormFooterEnd), nonce)),
 	}
 	var buf bytes.Buffer
-	if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data}); err != nil {
+	if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data, WebAuthnScript: template.JS(webAuthnScript)}); err != nil {
 		slog.Error("render page", "template", name, "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -279,7 +306,7 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 	if buf.Len() > 512<<10 {
 		t.L = t.L.WithoutCustom()
 		buf.Reset()
-		if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data}); err != nil || buf.Len() > 512<<10 {
+		if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data, WebAuthnScript: template.JS(webAuthnScript)}); err != nil || buf.Len() > 512<<10 {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
@@ -402,6 +429,8 @@ func promptForPage(page string) (string, string) {
 		return MFAScreen(page)
 	}
 	switch page {
+	case "passkey-enrollment", "passkey-enrollment-local":
+		return "passkeys", page
 	case "login_id":
 		return "login-id", "login-id"
 	case "login_password":

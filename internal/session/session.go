@@ -106,7 +106,7 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 // Start creates a session for a freshly authenticated user and sets the
 // cookie. Any session the request already carries is deleted first, so a
 // login always gets a new session identifier.
-func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, userID, connection string, authTime time.Time) (*store.LoginSession, error) {
+func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, userID, connection string, authTime time.Time, methods ...store.AuthMethod) (*store.LoginSession, error) {
 	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
 		if s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value)); err == nil {
 			_ = m.Store.Sessions().Delete(ctx, t.ID, s.ID)
@@ -120,7 +120,26 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	absolute, idle := lifetimes(t, mode)
 	token := secrets.RandomString(43)
+	if len(methods) > 0 {
+		if cap, ok := m.Store.(store.WebAuthnSupporter); ok {
+			if err := cap.CheckWebAuthnSupport(ctx); err != nil {
+				if !errors.Is(err, store.ErrWebAuthnUnavailable) {
+					return nil, err
+				}
+				methods = nil
+			} else if !cap.WebAuthnSupported() {
+				methods = nil
+			}
+		}
+	}
+	methods = slices.Clone(methods)
+	for i := range methods {
+		if methods[i].At.IsZero() {
+			methods[i].At = authTime.UTC()
+		}
+	}
 	s := &store.LoginSession{
+		AuthMethods:     methods,
 		Origin:          requestOrigin(r),
 		CookieMode:      mode,
 		TenantID:        t.ID,
@@ -237,4 +256,31 @@ func requestOrigin(r *http.Request) string {
 func sameOrigin(r *http.Request, s *store.LoginSession) bool {
 	res, ok := tenant.FromContext(r.Context())
 	return !ok || res.CheckOrigin(s.Origin) == nil
+}
+
+// AddMethod appends a performed authentication without overwriting concurrent
+// session writes. Legacy plugins explicitly lacking webauthn.v1 omit methods.
+func (m *Manager) AddMethod(ctx context.Context, s *store.LoginSession, method store.AuthMethod) error {
+	if s == nil {
+		return store.ErrNotFound
+	}
+	if cap, ok := m.Store.(store.WebAuthnSupporter); ok {
+		if err := cap.CheckWebAuthnSupport(ctx); err != nil {
+			if errors.Is(err, store.ErrWebAuthnUnavailable) {
+				return nil
+			}
+			return err
+		}
+		if !cap.WebAuthnSupported() {
+			return nil
+		}
+	}
+	if method.At.IsZero() {
+		method.At = m.now()
+	}
+	if err := m.Store.Sessions().AddMethod(ctx, s.TenantID, s.ID, method); err != nil {
+		return err
+	}
+	s.AuthMethods = append(s.AuthMethods, method)
+	return nil
 }

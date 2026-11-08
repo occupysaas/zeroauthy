@@ -82,7 +82,7 @@ func mfaUser(t *testing.T) (*usersEnv, string) {
 }
 func TestAuthMethodsCRUD(t *testing.T) {
 	e, uid := mfaUser(t)
-	for _, b := range []any{map[string]any{"type": "totp", "totp_secret": "JBSWY3DPEHPK3PXP"}, map[string]any{"type": "email", "email": "mfa@example.test"}, map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "pQECAyYgASFYIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIlggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "relying_party_identifier": "example.test"}} {
+	for _, b := range []any{map[string]any{"type": "totp", "totp_secret": "JBSWY3DPEHPK3PXP"}, map[string]any{"type": "email", "email": "mfa@example.test"}, map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "pQECAyYgASFYILcoes0rNGrjTOXVEqXyq9CPe41x3PDQohuYsMQiLmHyIlggt4P6gUXrCQdKoWIfVcnC3BXZGdtI1ZqT9O7H8fsUcrA", "relying_party_identifier": "example.test"}} {
 		r, out := mfaCall(t, e.clientsEnv, "CreateAuthenticationMethods", uid, "", b, "")
 		if r.Code != 201 {
 			t.Fatalf("create: %d %s", r.Code, r.Body)
@@ -230,7 +230,7 @@ func TestAuthMethodsValidationAndAtomicReplace(t *testing.T) {
 		t.Fatal(r.Body)
 	}
 	id := out.(map[string]any)["id"].(string)
-	for _, b := range []any{map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "AQID", "relying_party_identifier": "example.test"}, map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "pQECAyYgASFYIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIlggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "relying_party_identifier": "https://evil.test/path"}} {
+	for _, b := range []any{map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "AQID", "relying_party_identifier": "example.test"}, map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "pQECAyYgASFYILcoes0rNGrjTOXVEqXyq9CPe41x3PDQohuYsMQiLmHyIlggt4P6gUXrCQdKoWIfVcnC3BXZGdtI1ZqT9O7H8fsUcrA", "relying_party_identifier": "https://evil.test/path"}} {
 		r, _ = mfaCall(t, e.clientsEnv, "CreateAuthenticationMethods", uid, "", b, "")
 		if r.Code != 400 {
 			t.Fatalf("invalid key/RP accepted: %d %s", r.Code, r.Body)
@@ -247,7 +247,7 @@ func TestAuthMethodsValidationAndAtomicReplace(t *testing.T) {
 }
 func TestAuthMethodsPublicMetadataRoundTrip(t *testing.T) {
 	e, uid := mfaUser(t)
-	r, out := mfaCall(t, e.clientsEnv, "CreateAuthenticationMethods", uid, "", map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "pQECAyYgASFYIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIlggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "relying_party_identifier": "example.test", "aaguid": "00000000-0000-0000-0000-000000000001", "credential_device_type": "multi_device", "credential_backed_up": true, "transports": []string{"usb"}}, "")
+	r, out := mfaCall(t, e.clientsEnv, "CreateAuthenticationMethods", uid, "", map[string]any{"type": "webauthn-roaming", "key_id": "AQID", "public_key": "pQECAyYgASFYILcoes0rNGrjTOXVEqXyq9CPe41x3PDQohuYsMQiLmHyIlggt4P6gUXrCQdKoWIfVcnC3BXZGdtI1ZqT9O7H8fsUcrA", "relying_party_identifier": "example.test", "aaguid": "00000000-0000-0000-0000-000000000001", "credential_device_type": "multi_device", "credential_backed_up": true, "transports": []string{"usb"}}, "")
 	if r.Code != 201 || out.(map[string]any)["credential_backed_up"] != true {
 		t.Fatalf("metadata did not round trip: %d %s", r.Code, r.Body)
 	}

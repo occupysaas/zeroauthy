@@ -14,7 +14,7 @@ import (
 
 // Contract omissions must fail before downstream runtime tasks consume them.
 func TestMFAInventory(t *testing.T) {
-	want := []mfarules.Factor{{Name: "push-notification", Status: "not_planned"}, {Name: "sms", Status: "enforced"}, {Name: "email", Status: "enforced"}, {Name: "duo", Status: "not_planned"}, {Name: "otp", Status: "enforced"}, {Name: "webauthn-roaming", Status: "stored"}, {Name: "webauthn-platform", Status: "stored"}, {Name: "recovery-code", Status: "enforced"}}
+	want := []mfarules.Factor{{Name: "push-notification", Status: "not_planned"}, {Name: "sms", Status: "enforced"}, {Name: "email", Status: "enforced"}, {Name: "duo", Status: "not_planned"}, {Name: "otp", Status: "enforced"}, {Name: "webauthn-roaming", Status: "enforced"}, {Name: "webauthn-platform", Status: "enforced"}, {Name: "recovery-code", Status: "enforced"}}
 	if !reflect.DeepEqual(mfarules.Factors(), want) {
 		t.Fatalf("factors: %+v", mfarules.Factors())
 	}

@@ -300,7 +300,7 @@ func (h *Handlers) continueAuthorization(w http.ResponseWriter, r *http.Request,
 	}
 	*r = *r.WithContext(logs.WithEvent(ctx, logs.Event{UserID: u.UserID, UserName: MaskIdentifier(conn.Strategy, u.Name), Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "passwordless"}))
 	now := h.Service.now()
-	sess, err := h.Sessions.Start(r.Context(), w, r, res.Tenant, u.UserID, conn.Name, now)
+	sess, err := h.Sessions.Start(r.Context(), w, r, res.Tenant, u.UserID, conn.Name, now, store.AuthMethod{Name: conn.Strategy})
 	if err != nil {
 		h.log().ErrorContext(ctx, "passwordless: start session", "tenant", res.Tenant.ID, "err", err)
 		h.Authz.Deny(w, r, res, client, req, "server_error", "internal error")

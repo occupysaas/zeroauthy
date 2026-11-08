@@ -79,7 +79,7 @@ func TestEnrollWithAny(t *testing.T) {
 	}
 }
 func TestPhoneFactorUnavailable(t *testing.T) {
-	for _, factor := range []string{"webauthn-platform", "webauthn-roaming", "push-notification"} {
+	for _, factor := range []string{"push-notification"} {
 		_, err, h := runMFAAction(t, fmt.Sprintf(`api.authentication.challengeWith({type:%q});`, factor), true)
 		requireMFAError(t, err, h, "unavailable")
 	}
@@ -229,5 +229,16 @@ func TestPhoneMethodsInTransaction(t *testing.T) {
 		return err
 	}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestWebAuthnTicketAndActions(t *testing.T) {
+	for _, factor := range []string{"webauthn-roaming", "webauthn-platform"} {
+		for _, call := range []string{"challengeWith", "enrollWith"} {
+			r, err, _ := runMFAAction(t, `api.authentication.`+call+`({type:'`+factor+`'});`, true)
+			if err != nil || r.Effects.MFA == nil || !reflect.DeepEqual(r.Effects.MFA.Factors, [][]string{{factor}}) {
+				t.Fatalf("%s/%s: %+v %v", call, factor, r, err)
+			}
+		}
 	}
 }

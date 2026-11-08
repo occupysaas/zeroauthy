@@ -1,0 +1,18 @@
+{{define "title"}}{{t .Tenant.L (printf "%stitle" .Data.Prefix)}}{{end}}
+{{define "description"}}{{t .Tenant.L (printf "%sdescription" .Data.Prefix)}}{{end}}
+{{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+{{if .Data.WebAuthnUnavailable}}<p>{{t .Tenant.L "mfa-webauthn.mfa-webauthn-not-available-error.description"}}</p>{{else}}
+<form id="za-passkey-form" method="post" action="{{.Data.Action}}">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
+<input type="hidden" name="webauthn" value="0">
+<input type="hidden" name="platform" value="0">
+{{.Tenant.Partials.FormContentStart}}
+<button type="submit">{{t .Tenant.L (printf "%sbuttonText" .Data.Prefix)}}</button>
+{{.Tenant.Partials.FormContentEnd}}</form>
+<script nonce="{{.Nonce}}" type="application/json" id="za-webauthn">{{.Data.Passkey}}</script>
+<script nonce="{{.Nonce}}">{{.WebAuthnScript}}</script>
+{{end}}
+{{end}}

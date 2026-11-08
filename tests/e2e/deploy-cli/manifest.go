@@ -14,6 +14,16 @@ type Manifest struct {
 	ToolVersion    string             `json:"toolVersion"`
 	Resources      []ManifestResource `json:"resources"`
 	Normalizations []Normalization    `json:"normalizations"`
+	// NoHandler lists zeroauthy settings that no pinned handler can carry
+	// because Auth0 exposes them only in its Dashboard.
+	NoHandler []NoHandlerSetting `json:"noHandler"`
+}
+
+// NoHandlerSetting is a setting outside every Deploy CLI handler.
+type NoHandlerSetting struct {
+	Setting string `json:"setting"`
+	Owner   string `json:"owner"`
+	Reason  string `json:"reason"`
 }
 type ManifestResource struct {
 	Name    string  `json:"name"`
@@ -65,6 +75,14 @@ func ValidateManifest(m Manifest, registry []string) error {
 			return errors.New("excluded handler has no roadmap owner")
 		}
 		entries[e.Name] = e
+	}
+	for _, s := range m.NoHandler {
+		if s.Setting == "" || s.Owner == "" || s.Reason == "" {
+			return errors.New("no-handler settings require a name, owner and reason")
+		}
+		if _, ok := entries[s.Setting]; ok {
+			return errors.New("a registered handler cannot be recorded as having no handler")
+		}
 	}
 	reg := map[string]bool{}
 	for _, n := range registry {

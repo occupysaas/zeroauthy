@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
+	"github.com/zeroauthy/zeroauthy/internal/webauthn"
 )
 
 const StageMFA = "mfa"
@@ -32,6 +33,7 @@ const mfaPendingKey = "za_mfa_pending"
 // marks its session then calls MFAComplete; reset and ticket purposes never do.
 // Completion reloads this state rather than trusting caller edits.
 type MFAPending struct {
+	PasskeyHint         PasskeyLoginHint
 	Requirement         mfa.Requirement
 	Effects             actions.Effects
 	SessionID, UserID   string
@@ -47,6 +49,9 @@ type MFAPending struct {
 }
 
 type mfaCompletedKey struct{}
+
+// mfaEnrollmentCompletedKey carries only the final server-proven enrollment type.
+type mfaEnrollmentCompletedKey struct{}
 
 func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq, sess *store.LoginSession, eff *actions.Effects) (mfa.Requirement, error) {
 	var effects *actions.MFAEffects
@@ -93,10 +98,48 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		}
 		in.PhoneEnroll = len(methods) > 0
 	}
+	// This is a provisional decision only. Hosted MFA detects capabilities before
+	// showing any factor and recomputes this requirement from the browser result.
+	detectWebAuthn := false
+	if h.MFA != nil && h.Passkeys != nil && (g.Factors["webauthn-roaming"] || g.Factors["webauthn-platform"]) {
+		available, e := h.MFA.WithStore(h.Store).WebAuthnAvailable(r.Context())
+		if e != nil {
+			return mfa.Requirement{}, e
+		}
+		policy := h.Passkeys.RPID
+		policy.Store = h.Store
+		rp, e := policy.For(r.Context(), res)
+		if e != nil {
+			return mfa.Requirement{}, e
+		}
+		if rp.Valid {
+			// Legacy MFA storage can retain an enrolled key without webauthn.v1.
+			// Keep its RP scope so policy still requires an existing proof.
+			in.WebAuthn = mfa.WebAuthnCapabilities{Available: available, Platform: true, Device: webauthn.DeviceOf(r.UserAgent()), RPID: rp.RPID}
+			detectWebAuthn = available
+		}
+	}
 	in.MFAAPI = fr.Request.Audience != "" && mfa.APIAudience(r.Context(), h.Store, res.Tenant.ID, fr.Request.Audience)
-	// Validate the original Action factor restrictions before satisfying its
-	// forced prompt. Disabling its chosen factor must still fail closed.
+	// A completed enrollment must still have its exact requested factor usable.
+	// Requiring a new factor again would reject the factor just enrolled.
+	completed, _ := r.Context().Value(mfaCompletedKey{}).(string)
+	if completed == sess.ID && !sess.MFAAt.IsZero() && effects != nil && effects.Mode == "enroll" {
+		factor, _ := r.Context().Value(mfaEnrollmentCompletedKey{}).(string)
+		requested := false
+		for _, group := range effects.Factors {
+			requested = requested || slices.Contains(group, factor)
+		}
+		if factor == "" || !requested {
+			return mfa.Requirement{}, mfa.ErrNoFactor
+		}
+		validated := *effects
+		validated.Mode, validated.Any = "challenge", false
+		validated.Factors = [][]string{{factor}}
+		in.Effects = &validated
+	}
+	// Validate live factor restrictions before satisfying the forced prompt.
 	req, err := mfa.Decide(in)
+	req.DetectWebAuthn = detectWebAuthn && req.Required
 	if err == nil && !sess.MFAAt.IsZero() {
 		if completed, ok := r.Context().Value(mfaCompletedKey{}).(string); ok && completed == sess.ID {
 			req.Required = false
@@ -128,7 +171,8 @@ func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant
 		h.refuse(w, r, res, client, fr, errServer())
 		return true
 	}
-	pending := MFAPending{Requirement: req, SessionID: sess.ID, UserID: sess.UserID, PreviousMFAAt: sess.MFAAt, RememberEpoch: u.RememberBrowserEpoch}
+	hint, _ := r.Context().Value(passkeyLoginKey{}).(PasskeyLoginHint)
+	pending := MFAPending{PasskeyHint: hint, Requirement: req, SessionID: sess.ID, UserID: sess.UserID, PreviousMFAAt: sess.MFAAt, RememberEpoch: u.RememberBrowserEpoch}
 	if eff != nil {
 		pending.Effects = *eff
 	}
@@ -231,7 +275,8 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 
 // MFAComplete resumes only after a fresh proof marked the bound active session.
 // Consuming the transaction is single-use; Actions are carried and never rerun.
-func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) {
+// enrolledFactor is supplied only by the final server-proven enrollment page.
+func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession, enrolledFactor ...string) {
 	pending, err := h.PendingMFA(r.Context(), r, res, txn, sess)
 	if err != nil {
 		h.invalidMFA(w, r, res)
@@ -281,17 +326,25 @@ func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenan
 		return
 	}
 	h.clearTxnCookie(w, stored)
-	*r = *r.WithContext(context.WithValue(r.Context(), mfaCompletedKey{}, current.ID))
-	h.finish(w, r, res, client, fr, current, &pending.Effects, true, true)
+	*r = *r.WithContext(context.WithValue(context.WithValue(r.Context(), mfaCompletedKey{}, current.ID), passkeyLoginKey{}, pending.PasskeyHint))
+	if len(enrolledFactor) == 1 && enrolledFactor[0] != "" {
+		*r = *r.WithContext(context.WithValue(r.Context(), mfaEnrollmentCompletedKey{}, enrolledFactor[0]))
+	}
+	h.finish(w, r, res, client, fr, current, &pending.Effects, false, true)
 }
 func (h *Handlers) invalidMFA(w http.ResponseWriter, r *http.Request, res tenant.Resolved) {
 	h.invalidTxn(w, r, res, &store.AuthTransaction{Params: map[string]string{}})
 }
 
 // StartMFATicket establishes enrollment-only authority, without an SSO session.
-func (h *Handlers) StartMFATicket(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, ticketHash string, factors []string, allowMultiple bool) error {
+func (h *Handlers) StartMFATicket(w http.ResponseWriter, r *http.Request, res tenant.Resolved, u *store.User, ticketHash string, factors []string, allowMultiple bool, override ...mfa.Requirement) error {
 	p := map[string]string{ParamStage: StageMFA, "za_mfa_ticket": "1"}
 	pending := MFAPending{Requirement: mfa.Requirement{Required: true, Enroll: true, Factors: factors, Reason: "ticket"}, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, TicketAllowMultiple: allowMultiple, TicketHash: ticketHash}
+	if len(override) > 0 && override[0].PlatformAfterProof {
+		pending.Requirement = override[0]
+		pending.Requirement.Reason = "ticket"
+		pending.Requirement.DetectWebAuthn = true
+	}
 	txn, err := h.createTxn(w, r, res, "", p, "/u", func(id string, p map[string]string) error {
 		plain, e := json.Marshal(pending)
 		if e != nil {
@@ -339,7 +392,8 @@ func (h *Handlers) StartMFAReset(w http.ResponseWriter, r *http.Request, res ten
 		return store.ErrInvalid
 	}
 	req.Reason, req.AllowRemember = "reset", false
-	pending := MFAPending{Requirement: req, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, ResetTicketHash: tk.TokenHash, ResetPageHash: secrets.HashToken(page), ResetResultURL: resultURL, ResetUserVersion: u.Version, ResetEmail: u.Email, ResetEmailVerified: u.EmailVerified}
+	hint, _ := r.Context().Value(passkeyLoginKey{}).(PasskeyLoginHint)
+	pending := MFAPending{PasskeyHint: hint, Requirement: req, UserID: u.UserID, RememberEpoch: u.RememberBrowserEpoch, ResetTicketHash: tk.TokenHash, ResetPageHash: secrets.HashToken(page), ResetResultURL: resultURL, ResetUserVersion: u.Version, ResetEmail: u.Email, ResetEmailVerified: u.EmailVerified}
 	p := map[string]string{ParamStage: StageMFA, "za_mfa_reset": "1"}
 	txn, err := h.createTxn(w, r, res, "", p, "/u", func(id string, p map[string]string) error {
 		plain, e := json.Marshal(pending)

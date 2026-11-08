@@ -314,7 +314,7 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error {
 			bound := session.Manager{Store: tx, Now: h.Sessions.Now, TrustProxyHeaders: h.Sessions.TrustProxyHeaders}
 			var err error
-			sess, err = bound.Start(ctx, w, r, res.Tenant, user.UserID, conn.Name, h.now())
+			sess, err = bound.Start(ctx, w, r, res.Tenant, user.UserID, conn.Name, h.now(), store.AuthMethod{Name: "federated"})
 			if err != nil {
 				return err
 			}

@@ -154,7 +154,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: true, UseScopeDescriptionsForConsent: true,
 		PushedAuthorizationRequestsSupported: true,
 		DeviceFlowCharset:                    "digits", DeviceFlowMask: "###-###",
-		Reserved: true, Seeded: true, Origin: store.OriginAPI, IdentityEpoch: 7,
+		Reserved: true, Seeded: true, Origin: store.OriginAPI, IdentityEpoch: 7, DomainRPIDs: map[string]string{"login.example": "example"},
 	}, tenantToPB, tenantFromPB)
 	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}, SettingsExtra: map[string]any{}, SettingsPresence: map[string]bool{}, ProtectionSettings: store.ProtectionSettings{CAPTCHA: store.CAPTCHAPolicy{SimpleCaptcha: map[string]any{}}}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
@@ -162,7 +162,7 @@ func TestTenantRoundTrip(t *testing.T) {
 
 func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
-		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
+		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes", Mobile: &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "T", AppBundleIdentifier: "com.example"}, Android: &store.ClientMobileAndroid{AppPackageName: "com.example", SHA256CertFingerprints: []string{"AA:BB"}}},
 		Secrets: []store.ClientSecret{
 			{Hash: "h1", CreatedAt: nanoTime},
 			{Hash: "h2", CreatedAt: nanoTime, ExpiresAt: ptr(nanoTime.Add(time.Hour))},
@@ -344,7 +344,7 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
-		MFAAt: nanoTime, Origin: "https://login.example",
+		MFAAt: nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,

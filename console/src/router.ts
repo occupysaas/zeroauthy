@@ -55,6 +55,7 @@ import UserDetail from './pages/users/Detail.vue'
 import UserList from './pages/users/List.vue'
 import UserImportExport from './pages/users/ImportExport.vue'
 import { plannedPages } from './pages/planned'
+import RelyingPartyIds from './pages/settings/RelyingPartyIds.vue'
 import Settings from './pages/settings/TenantSettings.vue'
 import AttackProtection from './pages/attack-protection/AttackProtection.vue'
 import Mfa from './pages/security/Mfa.vue'
@@ -144,6 +145,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/actions-logs', name: 'actions-logs', component: ActionsLogs },
   { path: '/t/:tenant/actions/executions/:id', name: 'execution-view', component: ExecutionView },
   { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },
+  { path: '/t/:tenant/settings/relying-party-ids', name: 'relying-party-ids', component: RelyingPartyIds },
   { path: '/t/:tenant/settings', name: 'settings', component: Settings },
   { path: '/t/:tenant/mfa', name: 'mfa', component: Mfa },
   { path: '/t/:tenant/attack-protection', name: 'attack-protection', component: AttackProtection },

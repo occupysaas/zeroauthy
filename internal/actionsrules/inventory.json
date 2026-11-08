@@ -750,25 +750,29 @@
           "name": "authentication.challengeWith",
           "support": "supported",
           "evidence": "documented",
-          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
+          "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
+          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
         },
         {
           "name": "authentication.challengeWithAny",
           "support": "supported",
           "evidence": "documented",
-          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
+          "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
+          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
         },
         {
           "name": "authentication.enrollWith",
           "support": "supported",
           "evidence": "documented",
-          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
+          "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
+          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
         },
         {
           "name": "authentication.enrollWithAny",
           "support": "supported",
           "evidence": "documented",
-          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
+          "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
+          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
         },
         {
           "name": "authentication.recordMethod",
@@ -1023,13 +1027,15 @@
           "name": "authentication.challengeWith",
           "support": "supported",
           "evidence": "documented",
-          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
+          "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
+          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
         },
         {
           "name": "authentication.challengeWithAny",
           "support": "supported",
           "evidence": "documented",
-          "note": "Plan 33 MFA; frozen mfarules schemas and enforced factors only"
+          "note": "Plan 33 MFA; Plan 33b adds WebAuthn factors; frozen mfarules schemas",
+          "factors": ["otp", "email", "recovery-code", "phone", "webauthn-roaming", "webauthn-platform"]
         },
         {
           "name": "redirect.sendUserTo",

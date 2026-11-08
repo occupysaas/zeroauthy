@@ -23,6 +23,9 @@
 //   - Actions capability 3 includes modules, immutable Action/module pins, durable
 //     transactional jobs, reset-ticket challenge outcomes and LastPasswordReset.
 //     Older plugins are refused at startup; rebuild against the current SDK.
+//   - WebAuthn (capability webauthn.v1, Plan 33b) carries passkeys, ceremony
+//     snoozes and the session, client and tenant fields. Without it the host
+//     keeps passkeys stored-only and drops those fields on write.
 //   - Keep main to a single call, storeplugin.Serve(yourStore).
 //   - Stdout carries the go-plugin handshake, so write logs to stderr only.
 //     Lines on stderr that start with "[ERROR] " reach the host's log.
@@ -270,4 +273,14 @@ func (o *opened) CheckOrganizationsIISupport(ctx context.Context) error {
 }
 func (o *opened) OrganizationsIISupported() bool {
 	return o.Store.(store.OrganizationsIISupporter).OrganizationsIISupported()
+}
+
+// CheckWebAuthnSupport preserves the client's webauthn.v1 probe through the SDK wrapper.
+func (o *opened) CheckWebAuthnSupport(ctx context.Context) error {
+	return o.Store.(store.WebAuthnSupporter).CheckWebAuthnSupport(ctx)
+}
+
+// WebAuthnSupported preserves the client's cached webauthn.v1 answer.
+func (o *opened) WebAuthnSupported() bool {
+	return o.Store.(store.WebAuthnSupporter).WebAuthnSupported()
 }

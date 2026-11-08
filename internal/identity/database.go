@@ -439,7 +439,7 @@ func CheckProfile(givenName, familyName, name, nickname, picture string) error {
 
 // checkSignup validates a signup and returns the normalized email and
 // username (empty unless the connection requires one).
-func checkSignup(conn *store.Connection, in SignupInput) (email, username string, err error) {
+func checkSignupProfile(conn *store.Connection, in SignupInput) (email, username string, err error) {
 	if in.PhoneNumber != "" && !store.PhoneIdentifierActive(conn) {
 		return "", "", &PolicyError{Reason: "Phone number is not allowed"}
 	}
@@ -477,6 +477,19 @@ func checkSignup(conn *store.Connection, in SignupInput) (email, username string
 		return "", "", err
 	}
 	if err := CheckMetadata("user_metadata", in.UserMetadata); err != nil {
+		return "", "", err
+	}
+	return email, username, nil
+}
+
+// CheckSignupProfile validates identifiers and attributes without requiring a password.
+func CheckSignupProfile(conn *store.Connection, in SignupInput) (string, string, error) {
+	return checkSignupProfile(conn, in)
+}
+
+func checkSignup(conn *store.Connection, in SignupInput) (email, username string, err error) {
+	email, username, err = checkSignupProfile(conn, in)
+	if err != nil {
 		return "", "", err
 	}
 	person := Person{
@@ -709,4 +722,36 @@ func (d *Database) CreatePasswordless(ctx context.Context, conn *store.Connectio
 		return err
 	}
 	return d.insertSignup(ctx, conn, a, u, "")
+}
+
+// CreateWithCredential runs registration Actions and persists the supplied
+// credential atomically with organization membership and post-registration jobs.
+// The pre-registration Action runs once, outside the storage transaction.
+func (d *Database) CreateWithCredential(ctx context.Context, conn *store.Connection, a SignupActions, u *store.User, create func(context.Context, store.Store, *store.User) error) error {
+	if conn.DisableSignup {
+		return ErrSignupDisabled
+	}
+	if IsCustom(conn) {
+		if err := d.importSignupCheck(ctx, conn, u.Email, u.Username); err != nil {
+			return err
+		}
+	}
+	if err := d.runSignupActions(ctx, a, u); err != nil {
+		return err
+	}
+	err := orglogin.WithMembershipEvents(ctx, d.Store, func(ctx context.Context, tx store.Store) error {
+		if err := create(ctx, tx, u); err != nil {
+			return err
+		}
+		if a.Commit != nil {
+			if err := a.Commit(ctx, tx, u); err != nil {
+				return err
+			}
+		}
+		return d.enqueueSignup(ctx, tx, conn, a, u)
+	})
+	if errors.Is(err, store.ErrConflict) {
+		return ErrUserExists
+	}
+	return err
 }

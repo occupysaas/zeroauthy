@@ -151,7 +151,10 @@ func TestIdentifierFirstRetryResetAndSettingChange(t *testing.T) {
 
 func TestIdentifierFirstConcurrentPassword(t *testing.T) {
 	ctx := context.Background()
-	dsn := "sqlite://" + filepath.Join(t.TempDir(), "shared.db")
+	// Exercise cross-handle state claiming on a real WAL database without
+	// making the completion deadline depend on disk fsync latency. This
+	// disposable fixture does not test durability across a process crash.
+	dsn := "sqlite://" + filepath.Join(t.TempDir(), "shared.db") + "?_pragma=synchronous(OFF)"
 	first, err := sqlstore.Open(ctx, dsn)
 	if err != nil {
 		t.Fatal(err)

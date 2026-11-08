@@ -20,6 +20,8 @@ export type ClientCreate = components['schemas']['ClientCreate']
 export type ClientUpdate = components['schemas']['ClientUpdate']
 export type ClientPage = components['schemas']['ClientPage']
 export type AppType = components['schemas']['AppType']
+export type ConsoleAuthenticationMethod = components['schemas']['ConsoleAuthenticationMethod']
+export type ConsoleRelyingPartyId = components['schemas']['ConsoleRelyingPartyId']
 export type SystemTenant = components['schemas']['SystemTenant']
 export type TenantCreate = components['schemas']['TenantCreate']
 export type ResourceServer = components['schemas']['ResourceServer']
@@ -254,8 +256,23 @@ export class Api {
   setGuardianConfiguration(t: SystemTenant, route: GuardianConfigurationRoute, body: GuardianConfiguration): Promise<GuardianConfiguration> {
     return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/guardian/factors/' + route, { body })
   }
-  getAuthenticationMethods(t: SystemTenant, id: string, page: number): Promise<AuthenticationMethods> {
-    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/authentication-methods', { query: { page, per_page: 100, include_totals: true } })
+  getAuthenticationMethods(t: SystemTenant, id: string, page: number): Promise<ConsoleAuthenticationMethod[] | { authenticators?: ConsoleAuthenticationMethod[]; total?: number }> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/users/${encodeURIComponent(id)}/authentication-methods`, { query: { page, per_page: 100, include_totals: true } })
+  }
+  renameAuthenticationMethod(t: SystemTenant, id: string, method: string, name: string): Promise<ConsoleAuthenticationMethod> {
+    return this.request(this.systemOrigin, 'PATCH', `/api/system/tenants/${encodeURIComponent(t.name)}/users/${encodeURIComponent(id)}/authentication-methods/${encodeURIComponent(method)}`, { body: { name } })
+  }
+  getPasskeyPrerequisites(t: SystemTenant, id: string): Promise<{ effective: boolean; unmet: string[] }> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/connections/${encodeURIComponent(id)}/passkey-prerequisites`)
+  }
+  getRelyingPartyIds(t: SystemTenant): Promise<ConsoleRelyingPartyId[]> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/relying-party-ids`)
+  }
+  getRoamingUV(t: SystemTenant): Promise<components['schemas']['RoamingUVSettings']> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/guardian/factors/webauthn-roaming/settings`)
+  }
+  setRoamingUV(t: SystemTenant, user_verification: 'discouraged' | 'preferred' | 'required'): Promise<components['schemas']['RoamingUVSettings']> {
+    return this.request(this.systemOrigin, 'PUT', `/api/system/tenants/${encodeURIComponent(t.name)}/guardian/factors/webauthn-roaming/settings`, { body: { user_verification } })
   }
   deleteAuthenticationMethod(t: SystemTenant, id: string, method?: string): Promise<void> {
     return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/authentication-methods' + (method ? '/' + encodeURIComponent(method) : ''))

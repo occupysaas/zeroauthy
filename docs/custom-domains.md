@@ -185,8 +185,14 @@ Bodies are limited to 64 KiB. The supported list query is a finite documented
 subset, not arbitrary Lucene. See the [frozen inventory](../internal/customdomain/inventory.json)
 and [evidence notes](compat/observations/custom-domains.md).
 
-`relying_party_identifier` is validated and stored only; WebAuthn enforcement
-belongs to a later milestone. Custom public signing JWKS remains stored-only;
+`relying_party_identifier` is the domain's passkey and WebAuthn relying party
+ID; null means the domain itself. It may be the domain or any registrable
+parent of it, and with `security.webauthn.restrict_shared_rp_ids` it may not
+cover the deployment's own namespaces or another tenant's host. Changing it
+makes passkeys and security keys registered for the old value unusable on
+the domain. Each verified domain also serves the native app association files
+for first-party passkey clients. See [passkeys](passkeys.md).
+Custom public signing JWKS remains stored-only;
 TLS certificates never become token-signing keys. Exact upstream tenant behavior
 was not observed. Local lifecycle, proxy trust, errors and hosted wildcard are
 explicit engineering choices, not a certification claim.

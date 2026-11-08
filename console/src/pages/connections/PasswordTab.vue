@@ -3,6 +3,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import type { Connection, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
+import PasskeyPanel from './PasskeyPanel.vue'
+import { useMfaScope } from '../security/scope'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
@@ -15,6 +17,7 @@ const { t, te } = useI18n()
 const props = defineProps<{ tenant: SystemTenant; connection: Connection }>()
 const emit = defineEmits<{ saved: [Connection] }>()
 const { api } = useServices()
+const { key, capture, current } = useMfaScope(() => props.tenant, () => props.connection.id)
 
 const DEFAULT_BLOCKED = ['name', 'username', 'nickname', 'email', 'phone_number', 'user_metadata.name', 'user_metadata.first', 'user_metadata.last']
 
@@ -33,12 +36,24 @@ const form = reactive({
   profileActive: false,
   blocked: DEFAULT_BLOCKED.join('\n'),
 })
+const passwordEnabled = ref(true)
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
 const busy = ref(false)
+let activeMutation: symbol | undefined
+// Both forms replace the complete options object. Acquire synchronously so
+// even a submit before the next render cannot start a second mutation.
+function acquireMutation() {
+  if (activeMutation) return
+  const token = Symbol()
+  activeMutation = token
+  busy.value = true
+  return () => { if (activeMutation === token) { activeMutation = undefined; busy.value = false } }
+}
 
 function reset(c: Connection) {
+  passwordEnabled.value = asRecord(asRecord(optionsOf(c).authentication_methods).password).enabled !== false
   const po = asRecord(optionsOf(c).password_options)
   const cx = asRecord(po.complexity)
   const h = asRecord(po.history)
@@ -58,13 +73,16 @@ function reset(c: Connection) {
   form.profileActive = p.active === true
   form.blocked = (Array.isArray(p.blocked_fields) ? asStrings(p.blocked_fields) : DEFAULT_BLOCKED).join('\n')
 }
-watch(() => props.connection, reset, { immediate: true })
+// A passkey response must not erase an unsaved password draft.
+watch(() => JSON.stringify([props.connection.id, optionsOf(props.connection).password_options, asRecord(optionsOf(props.connection).authentication_methods).password]), () => reset(props.connection), { immediate: true })
 
 function whole(text: string, min: number, max: number): number | null {
   return /^\d+$/.test(text.trim()) && Number(text) >= min && Number(text) <= max ? Number(text) : null
 }
 
+watch(key, () => { activeMutation = undefined; busy.value = false; general.value = ''; status.value = ''; reset(props.connection) }, { flush: 'sync' })
 async function save() {
+  const captured = capture(); if (!captured || busy.value) return
   general.value = ''
   status.value = ''
   for (const k of Object.keys(errors)) delete errors[k]
@@ -93,15 +111,17 @@ async function save() {
     dictionary: { ...asRecord(po.dictionary), active: form.dictActive, default: form.dictDefault, custom: lines(form.dictCustom) },
     profile_data: { ...asRecord(po.profile_data), active: form.profileActive, blocked_fields: lines(form.blocked) },
   }
-  busy.value = true
+  const release = acquireMutation()
+  if (!release) return
   try {
-    const c = await api.updateConnection(props.tenant, props.connection.id, { options: mergeOptions(optionsOf(props.connection), { password_options: next }) })
+    const c = await api.updateConnection(captured.tenant, captured.id, { options: mergeOptions(optionsOf(props.connection), { password_options: next, authentication_methods: { ...asRecord(optionsOf(props.connection).authentication_methods), password: { ...asRecord(asRecord(optionsOf(props.connection).authentication_methods).password), enabled: passwordEnabled.value } } }) })
+    if (!current(captured)) return
     status.value = t('saved')
     emit('saved', c)
   } catch (e) {
-    general.value = errorMessage(e)
+    if (current(captured)) general.value = errorMessage(e)
   } finally {
-    busy.value = false
+    release()
   }
 }
 
@@ -146,7 +166,9 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
 
 <template>
   <div class="stack">
-    <form class="card stack" novalidate @submit.prevent="save">
+    <form id="password-settings" class="card stack" novalidate @submit.prevent="save">
+      <fieldset class="stack m-0 border-0 p-0" :disabled="busy">
+      <label><input id="password-enabled" v-model="passwordEnabled" type="checkbox" /> {{ t('passkeys.passwordEnabled') }}</label>
       <Banner v-if="general" kind="error">{{ general }}</Banner>
       <h2 class="m-0 text-[1.05rem]">{{ t('conns.complexity') }}</h2>
       <Field id="pw-min" :label="t('conns.minLength')" :hint="t('conns.minLengthHint')" :error="errors.minLength">
@@ -222,8 +244,10 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
         <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('saving') : t('save') }}</Button>
         <span class="muted" role="status">{{ status }}</span>
       </div>
+      </fieldset>
     </form>
 
+    <PasskeyPanel :tenant="tenant" :connection="connection" :mutating="busy" :acquire-mutation="acquireMutation" @saved="emit('saved', $event)" />
     <section class="card stack" :aria-label="t('conns.checker.title')" data-testid="checker">
       <h2 class="m-0 text-[1.05rem]">{{ t('conns.checker.title') }}</h2>
       <p class="muted">{{ t('conns.checker.intro') }}</p>

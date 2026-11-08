@@ -279,6 +279,7 @@ func TestSocialLoginFlow(t *testing.T) {
 		if err != nil || u.UserID != "oidc|corp|Sub-1" || u.Email != "Sub-1@idp.example" || u.LoginsCount != 1 {
 			t.Fatalf("user %+v %v", u, err)
 		}
+		assertSessionMethods(t, b, "federated")
 		// Repeat login finds the same user.
 		b2 := s.browser("acme.example.test")
 		toApp(t, s.explicitLogin(t, b2, s.idp, "corp", "Sub-1"), "app.acme.test")

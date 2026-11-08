@@ -46,6 +46,7 @@ func cloneMFAToken(v *store.MFAToken) *store.MFAToken {
 func cloneChallenge(v *store.MFAChallenge) *store.MFAChallenge {
 	n := *v
 	n.Challenge = bytes.Clone(v.Challenge)
+	n.Binding = bytes.Clone(v.Binding)
 	return &n
 }
 func (r mfa) GetGuardian(_ context.Context, tid string) (*store.GuardianSettings, error) {
@@ -155,7 +156,7 @@ func (r mfa) DeleteUserAuthenticators(_ context.Context, tid, uid string, types 
 	r.s.lock()
 	defer r.s.unlock()
 	for k, a := range r.s.authenticators {
-		if k.tenant == tid && a.UserID == uid && (types == nil || slices.Contains(types, a.Type)) {
+		if k.tenant == tid && a.UserID == uid && (types == nil && a.Type != "passkey" || slices.Contains(types, a.Type)) {
 			delete(r.s.authenticators, k)
 		}
 	}
@@ -261,7 +262,12 @@ func (r mfa) PeekMFAToken(_ context.Context, tid, hash string, now time.Time) (*
 func (r mfa) CreateChallenge(_ context.Context, v *store.MFAChallenge) error {
 	r.s.lock()
 	defer r.s.unlock()
-	if r.s.users[key{v.TenantID, v.UserID}] == nil {
+	// A passkey login challenge has no user yet: the assertion names it.
+	if v.UserID == "" && v.Kind == "webauthn" {
+		if r.s.tenants[v.TenantID] == nil {
+			return store.ErrNotFound
+		}
+	} else if r.s.users[key{v.TenantID, v.UserID}] == nil {
 		return store.ErrNotFound
 	}
 	if v.AuthenticatorID != "" {
@@ -411,6 +417,7 @@ func (r mfa) DeleteUserMFA(_ context.Context, tid, uid string) error {
 	return nil
 }
 func (s *Store) deleteUserMFA(tid, uid string) {
+	s.deleteUserWebAuthn(tid, uid)
 	for k, v := range s.authenticators {
 		if k.tenant == tid && v.UserID == uid {
 			delete(s.authenticators, k)

@@ -227,3 +227,24 @@ func TestSweepPurgesExpiredPhoneRecords(t *testing.T) {
 		t.Fatalf("remaining purge = %d, %v", n, err)
 	}
 }
+
+func TestSweepPurgesWebAuthn(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+		t.Fatal(err)
+	}
+	for scope, until := range map[string]time.Time{"old": now.Add(-time.Second), "new": now.Add(time.Hour)} {
+		if err := st.WebAuthn().PutSnooze(ctx, &store.WebAuthnSnooze{TenantID: "t", UserID: "u", Kind: "passkey-progressive", ScopeKey: scope, Until: until}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := purgeWebAuthn(ctx, st, now)
+	if err != nil || n != 1 {
+		t.Fatalf("purge = %d, %v; want 1", n, err)
+	}
+	if _, err := st.WebAuthn().GetSnooze(ctx, "t", "u", "passkey-progressive", "new", now); err != nil {
+		t.Fatalf("unexpired snooze purged: %v", err)
+	}
+}

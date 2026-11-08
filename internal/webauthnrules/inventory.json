@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-11-05",
+  "fetched_at": "2026-11-04",
+  "decision": "D-0062",
+  "rules": [
+    {
+      "id": "database-only",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys",
+      "statement": "Passkeys are an authentication method of database connections (strategy auth0), enabled by authentication_methods.passkey.enabled."
+    },
+    {
+      "id": "challenge-ui",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy",
+      "statement": "passkey_options.challenge_ui selects autofill, button or both on the identifier screen."
+    },
+    {
+      "id": "prerequisites",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy",
+      "statement": "Passkeys require Universal Login with Identifier First; the connection needs requires_username off or flexible identifiers, import mode for custom databases, and passwords still enabled."
+    },
+    {
+      "id": "coexist",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys",
+      "statement": "Passkeys do not replace or invalidate a user's existing credentials."
+    },
+    {
+      "id": "max-per-user",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys",
+      "statement": "A user can have at most 20 passkeys."
+    },
+    {
+      "id": "progressive",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy",
+      "statement": "Progressive enrollment offers a passkey after an identifier-and-password login; the user may skip it or delay it for 30 days."
+    },
+    {
+      "id": "local",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys/configure-passkey-policy",
+      "statement": "Local enrollment offers a passkey on this device after a login with a cross-device passkey."
+    },
+    {
+      "id": "mfa-after-passkey",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys",
+      "statement": "MFA still applies after a passkey login unless an Action skips it."
+    },
+    {
+      "id": "rp-id-binding",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys",
+      "statement": "A passkey is bound to its relying party ID; changing the domain or RP ID requires re-enrollment."
+    },
+    {
+      "id": "rp-id-custom-domain",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json",
+      "statement": "CustomDomain.relying_party_identifier sets the RP ID for a custom domain; null falls back to the domain."
+    },
+    {
+      "id": "mcd-per-domain",
+      "source": "https://auth0.com/docs/customize/custom-domains/multiple-custom-domains/passkeys",
+      "statement": "With multiple custom domains each domain has its own RP ID and its own passkeys (K1: per domain)."
+    },
+    {
+      "id": "logs",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys/monitor-passkey-events-in-tenant-logs",
+      "statement": "Passkey events log s with performed_amr phr, ss with authentication_methods passkey, gd_enrollment_complete, gd_webauthn_enrollment_failed and gd_webauthn_challenge_failed."
+    },
+    {
+      "id": "native-register",
+      "source": "https://auth0.com/docs/api/authentication/passkey/register",
+      "statement": "POST /passkey/register starts a native passkey signup on a custom domain."
+    },
+    {
+      "id": "native-challenge",
+      "source": "https://auth0.com/docs/api/authentication/passkey/challenge",
+      "statement": "POST /passkey/challenge starts a native passkey login on a custom domain."
+    },
+    {
+      "id": "native-grant",
+      "source": "https://auth0.com/docs/authenticate/database-connections/passkeys/passkey-apis",
+      "statement": "The urn:okta:params:oauth:grant-type:webauthn grant exchanges auth_session and authn_response for tokens."
+    },
+    {
+      "id": "roaming-uv",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-security-keys-for-mfa",
+      "statement": "Security keys use the tenant's user verification setting: never, if supported, or required."
+    },
+    {
+      "id": "platform-not-only",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-device-biometrics-for-mfa",
+      "statement": "Device biometrics cannot be a user's only factor and are offered after another factor."
+    },
+    {
+      "id": "platform-device",
+      "source": "https://auth0.com/docs/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-device-biometrics-for-mfa",
+      "statement": "Device biometrics are recognised per device type (phone, tablet, desktop)."
+    },
+    {
+      "id": "actions-skip-mfa",
+      "source": "https://auth0.com/docs/customize/actions/explore-triggers/post-login",
+      "statement": "A post-login Action can skip MFA when the login used a passkey (event.authentication.methods)."
+    },
+    {
+      "id": "screens",
+      "source": "https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements",
+      "statement": "The login-id, passkeys and mfa-webauthn prompts carry the passkey and WebAuthn screens and text keys."
+    },
+    {
+      "id": "log-schema",
+      "source": "https://auth0.com/docs/oas/tenant-logs/logs-schema.json",
+      "statement": "The logs schema defines passkey_challenge_started/failed and sepkotpft, sepkoobft, sepkrcft."
+    },
+    {
+      "id": "level3-flags",
+      "source": "https://www.w3.org/TR/webauthn-3/",
+      "statement": "Backup eligibility (BE) and backup state (BS) flags, authenticatorAttachment, conditional mediation and topOrigin follow WebAuthn Level 3."
+    }
+  ],
+  "screens": {
+    "passkeys": [
+      "passkey-enrollment",
+      "passkey-enrollment-local"
+    ],
+    "mfa-webauthn": [
+      "mfa-webauthn-change-key-nickname",
+      "mfa-webauthn-enrollment-success",
+      "mfa-webauthn-error",
+      "mfa-webauthn-not-available-error",
+      "mfa-webauthn-platform-challenge",
+      "mfa-webauthn-platform-enrollment",
+      "mfa-webauthn-roaming-challenge",
+      "mfa-webauthn-roaming-enrollment",
+      "mfa-detect-browser-capabilities",
+      "reset-password-mfa-webauthn-platform-challenge",
+      "reset-password-mfa-webauthn-roaming-challenge"
+    ]
+  },
+  "text_keys": {
+    "login-id": [
+      "passkeyButtonText",
+      "passkey-not-allowed",
+      "no-passkey",
+      "passkey-authentication-failed",
+      "invalid-passkey",
+      "conflict-password-passkey",
+      "password-not-allowed"
+    ],
+    "passkey-enrollment": [
+      "createButtonText",
+      "usePasswordButtonText",
+      "backButtonText",
+      "continueButtonText",
+      "checkboxText",
+      "passkey-enrollment-failure",
+      "passkey-enrollment-max-allowed-reached",
+      "email-in-use",
+      "auth0-users-validation"
+    ],
+    "passkey-enrollment-local": [
+      "createButtonText",
+      "continueButtonText",
+      "checkboxText",
+      "passkey-enrollment-failure",
+      "passkey-enrollment-max-allowed-reached"
+    ]
+  },
+  "log_details": {
+    "s": [
+      "prompts"
+    ],
+    "ss": [
+      "authentication_methods"
+    ],
+    "gd_enrollment_complete": [
+      "authenticator"
+    ],
+    "gd_webauthn_enrollment_failed": [
+      "authentication_methods",
+      "authenticator",
+      "failure_details"
+    ],
+    "gd_webauthn_challenge_failed": [
+      "authenticator",
+      "failure_details",
+      "first_factor"
+    ],
+    "passkey_challenge_started": [
+      "purpose"
+    ],
+    "passkey_challenge_failed": [
+      "purpose"
+    ]
+  }
+}

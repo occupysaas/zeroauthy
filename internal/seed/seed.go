@@ -61,24 +61,26 @@ type Tenant struct {
 	Settings map[string]any `yaml:"settings"`
 	supplied map[string]any
 
-	Name                string           `yaml:"name"`
-	FriendlyName        string           `yaml:"friendly_name"`
-	Domains             []string         `yaml:"domains"`
-	DefaultAudience     string           `yaml:"default_audience"`
-	DefaultDirectory    string           `yaml:"default_directory"`
-	AllowedLogoutURLs   []string         `yaml:"allowed_logout_urls"`
-	ResourceServers     []ResourceServer `yaml:"resource_servers"`
-	Organizations       []Organization   `yaml:"organizations"`
-	Roles               []Role           `yaml:"roles"`
-	Clients             []Client         `yaml:"clients"`
-	ClientGrants        []ClientGrant    `yaml:"client_grants"`
-	SessionLifetime     int              `yaml:"session_lifetime"`
-	IdleSessionLifetime int              `yaml:"idle_session_lifetime"`
-	Branding            Branding         `yaml:"branding"`
-	Connections         []Connection     `yaml:"connections"`
-	Users               []User           `yaml:"users"`
-	EnabledLocales      []string         `yaml:"enabled_locales"`
-	CustomText          store.CustomText `yaml:"custom_text"`
+	Name         string   `yaml:"name"`
+	FriendlyName string   `yaml:"friendly_name"`
+	Domains      []string `yaml:"domains"`
+	// DomainRPIDs contains optional per-alias RP IDs decoded from domains objects.
+	DomainRPIDs         map[string]string `yaml:"-"`
+	DefaultAudience     string            `yaml:"default_audience"`
+	DefaultDirectory    string            `yaml:"default_directory"`
+	AllowedLogoutURLs   []string          `yaml:"allowed_logout_urls"`
+	ResourceServers     []ResourceServer  `yaml:"resource_servers"`
+	Organizations       []Organization    `yaml:"organizations"`
+	Roles               []Role            `yaml:"roles"`
+	Clients             []Client          `yaml:"clients"`
+	ClientGrants        []ClientGrant     `yaml:"client_grants"`
+	SessionLifetime     int               `yaml:"session_lifetime"`
+	IdleSessionLifetime int               `yaml:"idle_session_lifetime"`
+	Branding            Branding          `yaml:"branding"`
+	Connections         []Connection      `yaml:"connections"`
+	Users               []User            `yaml:"users"`
+	EnabledLocales      []string          `yaml:"enabled_locales"`
+	CustomText          store.CustomText  `yaml:"custom_text"`
 
 	DeviceFlow DeviceFlow `yaml:"device_flow"`
 
@@ -102,6 +104,16 @@ type Guardian struct {
 	PhoneTemplates        map[string]any            `yaml:"phone_templates"`
 	Factors               map[string]bool           `yaml:"factors"`
 	Policies              []string                  `yaml:"policies"`
+	// WebAuthnRoaming is a zeroauthy extension: Auth0 sets security-key user
+	// verification only in its Dashboard, so no Management API or Deploy CLI
+	// handler carries it (LR33b-22). Omitted keeps the stored value.
+	WebAuthnRoaming *GuardianWebAuthnRoaming `yaml:"webauthn_roaming"`
+}
+
+// GuardianWebAuthnRoaming is the security-key factor's user-verification
+// setting: discouraged (the default, "Never"), preferred or required.
+type GuardianWebAuthnRoaming struct {
+	UserVerification string `yaml:"user_verification"`
 }
 
 // DeviceFlow shapes the user codes of the device authorization grant.
@@ -197,6 +209,13 @@ type Client struct {
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool  `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	RequirePushedAuthorizationRequests             bool   `yaml:"require_pushed_authorization_requests"`
 
+	// Mobile is Auth0's client mobile object (ios.team_id,
+	// ios.app_bundle_identifier, android.app_package_name,
+	// android.sha256_cert_fingerprints), used for native passkeys and the
+	// association files. It needs a store with webauthn.v1.
+	Mobile map[string]any `yaml:"mobile"`
+	mobile *store.ClientMobile
+
 	// normalized is the client after clientrules.Normalize, set by validate.
 	normalized *clientrules.Spec
 }
@@ -217,6 +236,7 @@ func (c *Client) spec() clientrules.Spec {
 		RedirectionPolicy: c.RedirectionPolicy,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
+		Mobile:                                         c.mobile.Clone(),
 	}
 }
 
@@ -255,7 +275,11 @@ func Load(path string) (*File, error) {
 
 // Parse decodes seed YAML, rejecting unknown fields, and validates it.
 func Parse(data []byte) (*File, error) {
-	dec := yaml.NewDecoder(bytes.NewReader(data))
+	normalized, domainRPIDs, err := decodeDomainAliases(data)
+	if err != nil {
+		return nil, fmt.Errorf("seed: %w", err)
+	}
+	dec := yaml.NewDecoder(bytes.NewReader(normalized))
 	dec.KnownFields(true)
 	var f File
 	if err := dec.Decode(&f); err != nil {
@@ -272,6 +296,9 @@ func Parse(data []byte) (*File, error) {
 	}
 	for i := range f.Tenants {
 		f.Tenants[i].supplied = raw.Tenants[i]
+		if i < len(domainRPIDs) {
+			f.Tenants[i].DomainRPIDs = domainRPIDs[i]
+		}
 	}
 	if err := f.validate(); err != nil {
 		return nil, err

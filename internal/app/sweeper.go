@@ -43,6 +43,22 @@ func purgeMFA(ctx context.Context, st store.Store, before time.Time) (int, error
 	return total, nil
 }
 
+// purgeWebAuthn deletes expired passkey and platform enrollment snoozes.
+func purgeWebAuthn(ctx context.Context, st store.Store, before time.Time) (int, error) {
+	total := 0
+	for range mfaPurgeBatches {
+		n, err := st.WebAuthn().PurgeWebAuthn(ctx, before, mfaPurgeBatch)
+		if errors.Is(err, store.ErrWebAuthnUnavailable) {
+			return total, nil // storage without webauthn.v1 holds no snoozes
+		}
+		total += n
+		if err != nil || n < mfaPurgeBatch {
+			return total, err
+		}
+	}
+	return total, nil
+}
+
 // purgePhone deletes expired passwordless codes and links.
 func purgePhone(ctx context.Context, st store.Store, before time.Time) (int, error) {
 	total := 0
@@ -86,6 +102,7 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		}, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeMFA(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgePhone(ctx, st, before) }, now},
+		{func(ctx context.Context, before time.Time) (int, error) { return purgeWebAuthn(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {

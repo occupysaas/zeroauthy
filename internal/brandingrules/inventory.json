@@ -671,6 +671,8 @@
     "mfa-webauthn-enrollment-success",
     "mfa-webauthn-error",
     "mfa-webauthn-not-available-error",
+    "reset-password-mfa-webauthn-roaming-challenge",
+    "reset-password-mfa-webauthn-platform-challenge",
     "mfa-sms-list",
     "mfa-email-challenge",
     "mfa-email-list",

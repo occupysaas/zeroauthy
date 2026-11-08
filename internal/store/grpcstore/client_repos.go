@@ -158,6 +158,7 @@ func (a clientTenants) Create(ctx context.Context, t *store.Tenant) error {
 	if err := a.c.requireTenantSettings(ctx); err != nil {
 		return err
 	}
+	t = a.c.webauthnTenant(t)
 	return put("TenantsCreate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
 		return a.c.rpc.TenantsCreate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -192,6 +193,7 @@ func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
 	if err := a.c.requireTenantSettings(ctx); err != nil {
 		return err
 	}
+	t = a.c.webauthnTenant(t)
 	return put("TenantsUpdate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
 		return a.c.rpc.TenantsUpdate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -213,6 +215,7 @@ func (a clientTenants) Delete(ctx context.Context, id string) error {
 type clientClients struct{ c *Client }
 
 func (a clientClients) Create(ctx context.Context, v *store.Client) error {
+	v = a.c.webauthnClient(v)
 	return put("ClientsCreate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		return a.c.rpc.ClientsCreate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -224,6 +227,7 @@ func (a clientClients) Get(ctx context.Context, tenantID, clientID string) (*sto
 }
 
 func (a clientClients) Update(ctx context.Context, v *store.Client) error {
+	v = a.c.webauthnClient(v)
 	return put("ClientsUpdate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		return a.c.rpc.ClientsUpdate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -695,6 +699,7 @@ func (a clientSessions) Create(ctx context.Context, v *store.LoginSession) error
 			return err
 		}
 	}
+	v = a.c.webauthnSession(v)
 	return put("SessionsCreate", v, sessionToPB, func(pb *storev1.LoginSession) (result, error) {
 		return a.c.rpc.SessionsCreate(ctx, &storev1.SessionWrite{TxId: a.c.txID, Value: pb})
 	})

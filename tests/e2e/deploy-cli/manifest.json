@@ -47,21 +47,21 @@
       "name": "databases",
       "status": "excluded",
       "owner": "roadmap: database migration acceptance",
-      "reason": "Database connection migration is not demonstrated by this Actions/triggers four-cell matrix; synthetic parser fixtures remain covered",
+      "reason": "Database connection migration is not demonstrated by this Actions/triggers four-cell matrix; synthetic parser fixtures remain covered. A focused pinned 9.1.0 test round-trips the passkey options (authentication_methods.passkey, passkey_options) through this handler (Plan 33b)",
       "fixture": null
     },
     {
       "name": "connections",
       "status": "included",
       "owner": "Plan 25",
-      "reason": "All five federated strategies round trip with explicit provider-secret reinjection, materialized OAuth profile scripts and post-import provider logins",
+      "reason": "All five federated strategies round trip with explicit provider-secret reinjection, materialized OAuth profile scripts and post-import provider logins; database connections and their passkey options belong to the databases handler, which this handler filters out",
       "fixture": "fixtures/connections.json"
     },
     {
       "name": "clients",
       "status": "included",
       "owner": "Plan 20",
-      "reason": "Client identity, settings and credential omission are in scope",
+      "reason": "Client identity, settings and credential omission are in scope; native passkey settings (mobile iOS/Android identities and the urn:okta:params:oauth:grant-type:webauthn grant) round-trip through the pinned handler (Plan 33b)",
       "fixture": "fixtures/clients.json"
     },
     {
@@ -96,7 +96,7 @@
       "name": "guardianFactors",
       "status": "included",
       "owner": "Plan 33",
-      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory",
+      "reason": "Documented Guardian configuration round-trips; delivery status follows the Plan 33 frozen factor inventory; the WebAuthn flags (webauthn-roaming, webauthn-platform) are enforced since Plan 33b",
       "fixture": "fixtures/guardian-factors.json"
     },
     {
@@ -242,7 +242,7 @@
       "name": "customDomains",
       "status": "included",
       "owner": "Plan 23",
-      "reason": "Real domain declarations and strict settings/default migration with separate DNS proof",
+      "reason": "Real domain declarations and strict settings/default migration with separate DNS proof; relying_party_identifier round-trips and is enforced as the domain's passkey and WebAuthn RP ID (Plan 33b)",
       "fixture": "fixtures/custom-domains.json"
     },
     {
@@ -477,6 +477,13 @@
       "path": "total_failures",
       "rule": "read-only",
       "reason": "Destination-generated stream runtime metadata is not portable configuration"
+    }
+  ],
+  "noHandler": [
+    {
+      "setting": "guardian.webauthn_roaming.user_verification",
+      "owner": "Plan 33b",
+      "reason": "Auth0 sets security-key user verification only in its Dashboard; there is no Management API field and so no Deploy CLI handler (LR33b-22). zeroauthy carries it through the seed key and the marked system route /api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings; migrate it by hand"
     }
   ]
 }

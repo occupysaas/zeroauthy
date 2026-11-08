@@ -125,6 +125,8 @@ func errToPB(err error) *storev1.Error {
 		return nil
 	case errors.Is(err, store.ErrPhoneUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_PHONE_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrWebAuthnUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_WEBAUTHN_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrMFAUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_MFA_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrEventsUnavailable):
@@ -171,6 +173,8 @@ func errFromPB(e *storev1.Error) error {
 	switch e.Kind {
 	case storev1.Error_KIND_PHONE_UNAVAILABLE:
 		return store.ErrPhoneUnavailable
+	case storev1.Error_KIND_WEBAUTHN_UNAVAILABLE:
+		return store.ErrWebAuthnUnavailable
 	case storev1.Error_KIND_MFA_UNAVAILABLE:
 		return store.ErrMFAUnavailable
 	case storev1.Error_KIND_EVENTS_UNAVAILABLE:
@@ -258,6 +262,10 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		}
 		pb.CustomTextJson = b
 	}
+	var err error
+	if pb.DomainRpIds, err = optJSON(t.DomainRPIDs, t.DomainRPIDs == nil); err != nil {
+		return nil, err
+	}
 	return pb, nil
 }
 
@@ -316,6 +324,9 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		}
 		t.CustomText = ct
 	}
+	if err := fromOptJSON(pb.DomainRpIds, &t.DomainRPIDs); err != nil {
+		return nil, err
+	}
 	return t, nil
 }
 
@@ -354,6 +365,10 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 			pb.Secrets.Values = append(pb.Secrets.Values, &storev1.ClientSecret{
 				Hash: s.Hash, Sealed: optBytes(s.Sealed), CreatedAt: tsToPB(s.CreatedAt), ExpiresAt: optTSToPB(s.ExpiresAt)})
 		}
+	}
+	var err error
+	if pb.Mobile, err = optJSON(c.Mobile, c.Mobile == nil); err != nil {
+		return nil, err
 	}
 	return pb, nil
 }
@@ -403,6 +418,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 			c.Secrets = append(c.Secrets, store.ClientSecret{
 				Hash: s.GetHash(), Sealed: optBytes(s.GetSealed()), CreatedAt: tsFromPB(s.GetCreatedAt()), ExpiresAt: optTSFromPB(s.GetExpiresAt())})
 		}
+	}
+	if err := fromOptJSON(pb.Mobile, &c.Mobile); err != nil {
+		return nil, err
 	}
 	return c, nil
 }
@@ -858,11 +876,16 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 	if s == nil {
 		return nil, nil
 	}
+	methods, err := optJSON(s.AuthMethods, s.AuthMethods == nil)
+	if err != nil {
+		return nil, err
+	}
 	return &storev1.LoginSession{
-		MfaAt:      tsToPB(s.MFAAt),
-		Origin:     s.Origin,
-		CookieMode: s.CookieMode,
-		TenantId:   s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
+		AuthMethods: methods,
+		MfaAt:       tsToPB(s.MFAAt),
+		Origin:      s.Origin,
+		CookieMode:  s.CookieMode,
+		TenantId:    s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
 		Connection: s.Connection, AuthenticatedAt: tsToPB(s.AuthenticatedAt),
 		ClientIds: stringsToPB(s.ClientIDs), ExpiresAt: tsToPB(s.ExpiresAt),
 		IdleExpiresAt: tsToPB(s.IdleExpiresAt), CreatedAt: tsToPB(s.CreatedAt),
@@ -878,11 +901,16 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 	if err := checkTS(pb.MfaAt, pb.AuthenticatedAt, pb.ExpiresAt, pb.IdleExpiresAt, pb.CreatedAt, pb.UpdatedAt, pb.LastInteractedAt); err != nil {
 		return nil, err
 	}
+	var methods []store.AuthMethod
+	if err := fromOptJSON(pb.AuthMethods, &methods); err != nil {
+		return nil, err
+	}
 	return &store.LoginSession{
-		MFAAt:      tsFromPB(pb.MfaAt),
-		Origin:     pb.Origin,
-		CookieMode: pb.CookieMode,
-		TenantID:   pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
+		AuthMethods: methods,
+		MFAAt:       tsFromPB(pb.MfaAt),
+		Origin:      pb.Origin,
+		CookieMode:  pb.CookieMode,
+		TenantID:    pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, AuthenticatedAt: tsFromPB(pb.AuthenticatedAt),
 		ClientIDs: stringsFromPB(pb.ClientIds), ExpiresAt: tsFromPB(pb.ExpiresAt),
 		IdleExpiresAt: tsFromPB(pb.IdleExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
@@ -1321,4 +1349,27 @@ func grantOrgUsage(v string) string {
 		return "deny"
 	}
 	return v
+}
+
+// optJSON encodes v as JSON bytes, or nil (absent) when unset.
+func optJSON(v any, unset bool) ([]byte, error) {
+	if unset {
+		return nil, nil
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("grpcstore: encode: %w", err)
+	}
+	return b, nil
+}
+
+// fromOptJSON decodes b into v unless b is absent.
+func fromOptJSON(b []byte, v any) error {
+	if len(b) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(b, v); err != nil {
+		return fmt.Errorf("grpcstore: decode: %w", err)
+	}
+	return nil
 }

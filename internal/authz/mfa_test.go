@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,6 +11,9 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -485,5 +489,188 @@ func TestGateKnownDeviceOnlyForConfidenceAndReused(t *testing.T) {
 		if deviceCookie(rec) != nil {
 			t.Fatal("valid device cookie was replaced with a new row")
 		}
+	}
+}
+
+// This models an older plugin: legacy MFA methods remain readable while the
+// independent WebAuthn capability is absent.
+type noWebAuthnCapabilityStore struct{ store.Store }
+
+func (noWebAuthnCapabilityStore) CheckWebAuthnSupport(context.Context) error {
+	return store.ErrWebAuthnUnavailable
+}
+func (noWebAuthnCapabilityStore) WebAuthnSupported() bool  { return false }
+func (noWebAuthnCapabilityStore) WebAuthn() store.WebAuthn { return store.UnimplementedWebAuthn{} }
+
+func TestGateWebAuthnUnavailableConfidenceRequiresExistingProof(t *testing.T) {
+	for _, fallback := range []string{"none", "otp", "recovery-code"} {
+		t.Run(fallback, func(t *testing.T) {
+			e := newEnv(t)
+			ck := e.login(t, fixedNow())
+			ctx := context.Background()
+			s := gateSession(t, e, ck)
+			gatePolicy(t, e, map[string]bool{"otp": true, "webauthn-roaming": true, "recovery-code": true})
+			g, err := e.st.MFA().GetGuardian(ctx, e.tenant.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			g.Policies = []string{"confidence-score"}
+			if err = e.st.MFA().PutGuardian(ctx, g, g.Version); err != nil {
+				t.Fatal(err)
+			}
+			a := &store.Authenticator{TenantID: e.tenant.ID, UserID: s.UserID, ID: "roaming", Type: "webauthn-roaming", Confirmed: true, RPID: "acme.example.test", CredentialID: []byte("credential"), PublicKey: []byte("key")}
+			if err = e.st.MFA().CreateAuthenticator(ctx, a); err != nil {
+				t.Fatal(err)
+			}
+			if fallback != "none" {
+				factor := "totp"
+				if fallback == "recovery-code" {
+					factor = fallback
+				}
+				if err = e.st.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: e.tenant.ID, UserID: s.UserID, ID: "fallback", Type: factor, Confirmed: true}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			e.h.Store = noWebAuthnCapabilityStore{e.st}
+			e.h.MFA = mfa.NewService(e.h.Store, e.h.Wrapper, nil, nil, nil, fixedNow)
+			e.h.Passkeys = passkey.NewService(e.h.Store, rpid.Policy{}, fixedNow)
+			rec := e.get(t, goodQuery(), ck)
+			if fallback == "none" {
+				loc := location(t, rec)
+				if loc.Query().Get("error") != "access_denied" || loc.Query().Get("code") != "" {
+					t.Fatalf("unavailable enrolled key bypassed confidence MFA: %s", loc)
+				}
+				return
+			}
+			txn := e.txnAt(t, rec, "/u/mfa")
+			r := gateRequest(e, ck, rec)
+			pending, err := e.h.PendingMFA(ctx, r, e.res(), txn, s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req := pending.Requirement
+			if !req.Required || req.Enroll || req.DetectWebAuthn || len(req.Factors) != 1 || req.Factors[0] != fallback {
+				t.Fatalf("existing-proof requirement = %+v", req)
+			}
+		})
+	}
+}
+
+func TestGateCompletedEnrollmentExactFactor(t *testing.T) {
+	for _, tc := range []struct {
+		name, selected  string
+		enabled, proven bool
+		wantOK          bool
+	}{
+		{"enrolled-requested", "otp", true, true, true},
+		{"disabled-requested", "otp", false, true, false},
+		{"unrelated-proof", "email", true, true, false},
+		{"no-enrollment-proof", "", true, true, false},
+		{"unproven", "otp", true, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newEnv(t)
+			ck := e.login(t, fixedNow())
+			gatePolicy(t, e, map[string]bool{"otp": tc.enabled, "email": true})
+			sess := gateSession(t, e, ck)
+			if tc.proven {
+				sess.MFAAt = fixedNow()
+			}
+			e.tenant.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+			if err := e.st.MFA().CreateAuthenticator(context.Background(), &store.Authenticator{TenantID: e.tenant.ID, UserID: sess.UserID, ID: "totp|completed-enrollment", Type: "totp", Confirmed: true}); err != nil {
+				t.Fatal(err)
+			}
+			r := httptest.NewRequest("GET", "https://acme.example.test/authorize", nil)
+			r = r.WithContext(context.WithValue(context.WithValue(r.Context(), mfaCompletedKey{}, sess.ID), mfaEnrollmentCompletedKey{}, tc.selected))
+			eff := &actions.Effects{MFA: &actions.MFAEffects{Mode: "enroll", Factors: [][]string{{"otp"}}}}
+			req, err := e.h.mfaDecision(r, e.res(), flowReq{}, sess, eff)
+			if tc.wantOK {
+				if err != nil || req.Required {
+					t.Fatalf("completed enrollment %+v %v", req, err)
+				}
+			} else if !errors.Is(err, mfa.ErrNoFactor) {
+				t.Fatalf("untrusted/ineligible enrollment %+v %v", req, err)
+			}
+			if eff.MFA.Mode != "enroll" || eff.MFA.Factors[0][0] != "otp" {
+				t.Fatal("mutated original enrollment effects")
+			}
+		})
+	}
+}
+
+func TestGateCompletedPlatformEnrollmentLiveEligibility(t *testing.T) {
+	for _, name := range []string{"eligible", "disabled", "revoked-capability", "foreign-rp", "unrelated-otp-proof"} {
+		t.Run(name, func(t *testing.T) {
+			e := newEnv(t)
+			ck := e.login(t, fixedNow())
+			gatePolicy(t, e, map[string]bool{"otp": true, "webauthn-platform": name != "disabled"})
+			sess := gateSession(t, e, ck)
+			sess.MFAAt = fixedNow()
+			e.tenant.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+			ctx := context.Background()
+			if err := e.st.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: e.tenant.ID, UserID: sess.UserID, ID: "totp|other", Type: "totp", Confirmed: true}); err != nil {
+				t.Fatal(err)
+			}
+			rp := "acme.example.test"
+			if name == "foreign-rp" {
+				rp = "foreign.example.test"
+			}
+			if err := e.st.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: e.tenant.ID, UserID: sess.UserID, ID: "platform|completed", Type: "webauthn-platform", Confirmed: true, RPID: rp, CredentialID: []byte("credential"), PublicKey: []byte("key")}); err != nil {
+				t.Fatal(err)
+			}
+			if name == "revoked-capability" {
+				e.h.Store = noWebAuthnCapabilityStore{e.st}
+			}
+			e.h.MFA = mfa.NewService(e.h.Store, e.h.Wrapper, nil, nil, nil, fixedNow)
+			e.h.Passkeys = passkey.NewService(e.h.Store, rpid.Policy{}, fixedNow)
+			factor := "webauthn-platform"
+			if name == "unrelated-otp-proof" {
+				factor = "otp"
+			}
+			r := httptest.NewRequest("GET", "https://acme.example.test/authorize", nil)
+			r = r.WithContext(context.WithValue(context.WithValue(r.Context(), mfaCompletedKey{}, sess.ID), mfaEnrollmentCompletedKey{}, factor))
+			eff := &actions.Effects{MFA: &actions.MFAEffects{Mode: "enroll", Factors: [][]string{{"webauthn-platform"}}}}
+			req, err := e.h.mfaDecision(r, e.res(), flowReq{}, sess, eff)
+			if name == "eligible" {
+				if err != nil || req.Required {
+					t.Fatalf("completed platform enrollment %+v %v", req, err)
+				}
+			} else if !errors.Is(err, mfa.ErrNoFactor) {
+				t.Fatalf("ineligible completed platform enrollment %+v %v", req, err)
+			}
+		})
+	}
+}
+
+func TestGateCompletedEnrollmentSurvivesConsent(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	gatePolicy(t, e, map[string]bool{"otp": true})
+	sess := gateSession(t, e, ck)
+	if err := e.st.Sessions().MarkMFA(context.Background(), e.tenant.ID, sess.ID, fixedNow()); err != nil {
+		t.Fatal(err)
+	}
+	sess.MFAAt = fixedNow()
+	e.tenant.SettingsExtra = map[string]any{"customize_mfa_in_postlogin_action": true}
+	if err := e.st.MFA().CreateAuthenticator(context.Background(), &store.Authenticator{TenantID: e.tenant.ID, UserID: sess.UserID, ID: "totp|consent-enrollment", Type: "totp", Confirmed: true}); err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest("GET", "https://acme.example.test/authorize", nil)
+	r = r.WithContext(context.WithValue(context.WithValue(r.Context(), mfaCompletedKey{}, sess.ID), mfaEnrollmentCompletedKey{}, "otp"))
+	client, _ := e.st.Clients().Get(r.Context(), e.tenant.ID, "spa")
+	fr := flowReq{Request: ParseRequest(goodQuery())}
+	eff := &actions.Effects{MFA: &actions.MFAEffects{Mode: "enroll", Factors: [][]string{{"otp"}}}}
+	rec := httptest.NewRecorder()
+	e.h.startConsent(rec, r, e.res(), client, fr, sess, eff)
+	txn := e.txnAt(t, rec, "/u/consent")
+	if txn.Params["za_mfa_enrollment_factor"] != "otp" {
+		t.Fatal("lost exact completed enrollment factor")
+	}
+	r = httptest.NewRequest("POST", "https://acme.example.test/u/consent", nil)
+	r.AddCookie(ck)
+	rec = httptest.NewRecorder()
+	e.h.Consent(rec, r, e.res(), txn, sess, true)
+	if loc := location(t, rec); loc.Query().Get("code") == "" {
+		t.Fatalf("completed enrollment lost through consent: %s", loc)
 	}
 }

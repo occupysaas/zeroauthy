@@ -66,6 +66,16 @@ const (
 	StoreService_PhoneFindUsersByPhone_FullMethodName                   = "/zeroauthy.store.v1.StoreService/PhoneFindUsersByPhone"
 	StoreService_PhonePurge_FullMethodName                              = "/zeroauthy.store.v1.StoreService/PhonePurge"
 	StoreService_PhoneDeleteTenant_FullMethodName                       = "/zeroauthy.store.v1.StoreService/PhoneDeleteTenant"
+	StoreService_WebAuthnCapabilities_FullMethodName                    = "/zeroauthy.store.v1.StoreService/WebAuthnCapabilities"
+	StoreService_WebAuthnGetByCredentialID_FullMethodName               = "/zeroauthy.store.v1.StoreService/WebAuthnGetByCredentialID"
+	StoreService_WebAuthnCreatePasskey_FullMethodName                   = "/zeroauthy.store.v1.StoreService/WebAuthnCreatePasskey"
+	StoreService_WebAuthnCreateUserWithPasskey_FullMethodName           = "/zeroauthy.store.v1.StoreService/WebAuthnCreateUserWithPasskey"
+	StoreService_WebAuthnAcceptAssertion_FullMethodName                 = "/zeroauthy.store.v1.StoreService/WebAuthnAcceptAssertion"
+	StoreService_WebAuthnMovePasskeys_FullMethodName                    = "/zeroauthy.store.v1.StoreService/WebAuthnMovePasskeys"
+	StoreService_WebAuthnPutSnooze_FullMethodName                       = "/zeroauthy.store.v1.StoreService/WebAuthnPutSnooze"
+	StoreService_WebAuthnGetSnooze_FullMethodName                       = "/zeroauthy.store.v1.StoreService/WebAuthnGetSnooze"
+	StoreService_WebAuthnHostTenantsUnder_FullMethodName                = "/zeroauthy.store.v1.StoreService/WebAuthnHostTenantsUnder"
+	StoreService_WebAuthnPurge_FullMethodName                           = "/zeroauthy.store.v1.StoreService/WebAuthnPurge"
 	StoreService_EventsCapabilities_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EventsCapabilities"
 	StoreService_AppendEvents_FullMethodName                            = "/zeroauthy.store.v1.StoreService/AppendEvents"
 	StoreService_GetEvent_FullMethodName                                = "/zeroauthy.store.v1.StoreService/GetEvent"
@@ -333,6 +343,7 @@ const (
 	StoreService_SessionsListByUser_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SessionsListByUser"
 	StoreService_SessionsTouch_FullMethodName                           = "/zeroauthy.store.v1.StoreService/SessionsTouch"
 	StoreService_SessionsAddClient_FullMethodName                       = "/zeroauthy.store.v1.StoreService/SessionsAddClient"
+	StoreService_SessionsAddMethod_FullMethodName                       = "/zeroauthy.store.v1.StoreService/SessionsAddMethod"
 	StoreService_SessionsDelete_FullMethodName                          = "/zeroauthy.store.v1.StoreService/SessionsDelete"
 	StoreService_SessionsDeleteByUser_FullMethodName                    = "/zeroauthy.store.v1.StoreService/SessionsDeleteByUser"
 	StoreService_SessionsDeleteExpired_FullMethodName                   = "/zeroauthy.store.v1.StoreService/SessionsDeleteExpired"
@@ -503,6 +514,16 @@ type StoreServiceClient interface {
 	PhoneFindUsersByPhone(ctx context.Context, in *PhoneFindUsersRequest, opts ...grpc.CallOption) (*PhoneFindUsersResponse, error)
 	PhonePurge(ctx context.Context, in *PhonePurgeRequest, opts ...grpc.CallOption) (*PhoneCountResponse, error)
 	PhoneDeleteTenant(ctx context.Context, in *PhoneTenantRequest, opts ...grpc.CallOption) (*PhoneErrorResponse, error)
+	WebAuthnCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	WebAuthnGetByCredentialID(ctx context.Context, in *WebAuthnCredentialRequest, opts ...grpc.CallOption) (*WebAuthnAuthenticatorResponse, error)
+	WebAuthnCreatePasskey(ctx context.Context, in *WebAuthnCreatePasskeyRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error)
+	WebAuthnCreateUserWithPasskey(ctx context.Context, in *WebAuthnCreateUserWithPasskeyRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error)
+	WebAuthnAcceptAssertion(ctx context.Context, in *WebAuthnAcceptAssertionRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error)
+	WebAuthnMovePasskeys(ctx context.Context, in *WebAuthnMovePasskeysRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error)
+	WebAuthnPutSnooze(ctx context.Context, in *WebAuthnPutSnoozeRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error)
+	WebAuthnGetSnooze(ctx context.Context, in *WebAuthnGetSnoozeRequest, opts ...grpc.CallOption) (*WebAuthnSnoozeResponse, error)
+	WebAuthnHostTenantsUnder(ctx context.Context, in *WebAuthnHostTenantsRequest, opts ...grpc.CallOption) (*WebAuthnHostTenantsResponse, error)
+	WebAuthnPurge(ctx context.Context, in *WebAuthnPurgeRequest, opts ...grpc.CallOption) (*WebAuthnCountResponse, error)
 	EventsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	AppendEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	GetEvent(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
@@ -787,6 +808,7 @@ type StoreServiceClient interface {
 	SessionsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionList, error)
 	SessionsTouch(ctx context.Context, in *TouchRequest, opts ...grpc.CallOption) (*Result, error)
 	SessionsAddClient(ctx context.Context, in *SessionsAddClientRequest, opts ...grpc.CallOption) (*Result, error)
+	SessionsAddMethod(ctx context.Context, in *SessionsAddMethodRequest, opts ...grpc.CallOption) (*Result, error)
 	SessionsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
 	SessionsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error)
 	SessionsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
@@ -1329,6 +1351,106 @@ func (c *storeServiceClient) PhoneDeleteTenant(ctx context.Context, in *PhoneTen
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PhoneErrorResponse)
 	err := c.cc.Invoke(ctx, StoreService_PhoneDeleteTenant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnGetByCredentialID(ctx context.Context, in *WebAuthnCredentialRequest, opts ...grpc.CallOption) (*WebAuthnAuthenticatorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnAuthenticatorResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnGetByCredentialID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnCreatePasskey(ctx context.Context, in *WebAuthnCreatePasskeyRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnCreatePasskey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnCreateUserWithPasskey(ctx context.Context, in *WebAuthnCreateUserWithPasskeyRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnCreateUserWithPasskey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnAcceptAssertion(ctx context.Context, in *WebAuthnAcceptAssertionRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnAcceptAssertion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnMovePasskeys(ctx context.Context, in *WebAuthnMovePasskeysRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnMovePasskeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnPutSnooze(ctx context.Context, in *WebAuthnPutSnoozeRequest, opts ...grpc.CallOption) (*WebAuthnErrorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnErrorResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnPutSnooze_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnGetSnooze(ctx context.Context, in *WebAuthnGetSnoozeRequest, opts ...grpc.CallOption) (*WebAuthnSnoozeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnSnoozeResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnGetSnooze_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnHostTenantsUnder(ctx context.Context, in *WebAuthnHostTenantsRequest, opts ...grpc.CallOption) (*WebAuthnHostTenantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnHostTenantsResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnHostTenantsUnder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) WebAuthnPurge(ctx context.Context, in *WebAuthnPurgeRequest, opts ...grpc.CallOption) (*WebAuthnCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebAuthnCountResponse)
+	err := c.cc.Invoke(ctx, StoreService_WebAuthnPurge_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4017,6 +4139,16 @@ func (c *storeServiceClient) SessionsAddClient(ctx context.Context, in *Sessions
 	return out, nil
 }
 
+func (c *storeServiceClient) SessionsAddMethod(ctx context.Context, in *SessionsAddMethodRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_SessionsAddMethod_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) SessionsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -4725,6 +4857,16 @@ type StoreServiceServer interface {
 	PhoneFindUsersByPhone(context.Context, *PhoneFindUsersRequest) (*PhoneFindUsersResponse, error)
 	PhonePurge(context.Context, *PhonePurgeRequest) (*PhoneCountResponse, error)
 	PhoneDeleteTenant(context.Context, *PhoneTenantRequest) (*PhoneErrorResponse, error)
+	WebAuthnCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	WebAuthnGetByCredentialID(context.Context, *WebAuthnCredentialRequest) (*WebAuthnAuthenticatorResponse, error)
+	WebAuthnCreatePasskey(context.Context, *WebAuthnCreatePasskeyRequest) (*WebAuthnErrorResponse, error)
+	WebAuthnCreateUserWithPasskey(context.Context, *WebAuthnCreateUserWithPasskeyRequest) (*WebAuthnErrorResponse, error)
+	WebAuthnAcceptAssertion(context.Context, *WebAuthnAcceptAssertionRequest) (*WebAuthnErrorResponse, error)
+	WebAuthnMovePasskeys(context.Context, *WebAuthnMovePasskeysRequest) (*WebAuthnErrorResponse, error)
+	WebAuthnPutSnooze(context.Context, *WebAuthnPutSnoozeRequest) (*WebAuthnErrorResponse, error)
+	WebAuthnGetSnooze(context.Context, *WebAuthnGetSnoozeRequest) (*WebAuthnSnoozeResponse, error)
+	WebAuthnHostTenantsUnder(context.Context, *WebAuthnHostTenantsRequest) (*WebAuthnHostTenantsResponse, error)
+	WebAuthnPurge(context.Context, *WebAuthnPurgeRequest) (*WebAuthnCountResponse, error)
 	EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	AppendEvents(context.Context, *EventsRequest) (*EventsResponse, error)
 	GetEvent(context.Context, *EventsRequest) (*EventsResponse, error)
@@ -5009,6 +5151,7 @@ type StoreServiceServer interface {
 	SessionsListByUser(context.Context, *ScopedKey) (*SessionList, error)
 	SessionsTouch(context.Context, *TouchRequest) (*Result, error)
 	SessionsAddClient(context.Context, *SessionsAddClientRequest) (*Result, error)
+	SessionsAddMethod(context.Context, *SessionsAddMethodRequest) (*Result, error)
 	SessionsDelete(context.Context, *ScopedKey) (*Result, error)
 	SessionsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error)
 	SessionsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
@@ -5227,6 +5370,36 @@ func (UnimplementedStoreServiceServer) PhonePurge(context.Context, *PhonePurgeRe
 }
 func (UnimplementedStoreServiceServer) PhoneDeleteTenant(context.Context, *PhoneTenantRequest) (*PhoneErrorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PhoneDeleteTenant not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnGetByCredentialID(context.Context, *WebAuthnCredentialRequest) (*WebAuthnAuthenticatorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnGetByCredentialID not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnCreatePasskey(context.Context, *WebAuthnCreatePasskeyRequest) (*WebAuthnErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnCreatePasskey not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnCreateUserWithPasskey(context.Context, *WebAuthnCreateUserWithPasskeyRequest) (*WebAuthnErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnCreateUserWithPasskey not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnAcceptAssertion(context.Context, *WebAuthnAcceptAssertionRequest) (*WebAuthnErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnAcceptAssertion not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnMovePasskeys(context.Context, *WebAuthnMovePasskeysRequest) (*WebAuthnErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnMovePasskeys not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnPutSnooze(context.Context, *WebAuthnPutSnoozeRequest) (*WebAuthnErrorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnPutSnooze not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnGetSnooze(context.Context, *WebAuthnGetSnoozeRequest) (*WebAuthnSnoozeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnGetSnooze not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnHostTenantsUnder(context.Context, *WebAuthnHostTenantsRequest) (*WebAuthnHostTenantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnHostTenantsUnder not implemented")
+}
+func (UnimplementedStoreServiceServer) WebAuthnPurge(context.Context, *WebAuthnPurgeRequest) (*WebAuthnCountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WebAuthnPurge not implemented")
 }
 func (UnimplementedStoreServiceServer) EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method EventsCapabilities not implemented")
@@ -6028,6 +6201,9 @@ func (UnimplementedStoreServiceServer) SessionsTouch(context.Context, *TouchRequ
 }
 func (UnimplementedStoreServiceServer) SessionsAddClient(context.Context, *SessionsAddClientRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SessionsAddClient not implemented")
+}
+func (UnimplementedStoreServiceServer) SessionsAddMethod(context.Context, *SessionsAddMethodRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method SessionsAddMethod not implemented")
 }
 func (UnimplementedStoreServiceServer) SessionsDelete(context.Context, *ScopedKey) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SessionsDelete not implemented")
@@ -7069,6 +7245,186 @@ func _StoreService_PhoneDeleteTenant_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).PhoneDeleteTenant(ctx, req.(*PhoneTenantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnGetByCredentialID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnCredentialRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnGetByCredentialID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnGetByCredentialID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnGetByCredentialID(ctx, req.(*WebAuthnCredentialRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnCreatePasskey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnCreatePasskeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnCreatePasskey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnCreatePasskey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnCreatePasskey(ctx, req.(*WebAuthnCreatePasskeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnCreateUserWithPasskey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnCreateUserWithPasskeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnCreateUserWithPasskey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnCreateUserWithPasskey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnCreateUserWithPasskey(ctx, req.(*WebAuthnCreateUserWithPasskeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnAcceptAssertion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnAcceptAssertionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnAcceptAssertion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnAcceptAssertion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnAcceptAssertion(ctx, req.(*WebAuthnAcceptAssertionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnMovePasskeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnMovePasskeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnMovePasskeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnMovePasskeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnMovePasskeys(ctx, req.(*WebAuthnMovePasskeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnPutSnooze_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnPutSnoozeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnPutSnooze(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnPutSnooze_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnPutSnooze(ctx, req.(*WebAuthnPutSnoozeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnGetSnooze_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnGetSnoozeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnGetSnooze(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnGetSnooze_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnGetSnooze(ctx, req.(*WebAuthnGetSnoozeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnHostTenantsUnder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnHostTenantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnHostTenantsUnder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnHostTenantsUnder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnHostTenantsUnder(ctx, req.(*WebAuthnHostTenantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_WebAuthnPurge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebAuthnPurgeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).WebAuthnPurge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_WebAuthnPurge_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).WebAuthnPurge(ctx, req.(*WebAuthnPurgeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -11861,6 +12217,24 @@ func _StoreService_SessionsAddClient_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_SessionsAddMethod_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SessionsAddMethodRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SessionsAddMethod(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SessionsAddMethod_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SessionsAddMethod(ctx, req.(*SessionsAddMethodRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_SessionsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ScopedKey)
 	if err := dec(in); err != nil {
@@ -13112,6 +13486,46 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_PhoneDeleteTenant_Handler,
 		},
 		{
+			MethodName: "WebAuthnCapabilities",
+			Handler:    _StoreService_WebAuthnCapabilities_Handler,
+		},
+		{
+			MethodName: "WebAuthnGetByCredentialID",
+			Handler:    _StoreService_WebAuthnGetByCredentialID_Handler,
+		},
+		{
+			MethodName: "WebAuthnCreatePasskey",
+			Handler:    _StoreService_WebAuthnCreatePasskey_Handler,
+		},
+		{
+			MethodName: "WebAuthnCreateUserWithPasskey",
+			Handler:    _StoreService_WebAuthnCreateUserWithPasskey_Handler,
+		},
+		{
+			MethodName: "WebAuthnAcceptAssertion",
+			Handler:    _StoreService_WebAuthnAcceptAssertion_Handler,
+		},
+		{
+			MethodName: "WebAuthnMovePasskeys",
+			Handler:    _StoreService_WebAuthnMovePasskeys_Handler,
+		},
+		{
+			MethodName: "WebAuthnPutSnooze",
+			Handler:    _StoreService_WebAuthnPutSnooze_Handler,
+		},
+		{
+			MethodName: "WebAuthnGetSnooze",
+			Handler:    _StoreService_WebAuthnGetSnooze_Handler,
+		},
+		{
+			MethodName: "WebAuthnHostTenantsUnder",
+			Handler:    _StoreService_WebAuthnHostTenantsUnder_Handler,
+		},
+		{
+			MethodName: "WebAuthnPurge",
+			Handler:    _StoreService_WebAuthnPurge_Handler,
+		},
+		{
 			MethodName: "EventsCapabilities",
 			Handler:    _StoreService_EventsCapabilities_Handler,
 		},
@@ -14170,6 +14584,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SessionsAddClient",
 			Handler:    _StoreService_SessionsAddClient_Handler,
+		},
+		{
+			MethodName: "SessionsAddMethod",
+			Handler:    _StoreService_SessionsAddMethod_Handler,
 		},
 		{
 			MethodName: "SessionsDelete",

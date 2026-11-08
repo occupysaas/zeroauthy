@@ -324,9 +324,9 @@ semantics before enabling a code.
 
 The runtime and administration emitters below are implemented. The acceptance
 record distinguishes code coverage from the final regression matrix. `fertft`
-remains the existing Plan 31 refresh-token emitter. WebAuthn remains Plan 33b,
-phone/SMS/voice delivery uses the Plan 34 routes described below; Guardian
-push delivery is not planned.
+remains the existing Plan 31 refresh-token emitter. WebAuthn and passkey codes
+are listed in the next table; phone/SMS/voice delivery uses the Plan 34 routes
+described below; Guardian push delivery is not planned.
 
 | Code | Meaning | Source owner |
 | --- | --- | --- |
@@ -350,6 +350,29 @@ push delivery is not planned.
 | `gd_unenroll` | A second-factor device registration was removed. | `internal/mfa/service.go` (`Unenroll`), `internal/mgmt/user_auth_methods.go` (`userMFA`), `internal/mgmt/user_auth_methods.go` (`guardianEnrollment`) |
 | `gd_update_device_account` | A second-factor device registration changed. | `internal/mgmt/user_auth_methods.go` (`userMFA`) |
 | `mfar` | The flow requested a second authentication factor. | `internal/authz/mfa.go` (`requireMFA`) |
+
+### Passkey and WebAuthn emitters (Plan 33b)
+
+Successful WebAuthn MFA challenges and enrollments use the MFA codes above;
+`gd_enrollment_complete` names the authenticator type (`webauthn-roaming`,
+`webauthn-platform`, or `passkey` after progressive or local enrollment). A passkey login logs `s` with `performed_amr: ["phr"]`, and a passkey
+signup logs `ss` with `authentication_methods: ["passkey"]`. Details never
+carry client data, attestation objects, signatures, challenges, user handles
+or the native `auth_session`. Local rulings: LR33b-17 and LR33b-28 in D-0062;
+see [passkeys](passkeys.md).
+
+| Code | Meaning | Source owner |
+| --- | --- | --- |
+| `gd_webauthn_challenge_failed` | A WebAuthn assertion failed: a hosted passkey login (`first_factor: true`) or a security-key/biometrics challenge. | `internal/login/passkey.go` (`passkeyFailure`), `internal/mfa/webauthn.go` (`VerifyWebAuthn`) |
+| `gd_webauthn_enrollment_failed` | A WebAuthn registration failed during passkey signup or MFA enrollment. | `internal/login/passkey_signup.go` (`signupEnrollmentFailure`), `internal/mfa/webauthn.go` (`StageWebAuthnEnroll`) |
+| `passkey_challenge_started` | A native passkey challenge was issued (`details.purpose`). | `internal/oauth/passkey.go` (`nativePasskey`) |
+| `passkey_challenge_failed` | A native passkey request or proof was refused. | `internal/oauth/passkey.go` (`nativeEvent`) |
+| `seoobft` | A password grant passed an out-of-band challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `seotpft` | A password grant passed a one-time challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `sercft` | A password grant passed an MFA recovery challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `sepkoobft` | A passkey grant passed an out-of-band challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `sepkotpft` | A passkey grant passed a one-time challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
+| `sepkrcft` | A passkey grant passed an MFA recovery challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
 
 ### Not emitted yet
 
@@ -402,7 +425,7 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `forms_submission_succeeded` | A submitted Form was processed. | Plan 38 |
 | `fpurh` | An asynchronous registration hook ended with an error. | Plan 38 |
 | `fscim` | A SCIM provisioning operation failed. | Plan 38 |
-| `gd_auth_rejected` | The user declined an MFA push challenge. | Plan 33b |
+| `gd_auth_rejected` | The user declined an MFA push challenge. | Not planned |
 | `gd_phone_settings_update` | The MFA phone factor configuration changed. | Plan 34 |
 | `gd_send_pn` | An MFA push challenge was dispatched. | Not planned |
 | `gd_send_pn_failure` | An MFA push challenge could not be dispatched. | Not planned |
@@ -410,8 +433,6 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `gd_send_sms_failure` | An MFA text challenge could not be dispatched. | Plan 34 |
 | `gd_send_voice` | An MFA voice challenge was dispatched. | Plan 34 |
 | `gd_send_voice_failure` | An MFA voice challenge could not be dispatched. | Plan 34 |
-| `gd_webauthn_challenge_failed` | The browser could not complete a WebAuthn assertion. | Plan 33b |
-| `gd_webauthn_enrollment_failed` | The browser could not complete WebAuthn registration. | Plan 33b |
 | `idjag_exchange_failed` | An identity assertion authorization grant was refused. | Plan 35 |
 | `idjag_exchange_succeeded` | An identity assertion authorization grant issued tokens. | Plan 35 |
 | `jwt_bearer_exchange_failed` | A JWT assertion grant was refused. | Plan 35 |
@@ -425,8 +446,6 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `my_account_authentication_method_succeeded` | A My Account authentication-method operation completed. | Plan 42 |
 | `oidc_backchannel_logout_failed` | An OIDC logout notification could not be delivered. | Plan 41 |
 | `oidc_backchannel_logout_succeeded` | An OIDC logout notification was delivered. | Plan 41 |
-| `passkey_challenge_failed` | A native passkey assertion could not complete. | Plan 33 |
-| `passkey_challenge_started` | A native passkey assertion challenge began. | Plan 33 |
 | `pla` | Bot-detection signals were sampled before authentication. | Plan 40 |
 | `resource_cleanup` | Limit enforcement removed excess stored resources. | Plan 45 |
 | `rich_consents_access_error` | A rich-consent record could not be read. | Plan 38 |
@@ -439,12 +458,6 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `sdelsa` | Delegated authentication without interaction completed. | Plan 38 |
 | `secte` | A custom token grant issued tokens. | Plan 35 |
 | `sens` | A native social provider exchange completed. | Plan 44 |
-| `seoobft` | A password grant passed an out-of-band challenge. | Plan 33 |
-| `seotpft` | A password grant passed a one-time challenge. | Plan 33 |
-| `sepkoobft` | A passkey grant passed an out-of-band challenge. | Plan 33 |
-| `sepkotpft` | A passkey grant passed a one-time challenge. | Plan 33 |
-| `sepkrcft` | A passkey grant passed an MFA recovery challenge. | Plan 33 |
-| `sercft` | A password grant passed an MFA recovery challenge. | Plan 33 |
 | `seta` | Token Vault exchanged the supplied credential. | Plan 43 |
 | `ss_sso_failure` | A self-service SSO operation failed. | Plan 38 |
 | `ss_sso_info` | A self-service SSO operation produced informational output. | Plan 38 |

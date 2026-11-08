@@ -1,0 +1,35 @@
+{{define "title"}}{{if eq .Data.EnrollmentKind "local"}}{{t .Tenant.L "passkeys.passkey-enrollment-local.title"}}{{else}}{{t .Tenant.L "passkeys.passkey-enrollment.title"}}{{end}}{{end}}
+{{define "description"}}{{if eq .Data.EnrollmentKind "local"}}{{t .Tenant.L "passkeys.passkey-enrollment-local.description"}}{{else}}{{t .Tenant.L "passkeys.passkey-enrollment.description"}}{{end}}{{end}}
+{{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+<form id="za-passkey-form" method="post" action="{{if .Data.EnrollmentAction}}{{.Data.EnrollmentAction}}{{else}}/u/signup/passkey{{end}}">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{if .Data.HostedRevision}}<input type="hidden" name="hosted_revision" value="{{.Data.HostedRevision}}">{{end}}
+<input type="hidden" name="challenge_id" value="{{.Data.Passkey.ChallengeID}}">
+<input type="hidden" name="credential" value="">
+<input type="hidden" name="webauthn_error" value="">
+{{template "captcha" .}}
+<button id="za-passkey-button" type="button">{{if eq .Data.EnrollmentKind "local"}}{{t .Tenant.L "passkeys.passkey-enrollment-local.createButtonText"}}{{else}}{{t .Tenant.L "passkeys.passkey-enrollment.createButtonText"}}{{end}}</button>
+</form>
+{{if .Data.EnrollmentKind}}
+<form id="za-passkey-skip" method="post" action="{{.Data.EnrollmentAction}}">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{if .Data.HostedRevision}}<input type="hidden" name="hosted_revision" value="{{.Data.HostedRevision}}">{{end}}
+<input type="hidden" name="skip" value="1">
+<label><input type="checkbox" name="snooze" value="1">{{if eq .Data.EnrollmentKind "local"}}{{t .Tenant.L "passkeys.passkey-enrollment-local.checkboxText"}}{{else}}{{t .Tenant.L "passkeys.passkey-enrollment.checkboxText"}}{{end}}</label>
+<button type="submit" class="secondary">{{if eq .Data.EnrollmentKind "local"}}{{t .Tenant.L "passkeys.passkey-enrollment-local.continueButtonText"}}{{else}}{{t .Tenant.L "passkeys.passkey-enrollment.continueButtonText"}}{{end}}</button>
+</form>
+{{else}}
+<form method="post" action="/u/signup/password">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{if .Data.HostedRevision}}<input type="hidden" name="hosted_revision" value="{{.Data.HostedRevision}}">{{end}}
+<button type="submit" class="secondary">{{t .Tenant.L "passkeys.passkey-enrollment.usePasswordButtonText"}}</button>
+</form>
+<p class="alt"><a href="/u/signup?state={{.Data.State}}">{{t .Tenant.L "passkeys.passkey-enrollment.backButtonText"}}</a></p>
+{{end}}
+<script nonce="{{.Nonce}}" type="application/json" id="za-webauthn">{{.Data.Passkey}}</script>
+<script nonce="{{.Nonce}}">{{.WebAuthnScript}}</script>
+{{end}}

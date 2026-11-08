@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
@@ -20,6 +21,8 @@ import (
 )
 
 type Handlers struct {
+	// Passkeys supplies hosted and native first-factor ceremonies.
+	Passkeys   *passkey.Service
 	MFA        *mfa.Service
 	Recorder   logs.Recorder
 	Protection *protection.Service

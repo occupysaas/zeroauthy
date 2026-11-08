@@ -17,7 +17,7 @@ it('renders eight factors in documented order with runtime and future status lab
   const { wrapper, calls } = await mountAt(Mfa, '/t/acme/mfa', respond)
   expect(wrapper.findAll('[data-factor]').map(row => row.attributes('data-factor'))).toEqual(names)
   expect(wrapper.get('[data-factor="sms"]').text()).toContain('Configure an enabled phone provider')
-  expect(wrapper.get('[data-factor="webauthn-roaming"]').text()).toContain('Plan 33b')
+  expect(wrapper.get('[data-factor="webauthn-roaming"]').text()).toContain('Available at login')
   expect(wrapper.get('[data-factor="duo"]').text()).toContain('Not planned')
   expect(wrapper.get('#factor-sms').attributes('disabled')).toBeDefined()
   await wrapper.get('#factor-email').setValue(true)

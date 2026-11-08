@@ -113,15 +113,26 @@ func (h *Handlers) renderIdentifier(w http.ResponseWriter, r *http.Request, stat
 	if data.Social == nil {
 		data.Social = h.socialButtons(r, f)
 	}
+	if err := h.preparePasskey(r, f, &data); err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+	if data.Passkey != nil && !h.captchaPage(w, r, f, "login") {
+		return
+	}
 	ui.RenderLoginIdentifier(w, status, f.view, data)
 }
 func (h *Handlers) renderSignup(w http.ResponseWriter, r *http.Request, status int, f *flow, data ui.SignupData) {
 	data.EmailCodeEnabled = h.codeTemplateEnabled(r.Context(), f.res.Tenant.ID, "verify_email_by_code")
 	data.PhoneEnabled = store.PhoneIdentifierActive(f.conn) && store.PhoneSignupStatus(f.conn) != "not_allowed"
 	data.PhoneNumber = r.PostForm.Get("phone_number")
-	if !h.prepareHostedForm(w, r, f, "signup", "signup") {
+	if !h.prepareHostedForm(w, r, f, signupPrompt(f), signupPrompt(f)) {
 		return
 	}
 	data.HostedRevision = hostedRevision(f)
-	ui.RenderSignup(w, status, f.view, data)
+	if signupPrompt(f) == signupPasswordStep {
+		ui.RenderSignupStage(w, status, signupPasswordStep, f.view, data)
+	} else {
+		ui.RenderSignup(w, status, f.view, data)
+	}
 }

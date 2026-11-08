@@ -155,9 +155,7 @@ func TestLogSearchMigration29(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 			s := openAtVersion(t, mk(t), 28)
-			if err := s.Tenants().Create(ctx, &store.Tenant{ID: "backfill", Name: "backfill"}); err != nil {
-				t.Fatal(err)
-			}
+			seedLegacyTenant(t, s, "backfill")
 			at := logTime(time.Now())
 			body := []byte(`{"client_name":"My App","details":{"v":"\u0000","n":1e1000000}}`)
 			for i := range 103 {

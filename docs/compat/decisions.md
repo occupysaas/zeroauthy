@@ -2632,3 +2632,538 @@ opt-in Auth0 behaviour), an unusable refresh token is again `400`
 Auth0 does. Wrong-password answers keep Auth0's `403`: conformance does not
 exercise the password grant. Cost if wrong: an Auth0 SDK that branches on 403
 for refresh failures needs the setting.
+
+## D-0062 — Passkeys and WebAuthn MFA contracts and local rulings
+
+**2026-11-05; Plan 33b Task 1.** Evidence: the sources in the Plan 33b spec
+§2 (`docs/superpowers/specs/2026-11-05-zeroauthy-passkeys-webauthn-design.md`),
+fetched as published Markdown on 2026-11-04: Auth0's passkey, Passkey API,
+multiple-custom-domain, WebAuthn MFA, Actions and customize-text pages, the
+[Management API OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+the [logs schema](https://auth0.com/docs/oas/tenant-logs/logs-schema.json),
+the MIT `@auth0/auth0-auth-js` 1.16.1 passkey client (request shapes) and
+W3C WebAuthn Levels 2 and 3. The contract is frozen in
+`internal/webauthnrules/inventory.json` (every rule with its URL, the
+`passkeys` and `mfa-webauthn` screens, text keys, log detail fields and the
+limits). No tenant was observed; the maintainer asked that the documentation
+decide (2026-11-05).
+
+**Local rulings.** LR33b-1…37 with their cost if wrong are the table in spec
+§13; LR33b-4, -25, -27 and -30 as amended by spec §14a (R1–R3).
+
+**Documentation conflicts (controller calls, spec §14a).** K1 and K10: per-
+domain enrollment. K2 ignored. K3 snake case. K4: explicit
+`webauthn-platform` requests honoured after another factor (LR33b-20). K5 no
+tenant default RP ID. K6 security-key user verification behind an extension
+route; MFA RP ID from the custom-domain field. K7 `amr` unchanged. K8
+`password.api_behavior` stored only. K9 the native Passkey APIs are built as
+generally available with no tenant flag. K11 `event.authentication.methods`
+also lists `pwd`, `federated`, `email` and `sms` (pulled forward from Plan
+40). K12 `webauthn_platform_first_factor` stays Plan 44. K13 no `webauthn`
+method name. K14 a sign-count regression is rejected.
+
+**R1** `security.webauthn.restrict_shared_rp_ids` (default false) restores the
+strict "never cover the deployment's hosts" rule for shared hosting; invalid
+stored RP IDs fail closed. **R2** operator alias hosts are treated as
+verified custom domains with an optional seed `relying_party_identifier`.
+**R3** brute-force blocks refuse passkey logins, passkey success resets the
+counter, and passkey signup/login spend the suspicious-IP budgets through
+`internal/protection`.
+
+**Observe later (W1–W12):** spec §13; copied to the follow-ups file.
+
+**Execution rulings (Task 1).** Sources were not re-fetched: the spec's
+research is one day old (cost if wrong: a doc change in that day is missed
+until the next changelog review). New Management and Authentication API
+routes are added to `api/*.yaml` by the tasks that implement them (Tasks 14
+and 15), not here, because generated server interfaces would break the build
+until then.
+
+**Addenda (recorded as each task lands):** D-0042 (passkey options enforced
+when effective), D-0039 (client `mobile` stored), D-0059 (WebAuthn factors
+enforced; `passkey` method type; `DELETE`/`PUT` exclusions; MFA success log
+codes), D-0061 (passkey grant errors at 400).
+
+**Spike result (2026-11-05).** Chromium's CDP virtual authenticator
+(`ctap2`, `internal`, resident key, user verification) completed `create`,
+a button `get` and a conditional (`mediation: "conditional"`) `get` on a
+self-signed `https://spike.e2e.test` origin with `ignoreHTTPSErrors` alone;
+`--ignore-certificate-errors-spki-list` was not needed
+(`tests/e2e/m33b-spike.spec.mjs`). Autofill is therefore covered by browser
+tests in Tasks 9 and 19.
+
+**Task 10 execution rulings (hosted signup, 2026-11-06).** LR33b-15/32/36
+and R3 use existing no-user `MFAChallenge` metadata for a bounded immutable
+signup draft, with a random namespaced ID, stable prospective user ID,
+transaction/browser/connection binding and the authorization's original
+expiry. Draft profile state supplies the password fallback as well as passkey
+registration; posted profiles and authorization parameters cannot replace it.
+Cost: draft rows remain until expiry/purge, including drafts abandoned by
+back navigation. Registration still consumes the Task 8 service's trusted
+`Taken` and offered handle; metadata is never accepted as browser authority.
+
+The registration admission is paid before the first existence lookup. A
+separate bound row gives the first actual credential attempt a single-use
+credit for that paid admission. CAPTCHA rejection leaves the credit intact;
+it is never recreated after deletion. Concurrent consumers have one winner;
+a loser reserves normally before credential checks. A changed IP discards
+the old credit and uses its own current budget. The in-process protection
+admission flag applies only to signup's registration reservation and comes
+only from trusted server metadata; it is not a request or seed field. Cost:
+one additional expiring metadata row, with explicit conditional consumption
+and normal charging for later actual failures. This prevents a capacity-one
+budget from blocking the plain password fallback after identifier entry.
+
+Producer dependencies pulled forward with controller approval: activate
+`gd_webauthn_enrollment_failed` only at the hosted first-factor signup
+failure boundary; intercept atomic `CreateUserWithPasskey` in the events
+store decorator so `user.created` commits or rolls back with the user and
+credential. Preserve WebAuthn capability forwarding through that decorator.
+No other passkey mutation emits `user.updated`. Cost: these small Task 16
+and producer integrations land with their first consumer. Storage conflicts
+are classified after rollback: only canonical identifier collisions receive
+the budget-protected existence answer; credential-only collisions retain a
+bounded, generic ceremony failure.
+
+**Task 11 execution rulings (post-login enrollment, 2026-11-06).**
+Progressive enrollment applies to a successful password signup, including an
+invitation signup's first password continuation, once every required ownership
+verification and MFA step is complete. Passkey signup does not trigger the
+progressive prompt. This controller ruling treats the password continuation
+consistently with a password login; the standalone Task 10 fixture explicitly
+disables progressive enrollment to keep its assertions scoped. Cost if wrong:
+password signup users see one additional skippable prompt.
+
+The post-login order is Actions and access policy, required MFA, optional
+passkey enrollment, consent or callback confirmation, then authorization.
+`approve` retains its defensive MFA check for direct internal callers. The
+completed MFA marker survives the enrollment and consent transitions so an
+Action-forced challenge is satisfied once while its restrictions and sealed
+effects remain in force. Cost: both the early decision and final defensive
+approval check evaluate MFA policy.
+
+The stored `za_pk_prompt` decision carries the session, user, RP ID, decision
+time, MFA timestamp and Guardian configuration version. A separate expiring
+no-user `webauthn` challenge is an atomic answer gate; enrollment or snooze,
+gate consumption and transaction deletion commit together. Final completion
+rechecks the active browser session, current authorization and organization
+policy, blocking, connection, RP ID and MFA policy through transaction-bound
+copies of the handlers and session/passkey services. Cost: one extra expiring
+row per offered prompt, and a Guardian configuration change invalidates an
+outstanding prompt even if the change would not affect its factor.
+
+Progressive and local registration use separate server-owned challenge
+purposes, `passkey-progressive-register` and `passkey-local-register`, so a
+challenge cannot cross signup or enrollment kinds. Both retain the existing
+exact origin, browser, transaction, client, connection and authenticated-user
+bindings. Local registration requests a platform authenticator and refuses a
+non-platform result. Cost: a browser omitting registration attachment cannot
+complete the optional local enrollment and can skip it instead.
+
+The local snooze scope is a hash of a random, secure, HTTP-only browser cookie;
+the stored scope contains no raw device cookie. Both snoozes last 30 days,
+with progressive scoped to the user and RP ID and local scoped to the user
+and browser. Missing WebAuthn or platform-check APIs auto-submit a skip without
+snoozing through the existing bound form. A supported platform check returning
+false skips only local enrollment; progressive enrollment can still register
+a roaming authenticator. Cost: deleting the device cookie
+allows the local prompt to appear again. No CSP or permissions policy change
+is needed, and the capability report and assertion attachment stay outside
+Actions and event payloads.
+
+**Task 11 review correction (2026-11-06).** The answer operation uses
+`orglogin.WithMembershipEvents` as its outer transaction, propagating the
+returned context into the request and nested policy, membership and enrollment
+calls. An automatic membership recreated during enrollment emits its success
+event only after the entire answer commits; invalid credentials roll back both
+membership and its pending event. Cost: membership success logging waits for
+the enclosing enrollment transaction instead of its nested savepoint.
+
+**Task 12 integration rulings (2026-11-06).** WebAuthn MFA uses a
+request-local service view with the real authorization transaction, browser
+cookie hash, client, connection, organization, user and exact resolved RP
+origin. Missing or inconsistent binding is refused. The existing ceremony
+row retains `Kind=webauthn`; independent `webauthn-register` and
+`webauthn-assert` purposes stay inside its binding. Namespaced companion rows
+persist the offered options and, after verification, only the verified
+credential for nickname entry. They expire at the original ceremony deadline.
+Nickname confirmation conditionally consumes that verified proof in the same
+transaction as authenticator insertion, initial recovery and enrollment-ticket
+consumption. Raw registration responses never become nickname state. Cost:
+three short-lived rows for registration, and a new ceremony after expiry.
+
+The authorization decision may provisionally determine that a WebAuthn factor
+could be used, but it never renders that factor before the capability page.
+The hosted page recomputes the requirement from the persisted browser result;
+missing JavaScript reports no capability and offers alternate factors or
+recovery. A browser with no usable factor gets a stable unavailable page,
+without another detection redirect. RP IDs filter usable keys before deciding
+challenge versus enrollment, including the first-only enrollment guard. Cost:
+one extra hosted form submission when WebAuthn could be offered.
+
+Security-key UV uses the existing parameter table and is checked for both
+registration and assertion. Tightening the setting during the ceremony cannot
+accept a previously UV-less proof. The system settings route checks both the
+signed and current operator tenant grants through the existing target resolver;
+API schema generation remains assigned to Tasks 14/15. Existing imported MFA
+keys may lack a saved user handle, so an assertion that omits it can still
+verify using its owned credential; a supplied handle must match the saved
+value. Cost: imported keys that supply an unknown handle need corrected
+metadata, while FIDO-1-style assertions remain usable when UV is not required.
+
+Controller-approved producer integration: the shared `multifactor` predicate
+excludes passkeys now, so adding the first WebAuthn MFA factor or deleting the
+last one while keeping a passkey emits `user.updated` through the existing
+transactional decorator. Task 14 retains the broader API projections. Cost:
+this small Task 14 predicate correction lands with Task 12. The roaming
+password-reset capability hook and reset screen were also tested here; Task 13
+retains platform/device progression. No organization event producer changes
+were needed; completion uses the existing outer-commit flow.
+
+**Task 12 final guard correction (2026-11-06).** A known current-RP key
+still represents an enrolled factor when the browser cannot use WebAuthn;
+ordinary MFA policy must then require an existing alternate/recovery proof,
+not authorize enrollment of a fresh factor. An explicit trusted Action that
+requests enrollment keeps its existing behavior. Conversely, a foreign-RP key
+must not block first-only OTP/email enrollment offered for this RP. Hosted
+ordinary enrollment now supplies a request-local RP scope to that shared guard;
+it conveys no WebAuthn ceremony authority. Unscoped non-hosted service callers
+retain the prior conservative guard. Cost: a user with an unavailable key and
+no usable alternate/recovery method receives the unavailable answer instead
+of enrolling around that key. Three red regressions reproduced both decision
+and confirmation errors, including the hosted redirect loop.
+
+
+**Task 12 review round 1 (2026-11-06).** Registration exclusions follow
+spec §4.5: only the user's credentials of the requested MFA factor at the
+current RP are excluded. Passkeys and platform methods do not block roaming
+MFA enrollment on the same authenticator. The current RP is also retained in
+authorization's provisional MFA decision when an older plugin lacks
+`webauthn.v1`: the legacy MFA list still identifies an enrolled roaming key.
+Capability continues to gate offering the key and browser detection. Confidence
+policy for an unknown browser therefore requires an existing alternate or
+recovery proof, or fails closed when none is usable. Cost: legacy-plugin users
+with only a security key cannot authorize until an existing proof is available
+or the plugin supports the ceremony; fresh-factor enrollment is not a fallback.
+No new storage calls, capability, or ceremony authority are introduced.
+
+### D-0062 Task 13 implementation amendment — platform proof and warning data
+
+Platform MFA enrollment follows another successful MFA proof in the same bound
+hosted flow, including explicit Action and enrollment-ticket requests. The
+server carries the successful proof in sealed page state and bound ceremony
+metadata; another confirmed enabled primary factor must still exist at commit.
+Recovery and passkeys do not qualify. Class uniqueness is checked after locking
+the user in the insertion transaction. Device recognition uses the saved user
+agent classification; RP ownership remains independent of browser/plugin support.
+The cost of the conservative proof rule is an additional challenge for explicit
+platform enrollment, preserving the required MFA boundary.
+
+Guardian's factor-list rows keep Auth0's exact shape (`name`, `enabled`,
+`trial_expired`). The console derives the platform-only warning required by
+LR33b-20 from the enabled flags: device biometrics enabled with no other enabled
+enforced primary factor (recovery excluded). An earlier Task13 design added a
+`requires_other_factor` row property for this; Task 19's Deploy CLI round trip
+showed that the CLI exports factor rows verbatim and sends every field back on
+import, so exported zeroauthy configuration would carry a field Auth0 does not
+define. The property was removed (2026-11-07). The runtime API still accepts
+enabling platform alone.
+
+Task13 controller clarification: a successful recovery proof may trigger optional
+platform enrollment while another confirmed enabled primary method remains.
+Recovery itself never supplies eligibility. This can add one optional prompt
+after recovery. The hosted preflight checks eligibility before showing it, and
+the service repeats the authoritative check in the insertion transaction.
+
+
+Task13 review1 clarification: a mixed Action enrollment request retains only its
+requested eligible alternatives. The other-factor prerequisite sequence begins
+when platform is the selected target; completing another requested alternative
+satisfies the enrollment Action without an optional platform offer. Explicit
+platform-only Actions and tickets remain mandatory after their prerequisite
+proof. This adds a store-backed decision/revision transition at platform choice,
+while retaining the existing sealed proof and final insertion boundaries.
+Optional deferrals are presented only for optional post-proof offers, including
+retry screens; mandatory enrollment does not display controls the server refuses.
+
+
+Completed Action enrollment is validated against the exact final server-proven
+factor, rather than requiring another new enrollment candidate. A separate
+trusted enrollment marker must name one of the Action's original requested
+factors; ordinary MFA completion or another factor's proof does not qualify.
+Live factor enablement, capability and RP/device eligibility still apply. The
+hosted final handler supplies that marker only after proof; the original Action
+effects remain unchanged. Consent retains it in server state tied to the same
+session MFA timestamp. Cost: an internal completion argument and consent-state
+field, with no public API or schema change.
+
+### D-0062 Task 14 — Management imports and native client schema
+
+The public Management OpenAPI fetched for Task14 on 2026-11-06
+(`https://auth0.com/docs/oas/management/v2/management-api-oas.json`, retained
+SHA-256 `bda18e1169f3b8aec18a0d9385e6f8d5c34dd69a24cb3509fefc0a336f6e7aac`)
+defines `ClientMobile`, `ClientMobileiOS` and `ClientMobileAndroid` as objects
+with `additionalProperties: true`. Team, bundle and package IDs are strings
+with empty-string defaults. A supplied fingerprint array has at least one
+entry, and each entry is a string of at least one character. None of these
+fields has a format or pattern constraint. The controller therefore resolved
+the task brief's request for fingerprint/team/bundle format validation in favor
+of those actual schema constraints. Empty or unusual string IDs and short
+nonempty fingerprints may be stored; unknown properties are accepted and
+ignored. Supplied known platform children must be objects. `mobile: null` is
+refused; an empty object replaces the native settings with no platforms.
+Omission preserves them on PATCH. Without `webauthn.v1`, mobile is ignored
+before validation, preserving old-plugin behavior. Negotiation errors propagate.
+Cost: accepted settings can be unusable for native passkeys. `NativeOrigins`
+already skips fingerprints that cannot represent a SHA-256 certificate; Task15
+must similarly omit unusable association identities rather than trust them.
+No identifier or fingerprint regex was added to the Management boundary.
+
+Passkey imports require a bounded credential ID and a COSE public key accepted
+by the verifier. An explicit user handle must decode to 32 bytes; omission
+reuses the oldest credential's handle (ID breaks timestamp ties), or creates a
+random handle. Existing linked handles are preserved. Explicit empty handles
+or identity IDs are invalid. The identity is a raw database identity `user_id`,
+matching the existing passkey service; it must belong to this user's database
+identities. Omission prefers the own database identity, then the first linked
+database identity in stored order. Cost: a user with multiple database identities
+should supply the intended identity explicitly. Imported user-agent text is
+capped at 4096 characters; the remaining public metadata uses the documented
+schema and request-size bounds. Cost: unusually large user-agent imports are
+refused. An omitted RP ID uses the default custom domain's effective RP ID or
+the canonical host. An invalid configured default fails closed. An explicit
+foreign RP ID is retained for credential portability and listing; ceremonies
+still enforce their actual RP ID and exact origins.
+
+Create uses the store's atomic 20-passkey limit and tenant credential uniqueness.
+The limit maps to `400 invalid_body`, duplicates to 409, and unavailable
+WebAuthn storage to `501 webauthn_unavailable`. Linking moves credentials inside
+the existing identity transaction before secondary deletion; unlinking moves
+only credentials for that raw identity ID. Neither operation changes saved
+handles or credential metadata. Passkey create, rename and deletion emit no
+Guardian domain or `user.updated` resource event. Ordinary Management `sapi`
+audit logging remains in force and scrubs credential fields. MFA-only bulk
+operations, enrollments, multifactor projection and recovery eligibility exclude
+passkeys. Session methods expose the saved names, optional factor types and
+timestamps; legacy sessions retain the password projection.
+
+Task1's deferred schemas now cover passkey Management types, native mobile
+settings and the two existing operator-only system extensions. The client grant
+list already uses open strings, so the accepted passkey grant is documented
+without narrowing that schema. Generated adapters apply the extensions' existing
+scope intent, replacing their temporary direct registrations. These extensions
+have no invented `/api/v2` counterparts. Native endpoints and association files
+remain Task15, Actions projections Task16, and console/seed work later tasks.
+
+Task14 review1 clarification: a raw identity user ID is unique only within its
+provider namespace. Passkeys name database identities, so unlink invokes
+MovePasskeys only for `moved.Provider == store.StrategyDatabase`. A linked social
+identity with the same raw ID must not inherit a database credential. The
+provider check also keeps non-database unlink independent of WebAuthn capability
+negotiation. This adds no wire field or store argument and changes no valid
+passkey ownership rule; database unlink retains the existing atomic move.
+Regression coverage uses real assertions before, concurrently with, and after
+social unlink, then verifies database unlink still resolves to the recreated
+secondary user. The duplicate passkey enum value in the shared Management
+method schema is removed without removing passkey from the GET schema.
+
+### D-0062 Task 15 — Native passkey continuations and association serving
+
+Native APIs use the existing no-user WebAuthn challenge contract. Each native
+ceremony has its hashed session row plus a separately addressed sealed metadata
+row containing the trusted binding and signup draft, with the same expiry.
+The metadata is conditionally consumed before parsing proof or accepting submitted
+context; the ceremony is consumed even when context does not match. Cost: two
+short-lived rows per native ceremony. The signup admission applies only after
+that single-use server record is taken and only at its original IP; a changed
+IP pays a normal registration reservation. This preserves R3 before the native
+existence answer and introduces no public admission field.
+
+Task15 consumes Task14's permissive mobile storage by omitting unusable IDs and
+fingerprints from association documents and Android origins. Team IDs are
+bounded uppercase ASCII letters/digits; bundle IDs and packages use bounded
+segmented ASCII identities; Android package segments begin with letters.
+SHA256 fingerprints have exactly 32 colon-separated hex bytes. Serving guards
+confer no claim that an app is registered or owned. Cost: a stored mobile value
+may remain visible in Management while providing no native trust.
+
+The minimum Task16 producer dependency is pulled forward: native post-login
+Actions receive `oauth2-webauthn` and the recorded passkey method; the same
+producer exposes other already-recorded first factors under K11. It preserves
+legacy MFA-only sessions and strips native proof fields from Action request
+body and query projections. Passkey-only ID-token `amr` remains unchanged.
+Native refresh and sealed MFA requests preserve their canonical organization
+ID and connection. All six password/passkey OTP, OOB and recovery success codes
+are emitted under LR33b-28, alongside the required native/WebAuthn inventory
+emitters. Task16 still owns its remaining event members and coverage.
+
+Controller clarification, 2026-11-07: organization-required clients may use only
+the three MFA continuation grants when a trusted pending MFA token proves a
+passkey first factor bound to an organization. The authenticated token endpoint
+peeks and unseals it once, verifies client, origin, active user/version and enabled
+connection, then requires the stored organization and matching connection.
+A private request-only context carries that validated pending request to the
+grant. The proof transaction remains the sole consumer and rechecks live client
+organization usage, organization existence, membership, connection and application
+entitlement. Public organization parameters cannot authorize the exception;
+password, organization-less, expired/reused and other-client tokens retain the
+organization guard's refusal. Cost: a small private request-context handoff;
+there is no new public parameter, capability or persisted field. Reviewers should
+check this exception together with the final mint transaction, rather than infer
+organization authority from the MFA grant name.
+
+The affected SQL revocation fixture reproduced migration commits blocked inside
+SQLite `_unixSync`/`Xfsync` before grant execution. Under the existing controller
+fixture ruling, only its disposable SQLite DSN uses `synchronous(OFF)`. The real
+file/WAL, 20-second context, transaction barrier and all revocation assertions
+remain intact. Production settings are unchanged. Cost: this fixture does not
+exercise crash durability, which its policy-serialization assertions do not claim.
+
+Task15 review1 clarification: native MFA does not offer WebAuthn challenge types,
+but the current valid RP ID still scopes ownership of enrolled WebAuthn MFA keys.
+The passkey grant carries its already-resolved effective RP in its internal
+first-factor call to the shared MFA decision; availability remains false. Under
+confidence policy, an owned current-RP key therefore requires an existing native
+alternate or recovery proof, or fails closed. A foreign-RP key does not establish
+current-RP enrollment. Native capability absence still refuses the native API
+before first-factor verification. Cost: one internal request value, no persisted,
+wire, Actions or token claim field, and no expansion of native MFA methods.
+
+Native signup preserves and validates a normalized active flexible username even
+when the independent legacy RequiresUsername flag is false. Required/forbidden
+signup checks still use the submitted profile, and the normalized username now
+reaches existence lookup and atomic credential signup. Inactive usernames remain
+refused. The legacy shared signup helper is unchanged; this is scoped native
+integration. Native metadata values are checked as actual JSON strings, so null
+cannot become an empty string through map[string]string decoding. Both JSON and
+form encodings follow the same check; ordinary empty strings remain permitted.
+Cost: a local normalization/validation step and strict value type check, with no
+schema, store or generated adapter change.
+
+### D-0062 Task 16 — Actions session and enrollment regression boundary
+
+Task15 already supplied the K11 first-factor projection, and the Actions factor
+inventory and producer already support both WebAuthn MFA types. Task16 retains
+those implementations and adds consumer regressions rather than replacing code
+to manufacture a failing test. The named plan tests initially pass against the
+Task15 implementation; this is existing-behavior evidence, not a RED/GREEN fix.
+Cost: no production change, with additional real Node-runner tests to maintain.
+
+Actions list recorded pwd/passkey/federated/email/sms methods with their exact
+timestamps, followed by one MFA entry only when MFAAt records completed proof.
+Legacy sessions gain no inferred first factor; recorded MFA entries cannot
+replace MFAAt, and neither an unknown name nor webauthn is emitted (K13).
+Confirmed roaming and platform enrollments expose only their public type;
+pending enrollments and passkeys are omitted. Continuations reload the live
+session and enrolled factors while retaining earlier Action challenge effects.
+
+The scoped hosted regression supplements the planned Actions-package check:
+with the same enrolled account and mandatory OTP policy, a real Action skips MFA
+after a proven passkey login and leaves password login challenged. Enrollment
+or a submitted passkey flag cannot select the skip. Neither branch marks the
+first-factor session as MFA. Cost: one narrow hosted integration test beyond the
+plan's file list; there is no new wire, store, schema or runner contract.
+
+### D-0062 Task 17 — Console-safe authenticator metadata and RP status
+
+The documented Management method list and rename responses include public keys
+and user handles and offer no documented field-selection parameter. The console
+must not receive those responses and discard fields afterward. Controller
+approved a minimal system operator extension: GET the target user's
+`authentication-methods` and PATCH `authentication-methods/{method}` beneath
+`/api/system/tenants/{tenant}/users/{id}`. The server constructs a display
+allowlist before serialization, including rename results, excluding credential
+IDs, public keys, handles and raw proof data. PATCH accepts only a 1–20 character
+name. DELETE keeps using the documented204 response. Existing v2 shapes stay
+unchanged. Cost: two local operations outside v2 and an allowlist to maintain.
+
+GET `/api/system/tenants/{tenant}/relying-party-ids` is a third marked local
+extension. Every canonical/custom/operator host uses the live ceremony resolver
+and deployment policy; origin ports remain present and invalid or pending
+custom-domain overrides remain visible for repair. A nil custom-domain service
+means no optional origin suffix; it does not disable the base/system/shared-host
+policy or store checks. Cost: a local inspection route, avoiding a browser-side
+policy approximation. All three routes share exact target-tenant signed/live
+operator grant checks, existing system-only exposure and read/update scopes.
+The safe method route binds the target tenant before applying existing phone
+masking, rather than inheriting system-tenant presentation settings.
+
+The console replaces the old unrestricted stored-only authentication_methods and
+passkey_options JSON fields with dedicated password/passkey controls. Unknown
+nested wire fields remain preserved; enabling is blocked by computed server
+prerequisites and links open the actual settings tabs. Cost: those two raw JSON
+fields are no longer edited in their old location. RP IDs are linked from Tenant
+Settings as a settings subpage, retaining established navigation (one extra click).
+App saves use route-aware tenant/client scope and omit unchanged mobile platform
+objects; no mobile identifier/fingerprint format restriction is invented.
+
+Task17 remains REVIEW PENDING. Full browser/backend/hardware acceptance remains
+Task19. The Browser runtime connected but failed documented navigation and CUA
+commands before a page could be inspected; no visual pass is claimed.
+
+### D-0062 Task 18 — Seed, Deploy CLI and the operator guide
+
+The seed gains `guardian.webauthn_roaming.user_verification` (LR33b-22). It
+writes the same Guardian stored record as the operator extension route; the
+object requires one of `discouraged`, `preferred` or `required`, and omitting
+it keeps the stored value. Cost if wrong: none known; seed Guardian writes
+emit no `gd_tenant_update`, as before.
+
+Client `mobile` in the seed is decoded strictly: unknown platform or member
+keys are refused, as every unknown seed key is, and the result is then checked
+with the Management API's `clientrules.ParseMobile`. The API itself ignores
+unknown members. Cost if wrong: a seed copied from an API body with extra
+`mobile` members needs those members removed. In apply mode an omitted
+`mobile` clears the stored value, like any other seed-owned client field.
+
+A seed that names client `mobile` or an alias `relying_party_identifier` fails
+with `ErrWebAuthnUnavailable` before its transaction when the store plugin did
+not negotiate `webauthn.v1`, because such a plugin drops both on write. The
+passkey grant, connection passkey options and security-key user verification
+are kept by older plugins and stay accepted (stored only, as §10 says). Cost if
+wrong: a create-only reseed with `mobile` on an old plugin fails even when it
+would change nothing; upgrade the plugin or remove the field.
+
+Deploy CLI 9.1.0 exports database connections, and so passkey options, only
+through its `databases` handler; its `connections` handler filters out
+strategy `auth0`. A focused pinned test (`TestPinnedPasskeyHandlers`) runs the
+unmodified `clients`, `databases`, `customDomains` and `guardianFactors`
+handlers against the local Management handlers. `databases` stays excluded
+from the four-cell matrix with its reason updated. Security-key user
+verification is recorded in the manifest's new `noHandler` list, which may not
+name a registered handler. The harness re-imports a custom domain from its
+declared fields rather than the raw export, because the export carries the
+server-generated `origin_domain_name`, which PATCH refuses (the Plan 23
+read-only normalization). Cost if wrong: database-connection migration is
+still not accepted end to end; Task 19's four-cell lane remains the
+acceptance.
+
+`docs/passkeys.md` is the operator guide. `TestPasskeysGuideCitesKnownRulings`
+accepts an LR33b number that D-0062 names or adopts through its
+"LR33b-1…37" range, and checks that range against the spec §13 rows.
+
+### D-0062 Task 19 — Acceptance rulings
+
+Maintainer rulings (2026-11-07), both observed in the acceptance journeys and
+both where Auth0's documentation is silent; the maintainer's experience with
+Auth0 is that such features work only in particular places, so neither is
+treated as a deviation and no code changed:
+
+- Cancelling a passkey prompt that found no matching credential re-renders the
+  sign-in page without an error message.
+- In the `password-reset-post-challenge` trigger, `api.authentication.challengeWith`
+  requires tenant flag `customize_mfa_in_postlogin_action`, as in post-login.
+
+Cost if wrong: an operator who expects an error after a cancelled prompt, or a
+reset-flow challenge without the flag, sees the quieter behavior; either is a
+local change once Auth0 behavior is observed.
+
+Maintainer ruling (2026-11-08), LR33b-5 cross-domain enrollment: when a user's
+only factors are WebAuthn keys bound to another custom domain's RP ID, a login
+on this domain offers enrollment of a new security key only. OTP, email and
+phone are not offered, and the first-enrollment check in the service refuses
+them, so a password alone cannot add a different factor kind on a second
+domain. This matches Auth0's statement that a key used on another domain
+"leads to a new enrollment screen". If this browser has no WebAuthn, the login
+fails with no factor rather than falling back. An Action `enroll` request keeps
+its explicit factor list.

@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -57,7 +58,12 @@ type Service struct {
 	Phone PhoneSender
 	// pendingRecovery is the hash of a recovery code already displayed at
 	// association; it is persisted only when the enrollment is confirmed.
-	pendingRecovery string
+	pendingRecovery         string
+	webAuthnBinding         passkey.Binding
+	webAuthnRPID            *string
+	webAuthnFirstOnly       bool
+	platformEnrollmentProof bool
+	webAuthnBrowserError    string
 }
 
 // NewService uses the repository's master-key wrapper and atomic protection
@@ -414,7 +420,9 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 				if other.ID == current.ID {
 					continue
 				}
-				if firstOnly && UsableMethod(u, other, g.Factors) {
+				// A key on another domain blocks every non-WebAuthn first enrollment
+				// (LR33b-5): only a new key for this domain may be enrolled.
+				if firstOnly && UsableMethod(u, other, g.Factors) && (!isWebAuthnFactor(other.Type) || !isWebAuthnFactor(current.Type) || s.webAuthnRPID == nil || other.RPID == *s.webAuthnRPID) {
 					return ErrAlreadyEnrolled
 				}
 				if s.newFactorOnly && other.Confirmed && other.Type == current.Type {

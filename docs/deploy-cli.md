@@ -12,6 +12,19 @@ establish their migration compatibility. `attackProtection` includes phone-provi
 lockfile Auth0 SDK 7.4.0 against local Management handlers, including Guardian
 phone settings, selected-provider and message-types. Full YAML/directory
 migration acceptance remains a separate lane.
+
+**Passkeys (Plan 33b).** A focused test runs the same unmodified 9.1.0
+handlers to import, export and re-import passkey settings: client `mobile`
+(iOS team and bundle IDs, Android package name and certificate fingerprints)
+and the `urn:okta:params:oauth:grant-type:webauthn` grant (`clients`);
+`authentication_methods.passkey` and `passkey_options` on database
+connections (`databases`; the `connections` handler skips strategy `auth0`);
+custom-domain `relying_party_identifier` (`customDomains`); and the
+`webauthn-roaming` and `webauthn-platform` flags (`guardianFactors`). The
+manifest's `noHandler` list records security-key user verification: Auth0
+exposes it only in its Dashboard, so no handler exports it. Set it on the
+target through the seed or console after importing. The four-cell lane on
+every backend remains the end-to-end acceptance.
 Rules, hooks and their configurations are finite empty compatibility
 collections; they do not execute scripts.
 

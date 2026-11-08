@@ -38,9 +38,11 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/ratelimit"
+	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/selfsigned"
@@ -65,6 +67,7 @@ type App struct {
 	jobs         *jobs.Runner
 	logs         *logs.AsyncRecorder
 	mfa          *mfa.Service
+	passkeys     *passkey.Service
 	logPurge     *logs.Purger
 	logStreams   *logstream.Worker
 	eventPurge   *events.Purger
@@ -230,7 +233,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := f.CheckManagementAPI(cfg.Server.BaseDomain); err != nil {
 			return nil, err
 		}
-		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}, seed.Options{EventsMaxStreams: cfg.Events.MaxStreams}); err != nil {
+		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}, seed.Options{EventsMaxStreams: cfg.Events.MaxStreams, RPIDPolicy: rpid.Policy{BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginSuffix: cfg.Server.OriginDomain(), RestrictShared: cfg.Security.WebAuthn.RestrictSharedRPIDs}}); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))
@@ -296,6 +299,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	tenantEmail := &email.Service{Recorder: recorder, Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
 	mfaService := mfa.NewService(st, wrapper, tenantEmail, st.Protection(), log, nil)
 	mfaService.Recorder = recorder
+	passkeyService := passkey.NewService(st, rpid.Policy{BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginSuffix: cfg.Server.OriginDomain(), RestrictShared: cfg.Security.WebAuthn.RestrictSharedRPIDs, Log: log}, nil)
 	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
 	}
@@ -406,6 +410,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		jobs:         jobRunner,
 		logs:         recorder,
 		mfa:          mfaService,
+		passkeys:     passkeyService,
 		logPurge:     logs.NewPurger(st, logsConfig, log),
 		logStreams:   logstream.NewWorker(st, wrapper, logsConfig, nil, log),
 		eventPurge:   events.NewPurger(st, events.Config{Retention: cfg.Events.Retention}, log),
@@ -413,6 +418,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		breachFile:   breachFile,
 		handler: server.New(server.Deps{
 			MFA:            mfaService,
+			Passkeys:       passkeyService,
 			LogsConfig:     logsConfig,
 			EventDeliverer: eventDeliveryWorker,
 			EventsConfig:   events.Config{Retention: cfg.Events.Retention, MaxStreams: cfg.Events.MaxStreams, MaxConnections: cfg.Events.MaxConnections, AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP},
@@ -432,11 +438,12 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Actions:        engine,
 			Phone:          phoneDispatcher,
 
-			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
-			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
-			BaseDomain:        cfg.Server.BaseDomain,
-			SystemHost:        systemHost,
-			Domains:           domains,
+			Protection:          &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
+			TrustProxyHeaders:   cfg.Server.TrustProxyHeaders,
+			BaseDomain:          cfg.Server.BaseDomain,
+			SystemHost:          systemHost,
+			RestrictSharedRPIDs: cfg.Security.WebAuthn.RestrictSharedRPIDs,
+			Domains:             domains,
 
 			RateLimit:         rateLimit(sec.RateLimit),
 			LegacySecretSlots: ratelimit.NewSecretVerifications(sec.RateLimit.MaxConcurrentSecretVerifications),

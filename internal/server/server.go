@@ -33,6 +33,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -44,6 +45,8 @@ import (
 
 type Deps struct {
 	MFA *mfa.Service
+	// Passkeys is shared by hosted and native ceremony consumers.
+	Passkeys *passkey.Service
 	// LogsConfig carries the secure stream defaults and deployment opt-ins.
 	LogsConfig     logs.Config
 	EventsConfig   events.Config
@@ -86,8 +89,9 @@ type Deps struct {
 	// canonical host (tenant.SystemHost). They name the tenants'
 	// Management API identifiers, the operator-token issuer and the only
 	// origin CORS allows on /api/v2 and /api/system.
-	BaseDomain string
-	SystemHost string
+	BaseDomain          string
+	SystemHost          string
+	RestrictSharedRPIDs bool
 
 	// Console is the built admin console; nil means the embedded one.
 	Console fs.FS
@@ -150,8 +154,20 @@ type authAPI struct {
 	passwordless *passwordless.Handlers
 }
 
-func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)   { a.oidc.Discovery(w, r) }
-func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)        { a.oidc.Jwks(w, r) }
+func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request) { a.oidc.Discovery(w, r) }
+func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)      { a.oidc.Jwks(w, r) }
+func (a authAPI) PasskeyRegister(w http.ResponseWriter, r *http.Request) {
+	a.oauth.PasskeyRegister(w, r)
+}
+func (a authAPI) PasskeyChallenge(w http.ResponseWriter, r *http.Request) {
+	a.oauth.PasskeyChallenge(w, r)
+}
+func (a authAPI) PasskeyAppleAssociation(w http.ResponseWriter, r *http.Request) {
+	a.oauth.Passkeys.WellKnown(w, r)
+}
+func (a authAPI) PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Request) {
+	a.oauth.Passkeys.WellKnown(w, r)
+}
 func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request)  { a.oauth.OauthToken(w, r) }
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.OauthRevoke(w, r) }
 func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request)    { a.oauth.OauthPar(w, r) }
@@ -222,7 +238,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
@@ -248,6 +264,7 @@ func New(d Deps) http.Handler {
 	}
 	lg := &login.Handlers{
 		MFA:      d.MFA,
+		Passkeys: d.Passkeys,
 		Recorder: d.Recorder,
 		Store:    d.Store, Sessions: d.Sessions, Authz: az,
 		Database:          db,
@@ -287,6 +304,7 @@ func New(d Deps) http.Handler {
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
 				MFA:      d.MFA,
+				Passkeys: d.Passkeys,
 				Recorder: d.Recorder,
 				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
 				LegacySecretSlots:       d.LegacySecretSlots,
@@ -315,9 +333,11 @@ func New(d Deps) http.Handler {
 		tr.Options("/dbconnections/signup", preflight)
 		tr.Options("/dbconnections/change_password", preflight)
 		tr.Options("/passwordless/start", preflight)
+		tr.Options("/passkey/register", preflight)
+		tr.Options("/passkey/challenge", preflight)
 		tr.Get("/continue", az.Continue)
 		tr.Post("/continue", az.Continue)
-		for _, path := range []string{"/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
+		for _, path := range []string{"/u/mfa-detect-browser-capabilities", "/u/mfa-webauthn-platform-enrollment", "/u/mfa-webauthn-platform-challenge", "/u/mfa-webauthn-roaming-enrollment", "/u/mfa-webauthn-roaming-challenge", "/u/mfa-webauthn-change-key-nickname", "/u/mfa-webauthn-enrollment-success", "/u/mfa-phone-enrollment", "/u/mfa-sms-challenge", "/u/mfa-voice-challenge", "/u/mfa", "/u/mfa-otp-enrollment", "/u/mfa-otp-challenge", "/u/mfa-email-challenge", "/u/mfa-recovery-code-enrollment", "/u/mfa-recovery-code-challenge"} {
 			tr.Get(path, lg.MFAPage)
 			tr.Post(path, lg.MFASubmit)
 		}
@@ -331,12 +351,23 @@ func New(d Deps) http.Handler {
 		tr.Get("/u/login/password", lg.LoginPasswordGet)
 		tr.Post("/u/login/password", lg.LoginPasswordPost)
 		tr.Post("/u/login/identifier", lg.LoginIdentifierResetPost)
+		tr.Post("/u/login/passkey", lg.LoginPasskeyPost)
+		tr.Get("/u/passkey-enrollment", lg.PasskeyEnrollmentPage)
+		tr.Post("/u/passkey-enrollment", lg.PasskeyEnrollmentPost)
+		tr.Get("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPage)
+		tr.Post("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPost)
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
 		tr.Get("/u/signup", lg.SignupPage)
 		tr.Post("/u/signup", lg.SignupSubmit)
+		tr.Get("/u/signup/identifier", lg.SignupPage)
+		tr.Post("/u/signup/identifier", lg.SignupIdentifierPost)
+		tr.Get("/u/signup/passkey", lg.SignupPage)
+		tr.Post("/u/signup/passkey", lg.SignupPasskeyPost)
+		tr.Get("/u/signup/password", lg.SignupPage)
+		tr.Post("/u/signup/password", lg.SignupSubmit)
 		tr.Get("/u/reset-password/request", lg.ResetRequestPage)
 		tr.Post("/u/reset-password/request", lg.ResetRequestSubmit)
 		tr.Get("/u/reset-password", lg.ResetPasswordPage)
@@ -376,6 +407,7 @@ func New(d Deps) http.Handler {
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
 		Protection:             sharedProtection,
 		Domains:                d.Domains,
+		RestrictSharedRPIDs:    d.RestrictSharedRPIDs,
 	}
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mh.LogMiddleware, operatorOnly)
 	if len(d.ExportKey) > 0 {

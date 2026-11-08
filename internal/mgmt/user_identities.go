@@ -295,6 +295,16 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 		if sec.Username != "" {
 			moved.ProfileData["username"] = sec.Username
 		}
+		// Move credentials before user deletion cascades remove the secondary's MFA.
+		available, err := webAuthnAvailable(ctx, h.Store)
+		if err != nil {
+			return err
+		}
+		if available {
+			if err = tx.WebAuthn().MovePasskeys(ctx, tn.ID, secondary, id, ""); err != nil {
+				return err
+			}
+		}
 		// The secondary goes first, so its logins are free for the primary.
 		// It gives its identity up before it is deleted: a federated
 		// identity's index entry moves to the primary in this transaction,
@@ -389,6 +399,18 @@ func (h *Handlers) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id
 			return errUserExists
 		} else if err != nil {
 			return err
+		}
+		// Passkeys name database identities; a social provider can reuse the raw ID.
+		if moved.Provider == store.StrategyDatabase {
+			available, err := webAuthnAvailable(ctx, h.Store)
+			if err != nil {
+				return err
+			}
+			if available {
+				if err = tx.WebAuthn().MovePasskeys(ctx, tn.ID, id, secondary, moved.UserID); err != nil {
+					return err
+				}
+			}
 		}
 		// A fresh Version: nothing issued to the user before the link
 		// matches it.

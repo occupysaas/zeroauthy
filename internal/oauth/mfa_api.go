@@ -326,6 +326,12 @@ func (h *Handlers) MFAChallenge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, mfaError(err))
 		return
 	}
+	for _, a := range list {
+		if a.ID == form.Get("authenticator_id") && (a.Type == "webauthn-roaming" || a.Type == "webauthn-platform") {
+			writeError(w, invalidRequest("unsupported authenticator type"))
+			return
+		}
+	}
 	var chosen *store.Authenticator
 	for _, a := range list {
 		if a.Confirmed == p.Requirement.Enroll {
@@ -413,6 +419,10 @@ func (h *Handlers) MFAListAuthenticators(w http.ResponseWriter, r *http.Request)
 		case "email":
 			typ = "oob"
 		case "recovery-code":
+		case "webauthn-roaming", "webauthn-platform":
+			if !a.Confirmed {
+				continue
+			}
 		default:
 			continue
 		}
@@ -441,6 +451,15 @@ func (h *Handlers) MFADeleteAuthenticator(w http.ResponseWriter, r *http.Request
 	if strings.HasPrefix(id, "sms|") || strings.HasPrefix(id, "voice|") {
 		_, suffix, _ := strings.Cut(id, "|")
 		id = "phone|" + suffix
+	}
+	a, lookupErr := h.Store.MFA().GetAuthenticator(r.Context(), res.Tenant.ID, caller.uid, id)
+	if lookupErr == nil && a.Type == "passkey" {
+		writeError(w, &Error{Status: 404, Code: "not_found", Description: "Authenticator not found"})
+		return
+	}
+	if lookupErr != nil && !errors.Is(lookupErr, store.ErrNotFound) {
+		writeError(w, mfaError(lookupErr))
+		return
 	}
 	if err := h.MFA.Unenroll(r.Context(), res.Tenant.ID, caller.uid, id); err != nil {
 		if errors.Is(err, store.ErrNotFound) {

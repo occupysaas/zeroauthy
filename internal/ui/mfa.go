@@ -16,6 +16,12 @@ type MFAData struct {
 	PhoneCountries                                     []string
 	PhoneEnroll, SwitchPhone                           bool
 	Revision                                           int64
+	Passkey                                            *WebAuthnData
+	WebAuthnScreen                                     string
+	WebAuthnPrompt                                     string
+	Name                                               string
+	PlatformEnrollment, AllowPlatformDeferral          bool
+	Nickname, WebAuthnSuccess, WebAuthnUnavailable     bool
 	QR                                                 template.HTML
 	Options                                            []MFAOption
 	AllowRemember, Email, Recovery, Enroll, CodeScreen bool
@@ -23,6 +29,10 @@ type MFAData struct {
 
 func MFAScreen(page string) (string, string) {
 	switch page {
+	case "mfa_detect":
+		return "mfa", "mfa-detect-browser-capabilities"
+	case "mfa_webauthn":
+		return "mfa-webauthn", "mfa-webauthn-roaming-challenge"
 	case "mfa_phone_enroll":
 		return "mfa-phone", "mfa-phone-enrollment"
 	case "mfa_sms_challenge":
@@ -53,11 +63,17 @@ func MFAScreen(page string) (string, string) {
 }
 func RenderMFA(w http.ResponseWriter, status int, t Tenant, page string, d MFAData) {
 	p, s := MFAScreen(page)
+	if d.WebAuthnPrompt != "" {
+		p = d.WebAuthnPrompt
+	}
+	if d.WebAuthnScreen != "" {
+		s = d.WebAuthnScreen
+	}
 	d.Prefix = p + "." + s + "."
 	render(w, status, page, t, d, formActionFor(d.RedirectURI))
 }
 func init() {
-	for page, file := range map[string]string{"mfa_phone_enroll": "phone", "mfa_sms_challenge": "phone", "mfa_voice_challenge": "phone", "mfa_options": "options", "mfa_enroll_options": "options", "mfa_otp_enroll": "otp_enroll", "mfa_otp_enroll_code": "otp_enroll", "mfa_otp_challenge": "otp_challenge", "mfa_email_challenge": "email_challenge", "mfa_email_list": "options", "mfa_recovery_enroll": "recovery_enroll", "mfa_recovery_challenge": "recovery_challenge", "mfa_result": "result"} {
+	for page, file := range map[string]string{"mfa_detect": "detect", "mfa_webauthn": "webauthn", "mfa_phone_enroll": "phone", "mfa_sms_challenge": "phone", "mfa_voice_challenge": "phone", "mfa_options": "options", "mfa_enroll_options": "options", "mfa_otp_enroll": "otp_enroll", "mfa_otp_enroll_code": "otp_enroll", "mfa_otp_challenge": "otp_challenge", "mfa_email_challenge": "email_challenge", "mfa_email_list": "options", "mfa_recovery_enroll": "recovery_enroll", "mfa_recovery_challenge": "recovery_challenge", "mfa_result": "result"} {
 		pages[page] = parsePage("templates/layout.html", "templates/mfa_"+file+".html")
 	}
 }

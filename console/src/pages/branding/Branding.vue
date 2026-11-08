@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { useRoute } from 'vue-router'
 import type { BrandingObject } from '../../api/client'
 import { useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
@@ -11,6 +12,8 @@ const { t } = useI18n()
 const tenant = useTenant()
 const tab = ref('branding')
 const tabs = ['branding', 'theme', 'template', 'prompts', 'text', 'partials', 'preview']
+const route = useRoute()
+watch(() => route.query.tab, value => { if (typeof value === 'string' && tabs.includes(value)) tab.value = value }, { immediate: true })
 const edits = ref<Record<string, { value: BrandingObject; invalid: boolean }>>({})
 watch(tenant, () => { edits.value = {} })
 const overrides = computed(() => Object.assign({}, ...Object.values(edits.value).map(e => e.value)) as BrandingObject)

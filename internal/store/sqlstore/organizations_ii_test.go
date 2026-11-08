@@ -34,12 +34,13 @@ func TestOrganizationsIIMigrationFrom25(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			must(s.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
-			// Seed the version-25 shape, before 0027 adds initiate_login_uri.
+			seedLegacyTenant(t, s, "t")
+			// Seed the version-25 shape, before 0027 adds initiate_login_uri and 0035
+			// adds mobile.
 			clientValues, err := clientArgs(&store.Client{TenantID: "t", ClientID: "c"})
 			must(err)
-			oldColumns := strings.TrimSuffix(clientCols, ", initiate_login_uri")
-			mustExec(t, s, "INSERT INTO clients ("+oldColumns+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", len(clientValues)-1), ",")+")", clientValues[:len(clientValues)-1]...)
+			oldColumns := strings.TrimSuffix(clientCols, ", initiate_login_uri, mobile")
+			mustExec(t, s, "INSERT INTO clients ("+oldColumns+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", len(clientValues)-2), ",")+")", clientValues[:len(clientValues)-2]...)
 			must(s.Connections().Create(ctx, &store.Connection{TenantID: "t", ID: "conn", Name: "database", Strategy: "auth0"}))
 			userValues, err := userArgs(&store.User{TenantID: "t", UserID: "auth0|u"})
 			must(err)

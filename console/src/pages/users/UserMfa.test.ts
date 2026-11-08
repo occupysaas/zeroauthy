@@ -43,7 +43,7 @@ it.each(['query', 'delete', 'recovery', 'invitation'] as const)('ignores a stale
   const selected = ref(tenant('acme')); let finish!: (r: Reply) => void
   let hold = kind === 'query'
   const { wrapper, calls } = await mountAt(page(selected), '/t/acme/users/auth0%7C1', c => {
-    if(c.url.includes('acme.example.test') && (hold && ((kind === 'query' && c.method === 'GET') || c.method !== 'GET'))) return new Promise(r => { finish = r })
+    if((c.url.includes('acme.example.test') || c.url.includes('/tenants/acme/')) && (hold && ((kind === 'query' && c.method === 'GET') || c.method !== 'GET'))) return new Promise(r => { finish = r })
     return respond(c)
   })
   hold = true
@@ -85,7 +85,7 @@ it('clears a recovery code on route navigation and prevents a late navigation re
 })
 it('drops stale mutation errors after a tenant switch and can send a new tenant invitation', async () => {
   const selected = ref(tenant('acme')); let finish!: (r: Reply) => void
-  const { wrapper, calls } = await mountAt(page(selected), '/t/acme/users/auth0%7C1', c => c.method === 'POST' && c.url.includes('acme.example.test') ? new Promise(r => { finish = r }) : respond(c))
+  const { wrapper, calls } = await mountAt(page(selected), '/t/acme/users/auth0%7C1', c => c.method === 'POST' && (c.url.includes('acme.example.test') || c.url.includes('/tenants/acme/')) ? new Promise(r => { finish = r }) : respond(c))
   await click(wrapper, 'invite-mfa'); selected.value = tenant('system'); await flushPromises()
   finish({ status: 501, body: { errorCode: 'mfa_unavailable', message: 'Old error' } }); await flushPromises()
   expect(wrapper.text()).not.toContain('does not support MFA'); expect(wrapper.text()).not.toContain('Old error')

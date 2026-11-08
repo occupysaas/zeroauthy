@@ -60,9 +60,7 @@ func TestActionsMigration(t *testing.T) {
 					t.Fatalf("%s exists before 0023", table)
 				}
 			}
-			if err := old.Tenants().Create(ctx, &store.Tenant{ID: "legacy", Name: "legacy"}); err != nil {
-				t.Fatal(err)
-			}
+			seedLegacyTenant(t, old, "legacy")
 			if err := old.Migrate(ctx); err != nil {
 				t.Fatal(err)
 			}

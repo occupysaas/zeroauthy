@@ -126,7 +126,7 @@ describe('connection detail', () => {
       const { wrapper } = await mountAt(Detail, path, backend().handler)
       const stored = q('[data-testid="stored-group"]')
       expect(stored.textContent).toContain('Saved, not enforced yet')
-      for (const label of ['Display name', 'Show as a button', 'Realms', 'Metadata', 'Connected accounts', 'Authentication', 'Authentication methods', 'Passkey options', 'Attributes', 'Identifier precedence', 'Multi-factor authentication', 'Disable self-service password change', 'Non-persistent attributes']) {
+      for (const label of ['Display name', 'Show as a button', 'Realms', 'Metadata', 'Connected accounts', 'Authentication', 'Attributes', 'Identifier precedence', 'Multi-factor authentication', 'Disable self-service password change', 'Non-persistent attributes']) {
         const row = Array.from(stored.querySelectorAll('label')).find((l) => l.textContent?.includes(label))
         expect(row?.querySelector('[data-testid="not-enforced"]'), label).toBeTruthy()
       }

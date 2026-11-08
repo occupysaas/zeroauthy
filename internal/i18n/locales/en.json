@@ -69,6 +69,18 @@
       "descriptionUsed": "This link has already been used. To reset your password, return to the login page and select \"Forgot Your Password\" to send a new email.",
       "eventTitleGeneric": "Link Expired",
       "descriptionGeneric": "To reset your password, return to the login page and select \"Forgot Your Password\" to send a new email."
+    },
+    "reset-password-mfa-webauthn-roaming-challenge": {
+      "title": "Verify your reset with a security key",
+      "description": "Use your registered security key before choosing a new password.",
+      "buttonText": "Use security key",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "reset-password-mfa-webauthn-platform-challenge": {
+      "title": "Verify your reset with this device",
+      "description": "Confirm the password reset using your device biometrics or screen lock.",
+      "buttonText": "Continue",
+      "tryAnotherMethodText": "Try another method"
     }
   },
   "email-verification": {
@@ -270,7 +282,14 @@
       "buttonText": "Continue",
       "invalid-identifier": "Enter your email or username.",
       "emailPlaceholder": "Email address",
-      "phonePlaceholder": "Phone number"
+      "phonePlaceholder": "Phone number",
+      "passkeyButtonText": "Sign in with a passkey",
+      "passkey-authentication-failed": "We could not verify that passkey. Try again or continue with your password.",
+      "passkey-not-allowed": "Passkeys are unavailable for this sign-in.",
+      "no-passkey": "Choose another way to sign in.",
+      "invalid-passkey": "We could not verify that passkey.",
+      "conflict-password-passkey": "Choose a password or a passkey to continue.",
+      "password-not-allowed": "Choose another way to sign in."
     }
   },
   "login-password": {
@@ -318,7 +337,9 @@
       "emailText": "Email",
       "recovery-codeText": "Recovery code",
       "invalidCode": "The code is invalid or expired. Try again.",
-      "tooManyAttempts": "Too many attempts. Try again later."
+      "tooManyAttempts": "Too many attempts. Try again later.",
+      "webauthn-roamingText": "Security key",
+      "webauthn-platformText": "Device biometrics"
     },
     "mfa-enroll-result": {
       "title": "Multi-factor authentication",
@@ -357,7 +378,14 @@
       "emailText": "Email",
       "recovery-codeText": "Recovery code",
       "invalidCode": "The code is invalid or expired. Try again.",
-      "tooManyAttempts": "Too many attempts. Try again later."
+      "tooManyAttempts": "Too many attempts. Try again later.",
+      "webauthn-roamingText": "Security key",
+      "webauthn-platformText": "Device biometrics"
+    },
+    "mfa-detect-browser-capabilities": {
+      "title": "Check your browser",
+      "description": "Checking which verification methods this browser supports. If the check does not run, continue to see your other methods.",
+      "buttonText": "Continue"
     }
   },
   "mfa-otp": {
@@ -530,6 +558,100 @@
       "editText": "Use a different phone number",
       "logoAltText": "${companyName}",
       "invalid-code": "That code is wrong or has expired. Check it or ask for a new one."
+    }
+  },
+  "signup-id": {
+    "signup-id": {
+      "title": "Create your account",
+      "description": "Enter your details to continue.",
+      "nameLabel": "Full name",
+      "givenNameLabel": "Given name",
+      "familyNameLabel": "Family name",
+      "nicknameLabel": "Nickname",
+      "buttonText": "Continue"
+    }
+  },
+  "signup-password": {
+    "signup-password": {
+      "title": "Choose a password",
+      "description": "Create a password for your account."
+    }
+  },
+  "passkeys": {
+    "passkey-enrollment": {
+      "title": "Create a passkey",
+      "description": "Use a passkey for a faster sign-in.",
+      "createButtonText": "Create a passkey",
+      "usePasswordButtonText": "Create a password",
+      "backButtonText": "Back",
+      "passkey-enrollment-failure": "We could not create your passkey. Please try again.",
+      "continueButtonText": "Continue without a passkey",
+      "checkboxText": "Wait 30 days before asking again"
+    },
+    "passkey-enrollment-local": {
+      "title": "Create a passkey on this device",
+      "description": "Save a passkey here for your next sign-in.",
+      "createButtonText": "Create a passkey",
+      "continueButtonText": "Continue without a passkey",
+      "checkboxText": "Wait 30 days before asking again"
+    }
+  },
+  "mfa-webauthn": {
+    "mfa-webauthn-roaming-enrollment": {
+      "title": "Add a security key",
+      "description": "Connect your security key and follow the instructions from your browser.",
+      "buttonText": "Set up security key",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-roaming-challenge": {
+      "title": "Verify with your security key",
+      "description": "Connect the security key you registered for this site.",
+      "buttonText": "Use security key",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-change-key-nickname": {
+      "title": "Name your authenticator",
+      "description": "Choose a name with 1 to 20 characters so you can recognize this authenticator.",
+      "nameLabel": "Authenticator name",
+      "buttonText": "Save name",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-enrollment-success": {
+      "title": "Authenticator added",
+      "description": "Your authenticator is ready for future verification.",
+      "buttonText": "Continue"
+    },
+    "mfa-webauthn-not-available-error": {
+      "title": "Security keys are unavailable",
+      "description": "This browser cannot use a security key. Choose another verification method or return with a supported browser.",
+      "tryAnotherMethodText": "Use another verification method"
+    },
+    "mfa-webauthn-error": {
+      "title": "Security key verification failed",
+      "description": "We could not verify this security key. Try again or use another method.",
+      "too-many-webauthn-challenge-attempts-error": "There have been too many security key attempts. Wait before trying again.",
+      "tryAnotherMethodText": "Use another verification method",
+      "buttonText": "Try security key again",
+      "rememberMeText": "Remember this browser"
+    },
+    "mfa-webauthn-platform-enrollment": {
+      "title": "Add device biometrics",
+      "description": "Use this device to verify future sign-ins.",
+      "continueButtonText": "Continue",
+      "snoozeEnrollmentButtonText": "Remind me later",
+      "refuseAddingDeviceText": "Not on this device",
+      "skipAddingDeviceText": "Not now",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Try another method"
+    },
+    "mfa-webauthn-platform-challenge": {
+      "title": "Verify with this device",
+      "description": "Use your device biometrics or screen lock to continue.",
+      "buttonText": "Continue",
+      "rememberMeText": "Remember this browser",
+      "tryAnotherMethodText": "Try another method"
     }
   }
 }

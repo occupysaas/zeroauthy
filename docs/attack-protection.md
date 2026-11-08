@@ -34,6 +34,17 @@ Reset-email sends share a separate three-per-hour budget. Atomic reservations
 prevent concurrent overspending; stale completions cannot undo unblock or newer
 failures. Abandoned reservations become failures after 60 seconds.
 
+**Passkeys (Plan 33b).** A brute-force block on an identity, connection and
+IP also refuses a passkey login from that IP, with the same answer and log as
+a password attempt; the check runs after the passkey identifies the user and
+before a session exists, so a valid passkey never bypasses it. A successful
+passkey login resets that identity's failure counter. A failed passkey
+assertion spends the IP's suspicious-IP login budget, keyed by IP because the
+user may be unknown; hosted passkey signup and native `/passkey/register`
+spend the registration budget before revealing whether the user exists.
+Failed security-key and device-biometrics attempts count in the MFA throttle
+instead (LR33b-30, [passkeys](passkeys.md)).
+
 IPv4-mapped IPv6 shares its IPv4 key. Invalid addresses use one non-allowlisted
 unknown key. Existing single-trusted-proxy rules apply. Public clients cannot
 spoof `auth0-forwarded-for`; confidential password clients retain the existing

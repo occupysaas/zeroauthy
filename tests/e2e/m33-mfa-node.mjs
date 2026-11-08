@@ -233,7 +233,6 @@ async function setup() {
   await secret("Plan33-Receiver-Bearer-2026", "receiver secret");
   await m.guardian.factors.set("otp", { enabled: true });
   await m.guardian.factors.set("recovery-code", { enabled: true });
-  await m.guardian.factors.set("webauthn-roaming", { enabled: true });
   await m.guardian.policies.set(["all-applications"]);
   await api("emails/provider", "POST", {
     name: "smtp",
@@ -277,12 +276,17 @@ async function setup() {
 }
 async function sdk() {
   const m = await management();
+  // Since Plan 33b a roaming security key is a real factor that the hosted
+  // picker offers, so it is enabled only for this round trip and the browser
+  // and grants lanes keep their Plan 33 factor set.
+  await m.guardian.factors.set("webauthn-roaming", { enabled: true });
   const factors = await m.guardian.factors.list();
   await capture("SDK guardian factors", factors);
   assert.equal(
     factors.find((f) => f.name === "webauthn-roaming").enabled,
     true,
   );
+  await m.guardian.factors.set("webauthn-roaming", { enabled: false });
   assert.deepEqual(await m.guardian.policies.list(), ["all-applications"]);
   const u = await m.users.create({
     connection: "Username-Password-Authentication",

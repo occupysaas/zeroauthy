@@ -278,3 +278,39 @@ func TestPhoneWireContracts(t *testing.T) {
 		t.Error("passwordless OTP grant not documented")
 	}
 }
+
+func TestPasskeyWireContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"MFACreateAuthenticationMethod", "MFACreateAuthenticationMethodsResponse", "MFAGetAuthenticationMethodResponse", "MFAUpdateAuthenticationMethodResponse"} {
+		schema := doc.Components.Schemas[name].Value.Properties["type"].Value
+		if err := schema.VisitJSON("passkey"); err != nil {
+			t.Errorf("%s rejects passkey: %v", name, err)
+		}
+	}
+	if err := doc.Components.Schemas["MFASetAuthenticationMethodsRequest"].Value.VisitJSON([]any{map[string]any{"type": "passkey"}}); err == nil {
+		t.Fatal("MFA replacement accepts passkeys")
+	}
+	mobile := doc.Components.Schemas["ClientMobile"].Value
+	for _, body := range []any{map[string]any{}, map[string]any{"ios": map[string]any{"team_id": "", "app_bundle_identifier": "bad bundle", "future": true}}, map[string]any{"android": map[string]any{"sha256_cert_fingerprints": []any{"AB"}}}} {
+		if err := mobile.VisitJSON(body); err != nil {
+			t.Errorf("valid mobile rejected: %v", err)
+		}
+	}
+	for _, body := range []any{nil, map[string]any{"ios": nil}, map[string]any{"android": map[string]any{"sha256_cert_fingerprints": []any{}}}, map[string]any{"android": map[string]any{"sha256_cert_fingerprints": []any{""}}}} {
+		if err := mobile.VisitJSON(body); err == nil {
+			t.Fatalf("invalid mobile accepted: %v", body)
+		}
+	}
+	if doc.Paths.Find("/api/v2/users/{id}/authentication-methods").Post.Responses.Status(501) == nil {
+		t.Fatal("passkey create lacks capability error")
+	}
+	for _, path := range []string{"/api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites", "/api/system/tenants/{tenant}/guardian/factors/webauthn-roaming/settings"} {
+		item := doc.Paths.Find(path)
+		if item == nil || item.Get == nil {
+			t.Fatalf("missing extension: %s", path)
+		}
+	}
+}

@@ -60,6 +60,8 @@ type Handlers struct {
 	Protection *protection.Service
 	// Domains serves the custom-domain operations; nil answers 503.
 	Domains *customdomain.Service
+	// RestrictSharedRPIDs enforces the shared-hosting RP ID restriction (R1).
+	RestrictSharedRPIDs bool
 	// BreachCheckerAvailable reports an actually constructed server-side checker.
 	BreachCheckerAvailable bool
 
@@ -233,6 +235,10 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	spec := clientrules.Spec{AppType: string(store.AppTypeRegularWeb)}
+	if err := h.filterMobile(r.Context(), body); err != nil {
+		Fail(w, internalError(h, r, "negotiate client mobile support", err))
+		return
+	}
 	in, err := readClientBody(body, &spec)
 	if err != nil {
 		Fail(w, err)
@@ -295,6 +301,10 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		delete(body, "client_id")
 	}
 	tn := resolved(r)
+	if err := h.filterMobile(r.Context(), body); err != nil {
+		Fail(w, internalError(h, r, "negotiate client mobile support", err))
+		return
+	}
 	if err := protectedClient(tn, id); err != nil {
 		Fail(w, err)
 		return
@@ -543,6 +553,18 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		b := *p
 		v.SkipNonVerifiableCallbackUriConfirmationPrompt = &b
 	}
+	if c.Mobile != nil {
+		v.Mobile = &mgmtapi.ClientMobile{}
+		if ios := c.Mobile.IOS; ios != nil {
+			v.Mobile.Ios = &mgmtapi.ClientMobileIOS{TeamId: &ios.TeamID, AppBundleIdentifier: &ios.AppBundleIdentifier}
+		}
+		if android := c.Mobile.Android; android != nil {
+			v.Mobile.Android = &mgmtapi.ClientMobileAndroid{AppPackageName: &android.AppPackageName}
+			if android.SHA256CertFingerprints != nil {
+				v.Mobile.Android.Sha256CertFingerprints = &android.SHA256CertFingerprints
+			}
+		}
+	}
 	if reveal {
 		if s := h.openSecret(ctx, c); s != "" {
 			v.ClientSecret = &s
@@ -604,7 +626,7 @@ var ignoredClientFields = []string{
 	"description", "logo_uri", "client_metadata", "sso", "sso_disabled",
 	"cross_origin_authentication", "cross_origin_auth", "cross_origin_loc",
 	"custom_login_page_on", "custom_login_page",
-	"native_social_login", "mobile",
+	"native_social_login",
 	"is_token_endpoint_ip_header_trusted", "allowed_clients", "created_at", "updated_at",
 }
 
@@ -634,6 +656,8 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			if err == nil {
 				_, err = orglogin.BuildInvitationURL(s.InitiateLoginURI, "validation", "validation", "validation")
 			}
+		case "mobile":
+			s.Mobile, err = clientrules.ParseMobile(raw)
 		case "name":
 			err = decodeString(raw, &s.Name)
 			if err == nil && (s.Name == "" || len(s.Name) > maxNameLength) {
@@ -814,6 +838,21 @@ func decodeStrict(raw json.RawMessage, dst any) error {
 			return fmt.Errorf("unknown property %s", unknown)
 		}
 		return errors.New("has the wrong type")
+	}
+	return nil
+}
+
+// filterMobile preserves the old plugin behavior before parsing new fields.
+func (h *Handlers) filterMobile(ctx context.Context, body map[string]json.RawMessage) error {
+	if _, ok := body["mobile"]; !ok {
+		return nil
+	}
+	available, err := webAuthnAvailable(ctx, h.Store)
+	if err != nil {
+		return err
+	}
+	if !available {
+		delete(body, "mobile")
 	}
 	return nil
 }
