@@ -56,17 +56,7 @@ func (h *Handlers) MFAOperation(w http.ResponseWriter, r *http.Request, op, uid,
 		}
 		out := []any{}
 		for _, f := range mfarules.Factors() {
-			row := map[string]any{"name": f.Name, "enabled": g.Factors[f.Name], "trial_expired": false}
-			if f.Name == "webauthn-platform" {
-				other := false
-				for _, candidate := range mfarules.Factors() {
-					if candidate.Status == "enforced" && candidate.Name != "webauthn-platform" && candidate.Name != "recovery-code" && g.Factors[candidate.Name] {
-						other = true
-					}
-				}
-				row["requires_other_factor"] = g.Factors[f.Name] && !other
-			}
-			out = append(out, row)
+			out = append(out, map[string]any{"name": f.Name, "enabled": g.Factors[f.Name], "trial_expired": false})
 		}
 		writeJSON(w, 200, out)
 	case "SetGuardianFactor":

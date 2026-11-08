@@ -2859,13 +2859,15 @@ agent classification; RP ownership remains independent of browser/plugin support
 The cost of the conservative proof rule is an additional challenge for explicit
 platform enrollment, preserving the required MFA boundary.
 
-The platform row of Guardian's factor-list response exposes optional boolean
-`requires_other_factor`; it is true when platform is enabled without another
-enabled enforced primary factor (recovery excluded), false otherwise. Other rows
-omit it. This is a zeroauthy extension for the console warning required by
-LR33b-20, with no console strings in the API. The controller approved its minimal
-schema/generated-type delta in Task13. Older strict response schemas need the
-optional property; the runtime API still accepts enabling platform alone.
+Guardian's factor-list rows keep Auth0's exact shape (`name`, `enabled`,
+`trial_expired`). The console derives the platform-only warning required by
+LR33b-20 from the enabled flags: device biometrics enabled with no other enabled
+enforced primary factor (recovery excluded). An earlier Task13 design added a
+`requires_other_factor` row property for this; Task 19's Deploy CLI round trip
+showed that the CLI exports factor rows verbatim and sends every field back on
+import, so exported zeroauthy configuration would carry a field Auth0 does not
+define. The property was removed (2026-11-07). The runtime API still accepts
+enabling platform alone.
 
 Task13 controller clarification: a successful recovery proof may trigger optional
 platform enrollment while another confirmed enabled primary method remains.

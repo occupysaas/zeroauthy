@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { GuardianFactors, GuardianPolicies, TenantSettingsPatch } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
@@ -39,6 +39,13 @@ const phoneReady = ref(false),
 const uv = ref<'discouraged' | 'preferred' | 'required'>('discouraged')
 const uvReady = ref(false)
 const status = (name: string) => ['duo', 'push-notification'].includes(name) ? 'notPlanned' : 'enforced'
+// Device biometrics enabled with no other enforced primary factor (recovery
+// codes do not count) leaves users unable to enroll it; Auth0's factor rows
+// carry no such flag, so it is derived here from the enabled factors.
+const platformAlone = computed(() => {
+  const on = (name: string) => factors.value.some(f => f.name === name && f.enabled)
+  return on('webauthn-platform') && !names.some(n => n !== 'webauthn-platform' && n !== 'recovery-code' && status(n) === 'enforced' && on(n))
+})
 function fail(e: unknown) {
   unavailable.value = mfaUnavailable(e)
   error.value = unavailable.value ? t('mfa.unavailable') : errorMessage(e)
@@ -269,7 +276,7 @@ async function setFlag(name: 'mfa_show_factor_list_on_enrollment' | 'customize_m
         </p>
       </div>
       <Field id="webauthn-uv" :label="t('passkeys.uv')"><select id="webauthn-uv" :value="uv" :disabled="!uvReady" @change="setUV"><option v-for="value in ['discouraged', 'preferred', 'required']" :key="value" :value="value">{{ t(`passkeys.uvValues.${value}`) }}</option></select></Field>
-      <Banner v-if="factors.some(f => f.name === 'webauthn-platform' && f.requires_other_factor)" kind="warn">{{ t('passkeys.platformWarning') }}</Banner>
+      <Banner v-if="platformAlone" kind="warn">{{ t('passkeys.platformWarning') }}</Banner>
       <fieldset class="stack">
         <legend>{{ t('phone.delivery') }}</legend>
         <label

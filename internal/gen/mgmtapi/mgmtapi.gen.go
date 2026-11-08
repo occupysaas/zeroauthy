@@ -10448,13 +10448,10 @@ type MFAGetGuardianFactorsPushNotificationSelectedProviderResponseProvider strin
 
 // MFAGetGuardianFactorsResponse defines model for MFAGetGuardianFactorsResponse.
 type MFAGetGuardianFactorsResponse = []struct {
-	Enabled bool                               `json:"enabled"`
-	Name    *MFAGetGuardianFactorsResponseName `json:"name,omitempty"`
-
-	// RequiresOtherFactor zeroauthy extension (D-0062): on the platform factor row, true when enabled without another enforced primary factor.
-	RequiresOtherFactor *bool                                   `json:"requires_other_factor,omitempty"`
-	Settings            *MFAGetGuardianFactorsResponse_Settings `json:"settings,omitempty"`
-	TrialExpired        *bool                                   `json:"trial_expired,omitempty"`
+	Enabled      bool                                    `json:"enabled"`
+	Name         *MFAGetGuardianFactorsResponseName      `json:"name,omitempty"`
+	Settings     *MFAGetGuardianFactorsResponse_Settings `json:"settings,omitempty"`
+	TrialExpired *bool                                   `json:"trial_expired,omitempty"`
 }
 
 // MFAGetGuardianFactorsResponseName defines model for MFAGetGuardianFactorsResponse.Name.

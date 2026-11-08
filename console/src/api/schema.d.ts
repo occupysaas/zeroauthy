@@ -4402,8 +4402,6 @@ export interface components {
         MFAGetGuardianFactorsResponse: {
             /** @default true */
             enabled: boolean;
-            /** @description zeroauthy extension (D-0062): on the platform factor row, true when enabled without another enforced primary factor. */
-            requires_other_factor?: boolean;
             /** @default true */
             trial_expired?: boolean;
             /**

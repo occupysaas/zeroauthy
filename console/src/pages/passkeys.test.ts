@@ -8,10 +8,11 @@ import SettingsTab from './applications/SettingsTab.vue'
 import UserMfa from './users/UserMfa.vue'
 import Mfa from './security/Mfa.vue'
 const factors = ['otp', 'webauthn-roaming', 'webauthn-platform']
+let enabled = ['webauthn-platform']
 function respond(c: Call): Reply {
  if(c.url.endsWith('passkey-prerequisites')) return {status:200,body:{effective:false,unmet:['identifier_first']}}
  if(c.url.endsWith('webauthn-roaming/settings')) return {status:200,body:c.method==='PUT'?c.body:{user_verification:'preferred'}}
- if(c.url.endsWith('/guardian/factors')) return {status:200,body:factors.map(name=>({name,enabled:name==='webauthn-platform',requires_other_factor:name==='webauthn-platform'}))}
+ if(c.url.endsWith('/guardian/factors')) return {status:200,body:factors.map(name=>({name,enabled:enabled.includes(name),trial_expired:false}))}
  if(c.url.endsWith('/guardian/policies')) return {status:200,body:[]}
  if(c.url.includes('/authentication-methods')) return {status:200,body:[{id:'passkey|one',type:'passkey',name:'Laptop',relying_party_identifier:'login.example.test',credential_device_type:'multi_device',credential_backed_up:true,aaguid:'model-id',created_at:'2026-11-01T00:00:00Z'}, {id:'webauthn|one',type:'webauthn-roaming',name:'Security key',relying_party_identifier:'keys.example.test'}]}
  if(c.method==='PATCH' && c.url.includes('/clients/')) return {status:200,body:client('app', c.body as object)}
@@ -30,7 +31,16 @@ it('blocks passkey enablement on server prerequisites and links each prerequisit
  expect(wrapper.find('#passkey-progressive').exists()).toBe(true); expect(wrapper.find('#passkey-local').exists()).toBe(true)
  expect(calls.some(c=>c.url.endsWith('/connections/db/passkey-prerequisites'))).toBe(true);wrapper.unmount()
 })
-it('uses enforced WebAuthn labels, server platform warning and extension UV settings',async()=>{
+it('warns only while device biometrics is the sole enabled primary factor',async()=>{
+ enabled=['webauthn-platform','recovery-code']
+ let {wrapper}=await mountAt(Mfa,'/t/acme/mfa',respond)
+ expect(wrapper.text()).toContain('another enabled factor');wrapper.unmount()
+ enabled=['webauthn-platform','otp']
+ ;({wrapper}=await mountAt(Mfa,'/t/acme/mfa',respond))
+ expect(wrapper.text()).not.toContain('another enabled factor');wrapper.unmount()
+ enabled=['webauthn-platform']
+})
+it('uses enforced WebAuthn labels, platform warning and extension UV settings',async()=>{
  const {wrapper,calls}=await mountAt(Mfa,'/t/acme/mfa',respond)
  expect(wrapper.get('[data-factor="webauthn-roaming"]').text()).not.toContain('Plan 33b')
  expect(wrapper.text()).toContain('another enabled factor')

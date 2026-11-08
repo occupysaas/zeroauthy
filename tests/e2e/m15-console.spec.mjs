@@ -89,7 +89,8 @@ test('an operator manages a database connection and its users', async ({ page })
   await expect(page.getByTestId('rule-dictionary')).toHaveAttribute('data-state', 'fail');
   await page.fill('#pw-sample', GOOD);
   await expect(page.getByTestId('rule-dictionary')).toHaveAttribute('data-state', 'pass');
-  await page.getByRole('button', { name: 'Save changes' }).click();
+  // The tab also holds the passkey settings form, with its own Save button.
+  await page.locator('#password-settings').getByRole('button', { name: 'Save changes' }).click();
   await expect(saved).toBeVisible();
   await page.reload();
   await page.getByRole('tab', { name: 'Password policy' }).click();

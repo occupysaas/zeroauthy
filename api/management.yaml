@@ -13711,11 +13711,6 @@ components:
           enabled:
             type: boolean
             default: true
-          requires_other_factor:
-            type: boolean
-            description: 'zeroauthy extension (D-0062): on the platform factor row, true when enabled without another enforced primary factor.'
-            x-source:
-            - https://auth0.com/docs/secure/multi-factor-authentication/fido-authentication-with-webauthn/configure-webauthn-device-biometrics-for-mfa
           trial_expired:
             type: boolean
             default: true
