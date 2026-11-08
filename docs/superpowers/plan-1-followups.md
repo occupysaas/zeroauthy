@@ -530,3 +530,14 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
   passkey options round trip. Including it needs database-connection
   migration acceptance (roadmap owner unchanged).
 - **Operator guide:** [passkeys](../passkeys.md).
+
+- **Actions MFA ordering (after Plan 33b).** Maintainer observation of real
+  Auth0 (2026-11-07): `api.multifactor.enable('none')` in a later post-login
+  Action is accepted but has no effect once an earlier Action triggered MFA
+  ("it's too late"). zeroauthy decides MFA after the whole flow: `none`
+  skips MFA from any position and, after an earlier `challengeWith`,
+  `challengeWithAny`, `enrollWith` or `enrollWithAny`, fails the login as
+  "cannot be combined" (`internal/actions/mfa.go`). Proposed: make that later
+  `none` a silent no-op; separately, Auth0 runs the challenge mid-flow, so
+  later Actions see the completed factor in `event.authentication.methods`.
+  Confirm the exact cutoff with the maintainer before building.

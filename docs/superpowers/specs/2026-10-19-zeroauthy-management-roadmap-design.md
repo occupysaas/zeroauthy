@@ -37,6 +37,7 @@ the plans below, marked "(pre-1.0 review)".
 | 29–30 | Organizations I and II: members, roles, connections, organization login, invitations, client grants, discovery domains |
 | 31–32 | Logs, log streams and stats; event streams |
 | 33 | MFA I: OTP, email, recovery codes, policies, remember browser, hosted prompts, MFA grants and APIs (WebAuthn moved to Plan 33b) |
+| 33b | Passkeys and WebAuthn MFA: passkeys on database connections, security keys and device biometrics, native passkey APIs and grant, per-host relying party IDs |
 | 34 | Passwordless and phone: email/SMS connections, magic links, OTP grant, Twilio/SNS/custom providers, SMS and voice MFA, phone identifiers and reset |
 
 ### Management API coverage by resource
@@ -97,6 +98,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 31 | Logs, log streams, stats | full (done) | 19 |
 | 32 | Event streams | full (done; documented local limitations) | 31 |
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full (done; WebAuthn → 33b) | 21, 27 |
+| 33b | Passkeys and WebAuthn MFA: connection passkey options, client `mobile`, native passkey APIs, security-key settings | full (acceptance in progress) | 33, 23 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full (done) | 33 |
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
@@ -336,6 +338,12 @@ My Organization API/self-service organization administration Plan 42.
 **Carried in:** `api.authentication.challengeWith`/`challengeWithAny` and `api.multifactor.enable` (fail closed since Plans 27–28) in post-login and `password-reset-post-challenge`; tenant `customize_mfa_in_postlogin_action` (stored since Plan 19); passkey connection options (D-0042) (WebAuthn hosted-page controls and RP ID enforcement remain Plan 33b); `acr`/`amr` values needed by Plan 41.
 
 **E2E:** `make e2e-mfa` covers Playwright enrollment/challenge with an independent RFC 6238 generator, recovery, remember/invalidate, SSO and Actions; pinned node-auth0 Guardian/user APIs, auth0-auth-js plus raw MFA grants, raw Auth0 CLI APIs, and representative-secret scans. Default backends are SQLite and memory; PostgreSQL/MySQL use isolated SQL DSNs. Recorded results remain distinct from pending final-matrix checks.
+
+### Plan 33b — Passkeys and WebAuthn MFA (full design)
+
+**Designed 2026-11-05:** [spec](2026-11-05-zeroauthy-passkeys-webauthn-design.md), [plan](../plans/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn.md) (19 tasks, D-0062, migration 0035, store capability `webauthn.v1`). Operator guide: [passkeys](../../passkeys.md).
+
+**Acceptance in progress (2026-11-08):** Tasks 1–18 are implemented and reviewed. Task 19's `make e2e-passkeys` passed on SQLite and memory (browser journeys on SQLite; native, SDK, CLI and Deploy CLI lanes and the representative-secret audit on both). The final regression found and fixed older-schema migration tests broken by 0035, the Plan 15 and Plan 33 journeys meeting the new passkey and security-key UI, and a `requires_other_factor` Guardian row extension that the Deploy CLI would have carried into Auth0 (removed; D-0062). Full verification now runs in CI on the plan branch (`plan-branch.yml`). Whole-branch review pending. Follow-up: Actions MFA ordering ([follow-ups](../plan-1-followups.md)).
 
 ### Plan 34 — Passwordless and phone (full design)
 

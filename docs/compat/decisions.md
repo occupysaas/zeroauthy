@@ -3141,3 +3141,19 @@ acceptance.
 `docs/passkeys.md` is the operator guide. `TestPasskeysGuideCitesKnownRulings`
 accepts an LR33b number that D-0062 names or adopts through its
 "LR33b-1…37" range, and checks that range against the spec §13 rows.
+
+### D-0062 Task 19 — Acceptance rulings
+
+Maintainer rulings (2026-11-07), both observed in the acceptance journeys and
+both where Auth0's documentation is silent; the maintainer's experience with
+Auth0 is that such features work only in particular places, so neither is
+treated as a deviation and no code changed:
+
+- Cancelling a passkey prompt that found no matching credential re-renders the
+  sign-in page without an error message.
+- In the `password-reset-post-challenge` trigger, `api.authentication.challengeWith`
+  requires tenant flag `customize_mfa_in_postlogin_action`, as in post-login.
+
+Cost if wrong: an operator who expects an error after a cancelled prompt, or a
+reset-flow challenge without the flag, sees the quieter behavior; either is a
+local change once Auth0 behavior is observed.
