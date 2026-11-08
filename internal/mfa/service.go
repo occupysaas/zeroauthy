@@ -420,7 +420,9 @@ func (s *Service) check(ctx context.Context, tid, uid string, c *Challenge, proo
 				if other.ID == current.ID {
 					continue
 				}
-				if firstOnly && UsableMethod(u, other, g.Factors) && (!isWebAuthnFactor(other.Type) || s.webAuthnRPID == nil || other.RPID == *s.webAuthnRPID) {
+				// A key on another domain blocks every non-WebAuthn first enrollment
+				// (LR33b-5): only a new key for this domain may be enrolled.
+				if firstOnly && UsableMethod(u, other, g.Factors) && (!isWebAuthnFactor(other.Type) || !isWebAuthnFactor(current.Type) || s.webAuthnRPID == nil || other.RPID == *s.webAuthnRPID) {
 					return ErrAlreadyEnrolled
 				}
 				if s.newFactorOnly && other.Confirmed && other.Type == current.Type {

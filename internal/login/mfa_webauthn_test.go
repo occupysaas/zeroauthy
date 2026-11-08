@@ -362,7 +362,9 @@ func TestHostedWebAuthnThrottle(t *testing.T) {
 	}
 }
 
-func TestHostedWebAuthnForeignKeyAllowsOTPEnrollment(t *testing.T) {
+// LR33b-5 (maintainer ruling 2026-11-08): a key on another domain offers a
+// new security key here; OTP is not offered and cannot be chosen.
+func TestHostedWebAuthnForeignKeyOffersOnlySecurityKey(t *testing.T) {
 	f := newRoamingMFAFixture(t)
 	f.policy(t, "otp", "webauthn-roaming")
 	ctx := context.Background()
@@ -372,26 +374,16 @@ func TestHostedWebAuthnForeignKeyAllowsOTPEnrollment(t *testing.T) {
 	}
 	f.startRoaming(t, true)
 	rec := f.post(t, "/u/mfa", url.Values{"factor": {"otp"}})
-	if rec.Code != 303 {
-		t.Fatalf("choose OTP %d %s", rec.Code, rec.Body)
+	if rec.Code == 303 && strings.Contains(rec.Header().Get("Location"), "otp") {
+		t.Fatalf("foreign key allowed OTP enrollment: %s", rec.Header().Get("Location"))
 	}
-	f.page(t, "/u/mfa-otp-enrollment")
 	aa, err := f.st.MFA().ListAuthenticators(ctx, f.tn.ID, f.uid)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var secret string
 	for _, a := range aa {
-		if a.Type == "totp" && !a.Confirmed {
-			e, err := f.h.MFA.EnrollmentDisplay(ctx, f.tn.ID, f.uid, a.ID)
-			if err != nil {
-				t.Fatal(err)
-			}
-			secret = e.Secret
+		if a.Type == "totp" {
+			t.Fatalf("OTP authenticator staged: %+v", a)
 		}
-	}
-	rec = f.post(t, "/u/mfa-otp-enrollment", url.Values{"code": {otpAt(secret, *f.clock)}})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `name="ack"`) {
-		t.Fatalf("foreign key blocked OTP enrollment %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
 	}
 }

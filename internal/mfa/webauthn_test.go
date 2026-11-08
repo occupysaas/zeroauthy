@@ -8,6 +8,7 @@ import (
 	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/events"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -465,7 +466,10 @@ func TestWebAuthnUnavailableCannotEnrollAnotherFactor(t *testing.T) {
 		t.Fatalf("unavailable enrolled key must not authorize fresh OTP enrollment: %+v %v", req, err)
 	}
 }
-func TestWebAuthnForeignKeyAllowsFirstOTPEnrollment(t *testing.T) {
+
+// LR33b-5 (maintainer ruling 2026-11-08): a key on another domain leads to
+// a new key enrollment for this domain, never to a password-only OTP/email.
+func TestWebAuthnForeignKeyBlocksFirstOTPEnrollment(t *testing.T) {
 	f, svc, _ := roamingFixture(t)
 	old := &store.Authenticator{TenantID: "tenant", UserID: "user", ID: NewMethodID("webauthn-roaming"), Type: "webauthn-roaming", Confirmed: true, RPID: "foreign.test", CredentialID: []byte{1}, PublicKey: []byte{1}}
 	if err := f.st.MFA().CreateAuthenticator(f.ctx, old); err != nil {
@@ -475,8 +479,27 @@ func TestWebAuthnForeignKeyAllowsFirstOTPEnrollment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = svc.ConfirmFirstEnroll(f.ctx, "tenant", "user", e, Proof{Code: codeAt(t, e.Secret, f.now)}); err != nil {
-		t.Fatalf("foreign RP key blocked current-RP first enrollment: %v", err)
+	if _, err = svc.ConfirmFirstEnroll(f.ctx, "tenant", "user", e, Proof{Code: codeAt(t, e.Secret, f.now)}); !errors.Is(err, ErrAlreadyEnrolled) {
+		t.Fatalf("foreign RP key allowed first OTP enrollment: %v", err)
+	}
+}
+
+func TestDecideForeignKeyOffersOnlySecurityKey(t *testing.T) {
+	g := &store.GuardianSettings{Policies: []string{"all-applications"}, Factors: map[string]bool{"otp": true, "email": true, "webauthn-roaming": true}}
+	u := &store.User{Email: "anything@mailinator.com", EmailVerified: true}
+	in := DecideInput{Settings: g, User: u, Authenticators: []store.Authenticator{{Type: "webauthn-roaming", Confirmed: true, RPID: "foreign.test", CredentialID: []byte{1}, PublicKey: []byte{1}}}, WebAuthn: WebAuthnCapabilities{Available: true, RPID: "example.test"}}
+	r, err := Decide(in)
+	if err != nil || !r.Enroll || !slices.Equal(r.Factors, []string{"webauthn-roaming"}) {
+		t.Fatalf("foreign key: %+v %v", r, err)
+	}
+	in.WebAuthn.Available = false
+	if r, err = Decide(in); !errors.Is(err, ErrNoFactor) {
+		t.Fatalf("no WebAuthn here must not fall back to OTP/email: %+v %v", r, err)
+	}
+	// Without any key the user still chooses among every enabled factor.
+	in.WebAuthn.Available, in.Authenticators = true, nil
+	if r, err = Decide(in); err != nil || len(r.Factors) != 3 {
+		t.Fatalf("no key: %+v %v", r, err)
 	}
 }
 

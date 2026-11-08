@@ -3157,3 +3157,13 @@ treated as a deviation and no code changed:
 Cost if wrong: an operator who expects an error after a cancelled prompt, or a
 reset-flow challenge without the flag, sees the quieter behavior; either is a
 local change once Auth0 behavior is observed.
+
+Maintainer ruling (2026-11-08), LR33b-5 cross-domain enrollment: when a user's
+only factors are WebAuthn keys bound to another custom domain's RP ID, a login
+on this domain offers enrollment of a new security key only. OTP, email and
+phone are not offered, and the first-enrollment check in the service refuses
+them, so a password alone cannot add a different factor kind on a second
+domain. This matches Auth0's statement that a key used on another domain
+"leads to a new enrollment screen". If this browser has no WebAuthn, the login
+fails with no factor rather than falling back. An Action `enroll` request keeps
+its explicit factor list.

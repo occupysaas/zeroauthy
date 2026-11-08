@@ -127,11 +127,15 @@ func Decide(in DecideInput) (Requirement, error) {
 	// request that has an RP ID of its own (LR33b-5).
 	scoped := in.WebAuthn.RPID != ""
 	// held: an enrolled WebAuthn key this request cannot verify.
-	held := false
+	// foreign: a usable WebAuthn key bound to another RP ID (domain).
+	held, foreign := false, false
 	for _, a := range in.Authenticators {
 		f := factorName(a.Type)
 		if a.Type == "webauthn-platform" && a.Confirmed && a.RPID == in.WebAuthn.RPID && authenticatorDevice(a).Class == in.WebAuthn.Device.Class {
 			platformEnrolled = true
+		}
+		if scoped && isWebAuthnFactor(a.Type) && a.RPID != in.WebAuthn.RPID && UsableMethod(in.User, a, enabled) {
+			foreign = true
 		}
 		if UsableMethod(in.User, a, enabled) && (!isWebAuthnFactor(a.Type) || !scoped || a.RPID == in.WebAuthn.RPID) {
 			primary = true
@@ -179,6 +183,13 @@ func Decide(in DecideInput) (Requirement, error) {
 	// user lacks still enrolls it.
 	if held && len(usable) == 0 && !r.Enroll {
 		return r, ErrNoFactor
+	}
+	// A user whose only factor is a WebAuthn key on another domain enrolls a
+	// key for this domain, never a different factor kind, so a password alone
+	// cannot add OTP or email here (LR33b-5, D-0062). An Action enroll
+	// request keeps its explicit factor list.
+	if foreign && len(usable) == 0 && !r.Enroll {
+		enroll = slices.DeleteFunc(enroll, func(f string) bool { return !isWebAuthnFactor(f) })
 	}
 	if r.Enroll || len(usable) == 0 {
 		r.Enroll = true
