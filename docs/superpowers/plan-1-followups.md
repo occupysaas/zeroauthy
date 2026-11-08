@@ -541,3 +541,5 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
   `none` a silent no-op; separately, Auth0 runs the challenge mid-flow, so
   later Actions see the completed factor in `event.authentication.methods`.
   Confirm the exact cutoff with the maintainer before building.
+  **Maintainer ruling (2026-11-08): leave as is.** A small issue; revisit only
+  if a user reports it.
