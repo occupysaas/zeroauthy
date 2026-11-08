@@ -424,6 +424,24 @@ func TestSignup(t *testing.T) {
 	}
 }
 
+// Review finding: hosted signup ignores root profile attributes posted with
+// the form; only the identifiers and password are taken (as before Plan 33b).
+func TestSignupIgnoresPostedProfileAttributes(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "screen_hint", "signup")
+	rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"anything@mailinator.com"}, "password": {"long enough pw"},
+		"name": {"Admin"}, "given_name": {"A"}, "family_name": {"B"}, "nickname": {"root"}, "picture": {"https://attacker.example/x.png"}})
+	if rec.Code != 302 {
+		t.Fatalf("signup = %d %s", rec.Code, rec.Body)
+	}
+	tn := mustTenant(t, e, "acme")
+	u, err := e.st.Users().FindByLogin(context.Background(), tn.ID, "Username-Password-Authentication", "anything@mailinator.com")
+	if err != nil || u.Name != "anything@mailinator.com" || u.Nickname != "anything" || u.GivenName != "" || u.FamilyName != "" || strings.Contains(u.Picture, "attacker") {
+		t.Fatalf("user %+v %v", u, err)
+	}
+}
+
 func TestSignupDisabled(t *testing.T) {
 	e := newEnv(t)
 	b := e.browser("acme.example.test")

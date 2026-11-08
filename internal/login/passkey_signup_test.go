@@ -110,7 +110,8 @@ func TestPasskeySignup(t *testing.T) {
 	}
 	tn := mustTenant(t, e, "acme")
 	u, err := e.st.Users().FindByLogin(context.Background(), tn.ID, "Username-Password-Authentication", "new@acme.test")
-	if err != nil || u.Name != "New Person" || u.Identities[0].PasswordHash != "" {
+	// Hosted signup takes no root profile attributes from the form.
+	if err != nil || u.Name != "new@acme.test" || u.Identities[0].PasswordHash != "" {
 		t.Fatalf("user %+v %v", u, err)
 	}
 	methods, err := e.st.MFA().ListAuthenticators(context.Background(), tn.ID, u.UserID)

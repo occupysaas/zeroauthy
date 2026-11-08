@@ -122,15 +122,23 @@ func Decide(in DecideInput) (Requirement, error) {
 	primary := false
 	preferred := ""
 	platformEnrolled := false
+	// Without an RP scope (password and other native grants) every WebAuthn
+	// key counts as enrolled: a key bound to another RP is foreign only to a
+	// request that has an RP ID of its own (LR33b-5).
+	scoped := in.WebAuthn.RPID != ""
+	// held: an enrolled WebAuthn key this request cannot verify.
+	held := false
 	for _, a := range in.Authenticators {
 		f := factorName(a.Type)
 		if a.Type == "webauthn-platform" && a.Confirmed && a.RPID == in.WebAuthn.RPID && authenticatorDevice(a).Class == in.WebAuthn.Device.Class {
 			platformEnrolled = true
 		}
-		if UsableMethod(in.User, a, enabled) && (!isWebAuthnFactor(a.Type) || a.RPID == in.WebAuthn.RPID) {
+		if UsableMethod(in.User, a, enabled) && (!isWebAuthnFactor(a.Type) || !scoped || a.RPID == in.WebAuthn.RPID) {
 			primary = true
-			if !isWebAuthnFactor(a.Type) || in.WebAuthn.Available && (a.Type != "webauthn-platform" || in.WebAuthn.Platform && hasOtherPlatformFactor(in.User, in.Authenticators, enabled, in.WebAuthn.RPID) && authenticatorDevice(a).Key() == in.WebAuthn.Device.Key()) {
+			if !isWebAuthnFactor(a.Type) || scoped && in.WebAuthn.Available && (a.Type != "webauthn-platform" || in.WebAuthn.Platform && hasOtherPlatformFactor(in.User, in.Authenticators, enabled, in.WebAuthn.RPID) && authenticatorDevice(a).Key() == in.WebAuthn.Device.Key()) {
 				confirmed[f] = true
+			} else {
+				held = true
 			}
 			if a.Preferred {
 				preferred = f
@@ -165,9 +173,11 @@ func Decide(in DecideInput) (Requirement, error) {
 	if e != nil && e.Mode == "challenge" && len(usable) == 0 {
 		return r, ErrNoFactor
 	}
-	// An enrolled key that this browser cannot use still requires an existing
+	// An enrolled key that this request cannot use still requires an existing
 	// proof. It cannot turn a required challenge into fresh factor enrollment.
-	if primary && len(usable) == 0 && !r.Enroll {
+	// Other factors keep their behavior: an Action requesting a factor the
+	// user lacks still enrolls it.
+	if held && len(usable) == 0 && !r.Enroll {
 		return r, ErrNoFactor
 	}
 	if r.Enroll || len(usable) == 0 {

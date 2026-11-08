@@ -565,18 +565,30 @@ func (s *Service) VerifyWebAuthn(ctx context.Context, tid, uid string, c *Challe
 		return ErrInvalidCode
 	}
 	var pub struct {
-		BE     bool   `json:"backup_eligible"`
-		Handle string `json:"user_handle"`
+		BE         *bool  `json:"backup_eligible"`
+		DeviceType string `json:"credential_device_type"`
+		Handle     string `json:"user_handle"`
 	}
 	if len(a.PublicData) > 0 && json.Unmarshal(a.PublicData, &pub) != nil {
 		return ErrInvalidCode
+	}
+	// Keys imported through the Management API may carry Auth0's
+	// credential_device_type instead of a captured flag, or neither.
+	be, beUnknown := false, false
+	switch {
+	case pub.BE != nil:
+		be = *pub.BE
+	case pub.DeviceType != "":
+		be = pub.DeviceType == "multi_device"
+	default:
+		beUnknown = true
 	}
 	handle, x := base64.RawURLEncoding.DecodeString(pub.Handle)
 	if x != nil || pub.Handle != "" && len(handle) != webauthnrules.Limits.UserHandleBytes {
 		return ErrInvalidCode
 	}
 	params, _ := webParams(m.Factor, g)
-	proof, err := webauthn.VerifyAssertion(credential, webauthn.Expect{Challenge: taken.Challenge, RPID: m.Binding.RPID, Origins: m.Binding.Origins, RequireUV: m.Params.EnforceUV || params.EnforceUV}, webauthn.Stored{PublicKeyCOSE: a.PublicKey, SignCount: a.SignCount, BE: pub.BE, UserHandle: handle})
+	proof, err := webauthn.VerifyAssertion(credential, webauthn.Expect{Challenge: taken.Challenge, RPID: m.Binding.RPID, Origins: m.Binding.Origins, RequireUV: m.Params.EnforceUV || params.EnforceUV}, webauthn.Stored{PublicKeyCOSE: a.PublicKey, SignCount: a.SignCount, BE: be, BEUnknown: beUnknown, UserHandle: handle})
 	if err != nil {
 		return err
 	}

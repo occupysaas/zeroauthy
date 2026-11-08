@@ -479,3 +479,87 @@ func TestWebAuthnForeignKeyAllowsFirstOTPEnrollment(t *testing.T) {
 		t.Fatalf("foreign RP key blocked current-RP first enrollment: %v", err)
 	}
 }
+
+// Review finding: the password grant has no RP scope, so a WebAuthn-only user
+// must not look unenrolled there (or on any unscoped caller): that would let a
+// password alone enroll a fresh factor through /mfa/associate.
+func TestUnscopedWebAuthnKeyIsEnrolled(t *testing.T) {
+	g := &store.GuardianSettings{Policies: []string{"all-applications"}, Factors: map[string]bool{"otp": true, "webauthn-roaming": true}}
+	for _, rp := range []string{"login.custom.example", "example.test"} {
+		in := DecideInput{Settings: g, Authenticators: []store.Authenticator{{Type: "webauthn-roaming", Confirmed: true, RPID: rp, CredentialID: []byte{1}, PublicKey: []byte{1}}}}
+		if req, err := Decide(in); !errors.Is(err, ErrNoFactor) {
+			t.Fatalf("rp %q: password-only enrollment around a security key: %+v %v", rp, req, err)
+		}
+		in.MFAAPI = true
+		if req, err := Decide(in); !errors.Is(err, ErrNoFactor) {
+			t.Fatalf("rp %q: MFA API enrollment around a security key: %+v %v", rp, req, err)
+		}
+		// Availability without an RP scope never makes a key verifiable.
+		in.MFAAPI, in.WebAuthn.Available = false, true
+		if req, err := Decide(in); !errors.Is(err, ErrNoFactor) {
+			t.Fatalf("rp %q: unscoped available: %+v %v", rp, req, err)
+		}
+	}
+}
+
+// Review finding: the held-key guard must not change ordinary factors. An
+// Action requesting OTP for an email-only user still enrolls OTP.
+func TestActionRequestedFactorStillEnrollsWithoutWebAuthn(t *testing.T) {
+	u := &store.User{Email: "a@example.test", EmailVerified: true}
+	for _, provider := range []string{"google-authenticator", "guardian"} {
+		in := DecideInput{User: u, Settings: &store.GuardianSettings{Factors: map[string]bool{"otp": true, "email": true}}, Effects: &actionresult.MFAEffects{Provider: provider}, Authenticators: []store.Authenticator{{Type: "email", Confirmed: true, Email: "a@example.test"}}}
+		req, err := Decide(in)
+		if err != nil || !req.Enroll || len(req.Factors) != 1 || req.Factors[0] != "otp" {
+			t.Fatalf("%s: %+v %v", provider, req, err)
+		}
+	}
+}
+
+// Review finding: a security key imported through the Management API stores
+// neither a user handle nor a captured backup flag. A discoverable key that
+// returns its handle, or a multi-device key (BE set), must still verify; a
+// stored device type that contradicts the flag still fails.
+func TestWebAuthnImportedKeyHandleAndBackupEligibility(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		public []byte
+		be, ok bool
+	}{
+		{"no data, handle returned", nil, false, true},
+		{"no data, multi-device", nil, true, true},
+		{"multi_device", []byte(`{"credential_device_type":"multi_device"}`), true, true},
+		{"single_device contradicted", []byte(`{"credential_device_type":"single_device"}`), true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, svc, rp := roamingFixture(t)
+			e, o, err := svc.BeginWebAuthnEnroll(f.ctx, "tenant", "user", "webauthn-roaming", rp, passkey.UserDisplay{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			key := webauthntest.New(webauthntest.Options{BE: tc.be})
+			confirmed, err := svc.ConfirmWebAuthnEnroll(f.ctx, "tenant", "user", e, key.Create(o, rp.Origin), "Key", "ua")
+			if err != nil {
+				t.Fatal(err)
+			}
+			a, err := f.st.MFA().GetAuthenticator(f.ctx, "tenant", "user", confirmed.AuthenticatorID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = f.st.MFA().DeleteAuthenticator(f.ctx, "tenant", "user", a.ID); err != nil {
+				t.Fatal(err)
+			}
+			a.PublicData = tc.public
+			if err = f.st.MFA().CreateAuthenticator(f.ctx, a); err != nil {
+				t.Fatal(err)
+			}
+			c, request, err := svc.BeginWebAuthnChallenge(f.ctx, "tenant", "user", "webauthn-roaming", rp, webauthn.Device{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = svc.VerifyWebAuthn(f.ctx, "tenant", "user", c, key.Get(request, rp.Origin))
+			if tc.ok != (err == nil) {
+				t.Fatalf("verify: %v", err)
+			}
+		})
+	}
+}

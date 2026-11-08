@@ -49,7 +49,10 @@ type Stored struct {
 	PublicKeyCOSE []byte
 	SignCount     uint32
 	BE            bool
-	UserHandle    []byte
+	// BEUnknown: the stored record never captured backup eligibility (a key
+	// imported without it), so the assertion's flag is not compared.
+	BEUnknown  bool
+	UserHandle []byte
 }
 
 // knownFormats are accepted without verifying the statement (LR33b-9).
@@ -150,7 +153,11 @@ func VerifyAssertion(c *Credential, e Expect, s Stored) (*Assertion, error) {
 	if err := checkFlags(a, e); err != nil {
 		return nil, err
 	}
-	if e.RequireUserHandle && c.UserHandle == nil || c.UserHandle != nil && subtle.ConstantTimeCompare(c.UserHandle, s.UserHandle) != 1 {
+	// A stored record without a handle (a key imported without one) cannot
+	// be compared; the credential ID already identified its owner. Ceremonies
+	// that identify the user by handle (RequireUserHandle) stay strict.
+	compare := len(s.UserHandle) > 0 || e.RequireUserHandle
+	if e.RequireUserHandle && c.UserHandle == nil || compare && c.UserHandle != nil && subtle.ConstantTimeCompare(c.UserHandle, s.UserHandle) != 1 {
 		return nil, fail("user_handle", "user handle does not match")
 	}
 	key, err := ParseCOSEKey(s.PublicKeyCOSE)
@@ -164,7 +171,7 @@ func VerifyAssertion(c *Credential, e Expect, s Stored) (*Assertion, error) {
 	if (s.SignCount != 0 || a.signCount != 0) && a.signCount <= s.SignCount {
 		return nil, fail("sign_count", "sign count did not increase")
 	}
-	if a.be() != s.BE {
+	if !s.BEUnknown && a.be() != s.BE {
 		return nil, fail("backup_eligibility", "backup eligibility changed")
 	}
 	return &Assertion{CredentialID: slices.Clone(c.RawID), UserHandle: slices.Clone(c.UserHandle), SignCount: a.signCount,

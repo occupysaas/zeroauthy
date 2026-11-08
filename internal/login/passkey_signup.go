@@ -27,7 +27,11 @@ const signupEnrollStep = "passkey-enrollment"
 const signupPasswordStep = "signup-password"
 const signupFailureKey = i18n.KeyPasskeyEnrollmentFailure
 
-var signupProfileFields = []string{"email", "username", "phone_number", "given_name", "family_name", "name", "nickname", "picture"}
+// signupProfileFields are the hosted signup identifiers a passkey signup draft
+// carries. Hosted signup takes no root profile attributes (name, picture and
+// the like) from the form, as before passkeys; extra fields reach the user
+// only through the ulp- prompt fields.
+var signupProfileFields = []string{"email", "username", "phone_number"}
 
 type signupDraft struct {
 	Purpose                               string
@@ -217,7 +221,7 @@ func (h *Handlers) SignupIdentifierPost(w http.ResponseWriter, r *http.Request) 
 	if !h.guardHostedForm(w, r, f, signupIDStep, signupIDStep, redisplay) {
 		return
 	}
-	in := identity.SignupInput{Email: r.PostForm.Get("email"), Username: r.PostForm.Get("username"), PhoneNumber: r.PostForm.Get("phone_number"), GivenName: r.PostForm.Get("given_name"), FamilyName: r.PostForm.Get("family_name"), Name: r.PostForm.Get("name"), Nickname: r.PostForm.Get("nickname"), Picture: r.PostForm.Get("picture")}
+	in := identity.SignupInput{Email: r.PostForm.Get("email"), Username: r.PostForm.Get("username"), PhoneNumber: r.PostForm.Get("phone_number")}
 	email, username, err := identity.CheckSignupProfile(f.conn, in)
 	if err != nil {
 		var pe *identity.PolicyError

@@ -782,7 +782,6 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
 		EmailVerified: emailCodeVerified, PhoneNumber: phoneNumber, PhoneVerified: phoneVerified, ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,
-		GivenName: r.PostForm.Get("given_name"), FamilyName: r.PostForm.Get("family_name"), Name: r.PostForm.Get("name"), Nickname: r.PostForm.Get("nickname"), Picture: r.PostForm.Get("picture"),
 	})
 	if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
 		h.fail(w, r, riskErr, f)

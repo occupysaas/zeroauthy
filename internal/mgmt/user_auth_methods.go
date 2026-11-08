@@ -119,6 +119,10 @@ func (h *Handlers) newMethod(tid, uid string, b map[string]any) (store.Authentic
 			public[key] = v
 		}
 	}
+	if t, ok := public["credential_device_type"].(string); ok && a.Type == "webauthn-roaming" {
+		// The MFA assertion check compares this with the authenticator's flag.
+		public["backup_eligible"] = t == "multi_device"
+	}
 	if len(public) > 0 {
 		a.PublicData, _ = json.Marshal(public)
 	}
