@@ -98,7 +98,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 31 | Logs, log streams, stats | full (done) | 19 |
 | 32 | Event streams | full (done; documented local limitations) | 31 |
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full (done; WebAuthn → 33b) | 21, 27 |
-| 33b | Passkeys and WebAuthn MFA: connection passkey options, client `mobile`, native passkey APIs, security-key settings | full (acceptance in progress) | 33, 23 |
+| 33b | Passkeys and WebAuthn MFA: connection passkey options, client `mobile`, native passkey APIs, security-key settings | full | 33, 23 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full (done) | 33 |
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
@@ -343,7 +343,7 @@ My Organization API/self-service organization administration Plan 42.
 
 **Designed 2026-11-05:** [spec](2026-11-05-zeroauthy-passkeys-webauthn-design.md), [plan](../plans/2026-11-05-zeroauthy-plan-33b-passkeys-webauthn.md) (19 tasks, D-0062, migration 0035, store capability `webauthn.v1`). Operator guide: [passkeys](../../passkeys.md).
 
-**Acceptance in progress (2026-11-08):** Tasks 1–18 are implemented and reviewed. Task 19's `make e2e-passkeys` passed on SQLite and memory (browser journeys on SQLite; native, SDK, CLI and Deploy CLI lanes and the representative-secret audit on both). The final regression found and fixed older-schema migration tests broken by 0035, the Plan 15 and Plan 33 journeys meeting the new passkey and security-key UI, and a `requires_other_factor` Guardian row extension that the Deploy CLI would have carried into Auth0 (removed; D-0062). Full verification now runs in CI on the plan branch (`plan-branch.yml`). Whole-branch review pending. Follow-up: Actions MFA ordering ([follow-ups](../plan-1-followups.md)).
+**Complete (2026-11-08):** all 19 tasks are implemented and reviewed. Task 19's `make e2e-passkeys` passed on SQLite and memory, and plan-branch CI run [42455574557](https://github.com/occupysaas/zeroauthy/actions/runs/42455574557) passed every job (race tests, SQL databases, console, all E2E suites, conformance) at `03e51b9`. The final regression fixed older-schema migration tests broken by 0035, the Plan 15 and Plan 33 journeys meeting the new passkey and security-key UI, and a `requires_other_factor` Guardian row extension the Deploy CLI would have carried into Auth0 (removed; D-0062). The whole-branch review fixes landed, and the maintainer ruled that a key on another domain enrolls only a new security key (LR33b-5, D-0062). Merged to `main` as `2f0f8d6`. Follow-ups: Actions MFA ordering ([follow-ups](../plan-1-followups.md)); deferred review minors (double MFA evaluation on finish, duplicated `webauthn.v1` capability checks, hard-coded native options timeout, challenge-table KV use, login-page writes per view).
 
 ### Plan 34 — Passwordless and phone (full design)
 
