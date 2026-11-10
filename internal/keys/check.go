@@ -7,12 +7,11 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-// CheckMasterKey verifies that w can open the stored signing keys. It looks
-// at one key per tenant that has any (every key of a store is sealed under
-// the same master key) and fails on the first one that does not decrypt, so
-// a wrong or rotated-away master key is reported at startup instead of
-// surfacing later as failed token requests. A store without signing keys
-// passes: there is nothing to contradict the key.
+// CheckMasterKey verifies that w can open the stored signing keys. Every key
+// of a store is sealed under the same master key, so it opens the first
+// signing key it finds and stops there: a wrong master key is reported at
+// startup instead of surfacing later as failed token requests. A store
+// without signing keys passes: there is nothing to contradict the key.
 func CheckMasterKey(ctx context.Context, st store.Store, w Wrapper) error {
 	tenants, err := st.Tenants().List(ctx)
 	if err != nil {
@@ -30,6 +29,7 @@ func CheckMasterKey(ctx context.Context, st store.Store, w Wrapper) error {
 		if _, err := unseal(w, k.PrivateKey, aad(k.TenantID, k.KID)); err != nil {
 			return fmt.Errorf("keys: the master key cannot decrypt signing key %s of tenant %s (wrong security.master_key or master_key_file for this database?): %w", k.KID, t.ID, err)
 		}
+		return nil
 	}
 	return nil
 }
