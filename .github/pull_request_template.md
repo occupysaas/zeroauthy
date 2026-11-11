@@ -8,6 +8,10 @@
 - [ ] New or changed API behavior cites its public source (`x-source` in `api/*.yaml`, or `docs/compat/decisions.md`).
 - [ ] No Auth0 code, templates, styles, images, or product copy were copied.
 
+## Licence
+
+- [ ] Every commit is signed off (`git commit -s`) under the Developer Certificate of Origin; see [CONTRIBUTING.md](../CONTRIBUTING.md).
+
 ## Testing
 
 <!-- Commands run and results -->
