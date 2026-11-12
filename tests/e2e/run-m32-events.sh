@@ -3,7 +3,7 @@
 # Every receiver body is checked with the production frozen-catalog validator.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-export GOTOOLCHAIN=go1.26.10
+export GOTOOLCHAIN=go1.26.11
 # Playwright sets FORCE_COLOR in its workers; omit NO_COLOR to avoid conflicts.
 unset NO_COLOR
 export FORCE_COLOR=0

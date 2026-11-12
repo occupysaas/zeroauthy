@@ -200,7 +200,7 @@ server, start from [examples/zeroauthy.yaml](examples/zeroauthy.yaml) and
 
 This runs the server with the end-to-end test configuration
 (`tests/e2e/config.yaml`: memory storage, debug logging, published test
-secrets). It is for development, not for real users. It needs Go 1.26.10.
+secrets). It is for development, not for real users. It needs Go 1.26.11.
 
 ```bash
 go build -o bin/zeroauthy ./cmd/zeroauthy
