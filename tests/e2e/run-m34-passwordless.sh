@@ -4,7 +4,7 @@
 # E2E_M34_BACKENDS adds PostgreSQL/MySQL with isolated complete SQL-test DSNs.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-export GOTOOLCHAIN=go1.26.10
+export GOTOOLCHAIN=go1.26.11
 unset NO_COLOR
 export FORCE_COLOR=0
 for tool in node go openssl curl flock setsid python3 sha256sum; do
