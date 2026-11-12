@@ -120,3 +120,6 @@ Signed-off-by: Your Name <you@example.com>
 Use your real name and an email address you control. Pull requests with
 unsigned commits will not be merged. To sign off commits you've already made,
 run `git rebase --signoff main`.
+The `dco` check on every pull request fails when a commit has no
+`Signed-off-by` line matching its author email; run
+`scripts/check-dco.sh main HEAD` to check locally before you push.
