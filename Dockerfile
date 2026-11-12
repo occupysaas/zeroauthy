@@ -8,7 +8,7 @@
 # ships Node.js because Actions, custom database scripts and social profile
 # scripts run in Node (social scripts need Node 25+; see docs/social-connections.md).
 
-FROM --platform=$BUILDPLATFORM golang:1.26.10-bookworm AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.11-bookworm AS build
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION=dev
