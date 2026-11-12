@@ -56,12 +56,12 @@ Follow the existing naming pattern
 (`YYYY-MM-DD-zeroauthy-<topic>-design.md` for specs,
 `YYYY-MM-DD-zeroauthy-plan-<n>-<topic>.md` for plans).
 
-### 3. Review each spec and plan with a stronger model
+### 3. Use a strong model for specs and plans
 
-Review every spec and every implementation plan before moving to the next
-step. Use a strong model such as Opus, Fable or Astra at **medium effort or
-higher**. Address the review findings and commit the result before
-continuing.
+Write and review every spec and every implementation plan with a strong
+model at **medium effort or higher**. Strong models are Claude Opus 5.5 or
+later, Claude Fable 5.2 or later, Astra, or newer models. Address the review
+findings and commit the result before continuing.
 
 ### 4. Implement the reviewed plan
 
@@ -70,11 +70,12 @@ Implement the reviewed plan with Sol or Opus, for example using
 
 ### 5. Review the implementation
 
-Either option is fine:
+A strong model should review the code, but this is recommended rather than
+required. Either option is fine:
 
-- **Review it now** with a different or stronger model than the one that
-  wrote the code. A second model brings a different perspective.
-- **Finish the implementation and open the pull request.** A stronger model
+- **Review it now** with a strong model, ideally a different one from the
+  model that wrote the code. A second model brings a different perspective.
+- **Finish the implementation and open the pull request.** A strong model
   can review it later, before it is merged.
 
 ## Workflow
