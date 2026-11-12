@@ -581,3 +581,28 @@ func TestStartupSeedConfiguredEventStreamLimit(t *testing.T) {
 		})
 	}
 }
+
+// TestNewRefusesWrongMasterKey: a database sealed under one master key must
+// not start under another. Without the check the server reports healthy and
+// serves JWKS, then fails every token exchange once it needs a secret.
+func TestNewRefusesWrongMasterKey(t *testing.T) {
+	cfg := sqliteConfig(t, true)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	a, err := New(context.Background(), cfg, log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	// Same database, different 32-byte key.
+	cfg.Security.MasterKey = "ZmVkY2JhOTg3NjU0MzIxMGZlZGNiYTk4NzY1NDMyMTA="
+	b, err := New(context.Background(), cfg, log)
+	if err == nil {
+		b.Close()
+		t.Fatal("New succeeded with a master key that cannot decrypt the stored signing keys")
+	}
+	if !strings.Contains(err.Error(), "master key") {
+		t.Fatalf("err = %v, want it to name the master key", err)
+	}
+}
