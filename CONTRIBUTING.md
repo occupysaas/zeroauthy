@@ -118,8 +118,19 @@ Signed-off-by: Your Name <you@example.com>
 ```
 
 Use your real name and an email address you control. Pull requests with
-unsigned commits will not be merged. To sign off commits you've already made,
-run `git rebase --signoff main`.
-The `dco` check on every pull request fails when a commit has no
-`Signed-off-by` line matching its author email; run
-`scripts/check-dco.sh main HEAD` to check locally before you push.
+unsigned commits will not be merged.
+
+The commands below take `upstream/main`: this repository's `main`, fetched
+with `git fetch upstream` after
+`git remote add upstream https://github.com/occupysaas/zeroauthy.git`. A
+local `main` in your fork may be behind, which would also select commits you
+didn't write.
+
+- To sign off commits you've already made, run
+  `git rebase --signoff upstream/main` and force-push your branch.
+- The `dco` check on every pull request fails when a commit has no
+  `Signed-off-by` line matching its author email. Run
+  `scripts/check-dco.sh upstream/main HEAD` to check locally before you push.
+- Commits made in the GitHub web interface, such as accepted review
+  suggestions, need a sign-off too; GitHub adds one when this repository
+  requires it for web-based commits.
