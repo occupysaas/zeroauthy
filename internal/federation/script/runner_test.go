@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -13,12 +14,25 @@ import (
 	"time"
 )
 
-// newTestRunner requires a capable Node: this is the dedicated acceptance
-// lane for the runner, so a missing runtime fails rather than skips.
+// newTestRunner needs Node 25 or later. Without it the runner tests skip,
+// as other Node-dependent suites do, unless ZA_REQUIRE_NODE=1 (set in CI)
+// makes a missing or old runtime fail. A capable Node that fails the
+// runner's capability probe always fails.
 func newTestRunner(t *testing.T, client *http.Client) *Runner {
 	t.Helper()
-	if _, err := exec.LookPath("node"); err != nil {
-		t.Fatalf("node is required for the profile script lane: %v", err)
+	reason := ""
+	if p, err := exec.LookPath("node"); err != nil {
+		reason = "node not found on PATH"
+	} else if out, err := exec.Command(p, "--version").Output(); err != nil {
+		reason = "node --version failed: " + err.Error()
+	} else if err := checkNodeVersion(string(out)); err != nil {
+		reason = err.Error()
+	}
+	if reason != "" {
+		if os.Getenv("ZA_REQUIRE_NODE") == "1" {
+			t.Fatalf("ZA_REQUIRE_NODE=1 but %s", reason)
+		}
+		t.Skip(reason)
 	}
 	r, err := NewRunner(Config{}, NewBroker(client))
 	if err != nil {
