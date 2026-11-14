@@ -45,18 +45,27 @@ func TestRenderBudgets(t *testing.T) {
 			}()
 		}
 		close(block)
+		// On few CPUs the eight renders may not overlap, and the ninth would
+		// then rightly find a free slot. liquid.TestRenderCapacity checks the
+		// limit deterministically; this test checks it through real renders
+		// only when all eight are seen running together.
+		var peak int32
 		deadline := time.Now().Add(500 * time.Millisecond)
-		for time.Now().Before(deadline) {
-			if renderSlotsInUse() == 8 {
-				break
+		for time.Now().Before(deadline) && peak < 8 {
+			peak = max(peak, renderSlotsInUse())
+			if peak < 8 {
+				time.Sleep(time.Millisecond)
 			}
-			time.Sleep(time.Millisecond)
+		}
+		if peak < 8 {
+			wg.Wait()
+			t.Skipf("only %d of 8 renders ran at once on this machine; liquid.TestRenderCapacity covers the limit", peak)
 		}
 		_, err := r.Render(context.Background(), RenderInput{Fields: map[string]string{"body": "ninth"}})
+		wg.Wait()
 		if !errors.Is(err, ErrRenderCapacity) {
 			t.Fatalf("ninth Render() error = %v, want ErrRenderCapacity", err)
 		}
-		wg.Wait()
 	})
 	t.Run("byte boundaries", func(t *testing.T) {
 		good := strings.Repeat("é", 64*1024)
@@ -128,6 +137,12 @@ func TestRenderCapabilities(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		time.AfterFunc(time.Millisecond, cancel)
 		_, err := r.Render(ctx, RenderInput{Fields: map[string]string{"body": "{% for x in (1..10000) %}{{ x }}{% endfor %}"}})
+		if err == nil {
+			// The render finished before the timer goroutine ran, as it can
+			// with one CPU. liquid.TestRenderStopsWhenCancelledMidway covers
+			// cancellation deterministically.
+			t.Skip("render finished before the cancel fired; liquid.TestRenderStopsWhenCancelledMidway covers this")
+		}
 		if !errors.Is(err, context.Canceled) {
 			t.Fatalf("Render() error = %v, want context.Canceled", err)
 		}
