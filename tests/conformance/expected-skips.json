@@ -46,5 +46,17 @@
         "variant": "*",
         "configuration-filename": "*/configs/formpost.json",
         "comment": "D-0036 / D-0035 / LR35-4: unsigned request objects stay refused with request_not_supported, which is permitted"
+    },
+    {
+        "test-name": "oidcc-ensure-request-object-with-redirect-uri",
+        "variant": "*",
+        "configuration-filename": "*/configs/basic.json",
+        "comment": "D-0035 / D-0063 LR35-4: the module sends an unsigned request object; unsigned objects stay refused, so the suite skips it"
+    },
+    {
+        "test-name": "oidcc-ensure-request-object-with-redirect-uri",
+        "variant": "*",
+        "configuration-filename": "*/configs/formpost.json",
+        "comment": "D-0035 / D-0063 LR35-4: the module sends an unsigned request object; unsigned objects stay refused, so the suite skips it"
     }
 ]
