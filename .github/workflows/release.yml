@@ -75,7 +75,9 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - run: ./scripts/dist.sh "${{ needs.version.outputs.version }}" dist
+      - run: ./scripts/dist.sh "$VERSION" dist
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist
@@ -90,7 +92,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - run: echo "Approved release ${{ needs.version.outputs.tag }}"
+      - run: echo "Approved release $TAG"
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
 
   image:
     needs: [version, test, conformance, approve]
