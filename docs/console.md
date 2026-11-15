@@ -82,7 +82,9 @@ session.
   what opened it. Deletes and other consequential actions ask in a modal
   rather than a browser prompt.
 - **Actions:** the Actions library (create, edit, build, deploy and test
-  Actions), trigger flows and Modules; see [Actions](actions.md).
+  Actions), trigger flows, Modules and Token exchange profiles (a subject
+  token type bound to a deployed `custom-token-exchange` Action); see
+  [Actions](actions.md).
 - **Home:** the tenant's domain, discovery URL and Management API
   identifier, the number of applications, and a banner when the seed file
   defines the tenant: edits to what the seed defines are overwritten at the
@@ -90,7 +92,8 @@ session.
   there is no banner.
 - **APIs:** a paged list of the tenant's APIs, system ones marked. **Create
   API** asks for a name and an identifier (fixed afterwards). Each API has
-  - **Settings:** name, identifier, signing algorithm (RS256, fixed), token
+  - **Settings:** name, identifier, signing algorithm (RS256, PS256 or HS256; an
+    HS256 secret is hidden until revealed), token
     lifetimes, offline access, skipping consent, and the user and application
     access policies;
   - **Permissions:** the scopes the API defines; removing one that is
@@ -130,9 +133,16 @@ session.
   - **Settings:** domain, client ID and secret (masked, with reveal and
     copy), name, callback, logout and origin URLs. Validation errors from
     the API appear on the field they concern;
-  - **Advanced:** grant types, token endpoint authentication, ID token
-    lifetime, refresh token rotation and expiration, PAR, and whether it is
-    a first- or third-party application (fixed at creation);
+  - **Advanced:** grant types, token endpoint authentication (including
+    Private Key JWT, with the keys that verify the assertion), signed request
+    objects (JAR: whether one is required and which keys verify it), custom
+    token exchange (first-party applications only), ID token lifetime,
+    refresh token rotation and expiration, PAR, and whether it is a first- or
+    third-party application (fixed at creation);
+  - **Credentials:** the public keys or certificates registered for the
+    application, at most two. The PEM is never shown again after it is added.
+    A storage plugin without client credentials support shows a notice
+    instead;
   - **Connections:** the database connections the application can sign users
     in with, a switch each;
   - **APIs:** the APIs the application may request tokens for, with the

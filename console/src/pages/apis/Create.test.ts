@@ -5,12 +5,13 @@ import { resourceServer } from '../../test/services'
 import Create from './Create.vue'
 
 describe('Create API', () => {
-  it('shows the identifier hint and a fixed RS256', async () => {
+  it('shows the identifier hint and offers the signing algorithms, RS256 first', async () => {
     const { wrapper } = await mountAt(Create, '/t/acme/apis/new', () => ({ status: 200 }))
     expect(wrapper.find('#api-identifier-hint').text()).toContain('cannot be changed')
-    const alg = wrapper.find<HTMLInputElement>('#api-alg')
+    const alg = wrapper.find<HTMLSelectElement>('#api-alg')
     expect(alg.element.value).toBe('RS256')
-    expect(alg.attributes('readonly')).toBeDefined()
+    expect(alg.findAll('option').map((o) => o.text())).toEqual(['RS256', 'PS256', 'HS256'])
+    expect(wrapper.find('#api-secret').exists()).toBe(false)
     wrapper.unmount()
   })
 
@@ -36,6 +37,22 @@ describe('Create API', () => {
     expect(calls[0]!.url).toBe('https://acme.example.test/api/v2/resource-servers')
     expect(calls[0]!.body).toEqual({ name: 'Orders', identifier: 'https://orders.example.test', signing_alg: 'RS256' })
     expect(router.currentRoute.value.path).toBe('/t/acme/apis/abc123')
+    wrapper.unmount()
+  })
+
+  it('creates an HS256 API with an optional secret, validating its length', async () => {
+    const { wrapper, calls } = await mountAt(Create, '/t/acme/apis/new', () => ({ status: 201, body: resourceServer('abc123', { signing_alg: 'HS256', signing_secret: 'x'.repeat(43) }) }))
+    await wrapper.find('#api-name').setValue('Orders')
+    await wrapper.find('#api-identifier').setValue('https://orders.example.test')
+    await wrapper.find('#api-alg').setValue('HS256')
+    await wrapper.find('#api-secret').setValue('short')
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('#api-secret-error').text()).toContain('at least 16')
+    expect(calls).toHaveLength(0)
+    await wrapper.find('#api-secret').setValue('')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    expect(calls[0]!.body).toEqual({ name: 'Orders', identifier: 'https://orders.example.test', signing_alg: 'HS256' })
     wrapper.unmount()
   })
 

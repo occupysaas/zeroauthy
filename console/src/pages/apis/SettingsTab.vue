@@ -19,11 +19,14 @@ const MAX_LIFETIME = 2592000
 const userPolicies = ['allow_all', 'require_client_grant', 'deny_all']
 const clientPolicies = ['require_client_grant', 'deny_all']
 
-const form = reactive({ name: '', lifetime: '', lifetimeWeb: '', offline: false, skipConsent: false, user: 'allow_all', client: 'require_client_grant', rbac: false, profile: 'access_token', permissions: false })
+const form = reactive({ alg: 'RS256' as 'RS256' | 'HS256' | 'PS256', secret: '', name: '', lifetime: '', lifetimeWeb: '', offline: false, skipConsent: false, user: 'allow_all', client: 'require_client_grant', rbac: false, profile: 'access_token', permissions: false })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
 const busy = ref(false)
+const secretShown = ref(false)
+const algs = ['RS256', 'PS256', 'HS256'] as const
+const MIN_SECRET = 16
 let epoch = 0
 let context = ''
 const baseProfile = computed({ get: () => form.profile, set: (value: string) => { form.profile = value } })
@@ -36,6 +39,9 @@ function reset(s: ResourceServer) {
   if (context !== nextContext) status.value = ''
   context = nextContext
   general.value = ''
+  form.alg = s.signing_alg
+  form.secret = ''
+  secretShown.value = false
   form.rbac = s.enforce_policies
   form.profile = String(s.token_dialect).startsWith('rfc9068_') ? 'rfc9068_profile' : 'access_token'
   form.permissions = String(s.token_dialect).endsWith('_authz')
@@ -61,10 +67,11 @@ function validate(): { lifetime: number; web: number } | null {
   if (web === null) errors.lifetimeWeb = t('apis.lifetimeInvalid')
   else if (lifetime !== null && web > lifetime) errors.lifetimeWeb = t('apis.lifetimeWebTooLong')
   if (!props.server.is_system && props.server.name && !form.name.trim()) errors.name = t('apis.nameRequired')
+  if (!props.server.is_system && form.alg === 'HS256' && form.secret.trim() && form.secret.trim().length < MIN_SECRET) errors.secret = t('apis.secretTooShort', { min: MIN_SECRET })
   return Object.keys(errors).length === 0 ? { lifetime: lifetime!, web: web! } : null
 }
 
-const fieldKeys = { name: ['name'], lifetimeWeb: ['token_lifetime_for_web'], lifetime: ['token_lifetime'] }
+const fieldKeys = { secret: ['signing_secret'], name: ['name'], lifetimeWeb: ['token_lifetime_for_web'], lifetime: ['token_lifetime'] }
 
 async function save() {
   general.value = ''
@@ -78,6 +85,8 @@ async function save() {
   if (!props.server.is_system) {
     if (form.name.trim()) body.name = form.name.trim()
     body.enforce_policies = form.rbac
+    if (form.alg !== props.server.signing_alg || (form.alg === 'HS256' && form.secret.trim())) body.signing_alg = form.alg
+    if (form.alg === 'HS256' && form.secret.trim()) body.signing_secret = form.secret.trim()
     body.token_dialect = (form.profile + (form.permissions ? '_authz' : '')) as ResourceServerUpdate['token_dialect']
     body.allow_offline_access = form.offline
     body.skip_consent_for_verifiable_first_party_clients = form.skipConsent
@@ -123,12 +132,28 @@ function describedBy(id: string, key: string): string {
         <span class="font-bold">{{ t('apis.signingAlg') }}</span>
         <div><code>{{ server.signing_alg }}</code></div>
       </div>
+      <div v-if="server.signing_alg === 'HS256' && server.signing_secret">
+        <span id="api-secret-label" class="font-bold">{{ t('apis.signingSecret') }}</span>
+        <div class="row">
+          <code aria-labelledby="api-secret-label" data-testid="signing-secret">{{ secretShown ? server.signing_secret : '•'.repeat(24) }}</code>
+          <Button variant="ghost" :aria-pressed="secretShown" @click="secretShown = !secretShown">{{ secretShown ? t('apps.hide') : t('apps.reveal') }}</Button>
+          <CopyButton :value="server.signing_secret" :label="t('apis.signingSecret')" />
+        </div>
+      </div>
     </section>
 
     <form class="card stack" novalidate @submit.prevent="save">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
       <Field id="api-name" :label="t('apis.name')" :error="errors.name">
         <input id="api-name" v-model="form.name" type="text" maxlength="200" :disabled="server.is_system" :aria-invalid="!!errors.name" />
+      </Field>
+      <Field id="api-alg" :label="t('apis.signingAlg')" :hint="t('apis.signingAlgHint')">
+        <select id="api-alg" v-model="form.alg" :disabled="server.is_system" aria-describedby="api-alg-hint">
+          <option v-for="a in algs" :key="a" :value="a">{{ a }}</option>
+        </select>
+      </Field>
+      <Field v-if="form.alg === 'HS256' && !server.is_system" id="api-secret" :label="t('apis.newSecret')" :hint="t('apis.newSecretHint', { min: MIN_SECRET })" :error="errors.secret">
+        <input id="api-secret" v-model="form.secret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.secret" :aria-describedby="describedBy('api-secret', 'secret')" />
       </Field>
       <Field id="api-lifetime" :label="t('apis.tokenLifetime')" :hint="t('apis.tokenLifetimeHint')" :error="errors.lifetime">
         <input id="api-lifetime" v-model="form.lifetime" type="text" inputmode="numeric" :aria-invalid="!!errors.lifetime" :aria-describedby="describedBy('api-lifetime', 'lifetime')" />
