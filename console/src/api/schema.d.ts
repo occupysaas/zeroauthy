@@ -6944,7 +6944,7 @@ export interface components {
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
                     max_attempts?: number;
-                    /** @default 8640000 */
+                    /** @default 600000 */
                     rate?: number;
                 };
             };
@@ -6969,7 +6969,7 @@ export interface components {
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
                     max_attempts?: number;
-                    /** @default 8640000 */
+                    /** @default 600000 */
                     rate?: number;
                 };
             };

@@ -442,7 +442,11 @@ func TestTokenExchangeSetUserByConnectionRules(t *testing.T) {
 				form.Set("subject_token", carol.UserID)
 			}
 			status, body := f.token(t, form)
-			if status != 400 || (body["error"] != "invalid_request" && body["error"] != "invalid_grant") {
+			want := "invalid_request"
+			if name == "blocked user" {
+				want = "invalid_grant"
+			}
+			if status != 400 || body["error"] != want {
 				t.Fatalf("got %d %v", status, body)
 			}
 			if _, err := f.st.Users().Get(context.Background(), f.tid, "auth0|x"); !errors.Is(err, store.ErrNotFound) {
@@ -502,7 +506,7 @@ func TestTokenExchangeOrganization(t *testing.T) {
 	})
 	t.Run("not a member", func(t *testing.T) {
 		status, body := f.token(t, cteForm("ropg", "ropg-secret", "organization", other.ID))
-		if status < 400 || body["access_token"] != nil {
+		if status != 400 || body["error"] != "invalid_grant" || body["access_token"] != nil {
 			t.Fatalf("%d %v", status, body)
 		}
 	})
@@ -551,5 +555,46 @@ func TestTokenExchangeActorTokenUser(t *testing.T) {
 		if status != 400 || body["error"] != "no_actor_user" {
 			t.Fatalf("untrusted actor token: %d %v", status, body)
 		}
+	}
+}
+
+// An organization the Action names is resolved, and checked against the
+// request's, before any user is created.
+func TestTokenExchangeOrganizationBeforeUserCreation(t *testing.T) {
+	f := newCTEFixture(t)
+	ctx := context.Background()
+	conn, err := f.st.Connections().GetByName(ctx, f.tid, cteDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	org := &store.Organization{TenantID: f.tid, ID: orgrules.NewID(), Name: "acme-corp", DisplayName: "Acme", ThirdPartyClientAccess: "allow"}
+	other := &store.Organization{TenantID: f.tid, ID: orgrules.NewID(), Name: "other-corp", DisplayName: "Other", ThirdPartyClientAccess: "allow"}
+	for _, o := range []*store.Organization{org, other} {
+		if err := f.st.Organizations().Create(ctx, o, []store.OrganizationConnection{{TenantID: f.tid, OrganizationID: o.ID, ConnectionID: conn.ID, ShowAsButton: true}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.setOrgUsage(t, "ropg", "allow", "")
+	f.actions.Bind(t, f.tid, actions.TriggerPreUserRegistration, f.actions.Deploy(t, f.tid, actions.TriggerPreUserRegistration, "prereg",
+		`exports.onExecutePreUserRegistration = async (event, api) => { api.user.setAppMetadata("registered", true); };`))
+	f.profile(t, "orgcreate", `api.authentication.setUserByConnection("`+cteDB+`", {user_id: "org-new-1", email: "org-new@acme.test"});
+	  api.authentication.setOrganization(event.transaction.subject_token);`)
+	for name, form := range map[string]url.Values{
+		"unknown organization": cteForm("ropg", "ropg-secret", "subject_token", "no-such-org"),
+		"organizations differ": cteForm("ropg", "ropg-secret", "subject_token", other.ID, "organization", org.ID),
+	} {
+		t.Run(name, func(t *testing.T) {
+			f.rec.events = nil
+			status, body := f.token(t, form)
+			if status != 400 || body["error"] != "invalid_request" {
+				t.Fatalf("got %d %v", status, body)
+			}
+			if _, err := f.st.Users().Get(ctx, f.tid, "auth0|org-new-1"); !errors.Is(err, store.ErrNotFound) {
+				t.Fatalf("user created before the organization check: %v", err)
+			}
+			if got := f.codes(); len(got) != 1 || got[0] != "fecte" {
+				t.Fatalf("events = %v", got)
+			}
+		})
 	}
 }

@@ -3273,3 +3273,7 @@ copied to `docs/superpowers/plan-1-followups.md`:
   `oauth2-token-exchange`.
 - `actor_token_user` is set only for an unexpired ID token this tenant signed
   for one of its applications (no `azp`, `gty`, `client_id` or `scope`).
+- The `pre-custom-token-exchange` default is corrected to 10 attempts and a
+  600000 ms rate (Auth0's custom token exchange attack-protection page, read
+  2026-11-15), replacing Plan 19's 8640000; tenants keep a stored value, with
+  no migration.

@@ -18,7 +18,7 @@ var schemas = settingsrules.ParseFeatures(inventory)
 func Defaults() store.ProtectionSettings {
 	return store.ProtectionSettings{
 		BruteForce:       store.BruteForcePolicy{Enabled: true, Shields: []string{"block", "user_notification"}, Allowlist: []string{}, Mode: "count_per_identifier_and_ip", MaxAttempts: 10, FormSubmissionMode: "auto"},
-		SuspiciousIP:     store.SuspiciousIPPolicy{Enabled: true, Shields: []string{"admin_notification", "block"}, Allowlist: []string{}, Stage: store.SuspiciousIPStages{PreLogin: store.ProtectionRate{MaxAttempts: 100, Rate: 864000}, PreUserRegistration: store.ProtectionRate{MaxAttempts: 50, Rate: 1728000}, PreCustomTokenExchange: store.ProtectionRate{MaxAttempts: 10, Rate: 8640000}}},
+		SuspiciousIP:     store.SuspiciousIPPolicy{Enabled: true, Shields: []string{"admin_notification", "block"}, Allowlist: []string{}, Stage: store.SuspiciousIPStages{PreLogin: store.ProtectionRate{MaxAttempts: 100, Rate: 864000}, PreUserRegistration: store.ProtectionRate{MaxAttempts: 50, Rate: 1728000}, PreCustomTokenExchange: store.ProtectionRate{MaxAttempts: 10, Rate: 600000}}},
 		BreachedPassword: store.BreachedPasswordPolicy{Enabled: false, Shields: []string{}, AdminNotificationFrequency: []string{}, Method: "standard", Stage: store.BreachedPasswordStages{PreUserRegistration: store.ProtectionShields{Shields: []string{}}, PreChangePassword: store.ProtectionShields{Shields: []string{}}}},
 		Bot:              store.BotPolicy{BotDetectionLevel: "medium", ChallengePasswordPolicy: "never", ChallengePasswordlessPolicy: "never", ChallengePasswordResetPolicy: "never", Allowlist: []string{}},
 		CAPTCHA:          store.CAPTCHAPolicy{ActiveProviderID: "auth_challenge", SimpleCaptcha: map[string]any{}},

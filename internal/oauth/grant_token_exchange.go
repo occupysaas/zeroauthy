@@ -138,7 +138,12 @@ func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *st
 	defer func() {
 		if err := svc.Finish(ctx, decision.Receipt, outcome); err != nil {
 			h.log().ErrorContext(ctx, "protection completion", "tenant", tid, "err", err)
-			response, failure = nil, serverError()
+			// Issued tokens are already committed: keep the response. An
+			// unrecorded attempt settles as a failure after the store's
+			// pending lifetime.
+			if outcome != "success" {
+				response, failure = nil, serverError()
+			}
 		}
 	}()
 
@@ -171,12 +176,9 @@ func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *st
 		return nil, invalidRequest("the subject token was rejected")
 	}
 
-	user, conn, oerr := h.exchangeUser(ctx, res, c, result)
-	if oerr != nil {
-		return nil, oerr
-	}
-	eventUserID, eventConn = user.UserID, conn
-	ctx = logs.WithEvent(ctx, logs.Event{UserID: user.UserID, UserName: user.Name})
+	// The organization is resolved before the user, so a refused one never
+	// leaves a created or updated user behind. Membership needs the user and
+	// is checked after resolution.
 	org := requestOrg
 	if result.OrganizationRef != "" {
 		selected, oerr := h.organizationByRef(ctx, tid, result.OrganizationRef)
@@ -188,6 +190,12 @@ func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *st
 		}
 		org = selected
 	}
+	user, conn, oerr := h.exchangeUser(ctx, res, c, result)
+	if oerr != nil {
+		return nil, oerr
+	}
+	eventUserID, eventConn = user.UserID, conn
+	ctx = logs.WithEvent(ctx, logs.Event{UserID: user.UserID, UserName: user.Name})
 	orgID, connID := "", ""
 	if org != nil {
 		orgID = org.ID
