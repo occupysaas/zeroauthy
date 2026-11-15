@@ -9,10 +9,14 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"regexp"
 	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
 )
+
+// KIDPattern is the shape of a credential kid.
+var KIDPattern = regexp.MustCompile(`^[0-9a-zA-Z-_]{10,64}$`)
 
 const (
 	minRSABits = 2048

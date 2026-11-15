@@ -3,8 +3,6 @@ package mgmt
 import (
 	"cmp"
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,13 +20,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
-)
-
-// The shortest signing secret a client may supply (C15), and the size of the
-// one generated: 32 random bytes, 43 base64url characters.
-const (
-	minSigningSecretLength      = 16
-	generatedSigningSecretBytes = 32
 )
 
 // resourceServerIDBytes makes IDs of 24 hexadecimal characters, the shape of
@@ -409,11 +400,10 @@ func (h *Handlers) applySigningSecret(ctx context.Context, rs *store.ResourceSer
 	if in.signingSecret != nil {
 		secret = *in.signingSecret
 	} else {
-		raw := make([]byte, generatedSigningSecretBytes)
-		if _, err := rand.Read(raw); err != nil {
+		var err error
+		if secret, err = keys.NewAPISigningSecret(); err != nil {
 			return err
 		}
-		secret = base64.RawURLEncoding.EncodeToString(raw)
 	}
 	sealed, err := keys.SealAPISigningSecret(h.Wrapper, rs.TenantID, rs.ID, secret)
 	if err != nil {
@@ -508,8 +498,8 @@ func readResourceServerBody(body map[string]json.RawMessage, s *apirules.Spec, c
 		case "signing_secret":
 			var secret string
 			if err = decodeString(raw, &secret); err == nil {
-				if utf8.RuneCountInString(secret) < minSigningSecretLength {
-					err = fmt.Errorf("must be at least %d characters", minSigningSecretLength)
+				if utf8.RuneCountInString(secret) < apirules.MinSigningSecretLength {
+					err = fmt.Errorf("must be at least %d characters", apirules.MinSigningSecretLength)
 				}
 				out.signingSecret = &secret
 			}

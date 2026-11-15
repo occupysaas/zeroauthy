@@ -48,15 +48,19 @@ type File struct {
 }
 
 type Tenant struct {
-	PhoneProvider    *SeedPhoneProvider        `yaml:"phone_provider"`
-	PhoneTemplates   []SeedPhoneTemplate       `yaml:"phone_templates"`
-	Guardian         *Guardian                 `yaml:"guardian"`
-	EventStreams     []map[string]any          `yaml:"event_streams"`
-	LogStreams       []map[string]any          `yaml:"log_streams"`
-	Modules          []ActionModule            `yaml:"modules"`
-	Actions          []Action                  `yaml:"actions"`
-	Triggers         map[string]Trigger        `yaml:"triggers"`
-	AttackProtection map[string]map[string]any `yaml:"attack_protection"`
+	PhoneProvider  *SeedPhoneProvider  `yaml:"phone_provider"`
+	PhoneTemplates []SeedPhoneTemplate `yaml:"phone_templates"`
+	Guardian       *Guardian           `yaml:"guardian"`
+	EventStreams   []map[string]any    `yaml:"event_streams"`
+	LogStreams     []map[string]any    `yaml:"log_streams"`
+	Modules        []ActionModule      `yaml:"modules"`
+	Actions        []Action            `yaml:"actions"`
+	// TokenExchangeProfiles bind a subject_token_type to a custom token
+	// exchange Action by name. They are applied after the Actions, so they
+	// need ApplyWithActions.
+	TokenExchangeProfiles []TokenExchangeProfile    `yaml:"token_exchange_profiles"`
+	Triggers              map[string]Trigger        `yaml:"triggers"`
+	AttackProtection      map[string]map[string]any `yaml:"attack_protection"`
 	// Settings uses the public tenant settings inventory; legacy top-level durations remain seconds.
 	Settings map[string]any `yaml:"settings"`
 	supplied map[string]any
@@ -134,13 +138,18 @@ type RolePermission struct {
 }
 
 type ResourceServer struct {
-	EnforcePolicies    bool    `yaml:"enforce_policies"`
-	TokenDialect       string  `yaml:"token_dialect"`
-	Identifier         string  `yaml:"identifier"`
-	Name               string  `yaml:"name"`
-	Scopes             []Scope `yaml:"scopes"`
-	TokenLifetime      int     `yaml:"token_lifetime"`
-	AllowOfflineAccess bool    `yaml:"allow_offline_access"`
+	EnforcePolicies bool    `yaml:"enforce_policies"`
+	TokenDialect    string  `yaml:"token_dialect"`
+	Identifier      string  `yaml:"identifier"`
+	Name            string  `yaml:"name"`
+	Scopes          []Scope `yaml:"scopes"`
+	// SigningAlg is RS256 (the default), HS256 or PS256. HS256 signs with
+	// SigningSecret, plaintext in the seed and sealed when applied; an HS256
+	// API without one keeps its stored secret, or gets a generated one.
+	SigningAlg         string `yaml:"signing_alg"`
+	SigningSecret      string `yaml:"signing_secret"`
+	TokenLifetime      int    `yaml:"token_lifetime"`
+	AllowOfflineAccess bool   `yaml:"allow_offline_access"`
 
 	SkipConsentForVerifiableFirstPartyClients *bool                    `yaml:"skip_consent_for_verifiable_first_party_clients"`
 	SubjectTypeAuthorization                  SubjectTypeAuthorization `yaml:"subject_type_authorization"`
@@ -156,7 +165,7 @@ func (rs *ResourceServer) spec() apirules.Spec {
 		scopes[i] = store.Scope{Value: s.Value, Description: s.Description}
 	}
 	return apirules.Spec{
-		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes,
+		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes, SigningAlg: rs.SigningAlg,
 		TokenLifetime: rs.TokenLifetime, AllowOfflineAccess: rs.AllowOfflineAccess,
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: rs.TokenDialect,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
@@ -216,14 +225,29 @@ type Client struct {
 	Mobile map[string]any `yaml:"mobile"`
 	mobile *store.ClientMobile
 
+	// Credentials are the public keys of the client (at most two). The
+	// three settings below name them by name; they need a store with
+	// client_credentials.v1. private_key_jwt implies an omitted
+	// token_endpoint_auth_method.
+	Credentials                 []ClientCredential           `yaml:"credentials"`
+	ClientAuthenticationMethods *ClientAuthenticationMethods `yaml:"client_authentication_methods"`
+	SignedRequestObject         *SignedRequestObject         `yaml:"signed_request_object"`
+	TokenExchange               *ClientTokenExchange         `yaml:"token_exchange"`
+	parsedCredentials           []parsedCredential
+
 	// normalized is the client after clientrules.Normalize, set by validate.
 	normalized *clientrules.Spec
 }
 
 // spec returns the client's settings for clientrules.
 func (c *Client) spec() clientrules.Spec {
+	method := c.TokenEndpointAuthMethod
+	if c.usesPrivateKeyJWT() {
+		// Normalize needs a confidential method; the stored one stays empty.
+		method = store.AuthMethodClientSecretPost
+	}
 	return clientrules.Spec{
-		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
+		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
 		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
 		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,

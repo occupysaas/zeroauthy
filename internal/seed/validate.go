@@ -44,6 +44,9 @@ func (f *File) validate() error {
 		if err := validateActions(t); err != nil {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: Actions: %w", t.Name, err))
 		}
+		for _, err := range validateTokenExchangeProfiles(t) {
+			errs = append(errs, fmt.Errorf("seed: tenant %q: %w", t.Name, err))
+		}
 		if err := validateTenantSettings(t); err != nil {
 			errs = append(errs, err)
 		}
@@ -192,6 +195,9 @@ func (t *Tenant) validate() []error {
 		for _, err := range apirules.Normalize(&spec) {
 			fail("resource server %q: %v", rs.Identifier, err)
 		}
+		for _, err := range validateSigning(rs, spec.SigningAlg) {
+			fail("resource server %q: %v", rs.Identifier, err)
+		}
 		rs.normalized = &spec
 	}
 
@@ -247,9 +253,15 @@ func (t *Tenant) validate() []error {
 			}
 			c.mobile = m
 		}
+		for _, err := range c.validateCredentials() {
+			fail("%v", err)
+		}
 		spec := c.spec()
 		for _, err := range clientrules.Normalize(&spec, t.PushedAuthorizationRequestsSupported) {
 			fail("client %q: %v", c.ClientID, err)
+		}
+		if c.TokenExchange != nil && len(c.TokenExchange.AllowAnyProfileOfType) > 0 && !*spec.IsFirstParty {
+			fail("client %q: token_exchange is only for first-party applications", c.ClientID)
 		}
 		c.normalized = &spec
 		thirdParty[c.ClientID] = !*spec.IsFirstParty

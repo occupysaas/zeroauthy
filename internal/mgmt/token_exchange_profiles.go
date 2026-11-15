@@ -3,30 +3,18 @@ package mgmt
 import (
 	"errors"
 	"net/http"
-	"strings"
-	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/exchangerules"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 const (
-	// maxTokenExchangeProfiles is the local per-tenant limit (C8).
-	maxTokenExchangeProfiles = 100
-	profileTypeCustomAuth    = "custom_authentication"
-	minProfileName           = 3
-	maxProfileName           = 50
-	minSubjectTokenType      = 8
-	maxSubjectTokenType      = 100
+	maxTokenExchangeProfiles = exchangerules.MaxProfiles
+	profileTypeCustomAuth    = exchangerules.TypeCustomAuthentication
 )
-
-// reservedSubjectTokenTypes are the prefixes a profile may not claim.
-var reservedSubjectTokenTypes = []string{
-	"http://auth0.com", "https://auth0.com", "http://okta.com", "https://okta.com",
-	"urn:ietf", "urn:auth0", "urn:okta",
-}
 
 var (
 	errProfileNotFound = &Error{Status: http.StatusNotFound, Code: "inexistent_token_exchange_profile", Message: "The token exchange profile does not exist"}
@@ -38,24 +26,15 @@ var (
 func newProfileID() string { return "tep_" + secrets.RandomString(22) }
 
 func validProfileName(name string) error {
-	if n := utf8.RuneCountInString(name); n < minProfileName || n > maxProfileName {
-		return badBody("name must be %d to %d characters", minProfileName, maxProfileName)
+	if err := exchangerules.ValidateName(name); err != nil {
+		return badBody("%s", err)
 	}
 	return nil
 }
 
 func validSubjectTokenType(t string) error {
-	if n := utf8.RuneCountInString(t); n < minSubjectTokenType || n > maxSubjectTokenType {
-		return badBody("subject_token_type must be %d to %d characters", minSubjectTokenType, maxSubjectTokenType)
-	}
-	if !strings.HasPrefix(t, "https://") && !strings.HasPrefix(t, "urn:") {
-		return badBody("subject_token_type must begin with https:// or urn:")
-	}
-	lower := strings.ToLower(t)
-	for _, p := range reservedSubjectTokenTypes {
-		if strings.HasPrefix(lower, p) {
-			return badBody("subject_token_type begins with the reserved prefix %s", p)
-		}
+	if err := exchangerules.ValidateSubjectTokenType(t); err != nil {
+		return badBody("%s", err)
 	}
 	return nil
 }

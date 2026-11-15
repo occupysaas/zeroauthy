@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"regexp"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/clientcred"
@@ -30,7 +29,7 @@ const (
 	credTypeSubjectDN    = "cert_subject_dn"
 )
 
-var kidPattern = regexp.MustCompile(`^[0-9a-zA-Z-_]{10,64}$`)
+var kidPattern = clientcred.KIDPattern
 
 // supportsClientCredentials reports whether the store keeps client
 // credentials. It is the single capability check of Plan 35 (R3).

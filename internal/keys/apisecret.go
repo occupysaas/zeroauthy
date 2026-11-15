@@ -1,5 +1,23 @@
 package keys
 
+import (
+	"crypto/rand"
+	"encoding/base64"
+)
+
+// GeneratedAPISigningSecretBytes is the size of a generated HS256 secret:
+// 32 random bytes, 43 base64url characters.
+const GeneratedAPISigningSecretBytes = 32
+
+// NewAPISigningSecret returns a random HS256 signing secret.
+func NewAPISigningSecret() (string, error) {
+	raw := make([]byte, GeneratedAPISigningSecretBytes)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
+}
+
 // apiSigningSecretLabel names the format of a sealed HS256 API signing
 // secret, apart from every other sealed domain.
 const apiSigningSecretLabel = "api-signing-secret/v1"
