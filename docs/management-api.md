@@ -168,8 +168,15 @@ first.
 
 Differences from Auth0 (D-0041):
 
-- **Signing is RS256 only.** `HS256`, `PS256` and `signing_secret` are
-  `400 invalid_body`.
+- **Signing algorithms.** `signing_alg` is `RS256` (the default), `PS256`
+  (the tenant's RSA key) or `HS256` (the API's `signing_secret`). An HS256 API
+  created without a secret gets a generated one (32 random bytes, base64url);
+  a supplied secret is at least 16 characters, and `signing_secret` with
+  another algorithm is `400 invalid_body`. The secret is sealed at rest and
+  returned on read. A patch may change the algorithm: moving to HS256
+  generates a secret, and moving away discards it. HS256 needs a storage
+  plugin with the `client_credentials.v1` capability (`501` without it). HS256
+  tokens carry no `{issuer}userinfo` audience. System APIs keep RS256.
 - **Inert-only fields.** `token_lifetime_for_web` is stored and reported but
   used by nothing (no implicit or hybrid flow). `enforce_policies` accepts only
   `false` and `token_dialect` only `access_token`, since there are no roles or

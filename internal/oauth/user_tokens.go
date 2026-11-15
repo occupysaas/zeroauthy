@@ -234,7 +234,13 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			idClaims[k] = v
 		}
 	}
+	signingAlg, signingSecret, err := h.apiSigning(ut.rs)
+	if err != nil {
+		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
+		return nil, false, serverError()
+	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
+		SigningAlg: signingAlg, SigningSecret: signingSecret,
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
 		ClientID: c.ClientID, Scopes: final, Lifetime: ut.lifetime, GrantType: ut.grantType,
 		Operator: operator, TokenDialect: dialect, Permissions: auth.Permissions, IncludePermissions: auth.IncludePermissions,

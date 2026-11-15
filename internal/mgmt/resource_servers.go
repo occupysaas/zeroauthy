@@ -3,6 +3,8 @@ package mgmt
 import (
 	"cmp"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,12 +14,21 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+)
+
+// The shortest signing secret a client may supply (C15), and the size of the
+// one generated: 32 random bytes, 43 base64url characters.
+const (
+	minSigningSecretLength      = 16
+	generatedSigningSecretBytes = 32
 )
 
 // resourceServerIDBytes makes IDs of 24 hexadecimal characters, the shape of
@@ -66,7 +77,12 @@ func (h *Handlers) GetResourceServers(w http.ResponseWriter, r *http.Request, _ 
 		if len(identifiers) > 0 && !slices.Contains(identifiers, rs.Identifier) {
 			continue
 		}
-		out = append(out, ProjectKeeping(resourceServerView(rs), fields, include, nil))
+		view, err := h.resourceServerView(rs)
+		if err != nil {
+			Fail(w, internalError(h, r, "open the API signing secret", err))
+			return
+		}
+		out = append(out, ProjectKeeping(view, fields, include, nil))
 	}
 	WriteList(w, "resource_servers", out, page, perPage, totals)
 }
@@ -98,7 +114,12 @@ func (h *Handlers) GetResourceServer(w http.ResponseWriter, r *http.Request, id 
 		Fail(w, internalError(h, r, "get resource server", err))
 		return
 	}
-	writeJSON(w, http.StatusOK, ProjectKeeping(resourceServerView(rs), fields, include, nil))
+	view, err := h.resourceServerView(rs)
+	if err != nil {
+		Fail(w, internalError(h, r, "open the API signing secret", err))
+		return
+	}
+	writeJSON(w, http.StatusOK, ProjectKeeping(view, fields, include, nil))
 }
 
 // CreateResourceServer creates an API (D-0041). Its identifier is fixed
@@ -114,7 +135,8 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	spec := apirules.Spec{TokenLifetime: apirules.DefaultTokenLifetime, TokenLifetimeForWeb: apirules.DefaultTokenLifetimeForWeb}
-	if _, err := readResourceServerBody(body, &spec, true); err != nil {
+	in, err := readResourceServerBody(body, &spec, true)
+	if err != nil {
 		Fail(w, err)
 		return
 	}
@@ -132,6 +154,10 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 		CreatedAt: h.now(), Origin: store.OriginAPI,
 	}
 	apirules.Apply(rs, &spec)
+	if err := h.applySigningSecret(r.Context(), rs, &spec, in); err != nil {
+		Fail(w, err)
+		return
+	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		if _, err := tx.ResourceServers().GetByIdentifier(r.Context(), tn.ID, rs.Identifier); err == nil {
 			return errResourceServerConflict
@@ -149,7 +175,12 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	logDetails(r, "create resource server", "identifier", rs.Identifier, "id", rs.ID)
-	writeJSON(w, http.StatusCreated, resourceServerView(rs))
+	view, err := h.resourceServerView(rs)
+	if err != nil {
+		Fail(w, internalError(h, r, "open the API signing secret", err))
+		return
+	}
+	writeJSON(w, http.StatusCreated, view)
 }
 
 var errResourceServerConflict = &Error{Status: http.StatusConflict, Code: "resource_server_conflict", Message: "A resource server with this identifier already exists"}
@@ -188,6 +219,9 @@ func (h *Handlers) UpdateResourceServer(w http.ResponseWriter, r *http.Request, 
 		}
 		removed := removedScopes(rs.Scopes, spec.Scopes)
 		apirules.Apply(rs, &spec)
+		if err := h.applySigningSecret(r.Context(), rs, &spec, in); err != nil {
+			return err
+		}
 		if err := tx.ResourceServers().Update(r.Context(), rs); err != nil {
 			return err
 		}
@@ -204,7 +238,12 @@ func (h *Handlers) UpdateResourceServer(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	logDetails(r, "update resource server", "id", id)
-	writeJSON(w, http.StatusOK, resourceServerView(out))
+	view, err := h.resourceServerView(out)
+	if err != nil {
+		Fail(w, internalError(h, r, "open the API signing secret", err))
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
 }
 
 // DeleteResourceServer deletes an API with its client grants and user
@@ -312,6 +351,9 @@ func checkSystemUpdate(tn *store.Tenant, rs *store.ResourceServer, spec *apirule
 	if in.name {
 		return badBody("name: a system API cannot be renamed")
 	}
+	if spec.SigningAlg != cmp.Or(rs.SigningAlg, apirules.SigningAlg) {
+		return badBody("signing_alg: cannot change for a system API")
+	}
 	if !slices.Equal(rs.Scopes, spec.Scopes) {
 		return badBody("scopes: the scopes of a system API cannot change")
 	}
@@ -344,12 +386,50 @@ func normalizeResourceServer(s *apirules.Spec) error {
 	return nil
 }
 
+// applySigningSecret finishes the signing settings Apply copied: an HS256
+// API gets a sealed secret (the one supplied, else a generated one unless it
+// already has one), and any other algorithm refuses a supplied secret. It
+// runs after Apply, which cleared the secret of a non-HS256 API.
+func (h *Handlers) applySigningSecret(ctx context.Context, rs *store.ResourceServer, spec *apirules.Spec, in resourceServerBody) error {
+	if spec.SigningAlg != apirules.SigningAlgHS256 {
+		if in.signingSecret != nil {
+			return badBody("signing_secret: only valid with signing_alg HS256")
+		}
+		return nil
+	}
+	if in.signingSecret == nil && len(rs.SigningSecretSealed) > 0 {
+		return nil
+	}
+	// A store that would drop the sealed secret must not mint tokens with
+	// one it never kept.
+	if !h.supportsClientCredentials(ctx) {
+		return errClientCredentialsUnavailable
+	}
+	var secret string
+	if in.signingSecret != nil {
+		secret = *in.signingSecret
+	} else {
+		raw := make([]byte, generatedSigningSecretBytes)
+		if _, err := rand.Read(raw); err != nil {
+			return err
+		}
+		secret = base64.RawURLEncoding.EncodeToString(raw)
+	}
+	sealed, err := keys.SealAPISigningSecret(h.Wrapper, rs.TenantID, rs.ID, secret)
+	if err != nil {
+		return err
+	}
+	rs.SigningSecretSealed = sealed
+	return nil
+}
+
 // resourceServerView is rs in Auth0's shape: name, scopes and is_system are
-// absent when empty (A1).
-func resourceServerView(rs *store.ResourceServer) mgmtapi.ResourceServer {
+// absent when empty (A1). An HS256 API's signing secret is returned on read
+// (C16).
+func (h *Handlers) resourceServerView(rs *store.ResourceServer) (mgmtapi.ResourceServer, error) {
 	v := mgmtapi.ResourceServer{
 		Id: rs.ID, Identifier: rs.Identifier,
-		SigningAlg:         mgmtapi.ResourceServerSigningAlgRS256,
+		SigningAlg:         mgmtapi.ResourceServerSigningAlg(cmp.Or(rs.SigningAlg, apirules.SigningAlg)),
 		TokenLifetime:      cmp.Or(rs.TokenLifetime, apirules.DefaultTokenLifetime),
 		AllowOfflineAccess: rs.AllowOfflineAccess,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
@@ -382,12 +462,22 @@ func resourceServerView(rs *store.ResourceServer) mgmtapi.ResourceServer {
 		}
 		v.Scopes = &scopes
 	}
-	return v
+	if rs.SigningAlg == apirules.SigningAlgHS256 && len(rs.SigningSecretSealed) > 0 {
+		plain, err := keys.OpenAPISigningSecret(h.Wrapper, rs.TenantID, rs.ID, rs.SigningSecretSealed)
+		if err != nil {
+			return v, errors.New("the signing secret cannot be opened")
+		}
+		secret := string(plain)
+		v.SigningSecret = &secret
+	}
+	return v, nil
 }
 
 // resourceServerBody is what readResourceServerBody learned beyond the Spec.
 type resourceServerBody struct {
 	name bool
+	// signingSecret is the secret the body supplied, nil when it sent none.
+	signingSecret *string
 }
 
 // readResourceServerBody applies body's fields to s, in name order so that
@@ -412,12 +502,17 @@ func readResourceServerBody(body map[string]json.RawMessage, s *apirules.Spec, c
 		case "scopes":
 			err = readResourceServerScopes(raw, s)
 		case "signing_alg":
-			var alg string
-			if err = decodeString(raw, &alg); err == nil && alg != apirules.SigningAlg {
-				err = fmt.Errorf("%q is not supported (%s only)", alg, apirules.SigningAlg)
+			if err = decodeString(raw, &s.SigningAlg); err == nil && s.SigningAlg == "" {
+				err = errors.New("must be RS256, HS256 or PS256")
 			}
 		case "signing_secret":
-			err = errors.New("is not supported (zeroauthy signs access tokens with RS256 only)")
+			var secret string
+			if err = decodeString(raw, &secret); err == nil {
+				if utf8.RuneCountInString(secret) < minSigningSecretLength {
+					err = fmt.Errorf("must be at least %d characters", minSigningSecretLength)
+				}
+				out.signingSecret = &secret
+			}
 		case "token_lifetime":
 			err = decodeLifetime(raw, &s.TokenLifetime)
 		case "token_lifetime_for_web":
