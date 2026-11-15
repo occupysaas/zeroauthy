@@ -244,6 +244,15 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
+	if in.cred.needsSupport() && !h.supportsClientCredentials(r.Context()) {
+		Fail(w, errClientCredentialsUnavailable)
+		return
+	}
+	pkj, err := in.cred.authenticationState(&spec, false)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
 	if !in.grantTypesSet {
 		method := spec.TokenEndpointAuthMethod
 		if method == "" {
@@ -260,6 +269,10 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		Fail(w, errOrganizationsUnavailable)
 		return
 	}
+	if err := in.cred.checkParty(&spec); err != nil {
+		Fail(w, err)
+		return
+	}
 	now := h.now()
 	c := &store.Client{TenantID: tn.ID, ClientID: secrets.RandomString(clientIDLength), CreatedAt: now, Origin: store.OriginAPI}
 	clientrules.Apply(c, &spec)
@@ -267,8 +280,24 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
-	if err := h.Store.Clients().Create(r.Context(), c); err != nil {
-		Fail(w, internalError(h, r, "create client", err))
+	if pkj {
+		c.TokenEndpointAuthMethod = ""
+	}
+	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		if err := tx.Clients().Create(r.Context(), c); err != nil {
+			return err
+		}
+		if !in.cred.any() {
+			return nil
+		}
+		// The credentials need the client row; the client then names them.
+		if err := h.writeCredentialSettings(r.Context(), tx, c, &in.cred); err != nil {
+			return err
+		}
+		return tx.Clients().Update(r.Context(), c)
+	})
+	if err != nil {
+		h.failTx(w, r, "create client", err)
 		return
 	}
 	logDetails(r, "create client", "client_id", c.ClientID)
@@ -323,6 +352,10 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if err != nil {
 			return err
 		}
+		pkj, err := in.cred.authenticationState(&spec, c.PrivateKeyJWTCredentials != nil)
+		if err != nil {
+			return err
+		}
 		// M8: party and security mode are fixed at creation.
 		if in.firstPartySet && *spec.IsFirstParty != c.IsFirstParty {
 			return badBody("is_first_party cannot change after creation")
@@ -339,7 +372,16 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if err := clientrules.CheckImmutable(c, &spec); err != nil {
 			return badBody("%v", err)
 		}
+		if err := in.cred.checkParty(&spec); err != nil {
+			return err
+		}
 		clientrules.Apply(c, &spec)
+		if pkj {
+			c.TokenEndpointAuthMethod = ""
+		}
+		if err := h.writeCredentialSettings(r.Context(), tx, c, &in.cred); err != nil {
+			return err
+		}
 		if err := h.setSecret(c, in.secret, in.secretSet, h.now()); err != nil {
 			return err
 		}
@@ -566,6 +608,7 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 			}
 		}
 	}
+	credentialSettingsView(&v, c)
 	if reveal {
 		if s := h.openSecret(ctx, c); s != "" {
 			v.ClientSecret = &s
@@ -642,6 +685,8 @@ type clientBody struct {
 	// value other than deny, which a storage plugin without Organizations
 	// cannot keep (501).
 	orgUsageSet bool
+	// cred holds the private_key_jwt, JAR and token exchange settings.
+	cred credentialSettings
 }
 
 // readClientBody applies body's fields to s, in name order so that the
@@ -669,9 +714,16 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 		case "token_endpoint_auth_method":
 			// null selects the default for the type.
 			s.TokenEndpointAuthMethod = ""
+			out.cred.authMethodSet, out.cred.authMethodNull = true, isNull(raw)
 			if !isNull(raw) {
 				err = decodeString(raw, &s.TokenEndpointAuthMethod)
 			}
+		case "client_authentication_methods":
+			err = out.cred.readMethods(raw)
+		case "signed_request_object":
+			err = out.cred.readSigned(raw)
+		case "token_exchange":
+			err = out.cred.readExchange(raw)
 		case "grant_types":
 			err, out.grantTypesSet = decodeStrings(raw, &s.GrantTypes), true
 		case "callbacks":

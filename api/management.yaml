@@ -22184,7 +22184,7 @@ components:
         credential_type: {type: string, enum: [public_key, x509_cert, cert_subject_dn], description: "`cert_subject_dn` is refused with 400."}
         name: {type: string, maxLength: 128, default: ""}
         pem: {type: string, description: "An RSA public key (SPKI or PKCS#1) or an X.509 certificate, 2048 to 4096 bits. Never returned."}
-        alg: {$ref: "#/components/schemas/ClientCredentialAlg"}
+        alg: {$ref: "#/components/schemas/ClientCredentialAlg", default: RS256}
         parse_expiry_from_cert: {type: boolean}
         expires_at: {type: string, format: date-time}
         kid: {type: string, pattern: "^[0-9a-zA-Z-_]{10,64}$", description: "Defaults to the RFC 7638 thumbprint."}

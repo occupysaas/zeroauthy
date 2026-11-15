@@ -7970,6 +7970,7 @@ export interface components {
             name?: string;
             /** @description An RSA public key (SPKI or PKCS#1) or an X.509 certificate, 2048 to 4096 bits. Never returned. */
             pem?: string;
+            /** @default RS256 */
             alg?: components["schemas"]["ClientCredentialAlg"];
             parse_expiry_from_cert?: boolean;
             /** Format: date-time */
