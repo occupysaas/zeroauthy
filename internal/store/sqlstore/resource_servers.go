@@ -13,14 +13,14 @@ type resourceServers struct{ s *Store }
 func (s *Store) ResourceServers() store.ResourceServers { return resourceServers{s} }
 
 const resourceServerCols = `tenant_id, id, identifier, name, scopes, signing_alg, token_lifetime, allow_offline_access, created_at,
- skip_consent_for_verifiable_first_party_clients, user_policy, client_policy, is_system, origin, token_lifetime_for_web, enforce_policies, token_dialect`
+ skip_consent_for_verifiable_first_party_clients, user_policy, client_policy, is_system, origin, token_lifetime_for_web, enforce_policies, token_dialect, signing_secret_sealed`
 
 func (r resourceServers) Create(ctx context.Context, rs *store.ResourceServer) error {
 	args, err := resourceServerArgs(rs)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -43,7 +43,7 @@ func (r resourceServers) Update(ctx context.Context, rs *store.ResourceServer) e
 		}
 		res, err := tx.exec(ctx, `UPDATE resource_servers SET identifier=?, name=?, scopes=?, signing_alg=?, token_lifetime=?,
  allow_offline_access=?, created_at=?, skip_consent_for_verifiable_first_party_clients=?, user_policy=?,
- client_policy=?, is_system=?, origin=?, token_lifetime_for_web=?, enforce_policies=?, token_dialect=? WHERE tenant_id=? AND id=?`, append(args[2:], rs.TenantID, rs.ID)...)
+ client_policy=?, is_system=?, origin=?, token_lifetime_for_web=?, enforce_policies=?, token_dialect=?, signing_secret_sealed=? WHERE tenant_id=? AND id=?`, append(args[2:], rs.TenantID, rs.ID)...)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -144,7 +144,7 @@ func scanResourceServer(row scanner) (*store.ResourceServer, error) {
 	var created int64
 	err := row.Scan(&rs.TenantID, &rs.ID, &rs.Identifier, &rs.Name, &scopes, &rs.SigningAlg,
 		&rs.TokenLifetime, &rs.AllowOfflineAccess, &created, &rs.SkipConsentForVerifiableFirstPartyClients,
-		&rs.SubjectTypeAuthorization.User, &rs.SubjectTypeAuthorization.Client, &rs.IsSystem, &rs.Origin, &rs.TokenLifetimeForWeb, &rs.EnforcePolicies, &rs.TokenDialect)
+		&rs.SubjectTypeAuthorization.User, &rs.SubjectTypeAuthorization.Client, &rs.IsSystem, &rs.Origin, &rs.TokenLifetimeForWeb, &rs.EnforcePolicies, &rs.TokenDialect, &rs.SigningSecretSealed)
 	if err != nil {
 		return nil, err
 	}
@@ -162,5 +162,5 @@ func resourceServerArgs(rs *store.ResourceServer) ([]any, error) {
 	}
 	return []any{rs.TenantID, rs.ID, rs.Identifier, rs.Name, scopes, rs.SigningAlg, rs.TokenLifetime,
 		rs.AllowOfflineAccess, micros(rs.CreatedAt), rs.SkipConsentForVerifiableFirstPartyClients,
-		rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client, rs.IsSystem, rs.Origin, rs.TokenLifetimeForWeb, rs.EnforcePolicies, rs.TokenDialect}, nil
+		rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client, rs.IsSystem, rs.Origin, rs.TokenLifetimeForWeb, rs.EnforcePolicies, rs.TokenDialect, rs.SigningSecretSealed}, nil
 }
