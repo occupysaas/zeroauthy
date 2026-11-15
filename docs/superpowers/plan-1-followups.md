@@ -546,7 +546,7 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
 
 ## Plan 35 follow-ups
 
-### Client credentials, JAR and custom token exchange observation gaps (C1 to C19, observation optional)
+### Client credentials, JAR and custom token exchange observation gaps (C1 to C22, observation optional)
 
 D-0063 froze a local answer for each point; observe later and change
 behaviour only where Auth0 is shown to differ: C1 whether the credential PEM
@@ -560,6 +560,15 @@ login counters after an exchange; C14 the `setUserByConnection` defaults; C15
 the minimum HS256 secret length; C16 whether the secret is returned on read;
 C17 tokens after a `signing_alg` change; C18 the `/userinfo` audience on HS256
 tokens; C19 the JWK `alg` for PS256 signing.
+C20 whether the tenant's MFA policy applies to a custom token exchange (local:
+it does not); C21 the connections `setUserByConnection` may target (local:
+database connections only); C22 the description of a rejected subject token
+(local: fixed, the Action's reason is not returned).
+
+- **`verify_email`:** `setUserByConnection` accepts `verify_email` but sends no
+  verification email yet.
+- **Audit logging:** reads of an API's `signing_secret` are not audit-logged
+  like `client_secret` reads.
 
 - **Moved to Plan 48:** `token_quota` on clients and organizations and its
   quota headers.

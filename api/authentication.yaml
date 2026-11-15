@@ -1847,15 +1847,15 @@ components:
         device_authorization_endpoint: {type: string, format: uri}
         pushed_authorization_request_endpoint: {type: string, description: Present when the tenant allows pushed authorization requests.}
         request_uri_parameter_supported: {type: boolean, description: "Always false: `request_uri` is accepted only from `/oauth/par`."}
-        request_parameter_supported: {type: boolean, description: "True once Plan 35 lands (D-0063, lifting D-0035): signed request objects are processed."}
-        request_object_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for request objects; present with Plan 35.}
-        token_endpoint_auth_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for client assertions; present with Plan 35.}
+        request_parameter_supported: {type: boolean, description: "Present and true when the store supports client credentials (D-0063, lifting D-0035): signed request objects are processed and unsigned ones are refused."}
+        request_object_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for request objects; present when the store supports client credentials.}
+        token_endpoint_auth_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for client assertions; present when the store supports client credentials.}
         jwks_uri: {type: string, format: uri}
         end_session_endpoint: {type: string, format: uri}
         response_types_supported: {type: array, items: {type: string}}
         subject_types_supported: {type: array, items: {type: string}}
         id_token_signing_alg_values_supported: {type: array, items: {type: string}}
-        token_endpoint_auth_methods_supported: {type: array, items: {type: string}, description: "Adds `private_key_jwt` with Plan 35."}
+        token_endpoint_auth_methods_supported: {type: array, items: {type: string}, description: "Lists `private_key_jwt` when the store supports client credentials."}
         grant_types_supported: {type: array, items: {type: string}}
         userinfo_endpoint: {type: string, format: uri}
         response_modes_supported: {type: array, items: {type: string}}

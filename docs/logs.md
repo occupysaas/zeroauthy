@@ -376,6 +376,21 @@ see [passkeys](passkeys.md).
 | `sepkotpft` | A passkey grant passed a one-time challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
 | `sepkrcft` | A passkey grant passed an MFA recovery challenge. | `internal/oauth/grant_mfa.go` (`mfaGrant`) |
 
+### Custom token exchange emitters (Plan 35)
+
+A custom token exchange (see [token exchange](token-exchange.md)) logs `secte`
+when it issues tokens and `fecte` when it fails, including a denial by the
+Action, a rejected subject token and a throttled request. `secte` carries
+`details.actor` when the Action called `setActor`. Details never contain the
+subject token, the actor token, a client assertion or a request object; those
+names, and `signing_secret`, are in the secret key-name scrub at every log
+sink.
+
+| Code | Meaning | Source owner |
+| --- | --- | --- |
+| `fecte` | A custom token grant could not issue tokens. | `internal/oauth/grant_token_exchange.go` (`exchangeEvent`) |
+| `secte` | A custom token grant issued tokens. | `internal/oauth/grant_token_exchange.go` (`exchangeEvent`) |
+
 ### Not emitted yet
 
 These rows are searchable catalog/filter vocabulary; listing a code does not

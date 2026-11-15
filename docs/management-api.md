@@ -75,6 +75,14 @@ operators manage it.
 | `POST /api/v2/resource-servers` | `create:resource_servers` |
 | `PATCH /api/v2/resource-servers/{id}` | `update:resource_servers` |
 | `DELETE /api/v2/resource-servers/{id}` | `delete:resource_servers` |
+| `GET /api/v2/clients/{id}/credentials`, `GET .../credentials/{credential_id}` | `read:client_credentials` |
+| `POST /api/v2/clients/{id}/credentials` | `create:client_credentials` |
+| `PATCH /api/v2/clients/{id}/credentials/{credential_id}` | `update:client_credentials` or `update:credentials` |
+| `DELETE /api/v2/clients/{id}/credentials/{credential_id}` | `delete:client_credentials` |
+| `GET /api/v2/token-exchange-profiles`, `GET /api/v2/token-exchange-profiles/{id}` | `read:token_exchange_profiles` |
+| `POST /api/v2/token-exchange-profiles` | `create:token_exchange_profiles` |
+| `PATCH /api/v2/token-exchange-profiles/{id}` | `update:token_exchange_profiles` |
+| `DELETE /api/v2/token-exchange-profiles/{id}` | `delete:token_exchange_profiles` |
 | `GET /api/v2/client-grants`, `GET /api/v2/client-grants/{id}` | `read:client_grants` |
 | `POST /api/v2/client-grants` | `create:client_grants` |
 | `PATCH /api/v2/client-grants/{id}` | `update:client_grants` |
@@ -123,6 +131,7 @@ Fields: `client_id`, `tenant`, `name`, `app_type`, `is_first_party`,
 - **Create defaults:** `app_type` `regular_web`; `token_endpoint_auth_method` `none` for `spa` and `native`, `client_secret_post` otherwise; `grant_types` `authorization_code` and `refresh_token`, plus `client_credentials` for confidential clients; rotating, expiring refresh tokens for `spa`. The console sends defaults per type instead.
 - **Secrets** are generated with 64 characters, or supplied (at least 48). They are encrypted under the master key (D-0038) and returned only with `read:client_keys`. Secrets stored before D-0038 keep working but cannot be shown: rotate them to get one you can see. Public clients (`none`) have no secret.
 - **Rotation** replaces the secret at once; the old one stops working immediately.
+- **Keys and signed requests** (Plan 35): `client_authentication_methods` (`private_key_jwt` with credential references), `signed_request_object` and `token_exchange` are accepted on create and update and returned on read; with `private_key_jwt`, `token_endpoint_auth_method` is `null`. The credentials sub-resource holds at most two keys per application. A storage plugin without `client_credentials.v1` answers these with `501 client_credentials_unavailable`. See [client authentication](client-authentication.md) and [custom token exchange](token-exchange.md).
 - **Fixed after creation:** `is_first_party` and `third_party_security_mode`.
 - **Organizations** (D-0055): `organization_usage` (`deny`, `allow`, `require`), `organization_require_behavior` (`no_prompt`, `pre_login_prompt`, `post_login_prompt`) and `organization_discovery_methods` (`email`, `organization_name`; only with `pre_login_prompt`) are stored and reported once set; null unsets them. A `require` application cannot hold the `password`, password-realm or device grants, whichever is set first (`400`). A storage plugin without Organizations refuses a usage other than `deny` (`501 organizations_unavailable`).
 - **Unknown fields** are refused (`invalid_body`), except those Auth0's tools always send, which are accepted and ignored (`description`, `client_metadata`, `logo_uri` and others; D-0039).

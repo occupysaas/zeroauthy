@@ -3206,6 +3206,11 @@ and the RFC 8693 grant with the `custom-token-exchange` trigger; `HS256` and
 | LR35-7 | A JAR `jti`, when present, is single-use (same replay table as client assertions) | A client that reuses one request object fails |
 | LR35-8 | `signing_alg` may be changed by Management API patch | Tokens signed with the current value after a change |
 | LR35-9 | An HS256 API's tokens omit the `/userinfo` audience; RS256 and PS256 keep it | An HS256 token cannot call `/userinfo` |
+| LR35-10 | A request object's `aud` is the issuer URL only; the endpoint-URL form of LR35-3 is for client assertions | A client that sends the endpoint URL in a request object fails |
+| LR35-11 | A `request` value over 16384 bytes is refused before it is parsed | A larger object that Auth0 accepts fails |
+| LR35-12 | A client with `signed_request_object.required` cannot use `/passwordless/verify_redirect` magic links (they carry no signed mark), so the request fails closed | A required client's magic links fail where Auth0 may allow them |
+| LR35-13 | HS256 secrets from 16 characters are accepted, and the HS256 JWS is built in-tree because the JOSE library refuses keys under 32 bytes | A strict verifier may reject a short secret; generated secrets are 43 characters |
+| LR35-14 | `setUserByConnection` accepts `verify_email` but sends no email yet | A caller that relies on the verification email gets none |
 
 **Observe later (C1 to C19)**; each has a local answer now, and the points are
 copied to `docs/superpowers/plan-1-followups.md`:
@@ -3229,6 +3234,9 @@ copied to `docs/superpowers/plan-1-followups.md`:
 - C17: tokens after a `signing_alg` change (local: the current value signs).
 - C18: the `/userinfo` audience on HS256 tokens (LR35-9).
 - C19: the JWK `alg` for PS256 signing (local: the tenant key's JWK keeps `RS256`; if the pinned strict verifiers reject PS256 against it, the builder drops `alg` and records that here).
+- C20: whether the tenant's MFA policy applies to an exchange (local: it does not; a post-login `challengeWith`/`enrollWith` or `multifactor.enable` with a provider other than `none` is `403 access_denied`).
+- C21: connections `setUserByConnection` may target (local: database connections only).
+- C22: the description of a rejected subject token (local: a fixed description; the Action's reason goes to the log only).
 
 **Execution rulings (Task 1).**
 
@@ -3277,3 +3285,44 @@ copied to `docs/superpowers/plan-1-followups.md`:
   600000 ms rate (Auth0's custom token exchange attack-protection page, read
   2026-11-15), replacing Plan 19's 8640000; tenants keep a stored value, with
   no migration.
+
+**Execution rulings (Tasks 6 to 14).**
+
+- Client authentication: an assertion combined with another method, or a
+  `client_id` that differs from the assertion's subject, is `400
+  invalid_request`. Every other failure is `401 invalid_client` with one
+  shared description, including an assertion whose `iss` alone differs from
+  its `sub`. Discovery lists `private_key_jwt`, its signing algorithms,
+  `request_parameter_supported` and the request-object algorithms only when
+  the store supports client credentials.
+- JAR: the object's `client_id` claim is required and equals the query's; an
+  undecodable or empty `request` is `invalid_request_object`; claims whose
+  value is an object or an array are dropped; a `jti` is consumed even when a
+  later check fails; a `signed_request_object` PATCH without `credentials`
+  keeps the stored list.
+- API signing: patching to HS256 generates a secret when none is given;
+  patching away clears it; HS256 needs the store capability (`501` without
+  it); the system APIs keep RS256. The seed carries `signing_alg` and
+  `signing_secret`, and an HS256 API seeded without a secret keeps its
+  stored one on re-apply.
+- Token exchange: the deny code may be any custom code, except one that
+  contains a secret value (refused); `setActor` needs `sub` at every level,
+  up to 5 further properties per level and 5 actors in total; the
+  `setUserByConnection` attributes are `email`, `email_verified`,
+  `family_name`, `given_name`, `name`, `nickname`, `phone_number`,
+  `phone_verified`, `picture`, `user_id`, `username` and `verify_email`; the
+  organization is resolved before any user is created. The
+  `pre-custom-token-exchange` default is 10 attempts and a 600000 ms rate
+  (Auth0's attack-protection page and the maintainer-tenant observation; the
+  schema annotation's 8640000 was not used).
+- Seed (Task 14): `credentials`, the three client settings (credentials named
+  by `name`) and `token_exchange_profiles` (Actions named by `name`, applied
+  after the Actions). Credentials are reconciled by `kid` for a seed-owned
+  client in apply mode and never touched in create-only mode or for an
+  API-created client; a profile is identified by its `subject_token_type`
+  and is renamed or re-pointed in apply mode only. A store without
+  `client_credentials.v1` refuses seeded credentials, profiles and HS256 APIs
+  at startup, before anything is written.
+- Conformance: `oidcc-ensure-request-object-with-redirect-uri` sends an
+  unsigned object and is now skipped by the suite in Basic and Form Post; it
+  is listed in expected-skips.

@@ -311,8 +311,8 @@
     {
       "name": "tokenExchangeProfiles",
       "status": "excluded",
-      "owner": "roadmap: token exchange profiles milestone",
-      "reason": "Token exchange profiles are outside Plan 20",
+      "owner": "Plan 35",
+      "reason": "The Management API, console and seed carry token exchange profiles (Plan 35). The pinned 9.1.0 handler's shape for them (how an Action is referenced and how a profile is matched on import) is not yet verified against the installed tool, so the family stays outside the matrix until the Plan 35 CLI lane runs",
       "fixture": null
     },
     {
@@ -339,8 +339,8 @@
     {
       "name": "clientAuthCredentials",
       "status": "excluded",
-      "owner": "roadmap: client authentication credentials milestone",
-      "reason": "External client authentication credentials are outside Plan 20",
+      "owner": "Plan 35",
+      "reason": "Client credentials, `client_authentication_methods`, `signed_request_object` and `token_exchange` are implemented (Plan 35), but their round trip through the pinned 9.1.0 handler (and its `clientAuthCredentialsPre` pre-pass) is not yet verified against the installed tool; the family stays outside the matrix until the Plan 35 CLI lane runs",
       "fixture": null
     },
     {

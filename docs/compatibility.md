@@ -24,9 +24,8 @@ Auth0 or Okta.
 | Social login | Providers beyond Google, Microsoft and generic OAuth 2 / OIDC (Apple, GitHub, Facebook, ...) | Plan 39 |
 | Protocol | Back-channel and front-channel logout, CIBA, Dynamic Client Registration, the `claims` parameter | Plan 41 |
 | Protocol | Implicit and hybrid flows (`response_type=token`, `id_token`) | Plan 41, only where Auth0's behaviour passes the OIDF profiles |
-| Client authentication | `private_key_jwt`, JWT-secured authorization requests (JAR), token exchange | Plan 35 |
 | Universal Login | Advanced Customizations (ACUL) and the Classic and WebAuthn-first modes; arbitrary page JavaScript | Plan 44 |
-| Actions | Newer triggers (password-hash migration, credential validation, custom token exchange), `/userinfo` custom claims, `event.refresh_token`; `event.authentication.methods` lists only the MFA step | Plans 35, 40 |
+| Actions | Newer triggers (password-hash migration, credential validation), `/userinfo` custom claims, `event.refresh_token`; `event.authentication.methods` lists only the MFA step | Plan 40 |
 | Other APIs | My Account API, My Organization API | Plan 42 |
 | Other APIs | Token Vault and connected accounts | Plan 43 |
 | Other APIs | Forms and Flows, network ACLs, user groups and group roles | Plan 38 |
@@ -45,12 +44,13 @@ have no effect yet; the feature guides label them "stored only".
 | Area | What works | Guide |
 |---|---|---|
 | OpenID Connect | Discovery, JWKS, authorization code with PKCE, `form_post` and `web_message`, refresh token rotation, `/userinfo`, RP-initiated logout. OpenID Certified (Basic, Config and Form Post OP, 2026-10-30) | [conformance](conformance.md) |
-| OAuth grants | Client credentials, password and password-realm, device authorization, pushed authorization requests (PAR), MFA grants, passwordless OTP grant, revocation | [device flow](device-flow.md), [PAR](par.md) |
+| OAuth grants | Client credentials, password and password-realm, device authorization, pushed authorization requests (PAR), MFA grants, passwordless OTP grant, custom token exchange, revocation | [device flow](device-flow.md), [PAR](par.md), [token exchange](token-exchange.md) |
+| Client authentication | Client secrets, `private_key_jwt` (RS256, RS384, PS256 keys, two per application), JWT-secured authorization requests (JAR), `HS256` and `PS256` API access tokens | [client authentication](client-authentication.md) |
 | Hosted login | Login, signup, password reset, consent, identifier-first, organization prompts, MFA prompts, passwordless codes, languages, branding and page templates | [branding](branding.md), [consent](consent.md) |
 | Connections | Database, custom database (Auth0 scripts, import mode), Google, Microsoft personal and work accounts, generic OAuth 2, back-channel OIDC, passwordless email and SMS | [custom DB](custom-db.md), [social](social-connections.md), [passwordless](passwordless.md) |
 | MFA | One-time passwords, email, SMS and voice, recovery codes, policies, remember browser, Guardian and authentication-method APIs | [MFA](mfa.md) |
 | Management API | Applications, APIs and grants, connections, users (search, linking, sessions, tickets, import and export with password hashes), roles and permissions, organizations and invitations, tenant settings, attack protection, signing keys, email and phone providers and templates, branding and custom text, custom domains, Actions and Modules, logs, log streams, stats, event streams | [Management API](management-api.md) |
-| Actions | Ten triggers, including post-login with MFA control, registration, password, custom email and phone providers and event streams | [Actions](actions.md) |
+| Actions | Eleven triggers, including custom token exchange, post-login with MFA control, registration, password, custom email and phone providers and event streams | [Actions](actions.md) |
 | Operations | SQLite, PostgreSQL, MySQL, gRPC storage plugins; automatic certificates for custom domains; admin console | [deployment](deployment.md), [console](console.md) |
 
 ## Tested clients

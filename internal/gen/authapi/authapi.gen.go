@@ -701,10 +701,10 @@ type OpenIDConfiguration struct {
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
 
-	// RequestObjectSigningAlgValuesSupported Algorithms accepted for request objects; present with Plan 35.
+	// RequestObjectSigningAlgValuesSupported Algorithms accepted for request objects; present when the store supports client credentials.
 	RequestObjectSigningAlgValuesSupported *[]OpenIDConfigurationRequestObjectSigningAlgValuesSupported `json:"request_object_signing_alg_values_supported,omitempty"`
 
-	// RequestParameterSupported True once Plan 35 lands (D-0063, lifting D-0035): signed request objects are processed.
+	// RequestParameterSupported Present and true when the store supports client credentials (D-0063, lifting D-0035): signed request objects are processed and unsigned ones are refused.
 	RequestParameterSupported *bool `json:"request_parameter_supported,omitempty"`
 
 	// RequestUriParameterSupported Always false: `request_uri` is accepted only from `/oauth/par`.
@@ -716,10 +716,10 @@ type OpenIDConfiguration struct {
 	SubjectTypesSupported        []string  `json:"subject_types_supported"`
 	TokenEndpoint                string    `json:"token_endpoint"`
 
-	// TokenEndpointAuthMethodsSupported Adds `private_key_jwt` with Plan 35.
+	// TokenEndpointAuthMethodsSupported Lists `private_key_jwt` when the store supports client credentials.
 	TokenEndpointAuthMethodsSupported *[]string `json:"token_endpoint_auth_methods_supported,omitempty"`
 
-	// TokenEndpointAuthSigningAlgValuesSupported Algorithms accepted for client assertions; present with Plan 35.
+	// TokenEndpointAuthSigningAlgValuesSupported Algorithms accepted for client assertions; present when the store supports client credentials.
 	TokenEndpointAuthSigningAlgValuesSupported *[]OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
 	UserinfoEndpoint                           *string                                                          `json:"userinfo_endpoint,omitempty"`
 }
