@@ -17,6 +17,8 @@ jobs:
       contents: read # check out the repository
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
@@ -42,8 +44,13 @@ jobs:
       contents: read # check out the repository
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
         with:
+          # Scan the checkout above, which keeps no credentials; the action's
+          # own checkout would store the token again.
+          repo-checkout: false
           # go-version-input defaults to "stable"; clear it so go.mod decides.
           go-version-input: ""
           go-version-file: go.mod
@@ -54,6 +61,8 @@ jobs:
       contents: read # check out the repository
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 26
@@ -76,6 +85,8 @@ jobs:
         suite: [e2e, e2e-domains, e2e-deploy, e2e-signing, e2e-branding, e2e-email, e2e-social, e2e-email-accounts, e2e-rbac, e2e-actions, e2e-actions-ii, e2e-organizations, e2e-organizations-ii, e2e-logs, e2e-events, e2e-mfa, e2e-passkeys, e2e-passwordless]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
@@ -137,6 +148,8 @@ jobs:
           --health-retries 24
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
