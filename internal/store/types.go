@@ -120,6 +120,9 @@ const (
 	AuthMethodNone              = "none"
 	AuthMethodClientSecretPost  = "client_secret_post"
 	AuthMethodClientSecretBasic = "client_secret_basic"
+	// AuthMethodPrivateKeyJWT is the method authenticateClient reports for a
+	// signed client assertion. It is never stored in TokenEndpointAuthMethod.
+	AuthMethodPrivateKeyJWT = "private_key_jwt"
 )
 
 // ClientSecret is one credential of a confidential client. Several can be
@@ -183,6 +186,24 @@ type Client struct {
 	// OrganizationDiscoveryMethods are OrgDiscovery* values, set only with
 	// OrgBehaviorPreLoginPrompt; nil means unset.
 	OrganizationDiscoveryMethods []string
+
+	// PrivateKeyJWTCredentials are the ids of the ClientCredentials allowed
+	// to sign client assertions; nil means client_authentication_methods is
+	// null (private_key_jwt not enabled).
+	PrivateKeyJWTCredentials []string
+	// SignedRequestObject is the client's JAR policy; nil means unset.
+	SignedRequestObject *SignedRequestObject
+	// TokenExchangeTypes are the subject_token_type values for which the
+	// client may use any profile of that type (token_exchange.allow_any_profile_of_type).
+	TokenExchangeTypes []string
+}
+
+// SignedRequestObject is a client's signed authorization request (JAR)
+// policy: Required refuses unsigned requests; Credentials are the
+// ClientCredential ids that may sign them.
+type SignedRequestObject struct {
+	Required    bool
+	Credentials []string
 }
 
 // Client organization settings (D-0055).
@@ -236,6 +257,9 @@ type ResourceServer struct {
 	// IsSystem marks an API zeroauthy defines itself, such as a tenant's
 	// Management API (Auth0's is_system). The store does not act on it.
 	IsSystem bool
+	// SigningSecretSealed is the sealed HS256 signing secret; empty for
+	// other algorithms.
+	SigningSecretSealed []byte
 	// Origin records who created the API: OriginAPI for the Management API
 	// (and the console), empty for the seed or zeroauthy itself. The seed
 	// never touches API-created resource servers.
@@ -895,6 +919,9 @@ type PushedAuthRequest struct {
 	ExpiresAt time.Time
 	CreatedAt time.Time
 	UsedAt    *time.Time
+	// Signed is true when the pushed request carried a verified signed
+	// request object (JAR).
+	Signed bool
 }
 
 // DeviceCodeStatus is where a device authorization request is in its life.

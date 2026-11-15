@@ -248,3 +248,37 @@ func TestSweepPurgesWebAuthn(t *testing.T) {
 		t.Fatalf("unexpired snooze purged: %v", err)
 	}
 }
+
+func TestSweepPurgesJTIs(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
+	st := memory.NewWithClock(func() time.Time { return now.Add(-time.Hour) })
+	for jti, exp := range map[string]time.Time{"old": now.Add(-time.Second), "new": now.Add(time.Hour)} {
+		if err := st.ClientCredentials().UseJTI(ctx, "t", "c", jti, exp); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := purgeJTIs(ctx, st, now)
+	if err != nil || n != 1 {
+		t.Fatalf("purge = %d, %v; want 1", n, err)
+	}
+	if err := st.ClientCredentials().UseJTI(ctx, "t", "c", "new", now.Add(2*time.Hour)); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("unexpired jti purged: %v", err)
+	}
+	if err := st.ClientCredentials().UseJTI(ctx, "t", "c", "old", now.Add(time.Hour)); err != nil {
+		t.Fatalf("expired jti kept: %v", err)
+	}
+}
+
+func TestSweepSkipsJTIsWithoutCapability(t *testing.T) {
+	n, err := purgeJTIs(context.Background(), noCredentialsStore{memory.New()}, time.Now())
+	if err != nil || n != 0 {
+		t.Fatalf("purge = %d, %v; want 0, nil", n, err)
+	}
+}
+
+type noCredentialsStore struct{ store.Store }
+
+func (noCredentialsStore) ClientCredentials() store.ClientCredentials {
+	return store.UnimplementedClientCredentials{}
+}

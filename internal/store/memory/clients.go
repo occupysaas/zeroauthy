@@ -52,6 +52,7 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 	}
 	r.s.cleanupOrgII(tenantID, orgIICleanup{client: clientID})
 	delete(r.s.clients, k)
+	r.s.dropClientCredentials(tenantID, clientID)
 	for gk, g := range r.s.clientGrants {
 		if gk.tenant == tenantID && g.ClientID == clientID {
 			r.s.cleanupOrgII(tenantID, orgIICleanup{grant: g.ID})
