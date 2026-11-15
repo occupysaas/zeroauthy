@@ -16,6 +16,27 @@ type WebAuthnSupporter interface {
 	WebAuthnSupported() bool
 }
 
+// WebAuthnAvailable reports whether s can store WebAuthn data. A store that
+// implements WebAuthnSupporter answers through it: a failed negotiation is an
+// error, different from the explicit absence of webauthn.v1 (false, nil).
+// Other stores are available unless their repository is UnimplementedWebAuthn.
+func WebAuthnAvailable(ctx context.Context, s Store) (bool, error) {
+	if cap, ok := s.(WebAuthnSupporter); ok {
+		if err := cap.CheckWebAuthnSupport(ctx); err != nil {
+			if errors.Is(err, ErrWebAuthnUnavailable) {
+				return false, nil
+			}
+			return false, err
+		}
+		return cap.WebAuthnSupported(), nil
+	}
+	switch s.WebAuthn().(type) {
+	case UnimplementedWebAuthn, *UnimplementedWebAuthn:
+		return false, nil
+	}
+	return true, nil
+}
+
 // WebAuthnSnooze defers a passkey or platform enrollment prompt. Kind is
 // passkey-progressive, passkey-local, platform-remind or platform-refuse;
 // ScopeKey is an RP ID, browser ID or device key.

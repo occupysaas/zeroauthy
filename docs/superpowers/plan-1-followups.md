@@ -530,6 +530,26 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
   passkey options round trip. Including it needs database-connection
   migration acceptance (roadmap owner unchanged).
 - **Operator guide:** [passkeys](../passkeys.md).
+- **MFA cleanups (Plan 35 Task 15).** Done: one `store.WebAuthnAvailable`
+  for the four identical capability checks (mfa, mgmt, passkey service, native
+  passkey endpoint); the WebAuthn browser error names live in
+  `webauthnrules.BrowserErrorNames`; the native passkey `timeout` comes from
+  `webauthnrules.Limits.NativeTimeout`; `TestLoginPageViewNoWrite` pins that a
+  repeated login page view writes nothing (the form-state write was already
+  skipped when unchanged). Still open, each because it is not behaviour-neutral:
+  - `mfa.Decide` once per finish or approve: the decisions run in separate
+    requests (page view, submit, completion) or are deliberately re-run inside
+    a transaction, and their inputs change in between (session `MFAAt`,
+    enrolled factors, the completed-enrollment effects). Sharing one decision
+    would skip those freshness checks.
+  - The remaining capability copies in `internal/session` (`AddMethod`, session
+    create), `internal/seed/passkeys.go` and `internal/events/webauthn.go`
+    differ from the helper: they skip the `UnimplementedWebAuthn` probe or
+    delegate the supporter methods themselves.
+  - The hosted passkey retry snapshot is stored as a user-less `webauthn`
+    row in the MFA challenge table. Moving it needs a purpose column or a new
+    `Kind` the SQL, memory and plugin stores all handle, so a schema change
+    (migration 0036 is frozen).
 
 - **Actions MFA ordering (after Plan 33b).** Maintainer observation of real
   Auth0 (2026-11-07): `api.multifactor.enable('none')` in a later post-login

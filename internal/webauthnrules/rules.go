@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+// BrowserErrorNames are the DOM exception names a WebAuthn page may report.
+var BrowserErrorNames = []string{"NotAllowedError", "InvalidStateError", "NotSupportedError", "SecurityError", "AbortError", "ConstraintError", "UnknownError"}
+
+// KnownBrowserError reports whether name is one of BrowserErrorNames.
+func KnownBrowserError(name string) bool { return slices.Contains(BrowserErrorNames, name) }
+
 // Rule is one documented behaviour and the page it comes from.
 type Rule struct {
 	ID        string `json:"id"`
