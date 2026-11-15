@@ -167,6 +167,7 @@ const (
 	ActionTriggerIdCredentialsExchange        ActionTriggerId = "credentials-exchange"
 	ActionTriggerIdCustomEmailProvider        ActionTriggerId = "custom-email-provider"
 	ActionTriggerIdCustomPhoneProvider        ActionTriggerId = "custom-phone-provider"
+	ActionTriggerIdCustomTokenExchange        ActionTriggerId = "custom-token-exchange"
 	ActionTriggerIdEventStream                ActionTriggerId = "event-stream"
 	ActionTriggerIdPasswordResetPostChallenge ActionTriggerId = "password-reset-post-challenge"
 	ActionTriggerIdPostChangePassword         ActionTriggerId = "post-change-password"
@@ -184,6 +185,8 @@ func (e ActionTriggerId) Valid() bool {
 	case ActionTriggerIdCustomEmailProvider:
 		return true
 	case ActionTriggerIdCustomPhoneProvider:
+		return true
+	case ActionTriggerIdCustomTokenExchange:
 		return true
 	case ActionTriggerIdEventStream:
 		return true
@@ -1056,6 +1059,87 @@ func (e ClientCreateThirdPartySecurityMode) Valid() bool {
 	}
 }
 
+// Defines values for ClientCredentialAlg.
+const (
+	ClientCredentialAlgPS256 ClientCredentialAlg = "PS256"
+	ClientCredentialAlgRS256 ClientCredentialAlg = "RS256"
+	ClientCredentialAlgRS384 ClientCredentialAlg = "RS384"
+)
+
+// Valid indicates whether the value is a known member of the ClientCredentialAlg enum.
+func (e ClientCredentialAlg) Valid() bool {
+	switch e {
+	case ClientCredentialAlgPS256:
+		return true
+	case ClientCredentialAlgRS256:
+		return true
+	case ClientCredentialAlgRS384:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientCredentialCreateCredentialType.
+const (
+	ClientCredentialCreateCredentialTypeCertSubjectDn ClientCredentialCreateCredentialType = "cert_subject_dn"
+	ClientCredentialCreateCredentialTypePublicKey     ClientCredentialCreateCredentialType = "public_key"
+	ClientCredentialCreateCredentialTypeX509Cert      ClientCredentialCreateCredentialType = "x509_cert"
+)
+
+// Valid indicates whether the value is a known member of the ClientCredentialCreateCredentialType enum.
+func (e ClientCredentialCreateCredentialType) Valid() bool {
+	switch e {
+	case ClientCredentialCreateCredentialTypeCertSubjectDn:
+		return true
+	case ClientCredentialCreateCredentialTypePublicKey:
+		return true
+	case ClientCredentialCreateCredentialTypeX509Cert:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientCredentialRefCredentialType.
+const (
+	ClientCredentialRefCredentialTypeCertSubjectDn ClientCredentialRefCredentialType = "cert_subject_dn"
+	ClientCredentialRefCredentialTypePublicKey     ClientCredentialRefCredentialType = "public_key"
+	ClientCredentialRefCredentialTypeX509Cert      ClientCredentialRefCredentialType = "x509_cert"
+)
+
+// Valid indicates whether the value is a known member of the ClientCredentialRefCredentialType enum.
+func (e ClientCredentialRefCredentialType) Valid() bool {
+	switch e {
+	case ClientCredentialRefCredentialTypeCertSubjectDn:
+		return true
+	case ClientCredentialRefCredentialTypePublicKey:
+		return true
+	case ClientCredentialRefCredentialTypeX509Cert:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientCredentialType.
+const (
+	ClientCredentialTypePublicKey ClientCredentialType = "public_key"
+	ClientCredentialTypeX509Cert  ClientCredentialType = "x509_cert"
+)
+
+// Valid indicates whether the value is a known member of the ClientCredentialType enum.
+func (e ClientCredentialType) Valid() bool {
+	switch e {
+	case ClientCredentialTypePublicKey:
+		return true
+	case ClientCredentialTypeX509Cert:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientGrantOrganizationUsage.
 const (
 	ClientGrantOrganizationUsageAllow   ClientGrantOrganizationUsage = "allow"
@@ -1233,6 +1317,21 @@ func (e ClientSettingsRedirectionPolicy) Valid() bool {
 	case ClientSettingsRedirectionPolicyAllowAlways:
 		return true
 	case ClientSettingsRedirectionPolicyOpenRedirectProtection:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientTokenExchangeAllowAnyProfileOfType.
+const (
+	ClientTokenExchangeAllowAnyProfileOfTypeCustomAuthentication ClientTokenExchangeAllowAnyProfileOfType = "custom_authentication"
+)
+
+// Valid indicates whether the value is a known member of the ClientTokenExchangeAllowAnyProfileOfType enum.
+func (e ClientTokenExchangeAllowAnyProfileOfType) Valid() bool {
+	switch e {
+	case ClientTokenExchangeAllowAnyProfileOfTypeCustomAuthentication:
 		return true
 	default:
 		return false
@@ -5594,12 +5693,18 @@ func (e RefreshTokenSettingsRotationType) Valid() bool {
 
 // Defines values for ResourceServerSigningAlg.
 const (
+	ResourceServerSigningAlgHS256 ResourceServerSigningAlg = "HS256"
+	ResourceServerSigningAlgPS256 ResourceServerSigningAlg = "PS256"
 	ResourceServerSigningAlgRS256 ResourceServerSigningAlg = "RS256"
 )
 
 // Valid indicates whether the value is a known member of the ResourceServerSigningAlg enum.
 func (e ResourceServerSigningAlg) Valid() bool {
 	switch e {
+	case ResourceServerSigningAlgHS256:
+		return true
+	case ResourceServerSigningAlgPS256:
+		return true
 	case ResourceServerSigningAlgRS256:
 		return true
 	default:
@@ -5672,12 +5777,18 @@ func (e ResourceServerTokenDialect) Valid() bool {
 
 // Defines values for ResourceServerCreateSigningAlg.
 const (
+	ResourceServerCreateSigningAlgHS256 ResourceServerCreateSigningAlg = "HS256"
+	ResourceServerCreateSigningAlgPS256 ResourceServerCreateSigningAlg = "PS256"
 	ResourceServerCreateSigningAlgRS256 ResourceServerCreateSigningAlg = "RS256"
 )
 
 // Valid indicates whether the value is a known member of the ResourceServerCreateSigningAlg enum.
 func (e ResourceServerCreateSigningAlg) Valid() bool {
 	switch e {
+	case ResourceServerCreateSigningAlgHS256:
+		return true
+	case ResourceServerCreateSigningAlgPS256:
+		return true
 	case ResourceServerCreateSigningAlgRS256:
 		return true
 	default:
@@ -5711,12 +5822,18 @@ func (e ResourceServerCreateTokenDialect) Valid() bool {
 
 // Defines values for ResourceServerSettingsSigningAlg.
 const (
+	ResourceServerSettingsSigningAlgHS256 ResourceServerSettingsSigningAlg = "HS256"
+	ResourceServerSettingsSigningAlgPS256 ResourceServerSettingsSigningAlg = "PS256"
 	ResourceServerSettingsSigningAlgRS256 ResourceServerSettingsSigningAlg = "RS256"
 )
 
 // Valid indicates whether the value is a known member of the ResourceServerSettingsSigningAlg enum.
 func (e ResourceServerSettingsSigningAlg) Valid() bool {
 	switch e {
+	case ResourceServerSettingsSigningAlgHS256:
+		return true
+	case ResourceServerSettingsSigningAlgPS256:
+		return true
 	case ResourceServerSettingsSigningAlgRS256:
 		return true
 	default:
@@ -6660,6 +6777,36 @@ func (e TokenEndpointAuthMethod) Valid() bool {
 	}
 }
 
+// Defines values for TokenExchangeProfileType.
+const (
+	TokenExchangeProfileTypeCustomAuthentication TokenExchangeProfileType = "custom_authentication"
+)
+
+// Valid indicates whether the value is a known member of the TokenExchangeProfileType enum.
+func (e TokenExchangeProfileType) Valid() bool {
+	switch e {
+	case TokenExchangeProfileTypeCustomAuthentication:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TokenExchangeProfileCreateType.
+const (
+	TokenExchangeProfileCreateTypeCustomAuthentication TokenExchangeProfileCreateType = "custom_authentication"
+)
+
+// Valid indicates whether the value is a known member of the TokenExchangeProfileCreateType enum.
+func (e TokenExchangeProfileCreateType) Valid() bool {
+	switch e {
+	case TokenExchangeProfileCreateTypeCustomAuthentication:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UserSessionCookieMode.
 const (
 	UserSessionCookieModePersistent UserSessionCookieMode = "persistent"
@@ -7396,7 +7543,13 @@ type Client struct {
 	AppType             AppType                   `json:"app_type"`
 	CallbackUrlTemplate ClientCallbackUrlTemplate `json:"callback_url_template"`
 	Callbacks           []string                  `json:"callbacks"`
-	ClientId            string                    `json:"client_id"`
+
+	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
+	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
+	// `token_endpoint_auth_method`. `tls_client_auth` and
+	// `self_signed_tls_client_auth` are refused with 400.
+	ClientAuthenticationMethods *ClientAuthenticationMethods `json:"client_authentication_methods,omitempty"`
+	ClientId                    string                       `json:"client_id"`
 
 	// ClientSecret Only with `read:client_keys`, and only for confidential
 	// applications whose secret zeroauthy can reveal (not for secrets
@@ -7429,17 +7582,23 @@ type Client struct {
 	RedirectionPolicy *ClientRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken                                   RefreshTokenSettings `json:"refresh_token"`
-	RequirePushedAuthorizationRequests             bool                 `json:"require_pushed_authorization_requests"`
+	RefreshToken                       RefreshTokenSettings `json:"refresh_token"`
+	RequirePushedAuthorizationRequests bool                 `json:"require_pushed_authorization_requests"`
+
+	// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
+	SignedRequestObject                            *SignedRequestObject `json:"signed_request_object,omitempty"`
 	SkipNonVerifiableCallbackUriConfirmationPrompt *bool                `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
 
 	// Tenant The tenant's name.
 	Tenant                 string                        `json:"tenant"`
 	ThirdPartySecurityMode *ClientThirdPartySecurityMode `json:"third_party_security_mode,omitempty"`
 
-	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
-	TokenEndpointAuthMethod TokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
-	WebOrigins              []string                `json:"web_origins"`
+	// TokenEndpointAuthMethod `null` when the application authenticates with `client_authentication_methods`.
+	TokenEndpointAuthMethod *TokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
+
+	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
+	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
+	WebOrigins    []string             `json:"web_origins"`
 }
 
 // ClientCallbackUrlTemplate defines model for Client.CallbackUrlTemplate.
@@ -7466,6 +7625,16 @@ type ClientRedirectionPolicy string
 // ClientThirdPartySecurityMode defines model for Client.ThirdPartySecurityMode.
 type ClientThirdPartySecurityMode string
 
+// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
+// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
+// `token_endpoint_auth_method`. `tls_client_auth` and
+// `self_signed_tls_client_auth` are refused with 400.
+type ClientAuthenticationMethods struct {
+	PrivateKeyJwt *struct {
+		Credentials *[]ClientCredentialRef `json:"credentials,omitempty"`
+	} `json:"private_key_jwt,omitempty"`
+}
+
 // ClientCreate A new application. Unknown fields are refused (`invalid_body`).
 // Defaults: `app_type` `regular_web`,
 // `token_endpoint_auth_method` `none` for `spa` and `native` and
@@ -7489,6 +7658,12 @@ type ClientCreate struct {
 
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
+	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
+	// `token_endpoint_auth_method`. `tls_client_auth` and
+	// `self_signed_tls_client_auth` are refused with 400.
+	ClientAuthenticationMethods *ClientAuthenticationMethods `json:"client_authentication_methods,omitempty"`
 
 	// ClientMetadata Accepted and ignored.
 	ClientMetadata interface{} `json:"client_metadata,omitempty"`
@@ -7574,6 +7749,9 @@ type ClientCreate struct {
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
 
+	// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
+	SignedRequestObject *SignedRequestObject `json:"signed_request_object,omitempty"`
+
 	// SkipNonVerifiableCallbackUriConfirmationPrompt Overrides the tenant's setting; null inherits it.
 	SkipNonVerifiableCallbackUriConfirmationPrompt *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
 
@@ -7586,8 +7764,13 @@ type ClientCreate struct {
 	// ThirdPartySecurityMode Third-party applications only; `strict` by default.
 	ThirdPartySecurityMode *ClientCreateThirdPartySecurityMode `json:"third_party_security_mode,omitempty"`
 
-	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`. `null` is
+	// accepted only together with `client_authentication_methods`
+	// `private_key_jwt` (D-0063, C4).
 	TokenEndpointAuthMethod *TokenEndpointAuthMethod `json:"token_endpoint_auth_method,omitempty"`
+
+	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
+	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -7614,6 +7797,76 @@ type ClientCreateRedirectionPolicy string
 
 // ClientCreateThirdPartySecurityMode Third-party applications only; `strict` by default.
 type ClientCreateThirdPartySecurityMode string
+
+// ClientCredential A registered public key. The PEM is never returned.
+type ClientCredential struct {
+	Alg       ClientCredentialAlg `json:"alg"`
+	CreatedAt time.Time           `json:"created_at"`
+
+	// CredentialType `cert_subject_dn` is refused with 400 (mTLS is out of scope, D-0063).
+	CredentialType ClientCredentialType `json:"credential_type"`
+
+	// ExpiresAt Absent when the credential never expires.
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+
+	// Id `cred_` followed by 22 letters and digits.
+	Id   string `json:"id"`
+	Kid  string `json:"kid"`
+	Name string `json:"name"`
+
+	// ThumbprintSha256 Base64url SHA-256 of the key's RFC 7638 thumbprint input.
+	ThumbprintSha256 string    `json:"thumbprint_sha256"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+// ClientCredentialAlg defines model for ClientCredentialAlg.
+type ClientCredentialAlg string
+
+// ClientCredentialCreate A public key to register. `parse_expiry_from_cert` needs `x509_cert` and excludes `expires_at`.
+type ClientCredentialCreate struct {
+	Alg *ClientCredentialAlg `json:"alg,omitempty"`
+
+	// CredentialType `cert_subject_dn` is refused with 400.
+	CredentialType ClientCredentialCreateCredentialType `json:"credential_type"`
+	ExpiresAt      *time.Time                           `json:"expires_at,omitempty"`
+
+	// Kid Defaults to the RFC 7638 thumbprint.
+	Kid                 *string `json:"kid,omitempty"`
+	Name                *string `json:"name,omitempty"`
+	ParseExpiryFromCert *bool   `json:"parse_expiry_from_cert,omitempty"`
+
+	// Pem An RSA public key (SPKI or PKCS#1) or an X.509 certificate, 2048 to 4096 bits. Never returned.
+	Pem *string `json:"pem,omitempty"`
+}
+
+// ClientCredentialCreateCredentialType `cert_subject_dn` is refused with 400.
+type ClientCredentialCreateCredentialType string
+
+// ClientCredentialRef A credential an application setting uses: an existing one by `id`, or
+// (on create and patch only) an inline new credential with the fields
+// of the credential create body. The credential must belong to the
+// application.
+type ClientCredentialRef struct {
+	Alg                 *ClientCredentialAlg               `json:"alg,omitempty"`
+	CredentialType      *ClientCredentialRefCredentialType `json:"credential_type,omitempty"`
+	ExpiresAt           *time.Time                         `json:"expires_at,omitempty"`
+	Id                  *string                            `json:"id,omitempty"`
+	Kid                 *string                            `json:"kid,omitempty"`
+	Name                *string                            `json:"name,omitempty"`
+	ParseExpiryFromCert *bool                              `json:"parse_expiry_from_cert,omitempty"`
+	Pem                 *string                            `json:"pem,omitempty"`
+}
+
+// ClientCredentialRefCredentialType defines model for ClientCredentialRef.CredentialType.
+type ClientCredentialRefCredentialType string
+
+// ClientCredentialType `cert_subject_dn` is refused with 400 (mTLS is out of scope, D-0063).
+type ClientCredentialType string
+
+// ClientCredentialUpdate Only `expires_at` changes; null removes the expiry.
+type ClientCredentialUpdate struct {
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+}
 
 // ClientGrant An application's access to an API, including organization policy (D-0056).
 type ClientGrant struct {
@@ -7776,6 +8029,12 @@ type ClientSettings struct {
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
 
+	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
+	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
+	// `token_endpoint_auth_method`. `tls_client_auth` and
+	// `self_signed_tls_client_auth` are refused with 400.
+	ClientAuthenticationMethods *ClientAuthenticationMethods `json:"client_authentication_methods,omitempty"`
+
 	// ClientMetadata Accepted and ignored.
 	ClientMetadata interface{} `json:"client_metadata,omitempty"`
 
@@ -7857,6 +8116,9 @@ type ClientSettings struct {
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
 
+	// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
+	SignedRequestObject *SignedRequestObject `json:"signed_request_object,omitempty"`
+
 	// SkipNonVerifiableCallbackUriConfirmationPrompt Overrides the tenant's setting; null inherits it.
 	SkipNonVerifiableCallbackUriConfirmationPrompt *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
 
@@ -7866,8 +8128,13 @@ type ClientSettings struct {
 	// SsoDisabled Accepted and ignored.
 	SsoDisabled interface{} `json:"sso_disabled,omitempty"`
 
-	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`. `null` is
+	// accepted only together with `client_authentication_methods`
+	// `private_key_jwt` (D-0063, C4).
 	TokenEndpointAuthMethod *TokenEndpointAuthMethod `json:"token_endpoint_auth_method,omitempty"`
+
+	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
+	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -7892,6 +8159,14 @@ type ClientSettingsOrganizationUsage string
 // ClientSettingsRedirectionPolicy defines model for ClientSettings.RedirectionPolicy.
 type ClientSettingsRedirectionPolicy string
 
+// ClientTokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
+type ClientTokenExchange struct {
+	AllowAnyProfileOfType *[]ClientTokenExchangeAllowAnyProfileOfType `json:"allow_any_profile_of_type,omitempty"`
+}
+
+// ClientTokenExchangeAllowAnyProfileOfType defines model for ClientTokenExchange.AllowAnyProfileOfType.
+type ClientTokenExchangeAllowAnyProfileOfType string
+
 // ClientUpdate Fields to change; the others keep their values. Unknown fields are
 // refused (`invalid_body`). `is_first_party` and
 // `third_party_security_mode` may be sent only with their current
@@ -7912,6 +8187,12 @@ type ClientUpdate struct {
 
 	// Callbacks Allowed redirect URIs.
 	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientAuthenticationMethods `private_key_jwt` makes the application authenticate with a signed
+	// JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
+	// `token_endpoint_auth_method`. `tls_client_auth` and
+	// `self_signed_tls_client_auth` are refused with 400.
+	ClientAuthenticationMethods *ClientAuthenticationMethods `json:"client_authentication_methods,omitempty"`
 
 	// ClientMetadata Accepted and ignored.
 	ClientMetadata interface{} `json:"client_metadata,omitempty"`
@@ -7995,6 +8276,9 @@ type ClientUpdate struct {
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
 
+	// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
+	SignedRequestObject *SignedRequestObject `json:"signed_request_object,omitempty"`
+
 	// SkipNonVerifiableCallbackUriConfirmationPrompt Overrides the tenant's setting; null inherits it.
 	SkipNonVerifiableCallbackUriConfirmationPrompt *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
 
@@ -8005,8 +8289,13 @@ type ClientUpdate struct {
 	SsoDisabled            interface{}                         `json:"sso_disabled,omitempty"`
 	ThirdPartySecurityMode *ClientUpdateThirdPartySecurityMode `json:"third_party_security_mode,omitempty"`
 
-	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`. `null` is
+	// accepted only together with `client_authentication_methods`
+	// `private_key_jwt` (D-0063, C4).
 	TokenEndpointAuthMethod *TokenEndpointAuthMethod `json:"token_endpoint_auth_method,omitempty"`
+
+	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
+	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -11507,9 +11796,12 @@ type ResourceServer struct {
 	Name *string `json:"name,omitempty"`
 
 	// Scopes Absent when the API defines none.
-	Scopes                                    *[]ResourceServerScope   `json:"scopes,omitempty"`
-	SigningAlg                                ResourceServerSigningAlg `json:"signing_alg"`
-	SkipConsentForVerifiableFirstPartyClients bool                     `json:"skip_consent_for_verifiable_first_party_clients"`
+	Scopes     *[]ResourceServerScope   `json:"scopes,omitempty"`
+	SigningAlg ResourceServerSigningAlg `json:"signing_alg"`
+
+	// SigningSecret HS256 only; returned on read (C16).
+	SigningSecret                             *string `json:"signing_secret,omitempty"`
+	SkipConsentForVerifiableFirstPartyClients bool    `json:"skip_consent_for_verifiable_first_party_clients"`
 	SubjectTypeAuthorization                  struct {
 		Client struct {
 			Policy ResourceServerSubjectTypeAuthorizationClientPolicy `json:"policy"`
@@ -11568,9 +11860,17 @@ type ResourceServerCreate struct {
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
 
-	// SigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
-	SigningAlg                                *ResourceServerCreateSigningAlg `json:"signing_alg,omitempty"`
-	SkipConsentForVerifiableFirstPartyClients *bool                           `json:"skip_consent_for_verifiable_first_party_clients,omitempty"`
+	// SigningAlg The access token signing algorithm. `RS256` and `PS256` sign with
+	// the tenant's RSA key; `HS256` signs with `signing_secret`. A patch
+	// may change it (LR35-8, C17). Supersedes D-0041's RS256-only rule
+	// (D-0063).
+	SigningAlg *ResourceServerCreateSigningAlg `json:"signing_alg,omitempty"`
+
+	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// bytes, base64url) when an HS256 API is created without one; sent
+	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
+	SigningSecret                             *string `json:"signing_secret,omitempty"`
+	SkipConsentForVerifiableFirstPartyClients *bool   `json:"skip_consent_for_verifiable_first_party_clients,omitempty"`
 
 	// SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
 	// `require_client_grant` or `deny_all`; `client` is `require_client_grant`
@@ -11592,7 +11892,10 @@ type ResourceServerCreate struct {
 	TokenLifetimeForWeb *int `json:"token_lifetime_for_web,omitempty"`
 }
 
-// ResourceServerCreateSigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+// ResourceServerCreateSigningAlg The access token signing algorithm. `RS256` and `PS256` sign with
+// the tenant's RSA key; `HS256` signs with `signing_secret`. A patch
+// may change it (LR35-8, C17). Supersedes D-0041's RS256-only rule
+// (D-0063).
 type ResourceServerCreateSigningAlg string
 
 // ResourceServerCreateTokenDialect Access-token profile; defaults to access_token.
@@ -11642,9 +11945,17 @@ type ResourceServerSettings struct {
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
 
-	// SigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
-	SigningAlg                                *ResourceServerSettingsSigningAlg `json:"signing_alg,omitempty"`
-	SkipConsentForVerifiableFirstPartyClients *bool                             `json:"skip_consent_for_verifiable_first_party_clients,omitempty"`
+	// SigningAlg The access token signing algorithm. `RS256` and `PS256` sign with
+	// the tenant's RSA key; `HS256` signs with `signing_secret`. A patch
+	// may change it (LR35-8, C17). Supersedes D-0041's RS256-only rule
+	// (D-0063).
+	SigningAlg *ResourceServerSettingsSigningAlg `json:"signing_alg,omitempty"`
+
+	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// bytes, base64url) when an HS256 API is created without one; sent
+	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
+	SigningSecret                             *string `json:"signing_secret,omitempty"`
+	SkipConsentForVerifiableFirstPartyClients *bool   `json:"skip_consent_for_verifiable_first_party_clients,omitempty"`
 
 	// SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
 	// `require_client_grant` or `deny_all`; `client` is `require_client_grant`
@@ -11666,7 +11977,10 @@ type ResourceServerSettings struct {
 	TokenLifetimeForWeb *int `json:"token_lifetime_for_web,omitempty"`
 }
 
-// ResourceServerSettingsSigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+// ResourceServerSettingsSigningAlg The access token signing algorithm. `RS256` and `PS256` sign with
+// the tenant's RSA key; `HS256` signs with `signing_secret`. A patch
+// may change it (LR35-8, C17). Supersedes D-0041's RS256-only rule
+// (D-0063).
 type ResourceServerSettingsSigningAlg string
 
 // ResourceServerSettingsTokenDialect Access-token profile; defaults to access_token.
@@ -11776,6 +12090,14 @@ type SessionDevice struct {
 	InitialUserAgent *string `json:"initial_user_agent,omitempty"`
 	LastIp           *string `json:"last_ip,omitempty"`
 	LastUserAgent    *string `json:"last_user_agent,omitempty"`
+}
+
+// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
+type SignedRequestObject struct {
+	Credentials *[]ClientCredentialRef `json:"credentials,omitempty"`
+
+	// Required Refuse authorize and PAR requests without a valid signed `request`.
+	Required *bool `json:"required,omitempty"`
 }
 
 // SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
@@ -12448,6 +12770,51 @@ type TicketIdentity struct {
 // TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
 type TokenEndpointAuthMethod string
 
+// TokenExchangeProfile defines model for TokenExchangeProfile.
+type TokenExchangeProfile struct {
+	ActionId  string    `json:"action_id"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// Id `tep_` followed by 22 letters and digits.
+	Id               string                   `json:"id"`
+	Name             string                   `json:"name"`
+	SubjectTokenType string                   `json:"subject_token_type"`
+	Type             TokenExchangeProfileType `json:"type"`
+	UpdatedAt        time.Time                `json:"updated_at"`
+}
+
+// TokenExchangeProfileType defines model for TokenExchangeProfile.Type.
+type TokenExchangeProfileType string
+
+// TokenExchangeProfileCreate defines model for TokenExchangeProfileCreate.
+type TokenExchangeProfileCreate struct {
+	// ActionId A deployed Action with trigger `custom-token-exchange`. Cannot change later.
+	ActionId string `json:"action_id"`
+	Name     string `json:"name"`
+
+	// SubjectTokenType Unique per tenant. These prefixes are reserved and refused:
+	// `http://auth0.com`, `https://auth0.com`, `http://okta.com`,
+	// `https://okta.com`, `urn:ietf`, `urn:auth0`, `urn:okta`.
+	SubjectTokenType string                         `json:"subject_token_type"`
+	Type             TokenExchangeProfileCreateType `json:"type"`
+}
+
+// TokenExchangeProfileCreateType defines model for TokenExchangeProfileCreate.Type.
+type TokenExchangeProfileCreateType string
+
+// TokenExchangeProfilePage defines model for TokenExchangeProfilePage.
+type TokenExchangeProfilePage struct {
+	// Next Pass as `from` for the next page; absent on the last page.
+	Next                  *string                `json:"next,omitempty"`
+	TokenExchangeProfiles []TokenExchangeProfile `json:"token_exchange_profiles"`
+}
+
+// TokenExchangeProfileUpdate defines model for TokenExchangeProfileUpdate.
+type TokenExchangeProfileUpdate struct {
+	Name             *string `json:"name,omitempty"`
+	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+}
+
 // User A user in Auth0's shape. Fields without a value are left out:
 // `blocked` appears only when true; `last_login`, `last_ip` and
 // `logins_count` after the first login. A password or its hash is never
@@ -12804,6 +13171,9 @@ type Forbidden = ManagementError
 
 // NotFound Auth0's Management API error shape.
 type NotFound = ManagementError
+
+// NotImplemented Auth0's Management API error shape.
+type NotImplemented = ManagementError
 
 // OrganizationsUnavailable Auth0's Management API error shape.
 type OrganizationsUnavailable = ManagementError
@@ -13592,6 +13962,15 @@ type GetTenantSettingsParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetTokenExchangeProfilesParams defines parameters for GetTokenExchangeProfiles.
+type GetTokenExchangeProfilesParams struct {
+	// From Checkpoint paging cursor, the `next` of the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Page size, 1 to 100 (50 by default).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+}
+
 // DeleteUserBlocksByIdentifierParams defines parameters for DeleteUserBlocksByIdentifier.
 type DeleteUserBlocksByIdentifierParams struct {
 	Identifier string `form:"identifier" json:"identifier"`
@@ -13886,6 +14265,12 @@ type CreateClientJSONRequestBody = ClientCreate
 // UpdateClientJSONRequestBody defines body for UpdateClient for application/json ContentType.
 type UpdateClientJSONRequestBody = ClientUpdate
 
+// PostClientCredentialsJSONRequestBody defines body for PostClientCredentials for application/json ContentType.
+type PostClientCredentialsJSONRequestBody = ClientCredentialCreate
+
+// PatchClientCredentialJSONRequestBody defines body for PatchClientCredential for application/json ContentType.
+type PatchClientCredentialJSONRequestBody = ClientCredentialUpdate
+
 // CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
 type CreateConnectionJSONRequestBody = ConnectionCreate
 
@@ -14110,6 +14495,12 @@ type CreateEmailVerificationTicketJSONRequestBody = EmailVerificationTicketCreat
 
 // CreatePasswordChangeTicketJSONRequestBody defines body for CreatePasswordChangeTicket for application/json ContentType.
 type CreatePasswordChangeTicketJSONRequestBody = PasswordChangeTicketCreate
+
+// PostTokenExchangeProfileJSONRequestBody defines body for PostTokenExchangeProfile for application/json ContentType.
+type PostTokenExchangeProfileJSONRequestBody = TokenExchangeProfileCreate
+
+// PatchTokenExchangeProfileJSONRequestBody defines body for PatchTokenExchangeProfile for application/json ContentType.
+type PatchTokenExchangeProfileJSONRequestBody = TokenExchangeProfileUpdate
 
 // CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
 type CreateUserJSONRequestBody = UserCreate
@@ -20553,6 +20944,21 @@ type ServerInterface interface {
 	// UpdateClient Update an application
 	// (PATCH /api/v2/clients/{id})
 	UpdateClient(w http.ResponseWriter, r *http.Request, id string)
+	// GetClientCredentials List an application's credentials
+	// (GET /api/v2/clients/{id}/credentials)
+	GetClientCredentials(w http.ResponseWriter, r *http.Request, id string)
+	// PostClientCredentials Add a credential to an application
+	// (POST /api/v2/clients/{id}/credentials)
+	PostClientCredentials(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteClientCredential Delete a credential
+	// (DELETE /api/v2/clients/{id}/credentials/{credential_id})
+	DeleteClientCredential(w http.ResponseWriter, r *http.Request, id string, credentialId string)
+	// GetClientCredential Get a credential
+	// (GET /api/v2/clients/{id}/credentials/{credential_id})
+	GetClientCredential(w http.ResponseWriter, r *http.Request, id string, credentialId string)
+	// PatchClientCredential Change a credential's expiry
+	// (PATCH /api/v2/clients/{id}/credentials/{credential_id})
+	PatchClientCredential(w http.ResponseWriter, r *http.Request, id string, credentialId string)
 	// RotateClientSecret Rotate an application's secret
 	// (POST /api/v2/clients/{id}/rotate-secret)
 	RotateClientSecret(w http.ResponseWriter, r *http.Request, id string)
@@ -21084,6 +21490,21 @@ type ServerInterface interface {
 	// CreatePasswordChangeTicket Create a password-change ticket
 	// (POST /api/v2/tickets/password-change)
 	CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request)
+	// GetTokenExchangeProfiles List token exchange profiles
+	// (GET /api/v2/token-exchange-profiles)
+	GetTokenExchangeProfiles(w http.ResponseWriter, r *http.Request, params GetTokenExchangeProfilesParams)
+	// PostTokenExchangeProfile Create a token exchange profile
+	// (POST /api/v2/token-exchange-profiles)
+	PostTokenExchangeProfile(w http.ResponseWriter, r *http.Request)
+	// DeleteTokenExchangeProfile Delete a token exchange profile
+	// (DELETE /api/v2/token-exchange-profiles/{id})
+	DeleteTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string)
+	// GetTokenExchangeProfile Get a token exchange profile
+	// (GET /api/v2/token-exchange-profiles/{id})
+	GetTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string)
+	// PatchTokenExchangeProfile Update a token exchange profile
+	// (PATCH /api/v2/token-exchange-profiles/{id})
+	PatchTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteUserBlocksByIdentifier Delete automatic blocks
 	// (DELETE /api/v2/user-blocks)
 	DeleteUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request, params DeleteUserBlocksByIdentifierParams)
@@ -21771,6 +22192,36 @@ func (_ Unimplemented) GetClient(w http.ResponseWriter, r *http.Request, id stri
 // UpdateClient Update an application
 // (PATCH /api/v2/clients/{id})
 func (_ Unimplemented) UpdateClient(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetClientCredentials List an application's credentials
+// (GET /api/v2/clients/{id}/credentials)
+func (_ Unimplemented) GetClientCredentials(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostClientCredentials Add a credential to an application
+// (POST /api/v2/clients/{id}/credentials)
+func (_ Unimplemented) PostClientCredentials(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteClientCredential Delete a credential
+// (DELETE /api/v2/clients/{id}/credentials/{credential_id})
+func (_ Unimplemented) DeleteClientCredential(w http.ResponseWriter, r *http.Request, id string, credentialId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetClientCredential Get a credential
+// (GET /api/v2/clients/{id}/credentials/{credential_id})
+func (_ Unimplemented) GetClientCredential(w http.ResponseWriter, r *http.Request, id string, credentialId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PatchClientCredential Change a credential's expiry
+// (PATCH /api/v2/clients/{id}/credentials/{credential_id})
+func (_ Unimplemented) PatchClientCredential(w http.ResponseWriter, r *http.Request, id string, credentialId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -22833,6 +23284,36 @@ func (_ Unimplemented) CreateEmailVerificationTicket(w http.ResponseWriter, r *h
 // CreatePasswordChangeTicket Create a password-change ticket
 // (POST /api/v2/tickets/password-change)
 func (_ Unimplemented) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTokenExchangeProfiles List token exchange profiles
+// (GET /api/v2/token-exchange-profiles)
+func (_ Unimplemented) GetTokenExchangeProfiles(w http.ResponseWriter, r *http.Request, params GetTokenExchangeProfilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostTokenExchangeProfile Create a token exchange profile
+// (POST /api/v2/token-exchange-profiles)
+func (_ Unimplemented) PostTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteTokenExchangeProfile Delete a token exchange profile
+// (DELETE /api/v2/token-exchange-profiles/{id})
+func (_ Unimplemented) DeleteTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTokenExchangeProfile Get a token exchange profile
+// (GET /api/v2/token-exchange-profiles/{id})
+func (_ Unimplemented) GetTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PatchTokenExchangeProfile Update a token exchange profile
+// (PATCH /api/v2/token-exchange-profiles/{id})
+func (_ Unimplemented) PatchTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -25919,6 +26400,163 @@ func (siw *ServerInterfaceWrapper) UpdateClient(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateClient(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetClientCredentials operation middleware
+func (siw *ServerInterfaceWrapper) GetClientCredentials(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetClientCredentials(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostClientCredentials operation middleware
+func (siw *ServerInterfaceWrapper) PostClientCredentials(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostClientCredentials(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteClientCredential operation middleware
+func (siw *ServerInterfaceWrapper) DeleteClientCredential(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "credential_id" -------------
+	var credentialId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "credential_id", chi.URLParam(r, "credential_id"), &credentialId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credential_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteClientCredential(w, r, id, credentialId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetClientCredential operation middleware
+func (siw *ServerInterfaceWrapper) GetClientCredential(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "credential_id" -------------
+	var credentialId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "credential_id", chi.URLParam(r, "credential_id"), &credentialId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credential_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetClientCredential(w, r, id, credentialId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchClientCredential operation middleware
+func (siw *ServerInterfaceWrapper) PatchClientCredential(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "credential_id" -------------
+	var credentialId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "credential_id", chi.URLParam(r, "credential_id"), &credentialId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credential_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchClientCredential(w, r, id, credentialId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -31758,6 +32396,144 @@ func (siw *ServerInterfaceWrapper) CreatePasswordChangeTicket(w http.ResponseWri
 	handler.ServeHTTP(w, r)
 }
 
+// GetTokenExchangeProfiles operation middleware
+func (siw *ServerInterfaceWrapper) GetTokenExchangeProfiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTokenExchangeProfilesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTokenExchangeProfiles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostTokenExchangeProfile operation middleware
+func (siw *ServerInterfaceWrapper) PostTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostTokenExchangeProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTokenExchangeProfile operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTokenExchangeProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTokenExchangeProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTokenExchangeProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchTokenExchangeProfile operation middleware
+func (siw *ServerInterfaceWrapper) PatchTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchTokenExchangeProfile(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteUserBlocksByIdentifier operation middleware
 func (siw *ServerInterfaceWrapper) DeleteUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request) {
 
@@ -33641,6 +34417,36 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/clients/{id}/rotate-secret", wrapper.RotateClientSecret)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/clients/{id}/credentials", wrapper.GetClientCredentials)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/clients/{id}/credentials", wrapper.PostClientCredentials)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/clients/{id}/credentials/{credential_id}", wrapper.DeleteClientCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/clients/{id}/credentials/{credential_id}", wrapper.GetClientCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/clients/{id}/credentials/{credential_id}", wrapper.PatchClientCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/token-exchange-profiles", wrapper.GetTokenExchangeProfiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/token-exchange-profiles", wrapper.PostTokenExchangeProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/token-exchange-profiles/{id}", wrapper.DeleteTokenExchangeProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/token-exchange-profiles/{id}", wrapper.GetTokenExchangeProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/token-exchange-profiles/{id}", wrapper.PatchTokenExchangeProfile)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/resource-servers", wrapper.GetResourceServers)

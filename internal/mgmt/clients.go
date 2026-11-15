@@ -505,6 +505,7 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 	infinite := !c.RefreshToken.Expiring
 	leeway := c.RefreshToken.Leeway
 	created := c.CreatedAt.UTC()
+	authMethod := mgmtapi.TokenEndpointAuthMethod(c.TokenEndpointAuthMethod)
 	v := mgmtapi.Client{
 		Tenant: tn.Name, ClientId: c.ClientID, Name: c.Name,
 		AppType: mgmtapi.AppType(c.AppType), IsFirstParty: c.IsFirstParty,
@@ -512,7 +513,7 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		Callbacks:      nonNil(c.Callbacks), AllowedLogoutUrls: nonNil(c.AllowedLogoutURLs),
 		WebOrigins: nonNil(c.WebOrigins), AllowedOrigins: nonNil(c.AllowedOrigins),
 		GrantTypes:              nonNil(c.GrantTypes),
-		TokenEndpointAuthMethod: mgmtapi.TokenEndpointAuthMethod(c.TokenEndpointAuthMethod),
+		TokenEndpointAuthMethod: &authMethod,
 		JwtConfiguration:        mgmtapi.JwtConfiguration{Alg: &alg, LifetimeInSeconds: &idTTL, SecretEncoded: &secretEncoded},
 		RefreshToken: mgmtapi.RefreshTokenSettings{
 			RotationType: &rotation, ExpirationType: &expiration, Leeway: &leeway,

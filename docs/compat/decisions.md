@@ -557,6 +557,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Discovery lists `request_parameter_supported: false`.
   - An empty `request=` is also refused. An unsupported `response_mode` inside the request object yields `invalid_request` (unsupported response_mode) rather than `request_not_supported`.
 - **Rationale:** a deliberate, temporary deviation from Auth0's discovery value until request objects (JAR) are implemented, together with `private_key_jwt` (follow-up). Refusing is what the spec requires of an OP that does not process request objects; ignoring them broke clients that put `state`, `nonce` or `response_mode` only in the object.
+- **Amended by Plan 35 (D-0063):** lifted for signed objects. A signed request object (JAR) is processed, discovery lists `request_parameter_supported: true`, and `/oauth/par` accepts a signed `request`. An unsigned object (`alg` none) is still refused with `request_not_supported` (LR35-4). The unsigned request-object conformance module therefore still ends SKIPPED.
 
 ## D-0036: OpenID conformance accepted warnings and skips
 
@@ -693,6 +694,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Stale scopes in consents:** removing a scope from an API with `PATCH` also removes it from every user grant (stored consent) for that audience, as it does from client grants. The grants stay, even with no scope left. Auth0's behaviour here was not observed.
   - **Create-only seed mode:** `seed_mode: create_only` (config key `seed_mode`, not a nested `seed.mode`, because `seed` is already the file path) makes the seed create what is missing and change nothing that exists. In that mode a tenant is not marked `seeded` (an existing seeded tenant loses the marker), so the console shows no banner. The default is `apply`.
 - **Open for the maintainer:** Auth0 names the system API "Auth0 Management API", and `auth0-deploy-cli` leaves it out of exports by that name. zeroauthy's is "zeroauthy Management API", so deploy-cli exports it as an ordinary API (its `is_system` flag still limits what deploy-cli updates). Matching the name would use Auth0's trademark beyond a nominative statement (CLEAN_ROOM.md).
+- **Amended by Plan 35 (D-0063), signing:** `signing_alg` is no longer RS256-only. `RS256`, `HS256` (with `signing_secret`, generated when absent, returned on read) and `PS256` are accepted on create and patch (LR35-8, C15 to C19). Every other statement of this decision stands.
 
 ## D-0042: Management API for database connections
 
@@ -3167,3 +3169,85 @@ domain. This matches Auth0's statement that a key used on another domain
 "leads to a new enrollment screen". If this browser has no WebAuthn, the login
 fails with no factor rather than falling back. An Action `enroll` request keeps
 its explicit factor list.
+
+## D-0063: Client credentials, private_key_jwt, JAR and custom token exchange contracts and local rulings
+
+**2026-11-14; Plan 35 Task 1.** Evidence: the sources in the Plan 35 spec §2
+(`docs/superpowers/specs/2026-11-08-zeroauthy-client-credentials-jar-token-exchange-design.md`),
+read 2026-11-08: Auth0's private_key_jwt, configure-private-key-jwt, JAR,
+configure-JAR, custom token exchange, attack protection for custom token
+exchange and API settings pages, the Management API client credentials and
+token exchange profile operations, RFC 7523, RFC 9101, RFC 8693 and RFC 7638.
+No tenant was observed; the documentation decides. The contracts are frozen in
+`api/management.yaml`, `api/authentication.yaml`,
+`internal/actionsrules/inventory.json` (trigger `custom-token-exchange`,
+handler `onExecuteCustomTokenExchange`, blocking, version `v1`;
+`api.transaction.setMetadata` unsupported) and the Management API scope list
+in `internal/tenantsetup/management.go`.
+
+**Scope.** Client credentials resource; the client settings
+`client_authentication_methods`, `signed_request_object` and `token_exchange`;
+`private_key_jwt` at the token, revoke, PAR, MFA challenge and passwordless
+start endpoints; JAR at `/authorize` and `/oauth/par`; token exchange profiles
+and the RFC 8693 grant with the `custom-token-exchange` trigger; `HS256` and
+`PS256` access tokens. Out of scope: mTLS (`cert_subject_dn`, `tls_client_auth`,
+`self_signed_tls_client_auth`), RAR, `token_quota` (Plan 48), JWE and DPoP.
+
+**Local rulings.**
+
+| Id | Ruling | Cost if wrong |
+| --- | --- | --- |
+| LR35-1 | `/oauth/par` accepts `private_key_jwt` (not on Auth0's supported-endpoints page; RFC 9126 authenticates PAR like the token endpoint) | An application that Auth0 would refuse at PAR succeeds here |
+| LR35-2 | No `expires_at` and no `parse_expiry_from_cert`: the credential never expires (docs text over the OpenAPI sample default) | A credential expires or not where Auth0 differs |
+| LR35-3 | A client assertion's `aud` is the issuer URL with its trailing slash or the exact URL of the endpoint that received it | A stricter Auth0 rejects an assertion zeroauthy accepts |
+| LR35-4 | Unsigned (`alg` none) request objects stay refused with `request_not_supported` | A client that sends unsigned objects keeps failing |
+| LR35-5 | JAR `typ` may be absent (also `JWT`, `jwt`, `oauth-authz-req+jwt`) | A header Auth0 refuses is accepted |
+| LR35-6 | `token_exchange` is refused at write time for third-party or non-OIDC-conformant applications | The failure moves from write to exchange time |
+| LR35-7 | A JAR `jti`, when present, is single-use (same replay table as client assertions) | A client that reuses one request object fails |
+| LR35-8 | `signing_alg` may be changed by Management API patch | Tokens signed with the current value after a change |
+| LR35-9 | An HS256 API's tokens omit the `/userinfo` audience; RS256 and PS256 keep it | An HS256 token cannot call `/userinfo` |
+
+**Observe later (C1 to C19)**; each has a local answer now, and the points are
+copied to `docs/superpowers/plan-1-followups.md`:
+
+- C1: whether the credential PEM is returned (local: never).
+- C2: the error for a third credential (local: 400).
+- C3: deleting an attached credential (local: allowed, detaches it).
+- C4: `private_key_jwt` alongside a non-null `token_endpoint_auth_method` (local: 400).
+- C5: the `token_exchange` write rule (LR35-6).
+- C6: the client-authentication log type.
+- C7: the JAR lifetime cap (local: 60 minutes).
+- C8: the profile limit (local: 100 per tenant, `403`).
+- C9: the Action delete wording when a profile binds it.
+- C10: public clients using custom token exchange (local: allowed).
+- C11: the consent-skip error (local: `403 access_denied`).
+- C12: neither `setUserById` nor `setUserByConnection` called (local: `server_error` class).
+- C13: login counters and `last_login` after an exchange (local: updated).
+- C14: the `setUserByConnection` defaults (local: `create_if_not_exists` / `none`).
+- C15: the minimum HS256 secret length (local: 16 characters).
+- C16: whether the secret is returned on read (local: yes).
+- C17: tokens after a `signing_alg` change (local: the current value signs).
+- C18: the `/userinfo` audience on HS256 tokens (LR35-9).
+- C19: the JWK `alg` for PS256 signing (local: the tenant key's JWK keeps `RS256`; if the pinned strict verifiers reject PS256 against it, the builder drops `alg` and records that here).
+
+**Execution rulings (Task 1).**
+
+- Management routes are served by 501 stubs (`client_credentials_unavailable`)
+  until their tasks land. That code stays the answer of a storage plugin
+  without `client_credentials.v1`. The new scopes are required by the
+  adapter now.
+- `PATCH /clients/{id}/credentials/{credential_id}` accepts `update:credentials`
+  or `update:client_credentials` (Auth0's page and OpenAPI name different
+  scopes).
+- `token_endpoint_auth_method` is nullable in the client schemas; the Go
+  model became a pointer and the response still always sets it until Task 6.
+  `private_key_jwt` is never stored there (`client_authentication_methods`
+  carries it).
+- The trigger inventory lists `custom-token-exchange` as creatable and
+  bindable (version `v1`, assumed to match Auth0). The runner's handler and
+  the dry-run test case arrive with the trigger task; until then the dry-run
+  case skips.
+- The discovery fields and the JAR parameter text describe the behaviour of
+  the finished plan; the server answers as before until Tasks 7 and 8.
+- Task 1 did not re-fetch the sources (spec research is six days old; cost if
+  wrong: a change in those days is missed until the next changelog review).

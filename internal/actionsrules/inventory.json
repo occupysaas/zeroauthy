@@ -1257,6 +1257,94 @@
         }
       ],
       "source_url": "https://auth0.com/docs/actions/reference/send-phone-message/send-phone-message-event-object"
+    },
+    {
+      "id": "custom-token-exchange",
+      "handler": "onExecuteCustomTokenExchange",
+      "blocking": true,
+      "version": "v1",
+      "event": [
+        "client",
+        "organization",
+        "request",
+        "resource_server",
+        "resource_server.identifier",
+        "secrets",
+        "tenant",
+        "tenant.id",
+        "transaction",
+        "transaction.subject_token",
+        "transaction.subject_token_type",
+        "transaction.actor_token",
+        "transaction.actor_token_type",
+        "transaction.actor_token_user",
+        "transaction.requested_scopes",
+        "transaction.requested_token_type"
+      ],
+      "api": [
+        {
+          "name": "access.deny",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "access.rejectInvalidSubjectToken",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "authentication.setUserById",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "authentication.setUserByConnection",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "authentication.setOrganization",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "authentication.setActor",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "user.setAppMetadata",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "user.setUserMetadata",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.setMetadata",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "Early Access upstream; refused as an unknown member (D-0063)"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/authenticate/custom-token-exchange"
     }
   ],
   "limits": {
@@ -1334,10 +1422,6 @@
     "custom_phone_provider_bindings_max": "https://auth0.com/docs/customize/phone-messages/configure-phone-messaging-providers/configure-a-custom-phone-provider/configure-a-custom-phone-provider-with-terraform"
   },
   "deferred_triggers": [
-    {
-      "id": "custom-token-exchange",
-      "plan": "35"
-    },
     {
       "id": "password-hash-migration",
       "plan": "deferred"

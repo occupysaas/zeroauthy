@@ -543,3 +543,25 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
   Confirm the exact cutoff with the maintainer before building.
   **Maintainer ruling (2026-11-08): leave as is.** A small issue; revisit only
   if a user reports it.
+
+## Plan 35 follow-ups
+
+### Client credentials, JAR and custom token exchange observation gaps (C1 to C19, observation optional)
+
+D-0063 froze a local answer for each point; observe later and change
+behaviour only where Auth0 is shown to differ: C1 whether the credential PEM
+is returned; C2 the error for a third credential; C3 deleting an attached
+credential; C4 `private_key_jwt` with a non-null `token_endpoint_auth_method`;
+C5 the `token_exchange` write rule; C6 the client-authentication log type; C7
+the JAR lifetime cap; C8 the token exchange profile limit; C9 the Action
+delete wording when a profile binds it; C10 public clients and custom token
+exchange; C11 the consent-skip error; C12 neither `setUser` call made; C13
+login counters after an exchange; C14 the `setUserByConnection` defaults; C15
+the minimum HS256 secret length; C16 whether the secret is returned on read;
+C17 tokens after a `signing_alg` change; C18 the `/userinfo` audience on HS256
+tokens; C19 the JWK `alg` for PS256 signing.
+
+- **Moved to Plan 48:** `token_quota` on clients and organizations and its
+  quota headers.
+- **Not built (D-0063):** mTLS client authentication, RAR, JWE access tokens,
+  DPoP, `api.transaction.setMetadata` for custom token exchange.

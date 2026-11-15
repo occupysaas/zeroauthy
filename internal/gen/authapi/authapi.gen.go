@@ -205,6 +205,21 @@ func (e MFAChallengeRequestChallengeType) Valid() bool {
 	}
 }
 
+// Defines values for MFAChallengeRequestClientAssertionType.
+const (
+	MFAChallengeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer MFAChallengeRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the MFAChallengeRequestClientAssertionType enum.
+func (e MFAChallengeRequestClientAssertionType) Valid() bool {
+	switch e {
+	case MFAChallengeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MFAChallengeResponseBindingMethod.
 const (
 	MFAChallengeResponseBindingMethodPrompt MFAChallengeResponseBindingMethod = "prompt"
@@ -253,6 +268,48 @@ func (e MFARequiredError) Valid() bool {
 	}
 }
 
+// Defines values for OpenIDConfigurationRequestObjectSigningAlgValuesSupported.
+const (
+	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedPS256 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "PS256"
+	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS256 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "RS256"
+	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS384 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "RS384"
+)
+
+// Valid indicates whether the value is a known member of the OpenIDConfigurationRequestObjectSigningAlgValuesSupported enum.
+func (e OpenIDConfigurationRequestObjectSigningAlgValuesSupported) Valid() bool {
+	switch e {
+	case OpenIDConfigurationRequestObjectSigningAlgValuesSupportedPS256:
+		return true
+	case OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS256:
+		return true
+	case OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS384:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported.
+const (
+	OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedPS256 OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported = "PS256"
+	OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS256 OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported = "RS256"
+	OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS384 OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported = "RS384"
+)
+
+// Valid indicates whether the value is a known member of the OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported enum.
+func (e OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported) Valid() bool {
+	switch e {
+	case OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedPS256:
+		return true
+	case OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS256:
+		return true
+	case OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS384:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PasskeyNotFoundError.
 const (
 	NotFound PasskeyNotFoundError = "not_found"
@@ -270,13 +327,13 @@ func (e PasskeyNotFoundError) Valid() bool {
 
 // Defines values for PasswordlessStartRequestClientAssertionType.
 const (
-	UrnIetfParamsOauthClientAssertionTypeJwtBearer PasswordlessStartRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+	PasswordlessStartRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer PasswordlessStartRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 )
 
 // Valid indicates whether the value is a known member of the PasswordlessStartRequestClientAssertionType enum.
 func (e PasswordlessStartRequestClientAssertionType) Valid() bool {
 	switch e {
-	case UrnIetfParamsOauthClientAssertionTypeJwtBearer:
+	case PasswordlessStartRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
 		return true
 	default:
 		return false
@@ -319,6 +376,21 @@ func (e PasswordlessStartRequestSend) Valid() bool {
 	}
 }
 
+// Defines values for PushedAuthorizationRequestClientAssertionType.
+const (
+	PushedAuthorizationRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer PushedAuthorizationRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the PushedAuthorizationRequestClientAssertionType enum.
+func (e PushedAuthorizationRequestClientAssertionType) Valid() bool {
+	switch e {
+	case PushedAuthorizationRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PushedAuthorizationResponseExpiresIn.
 const (
 	N30 PushedAuthorizationResponseExpiresIn = 30
@@ -328,6 +400,36 @@ const (
 func (e PushedAuthorizationResponseExpiresIn) Valid() bool {
 	switch e {
 	case N30:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RevokeRequestClientAssertionType.
+const (
+	RevokeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer RevokeRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the RevokeRequestClientAssertionType enum.
+func (e RevokeRequestClientAssertionType) Valid() bool {
+	switch e {
+	case RevokeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TokenRequestClientAssertionType.
+const (
+	TokenRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer TokenRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the TokenRequestClientAssertionType enum.
+func (e TokenRequestClientAssertionType) Valid() bool {
+	switch e {
+	case TokenRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
 		return true
 	default:
 		return false
@@ -517,15 +619,20 @@ type MFAAuthenticatorAuthenticatorType string
 
 // MFAChallengeRequest defines model for MFAChallengeRequest.
 type MFAChallengeRequest struct {
-	AuthenticatorId *string                          `json:"authenticator_id,omitempty"`
-	ChallengeType   MFAChallengeRequestChallengeType `json:"challenge_type"`
-	ClientId        *string                          `json:"client_id,omitempty"`
-	ClientSecret    *string                          `json:"client_secret,omitempty"`
-	MfaToken        *string                          `json:"mfa_token,omitempty"`
+	AuthenticatorId     *string                                 `json:"authenticator_id,omitempty"`
+	ChallengeType       MFAChallengeRequestChallengeType        `json:"challenge_type"`
+	ClientAssertion     *string                                 `json:"client_assertion,omitempty"`
+	ClientAssertionType *MFAChallengeRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                                 `json:"client_id,omitempty"`
+	ClientSecret        *string                                 `json:"client_secret,omitempty"`
+	MfaToken            *string                                 `json:"mfa_token,omitempty"`
 }
 
 // MFAChallengeRequestChallengeType defines model for MFAChallengeRequest.ChallengeType.
 type MFAChallengeRequestChallengeType string
+
+// MFAChallengeRequestClientAssertionType defines model for MFAChallengeRequest.ClientAssertionType.
+type MFAChallengeRequestClientAssertionType string
 
 // MFAChallengeResponse defines model for MFAChallengeResponse.
 type MFAChallengeResponse struct {
@@ -594,20 +701,34 @@ type OpenIDConfiguration struct {
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
 
-	// RequestParameterSupported Always false: request objects are refused with `request_not_supported`.
+	// RequestObjectSigningAlgValuesSupported Algorithms accepted for request objects; present with Plan 35.
+	RequestObjectSigningAlgValuesSupported *[]OpenIDConfigurationRequestObjectSigningAlgValuesSupported `json:"request_object_signing_alg_values_supported,omitempty"`
+
+	// RequestParameterSupported True once Plan 35 lands (D-0063, lifting D-0035): signed request objects are processed.
 	RequestParameterSupported *bool `json:"request_parameter_supported,omitempty"`
 
 	// RequestUriParameterSupported Always false: `request_uri` is accepted only from `/oauth/par`.
-	RequestUriParameterSupported      *bool     `json:"request_uri_parameter_supported,omitempty"`
-	ResponseModesSupported            *[]string `json:"response_modes_supported,omitempty"`
-	ResponseTypesSupported            []string  `json:"response_types_supported"`
-	RevocationEndpoint                *string   `json:"revocation_endpoint,omitempty"`
-	ScopesSupported                   *[]string `json:"scopes_supported,omitempty"`
-	SubjectTypesSupported             []string  `json:"subject_types_supported"`
-	TokenEndpoint                     string    `json:"token_endpoint"`
+	RequestUriParameterSupported *bool     `json:"request_uri_parameter_supported,omitempty"`
+	ResponseModesSupported       *[]string `json:"response_modes_supported,omitempty"`
+	ResponseTypesSupported       []string  `json:"response_types_supported"`
+	RevocationEndpoint           *string   `json:"revocation_endpoint,omitempty"`
+	ScopesSupported              *[]string `json:"scopes_supported,omitempty"`
+	SubjectTypesSupported        []string  `json:"subject_types_supported"`
+	TokenEndpoint                string    `json:"token_endpoint"`
+
+	// TokenEndpointAuthMethodsSupported Adds `private_key_jwt` with Plan 35.
 	TokenEndpointAuthMethodsSupported *[]string `json:"token_endpoint_auth_methods_supported,omitempty"`
-	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
+
+	// TokenEndpointAuthSigningAlgValuesSupported Algorithms accepted for client assertions; present with Plan 35.
+	TokenEndpointAuthSigningAlgValuesSupported *[]OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
+	UserinfoEndpoint                           *string                                                          `json:"userinfo_endpoint,omitempty"`
 }
+
+// OpenIDConfigurationRequestObjectSigningAlgValuesSupported defines model for OpenIDConfiguration.RequestObjectSigningAlgValuesSupported.
+type OpenIDConfigurationRequestObjectSigningAlgValuesSupported string
+
+// OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported defines model for OpenIDConfiguration.TokenEndpointAuthSigningAlgValuesSupported.
+type OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported string
 
 // PasskeyChallengeRequest defines model for PasskeyChallengeRequest.
 type PasskeyChallengeRequest struct {
@@ -709,15 +830,25 @@ type PasswordlessStartResponse struct {
 
 // PushedAuthorizationRequest The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
 type PushedAuthorizationRequest struct {
-	Audience             *string           `json:"audience,omitempty"`
-	ClientId             *string           `json:"client_id,omitempty"`
-	ClientSecret         *string           `json:"client_secret,omitempty"`
-	RedirectUri          *string           `json:"redirect_uri,omitempty"`
+	Audience *string `json:"audience,omitempty"`
+
+	// ClientAssertion A signed client assertion JWT (`private_key_jwt`).
+	ClientAssertion     *string                                        `json:"client_assertion,omitempty"`
+	ClientAssertionType *PushedAuthorizationRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                                        `json:"client_id,omitempty"`
+	ClientSecret        *string                                        `json:"client_secret,omitempty"`
+	RedirectUri         *string                                        `json:"redirect_uri,omitempty"`
+
+	// Request A signed request object (JAR).
+	Request              *string           `json:"request,omitempty"`
 	ResponseType         *string           `json:"response_type,omitempty"`
 	Scope                *string           `json:"scope,omitempty"`
 	State                *string           `json:"state,omitempty"`
 	AdditionalProperties map[string]string `json:"-"`
 }
+
+// PushedAuthorizationRequestClientAssertionType defines model for PushedAuthorizationRequest.ClientAssertionType.
+type PushedAuthorizationRequestClientAssertionType string
 
 // PushedAuthorizationResponse defines model for PushedAuthorizationResponse.
 type PushedAuthorizationResponse struct {
@@ -732,8 +863,10 @@ type PushedAuthorizationResponseExpiresIn int
 
 // RevokeRequest defines model for RevokeRequest.
 type RevokeRequest struct {
-	ClientId     *string `json:"client_id,omitempty"`
-	ClientSecret *string `json:"client_secret,omitempty"`
+	ClientAssertion     *string                           `json:"client_assertion,omitempty"`
+	ClientAssertionType *RevokeRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                           `json:"client_id,omitempty"`
+	ClientSecret        *string                           `json:"client_secret,omitempty"`
 
 	// Token The refresh token to revoke.
 	Token string `json:"token"`
@@ -741,6 +874,9 @@ type RevokeRequest struct {
 	// TokenTypeHint Accepted and ignored; only refresh tokens can be revoked.
 	TokenTypeHint *string `json:"token_type_hint,omitempty"`
 }
+
+// RevokeRequestClientAssertionType defines model for RevokeRequest.ClientAssertionType.
+type RevokeRequestClientAssertionType string
 
 // SignupFormRequest The form-encoded variant of SignupRequest. Form bodies cannot carry
 // the `user_metadata` object.
@@ -800,13 +936,23 @@ type SignupResponse struct {
 
 // TokenRequest defines model for TokenRequest.
 type TokenRequest struct {
+	// ActorToken Optional token of the acting party (token-exchange grant). Never logged.
+	ActorToken *string `json:"actor_token,omitempty"`
+
+	// ActorTokenType Required with `actor_token`.
+	ActorTokenType *string `json:"actor_token_type,omitempty"`
+
 	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
 	Audience      *string                     `json:"audience,omitempty"`
 	AuthSession   *string                     `json:"auth_session,omitempty"`
 	AuthnResponse *TokenRequest_AuthnResponse `json:"authn_response,omitempty"`
 	BindingCode   *string                     `json:"binding_code,omitempty"`
-	ClientId      *string                     `json:"client_id,omitempty"`
-	ClientSecret  *string                     `json:"client_secret,omitempty"`
+
+	// ClientAssertion A signed JWT that authenticates the application (`private_key_jwt`, RFC 7523). At most 2048 bytes; never logged.
+	ClientAssertion     *string                          `json:"client_assertion,omitempty"`
+	ClientAssertionType *TokenRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                          `json:"client_id,omitempty"`
+	ClientSecret        *string                          `json:"client_secret,omitempty"`
 
 	// Code Authorization code (grant_type=authorization_code).
 	Code *string `json:"code,omitempty"`
@@ -836,8 +982,17 @@ type TokenRequest struct {
 	// RefreshToken Refresh token (grant_type=refresh_token).
 	RefreshToken *string `json:"refresh_token,omitempty"`
 
+	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
+
+	// SubjectToken The external token to exchange (token-exchange grant). Never logged.
+	SubjectToken *string `json:"subject_token,omitempty"`
+
+	// SubjectTokenType Identifies the kind of `subject_token`; it selects the token exchange profile (token-exchange grant).
+	SubjectTokenType *string `json:"subject_token_type,omitempty"`
 
 	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
 	Username *string `json:"username,omitempty"`
@@ -853,6 +1008,9 @@ type TokenRequestAuthnResponse1 map[string]interface{}
 type TokenRequest_AuthnResponse struct {
 	union json.RawMessage
 }
+
+// TokenRequestClientAssertionType defines model for TokenRequest.ClientAssertionType.
+type TokenRequestClientAssertionType string
 
 // TokenResponse defines model for TokenResponse.
 type TokenResponse struct {
@@ -950,7 +1108,7 @@ type AuthorizeParams struct {
 	// RequestUri A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match.
 	RequestUri *string `form:"request_uri,omitempty" json:"request_uri,omitempty"`
 
-	// Request A request object (JAR). Not supported: refused with `request_not_supported` (`invalid_request` for strict third-party applications).
+	// Request A signed request object (JAR, RFC 9101): a JWS signed with RS256, RS384 or PS256 by a credential of the application's `signed_request_object`. Its parameters win over the query; `client_id` in the query must equal its `iss`. A bad signature or claim is `invalid_request_object`; an unsigned object (`alg` none) is refused with `request_not_supported` (LR35-4, D-0063). An application whose `signed_request_object.required` is true must send one (`invalid_request`).
 	Request *string `form:"request,omitempty" json:"request,omitempty"`
 
 	// Organization An organization ID, or its name while the tenant's `allow_organization_name_in_authentication_api` is on (the ID is matched first). An empty value counts as absent. Refused with `invalid_request` when the application's `organization_usage` is `deny`, when the organization is unknown, or when a name is sent while names are off; a third-party application facing an organization that blocks third-party access gets `access_denied`. An application with `organization_usage` `require` and `no_prompt` must send one. With `request_uri`, only the pushed value counts (D-0055).
@@ -1238,6 +1396,22 @@ func (a *PushedAuthorizationRequest) UnmarshalJSON(b []byte) error {
 		delete(object, "audience")
 	}
 
+	if raw, found := object["client_assertion"]; found {
+		err = json.Unmarshal(raw, &a.ClientAssertion)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_assertion': %w", err)
+		}
+		delete(object, "client_assertion")
+	}
+
+	if raw, found := object["client_assertion_type"]; found {
+		err = json.Unmarshal(raw, &a.ClientAssertionType)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_assertion_type': %w", err)
+		}
+		delete(object, "client_assertion_type")
+	}
+
 	if raw, found := object["client_id"]; found {
 		err = json.Unmarshal(raw, &a.ClientId)
 		if err != nil {
@@ -1260,6 +1434,14 @@ func (a *PushedAuthorizationRequest) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'redirect_uri': %w", err)
 		}
 		delete(object, "redirect_uri")
+	}
+
+	if raw, found := object["request"]; found {
+		err = json.Unmarshal(raw, &a.Request)
+		if err != nil {
+			return fmt.Errorf("error reading 'request': %w", err)
+		}
+		delete(object, "request")
 	}
 
 	if raw, found := object["response_type"]; found {
@@ -1312,6 +1494,20 @@ func (a PushedAuthorizationRequest) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if a.ClientAssertion != nil {
+		object["client_assertion"], err = json.Marshal(a.ClientAssertion)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_assertion': %w", err)
+		}
+	}
+
+	if a.ClientAssertionType != nil {
+		object["client_assertion_type"], err = json.Marshal(a.ClientAssertionType)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_assertion_type': %w", err)
+		}
+	}
+
 	if a.ClientId != nil {
 		object["client_id"], err = json.Marshal(a.ClientId)
 		if err != nil {
@@ -1330,6 +1526,13 @@ func (a PushedAuthorizationRequest) MarshalJSON() ([]byte, error) {
 		object["redirect_uri"], err = json.Marshal(a.RedirectUri)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'redirect_uri': %w", err)
+		}
+	}
+
+	if a.Request != nil {
+		object["request"], err = json.Marshal(a.Request)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'request': %w", err)
 		}
 	}
 

@@ -314,3 +314,84 @@ func TestPasskeyWireContracts(t *testing.T) {
 		}
 	}
 }
+
+// Plan 35 freezes the credential, profile and client-authentication
+// contracts (D-0063); later tasks implement them.
+func TestClientAuthContracts(t *testing.T) {
+	mgmt, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ops := map[string]string{
+		"/api/v2/clients/{id}/credentials GET":                    "getClientCredentials",
+		"/api/v2/clients/{id}/credentials POST":                   "postClientCredentials",
+		"/api/v2/clients/{id}/credentials/{credential_id} GET":    "getClientCredential",
+		"/api/v2/clients/{id}/credentials/{credential_id} PATCH":  "patchClientCredential",
+		"/api/v2/clients/{id}/credentials/{credential_id} DELETE": "deleteClientCredential",
+		"/api/v2/token-exchange-profiles GET":                     "getTokenExchangeProfiles",
+		"/api/v2/token-exchange-profiles POST":                    "postTokenExchangeProfile",
+		"/api/v2/token-exchange-profiles/{id} GET":                "getTokenExchangeProfile",
+		"/api/v2/token-exchange-profiles/{id} PATCH":              "patchTokenExchangeProfile",
+		"/api/v2/token-exchange-profiles/{id} DELETE":             "deleteTokenExchangeProfile",
+	}
+	for key, id := range ops {
+		path, method, _ := strings.Cut(key, " ")
+		item := mgmt.Paths.Find(path)
+		if item == nil {
+			t.Errorf("%s missing", path)
+			continue
+		}
+		if op := item.GetOperation(method); op == nil || op.OperationID != id {
+			t.Errorf("%s %s: operation id is not %s", method, path, id)
+		}
+	}
+	for _, schema := range []struct {
+		name  string
+		props []string
+	}{
+		{"Client", []string{"client_authentication_methods", "signed_request_object", "token_exchange"}},
+		{"ClientSettings", []string{"client_authentication_methods", "signed_request_object", "token_exchange"}},
+		{"ClientCredential", []string{"id", "kid", "alg", "credential_type", "thumbprint_sha256", "expires_at"}},
+		{"TokenExchangeProfile", []string{"id", "name", "subject_token_type", "action_id", "type"}},
+		{"ResourceServerSettings", []string{"signing_alg", "signing_secret"}},
+	} {
+		s := mgmt.Components.Schemas[schema.name]
+		if s == nil {
+			t.Errorf("schema %s missing", schema.name)
+			continue
+		}
+		for _, p := range schema.props {
+			if s.Value.Properties[p] == nil {
+				t.Errorf("%s.%s missing", schema.name, p)
+			}
+		}
+	}
+	if enum := mgmt.Components.Schemas["ResourceServerSettings"].Value.Properties["signing_alg"].Value.Enum; len(enum) != 3 {
+		t.Errorf("signing_alg enum = %v, want RS256, HS256, PS256", enum)
+	}
+	if alg := mgmt.Components.Schemas["ClientCredentialAlg"].Value.Enum; len(alg) != 3 {
+		t.Errorf("credential alg enum = %v, want RS256, RS384, PS256", alg)
+	}
+
+	auth, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := auth.Components.Schemas["TokenRequest"].Value
+	for _, p := range []string{"client_assertion", "client_assertion_type", "subject_token", "subject_token_type", "actor_token", "actor_token_type", "requested_token_type"} {
+		if token.Properties[p] == nil {
+			t.Errorf("TokenRequest.%s missing", p)
+		}
+	}
+	for _, p := range []string{"client_assertion", "client_assertion_type", "request"} {
+		if auth.Components.Schemas["PushedAuthorizationRequest"].Value.Properties[p] == nil {
+			t.Errorf("PushedAuthorizationRequest.%s missing", p)
+		}
+	}
+	discovery := auth.Components.Schemas["OpenIDConfiguration"].Value
+	for _, p := range []string{"request_parameter_supported", "request_object_signing_alg_values_supported", "token_endpoint_auth_signing_alg_values_supported"} {
+		if discovery.Properties[p] == nil {
+			t.Errorf("OpenIDConfiguration.%s missing", p)
+		}
+	}
+}
