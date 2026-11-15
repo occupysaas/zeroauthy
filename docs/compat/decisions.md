@@ -3251,3 +3251,25 @@ copied to `docs/superpowers/plan-1-followups.md`:
   the finished plan; the server answers as before until Tasks 7 and 8.
 - Task 1 did not re-fetch the sources (spec research is six days old; cost if
   wrong: a change in those days is missed until the next changelog review).
+
+**Execution rulings (Task 12, the grant).**
+
+- The grant is gated by the client's `token_exchange` setting, not by
+  `grant_types` (which cannot name it). Without `client_credentials.v1` it
+  answers `unsupported_grant_type`.
+- A user the Action selects that does not exist, a `creationBehavior: none`
+  miss, a changed `email`, `email_verified`, `phone_number`, `phone_verified`
+  or `username`, and a request `organization` that differs from
+  `setOrganization` are `400 invalid_request`; a blocked user is
+  `invalid_grant`.
+- `setUserByConnection` accepts database connections only (not import-mode
+  custom databases); users are created through the passwordless user-create
+  path, with registration Actions and an `ss` log. `verify_email` is not acted
+  on yet (follow-up).
+- A post-login `challengeWith`/`enrollWith` or `multifactor.enable` with a
+  provider other than `none` is `403 access_denied`; the tenant's own MFA
+  policy is not applied to the exchange.
+- Access tokens carry no `gty`; `event.transaction.protocol` is
+  `oauth2-token-exchange`.
+- `actor_token_user` is set only for an unexpired ID token this tenant signed
+  for one of its applications (no `azp`, `gty`, `client_id` or `scope`).

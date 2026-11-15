@@ -54,6 +54,8 @@ type AccessTokenParams struct {
 	// ignored otherwise.
 	SigningAlg    string
 	SigningSecret []byte
+	// Actor, when set, is the RFC 8693 act claim (custom token exchange).
+	Actor map[string]any
 }
 
 type accessTokenClaims struct {
@@ -69,6 +71,9 @@ type accessTokenClaims struct {
 	GrantType       string    `json:"gty,omitempty"`
 	ID              string    `json:"jti"`
 	Operator        []string  `json:"https://zeroauthy.dev/operator,omitempty"`
+	// Actor is the RFC 8693 act claim: the acting party, its earlier actors
+	// nested under act.
+	Actor map[string]any `json:"act,omitempty"`
 }
 
 // audience encodes as a string when it has one element and as an array
@@ -137,6 +142,7 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 		GrantType:       p.GrantType,
 		ID:              secrets.RandomString(24),
 		Operator:        p.Operator,
+		Actor:           p.Actor,
 	}
 	if authz && p.IncludePermissions {
 		permissions := append([]string{}, p.Permissions...)

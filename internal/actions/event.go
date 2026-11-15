@@ -23,6 +23,8 @@ const (
 	ProtocolResourceOwner     = "oauth2-resource-owner"
 	ProtocolRefreshToken      = "oauth2-refresh-token"
 	ProtocolClientCredentials = "oauth2-client-credentials"
+	// ProtocolTokenExchange identifies custom token exchange (Plan 35).
+	ProtocolTokenExchange = "oauth2-token-exchange"
 )
 
 // RequestInfo is event.request: the HTTP request that triggered the flow.
@@ -171,7 +173,7 @@ func obj(m map[string]any) map[string]any {
 // allowlist: Auth0 passes the request body, and Actions read non-secret
 // custom parameters from it. Every token grant's credentials must be
 // listed; oauth's TestActionsBodyStripsEveryGrant enforces that.
-var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code", "auth_session", "authn_response", "clientDataJSON", "attestationObject", "authenticatorData", "signature", "userHandle", "user_handle", "challenge_id"}
+var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code", "auth_session", "authn_response", "clientDataJSON", "attestationObject", "authenticatorData", "signature", "userHandle", "user_handle", "challenge_id", "subject_token", "actor_token"}
 
 // StripCredentials is body without its credentials (the authorization code
 // grant's code is one too), as event.request.body carries it.

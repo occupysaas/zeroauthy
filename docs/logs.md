@@ -271,6 +271,7 @@ semantics before enabling a code.
 | `fdu` | An account removal failed. |
 | `feacft` | An authorization code could not issue tokens. |
 | `feccft` | A client-credentials request could not issue tokens. |
+| `fecte` | A custom token grant could not issue tokens. |
 | `fede` | A device-code grant could not issue tokens. |
 | `fepft` | A resource-owner password grant was refused. |
 | `fercft` | A password grant with an MFA recovery credential was refused. |
@@ -306,6 +307,7 @@ semantics before enabling a code.
 | `sdu` | An account was removed. |
 | `seacft` | An authorization code issued tokens. |
 | `seccft` | A client-credentials request issued tokens. |
+| `secte` | A custom token grant issued tokens. |
 | `sede` | A device-code grant issued tokens. |
 | `sepft` | A resource-owner password grant issued tokens. |
 | `sertft` | A refresh credential issued tokens. |
@@ -414,7 +416,6 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `fd` | A delegation credential could not be created. | Plan 38 |
 | `fdeleacft` | A delegated authorization code could not issue tokens. | Plan 38 |
 | `fdelsa` | Delegated authentication without interaction was refused. | Plan 38 |
-| `fecte` | A custom token grant could not issue tokens. | Plan 35 |
 | `federated_logout_failed` | The external identity provider could not complete sign-out. | Plan 41 |
 | `fens` | A native social provider exchange was refused. | Plan 44 |
 | `fepotpft` | A passwordless one-time grant was refused. | Plan 34 |
@@ -456,7 +457,6 @@ remain deferred within Plan 31 because safe source classifications are absent.
 | `sdel` | A delegated sign-in completed. | Plan 38 |
 | `sdeleacft` | A delegated authorization code issued tokens. | Plan 38 |
 | `sdelsa` | Delegated authentication without interaction completed. | Plan 38 |
-| `secte` | A custom token grant issued tokens. | Plan 35 |
 | `sens` | A native social provider exchange completed. | Plan 44 |
 | `seta` | Token Vault exchanged the supplied credential. | Plan 43 |
 | `ss_sso_failure` | A self-service SSO operation failed. | Plan 38 |

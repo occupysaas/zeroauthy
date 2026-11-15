@@ -50,8 +50,8 @@ are visible to later Actions. Absent features are not synthesized.
 
 Protocols are `oidc-basic-profile`, `oauth2-device-code`, `oauth2-password`
 (plain password), `oauth2-resource-owner` (password-realm),
-`oauth2-refresh-token`, `oauth2-client-credentials` and `oauth2-webauthn`
-(the native passkey grant). Browser authorization
+`oauth2-refresh-token`, `oauth2-client-credentials`, `oauth2-webauthn`
+(the native passkey grant) and `oauth2-token-exchange` (custom token exchange). Browser authorization
 passes the authorization query and an empty body. Internal `za_*` query keys
 are omitted. Token request bodies omit password, client secret/assertion,
 PKCE verifier, refresh token, device code and authorization code credentials.

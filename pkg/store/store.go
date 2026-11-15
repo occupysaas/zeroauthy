@@ -328,10 +328,11 @@ var CloneSettings = store.CloneSettings
 var ValidateProtectionSecrets = store.ValidateProtectionSecrets
 
 const (
-	ProtectionBruteForce               = store.ProtectionBruteForce
-	ProtectionSuspiciousIPLogin        = store.ProtectionSuspiciousIPLogin
-	ProtectionSuspiciousIPRegistration = store.ProtectionSuspiciousIPRegistration
-	ProtectionResetMail                = store.ProtectionResetMail
+	ProtectionBruteForce                = store.ProtectionBruteForce
+	ProtectionSuspiciousIPLogin         = store.ProtectionSuspiciousIPLogin
+	ProtectionSuspiciousIPRegistration  = store.ProtectionSuspiciousIPRegistration
+	ProtectionSuspiciousIPTokenExchange = store.ProtectionSuspiciousIPTokenExchange
+	ProtectionResetMail                 = store.ProtectionResetMail
 )
 
 var ErrRBACUnavailable = store.ErrRBACUnavailable

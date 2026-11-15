@@ -134,7 +134,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 			return err
 		}
 		t = next
-		p, err := tx.loadProtection(ctx, t.ID, " AND kind IN (?,?,?)", store.ProtectionBruteForce, store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration)
+		p, err := tx.loadProtection(ctx, t.ID, " AND kind IN (?,?,?,?)", store.ProtectionBruteForce, store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration, store.ProtectionSuspiciousIPTokenExchange)
 		if err != nil {
 			return err
 		}

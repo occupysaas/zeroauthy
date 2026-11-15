@@ -151,6 +151,9 @@ type userTokens struct {
 	// effects are the post-login flow's: custom claims and accessToken
 	// scope edits. nil when no Action ran.
 	effects *actions.Effects
+	// actor is the access token's act claim (custom token exchange); nil
+	// omits it.
+	actor map[string]any
 }
 
 // mintUserTokens returns an access token and, with scope openid, an ID
@@ -244,7 +247,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
 		ClientID: c.ClientID, Scopes: final, Lifetime: ut.lifetime, GrantType: ut.grantType,
 		Operator: operator, TokenDialect: dialect, Permissions: auth.Permissions, IncludePermissions: auth.IncludePermissions,
-		CustomClaims: accessClaims,
+		CustomClaims: accessClaims, Actor: ut.actor,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
