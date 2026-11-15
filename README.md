@@ -423,7 +423,7 @@ Releases are manual: a tagged commit pushed to the `release` branch, then a main
 ## Development
 
 ```bash
-make test           # unit + contract + storage conformance tests (memory and SQLite)
+make test           # unit + contract + storage conformance tests (memory and SQLite; Node 25+ on PATH runs the profile script tests, which skip without it)
 make test-sql       # SQL driver tests against PostgreSQL 17 and MySQL 8.4 containers (needs podman or docker)
 make generate       # regenerate code from api/authentication.yaml and api/management.yaml
 make console        # lint, test and rebuild the admin console (needs Node 22+; then make build to embed it)
