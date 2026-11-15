@@ -307,6 +307,8 @@ func errorID(err error) string {
 		return "invalid_api_call"
 	case errors.Is(err, ErrRedirectNotAllowed):
 		return "redirect_not_allowed"
+	case errors.Is(err, ErrNoUserSelected):
+		return "no_user_selected"
 	case errors.Is(err, ErrTimeout):
 		return "timeout"
 	case errors.Is(err, ErrClaimsTooLarge):
@@ -401,6 +403,9 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 			failure = err
 			last := &ex.Results[len(ex.Results)-1]
 			last.ErrorID, last.ErrorMsg = "internal_error", "the flow's metadata is invalid"
+			if errors.Is(err, ErrNoUserSelected) {
+				last.ErrorID, last.ErrorMsg = errorID(err), err.Error()
+			}
 			failed = last.ActionName
 		}
 	}
@@ -598,7 +603,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		// mutate business commands (claims, metadata, cache or redirect URLs).
 		if c.Op == "access.deny" || c.Op == "validation.error" || strings.HasPrefix(c.Op, "notification.") {
 			start := 0
-			if c.Op == "validation.error" || (c.Op == "access.deny" && f.trigger == TriggerCredentialsExchange) {
+			if c.Op == "validation.error" || (c.Op == "access.deny" && denyHasCode(f.trigger)) {
 				start = 1
 			}
 			for i := start; i < len(c.Args); i++ {
@@ -617,7 +622,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 			// apply receives the original-credential-masked message, before any
 			// protocol truncation. Keep only bounded operator display metadata.
 			reasonIndex := 0
-			if f.trigger == TriggerCredentialsExchange {
+			if denyHasCode(f.trigger) {
 				reasonIndex = 1
 			}
 			var reason string
@@ -643,6 +648,11 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	f.cache.apply(e.now(), f.acc.cache)
 	f.acc.cache = nil
 	return out, nil
+}
+
+// denyHasCode reports triggers whose access.deny takes (code, reason).
+func denyHasCode(trigger string) bool {
+	return trigger == TriggerCredentialsExchange || trigger == TriggerCustomTokenExchange
 }
 
 // maskedError keeps a cause for errors.Is with its message masked.

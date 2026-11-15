@@ -95,6 +95,7 @@ type accum struct {
 	denied       *Denial
 	redirect     *Redirect
 	cache        []cacheOp // of the current Action
+	cte          *cteAccum // custom-token-exchange only
 }
 
 func newAccum(trigger string, target []string, txnMeta map[string]any, canRedirect bool) *accum {
@@ -103,6 +104,9 @@ func newAccum(trigger string, target []string, txnMeta map[string]any, canRedire
 		a.target = []string{}
 	}
 	a.eff.TxnMetadata = maps.Clone(txnMeta)
+	if trigger == TriggerCustomTokenExchange {
+		a.cte = &cteAccum{}
+	}
 	return a
 }
 
@@ -281,6 +285,9 @@ func (a *accum) apply(c command) error {
 		return a.setTxnMetadata(c)
 	case "user.setAppMetadata", "user.setUserMetadata":
 		return a.setUserMetadata(c)
+	case "access.rejectInvalidSubjectToken", "authentication.setUserById", "authentication.setUserByConnection",
+		"authentication.setOrganization", "authentication.setActor":
+		return a.applyTokenExchange(c)
 	case "cache.set":
 		return a.cacheSet(c)
 	case "cache.delete":
@@ -319,6 +326,24 @@ func (a *accum) setDenial(d *Denial) {
 }
 
 func (a *accum) deny(c command) error {
+	if a.trigger == TriggerCustomTokenExchange {
+		if err := argCount(c, 1, 2); err != nil {
+			return err
+		}
+		code, err := argString(c, 0, "code")
+		if err != nil {
+			return err
+		}
+		if err := checkCode(c.Op, code); err != nil {
+			return err
+		}
+		reason, err := optString(c, 1, "reason")
+		if err != nil {
+			return err
+		}
+		a.setDenial(&Denial{Code: code, Reason: sanitizeReason(reason)})
+		return nil
+	}
 	if a.trigger == TriggerCredentialsExchange {
 		if err := argCount(c, 1, 2); err != nil {
 			return err
@@ -590,4 +615,158 @@ func redirectQuery(c command) (map[string]string, error) {
 		}
 	}
 	return query, nil
+}
+
+// Limits and documented values of the custom-token-exchange api.
+const (
+	maxActorDepth      = 5
+	maxActorProperties = 5
+	maxRefBytes        = 1024
+)
+
+// connectionAttributes are the documented setUserByConnection attributes;
+// user_id is required. The bool ones take a boolean, the rest a string.
+var connectionAttributes = map[string]bool{
+	"user_id": false, "email": false, "email_verified": true, "phone": false, "phone_number": false, "phone_verified": true,
+	"username": false, "name": false, "given_name": false, "family_name": false, "nickname": false, "picture": false,
+}
+
+func (a *accum) applyTokenExchange(c command) error {
+	if a.cte == nil {
+		return invalid(c.Op, "not available in the %s trigger", a.trigger)
+	}
+	switch c.Op {
+	case "access.rejectInvalidSubjectToken":
+		if err := argCount(c, 0, 1); err != nil {
+			return err
+		}
+		if _, err := optString(c, 0, "reason"); err != nil {
+			return err
+		}
+		a.cte.rejected = true
+	case "authentication.setUserById":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		id, err := argRef(c, 0, "user id")
+		if err != nil {
+			return err
+		}
+		a.cte.selectUser(id, "", nil, "", "")
+	case "authentication.setUserByConnection":
+		return a.setUserByConnection(c)
+	case "authentication.setOrganization":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		ref, err := argRef(c, 0, "organization id or name")
+		if err != nil {
+			return err
+		}
+		a.cte.result.OrganizationRef = ref
+	case "authentication.setActor":
+		if err := argCount(c, 1, 1); err != nil {
+			return err
+		}
+		var actor map[string]any
+		if json.Unmarshal(c.Args[0], &actor) != nil || actor == nil {
+			return invalid(c.Op, "actor must be an object")
+		}
+		if err := checkActor(c.Op, actor, 1); err != nil {
+			return err
+		}
+		if sub, _ := actor["sub"].(string); sub == "" {
+			return invalid(c.Op, "actor.sub is required and must be a non-empty string")
+		}
+		a.cte.result.Actor = actor
+	}
+	return nil
+}
+
+// argRef is a non-empty identifier or name argument.
+func argRef(c command, i int, what string) (string, error) {
+	s, err := argString(c, i, what)
+	if err != nil {
+		return "", err
+	}
+	if s == "" || len(s) > maxRefBytes || !utf8.ValidString(s) {
+		return "", invalid(c.Op, "%s must be 1-%d bytes", what, maxRefBytes)
+	}
+	return s, nil
+}
+
+// checkActor bounds the actor claim: at most maxActorDepth levels of nesting
+// (a nested actor lives under "act", RFC 8693 section 4.1), at most
+// maxActorProperties properties per level, other values string, number or bool.
+func checkActor(op string, actor map[string]any, depth int) error {
+	if depth > maxActorDepth {
+		return invalid(op, "actor nests at most %d levels", maxActorDepth)
+	}
+	if len(actor) > maxActorProperties {
+		return invalid(op, "each actor level has at most %d properties", maxActorProperties)
+	}
+	for k, v := range actor {
+		switch t := v.(type) {
+		case string, float64, bool:
+		case map[string]any:
+			if k != "act" {
+				return invalid(op, "only \"act\" may hold an object")
+			}
+			if err := checkActor(op, t, depth+1); err != nil {
+				return err
+			}
+		default:
+			return invalid(op, "actor values must be strings, numbers or booleans")
+		}
+	}
+	return nil
+}
+
+func (a *accum) setUserByConnection(c command) error {
+	if err := argCount(c, 2, 3); err != nil {
+		return err
+	}
+	name, err := argRef(c, 0, "connection name")
+	if err != nil {
+		return err
+	}
+	var attrs map[string]any
+	if json.Unmarshal(c.Args[1], &attrs) != nil || attrs == nil {
+		return invalid(c.Op, "attributes must be an object")
+	}
+	for k, v := range attrs {
+		isBool, ok := connectionAttributes[k]
+		if !ok {
+			return invalid(c.Op, "unknown attribute %q", k)
+		}
+		if _, gotBool := v.(bool); isBool != gotBool {
+			return invalid(c.Op, "attribute %q has the wrong type", k)
+		}
+		if s, isString := v.(string); !isBool && !isString || isString && (len(s) > maxRefBytes || !utf8.ValidString(s)) {
+			return invalid(c.Op, "attribute %q must be a string of at most %d bytes", k, maxRefBytes)
+		}
+	}
+	if id, _ := attrs["user_id"].(string); id == "" {
+		return invalid(c.Op, "attributes.user_id is required")
+	}
+	creation, update := CreateIfNotExists, UpdateNever // C14
+	if len(c.Args) == 3 && string(c.Args[2]) != "null" {
+		var opts map[string]any
+		if json.Unmarshal(c.Args[2], &opts) != nil || opts == nil {
+			return invalid(c.Op, "options must be an object")
+		}
+		for k, v := range opts {
+			s, _ := v.(string)
+			switch {
+			case k == "creationBehavior" && (s == CreateIfNotExists || s == CreateNever):
+				creation = s
+			case k == "updateBehavior" && (s == UpdateNever || s == UpdateReplace):
+				update = s
+			default:
+				return invalid(c.Op, "option %q is unknown or has an unsupported value", k)
+			}
+		}
+	}
+	a.cte.selectUser("", name, attrs, creation, update)
+	return nil
 }

@@ -363,6 +363,39 @@ func credentialsEvent(in *CredentialsInput, a *accum) map[string]any {
 	return ev
 }
 
+// tokenExchangeEvent builds the custom-token-exchange event (spec 5.3).
+// request.body is empty: the exchange parameters are credentials.
+func tokenExchangeEvent(in *TokenExchangeInput) map[string]any {
+	request := requestEvent(in.Request, in.Tenant.Host, false)
+	request["body"] = map[string]any{}
+	txn := map[string]any{
+		"subject_token": in.SubjectToken, "subject_token_type": in.SubjectTokenType,
+		"requested_scopes": strs(in.RequestedScopes),
+	}
+	if in.RequestedTokenType != "" {
+		txn["requested_token_type"] = in.RequestedTokenType
+	}
+	if in.ActorToken != "" {
+		txn["actor_token"], txn["actor_token_type"] = in.ActorToken, in.ActorTokenType
+		if in.ActorTokenUser != nil {
+			txn["actor_token_user"] = in.ActorTokenUser
+		}
+	}
+	ev := map[string]any{
+		"client":      clientEvent(in.Client),
+		"request":     request,
+		"tenant":      tenantEvent(in.Tenant),
+		"transaction": txn,
+	}
+	if rs := resourceServerEvent(in.Resource); rs != nil {
+		ev["resource_server"] = rs
+	}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
+	}
+	return ev
+}
+
 func connectionEvent(c *store.Connection) map[string]any {
 	return map[string]any{"id": c.ID, "name": c.Name, "strategy": c.Strategy, "metadata": map[string]any{}}
 }

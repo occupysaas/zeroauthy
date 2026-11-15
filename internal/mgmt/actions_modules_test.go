@@ -200,9 +200,6 @@ func TestActionsManagementTriggersDryRun(t *testing.T) {
 
 	for _, tr := range actionsrules.Inventory().Triggers {
 		t.Run(tr.ID, func(t *testing.T) {
-			if tr.ID == "custom-token-exchange" {
-				t.Skip("the runner learns onExecuteCustomTokenExchange in the Plan 35 trigger task")
-			}
 			commands := "console.log('ran');"
 			switch tr.ID {
 			case "post-login":
@@ -211,6 +208,8 @@ func TestActionsManagementTriggersDryRun(t *testing.T) {
 				commands += `api.access.deny("invalid_request","dry");`
 			case "pre-user-registration":
 				commands += `api.user.setUserMetadata("dry",true);api.access.deny("dry","dry");`
+			case "custom-token-exchange":
+				commands += `api.authentication.setUserById("u");api.access.rejectInvalidSubjectToken("dry");`
 			case "password-reset-post-challenge":
 				commands += `api.transaction.setResultUrl("https://example.test/result");`
 			case "event-stream":
