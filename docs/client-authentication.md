@@ -220,6 +220,8 @@ tenants:
   client. `private_key_jwt` implies an omitted `token_endpoint_auth_method`;
   naming one is an error. The seed checks everything with the Management
   API's rules.
+- Only `public_key` PEMs (SPKI or PKCS#1 RSA public keys) are accepted in the
+  seed; a certificate is refused.
 - **Re-applying** (the default mode) makes a seed-owned application match the
   seed: a key is kept when its `kid`, algorithm, name and public key are
   unchanged, any other stored key is deleted (including one added through the

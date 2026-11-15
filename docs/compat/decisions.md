@@ -3317,8 +3317,9 @@ copied to `docs/superpowers/plan-1-followups.md`:
   schema annotation's 8640000 was not used).
 - Seed (Task 14): `credentials`, the three client settings (credentials named
   by `name`) and `token_exchange_profiles` (Actions named by `name`, applied
-  after the Actions). Credentials are reconciled by `kid` for a seed-owned
-  client in apply mode and never touched in create-only mode or for an
+  after the Actions). A seed-owned client in apply mode keeps a stored credential only when
+  its `kid`, algorithm, name and public key all match the seed (any other is
+  deleted and, if seeded, recreated) and never touched in create-only mode or for an
   API-created client; a profile is identified by its `subject_token_type`
   and is renamed or re-pointed in apply mode only. A store without
   `client_credentials.v1` refuses seeded credentials, profiles and HS256 APIs

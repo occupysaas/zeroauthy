@@ -25,6 +25,7 @@ manifest's `noHandler` list records security-key user verification: Auth0
 exposes it only in its Dashboard, so no handler exports it. Set it on the
 target through the seed or console after importing. The four-cell lane on
 every backend remains the end-to-end acceptance.
+
 **Keys, signed requests and token exchange profiles (Plan 35).** The
 Management API, console and seed carry them. The migration matrix does not
 yet round-trip the client fields `client_authentication_methods`,
@@ -34,6 +35,7 @@ family: the manifest marks those entries `excluded` until a run of the pinned
 inline keys and the Action reference of a profile). Until then, re-create
 credentials and profiles on the target through the seed or the API. A seed
 that names Actions and profiles is the portable path.
+
 Rules, hooks and their configurations are finite empty compatibility
 collections; they do not execute scripts.
 
