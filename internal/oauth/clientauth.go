@@ -47,8 +47,7 @@ func (h *Handlers) authenticateClient(ctx context.Context, r *http.Request, form
 	}
 	if form.Has("client_assertion") || form.Has("client_assertion_type") {
 		if hasBasic || form.Has("client_secret") {
-			h.log().InfoContext(ctx, "client authentication failed: client assertion combined with another method", "tenant", tenantID)
-			return nil, invalidClient(authFailed, hasBasic)
+			return nil, invalidRequest("use only one client authentication method")
 		}
 		return h.authenticateAssertion(ctx, r, form, tenantID)
 	}
@@ -137,7 +136,7 @@ func (h *Handlers) authenticateAssertion(ctx context.Context, r *http.Request, f
 		return fail("client_assertion is not a readable signed JWT")
 	}
 	if id := form.Get("client_id"); id != "" && id != clientID {
-		return fail("client_id does not match the assertion", "client_id", id)
+		return nil, invalidRequest("client_id does not match the client assertion")
 	}
 	c, err := h.Store.Clients().Get(ctx, tenantID, clientID)
 	if errors.Is(err, store.ErrNotFound) {

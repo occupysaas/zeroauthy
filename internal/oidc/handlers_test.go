@@ -29,7 +29,7 @@ func setup(t *testing.T) (http.Handler, *keys.Manager) {
 	if err := km.Ensure(ctx, "ten_acme"); err != nil {
 		t.Fatal(err)
 	}
-	h := &Handlers{Keys: km}
+	h := &Handlers{Keys: km, Store: st}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /.well-known/openid-configuration", h.Discovery)
 	mux.HandleFunc("GET /.well-known/jwks.json", h.Jwks)
@@ -106,23 +106,58 @@ func TestDiscovery(t *testing.T) {
 	}
 }
 
+type noClientCredentialsStore struct{ store.Store }
+
+func (noClientCredentialsStore) ClientCredentials() store.ClientCredentials {
+	return store.UnimplementedClientCredentials{}
+}
+
 // TestDiscoveryAuthMethods: private_key_jwt with its three signing
-// algorithms (Plan 35, D-0063).
+// algorithms (Plan 35, D-0063), advertised only when the store has the
+// client_credentials.v1 capability (spec §7).
 func TestDiscoveryAuthMethods(t *testing.T) {
-	h, _ := setup(t)
-	rec := get(h, "https://acme.example.test/.well-known/openid-configuration")
-	var doc struct {
-		Methods []string `json:"token_endpoint_auth_methods_supported"`
-		Algs    []string `json:"token_endpoint_auth_signing_alg_values_supported"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_acme", Name: "acme", CanonicalHost: "acme.example.test", Domains: []string{"acme.example.test"}}); err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"client_secret_basic", "client_secret_post", "private_key_jwt", "none"}; !slices.Equal(doc.Methods, want) {
-		t.Errorf("token_endpoint_auth_methods_supported = %v, want %v", doc.Methods, want)
-	}
-	if want := []string{"RS256", "RS384", "PS256"}; !slices.Equal(doc.Algs, want) {
-		t.Errorf("token_endpoint_auth_signing_alg_values_supported = %v, want %v", doc.Algs, want)
+	for _, tc := range []struct {
+		name    string
+		store   store.Store
+		methods []string
+		algs    []string
+	}{
+		{"available", st, []string{"client_secret_basic", "client_secret_post", "private_key_jwt", "none"}, []string{"RS256", "RS384", "PS256"}},
+		{"unavailable", noClientCredentialsStore{st}, []string{"client_secret_basic", "client_secret_post", "none"}, nil},
+		{"no store", nil, []string{"client_secret_basic", "client_secret_post", "none"}, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &Handlers{}
+			if tc.store != nil {
+				h.Store = tc.store
+			}
+			mux := http.NewServeMux()
+			mux.HandleFunc("GET /.well-known/openid-configuration", h.Discovery)
+			rec := get(contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)), "https://acme.example.test/.well-known/openid-configuration")
+			var doc map[string]json.RawMessage
+			if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+				t.Fatal(err)
+			}
+			var methods, algs []string
+			_ = json.Unmarshal(doc["token_endpoint_auth_methods_supported"], &methods)
+			if raw, ok := doc["token_endpoint_auth_signing_alg_values_supported"]; ok {
+				if tc.algs == nil {
+					t.Errorf("token_endpoint_auth_signing_alg_values_supported present: %s", raw)
+				}
+				_ = json.Unmarshal(raw, &algs)
+			}
+			if !slices.Equal(methods, tc.methods) {
+				t.Errorf("token_endpoint_auth_methods_supported = %v, want %v", methods, tc.methods)
+			}
+			if !slices.Equal(algs, tc.algs) {
+				t.Errorf("token_endpoint_auth_signing_alg_values_supported = %v, want %v", algs, tc.algs)
+			}
+		})
 	}
 }
 

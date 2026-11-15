@@ -534,9 +534,6 @@ func TestPrivateKeyJWTRefusals(t *testing.T) {
 		basicID     string
 		basicSecret string
 	}{
-		{name: "assertion plus basic", form: withAssertion(ccForm, good()), basicID: "m2m", basicSecret: "m2m-secret"},
-		{name: "assertion plus client_secret", form: withAssertion(cc("m2m", "m2m-secret", "audience", "https://api.acme.test"), good())},
-		{name: "client_id differs from iss", form: withAssertion(cc("m2m-basic", "", "audience", "https://api.acme.test"), good())},
 		{name: "wrong assertion type", form: func() url.Values {
 			v := withAssertion(ccForm, good())
 			v.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:saml2-bearer")
@@ -570,6 +567,26 @@ func TestPrivateKeyJWTRefusals(t *testing.T) {
 			rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: tc.form, basicID: tc.basicID, basicSecret: tc.basicSecret})
 			if rec.Code != 401 || body["error"] != "invalid_client" || body["error_description"] != authFailed {
 				t.Fatalf("= %d %v, want 401 invalid_client %q", rec.Code, body, authFailed)
+			}
+		})
+	}
+
+	// Spec §3.3 "Combining methods": one method only, as for Basic plus
+	// client_secret, and a client_id that is not the assertion's client.
+	for _, tc := range []struct {
+		name        string
+		form        url.Values
+		basicID     string
+		basicSecret string
+	}{
+		{name: "assertion plus basic", form: withAssertion(ccForm, good()), basicID: "m2m", basicSecret: "m2m-secret"},
+		{name: "assertion plus client_secret", form: withAssertion(cc("m2m", "m2m-secret", "audience", "https://api.acme.test"), good())},
+		{name: "client_id differs from iss", form: withAssertion(cc("m2m-basic", "", "audience", "https://api.acme.test"), good())},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: tc.form, basicID: tc.basicID, basicSecret: tc.basicSecret})
+			if rec.Code != 400 || body["error"] != "invalid_request" {
+				t.Fatalf("= %d %v, want 400 invalid_request", rec.Code, body)
 			}
 		})
 	}
