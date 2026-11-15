@@ -60,9 +60,12 @@ updates:
     cooldown:
       default-days: 7
 
-  # Base images of the release container (Dockerfile).
+  # Base images of the release container (Dockerfile) and of the
+  # ClusterFuzzLite builder (.clusterfuzzlite/Dockerfile).
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - /
+      - /.clusterfuzzlite
     schedule:
       interval: weekly
     cooldown:

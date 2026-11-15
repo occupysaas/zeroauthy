@@ -21,6 +21,9 @@
 # from the pull request itself.
 /scripts/check-dco.sh        @thomasmeadows
 
+# The fuzzing builder image and build script, which CI builds and runs.
+/.clusterfuzzlite/           @thomasmeadows
+
 # npm settings that keep dependencies' install scripts off.
 .npmrc                       @thomasmeadows
 
