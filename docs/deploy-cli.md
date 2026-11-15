@@ -26,15 +26,31 @@ exposes it only in its Dashboard, so no handler exports it. Set it on the
 target through the seed or console after importing. The four-cell lane on
 every backend remains the end-to-end acceptance.
 
-**Keys, signed requests and token exchange profiles (Plan 35).** The
-Management API, console and seed carry them. The migration matrix does not
-yet round-trip the client fields `client_authentication_methods`,
-`signed_request_object` and `token_exchange`, nor the `tokenExchangeProfiles`
-family: the manifest marks those entries `excluded` until a run of the pinned
-9.1.0 handlers shows how they export and re-import (credential references,
-inline keys and the Action reference of a profile). Until then, re-create
-credentials and profiles on the target through the seed or the API. A seed
-that names Actions and profiles is the portable path.
+**Keys, signed requests and token exchange profiles (Plan 35).** The pinned
+9.1.0 handlers work against zeroauthy for direct deploys; `make
+e2e-client-auth` runs them unmodified:
+
+- `tokenExchangeProfiles` imports a profile that names its Action by `action`
+  (the Action name), exports it the same way (never `action_id`), matches an
+  existing profile by `subject_token_type` so a rename is an update, changes
+  nothing on an unchanged re-import, and deletes only with
+  `AUTH0_ALLOW_DELETE`.
+- `clientAuthCredentials` (and its `clientAuthCredentialsPre` pre-pass)
+  creates a credential from a `pem` inside `client_authentication_methods`,
+  wires it into the client with `token_endpoint_auth_method: null`, rotates to
+  a newly named key and removes the old one with `AUTH0_ALLOW_DELETE`, and
+  clears every key when the field is absent. An export lists each key only by
+  name and type, because the PEM is never returned, and re-importing that
+  export leaves the keys alone.
+- `token_exchange` travels with the `clients` handler. `signed_request_object`
+  names credential ids, which differ on every tenant; set it after the keys
+  exist, through the API, the console or the seed.
+
+The four-cell export/import matrix still excludes both families (see the
+manifest): a credential export cannot carry its key by design, and wiring
+profiles into the matrix fixtures is a Plan 35 follow-up. When migrating, keep
+the PEMs (or a seed that names Actions, profiles and keys) as the source of
+truth.
 
 Rules, hooks and their configurations are finite empty compatibility
 collections; they do not execute scripts.

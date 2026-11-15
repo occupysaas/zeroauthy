@@ -172,6 +172,11 @@ An API's `signing_alg` is `RS256` (the default), `HS256` or `PS256`.
   JWKS publishes that key without an `alg` member, so verifiers that match a
   JWK's `alg` against the token header (jose, and so
   `express-oauth2-jwt-bearer`) accept both RS256 and PS256 tokens (C19).
+  Configure such a verifier for a PS256 API with `issuer`, `jwksUri` and
+  `tokenSigningAlg: 'PS256'`. Given only `issuerBaseURL`,
+  `express-oauth2-jwt-bearer` also limits algorithms to discovery's
+  `id_token_signing_alg_values_supported`, which lists only `RS256` because ID
+  tokens are always RS256, and it refuses the PS256 token.
 - `HS256` signs with the API's `signing_secret`: generated when absent (32
   random bytes, 43 base64url characters) or supplied with at least 16
   characters. The secret is sealed at rest and returned when the API is read

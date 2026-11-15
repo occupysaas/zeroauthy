@@ -591,6 +591,13 @@ database connections only); C22 the description of a rejected subject token
   verification email yet.
 - **Audit logging:** reads of an API's `signing_secret` are not audit-logged
   like `client_secret` reads.
+- **Deploy CLI migration matrix:** the pinned 9.1.0 `tokenExchangeProfiles`
+  handler works against zeroauthy (proved in `e2e-client-auth`), but the family
+  is not yet in the four-cell export/import matrix: that needs a profile and a
+  `custom-token-exchange` Action in the m20 source fixtures, the profile scopes
+  in its seed, and `internal/deploymigration` to classify the family's
+  directory. `clientAuthCredentials` stays out of the matrix by design (the
+  PEM is never exported).
 
 - **Moved to Plan 48:** `token_quota` on clients and organizations and its
   quota headers.
