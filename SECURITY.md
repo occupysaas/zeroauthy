@@ -49,6 +49,9 @@ Never include real users' data, live tokens or the master key.
 This is a volunteer-maintained preview, so these are targets, not contractual
 guarantees.
 
+Maintainers handle reports and other security incidents with the
+[incident response plan](INCIDENT_RESPONSE.md).
+
 ## Scope
 
 In scope:
