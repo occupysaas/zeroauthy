@@ -7,7 +7,7 @@ evidence log; the user-facing summary, with the gaps listed first, is
 | Surface | Status | Notes |
 |---------|--------|-------|
 | Discovery (`/.well-known/openid-configuration`) | Implemented | Advertises only implemented grants; `/authorize` is now served; advertises `end_session_endpoint` (`/oidc/logout`) and `revocation_endpoint` (`/oauth/revoke`) |
-| JWKS (`/.well-known/jwks.json`) | Implemented | current, next, previous keys |
+| JWKS (`/.well-known/jwks.json`) | Implemented | current, next, previous keys; published without `alg` so one key verifies RS256 and PS256 tokens (D-0063 C19; possible deviation if Auth0 publishes `alg`) |
 | `/oauth/token`: `client_credentials` | Implemented | Verified with @auth0/auth0-auth-js 1.16.1, auth0/legacy 7.4.0, express-oauth2-jwt-bearer 1.11.0 |
 | `/authorize`: `response_type=code`, PKCE (S256), `response_mode` query / fragment / form_post / web_message, `prompt` none / login, `max_age`, `connection`, `screen_hint=signup`, `login_hint` | Implemented | Verified with @auth0/auth0-spa-js 2.28.3 (login, silent auth, reload) |
 | `/oauth/token`: `authorization_code` | Implemented | ID token with `at_hash`, `sid`, `nonce` |

@@ -579,7 +579,9 @@ exchange; C11 the consent-skip error; C12 neither `setUser` call made; C13
 login counters after an exchange; C14 the `setUserByConnection` defaults; C15
 the minimum HS256 secret length; C16 whether the secret is returned on read;
 C17 tokens after a `signing_alg` change; C18 the `/userinfo` audience on HS256
-tokens; C19 the JWK `alg` for PS256 signing.
+tokens; C19 the JWK `alg` for PS256 signing (resolved locally 2026-11-15: JWKs are
+published without `alg`; still to observe what Auth0's JWKS carries for a
+tenant with a PS256 API).
 C20 whether the tenant's MFA policy applies to a custom token exchange (local:
 it does not); C21 the connections `setUserByConnection` may target (local:
 database connections only); C22 the description of a rejected subject token

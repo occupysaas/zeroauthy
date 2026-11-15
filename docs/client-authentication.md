@@ -168,8 +168,10 @@ only when the store supports client credentials. See
 
 An API's `signing_alg` is `RS256` (the default), `HS256` or `PS256`.
 
-- `PS256` signs with the tenant's RSA key; verifiers that read the JWKS keep
-  working, because the key's JWK keeps its `alg` of `RS256` (C19).
+- `PS256` signs with the tenant's RSA key, the same key RS256 tokens use. The
+  JWKS publishes that key without an `alg` member, so verifiers that match a
+  JWK's `alg` against the token header (jose, and so
+  `express-oauth2-jwt-bearer`) accept both RS256 and PS256 tokens (C19).
 - `HS256` signs with the API's `signing_secret`: generated when absent (32
   random bytes, 43 base64url characters) or supplied with at least 16
   characters. The secret is sealed at rest and returned when the API is read

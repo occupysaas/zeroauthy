@@ -1,6 +1,11 @@
 # Tenant signing keys
 
-Each ordinary tenant has an RS256 current key and a queued next key. Key
+Each ordinary tenant has an RSA current key and a queued next key; the same
+key signs RS256 tokens and, for APIs set to `PS256`, PS256 tokens. The
+published JWKS (`/.well-known/jwks.json`) lists each key without an `alg`
+member (RFC 7517 makes it optional), because jose-based verifiers skip a key
+whose `alg` differs from the token's (D-0063, C19). Keys created before this
+change are published the same way. Key
 private material is envelope-encrypted with the configured master key. Public
 certificates are available through the Management API and Settings console;
 private keys are never returned or downloadable.

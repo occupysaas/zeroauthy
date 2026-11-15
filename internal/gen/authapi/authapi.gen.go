@@ -551,8 +551,6 @@ type ExtensibilityErrorStatusCode int
 
 // JWK defines model for JWK.
 type JWK struct {
-	// Alg Examples: RS256
-	Alg string `json:"alg"`
 	E   string `json:"e"`
 	Kid string `json:"kid"`
 

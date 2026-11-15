@@ -3233,7 +3233,7 @@ copied to `docs/superpowers/plan-1-followups.md`:
 - C16: whether the secret is returned on read (local: yes).
 - C17: tokens after a `signing_alg` change (local: the current value signs).
 - C18: the `/userinfo` audience on HS256 tokens (LR35-9).
-- C19: the JWK `alg` for PS256 signing (local: the tenant key's JWK keeps `RS256`; if the pinned strict verifiers reject PS256 against it, the builder drops `alg` and records that here).
+- C19: the JWK `alg` for PS256 signing. **Resolved 2026-11-15 by test:** jose 4.15.9 (inside `express-oauth2-jwt-bearer` 1.11.0) and jose 6.2.12 refuse a PS256 token against a JWK marked `alg: RS256` (`ERR_JWKS_NO_MATCHING_KEY`) and accept it when the JWK has no `alg`. RFC 7517 makes `alg` optional, so the tenant's signing JWKs are now published without `alg` (keys stored with it are rendered without it); `kty`, `use`, `kid`, `n` and `e` are unchanged, and operator-supplied custom JWKS (Plan 20) are not touched. This is a deliberate deviation if Auth0 publishes `alg: RS256` (not verified; Auth0's tenant flag `remove_alg_from_jwks`, inert here, suggests it does by default). Still to observe: what Auth0's JWKS carries for a tenant with a PS256 API. Not chosen: a second JWK entry with `alg: PS256` for the same key.
 - C20: whether the tenant's MFA policy applies to an exchange (local: it does not; a post-login `challengeWith`/`enrollWith` or `multifactor.enable` with a provider other than `none` is `403 access_denied`).
 - C21: connections `setUserByConnection` may target (local: database connections only).
 - C22: the description of a rejected subject token (local: a fixed description; the Action's reason goes to the log only).

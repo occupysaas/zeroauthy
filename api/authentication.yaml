@@ -68,6 +68,9 @@ paths:
       description: |
         Public keys for verifying tokens signed by this tenant: the current
         signing key first, followed by the next key and the previous key.
+        The keys carry no `alg` member (optional in RFC 7517): one key signs
+        both RS256 and PS256 tokens, and verifiers that match a JWK's `alg`
+        against the token header would skip it for PS256 (D-0063, C19).
       x-source:
         - https://www.rfc-editor.org/rfc/rfc7517
         - https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-key-sets
@@ -1872,12 +1875,11 @@ components:
             $ref: "#/components/schemas/JWK"
     JWK:
       type: object
-      required: [kty, kid, use, alg, n, e]
+      required: [kty, kid, use, n, e]
       properties:
         kty: {type: string, examples: [RSA]}
         kid: {type: string}
         use: {type: string, examples: [sig]}
-        alg: {type: string, examples: [RS256]}
         "n": {type: string}
         e: {type: string}
     UserInfo:

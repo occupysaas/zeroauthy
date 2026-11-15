@@ -176,7 +176,9 @@ func (m *Manager) generateAt(tenantID string, status store.KeyStatus, at time.Ti
 	if err != nil {
 		return nil, err
 	}
-	pub := jose.JSONWebKey{Key: &priv.PublicKey, Algorithm: string(jose.RS256), Use: "sig"}
+	// No alg (C19): one key signs RS256 and PS256, and jose-based verifiers
+	// skip a JWK whose alg differs from the token's.
+	pub := jose.JSONWebKey{Key: &priv.PublicKey, Use: "sig"}
 	thumb, err := pub.Thumbprint(crypto.SHA256)
 	if err != nil {
 		return nil, err

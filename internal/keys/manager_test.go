@@ -70,7 +70,7 @@ func TestJWKSFollowsRotation(t *testing.T) {
 		t.Fatalf("JWKS kids = %v, want [%s %s]", got, cur, next)
 	}
 	for _, k := range set.Keys {
-		if !k.IsPublic() || k.Use != "sig" || k.Algorithm != "RS256" {
+		if !k.IsPublic() || k.Use != "sig" || k.Algorithm != "" {
 			t.Fatalf("bad published key %+v", k)
 		}
 	}

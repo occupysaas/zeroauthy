@@ -2,11 +2,18 @@ package keys
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 func TestSignWithAlgPS256(t *testing.T) {
@@ -41,8 +48,10 @@ func TestSignWithAlgPS256(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, k := range set.Keys {
-		if k.Algorithm != "RS256" {
-			t.Fatalf("JWK alg = %q, want RS256 (C19)", k.Algorithm)
+		// C19: a JWK marked alg RS256 is skipped by jose-based verifiers
+		// for a PS256 token, so the published key carries no alg.
+		if k.Algorithm != "" {
+			t.Fatalf("JWK alg = %q, want none (C19)", k.Algorithm)
 		}
 	}
 }
@@ -83,5 +92,70 @@ func TestAPISigningSecretBinding(t *testing.T) {
 		if _, err := OpenAPISigningSecret(w, c[0], c[1], sealed); err == nil {
 			t.Errorf("opened for %v", c)
 		}
+	}
+}
+
+// TestJWKSOmitsStoredAlg covers keys generated before C19 was resolved: their
+// stored JWK still says alg RS256, and the published set drops it while the
+// kid, use and modulus stay exactly as stored. New keys are stored without alg.
+func TestJWKSOmitsStoredAlg(t *testing.T) {
+	m, st := newManager(t)
+	ctx := context.Background()
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	ks, err := st.SigningKeys().List(ctx, "ten_a")
+	if err != nil || len(ks) == 0 {
+		t.Fatalf("keys = %v %v", ks, err)
+	}
+	for _, k := range ks {
+		if strings.Contains(string(k.PublicJWK), `"alg"`) {
+			t.Fatalf("new key stored with alg: %s", k.PublicJWK)
+		}
+	}
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := jose.JSONWebKey{Key: &priv.PublicKey, KeyID: "legacy-key-0001", Algorithm: "RS256", Use: "sig"}
+	stored, err := legacy.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SigningKeys().Create(ctx, &store.SigningKey{TenantID: "ten_a", KID: legacy.KeyID, Alg: "RS256", Status: store.KeyPrevious, PublicJWK: stored, CreatedAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	set, err := m.JWKS(ctx, "ten_a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(set)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out struct {
+		Keys []map[string]any `json:"keys"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		t.Fatal(err)
+	}
+	var want map[string]any
+	if err := json.Unmarshal(stored, &want); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, k := range out.Keys {
+		if _, ok := k["alg"]; ok {
+			t.Fatalf("published JWK has alg: %v", k)
+		}
+		if k["kid"] == legacy.KeyID {
+			found = true
+			if k["kty"] != "RSA" || k["use"] != "sig" || k["n"] != want["n"] || k["e"] != want["e"] {
+				t.Fatalf("published JWK changed beyond alg: %v vs %v", k, want)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("legacy key not published: %s", body)
 	}
 }
