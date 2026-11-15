@@ -32,7 +32,6 @@ const (
 	requestObjectLife  = 3600 * time.Second
 	maxAssertionBytes  = 2048
 	maxIdentifierChars = 64
-	maxAlgChars        = 16
 )
 
 // ErrInvalid is wrapped by every Verify failure. The message names the
@@ -66,18 +65,17 @@ func Verify(in VerifyInput) (map[string]any, error) {
 	if in.Raw == "" || in.ClientID == "" || len(in.Audiences) == 0 {
 		return nil, invalid("missing input")
 	}
-	jws, err := jose.ParseSigned(in.Raw, []jose.SignatureAlgorithm{jose.RS256, jose.RS384, jose.PS256})
+	// Compact serialization only: a JWT is never JWS JSON (RFC 7519 §1).
+	jws, err := jose.ParseSignedCompact(in.Raw, []jose.SignatureAlgorithm{jose.RS256, jose.RS384, jose.PS256})
 	if err != nil {
 		return nil, invalid("not a JWS with an allowed algorithm")
 	}
 	if len(jws.Signatures) != 1 {
 		return nil, invalid("exactly one signature required")
 	}
+	// The allowlist above also bounds the header alg's length.
 	h := jws.Signatures[0].Header
 	alg := h.Algorithm
-	if len(alg) > maxAlgChars {
-		return nil, invalid("alg too long")
-	}
 	if _, ok := h.ExtraHeaders["crit"]; ok {
 		return nil, invalid("crit header not supported")
 	}

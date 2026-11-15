@@ -65,12 +65,18 @@ func sign(t *testing.T, key any, alg jose.SignatureAlgorithm, hdr map[string]any
 	if err != nil {
 		t.Fatal(err)
 	}
-	pl, _ := json.Marshal(claims)
+	pl, err := json.Marshal(claims)
+	if err != nil {
+		t.Fatal(err)
+	}
 	o, err := s.Sign(pl)
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, _ := o.CompactSerialize()
+	c, err := o.CompactSerialize()
+	if err != nil {
+		t.Fatal(err)
+	}
 	return c
 }
 
@@ -412,5 +418,38 @@ func TestVerifyErrorOmitsToken(t *testing.T) {
 		if strings.Contains(err.Error(), "evil") {
 			t.Errorf("error leaks claim value: %v", err)
 		}
+	}
+}
+
+// TestVerifyRefusesJSONSerialization pins compact-only parsing: the same
+// signed token in JWS JSON serialization is refused.
+func TestVerifyRefusesJSONSerialization(t *testing.T) {
+	k := privKey(t, "rsa2048.priv.pem")
+	c := cred(t, "c1", "rsa2048.spki.pem", "RS256")
+	s, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: k}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl, err := json.Marshal(goodClaims())
+	if err != nil {
+		t.Fatal(err)
+	}
+	o, err := s.Sign(pl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := VerifyInput{ClientID: clientID, Audiences: []string{issuer}, Purpose: Assertion,
+		Credentials: []*store.ClientCredential{c}, Now: now, UseJTI: func(string, time.Time) error { return nil }}
+	in.Raw = o.FullSerialize()
+	if _, err := Verify(in); !errors.Is(err, ErrInvalid) {
+		t.Errorf("JSON serialization: err = %v, want ErrInvalid", err)
+	}
+	compact, err := o.CompactSerialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	in.Raw = compact
+	if _, err := Verify(in); err != nil {
+		t.Fatalf("compact form: %v", err)
 	}
 }
