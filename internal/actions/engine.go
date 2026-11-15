@@ -458,7 +458,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		return nil, &ErrFlow{ExecutionID: execID, Cause: failure, Continuation: continuationOf(f)}
 	}
 	if d := f.acc.denied; d != nil {
-		e.log().Info("actions flow denied", "tenant", f.tenantID, "trigger", f.trigger,
+		e.log().InfoContext(f.logCtx, "actions flow denied", "tenant", f.tenantID, "trigger", f.trigger,
 			"action", ex.Results[len(ex.Results)-1].ActionName, "execution_id", execID, "code", d.Code)
 	}
 	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ResultURL: f.acc.resultURL, Notification: f.acc.notification, ExecutionID: execID, Continuation: continuationOf(f)}, nil
@@ -603,6 +603,15 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		// mutate business commands (claims, metadata, cache or redirect URLs).
 		if c.Op == "access.deny" || c.Op == "validation.error" || strings.HasPrefix(c.Op, "notification.") {
 			start := 0
+			// A deny code reaches the OAuth error and the logs unmasked, so a
+			// code holding a secret value is refused, never rewritten.
+			if c.Op == "access.deny" && f.trigger == TriggerCustomTokenExchange && len(c.Args) > 0 {
+				var code string
+				if json.Unmarshal(c.Args[0], &code) == nil && red.RedactLineContext(ctx, code) != code {
+					err := invalid(c.Op, "error code must not contain a secret value")
+					return out, &maskedError{msg: err.Error(), err: err}
+				}
+			}
 			if c.Op == "validation.error" || (c.Op == "access.deny" && denyHasCode(f.trigger)) {
 				start = 1
 			}

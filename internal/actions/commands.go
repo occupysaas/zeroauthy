@@ -627,7 +627,7 @@ const (
 // connectionAttributes are the documented setUserByConnection attributes;
 // user_id is required. The bool ones take a boolean, the rest a string.
 var connectionAttributes = map[string]bool{
-	"user_id": false, "email": false, "email_verified": true, "phone": false, "phone_number": false, "phone_verified": true,
+	"user_id": false, "email": false, "email_verified": true, "verify_email": true, "phone_number": false, "phone_verified": true,
 	"username": false, "name": false, "given_name": false, "family_name": false, "nickname": false, "picture": false,
 }
 
@@ -675,9 +675,6 @@ func (a *accum) applyTokenExchange(c command) error {
 		if err := checkActor(c.Op, actor, 1); err != nil {
 			return err
 		}
-		if sub, _ := actor["sub"].(string); sub == "" {
-			return invalid(c.Op, "actor.sub is required and must be a non-empty string")
-		}
 		a.cte.result.Actor = actor
 	}
 	return nil
@@ -695,19 +692,28 @@ func argRef(c command, i int, what string) (string, error) {
 	return s, nil
 }
 
-// checkActor bounds the actor claim: at most maxActorDepth levels of nesting
-// (a nested actor lives under "act", RFC 8693 section 4.1), at most
-// maxActorProperties properties per level, other values string, number or bool.
+// checkActor bounds the actor claim: at most maxActorDepth actors (the root
+// plus nested "act" levels, RFC 8693 section 4.1), a non-empty string "sub"
+// at every level, and at most maxActorProperties custom properties per level
+// (sub and act do not count), whose values are strings, numbers or booleans.
 func checkActor(op string, actor map[string]any, depth int) error {
 	if depth > maxActorDepth {
 		return invalid(op, "actor nests at most %d levels", maxActorDepth)
 	}
-	if len(actor) > maxActorProperties {
-		return invalid(op, "each actor level has at most %d properties", maxActorProperties)
+	if sub, _ := actor["sub"].(string); sub == "" || len(sub) > maxRefBytes {
+		return invalid(op, "every actor level needs a non-empty string sub of at most %d bytes", maxRefBytes)
 	}
+	custom := 0
 	for k, v := range actor {
+		if len(k) > maxRefBytes {
+			return invalid(op, "actor property names are at most %d bytes", maxRefBytes)
+		}
 		switch t := v.(type) {
-		case string, float64, bool:
+		case string:
+			if len(t) > maxRefBytes {
+				return invalid(op, "actor string values are at most %d bytes", maxRefBytes)
+			}
+		case float64, bool:
 		case map[string]any:
 			if k != "act" {
 				return invalid(op, "only \"act\" may hold an object")
@@ -715,9 +721,19 @@ func checkActor(op string, actor map[string]any, depth int) error {
 			if err := checkActor(op, t, depth+1); err != nil {
 				return err
 			}
+			continue
 		default:
 			return invalid(op, "actor values must be strings, numbers or booleans")
 		}
+		if k == "act" {
+			return invalid(op, "act must be an actor object")
+		}
+		if k != "sub" {
+			custom++
+		}
+	}
+	if custom > maxActorProperties {
+		return invalid(op, "each actor level has at most %d custom properties", maxActorProperties)
 	}
 	return nil
 }

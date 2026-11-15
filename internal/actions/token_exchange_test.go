@@ -75,7 +75,7 @@ func TestCTESetUserByID(t *testing.T) {
 
 func TestCTESetUserByConnectionDefaults(t *testing.T) {
 	h := newHarness(t)
-	r, err := h.cte("t1", "byconn", `api.authentication.setUserByConnection("legacy", {user_id: "ext-1", email: "a@example.test", email_verified: true});`, nil)
+	r, err := h.cte("t1", "byconn", `api.authentication.setUserByConnection("legacy", {user_id: "ext-1", email: "a@example.test", email_verified: true, verify_email: false, phone_number: "+15550100"});`, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,6 +90,8 @@ func TestCTESetUserByConnectionDefaults(t *testing.T) {
 	for name, body := range map[string]string{
 		"noid":       `api.authentication.setUserByConnection("legacy", {email: "a@example.test"});`,
 		"badattr":    `api.authentication.setUserByConnection("legacy", {user_id: "x", app_metadata: {}});`,
+		"phone":      `api.authentication.setUserByConnection("legacy", {user_id: "x", phone: "+1"});`,
+		"verifytype": `api.authentication.setUserByConnection("legacy", {user_id: "x", verify_email: "yes"});`,
 		"badtype":    `api.authentication.setUserByConnection("legacy", {user_id: "x", email_verified: "yes"});`,
 		"noname":     `api.authentication.setUserByConnection("", {user_id: "x"});`,
 		"badcreate":  `api.authentication.setUserByConnection("legacy", {user_id: "x"}, {creationBehavior: "always"});`,
@@ -169,17 +171,21 @@ func TestCTEActorLimits(t *testing.T) {
 	if r, err := h.cte("t1", "depth5", `api.authentication.setUserById("u"); api.authentication.setActor(`+chain(5)+`);`, nil); err != nil || r.Actor == nil {
 		t.Fatalf("depth 5: %+v %v", r, err)
 	}
-	if r, err := h.cte("t1", "props5", `api.authentication.setUserById("u"); api.authentication.setActor({sub: "a", b: 1, c: 2, d: 3, e: 4});`, nil); err != nil || len(r.Actor) != 5 {
-		t.Fatalf("5 properties: %+v %v", r, err)
+	if r, err := h.cte("t1", "props5", `api.authentication.setUserById("u"); api.authentication.setActor({sub: "a", b: 1, c: 2, d: 3, e: 4, f: 5, act: {sub: "z"}});`, nil); err != nil || len(r.Actor) != 7 {
+		t.Fatalf("5 custom properties plus sub and act: %+v %v", r, err)
 	}
 	for name, body := range map[string]string{
-		"depth6":    `api.authentication.setActor(` + chain(6) + `);`,
-		"props6":    `api.authentication.setActor({sub: "a", b: 1, c: 2, d: 3, e: 4, f: 5});`,
-		"nested6":   `api.authentication.setActor({sub: "a", act: {sub: "b", b: 1, c: 2, d: 3, e: 4, f: 5}});`,
-		"array":     `api.authentication.setActor({sub: "a", b: [1]});`,
-		"nullval":   `api.authentication.setActor({sub: "a", b: null});`,
-		"objnotact": `api.authentication.setActor({sub: "a", b: {sub: "c"}});`,
-		"subnum":    `api.authentication.setActor({sub: 1});`,
+		"depth6":      `api.authentication.setActor(` + chain(6) + `);`,
+		"props6":      `api.authentication.setActor({sub: "a", b: 1, c: 2, d: 3, e: 4, f: 5, g: 6});`,
+		"nested6":     `api.authentication.setActor({sub: "a", act: {sub: "b", b: 1, c: 2, d: 3, e: 4, f: 5, g: 6}});`,
+		"nestednosub": `api.authentication.setActor({sub: "a", act: {b: 1}});`,
+		"actnotobj":   `api.authentication.setActor({sub: "a", act: "x"});`,
+		"longkey":     `api.authentication.setActor({sub: "a", ["k".repeat(1025)]: 1});`,
+		"longval":     `api.authentication.setActor({sub: "a", b: "v".repeat(1025)});`,
+		"array":       `api.authentication.setActor({sub: "a", b: [1]});`,
+		"nullval":     `api.authentication.setActor({sub: "a", b: null});`,
+		"objnotact":   `api.authentication.setActor({sub: "a", b: {sub: "c"}});`,
+		"subnum":      `api.authentication.setActor({sub: 1});`,
 	} {
 		_, err := h.cte("t1", name, `api.authentication.setUserById("u");`+body, nil)
 		if !errors.Is(err, actions.ErrInvalidCommand) {
@@ -343,6 +349,24 @@ func TestCTESubjectTokenMaskedInLogs(t *testing.T) {
 	raw, _ := json.Marshal(execs)
 	if strings.Contains(string(raw), cteSubject) || strings.Contains(string(raw), cteActor) {
 		t.Fatalf("execution record leaks a token: %s", raw)
+	}
+
+	// The deny code is a printable string the Action chooses: a token used as
+	// the code is refused and appears nowhere.
+	c := h.action("t1", actions.TriggerCustomTokenExchange, "masked-code", `exports.onExecuteCustomTokenExchange = async (event, api) => {
+	  api.authentication.setUserById("u");
+	  api.access.deny(event.transaction.subject_token, "x");
+	};`, nil, false)
+	in = h.cteInput("t1", c.ID)
+	r, err = h.eng.CustomTokenExchange(ctx, in)
+	if !errors.Is(err, actions.ErrInvalidCommand) || r != nil {
+		t.Fatalf("token as deny code: %+v %v", r, err)
+	}
+	if strings.Contains(err.Error(), cteSubject) || strings.Contains(h.logs.String(), cteSubject) {
+		t.Fatalf("deny code leaked: %v\n%s", err, h.logs.String())
+	}
+	if strings.Contains(h.logs.String(), cteActor) {
+		t.Fatal("actor token in server log")
 	}
 
 	// A failing Action's error and the server log are masked too.

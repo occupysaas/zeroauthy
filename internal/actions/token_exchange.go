@@ -52,7 +52,9 @@ func (e *DenyError) Error() string {
 	return fmt.Sprintf("actions: access denied (%s): %s", e.Code, e.Reason)
 }
 
-// TokenExchangeResult is what the Action selected. The Action creates and
+// TokenExchangeResult is what the Action selected. When Denied or
+// RejectedSubjectToken is set, ignore the user fields; Denied wins over
+// RejectedSubjectToken. The Action creates and
 // looks up no user: the caller resolves UserID, or Connection plus
 // Attributes, and applies the rest.
 type TokenExchangeResult struct {
