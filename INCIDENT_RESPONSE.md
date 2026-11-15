@@ -4,7 +4,8 @@ What the maintainers do when something goes wrong with zeroauthy's
 security: a vulnerability report, a tampered release, a compromised
 maintainer account, a leaked token, a hijacked workflow or a malicious
 dependency. [SECURITY.md](SECURITY.md) tells reporters how to reach us and
-what to expect; this file is for the people handling the incident.
+what to expect; this file is for the people handling the incident, and
+[THREAT_MODEL.md](THREAT_MODEL.md) lists what we protect.
 
 Keep incident details (unfixed vulnerabilities, logs, affected
 deployments) in the private security advisory, never in this public file.
@@ -67,7 +68,8 @@ Score vulnerabilities with CVSS in the advisory form.
 7. **Notify** the downstream projects and deployments listed under
    Contacts.
 8. **Review** within two weeks: a short write-up of what happened, the
-   timeline and what changes.
+   timeline and what changes. Update THREAT_MODEL.md if the report showed a
+   gap.
 
 ## Playbooks for incidents that aren't bug reports
 

@@ -80,3 +80,6 @@ Out of scope:
 
 Behaviour that differs from Auth0's documentation but is not a security
 problem is a normal bug: please open a public issue.
+
+The [threat model](THREAT_MODEL.md) describes what zeroauthy protects, its
+trust boundaries and the operator's responsibilities behind this scope.
