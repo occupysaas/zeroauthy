@@ -7,9 +7,14 @@ on:
   workflow_dispatch:
   workflow_call:
 
+# Every job starts with no token permissions and gets only what it uses.
+permissions: {}
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # check out the repository
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
@@ -33,6 +38,8 @@ jobs:
     # Known-vulnerability scan of Go dependencies and the standard library.
     # Also a release gate, since release.yml reuses this workflow.
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # check out the repository
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
@@ -43,6 +50,8 @@ jobs:
           go-package: ./...
   console:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # check out the repository
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -58,6 +67,9 @@ jobs:
     # not hide the others.
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    permissions:
+      # Check out the repository; gh reads auth0/auth0-cli's public releases.
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -98,6 +110,8 @@ jobs:
           ZA_REQUIRE_NODE: "1"
   sql:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # check out the repository
     services:
       postgres:
         image: postgres:17
