@@ -11,14 +11,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       - name: gofmt
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 26
       # grpcstore and sqlstore run longer than go test's 10-minute default
@@ -34,8 +34,8 @@ jobs:
     # Also a release gate, since release.yml reuses this workflow.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: golang/govulncheck-action@v1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
         with:
           # go-version-input defaults to "stable"; clear it so go.mod decides.
           go-version-input: ""
@@ -44,8 +44,8 @@ jobs:
   console:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 26
           cache: npm
@@ -63,13 +63,13 @@ jobs:
       matrix:
         suite: [e2e, e2e-domains, e2e-deploy, e2e-signing, e2e-branding, e2e-email, e2e-social, e2e-email-accounts, e2e-rbac, e2e-actions, e2e-actions-ii, e2e-organizations, e2e-organizations-ii, e2e-logs, e2e-events, e2e-mfa, e2e-passkeys, e2e-passwordless]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       # Social profile scripts need Node 25+ (permission-enforced network
       # denial); the lane fails rather than skips without it.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 26
           cache: npm
@@ -122,8 +122,8 @@ jobs:
           --health-timeout 5s
           --health-retries 24
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
       # Without -race: the test job already runs this package under the race
