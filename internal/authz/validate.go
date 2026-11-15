@@ -36,20 +36,30 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	if err != nil {
 		return nil, errServer(), false
 	}
+	// A request object that failed verification is reported on the error
+	// page too when the query's redirect_uri cannot be trusted.
+	pageErr := func(e *Error) *Error {
+		if req.objectErr != nil {
+			return req.objectErr
+		}
+		return e
+	}
 	if req.RedirectURI == "" {
-		return client, errInvalidRequest("redirect_uri is required"), false
+		return client, pageErr(errInvalidRequest("redirect_uri is required")), false
 	}
 	if !callbackAllowed(client.Callbacks, req.RedirectURI) {
-		return client, errInvalidRequest("redirect_uri is not registered for this application"), false
+		return client, pageErr(errInvalidRequest("redirect_uri is not registered for this application")), false
 	}
 
-	// Request objects (JAR) are not supported (OpenID Connect Core §6,
-	// §3.1.2.6): the error is delivered with the object's state and
-	// response_mode, which take precedence over the query (§6.1). Strict
-	// third-party clients keep D-0025's invalid_request, checked below.
+	// A request parameter still present was not merged (ApplyRequestObject):
+	// its verification failed (objectErr, delivered with the query's state
+	// and response_mode), or it is unsigned or JAR is unavailable. The last
+	// two keep D-0035's request_not_supported, delivered with the object's
+	// state and response_mode (OpenID Connect Core §6.1). Strict third-party
+	// clients keep D-0025's invalid_request, checked below.
 	requestObject := slices.Contains(req.Present, "request") && !access.Strict(client)
-	if requestObject {
-		state, mode := requestObjectDelivery(req.RequestObject)
+	if requestObject && req.objectErr == nil {
+		state, mode := unsignedObjectDelivery(req.RequestObject)
 		if state != "" {
 			req.State = state
 		}
@@ -74,7 +84,15 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	}
 
 	if requestObject {
+		if req.objectErr != nil {
+			return client, req.objectErr, true
+		}
 		return client, errRequestNotSupported(), true
+	}
+	// signed_request_object.required: a verified object at /authorize, or a
+	// signed push (spec §4).
+	if sro := client.SignedRequestObject; sro != nil && sro.Required && !req.Signed {
+		return client, errInvalidRequest("this application requires a signed request object"), true
 	}
 
 	if client.RequirePushedAuthorizationRequests && !req.Pushed {

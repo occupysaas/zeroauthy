@@ -87,5 +87,6 @@ func (h *Handlers) resolvePushed(ctx context.Context, t *store.Tenant, q url.Val
 	req := RequestFromParams(p.Params)
 	req.ClientID = p.ClientID // the stored binding wins over Params
 	req.Pushed = true
+	req.Signed = p.Signed // the stored mark wins over Params too
 	return &req, nil
 }

@@ -141,7 +141,9 @@ func registerOAuthAuthorization(r *http.Request) {
 func registerOAuthForm(r *http.Request, form url.Values) {
 	var values []string
 	for key, value := range form {
-		if logscrub.SensitiveKey(key) || key == "otp" || key == "code" || key == "ticket" {
+		// A pushed request object is masked by value: the key name request
+		// also names unrelated log fields.
+		if logscrub.SensitiveKey(key) || key == "otp" || key == "code" || key == "ticket" || key == "request" {
 			values = append(values, value...)
 		}
 	}

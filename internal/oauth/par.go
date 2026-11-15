@@ -6,7 +6,6 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -70,35 +69,38 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	if form.Has("request_uri") {
 		return nil, invalidRequest("request_uri is not allowed in a pushed authorization request") // P6a
 	}
-	ext := 0
-	for k := range form {
-		if strings.HasPrefix(k, authz.ExtPrefix) {
-			ext++
-		}
-	}
-	if ext > authz.MaxExtParams {
-		return nil, invalidRequest(fmt.Sprintf("at most %d ext- parameters are allowed", authz.MaxExtParams)) // P2c
-	}
-
 	req := authz.ParseRequest(form)
 	req.ClientID, req.Pushed = c.ClientID, true
+	// A signed request object is verified and merged first, whatever method
+	// authenticated the client (spec §4).
+	if verr := authz.ApplyRequestObject(ctx, h.Store, t, res.Issuer(), h.now(), h.log(), &req); verr != nil {
+		return nil, parError(verr)
+	}
+	if len(req.Ext) > authz.MaxExtParams {
+		return nil, invalidRequest(fmt.Sprintf("at most %d ext- parameters are allowed", authz.MaxExtParams)) // P2c
+	}
 	if _, verr, _ := authz.ValidateRequest(ctx, h.Store, t, &req); verr != nil {
-		if verr.Code == "server_error" {
-			return nil, serverError()
-		}
-		return nil, &Error{Status: parStatus(verr.Code), Code: verr.Code, Description: verr.Description} // P2
+		return nil, parError(verr) // P2
 	}
 
 	id := secrets.RandomString(64)
 	now := h.now().UTC()
 	if err := h.Store.PushedAuthRequests().Create(ctx, &store.PushedAuthRequest{
 		Origin: res.Origin(), TenantID: t.ID, IDHash: secrets.HashToken(id), ClientID: c.ClientID, Params: req.Params(),
-		ExpiresAt: now.Add(authz.PARLifetime), CreatedAt: now,
+		Signed: req.Signed, ExpiresAt: now.Add(authz.PARLifetime), CreatedAt: now,
 	}); err != nil {
 		h.log().ErrorContext(ctx, "store pushed request", "tenant", t.ID, "client_id", c.ClientID, "err", err)
 		return nil, serverError()
 	}
 	return &parResponse{RequestURI: authz.RequestURIPrefix + id, ExpiresIn: int(authz.PARLifetime.Seconds())}, nil
+}
+
+// parError is an /authorize error as /oauth/par answers it.
+func parError(e *authz.Error) *Error {
+	if e.Code == "server_error" {
+		return serverError()
+	}
+	return &Error{Status: parStatus(e.Code), Code: e.Code, Description: e.Description}
 }
 
 // parStatus is the HTTP status Auth0 uses at /oauth/par for each
