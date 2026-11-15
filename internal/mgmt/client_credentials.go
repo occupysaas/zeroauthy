@@ -531,28 +531,3 @@ func credentialSettingsView(v *mgmtapi.Client, c *store.Client) {
 		v.TokenExchange = &mgmtapi.ClientTokenExchange{AllowAnyProfileOfType: &types}
 	}
 }
-
-// GetTokenExchangeProfiles lists token exchange profiles.
-func (h *Handlers) GetTokenExchangeProfiles(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetTokenExchangeProfilesParams) {
-	Fail(w, errClientCredentialsUnavailable)
-}
-
-// PostTokenExchangeProfile creates a token exchange profile.
-func (h *Handlers) PostTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
-	Fail(w, errClientCredentialsUnavailable)
-}
-
-// GetTokenExchangeProfile returns one token exchange profile.
-func (h *Handlers) GetTokenExchangeProfile(w http.ResponseWriter, r *http.Request, _ string) {
-	Fail(w, errClientCredentialsUnavailable)
-}
-
-// PatchTokenExchangeProfile updates a token exchange profile.
-func (h *Handlers) PatchTokenExchangeProfile(w http.ResponseWriter, r *http.Request, _ string) {
-	Fail(w, errClientCredentialsUnavailable)
-}
-
-// DeleteTokenExchangeProfile removes a token exchange profile.
-func (h *Handlers) DeleteTokenExchangeProfile(w http.ResponseWriter, r *http.Request, _ string) {
-	Fail(w, errClientCredentialsUnavailable)
-}

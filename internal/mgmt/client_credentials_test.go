@@ -15,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
-	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -451,26 +449,5 @@ func TestClientCredentialsPluginUnavailable(t *testing.T) {
 	// Clients without the new settings still work, and a null revert is harmless.
 	if rec, _ := e.patch(t, caller, cid, map[string]any{"name": "still works", "client_authentication_methods": nil}); rec.Code != 200 {
 		t.Errorf("plain patch = %d %s", rec.Code, rec.Body)
-	}
-}
-
-// The token exchange profile routes stay 501 until Task 10.
-func TestTokenExchangeProfileRoutesAnswerNotImplemented(t *testing.T) {
-	h := &mgmt.Handlers{}
-	routes := map[string]func(http.ResponseWriter, *http.Request){
-		"GetTokenExchangeProfiles": func(w http.ResponseWriter, r *http.Request) {
-			h.GetTokenExchangeProfiles(w, r, mgmtapi.GetTokenExchangeProfilesParams{})
-		},
-		"PostTokenExchangeProfile":   h.PostTokenExchangeProfile,
-		"GetTokenExchangeProfile":    func(w http.ResponseWriter, r *http.Request) { h.GetTokenExchangeProfile(w, r, "tep_x") },
-		"PatchTokenExchangeProfile":  func(w http.ResponseWriter, r *http.Request) { h.PatchTokenExchangeProfile(w, r, "tep_x") },
-		"DeleteTokenExchangeProfile": func(w http.ResponseWriter, r *http.Request) { h.DeleteTokenExchangeProfile(w, r, "tep_x") },
-	}
-	for name, route := range routes {
-		rec := httptest.NewRecorder()
-		route(rec, httptest.NewRequest(http.MethodGet, "/", nil))
-		if rec.Code != http.StatusNotImplemented {
-			t.Errorf("%s: status %d, want 501", name, rec.Code)
-		}
 	}
 }
