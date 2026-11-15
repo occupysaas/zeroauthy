@@ -15,6 +15,12 @@ on:
 permissions:
   contents: read
 
+# No job in a release run restores or saves GitHub Actions caches, including
+# the jobs of the reusable ci and conformance workflows it calls: a poisoned
+# cache could change what is tested, built and published. The cache service
+# enforces this for every job; `binaries` also turns off setup-go's own cache.
+cache-mode: none
+
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -68,6 +74,7 @@ jobs:
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
+          cache: false
       - run: ./scripts/dist.sh "${{ needs.version.outputs.version }}" dist
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
