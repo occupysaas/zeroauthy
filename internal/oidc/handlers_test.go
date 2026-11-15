@@ -75,7 +75,6 @@ func TestDiscovery(t *testing.T) {
 		"response_modes_supported":              {"query", "fragment", "form_post", "web_message"},
 		"code_challenge_methods_supported":      {"S256"},
 		"scopes_supported":                      {"openid", "profile", "email", "offline_access"},
-		"token_endpoint_auth_methods_supported": {"client_secret_basic", "client_secret_post", "none"},
 	}
 	for k, want := range wantLists {
 		var got []string
@@ -104,6 +103,26 @@ func TestDiscovery(t *testing.T) {
 	}
 	if cc := rec.Header().Get("Cache-Control"); cc != "public, max-age=300" {
 		t.Errorf("Cache-Control = %q", cc)
+	}
+}
+
+// TestDiscoveryAuthMethods: private_key_jwt with its three signing
+// algorithms (Plan 35, D-0063).
+func TestDiscoveryAuthMethods(t *testing.T) {
+	h, _ := setup(t)
+	rec := get(h, "https://acme.example.test/.well-known/openid-configuration")
+	var doc struct {
+		Methods []string `json:"token_endpoint_auth_methods_supported"`
+		Algs    []string `json:"token_endpoint_auth_signing_alg_values_supported"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"client_secret_basic", "client_secret_post", "private_key_jwt", "none"}; !slices.Equal(doc.Methods, want) {
+		t.Errorf("token_endpoint_auth_methods_supported = %v, want %v", doc.Methods, want)
+	}
+	if want := []string{"RS256", "RS384", "PS256"}; !slices.Equal(doc.Algs, want) {
+		t.Errorf("token_endpoint_auth_signing_alg_values_supported = %v, want %v", doc.Algs, want)
 	}
 }
 

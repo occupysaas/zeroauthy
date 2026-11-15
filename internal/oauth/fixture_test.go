@@ -118,7 +118,13 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
-	st := memory.New()
+	return newFixtureOn(t, memory.New())
+}
+
+// newFixtureOn seeds st; pass memory.NewWithClock(fixedNow) when storage
+// time (for example the replay table's expiry) must follow the fixture clock.
+func newFixtureOn(t *testing.T, st *memory.Store) *fixture {
+	t.Helper()
 	f, err := seed.Parse([]byte(fixtureSeed))
 	if err != nil {
 		t.Fatal(err)

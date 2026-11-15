@@ -56,10 +56,13 @@ type Configuration struct {
 	SubjectTypesSupported             []string `json:"subject_types_supported"`
 	IDTokenSigningAlgValuesSupported  []string `json:"id_token_signing_alg_values_supported"`
 	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
-	GrantTypesSupported               []string `json:"grant_types_supported"`
-	CodeChallengeMethodsSupported     []string `json:"code_challenge_methods_supported"`
-	ScopesSupported                   []string `json:"scopes_supported"`
-	ClaimsSupported                   []string `json:"claims_supported"`
+	// TokenEndpointAuthSigningAlgValuesSupported are the private_key_jwt
+	// assertion algorithms (clientcred.Verify).
+	TokenEndpointAuthSigningAlgValuesSupported []string `json:"token_endpoint_auth_signing_alg_values_supported"`
+	GrantTypesSupported                        []string `json:"grant_types_supported"`
+	CodeChallengeMethodsSupported              []string `json:"code_challenge_methods_supported"`
+	ScopesSupported                            []string `json:"scopes_supported"`
+	ClaimsSupported                            []string `json:"claims_supported"`
 }
 
 func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
@@ -71,22 +74,23 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	base := strings.TrimSuffix(res.Issuer(), "/")
 	w.Header().Set("Cache-Control", metadataCacheControl)
 	cfg := Configuration{
-		Issuer:                            res.Issuer(),
-		AuthorizationEndpoint:             base + "/authorize",
-		TokenEndpoint:                     base + "/oauth/token",
-		RevocationEndpoint:                base + "/oauth/revoke",
-		DeviceAuthorizationEndpoint:       base + "/oauth/device/code",
-		UserinfoEndpoint:                  base + "/userinfo",
-		JWKSURI:                           base + "/.well-known/jwks.json",
-		EndSessionEndpoint:                base + "/oidc/logout",
-		ResponseTypesSupported:            []string{"code"},
-		ResponseModesSupported:            []string{"query", "fragment", "form_post", "web_message"},
-		SubjectTypesSupported:             []string{"public"},
-		IDTokenSigningAlgValuesSupported:  []string{"RS256"},
-		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic", "client_secret_post", "none"},
-		GrantTypesSupported:               []string{"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
-		CodeChallengeMethodsSupported:     []string{"S256"},
-		ScopesSupported:                   []string{"openid", "profile", "email", "offline_access"},
+		Issuer:                                     res.Issuer(),
+		AuthorizationEndpoint:                      base + "/authorize",
+		TokenEndpoint:                              base + "/oauth/token",
+		RevocationEndpoint:                         base + "/oauth/revoke",
+		DeviceAuthorizationEndpoint:                base + "/oauth/device/code",
+		UserinfoEndpoint:                           base + "/userinfo",
+		JWKSURI:                                    base + "/.well-known/jwks.json",
+		EndSessionEndpoint:                         base + "/oidc/logout",
+		ResponseTypesSupported:                     []string{"code"},
+		ResponseModesSupported:                     []string{"query", "fragment", "form_post", "web_message"},
+		SubjectTypesSupported:                      []string{"public"},
+		IDTokenSigningAlgValuesSupported:           []string{"RS256"},
+		TokenEndpointAuthMethodsSupported:          []string{"client_secret_basic", "client_secret_post", "private_key_jwt", "none"},
+		TokenEndpointAuthSigningAlgValuesSupported: []string{"RS256", "RS384", "PS256"},
+		GrantTypesSupported:                        []string{"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
+		CodeChallengeMethodsSupported:              []string{"S256"},
+		ScopesSupported:                            []string{"openid", "profile", "email", "offline_access"},
 		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",
 			"name", "given_name", "family_name", "nickname", "picture", "updated_at", "email", "email_verified"},
 	}
