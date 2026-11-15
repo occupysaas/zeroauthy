@@ -10,25 +10,31 @@ import (
 )
 
 type (
-	MFASupporter                 = store.MFASupporter
-	PhoneSupporter               = store.PhoneSupporter
-	WebAuthnSupporter            = store.WebAuthnSupporter
-	WebAuthn                     = store.WebAuthn
-	WebAuthnSnooze               = store.WebAuthnSnooze
-	UnimplementedWebAuthn        = store.UnimplementedWebAuthn
-	AuthMethod                   = store.AuthMethod
-	ClientMobile                 = store.ClientMobile
-	ClientMobileIOS              = store.ClientMobileIOS
-	ClientMobileAndroid          = store.ClientMobileAndroid
-	OrganizationsIISupporter     = store.OrganizationsIISupporter
-	OrganizationsII              = store.OrganizationsII
-	OrganizationQuery            = store.OrganizationQuery
-	OrganizationSearchPage       = store.OrganizationSearchPage
-	UnimplementedOrganizationsII = store.UnimplementedOrganizationsII
-	OrganizationInvitation       = store.OrganizationInvitation
-	InvitationReceipt            = store.InvitationReceipt
-	OrganizationClient           = store.OrganizationClient
-	OrganizationDiscoveryDomain  = store.OrganizationDiscoveryDomain
+	MFASupporter                   = store.MFASupporter
+	PhoneSupporter                 = store.PhoneSupporter
+	WebAuthnSupporter              = store.WebAuthnSupporter
+	ClientCredentialsSupporter     = store.ClientCredentialsSupporter
+	ClientCredentials              = store.ClientCredentials
+	ClientCredential               = store.ClientCredential
+	TokenExchangeProfile           = store.TokenExchangeProfile
+	SignedRequestObject            = store.SignedRequestObject
+	UnimplementedClientCredentials = store.UnimplementedClientCredentials
+	WebAuthn                       = store.WebAuthn
+	WebAuthnSnooze                 = store.WebAuthnSnooze
+	UnimplementedWebAuthn          = store.UnimplementedWebAuthn
+	AuthMethod                     = store.AuthMethod
+	ClientMobile                   = store.ClientMobile
+	ClientMobileIOS                = store.ClientMobileIOS
+	ClientMobileAndroid            = store.ClientMobileAndroid
+	OrganizationsIISupporter       = store.OrganizationsIISupporter
+	OrganizationsII                = store.OrganizationsII
+	OrganizationQuery              = store.OrganizationQuery
+	OrganizationSearchPage         = store.OrganizationSearchPage
+	UnimplementedOrganizationsII   = store.UnimplementedOrganizationsII
+	OrganizationInvitation         = store.OrganizationInvitation
+	InvitationReceipt              = store.InvitationReceipt
+	OrganizationClient             = store.OrganizationClient
+	OrganizationDiscoveryDomain    = store.OrganizationDiscoveryDomain
 )
 
 type (
@@ -391,6 +397,9 @@ type (
 
 var ErrMFAUnavailable = store.ErrMFAUnavailable
 var ErrPhoneUnavailable = store.ErrPhoneUnavailable
+
+// ErrClientCredentialsUnavailable means the driver lacks the client_credentials.v1 capability.
+var ErrClientCredentialsUnavailable = store.ErrClientCredentialsUnavailable
 
 // ErrWebAuthnUnavailable means the driver lacks the webauthn.v1 capability.
 var ErrWebAuthnUnavailable = store.ErrWebAuthnUnavailable

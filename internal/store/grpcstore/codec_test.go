@@ -162,7 +162,9 @@ func TestTenantRoundTrip(t *testing.T) {
 
 func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
-		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes", Mobile: &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "T", AppBundleIdentifier: "com.example"}, Android: &store.ClientMobileAndroid{AppPackageName: "com.example", SHA256CertFingerprints: []string{"AA:BB"}}},
+		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
+		PrivateKeyJWTCredentials: []string{"cred_1"}, SignedRequestObject: &store.SignedRequestObject{Required: true, Credentials: []string{"cred_1"}}, TokenExchangeTypes: []string{"urn:example:t"},
+		Mobile: &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "T", AppBundleIdentifier: "com.example"}, Android: &store.ClientMobileAndroid{AppPackageName: "com.example", SHA256CertFingerprints: []string{"AA:BB"}}},
 		Secrets: []store.ClientSecret{
 			{Hash: "h1", CreatedAt: nanoTime},
 			{Hash: "h2", CreatedAt: nanoTime, ExpiresAt: ptr(nanoTime.Add(time.Hour))},
@@ -199,7 +201,7 @@ func TestResourceServerRoundTrip(t *testing.T) {
 		TenantID: "ten", ID: "rs", Identifier: "https://api", Name: "API",
 		EnforcePolicies: true, TokenDialect: "rfc9068_profile_authz",
 		Scopes:     []store.Scope{{Value: "read", Description: "Read"}, {Value: "write"}},
-		SigningAlg: "RS256", TokenLifetime: 7200, TokenLifetimeForWeb: 3600, AllowOfflineAccess: true, CreatedAt: nanoTime,
+		SigningAlg: "RS256", TokenLifetime: 7200, TokenLifetimeForWeb: 3600, SigningSecretSealed: []byte{1, 2}, AllowOfflineAccess: true, CreatedAt: nanoTime,
 		SkipConsentForVerifiableFirstPartyClients: true,
 		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant},
 		IsSystem:                                  true,
@@ -518,7 +520,7 @@ func TestErrorMapping(t *testing.T) {
 }
 
 func TestPushedAuthRequestCodecRoundTrip(t *testing.T) {
-	roundTrip(t, "full", &store.PushedAuthRequest{TenantID: "ten", IDHash: "h", ClientID: "cid", Origin: "https://login.example", Params: map[string]string{"state": "s"}, ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime, UsedAt: &nanoTime}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
+	roundTrip(t, "full", &store.PushedAuthRequest{TenantID: "ten", IDHash: "h", ClientID: "cid", Origin: "https://login.example", Params: map[string]string{"state": "s"}, ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime, UsedAt: &nanoTime, Signed: true}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
 	roundTrip(t, "zero", &store.PushedAuthRequest{}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
 	used := time.Date(2026, 1, 2, 3, 4, 5, 6000, time.UTC)
 	for _, in := range []*store.PushedAuthRequest{

@@ -37,6 +37,8 @@ type eventsFaults struct {
 	mfaMissing         bool
 	phoneMissing       bool
 	webauthnMissing    bool
+	ccMissing          bool
+	ccFieldsSent       atomic.Bool // a client, API or PAR write carried a Plan 35 field
 	mfaProbe           atomic.Int32
 	mfaOperation       atomic.Int32
 	mfaMark            atomic.Int32
@@ -70,6 +72,23 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 		}
 		if name == "WebAuthnCapabilities" && faults.webauthnMissing {
 			return nil, status.Error(codes.Unimplemented, "WebAuthn capability missing")
+		}
+		if name == "ClientCredentialsCapabilities" && faults.ccMissing {
+			return nil, status.Error(codes.Unimplemented, "pre-client_credentials.v1 plugin")
+		}
+		switch w := req.(type) {
+		case *storev1.ClientWrite:
+			if v := w.GetValue(); v.GetClientAuthenticationMethods() != nil || v.GetSignedRequestObject() != nil || v.GetTokenExchange() != nil {
+				faults.ccFieldsSent.Store(true)
+			}
+		case *storev1.ResourceServerWrite:
+			if w.GetValue().GetSigningSecretSealed() != nil {
+				faults.ccFieldsSent.Store(true)
+			}
+		case *storev1.PushedAuthRequestWrite:
+			if w.GetValue().GetSigned() {
+				faults.ccFieldsSent.Store(true)
+			}
 		}
 		if name == "PhoneCapabilities" && faults.phoneMissing {
 			return nil, status.Error(codes.Unimplemented, "pre-Phone plugin")
