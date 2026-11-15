@@ -48,19 +48,11 @@ func scanProfile(row scanner) (*store.TokenExchangeProfile, error) {
 	return &p, nil
 }
 
-// notFound maps sql.ErrNoRows to store.ErrNotFound.
-func notFound(err error) error {
-	if errors.Is(err, sql.ErrNoRows) {
-		return store.ErrNotFound
-	}
-	return err
-}
-
 // lockClient takes the client row's lock (a no-op suffix on SQLite, whose
 // writes are serialized) and reports store.ErrNotFound when it is missing.
 func lockClient(ctx context.Context, tx *Store, tid, clientID string) error {
 	var one int
-	return notFound(tx.queryRow(ctx, `SELECT 1 FROM clients WHERE tenant_id=? AND client_id=?`+tx.d.forUpdate, tid, clientID).Scan(&one))
+	return missing(tx.queryRow(ctx, `SELECT 1 FROM clients WHERE tenant_id=? AND client_id=?`+tx.d.forUpdate, tid, clientID).Scan(&one))
 }
 
 // has reports whether the query returns a row.
@@ -102,7 +94,7 @@ func (r clientCredentials) Create(ctx context.Context, c *store.ClientCredential
 
 func (r clientCredentials) Get(ctx context.Context, tid, clientID, id string) (*store.ClientCredential, error) {
 	c, err := scanClientCredential(r.s.queryRow(ctx, `SELECT `+clientCredentialCols+` FROM client_credentials WHERE tenant_id=? AND client_id=? AND id=?`, tid, clientID, id))
-	return c, notFound(err)
+	return c, missing(err)
 }
 
 func (r clientCredentials) List(ctx context.Context, tid, clientID string) ([]*store.ClientCredential, error) {
@@ -265,16 +257,16 @@ func (r clientCredentials) CreateProfile(ctx context.Context, p *store.TokenExch
 
 func (r clientCredentials) GetProfile(ctx context.Context, tid, id string) (*store.TokenExchangeProfile, error) {
 	p, err := scanProfile(r.s.queryRow(ctx, `SELECT `+profileCols+` FROM token_exchange_profiles WHERE tenant_id=? AND id=?`, tid, id))
-	return p, notFound(err)
+	return p, missing(err)
 }
 
 func (r clientCredentials) GetProfileByType(ctx context.Context, tid, subjectTokenType string) (*store.TokenExchangeProfile, error) {
 	p, err := scanProfile(r.s.queryRow(ctx, `SELECT `+profileCols+` FROM token_exchange_profiles WHERE tenant_id=? AND subject_token_type=?`, tid, subjectTokenType))
-	return p, notFound(err)
+	return p, missing(err)
 }
 
 func (r clientCredentials) ListProfiles(ctx context.Context, tid, from string, take int) ([]*store.TokenExchangeProfile, string, error) {
-	q := `SELECT ` + profileCols + ` FROM token_exchange_profiles WHERE tenant_id=? AND id>?` + ` ORDER BY id` + r.s.d.byteOrder
+	q := `SELECT ` + profileCols + ` FROM token_exchange_profiles WHERE tenant_id=? AND id` + r.s.d.byteOrder + ` > ? ORDER BY id` + r.s.d.byteOrder
 	args := []any{tid, from}
 	if take >= 0 {
 		q += ` LIMIT ?`

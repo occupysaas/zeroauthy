@@ -270,6 +270,32 @@ func testClientCredentials(t *testing.T, newStore Factory) {
 		mustEqual(t, next, "")
 	})
 
+	t.Run("ProfileCheckpointMixedCase", func(t *testing.T) {
+		s := setup(t)
+		// Byte order: uppercase sorts before lowercase, which locale
+		// collations get wrong; the keyset cursor must agree with ORDER BY.
+		want := []string{"tep_A0", "tep_B0", "tep_a0", "tep_b0"}
+		for i, id := range []string{"tep_b0", "tep_A0", "tep_a0", "tep_B0"} {
+			p := profile("ten_a", i+1)
+			p.ID = id
+			mustNoErr(t, s.ClientCredentials().CreateProfile(ctx, p, 100))
+		}
+		var ids []string
+		from := ""
+		for range 10 {
+			page, next, err := s.ClientCredentials().ListProfiles(ctx, "ten_a", from, 2)
+			mustNoErr(t, err)
+			for _, p := range page {
+				ids = append(ids, p.ID)
+			}
+			if next == "" {
+				break
+			}
+			from = next
+		}
+		mustEqual(t, ids, want)
+	})
+
 	t.Run("ProfilesForAction", func(t *testing.T) {
 		s := setup(t)
 		for i := 1; i <= 3; i++ {
