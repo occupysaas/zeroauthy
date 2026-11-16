@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
+	"github.com/zeroauthy/zeroauthy/internal/phonerules"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
@@ -41,7 +42,7 @@ func (h *Handlers) sendIdentifierCode(ctx context.Context, tid, conn, number, ki
 	if !isEmail && (h.MFA == nil || h.MFA.Phone == nil) {
 		return store.ErrPhoneUnavailable
 	}
-	limits := []store.ProtectionLimit{{Key: store.ProtectionKey{TenantID: tid, Kind: "identifier-phone", Identifier: normalized}, Algorithm: "fixed-window", Capacity: 10, Window: time.Hour}}
+	limits := []store.ProtectionLimit{{Key: store.ProtectionKey{TenantID: tid, Kind: "identifier-phone-" + kind, ConnectionID: conn, Identifier: normalized}, Algorithm: "fixed-window", Capacity: 10, Window: time.Hour}}
 	if ip := logs.Enrich(ctx, logs.Event{}).IP; ip != "" {
 		limits = append(limits, store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tid, Kind: "identifier-phone-ip", IP: ip}, Algorithm: "fixed-window", Capacity: 50, Window: time.Hour})
 	}
@@ -69,7 +70,12 @@ func (h *Handlers) sendIdentifierCode(ctx context.Context, tid, conn, number, ki
 		}
 		request, _ = json.Marshal(sealed)
 	}
-	c := &store.PasswordlessCode{TenantID: tid, ConnectionID: conn, Identifier: normalized, Kind: "phone-" + kind, CodeHash: secrets.HashToken(code), Request: request, CreatedAt: h.now(), ExpiresAt: h.now().Add(5 * time.Minute)}
+	lifetime := 5 * time.Minute
+	if kind == "signup" {
+		lifetime = time.Duration(phonerules.Limits.SignupOTPLifetimeSeconds) * time.Second
+	}
+	now := h.now()
+	c := &store.PasswordlessCode{TenantID: tid, ConnectionID: conn, Identifier: normalized, Kind: "phone-" + kind, CodeHash: secrets.HashToken(code), Request: request, CreatedAt: now, ExpiresAt: now.Add(lifetime)}
 	if err = h.Store.Phone().PutPasswordlessCode(ctx, c); err != nil {
 		return err
 	}

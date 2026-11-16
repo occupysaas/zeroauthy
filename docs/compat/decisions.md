@@ -2349,7 +2349,9 @@ bodies are written in our own words. MFA SMS: 10 sends per user per hour
 refilling one per hour, at most one new voice request per hour, Guardian code
 length 4–10 (default 6) and lifetime 30–3600 s (default 300); voice codes are
 read digit by digit. Signup verification codes live 900 s; `limit_signup_otp`
-is scoped to tenant, identifier and connection. Actions:
+is scoped to tenant, identifier and connection. Plan 45b Task 3 enforces this
+lifetime and separates identifier send budgets by connection and purpose
+(signup/reset); the tenant-wide per-IP send limit is still shared. Actions:
 `custom-phone-provider` (`onExecuteCustomPhoneProvider`, v1, notification
 event, `api.notification.drop|retry`, up to five retries, one bound Action)
 and `send-phone-message` (`onExecuteSendPhoneMessage`, blocking,
@@ -3396,3 +3398,18 @@ Optional observation points A1–A7 remain open: server notifications, automatic
 upstream revocation, native subject-token-type value, provider PKCE support,
 native errors, Actions protocol, and native log types. Their local answers
 are recorded in the design; none is claimed observed.
+
+## D-0270 — Plan 45b flow and API correctness fixes (2026-11-16)
+
+**Status:** implementation started; see the [implementation record](../superpowers/2026-11-16-plan-45b-implementation-record.md) for completed tasks. This entry freezes intended behavior; it does not mark pending fixes as implemented.
+
+**Authority:** [Plan 45b design](../superpowers/specs/2026-11-16-zeroauthy-flow-api-fixes-design.md), the cited pre-1.0 review findings, and their public documentation/OpenAPI evidence. No live Auth0 tenant observation was performed.
+
+- **LR45b-1:** Admin CSP uses the base-domain wildcard and system host. Custom-domain Management calls go through the system host; the unauthenticated admin page must not enumerate tenant domains (Task 6 pending).
+- **LR45b-2:** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members, retaining the extra roles check (Task 9 pending; amends D-0055 when implemented).
+- **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (Task 11 pending; amends D-0047 when implemented).
+- **LR45b-4:** Keep post-login Actions in their current position relative to MFA (maintainer ruling, 2026-11-08). Move non-Action invitation, membership, session, login-counter and consent side effects after MFA (Task 2 pending).
+
+**Amendments tracked here:** D-0043 nullable user attributes, verification organization context and v1-only connection filtering await Tasks 7, 8 and 10; D-0047 public provider configuration awaits Task 11; D-0055 organization scope tightening awaits Task 9. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
+
+**Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial (local: once; no `limit_sul` for password brute force); B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.

@@ -21,6 +21,9 @@ S1 / Plan 39a has [started](2026-11-16-plan-39a-implementation-record.md)
 on `plan-39a-apple` (internal client-secret signer/cache); the remaining
 Apple tasks are pending.
 
+O3 / Plan 45b has its [initial fixes](2026-11-16-plan-45b-implementation-record.md)
+merged into `main` (decisions and signup-code fix); its remaining tasks are pending.
+
 Start at the roadmap's **"Designed 2026-11-16"** table
 ([roadmap §0](specs/2026-10-19-zeroauthy-management-roadmap-design.md)).
 It lists each item with its spec and the maintainer rulings it still

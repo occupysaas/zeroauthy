@@ -14,10 +14,10 @@ early preview to give people something to try (maintainer, 2026-11-03);
 Plans 35–48 continue after it. Review findings that can wait were moved into
 the plans below, marked "(pre-1.0 review)".
 
-### Designed 2026-11-16 (spec and plan merged; not implemented)
+### Designed 2026-11-16 (spec and plan merged; implementation status below)
 
 Every remaining parallel-paths item except X1 (maintainer-only) has a spec and
-an implementation plan. Rulings the maintainer still has to give are listed
+an implementation plan. O3 / Plan 45b has [started](../2026-11-16-plan-45b-implementation-record.md) on `plan-45b-flow-api-fixes`; no remaining plan is fully implemented. Rulings the maintainer still has to give are listed
 per item; items without rulings can start as soon as their track allows.
 
 | Item | Plan | Spec | Rulings needed before (parts of) implementation |
