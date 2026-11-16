@@ -137,7 +137,12 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	ctx = logscrub.WithCredentials(ctx, values...)
 	*r = *r.WithContext(ctx)
 	// Its failure is delivered by ValidateRequest.
-	_ = ApplyRequestObject(ctx, h.Store, res.Tenant, res.Issuer(), h.now(), h.log(), &req)
+	if ApplyRequestObject(ctx, h.Store, res.Tenant, res.Issuer(), h.now(), h.log(), &req) == nil && req.Signed && req.Invitation != "" {
+		// An invitation ticket carried only inside the signed object was not
+		// known when the masks above were built.
+		ctx = logscrub.WithCredentials(ctx, req.Invitation)
+		*r = *r.WithContext(ctx)
+	}
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {

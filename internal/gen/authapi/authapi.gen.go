@@ -1018,6 +1018,11 @@ type TokenResponse struct {
 	ExpiresIn int     `json:"expires_in"`
 	IdToken   *string `json:"id_token,omitempty"`
 
+	// IssuedTokenType Sent only by the custom token exchange grant (RFC 8693 section 2.2.1): always `urn:ietf:params:oauth:token-type:access_token` (LR35-10).
+	//
+	// Examples: urn:ietf:params:oauth:token-type:access_token
+	IssuedTokenType *string `json:"issued_token_type,omitempty"`
+
 	// RecoveryCode One-time replacement after a successful MFA recovery-code grant.
 	RecoveryCode *string `json:"recovery_code,omitempty"`
 	RefreshToken *string `json:"refresh_token,omitempty"`

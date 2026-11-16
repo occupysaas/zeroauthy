@@ -137,8 +137,8 @@ func (m *Manager) SignWithType(ctx context.Context, tenantID string, claims any,
 }
 
 // SignWithAlg is SignWithType with an algorithm: RS256, or PS256 for an API
-// that asks for it (Plan 35). Both use the same RSA key, and its JWK keeps
-// alg RS256 (C19).
+// that asks for it (Plan 35). Both use the same RSA key, whose published JWK
+// carries no alg, so a verifier may use either (C19).
 func (m *Manager) SignWithAlg(ctx context.Context, tenantID string, claims any, tokenType string, alg jose.SignatureAlgorithm) (string, error) {
 	if alg != jose.RS256 && alg != jose.PS256 {
 		return "", errors.New("keys: unsupported signing algorithm")

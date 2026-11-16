@@ -111,6 +111,9 @@ func TestTokenExchangeHappyPath(t *testing.T) {
 	if status != 200 {
 		t.Fatalf("exchange %d %v", status, body)
 	}
+	if body["issued_token_type"] != "urn:ietf:params:oauth:token-type:access_token" {
+		t.Fatalf("issued_token_type = %v", body["issued_token_type"])
+	}
 	at, _ := verifyToken(t, f.keys, f.tid, body["access_token"].(string))
 	if at["sub"] != alice || at["azp"] != "ropg" || at["act"] != nil || !strings.Contains(at["scope"].(string), "read:things") {
 		t.Fatalf("access token = %v", at)

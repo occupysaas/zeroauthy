@@ -21,7 +21,10 @@ func (c *Client) ClientCredentials() store.ClientCredentials { return clientClie
 
 // CheckClientCredentialsSupport latches a definitive answer for the connection.
 func (c *Client) CheckClientCredentialsSupport(ctx context.Context) error {
-	if c.ccCap.v.Load() == 2 {
+	switch c.ccCap.v.Load() {
+	case 1:
+		return nil
+	case 2:
 		return store.ErrClientCredentialsUnavailable
 	}
 	v, err := c.rpc.ClientCredentialsCapabilities(ctx, &storev1.PingRequest{})

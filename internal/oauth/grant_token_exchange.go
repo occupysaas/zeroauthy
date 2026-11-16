@@ -38,6 +38,10 @@ const customAuthentication = "custom_authentication"
 // tokenExchangeBlocked is the description of a throttled exchange (our wording).
 const tokenExchangeBlocked = "Too many token exchange attempts from this address. Wait a while before trying again."
 
+// issuedTokenTypeAccessToken is the issued_token_type of every custom token
+// exchange response.
+const issuedTokenTypeAccessToken = "urn:ietf:params:oauth:token-type:access_token"
+
 // noExchangeUser answers an Action whose selected user cannot be used: a
 // missing user, or a user_id owned by another connection.
 const noExchangeUser = "the user selected for this token exchange cannot be used"
@@ -242,6 +246,9 @@ func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *st
 	if oerr != nil {
 		return nil, oerr
 	}
+	// RFC 8693 section 2.2.1: always the access-token type (LR35-15).
+	issued := issuedTokenTypeAccessToken
+	resp.IssuedTokenType = &issued
 	// No refresh token when an actor is set.
 	var rt *store.RefreshToken
 	if result.Actor == nil && offline && slices.Contains(ceiling, "offline_access") {

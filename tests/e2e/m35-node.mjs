@@ -466,6 +466,10 @@ async function exchange() {
   } finally {
     await v.close();
   }
+  // RFC 8693 section 2.2.1: the response names the issued token type.
+  const typed = await tokenForm({ grant_type: EXCHANGE, client_id: "m35-bridge", client_secret: bridgeSecret, audience: API, scope: "openid", subject_token_type: SUBJECT_TYPE, subject_token: await subject("legacy-35") });
+  assert.equal(typed.status, 200, JSON.stringify(typed.body));
+  assert.equal(typed.body.issued_token_type, "urn:ietf:params:oauth:token-type:access_token");
   // Refusals.
   const form = async (fields, headers) => tokenForm({ grant_type: EXCHANGE, client_id: "m35-bridge", client_secret: bridgeSecret, audience: API, scope: "openid", ...fields }, headers);
   let r = await form({ subject_token_type: "urn:plan35:unknown", subject_token: await subject("legacy-35") });

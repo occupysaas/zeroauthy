@@ -186,6 +186,13 @@ func TestVerifyAssertion(t *testing.T) {
 		{name: "RS256", alg: "RS256", raw: func() string { return rs(jose.RS256, goodClaims()) }, ok: true},
 		{name: "RS384", alg: "RS384", raw: func() string { return rs(jose.RS384, goodClaims()) }, ok: true},
 		{name: "PS256", alg: "PS256", raw: func() string { return rs(jose.PS256, goodClaims()) }, ok: true},
+		{name: "typ JWT", alg: "RS256", raw: func() string { return sign(t, k, jose.RS256, map[string]any{"typ": "JWT"}, goodClaims()) }, ok: true},
+		{name: "typ jwt", alg: "RS256", raw: func() string { return sign(t, k, jose.RS256, map[string]any{"typ": "jwt"}, goodClaims()) }, ok: true},
+		// A request object must not double as a client assertion when one key
+		// serves both settings.
+		{name: "request object typ", alg: "RS256", raw: func() string {
+			return sign(t, k, jose.RS256, map[string]any{"typ": "oauth-authz-req+jwt"}, goodClaims())
+		}},
 		{name: "aud array", alg: "RS256", raw: func() string {
 			return rs(jose.RS256, with(goodClaims(), "aud", []string{"x", issuer}))
 		}, ok: true},

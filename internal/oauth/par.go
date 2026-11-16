@@ -10,6 +10,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -75,6 +76,12 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	// authenticated the client (spec §4).
 	if verr := authz.ApplyRequestObject(ctx, h.Store, t, res.Issuer(), h.now(), h.log(), &req); verr != nil {
 		return nil, parError(verr)
+	}
+	if req.Signed && req.Invitation != "" {
+		// An invitation ticket carried only inside the signed object is not
+		// in the form, so registerOAuthForm did not mask it.
+		ctx = logscrub.WithCredentials(ctx, req.Invitation)
+		*r = *r.WithContext(ctx)
 	}
 	if len(req.Ext) > authz.MaxExtParams {
 		return nil, invalidRequest(fmt.Sprintf("at most %d ext- parameters are allowed", authz.MaxExtParams)) // P2c

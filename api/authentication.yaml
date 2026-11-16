@@ -1832,6 +1832,7 @@ components:
         refresh_token:
           type: string
         recovery_code: {type: string, description: One-time replacement after a successful MFA recovery-code grant.}
+        issued_token_type: {type: string, description: "Sent only by the custom token exchange grant (RFC 8693 section 2.2.1): always `urn:ietf:params:oauth:token-type:access_token` (LR35-15).", examples: ["urn:ietf:params:oauth:token-type:access_token"]}
     OpenIDConfiguration:
       type: object
       required:

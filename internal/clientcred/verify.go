@@ -90,6 +90,14 @@ func Verify(in VerifyInput) (map[string]any, error) {
 		}
 	}
 
+	if in.Purpose == Assertion {
+		// A request object is never a client assertion, even when one key
+		// serves both settings.
+		if typ, _ := h.ExtraHeaders[jose.HeaderType].(string); typ == "oauth-authz-req+jwt" {
+			return nil, invalid("a request object is not a client assertion")
+		}
+	}
+
 	payload, err := verifySignature(jws, string(alg), h.KeyID, in)
 	if err != nil {
 		return nil, err

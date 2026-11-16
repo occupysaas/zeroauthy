@@ -110,6 +110,29 @@ func TestClientCredentialsFieldsRoundTrip(t *testing.T) {
 	}
 }
 
+// A capable plugin is probed once: every later repository call, and the
+// support check, reads the latch instead of issuing another capabilities RPC.
+func TestClientCredentialsCapabilityProbedOnce(t *testing.T) {
+	ctx := context.Background()
+	faults := &eventsFaults{}
+	c := serveEventsFaults(t, memory.New(), faults)
+	cc := c.ClientCredentials()
+	for range 3 {
+		if _, err := cc.List(ctx, "t", "c"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := cc.GetProfileByType(ctx, "t", "urn:x"); err != nil && !errors.Is(err, store.ErrNotFound) {
+			t.Fatal(err)
+		}
+		if !store.ClientCredentialsAvailable(ctx, c) {
+			t.Fatal("capable plugin reported unavailable")
+		}
+	}
+	if got := faults.ccProbes.Load(); got != 1 {
+		t.Fatalf("capability probes = %d, want 1", got)
+	}
+}
+
 func TestClientCredentialsCapabilityAbsent(t *testing.T) {
 	ctx := context.Background()
 	faults := &eventsFaults{ccMissing: true}
