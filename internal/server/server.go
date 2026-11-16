@@ -358,6 +358,7 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPost)
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
+		tr.Post("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
 		tr.Get("/u/signup", lg.SignupPage)

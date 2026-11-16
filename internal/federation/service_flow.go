@@ -28,9 +28,10 @@ import (
 
 // Flow limits (spec §4, §5).
 const (
-	attemptTTL      = 5 * time.Minute
-	callbackBudget  = 30 * time.Second
-	maxCallbackSize = 16 << 10
+	attemptTTL     = 5 * time.Minute
+	callbackBudget = 30 * time.Second
+	// MaxCallbackSize bounds both query and form-post callbacks.
+	MaxCallbackSize = 16 << 10
 	// AttemptCookiePrefix names the browser binding cookie of one attempt:
 	// the prefix plus the first 16 hex characters of the state hash, so tabs
 	// keep independent attempts.
@@ -78,8 +79,8 @@ type BeginInput struct {
 }
 
 // Begun is a started attempt: redirect the browser to URL after setting the
-// cookie CookieName=CookieValue (HttpOnly, Secure, SameSite=Lax, path
-// CallbackPath) until ExpiresAt.
+// cookie CookieName=CookieValue (HttpOnly, Secure, SameSite=None for Apple,
+// Lax for other providers, path CallbackPath) until ExpiresAt.
 type Begun struct {
 	URL, CookieName, CookieValue string
 	ExpiresAt                    time.Time
@@ -144,6 +145,12 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	switch cfg.Strategy {
 	case StrategyGoogle:
 		endpoints, issuer = s.Providers.google()
+	case StrategyApple:
+		meta, err := s.Providers.AppleMetadata(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		issuer, endpoints = meta.Issuer, meta.Endpoints()
 	case StrategyOAuth2:
 		endpoints = Endpoints{AuthorizationURL: cfg.AuthorizationURL, TokenURL: cfg.TokenURL, TokenAuthMethod: authPost}
 	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC:
@@ -219,12 +226,14 @@ func (s *FlowService) openProof(tenantID, stateHash string, sealed []byte) (proo
 // CallbackParams is a parsed provider callback.
 type CallbackParams struct {
 	State, Code, Error string
+	// User is untrusted, optional Apple first-authorization name JSON.
+	User string
 }
 
-// ParseCallback validates a raw callback query: at most 16 KiB, no duplicate
-// parameters, a state, and exactly one of code and error.
+// ParseCallback validates URL-encoded query or body fields: at most 16 KiB,
+// no duplicate parameters, a state, and exactly one of code and error.
 func ParseCallback(rawQuery string) (CallbackParams, error) {
-	if len(rawQuery) > maxCallbackSize {
+	if len(rawQuery) > MaxCallbackSize {
 		return CallbackParams{}, ErrCallbackRejected
 	}
 	q, err := url.ParseQuery(rawQuery)
@@ -236,7 +245,7 @@ func ParseCallback(rawQuery string) (CallbackParams, error) {
 			return CallbackParams{}, ErrCallbackRejected
 		}
 	}
-	p := CallbackParams{State: q.Get("state"), Code: q.Get("code"), Error: q.Get("error")}
+	p := CallbackParams{State: q.Get("state"), Code: q.Get("code"), Error: q.Get("error"), User: q.Get("user")}
 	if p.State == "" || (p.Code == "") == (p.Error == "") {
 		return CallbackParams{}, ErrCallbackRejected
 	}
@@ -319,10 +328,16 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	if err != nil {
 		return nil, ErrAttemptStale
 	}
+	var appleUser *AppleUser
+	if cfg.Strategy == StrategyApple && slices.Contains(cfg.Scopes, "name") {
+		// Optional malformed/oversized names must never break authentication.
+		// Eligibility above ties these scopes to this attempt's revision.
+		appleUser, _ = ParseAppleUser(in.Params.User)
+	}
 	res, err := s.Providers.For(cfg).Exchange(ctx, ExchangeInput{
 		Config: cfg, Cache: CacheKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Revision: a.Revision},
 		Endpoints: a.Endpoints, Issuer: a.Issuer, CallbackURL: a.CallbackURL, Code: in.Params.Code,
-		CodeVerifier: pr.Verifier, Nonce: pr.Nonce, ClientSecret: creds.ClientSecret, Now: s.now(),
+		CodeVerifier: pr.Verifier, Nonce: pr.Nonce, ClientSecret: creds.ClientSecret, Now: s.now(), AppleUser: appleUser,
 	})
 	if err != nil {
 		return nil, err // the attempt stays claimed: never retried

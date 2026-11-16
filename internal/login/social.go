@@ -3,6 +3,8 @@ package login
 import (
 	"context"
 	"errors"
+	"io"
+	"mime"
 	"net/http"
 	"net/url"
 
@@ -182,8 +184,12 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 		h.socialFailure(w, r, f, err)
 		return
 	}
+	sameSite := http.SameSiteLaxMode
+	if conn.Strategy == federation.StrategyApple {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
-		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
+		HttpOnly: true, Secure: true, SameSite: sameSite})
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodPost {
 		u, err := url.Parse(begun.URL)
@@ -255,17 +261,32 @@ func federationErrorClass(err error) string {
 	return "internal"
 }
 
-// SocialCallback is GET /login/callback.
+// SocialCallback handles the query and form-post provider callbacks.
 func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 	h.maskRequest(r)
+	raw := r.URL.RawQuery
+	var parseErr error
+	if r.Method == http.MethodPost {
+		// Read and parse a bounded body ourselves. Register partial parsed
+		// credentials before handling any error, including malformed forms.
+		body, err := io.ReadAll(io.LimitReader(r.Body, federation.MaxCallbackSize+1))
+		r.PostForm, parseErr = url.ParseQuery(string(body))
+		h.maskRequest(r)
+		// POST callbacks use body fields only; never merge query parameters.
+		mediaType, _, mediaErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if err != nil || len(body) > federation.MaxCallbackSize || mediaErr != nil || mediaType != "application/x-www-form-urlencoded" || raw != "" {
+			parseErr = federation.ErrCallbackRejected
+		}
+		raw = string(body)
+	}
 	ctx := r.Context()
 	w.Header().Set("Cache-Control", "no-store")
 	res, ok := tenant.FromContext(ctx)
-	if !ok || h.Federation == nil || r.Method != http.MethodGet {
+	if !ok || h.Federation == nil || (r.Method != http.MethodGet && r.Method != http.MethodPost) || parseErr != nil {
 		h.socialFailure(w, r, nil, federation.ErrCallbackRejected)
 		return
 	}
-	params, err := federation.ParseCallback(r.URL.RawQuery)
+	params, err := federation.ParseCallback(raw)
 	if err != nil {
 		h.socialFailure(w, r, nil, err)
 		return
