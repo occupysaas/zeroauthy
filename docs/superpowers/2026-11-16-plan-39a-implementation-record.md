@@ -127,3 +127,21 @@ Task 8 report lists commands, handles, actual exits, selected checks and
 failures. The full local Go tier and whole-branch review remain controller
 responsibilities. **No push or CI before all local checks and reviews finish;
 no merge without green CI and maintainer approval.**
+
+## Full Go tier follow-up: migration expectation (2026-11-16)
+
+The controller's full Go run at `8275e499` exited 1 in
+`TestEventsMigrationFrom30/sqlite`: its latest-version assertion still
+expected 36 after Task 6 added migration 0037. The test had successfully
+migrated the database and reported actual latest version 37. Updated that
+single stale expectation; the explicit version-30 upgrade starting point
+remains unchanged. No production migration changed.
+
+Focused verification used `GOTOOLCHAIN=go1.26.11 TMPDIR=/dev/shm/za39a
+GOTMPDIR=/dev/shm/za39a go test ./internal/store/sqlstore -run
+'^TestEventsMigrationFrom30$|^TestLatestVersion$|^TestMigrationSetsMatch$|^TestNativeSocialMigrationLeavesClients$|^TestOrganizationsIIMigrationFrom25$'
+-count=1 -v` and exited **0** (0.818s), with all named gates selected and
+no skips. Database execution was SQLite; embedded version/set checks cover
+all three dialects. The existing full-tier failure remains recorded in
+`final-go.log`; this focused pass does not establish a full-tier pass.
+The controller will rerun that tier and perform final review. No push or CI.
