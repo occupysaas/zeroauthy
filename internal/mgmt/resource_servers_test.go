@@ -1,7 +1,9 @@
 package mgmt_test
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,6 +14,8 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
@@ -189,8 +193,6 @@ func TestCreateResourceServerRefusals(t *testing.T) {
 		"web too long":          id(map[string]any{"token_lifetime_for_web": 2592001}),
 		"web above lifetime":    id(map[string]any{"token_lifetime": 100, "token_lifetime_for_web": 101}),
 		"web above default":     id(map[string]any{"token_lifetime_for_web": 86401}),
-		"HS256":                 id(map[string]any{"signing_alg": "HS256"}),
-		"PS256":                 id(map[string]any{"signing_alg": "PS256"}),
 		"ES256":                 id(map[string]any{"signing_alg": "ES256"}),
 		"signing_secret":        id(map[string]any{"signing_secret": strings.Repeat("s", 32)}),
 		"offline type":          id(map[string]any{"allow_offline_access": "yes"}),
@@ -453,7 +455,7 @@ func TestUpdateResourceServer(t *testing.T) {
 	for _, body := range []map[string]any{
 		{"identifier": "https://api.test"}, {"identifier": "https://other.test"}, {"id": id}, {"is_system": false},
 		{"colour": "blue"}, {"name": ""}, {"name": "a<b"}, {"token_lifetime": 0}, {"token_lifetime": 2592001},
-		{"signing_alg": "HS256"}, {"signing_alg": "PS256"}, {"signing_secret": strings.Repeat("s", 32)},
+		{"signing_alg": "ES256"}, {"signing_secret": strings.Repeat("s", 32)},
 		{"enforce_policies": "true"}, {"token_dialect": "unknown"}, {"consent_policy": "x"},
 		{"proof_of_possession": map[string]any{"mechanism": "dpop"}}, {"token_encryption": map[string]any{}},
 		{"authorization_details": []map[string]any{{"type": "x"}}},
@@ -800,5 +802,177 @@ func TestResourceServerResponseHeaders(t *testing.T) {
 	rec = e.del(t, e.tn, "nope")
 	if rec.Header().Get("Cache-Control") != "no-store" {
 		t.Errorf("delete: Cache-Control %q", rec.Header().Get("Cache-Control"))
+	}
+}
+
+func sealedSecret(t *testing.T, e *rsEnv, id string) []byte {
+	t.Helper()
+	rs, err := e.st.ResourceServers().Get(context.Background(), e.tn.ID, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rs.SigningSecretSealed
+}
+
+func TestResourceServerHS256Secret(t *testing.T) {
+	e := newRSEnv(t)
+	out := e.mustCreate(t, map[string]any{"identifier": "https://hs.test", "signing_alg": "HS256"})
+	secret, _ := out["signing_secret"].(string)
+	if out["signing_alg"] != "HS256" || len(secret) != 43 || !regexp.MustCompile(`^[A-Za-z0-9_-]{43}$`).MatchString(secret) {
+		t.Fatalf("generated = %v", out)
+	}
+	id := out["id"].(string)
+	sealed := sealedSecret(t, e, id)
+	if len(sealed) == 0 || strings.Contains(string(sealed), secret) {
+		t.Fatal("secret not sealed")
+	}
+	if plain, err := keys.OpenAPISigningSecret(e.w, e.tn.ID, id, sealed); err != nil || string(plain) != secret {
+		t.Fatalf("open = %q %v", plain, err)
+	}
+	// Read returns it (C16), by get and by list.
+	if _, got := e.get(t, id, ""); got["signing_secret"] != secret {
+		t.Errorf("get = %v", got)
+	}
+	_, list := e.list(t, "?identifiers=https://hs.test")
+	if got := list.([]any)[0].(map[string]any); got["signing_secret"] != secret {
+		t.Errorf("list = %v", got)
+	}
+	// An unrelated patch keeps it.
+	if _, got := e.patch(t, id, map[string]any{"name": "x"}); got["signing_secret"] != secret {
+		t.Errorf("unrelated patch = %v", got)
+	}
+	// A supplied secret is kept, and a patch replaces it.
+	supplied := strings.Repeat("k", 16)
+	out = e.mustCreate(t, map[string]any{"identifier": "https://hs2.test", "signing_alg": "HS256", "signing_secret": supplied})
+	if out["signing_secret"] != supplied {
+		t.Fatalf("supplied = %v", out)
+	}
+	_, got := e.patch(t, out["id"].(string), map[string]any{"signing_secret": strings.Repeat("n", 20)})
+	if got["signing_secret"] != strings.Repeat("n", 20) {
+		t.Errorf("rotated = %v", got)
+	}
+	// Short and misplaced secrets are refused.
+	for name, body := range map[string]map[string]any{
+		"short":        {"identifier": "https://s.test", "signing_alg": "HS256", "signing_secret": strings.Repeat("s", 15)},
+		"not a string": {"identifier": "https://s.test", "signing_alg": "HS256", "signing_secret": 12345678901234567},
+		"with RS256":   {"identifier": "https://s.test", "signing_alg": "RS256", "signing_secret": strings.Repeat("s", 32)},
+		"with PS256":   {"identifier": "https://s.test", "signing_alg": "PS256", "signing_secret": strings.Repeat("s", 32)},
+		"by default":   {"identifier": "https://s.test", "signing_secret": strings.Repeat("s", 32)},
+	} {
+		rec, _ := e.create(t, body)
+		if rec.Code != 400 {
+			t.Errorf("%s = %d %s", name, rec.Code, rec.Body)
+			continue
+		}
+		wantError(t, rec, 400, "invalid_body")
+	}
+}
+
+func TestResourceServerPS256(t *testing.T) {
+	e := newRSEnv(t)
+	out := e.mustCreate(t, map[string]any{"identifier": "https://ps.test", "signing_alg": "PS256"})
+	if out["signing_alg"] != "PS256" || out["signing_secret"] != nil {
+		t.Fatalf("created = %v", out)
+	}
+	if len(sealedSecret(t, e, out["id"].(string))) != 0 {
+		t.Fatal("PS256 stored a secret")
+	}
+	if _, got := e.get(t, out["id"].(string), ""); got["signing_alg"] != "PS256" {
+		t.Errorf("get = %v", got)
+	}
+}
+
+// LR35-8, C17: a patch changes the algorithm. Moving to HS256 generates a
+// secret; moving away clears it.
+func TestResourceServerSigningAlgPatch(t *testing.T) {
+	e := newRSEnv(t)
+	out := e.mustCreate(t, map[string]any{"identifier": "https://alg.test"})
+	id := out["id"].(string)
+	rec, got := e.patch(t, id, map[string]any{"signing_alg": "HS256"})
+	secret, _ := got["signing_secret"].(string)
+	if rec.Code != 200 || got["signing_alg"] != "HS256" || len(secret) != 43 {
+		t.Fatalf("to HS256 = %d %v", rec.Code, got)
+	}
+	rec, got = e.patch(t, id, map[string]any{"signing_alg": "PS256"})
+	if rec.Code != 200 || got["signing_alg"] != "PS256" || got["signing_secret"] != nil || len(sealedSecret(t, e, id)) != 0 {
+		t.Fatalf("to PS256 = %d %v", rec.Code, got)
+	}
+	// Back to HS256 is a new secret, not the old one.
+	_, got = e.patch(t, id, map[string]any{"signing_alg": "HS256"})
+	if again, _ := got["signing_secret"].(string); len(again) != 43 || again == secret {
+		t.Errorf("regenerated = %v", got)
+	}
+	// A secret and the algorithm that takes it, together.
+	supplied := strings.Repeat("p", 24)
+	_, got = e.patch(t, id, map[string]any{"signing_alg": "RS256"})
+	_, got = e.patch(t, id, map[string]any{"signing_alg": "HS256", "signing_secret": supplied})
+	if got["signing_secret"] != supplied {
+		t.Errorf("together = %v", got)
+	}
+	// A secret with a move away from HS256 is refused and changes nothing.
+	rec, _ = e.patch(t, id, map[string]any{"signing_alg": "RS256", "signing_secret": supplied})
+	wantError(t, rec, 400, "invalid_body")
+	if _, got = e.get(t, id, ""); got["signing_alg"] != "HS256" || got["signing_secret"] != supplied {
+		t.Errorf("after refusal = %v", got)
+	}
+}
+
+func TestResourceServerHS256NeedsCapability(t *testing.T) {
+	e := newRSEnv(t)
+	api := e.mustCreate(t, map[string]any{"identifier": "https://plug.test"})["id"].(string)
+	e.h.Store = noCredentialStore{e.st}
+	rec, _ := e.create(t, map[string]any{"identifier": "https://hs-plug.test", "signing_alg": "HS256"})
+	wantError(t, rec, 501, "client_credentials_unavailable")
+	rec, _ = e.patch(t, api, map[string]any{"signing_alg": "HS256"})
+	wantError(t, rec, 501, "client_credentials_unavailable")
+	if len(sealedSecret(t, e, api)) != 0 {
+		t.Fatal("secret stored without the capability")
+	}
+	if _, err := e.st.ResourceServers().GetByIdentifier(context.Background(), e.tn.ID, "https://hs-plug.test"); err == nil {
+		t.Fatal("the HS256 API was created")
+	}
+	// RS256 and PS256 need no new storage.
+	if rec, _ := e.create(t, map[string]any{"identifier": "https://ps-plug.test", "signing_alg": "PS256"}); rec.Code != 201 {
+		t.Errorf("PS256 = %d %s", rec.Code, rec.Body)
+	}
+	if rec, _ := e.patch(t, api, map[string]any{"signing_alg": "PS256"}); rec.Code != 200 {
+		t.Errorf("patch PS256 = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestResourceServerSystemSigningAlgFixed(t *testing.T) {
+	e := newRSEnv(t)
+	for _, alg := range []string{"PS256", "HS256"} {
+		rec, _ := e.patch(t, e.mapi.ID, map[string]any{"signing_alg": alg})
+		wantError(t, rec, 400, "invalid_body")
+	}
+}
+
+func TestSigningSecretNeverLogged(t *testing.T) {
+	e := newRSEnv(t)
+	var buf bytes.Buffer
+	events := logSetup(e.clientsEnv)
+	e.h.Log = slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	supplied := "SENTINEL-supplied-signing-secret"
+	created := e.mustCreate(t, map[string]any{"identifier": "https://log.test", "signing_alg": "HS256", "signing_secret": supplied})
+	id := created["id"].(string)
+	gen := e.mustCreate(t, map[string]any{"identifier": "https://log2.test", "signing_alg": "HS256"})["signing_secret"].(string)
+	e.patch(t, id, map[string]any{"signing_secret": "SENTINEL-rotated-signing-secret"})
+	e.get(t, id, "")
+	e.create(t, map[string]any{"identifier": "https://log3.test", "signing_alg": "HS256", "signing_secret": "SENTINEL-short"})
+	if len(events.events) == 0 {
+		t.Fatal("no management events were recorded, so the check below proves nothing")
+	}
+	all := buf.String()
+	for _, ev := range events.events {
+		all += eventJSON(t, ev)
+	}
+	for _, s := range []string{supplied, gen, "SENTINEL-rotated-signing-secret", "SENTINEL-short"} {
+		if strings.Contains(all, s) {
+			t.Errorf("%q in the logs", s)
+		}
+	}
+	if !logscrub.SensitiveKey("signing_secret") {
+		t.Error("signing_secret is not a scrubbed key name")
 	}
 }

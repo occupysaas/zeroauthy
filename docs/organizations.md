@@ -332,7 +332,7 @@ OrganizationsII plugin capability is negotiated separately from Organizations I.
 An older plugin retains Plan 29 support but active II operations fail closed;
 upgrade every writer before enabling II configuration. Mixed writers are unsupported.
 
-Plan 35 owns token quotas, Plan 38 groups/inherited roles, Plan 37 SAML/WS-Fed
+Plan 48 owns token quotas, Plan 38 groups/inherited roles, Plan 37 SAML/WS-Fed
 organization login, and Plan 42 the My Organization API. Classic Login/Lock,
 per-organization custom domains and unsupported organization token flows remain
 outside this release. Exact tested versions and remaining verification limits

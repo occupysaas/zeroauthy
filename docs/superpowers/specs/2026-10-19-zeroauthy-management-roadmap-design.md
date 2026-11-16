@@ -100,7 +100,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full (done; WebAuthn → 33b) | 21, 27 |
 | 33b | Passkeys and WebAuthn MFA: connection passkey options, client `mobile`, native passkey APIs, security-key settings | full | 33, 23 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full (done) | 33 |
-| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
+| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short (implemented; merge pending CI and maintainer approval) | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
 | 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |
@@ -362,6 +362,10 @@ My Organization API/self-service organization administration Plan 42.
 ### Plan 35 — Client credentials, JAR, token exchange
 
 `/api/v2/clients/{id}/credentials` (CRUD) with `public_key` and `x509_cert` credentials; `private_key_jwt` client authentication at `/oauth/token`, `/oauth/par` and `/oauth/revoke`; JAR (`request` objects signed with those keys); `signed_request_object` client settings; `/api/v2/token-exchange-profiles` with the custom token exchange grant and its Action (Plan 28). mTLS client auth and RAR are listed in §5 for a later decision. Also carries the `custom-token-exchange` trigger (deferred by Plan 28), its tenant protection settings (Plan 19 owner), `HS256`/`PS256` and `signing_secret` for resource servers, and lifts D-0035 (`request_not_supported`). **Short.**
+
+**Designed 2026-11-08:** [spec](2026-11-08-zeroauthy-client-credentials-jar-token-exchange-design.md), [plan](../plans/2026-11-08-zeroauthy-plan-35-client-credentials-jar-token-exchange.md) (16 tasks, D-0063, migration 0036, store capability `client_credentials.v1`). Guides: [client authentication](../../client-authentication.md), [custom token exchange](../../token-exchange.md).
+
+**Implemented (2026-11-15):** all 16 tasks are implemented, and Tasks 1 to 15 are reviewed; [record](../2026-11-08-plan-35-implementation-record.md). `make e2e-client-auth` (pinned auth-js, node-auth0, express-oauth2-jwt-bearer, auth0-cli 1.37.0, Deploy CLI 9.1.0 handlers, the console and a representative-secret audit) is wired into the plan-branch CI and passed in run 43761646827. The E2E check resolved C19: signing JWKs are now published without `alg`. Merge is pending green CI and maintainer approval. Follow-ups: `verify_email` sends nothing yet; the tenant MFA policy is not applied to exchanges (C20); the Deploy CLI four-cell matrix does not yet carry token exchange profiles; the Task 15 deferrals ([follow-ups](../plan-1-followups.md)).
 
 ### Plan 36 — Enterprise OIDC connections
 

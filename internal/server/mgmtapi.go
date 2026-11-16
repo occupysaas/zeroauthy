@@ -176,6 +176,47 @@ func (a mgmtAPI) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id st
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteClientGrant(w, r, id) }, "delete:client_grants")
 }
 
+func (a mgmtAPI) GetClientCredentials(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClientCredentials(w, r, id) }, "read:client_credentials")
+}
+
+func (a mgmtAPI) PostClientCredentials(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostClientCredentials(w, r, id) }, "create:client_credentials")
+}
+
+func (a mgmtAPI) GetClientCredential(w http.ResponseWriter, r *http.Request, id, credentialID string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClientCredential(w, r, id, credentialID) }, "read:client_credentials")
+}
+
+func (a mgmtAPI) PatchClientCredential(w http.ResponseWriter, r *http.Request, id, credentialID string) {
+	scopedAnyOf(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PatchClientCredential(w, r, id, credentialID) },
+		[]string{"update:credentials"}, []string{"update:client_credentials"})
+}
+
+func (a mgmtAPI) DeleteClientCredential(w http.ResponseWriter, r *http.Request, id, credentialID string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteClientCredential(w, r, id, credentialID) }, "delete:client_credentials")
+}
+
+func (a mgmtAPI) GetTokenExchangeProfiles(w http.ResponseWriter, r *http.Request, p mgmtapi.GetTokenExchangeProfilesParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTokenExchangeProfiles(w, r, p) }, "read:token_exchange_profiles")
+}
+
+func (a mgmtAPI) PostTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.PostTokenExchangeProfile, "create:token_exchange_profiles")
+}
+
+func (a mgmtAPI) GetTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTokenExchangeProfile(w, r, id) }, "read:token_exchange_profiles")
+}
+
+func (a mgmtAPI) PatchTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PatchTokenExchangeProfile(w, r, id) }, "update:token_exchange_profiles")
+}
+
+func (a mgmtAPI) DeleteTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteTokenExchangeProfile(w, r, id) }, "delete:token_exchange_profiles")
+}
+
 func (a mgmtAPI) GetConnections(w http.ResponseWriter, r *http.Request, p mgmtapi.GetConnectionsParams) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetConnections(w, r, p) }, "read:connections")
 }

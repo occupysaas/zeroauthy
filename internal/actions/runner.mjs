@@ -40,7 +40,7 @@ lockOut(os, 'setPriority', 'os.setPriority');
 // Unix-domain socket connections are refused by ./guard.mjs, imported first
 // and shared with the custom database runner (D-0053).
 
-const handlers = new Set(['onExecutePostLogin', 'onContinuePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onContinuePostChallenge', 'onExecuteCustomEmailProvider', 'onExecuteCustomPhoneProvider', 'onExecuteSendPhoneMessage', 'onExecuteEventStream']);
+const handlers = new Set(['onExecutePostLogin', 'onContinuePostLogin', 'onExecuteCredentialsExchange', 'onExecuteCustomTokenExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onContinuePostChallenge', 'onExecuteCustomEmailProvider', 'onExecuteCustomPhoneProvider', 'onExecuteSendPhoneMessage', 'onExecuteEventStream']);
 
 // The denylist only gives clear errors; --permission is the control.
 const denied = new Set(['child_process', 'cluster', 'worker_threads', 'inspector', 'vm', 'v8', 'module', 'repl', 'wasi', 'trace_events']);
@@ -288,7 +288,7 @@ function buildApi(req, commands, event, parse) {
       return record('transaction.clearTargetScopes', []);
     },
   };
-  api.access = ns('access', ['deny']);
+  api.access = ns('access', ['deny', 'rejectInvalidSubjectToken']);
   api.accessToken = ns('accessToken', ['setCustomClaim', 'addScope', 'removeScope']);
 
   const cache = new Map(Object.entries(req.cache ?? {}));
@@ -408,7 +408,7 @@ function buildApi(req, commands, event, parse) {
   api.rules = { wasExecuted: () => false };
   for (const name of unsupportedNamespaces) api[name] = unsupported(name);
   api.multifactor = ns('multifactor', ['enable']);
-  api.authentication = ns('authentication', ['challengeWith', 'challengeWithAny', 'enrollWith', 'enrollWithAny']);
+  api.authentication = ns('authentication', ['challengeWith', 'challengeWithAny', 'enrollWith', 'enrollWithAny', 'setUserById', 'setUserByConnection', 'setOrganization', 'setActor']);
 
   // Only capabilities sent by the server are exposed. The same frozen
   // inventory drives Go's command allowlist; helper/read methods are local.

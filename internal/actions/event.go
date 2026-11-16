@@ -23,6 +23,8 @@ const (
 	ProtocolResourceOwner     = "oauth2-resource-owner"
 	ProtocolRefreshToken      = "oauth2-refresh-token"
 	ProtocolClientCredentials = "oauth2-client-credentials"
+	// ProtocolTokenExchange identifies custom token exchange (Plan 35).
+	ProtocolTokenExchange = "oauth2-token-exchange"
 )
 
 // RequestInfo is event.request: the HTTP request that triggered the flow.
@@ -171,7 +173,7 @@ func obj(m map[string]any) map[string]any {
 // allowlist: Auth0 passes the request body, and Actions read non-secret
 // custom parameters from it. Every token grant's credentials must be
 // listed; oauth's TestActionsBodyStripsEveryGrant enforces that.
-var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code", "auth_session", "authn_response", "clientDataJSON", "attestationObject", "authenticatorData", "signature", "userHandle", "user_handle", "challenge_id"}
+var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "mfa_token", "otp", "oob_code", "binding_code", "recovery_code", "auth_session", "authn_response", "clientDataJSON", "attestationObject", "authenticatorData", "signature", "userHandle", "user_handle", "challenge_id", "subject_token", "actor_token"}
 
 // StripCredentials is body without its credentials (the authorization code
 // grant's code is one too), as event.request.body carries it.
@@ -355,6 +357,39 @@ func credentialsEvent(in *CredentialsInput, a *accum) map[string]any {
 		"accessToken": map[string]any{"scope": strs(in.TargetScopes), "customClaims": map[string]any{}},
 	}
 	if rs := resourceServerEvent(in.ResourceServer); rs != nil {
+		ev["resource_server"] = rs
+	}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
+	}
+	return ev
+}
+
+// tokenExchangeEvent builds the custom-token-exchange event (spec 5.3).
+// request.body is empty: the exchange parameters are credentials.
+func tokenExchangeEvent(in *TokenExchangeInput) map[string]any {
+	request := requestEvent(in.Request, in.Tenant.Host, false)
+	request["body"] = map[string]any{}
+	txn := map[string]any{
+		"subject_token": in.SubjectToken, "subject_token_type": in.SubjectTokenType,
+		"requested_scopes": strs(in.RequestedScopes),
+	}
+	if in.RequestedTokenType != "" {
+		txn["requested_token_type"] = in.RequestedTokenType
+	}
+	if in.ActorToken != "" {
+		txn["actor_token"], txn["actor_token_type"] = in.ActorToken, in.ActorTokenType
+		if in.ActorTokenUser != nil {
+			txn["actor_token_user"] = in.ActorTokenUser
+		}
+	}
+	ev := map[string]any{
+		"client":      clientEvent(in.Client),
+		"request":     request,
+		"tenant":      tenantEvent(in.Tenant),
+		"transaction": txn,
+	}
+	if rs := resourceServerEvent(in.Resource); rs != nil {
 		ev["resource_server"] = rs
 	}
 	if in.Organization != nil {

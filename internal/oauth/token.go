@@ -32,6 +32,7 @@ var grantHandlers = map[string]grantHandler{
 	clientrules.GrantMFAOOB:          (*Handlers).mfaOOBGrant,
 	clientrules.GrantMFARecoveryCode: (*Handlers).mfaRecoveryGrant,
 	clientrules.GrantPasswordlessOTP: (*Handlers).passwordlessOTPGrant,
+	GrantTokenExchange:               (*Handlers).tokenExchange,
 }
 
 // orgLessGrants never carry an organization: they ignore the organization
@@ -66,6 +67,11 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 		return nil, invalidRequest("grant_type is required")
 	}
 	grant, ok := grantHandlers[grantType]
+	// Without the client_credentials.v1 store capability there are no token
+	// exchange profiles: the grant is not offered.
+	if grantType == GrantTokenExchange && !store.ClientCredentialsAvailable(r.Context(), h.Store) {
+		ok = false
+	}
 	if !ok {
 		return nil, unsupportedGrantType(fmt.Sprintf("grant type %q is not supported", grantType))
 	}
@@ -73,7 +79,9 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	if oerr != nil {
 		return nil, oerr
 	}
-	if !slices.Contains(client.GrantTypes, grantType) {
+	// Custom token exchange is allowed by the client's token_exchange
+	// setting, which the grant checks, not by grant_types.
+	if grantType != GrantTokenExchange && !slices.Contains(client.GrantTypes, grantType) {
 		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for this client", grantType))
 	}
 	// A require client cannot hold these grants (D-0055); this guards

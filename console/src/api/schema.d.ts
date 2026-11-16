@@ -1013,6 +1013,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/clients/{id}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The application's client ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List an application's credentials
+         * @description The application's credentials in creation order (`created_at`, then
+         *     ID). Requires `read:client_credentials`. The PEM is never returned
+         *     (D-0063, C1). An unknown application is `404 inexistent_client`.
+         *     A storage plugin without the `client_credentials.v1` capability
+         *     answers `501`.
+         */
+        get: operations["getClientCredentials"];
+        put?: never;
+        /**
+         * Add a credential to an application
+         * @description Requires `create:client_credentials`. Registers an RSA public key (a
+         *     PEM public key or X.509 certificate, 2048 to 4096 bits) for the
+         *     application. At most two credentials per application (`400`, C2).
+         *     `credential_type` `cert_subject_dn` is refused with `400`.
+         *     `parse_expiry_from_cert` needs a certificate and excludes
+         *     `expires_at`; without either the credential never expires (LR35-2).
+         *     Unknown fields are refused (`invalid_body`).
+         */
+        post: operations["postClientCredentials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/clients/{id}/credentials/{credential_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The application's client ID. */
+                id: string;
+                /** @description The credential's ID, `cred_` followed by 22 letters and digits. */
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a credential
+         * @description Requires `read:client_credentials`. An unknown credential is `404`.
+         */
+        get: operations["getClientCredential"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a credential
+         * @description Requires `delete:client_credentials`. Removes the credential and
+         *     detaches it from the application's `private_key_jwt` and
+         *     `signed_request_object` settings (C3).
+         */
+        delete: operations["deleteClientCredential"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a credential's expiry
+         * @description Requires `update:credentials` (`update:client_credentials` also
+         *     works, as the OpenAPI lists it). Only `expires_at` can change (null
+         *     removes the expiry); any other field is `400 invalid_body`.
+         */
+        patch: operations["patchClientCredential"];
+        trace?: never;
+    };
+    "/api/v2/token-exchange-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List token exchange profiles
+         * @description The tenant's profiles in ID order. Requires
+         *     `read:token_exchange_profiles`. Checkpoint paging: `take` is the page
+         *     size (1 to 100, 50 by default) and `from` the `next` of the previous
+         *     page; `next` is absent on the last page.
+         */
+        get: operations["getTokenExchangeProfiles"];
+        put?: never;
+        /**
+         * Create a token exchange profile
+         * @description Requires `create:token_exchange_profiles`. Binds a
+         *     `subject_token_type` to a deployed Action whose trigger is
+         *     `custom-token-exchange`. A `subject_token_type` already in use is
+         *     `409`; at most 100 profiles per tenant (`403`, C8). The 400 messages
+         *     are "Action not found", "Action is not deployed" and "Action must have
+         *     supported_triggers: custom-token-exchange". Unknown fields are
+         *     refused.
+         */
+        post: operations["postTokenExchangeProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/token-exchange-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The profile's ID, `tep_` followed by 22 letters and digits. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a token exchange profile
+         * @description Requires `read:token_exchange_profiles`. An unknown ID is `404`.
+         */
+        get: operations["getTokenExchangeProfile"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a token exchange profile
+         * @description Requires `delete:token_exchange_profiles`. An unknown ID is `404`.
+         */
+        delete: operations["deleteTokenExchangeProfile"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a token exchange profile
+         * @description Requires `update:token_exchange_profiles`. Changes `name` or
+         *     `subject_token_type`; `action_id` and `type` cannot change (unknown
+         *     properties, `400`). A `subject_token_type` already in use is `409`.
+         */
+        patch: operations["patchTokenExchangeProfile"];
+        trace?: never;
+    };
     "/api/v2/resource-servers": {
         parameters: {
             query?: never;
@@ -6419,7 +6559,7 @@ export interface components {
         };
         ActionTrigger: {
             /** @enum {string} */
-            id: "post-login" | "credentials-exchange" | "pre-user-registration" | "post-user-registration" | "post-change-password" | "password-reset-post-challenge" | "custom-email-provider" | "event-stream" | "custom-phone-provider" | "send-phone-message";
+            id: "post-login" | "credentials-exchange" | "pre-user-registration" | "post-user-registration" | "post-change-password" | "password-reset-post-challenge" | "custom-email-provider" | "event-stream" | "custom-phone-provider" | "send-phone-message" | "custom-token-exchange";
             version?: string;
             /** @enum {string} */
             readonly binding_policy?: "trigger-bound";
@@ -6804,7 +6944,7 @@ export interface components {
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
                     max_attempts?: number;
-                    /** @default 8640000 */
+                    /** @default 600000 */
                     rate?: number;
                 };
             };
@@ -6829,7 +6969,7 @@ export interface components {
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
                     max_attempts?: number;
-                    /** @default 8640000 */
+                    /** @default 600000 */
                     rate?: number;
                 };
             };
@@ -7630,7 +7770,15 @@ export interface components {
             /** @description The application's name. */
             name?: string;
             app_type?: components["schemas"]["AppType"];
-            token_endpoint_auth_method?: components["schemas"]["TokenEndpointAuthMethod"];
+            /**
+             * @description How the application authenticates at `/oauth/token`. `null` is
+             *     accepted only together with `client_authentication_methods`
+             *     `private_key_jwt` (D-0063, C4).
+             */
+            token_endpoint_auth_method?: components["schemas"]["TokenEndpointAuthMethod"] | null;
+            client_authentication_methods?: components["schemas"]["ClientAuthenticationMethods"];
+            signed_request_object?: components["schemas"]["SignedRequestObject"];
+            token_exchange?: components["schemas"]["ClientTokenExchange"];
             /**
              * @description Grant types the application may use. zeroauthy serves
              *     authorization_code, refresh_token, client_credentials, password,
@@ -7774,7 +7922,11 @@ export interface components {
             web_origins: string[];
             allowed_origins: string[];
             grant_types: string[];
-            token_endpoint_auth_method: components["schemas"]["TokenEndpointAuthMethod"];
+            /** @description `null` when the application authenticates with `client_authentication_methods`. */
+            token_endpoint_auth_method: components["schemas"]["TokenEndpointAuthMethod"] | null;
+            client_authentication_methods?: components["schemas"]["ClientAuthenticationMethods"];
+            signed_request_object?: components["schemas"]["SignedRequestObject"];
+            token_exchange?: components["schemas"]["ClientTokenExchange"];
             jwt_configuration: components["schemas"]["JwtConfiguration"];
             refresh_token: components["schemas"]["RefreshTokenSettings"];
             /** @enum {string} */
@@ -7799,6 +7951,131 @@ export interface components {
             callback_url_template: false;
             /** Format: date-time */
             created_at?: string;
+        };
+        /**
+         * @description `cert_subject_dn` is refused with 400 (mTLS is out of scope, D-0063).
+         * @enum {string}
+         */
+        ClientCredentialType: "public_key" | "x509_cert";
+        /** @enum {string} */
+        ClientCredentialAlg: "RS256" | "RS384" | "PS256";
+        /** @description A public key to register. `parse_expiry_from_cert` needs `x509_cert` and excludes `expires_at`. */
+        ClientCredentialCreate: {
+            /**
+             * @description `cert_subject_dn` is refused with 400.
+             * @enum {string}
+             */
+            credential_type: "public_key" | "x509_cert" | "cert_subject_dn";
+            /** @default  */
+            name?: string;
+            /** @description An RSA public key (SPKI or PKCS#1) or an X.509 certificate, 2048 to 4096 bits. Never returned. */
+            pem?: string;
+            /** @default RS256 */
+            alg?: components["schemas"]["ClientCredentialAlg"];
+            parse_expiry_from_cert?: boolean;
+            /** Format: date-time */
+            expires_at?: string;
+            /** @description Defaults to the RFC 7638 thumbprint. */
+            kid?: string;
+        };
+        /** @description Only `expires_at` changes; null removes the expiry. */
+        ClientCredentialUpdate: {
+            /** Format: date-time */
+            expires_at?: string | null;
+        };
+        /** @description A registered public key. The PEM is never returned. */
+        ClientCredential: {
+            /** @description `cred_` followed by 22 letters and digits. */
+            id: string;
+            name: string;
+            kid: string;
+            alg: components["schemas"]["ClientCredentialAlg"];
+            credential_type: components["schemas"]["ClientCredentialType"];
+            /** @description Base64url SHA-256 of the key's RFC 7638 thumbprint input. */
+            thumbprint_sha256: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description Absent when the credential never expires.
+             */
+            expires_at?: string;
+        };
+        /**
+         * @description A credential an application setting uses: an existing one by `id`, or
+         *     (on create and patch only) an inline new credential with the fields
+         *     of the credential create body. The credential must belong to the
+         *     application.
+         */
+        ClientCredentialRef: {
+            id?: string;
+            /** @enum {string} */
+            credential_type?: "public_key" | "x509_cert" | "cert_subject_dn";
+            name?: string;
+            pem?: string;
+            alg?: components["schemas"]["ClientCredentialAlg"];
+            parse_expiry_from_cert?: boolean;
+            /** Format: date-time */
+            expires_at?: string;
+            kid?: string;
+        };
+        /**
+         * @description `private_key_jwt` makes the application authenticate with a signed
+         *     JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
+         *     `token_endpoint_auth_method`. `tls_client_auth` and
+         *     `self_signed_tls_client_auth` are refused with 400.
+         */
+        ClientAuthenticationMethods: {
+            private_key_jwt?: {
+                credentials?: components["schemas"]["ClientCredentialRef"][];
+            };
+        } | null;
+        /** @description JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced). */
+        SignedRequestObject: {
+            /** @description Refuse authorize and PAR requests without a valid signed `request`. */
+            required?: boolean;
+            credentials?: components["schemas"]["ClientCredentialRef"][];
+        };
+        /** @description Only first-party, OIDC-conformant applications may set it (LR35-6, C5). */
+        ClientTokenExchange: {
+            allow_any_profile_of_type?: "custom_authentication"[];
+        } | null;
+        TokenExchangeProfileCreate: {
+            name: string;
+            /**
+             * @description Unique per tenant. These prefixes are reserved and refused:
+             *     `http://auth0.com`, `https://auth0.com`, `http://okta.com`,
+             *     `https://okta.com`, `urn:ietf`, `urn:auth0`, `urn:okta`.
+             */
+            subject_token_type: string;
+            /** @description A deployed Action with trigger `custom-token-exchange`. Cannot change later. */
+            action_id: string;
+            /** @enum {string} */
+            type: "custom_authentication";
+        };
+        TokenExchangeProfileUpdate: {
+            name?: string;
+            subject_token_type?: string;
+        };
+        TokenExchangeProfile: {
+            /** @description `tep_` followed by 22 letters and digits. */
+            id: string;
+            name: string;
+            subject_token_type: string;
+            action_id: string;
+            /** @enum {string} */
+            type: "custom_authentication";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        TokenExchangeProfilePage: {
+            token_exchange_profiles: components["schemas"]["TokenExchangeProfile"][];
+            /** @description Pass as `from` for the next page; absent on the last page. */
+            next?: string;
         };
         ResourceServerScope: {
             /** @description The permission, such as `read:orders`. Unique within the API. */
@@ -7825,10 +8102,19 @@ export interface components {
             /** @description The API's permissions. Values are unique. */
             scopes?: components["schemas"]["ResourceServerScope"][];
             /**
-             * @description The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+             * @description The access token signing algorithm. `RS256` and `PS256` sign with
+             *     the tenant's RSA key; `HS256` signs with `signing_secret`. A patch
+             *     may change it (LR35-8, C17). Supersedes D-0041's RS256-only rule
+             *     (D-0063).
              * @enum {string}
              */
-            signing_alg?: "RS256";
+            signing_alg?: "RS256" | "HS256" | "PS256";
+            /**
+             * @description HS256 only: at least 16 characters (C15). Generated (32 random
+             *     bytes, base64url) when an HS256 API is created without one; sent
+             *     with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
+             */
+            signing_secret?: string;
             /** @description Access token lifetime in seconds; 86400 by default. */
             token_lifetime?: number;
             /**
@@ -7889,7 +8175,9 @@ export interface components {
             /** @description Absent when the API defines none. */
             scopes?: components["schemas"]["ResourceServerScope"][];
             /** @enum {string} */
-            signing_alg: "RS256";
+            signing_alg: "RS256" | "HS256" | "PS256";
+            /** @description HS256 only; returned on read (C16). */
+            signing_secret?: string;
             token_lifetime: number;
             token_lifetime_for_web: number;
             allow_offline_access: boolean;
@@ -8783,6 +9071,15 @@ export interface components {
         };
         /** @description The resource does not exist. */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description The storage plugin lacks the `client_credentials.v1` capability, or the operation is not built yet. */
+        NotImplemented: {
             headers: {
                 [name: string]: unknown;
             };
@@ -13075,6 +13372,303 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getClientCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The application's client ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The credentials. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientCredential"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    postClientCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The application's client ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientCredentialCreate"];
+            };
+        };
+        responses: {
+            /** @description The new credential. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientCredential"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    getClientCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The application's client ID. */
+                id: string;
+                /** @description The credential's ID, `cred_` followed by 22 letters and digits. */
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The credential. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientCredential"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    deleteClientCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The application's client ID. */
+                id: string;
+                /** @description The credential's ID, `cred_` followed by 22 letters and digits. */
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    patchClientCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The application's client ID. */
+                id: string;
+                /** @description The credential's ID, `cred_` followed by 22 letters and digits. */
+                credential_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientCredentialUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated credential. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientCredential"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    getTokenExchangeProfiles: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint paging cursor, the `next` of the previous page. */
+                from?: string;
+                /** @description Page size, 1 to 100 (50 by default). */
+                take?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of profiles. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenExchangeProfilePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    postTokenExchangeProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenExchangeProfileCreate"];
+            };
+        };
+        responses: {
+            /** @description The new profile. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenExchangeProfile"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    getTokenExchangeProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The profile's ID, `tep_` followed by 22 letters and digits. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenExchangeProfile"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    deleteTokenExchangeProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The profile's ID, `tep_` followed by 22 letters and digits. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+    patchTokenExchangeProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The profile's ID, `tep_` followed by 22 letters and digits. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenExchangeProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenExchangeProfile"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            501: components["responses"]["NotImplemented"];
         };
     };
     getResourceServers: {

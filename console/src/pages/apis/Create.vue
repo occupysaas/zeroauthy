@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ApiError } from '../../api/client'
+import { ApiError, type ResourceServerCreate } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
@@ -16,6 +16,10 @@ const tenant = useTenant()
 const router = useRouter()
 const name = ref('')
 const identifier = ref('')
+const alg = ref<'RS256' | 'PS256' | 'HS256'>('RS256')
+const secret = ref('')
+const algs = ['RS256', 'PS256', 'HS256'] as const
+const MIN_SECRET = 16
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const busy = ref(false)
@@ -25,6 +29,7 @@ function validate(): boolean {
   if (!name.value.trim()) errors.name = t('apis.nameRequired')
   if (!identifier.value.trim()) errors.identifier = t('apis.identifierRequired')
   else if (identifier.value.length > 600) errors.identifier = t('apis.identifierTooLong')
+  if (alg.value === 'HS256' && secret.value.trim() && secret.value.trim().length < MIN_SECRET) errors.secret = t('apis.secretTooShort', { min: MIN_SECRET })
   return Object.keys(errors).length === 0
 }
 
@@ -34,7 +39,10 @@ async function submit() {
   if (!tn || !validate()) return
   busy.value = true
   try {
-    const s = await api.createResourceServer(tn, { name: name.value.trim(), identifier: identifier.value.trim(), signing_alg: 'RS256' })
+    const body: ResourceServerCreate = { name: name.value.trim(), identifier: identifier.value.trim(), signing_alg: alg.value }
+    // Left empty, the server generates the HS256 secret.
+    if (alg.value === 'HS256' && secret.value.trim()) body.signing_secret = secret.value.trim()
+    const s = await api.createResourceServer(tn, body)
     await router.push({ name: 'api', params: { tenant: tn.name, id: s.id } })
   } catch (e) {
     // A duplicate or reserved identifier belongs to that field.
@@ -65,7 +73,12 @@ async function submit() {
         />
       </Field>
       <Field id="api-alg" :label="t('apis.signingAlg')" :hint="t('apis.signingAlgHint')">
-        <input id="api-alg" :value="t('apis.signingAlgValue')" type="text" readonly aria-describedby="api-alg-hint" />
+        <select id="api-alg" v-model="alg" aria-describedby="api-alg-hint">
+          <option v-for="a in algs" :key="a" :value="a">{{ a }}</option>
+        </select>
+      </Field>
+      <Field v-if="alg === 'HS256'" id="api-secret" :label="t('apis.newSecret')" :hint="t('apis.newSecretHint', { min: MIN_SECRET })" :error="errors.secret">
+        <input id="api-secret" v-model="secret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.secret" :aria-describedby="'api-secret-hint' + (errors.secret ? ' api-secret-error' : '')" />
       </Field>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('creating') : t('apis.createSubmit') }}</Button>

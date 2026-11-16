@@ -6,6 +6,14 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The tenant JWKS (`/.well-known/jwks.json`) no longer includes `alg` on the
+  signing keys, for every tenant and for keys created earlier. One key signs
+  both RS256 and PS256 tokens, and jose-based verifiers such as
+  `express-oauth2-jwt-bearer` refused PS256 tokens against a key marked
+  `RS256`. Verifiers that select keys by `kid` are unaffected (D-0063, C19).
+
 ## [1.0.0-rc.1]
 
 The first public release: an **early preview** for people to try. It covers

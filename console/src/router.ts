@@ -22,6 +22,7 @@ import type { Api } from './api/client'
 import type { Auth } from './auth/auth'
 import type { Services } from './context'
 import ActionsExecution from './pages/actions/Execution.vue'
+import TokenExchangeProfiles from './pages/actions/TokenExchangeProfiles.vue'
 import ActionsTriggers from './pages/actions/Triggers.vue'
 import ActionsTestPanel from './pages/actions/TestPanel.vue'
 import ActionsVersions from './pages/actions/Versions.vue'
@@ -160,6 +161,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/actions', name: 'actions', component: ActionsLibrary },
   { path: '/t/:tenant/actions/triggers/:trigger?', name: 'action-triggers', component: ActionsTriggers },
   { path: '/t/:tenant/actions/executions', name: 'action-execution', component: ActionsExecution },
+  { path: '/t/:tenant/actions/token-exchange-profiles', name: 'token-exchange-profiles', component: TokenExchangeProfiles },
   { path: '/t/:tenant/actions/modules', name: 'action-modules', component: ModuleLibrary },
   { path: '/t/:tenant/actions/modules/:id', name: 'action-module-editor', component: ModuleEditor },
   { path: '/t/:tenant/actions/modules/:id/versions', name: 'action-module-versions', component: ModuleVersions },

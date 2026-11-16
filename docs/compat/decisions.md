@@ -557,6 +557,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Discovery lists `request_parameter_supported: false`.
   - An empty `request=` is also refused. An unsupported `response_mode` inside the request object yields `invalid_request` (unsupported response_mode) rather than `request_not_supported`.
 - **Rationale:** a deliberate, temporary deviation from Auth0's discovery value until request objects (JAR) are implemented, together with `private_key_jwt` (follow-up). Refusing is what the spec requires of an OP that does not process request objects; ignoring them broke clients that put `state`, `nonce` or `response_mode` only in the object.
+- **Amended by Plan 35 (D-0063):** lifted for signed objects. A signed request object (JAR) is processed, discovery lists `request_parameter_supported: true`, and `/oauth/par` accepts a signed `request`. An unsigned object (`alg` none) is still refused with `request_not_supported` (LR35-4). The unsigned request-object conformance module therefore still ends SKIPPED.
 
 ## D-0036: OpenID conformance accepted warnings and skips
 
@@ -693,6 +694,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Stale scopes in consents:** removing a scope from an API with `PATCH` also removes it from every user grant (stored consent) for that audience, as it does from client grants. The grants stay, even with no scope left. Auth0's behaviour here was not observed.
   - **Create-only seed mode:** `seed_mode: create_only` (config key `seed_mode`, not a nested `seed.mode`, because `seed` is already the file path) makes the seed create what is missing and change nothing that exists. In that mode a tenant is not marked `seeded` (an existing seeded tenant loses the marker), so the console shows no banner. The default is `apply`.
 - **Open for the maintainer:** Auth0 names the system API "Auth0 Management API", and `auth0-deploy-cli` leaves it out of exports by that name. zeroauthy's is "zeroauthy Management API", so deploy-cli exports it as an ordinary API (its `is_system` flag still limits what deploy-cli updates). Matching the name would use Auth0's trademark beyond a nominative statement (CLEAN_ROOM.md).
+- **Amended by Plan 35 (D-0063), signing:** `signing_alg` is no longer RS256-only. `RS256`, `HS256` (with `signing_secret`, generated when absent, returned on read) and `PS256` are accepted on create and patch (LR35-8, C15 to C19). Every other statement of this decision stands.
 
 ## D-0042: Management API for database connections
 
@@ -3167,3 +3169,163 @@ domain. This matches Auth0's statement that a key used on another domain
 "leads to a new enrollment screen". If this browser has no WebAuthn, the login
 fails with no factor rather than falling back. An Action `enroll` request keeps
 its explicit factor list.
+
+## D-0063: Client credentials, private_key_jwt, JAR and custom token exchange contracts and local rulings
+
+**2026-11-14; Plan 35 Task 1.** Evidence: the sources in the Plan 35 spec §2
+(`docs/superpowers/specs/2026-11-08-zeroauthy-client-credentials-jar-token-exchange-design.md`),
+read 2026-11-08: Auth0's private_key_jwt, configure-private-key-jwt, JAR,
+configure-JAR, custom token exchange, attack protection for custom token
+exchange and API settings pages, the Management API client credentials and
+token exchange profile operations, RFC 7523, RFC 9101, RFC 8693 and RFC 7638.
+No tenant was observed; the documentation decides. The contracts are frozen in
+`api/management.yaml`, `api/authentication.yaml`,
+`internal/actionsrules/inventory.json` (trigger `custom-token-exchange`,
+handler `onExecuteCustomTokenExchange`, blocking, version `v1`;
+`api.transaction.setMetadata` unsupported) and the Management API scope list
+in `internal/tenantsetup/management.go`.
+
+**Scope.** Client credentials resource; the client settings
+`client_authentication_methods`, `signed_request_object` and `token_exchange`;
+`private_key_jwt` at the token, revoke, PAR, MFA challenge and passwordless
+start endpoints; JAR at `/authorize` and `/oauth/par`; token exchange profiles
+and the RFC 8693 grant with the `custom-token-exchange` trigger; `HS256` and
+`PS256` access tokens. Out of scope: mTLS (`cert_subject_dn`, `tls_client_auth`,
+`self_signed_tls_client_auth`), RAR, `token_quota` (Plan 48), JWE and DPoP.
+
+**Local rulings.**
+
+| Id | Ruling | Cost if wrong |
+| --- | --- | --- |
+| LR35-1 | `/oauth/par` accepts `private_key_jwt` (not on Auth0's supported-endpoints page; RFC 9126 authenticates PAR like the token endpoint) | An application that Auth0 would refuse at PAR succeeds here |
+| LR35-2 | No `expires_at` and no `parse_expiry_from_cert`: the credential never expires (docs text over the OpenAPI sample default) | A credential expires or not where Auth0 differs |
+| LR35-3 | A client assertion's `aud` is the issuer URL with its trailing slash or the exact URL of the endpoint that received it | A stricter Auth0 rejects an assertion zeroauthy accepts |
+| LR35-4 | Unsigned (`alg` none) request objects stay refused with `request_not_supported` | A client that sends unsigned objects keeps failing |
+| LR35-5 | JAR `typ` may be absent (also `JWT`, `jwt`, `oauth-authz-req+jwt`) | A header Auth0 refuses is accepted |
+| LR35-6 | `token_exchange` is refused at write time for third-party or non-OIDC-conformant applications | The failure moves from write to exchange time |
+| LR35-7 | A JAR `jti`, when present, is single-use (same replay table as client assertions) | A client that reuses one request object fails |
+| LR35-8 | `signing_alg` may be changed by Management API patch | Tokens signed with the current value after a change |
+| LR35-9 | An HS256 API's tokens omit the `/userinfo` audience; RS256 and PS256 keep it | An HS256 token cannot call `/userinfo` |
+| LR35-10 | A request object's `aud` is the issuer URL only; the endpoint-URL form of LR35-3 is for client assertions | A client that sends the endpoint URL in a request object fails |
+| LR35-11 | A `request` value over 16384 bytes is refused before it is parsed | A larger object that Auth0 accepts fails |
+| LR35-12 | A client with `signed_request_object.required` cannot use `/passwordless/verify_redirect` magic links (they carry no signed mark), so the request fails closed | A required client's magic links fail where Auth0 may allow them |
+| LR35-13 | HS256 secrets from 16 characters are accepted, and the HS256 JWS is built in-tree because the JOSE library refuses keys under 32 bytes | A strict verifier may reject a short secret; generated secrets are 43 characters |
+| LR35-14 | `setUserByConnection` accepts `verify_email` but sends no email yet | A caller that relies on the verification email gets none |
+| LR35-15 | A custom token exchange response always carries `issued_token_type: urn:ietf:params:oauth:token-type:access_token` (RFC 8693 section 2.2.1 makes it required); `requested_token_type` is passed to the Action but does not change what is issued | A client that asks for another type still gets an access token; Auth0's value is unobserved (observe what Auth0 returns for `issued_token_type` and for a `requested_token_type` it does not issue) |
+| LR35-16 | A client assertion whose header `typ` is `oauth-authz-req+jwt` is refused, so a request object cannot be replayed as an assertion when one key serves both settings; absent `typ`, `JWT` and `jwt` stay accepted | A client that signs assertions with that `typ` fails |
+
+**Observe later (C1 to C19)**; each has a local answer now, and the points are
+copied to `docs/superpowers/plan-1-followups.md`:
+
+- C1: whether the credential PEM is returned (local: never).
+- C2: the error for a third credential (local: 400).
+- C3: deleting an attached credential (local: allowed, detaches it).
+- C4: `private_key_jwt` alongside a non-null `token_endpoint_auth_method` (local: 400).
+- C5: the `token_exchange` write rule (LR35-6).
+- C6: the client-authentication log type.
+- C7: the JAR lifetime cap (local: 60 minutes).
+- C8: the profile limit (local: 100 per tenant, `403`).
+- C9: the Action delete wording when a profile binds it.
+- C10: public clients using custom token exchange (local: allowed).
+- C11: the consent-skip error (local: `403 access_denied`).
+- C12: neither `setUserById` nor `setUserByConnection` called (local: `server_error` class).
+- C13: login counters and `last_login` after an exchange (local: updated).
+- C14: the `setUserByConnection` defaults (local: `create_if_not_exists` / `none`).
+- C15: the minimum HS256 secret length (local: 16 characters).
+- C16: whether the secret is returned on read (local: yes).
+- C17: tokens after a `signing_alg` change (local: the current value signs).
+- C18: the `/userinfo` audience on HS256 tokens (LR35-9).
+- C19: the JWK `alg` for PS256 signing. **Resolved 2026-11-15 by test:** jose 4.15.9 (inside `express-oauth2-jwt-bearer` 1.11.0) and jose 6.2.12 refuse a PS256 token against a JWK marked `alg: RS256` (`ERR_JWKS_NO_MATCHING_KEY`) and accept it when the JWK has no `alg`. RFC 7517 makes `alg` optional, so the tenant's signing JWKs are now published without `alg` (keys stored with it are rendered without it); `kty`, `use`, `kid`, `n` and `e` are unchanged, and operator-supplied custom JWKS (Plan 20) are not touched. This is a deliberate deviation if Auth0 publishes `alg: RS256` (not verified; Auth0's tenant flag `remove_alg_from_jwks`, inert here, suggests it does by default). Still to observe: what Auth0's JWKS carries for a tenant with a PS256 API. Not chosen: a second JWK entry with `alg: PS256` for the same key.
+- C20: whether the tenant's MFA policy applies to an exchange (local: it does not; a post-login `challengeWith`/`enrollWith` or `multifactor.enable` with a provider other than `none` is `403 access_denied`).
+- C21: connections `setUserByConnection` may target (local: database connections only).
+- C22: the description of a rejected subject token (local: a fixed description; the Action's reason goes to the log only).
+
+**Execution rulings (Task 1).**
+
+- Management routes are served by 501 stubs (`client_credentials_unavailable`)
+  until their tasks land. That code stays the answer of a storage plugin
+  without `client_credentials.v1`. The new scopes are required by the
+  adapter now.
+- `PATCH /clients/{id}/credentials/{credential_id}` accepts `update:credentials`
+  or `update:client_credentials` (Auth0's page and OpenAPI name different
+  scopes).
+- `token_endpoint_auth_method` is nullable in the client schemas; the Go
+  model became a pointer and the response still always sets it until Task 6.
+  `private_key_jwt` is never stored there (`client_authentication_methods`
+  carries it).
+- The trigger inventory lists `custom-token-exchange` as creatable and
+  bindable (version `v1`, assumed to match Auth0). The runner's handler and
+  the dry-run test case arrive with the trigger task; until then the dry-run
+  case skips.
+- The discovery fields and the JAR parameter text describe the behaviour of
+  the finished plan; the server answers as before until Tasks 7 and 8.
+- Task 1 did not re-fetch the sources (spec research is six days old; cost if
+  wrong: a change in those days is missed until the next changelog review).
+
+**Execution rulings (Task 12, the grant).**
+
+- The grant is gated by the client's `token_exchange` setting, not by
+  `grant_types` (which cannot name it). Without `client_credentials.v1` it
+  answers `unsupported_grant_type`.
+- A user the Action selects that does not exist, a `creationBehavior: none`
+  miss, a changed `email`, `email_verified`, `phone_number`, `phone_verified`
+  or `username`, and a request `organization` that differs from
+  `setOrganization` are `400 invalid_request`; a blocked user is
+  `invalid_grant`.
+- `setUserByConnection` accepts database connections only (not import-mode
+  custom databases); users are created through the passwordless user-create
+  path, with registration Actions and an `ss` log. `verify_email` is not acted
+  on yet (follow-up).
+- A post-login `challengeWith`/`enrollWith` or `multifactor.enable` with a
+  provider other than `none` is `403 access_denied`; the tenant's own MFA
+  policy is not applied to the exchange.
+- Access tokens carry no `gty`; `event.transaction.protocol` is
+  `oauth2-token-exchange`.
+- `actor_token_user` is set only for an unexpired ID token this tenant signed
+  for one of its applications (no `azp`, `gty`, `client_id` or `scope`).
+- The `pre-custom-token-exchange` default is corrected to 10 attempts and a
+  600000 ms rate (Auth0's custom token exchange attack-protection page, read
+  2026-11-15), replacing Plan 19's 8640000; tenants keep a stored value, with
+  no migration.
+
+**Execution rulings (Tasks 6 to 14).**
+
+- Client authentication: an assertion combined with another method, or a
+  `client_id` that differs from the assertion's subject, is `400
+  invalid_request`. Every other failure is `401 invalid_client` with one
+  shared description, including an assertion whose `iss` alone differs from
+  its `sub`. Discovery lists `private_key_jwt`, its signing algorithms,
+  `request_parameter_supported` and the request-object algorithms only when
+  the store supports client credentials.
+- JAR: the object's `client_id` claim is required and equals the query's; an
+  undecodable or empty `request` is `invalid_request_object`; claims whose
+  value is an object or an array are dropped; a `jti` is consumed even when a
+  later check fails; a `signed_request_object` PATCH without `credentials`
+  keeps the stored list.
+- API signing: patching to HS256 generates a secret when none is given;
+  patching away clears it; HS256 needs the store capability (`501` without
+  it); the system APIs keep RS256. The seed carries `signing_alg` and
+  `signing_secret`, and an HS256 API seeded without a secret keeps its
+  stored one on re-apply.
+- Token exchange: the deny code may be any custom code, except one that
+  contains a secret value (refused); `setActor` needs `sub` at every level,
+  up to 5 further properties per level and 5 actors in total; the
+  `setUserByConnection` attributes are `email`, `email_verified`,
+  `family_name`, `given_name`, `name`, `nickname`, `phone_number`,
+  `phone_verified`, `picture`, `user_id`, `username` and `verify_email`; the
+  organization is resolved before any user is created. The
+  `pre-custom-token-exchange` default is 10 attempts and a 600000 ms rate
+  (Auth0's attack-protection page and the maintainer-tenant observation; the
+  schema annotation's 8640000 was not used).
+- Seed (Task 14): `credentials`, the three client settings (credentials named
+  by `name`) and `token_exchange_profiles` (Actions named by `name`, applied
+  after the Actions). A seed-owned client in apply mode keeps a stored credential only when
+  its `kid`, algorithm, name and public key all match the seed (any other is
+  deleted and, if seeded, recreated) and never touched in create-only mode or for an
+  API-created client; a profile is identified by its `subject_token_type`
+  and is renamed or re-pointed in apply mode only. A store without
+  `client_credentials.v1` refuses seeded credentials, profiles and HS256 APIs
+  at startup, before anything is written.
+- Conformance: `oidcc-ensure-request-object-with-redirect-uri` sends an
+  unsigned object and is now skipped by the suite in Basic and Form Post; it
+  is listed in expected-skips.

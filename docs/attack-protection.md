@@ -45,6 +45,16 @@ spend the registration budget before revealing whether the user exists.
 Failed security-key and device-biometrics attempts count in the MFA throttle
 instead (LR33b-30, [passkeys](passkeys.md)).
 
+**Custom token exchange (Plan 35).** The suspicious-IP
+`pre-custom-token-exchange` stage is a third token bucket per IP, separate from
+the login and registration budgets (defaults 10 tokens / 600000 milliseconds
+per token, one attempt back every 10 minutes; a stored value is kept). The token endpoint reserves an attempt before the profile's Action
+runs; only an Action that calls `api.access.rejectInvalidSubjectToken` spends
+it, and every other outcome gives it back. An exhausted budget answers
+`429 too_many_attempts` without running the Action and records `limit_mu`.
+Monitoring mode, the allowlist and a policy change behave as for the other
+stages; `/api/v2/anomaly/blocks/ips/{id}` reports and clears this stage too.
+
 IPv4-mapped IPv6 shares its IPv4 key. Invalid addresses use one non-allowlisted
 unknown key. Existing single-trusted-proxy rules apply. Public clients cannot
 spoof `auth0-forwarded-for`; confidential password clients retain the existing
@@ -135,8 +145,7 @@ required proofs count at most once per attempt. Success does not erase history;
 normal reset-email requests, infrastructure outages and already-throttled
 requests do not add risk. This deterministic rule differs from Auth0's
 proprietary classifier. Policies support never/always/when_risky, monitoring
-and allowlists; custom-token-exchange stages remain inert
-until Plan 35.
+and allowlists.
 
 Supported verifiers/widgets: reCAPTCHA v2, reCAPTCHA Enterprise (API-key
 assessments), hCaptcha and Friendly Captcha v1. Arkose, Auth Challenge and

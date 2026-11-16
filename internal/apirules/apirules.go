@@ -29,8 +29,16 @@ const (
 	DefaultTokenLifetime       = 86400
 	DefaultTokenLifetimeForWeb = 7200
 
-	// SigningAlg is the only algorithm zeroauthy signs access tokens with.
-	SigningAlg = "RS256"
+	// SigningAlg is the algorithm of an API that names none. The others are
+	// SigningAlgHS256 (signed with the API's own secret) and SigningAlgPS256
+	// (the tenant's RSA key).
+	SigningAlg      = "RS256"
+	SigningAlgHS256 = "HS256"
+	SigningAlgPS256 = "PS256"
+
+	// MinSigningSecretLength is the shortest HS256 secret a caller may supply
+	// (C15), in characters.
+	MinSigningSecretLength = 16
 )
 
 // Spec is an API's settings. Empty strings, zeros and nil pointers mean
@@ -42,6 +50,8 @@ type Spec struct {
 	// Name is optional; an empty name is an API without one.
 	Name   string
 	Scopes []store.Scope
+	// SigningAlg is RS256, HS256 or PS256; empty means RS256.
+	SigningAlg string
 	// TokenLifetime and TokenLifetimeForWeb are in seconds; zero means the
 	// default.
 	TokenLifetime       int
@@ -77,6 +87,7 @@ func Normalize(s *Spec) []error {
 	if s.TokenDialect == "" {
 		s.TokenDialect = "access_token"
 	}
+	s.SigningAlg = cmp.Or(s.SigningAlg, SigningAlg)
 	var errs []error
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 
@@ -88,6 +99,9 @@ func Normalize(s *Spec) []error {
 	}
 	if strings.ContainsAny(s.Name, "<>") {
 		fail("name must not contain < or >")
+	}
+	if !slices.Contains([]string{SigningAlg, SigningAlgHS256, SigningAlgPS256}, s.SigningAlg) {
+		fail("signing_alg %q must be RS256, HS256 or PS256", s.SigningAlg)
 	}
 	if !slices.Contains([]string{"access_token", "access_token_authz", "rfc9068_profile", "rfc9068_profile_authz"}, s.TokenDialect) {
 		fail("unsupported token_dialect")
@@ -141,7 +155,10 @@ func Apply(rs *store.ResourceServer, s *Spec) {
 	rs.EnforcePolicies, rs.TokenDialect = s.EnforcePolicies, s.TokenDialect
 	rs.Name = s.Name
 	rs.Scopes = slices.Clone(s.Scopes)
-	rs.SigningAlg = SigningAlg
+	rs.SigningAlg = cmp.Or(s.SigningAlg, SigningAlg)
+	if rs.SigningAlg != SigningAlgHS256 {
+		rs.SigningSecretSealed = nil // only HS256 has a secret
+	}
 	rs.TokenLifetime, rs.TokenLifetimeForWeb = s.TokenLifetime, s.TokenLifetimeForWeb
 	rs.AllowOfflineAccess = s.AllowOfflineAccess
 	rs.SkipConsentForVerifiableFirstPartyClients = *s.SkipConsentForVerifiableFirstPartyClients
@@ -153,7 +170,7 @@ func Apply(rs *store.ResourceServer, s *Spec) {
 func FromResourceServer(rs *store.ResourceServer) Spec {
 	skip := rs.SkipConsentForVerifiableFirstPartyClients
 	return Spec{
-		Identifier: rs.Identifier, Name: rs.Name, Scopes: slices.Clone(rs.Scopes),
+		Identifier: rs.Identifier, Name: rs.Name, Scopes: slices.Clone(rs.Scopes), SigningAlg: cmp.Or(rs.SigningAlg, SigningAlg),
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: cmp.Or(rs.TokenDialect, "access_token"),
 		TokenLifetime: rs.TokenLifetime, TokenLifetimeForWeb: rs.TokenLifetimeForWeb,
 		AllowOfflineAccess:                        rs.AllowOfflineAccess,

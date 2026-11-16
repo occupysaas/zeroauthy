@@ -26,8 +26,9 @@ type env struct {
 	srv http.Handler
 }
 
-func newEnv(t *testing.T) *env {
-	f := newFixture(t)
+func newEnv(t *testing.T) *env { return newEnvOn(t, newFixture(t)) }
+
+func newEnvOn(t *testing.T, f *fixture) *env {
 	sm := &session.Manager{Store: f.st, Now: fixedNow}
 	h := &Handlers{Store: f.st, Sessions: sm, Now: fixedNow}
 	mux := http.NewServeMux()
@@ -476,9 +477,10 @@ func TestRequestObjectNotSupportedUsesObjectDelivery(t *testing.T) {
 		!strings.Contains(body, `value="request_not_supported"`) || !strings.Contains(body, `value="obj-st"`) {
 		t.Fatalf("form_post error = %d %s", rec.Code, body)
 	}
-	// An undecodable object leaves the query's delivery in place.
+	// An undecodable object is invalid (JAR, D-0063) and keeps the query's
+	// delivery.
 	loc := location(t, e.get(t, with(goodQuery(), "request", "not-a-jwt")))
-	if loc.Query().Get("error") != "request_not_supported" || loc.Query().Get("state") != "st" {
+	if loc.Query().Get("error") != "invalid_request_object" || loc.Query().Get("state") != "st" {
 		t.Fatalf("Location = %s", loc)
 	}
 }

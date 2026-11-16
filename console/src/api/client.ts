@@ -22,6 +22,13 @@ export type ClientPage = components['schemas']['ClientPage']
 export type AppType = components['schemas']['AppType']
 export type ConsoleAuthenticationMethod = components['schemas']['ConsoleAuthenticationMethod']
 export type ConsoleRelyingPartyId = components['schemas']['ConsoleRelyingPartyId']
+export type ClientCredential = components['schemas']['ClientCredential']
+export type ClientCredentialCreate = components['schemas']['ClientCredentialCreate']
+export type ClientCredentialUpdate = components['schemas']['ClientCredentialUpdate']
+export type TokenExchangeProfile = components['schemas']['TokenExchangeProfile']
+export type TokenExchangeProfileCreate = components['schemas']['TokenExchangeProfileCreate']
+export type TokenExchangeProfileUpdate = components['schemas']['TokenExchangeProfileUpdate']
+export type TokenExchangeProfilePage = components['schemas']['TokenExchangeProfilePage']
 export type SystemTenant = components['schemas']['SystemTenant']
 export type TenantCreate = components['schemas']['TenantCreate']
 export type ResourceServer = components['schemas']['ResourceServer']
@@ -521,6 +528,49 @@ export class Api {
     return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/clients/' + encodeURIComponent(id), { body })
   }
 
+  listClientCredentials(t: SystemTenant, id: string): Promise<ClientCredential[]> {
+    return this.request(Api.tenantOrigin(t), 'GET', credentialsPath(id))
+  }
+
+  createClientCredential(t: SystemTenant, id: string, body: ClientCredentialCreate): Promise<ClientCredential> {
+    return this.request(Api.tenantOrigin(t), 'POST', credentialsPath(id), { body })
+  }
+
+  updateClientCredential(t: SystemTenant, id: string, credentialId: string, body: ClientCredentialUpdate): Promise<ClientCredential> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', credentialsPath(id) + '/' + encodeURIComponent(credentialId), { body })
+  }
+
+  deleteClientCredential(t: SystemTenant, id: string, credentialId: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', credentialsPath(id) + '/' + encodeURIComponent(credentialId))
+  }
+
+  listTokenExchangeProfiles(t: SystemTenant, q: { from?: string; take: number }): Promise<TokenExchangeProfilePage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/token-exchange-profiles', { query: q })
+  }
+
+  createTokenExchangeProfile(t: SystemTenant, body: TokenExchangeProfileCreate): Promise<TokenExchangeProfile> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/token-exchange-profiles', { body })
+  }
+
+  updateTokenExchangeProfile(t: SystemTenant, id: string, body: TokenExchangeProfileUpdate): Promise<TokenExchangeProfile> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/token-exchange-profiles/' + encodeURIComponent(id), { body })
+  }
+
+  deleteTokenExchangeProfile(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/token-exchange-profiles/' + encodeURIComponent(id))
+  }
+
+  async allTokenExchangeProfiles(t: SystemTenant): Promise<TokenExchangeProfile[]> {
+    const out: TokenExchangeProfile[] = []
+    let from: string | undefined
+    do {
+      const r = await this.listTokenExchangeProfiles(t, { from, take: 100 })
+      out.push(...r.token_exchange_profiles)
+      from = r.next
+    } while (from)
+    return out
+  }
+
   deleteClient(t: SystemTenant, id: string): Promise<void> {
     return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/clients/' + encodeURIComponent(id))
   }
@@ -1005,6 +1055,7 @@ async function collect<T>(fetchPage: (page: number) => Promise<{ items: T[]; tot
   }
 }
 
+function credentialsPath(id: string): string { return '/api/v2/clients/' + encodeURIComponent(id) + '/credentials' }
 function actionPath(id: string): string { return '/api/v2/actions/actions/' + encodeURIComponent(id) }
 function triggerPath(id: string): string { return '/api/v2/actions/triggers/' + encodeURIComponent(id) + '/bindings' }
 

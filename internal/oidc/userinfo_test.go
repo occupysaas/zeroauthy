@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/go-jose/go-jose/v4"
 	"io"
 	"log/slog"
 	"net/http"
@@ -213,5 +214,27 @@ func TestUserinfoOversizedBodyIs413(t *testing.T) {
 	_ = json.Unmarshal(rec.Body.Bytes(), &body)
 	if rec.Code != 413 || body["error"] != "payload_too_large" {
 		t.Fatalf("oversized = %d %v", rec.Code, body)
+	}
+}
+
+func TestUserinfoAcceptsPS256(t *testing.T) {
+	e := newUserinfoEnv(t)
+	raw, err := e.km.SignWithAlg(context.Background(), "ten_a", map[string]any{
+		"iss": "https://acme.example.test/", "sub": "auth0|1",
+		"aud": []string{"https://api.test", "https://acme.example.test/userinfo"},
+		"iat": uiNow.Unix(), "exp": uiNow.Add(time.Hour).Unix(), "scope": "openid email",
+	}, "JWT", jose.PS256)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := e.call("GET", "Bearer "+raw)
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if rec.Code != 200 || body["sub"] != "auth0|1" {
+		t.Fatalf("PS256 = %d %s", rec.Code, rec.Body)
+	}
+	// Another tenant's key still does not verify it.
+	if rec := e.call("GET", "Bearer "+raw+"x"); rec.Code != 401 {
+		t.Fatalf("tampered PS256 = %d", rec.Code)
 	}
 }

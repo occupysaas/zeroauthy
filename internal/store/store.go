@@ -39,6 +39,7 @@ type Store interface {
 	MFA() MFA
 	Phone() Phone
 	WebAuthn() WebAuthn
+	ClientCredentials() ClientCredentials
 	Events() Events
 	Logs() Logs
 	RBAC() RBAC

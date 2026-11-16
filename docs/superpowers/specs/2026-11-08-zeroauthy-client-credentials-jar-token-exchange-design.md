@@ -360,10 +360,12 @@ urn:ietf:params:oauth:client-assertion-type:jwt-bearer`.
   - `authentication.setUserById(id)`: the user must exist in this tenant.
   - `authentication.setUserByConnection(name, attrs, {creationBehavior,
     updateBehavior})`.
-    - The attributes are the documented list, with `user_id` required.
+    - The attributes are the documented list, with `user_id` required (corrected
+      2026-11-15 from the API object page: the list includes `verify_email`).
     - Defaults are `create_if_not_exists` / `none` (C14).
-    - Once the user exists, a changed `email`, `email_verified`, `phone`,
-      `phone_verified` or `username` → error.
+    - Once the user exists, a changed `email`, `email_verified`, `phone_number`,
+      `phone_verified` or `username` → error (corrected 2026-11-15 from the API
+      object page: the attribute is `phone_number`, not `phone`).
     - A custom DB in import mode supports only `setUserById`.
   - `authentication.setOrganization(idOrName)`.
   - `authentication.setActor(actor)`.

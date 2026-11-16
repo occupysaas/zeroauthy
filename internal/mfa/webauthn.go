@@ -45,20 +45,7 @@ func RoamingUV(g *store.GuardianSettings) string {
 // WebAuthnAvailable checks negotiated storage support without connection policy:
 // MFA security keys also work for non-database first factors.
 func (s *Service) WebAuthnAvailable(ctx context.Context) (bool, error) {
-	if c, ok := s.st.(store.WebAuthnSupporter); ok {
-		if err := c.CheckWebAuthnSupport(ctx); err != nil {
-			if errors.Is(err, store.ErrWebAuthnUnavailable) {
-				return false, nil
-			}
-			return false, err
-		}
-		return c.WebAuthnSupported(), nil
-	}
-	switch s.st.WebAuthn().(type) {
-	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
-		return false, nil
-	}
-	return true, nil
+	return store.WebAuthnAvailable(ctx, s.st)
 }
 
 // WithWebAuthnBinding binds a request-local service to trusted transaction and
@@ -75,13 +62,11 @@ func (s *Service) WithWebAuthnBinding(b passkey.Binding) *Service {
 // not bypass challenge consumption or the shared failure budget.
 func (s *Service) WithWebAuthnBrowserError(name string) *Service {
 	c := *s
-	switch name {
-	case "NotAllowedError", "InvalidStateError", "NotSupportedError", "SecurityError", "AbortError", "ConstraintError", "UnknownError":
+	switch {
+	case webauthnrules.KnownBrowserError(name):
 		c.webAuthnBrowserError = name
-	default:
-		if name != "" {
-			c.webAuthnBrowserError = "UnknownError"
-		}
+	case name != "":
+		c.webAuthnBrowserError = "UnknownError"
 	}
 	return &c
 }

@@ -36,9 +36,8 @@ type SuspiciousIPPolicy struct {
 	Stage     SuspiciousIPStages `json:"stage"`
 }
 type SuspiciousIPStages struct {
-	PreLogin            ProtectionRate `json:"pre-login"`
-	PreUserRegistration ProtectionRate `json:"pre-user-registration"`
-	// PreCustomTokenExchange is stored only until Plan 35.
+	PreLogin               ProtectionRate `json:"pre-login"`
+	PreUserRegistration    ProtectionRate `json:"pre-user-registration"`
 	PreCustomTokenExchange ProtectionRate `json:"pre-custom-token-exchange"`
 }
 
@@ -101,10 +100,11 @@ type RecaptchaEnterpriseProvider struct {
 
 // Bucket kinds shared by runtime consumers, policy invalidation and block queries.
 const (
-	ProtectionBruteForce               = "brute-force"
-	ProtectionSuspiciousIPLogin        = "suspicious-ip-login"
-	ProtectionSuspiciousIPRegistration = "suspicious-ip-registration"
-	ProtectionResetMail                = "reset-mail"
+	ProtectionBruteForce                = "brute-force"
+	ProtectionSuspiciousIPLogin         = "suspicious-ip-login"
+	ProtectionSuspiciousIPRegistration  = "suspicious-ip-registration"
+	ProtectionSuspiciousIPTokenExchange = "suspicious-ip-token-exchange"
+	ProtectionResetMail                 = "reset-mail"
 )
 
 // ProtectionKey is tenant-scoped. ConnectionID is stable, never a mutable name.

@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,8 +11,12 @@ import (
 	"strings"
 	"testing"
 
+	jose "github.com/go-jose/go-jose/v4"
+
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/testutil/contract"
 )
@@ -129,4 +134,143 @@ func TestPARRefusals(t *testing.T) {
 			t.Fatalf("got %d %v", rec.Code, body)
 		}
 	})
+}
+
+// useJAR registers cred_jar_<clientID> on clientID for signed request
+// objects only.
+func (f *fixture) useJAR(t *testing.T, clientID string, required bool) {
+	t.Helper()
+	credID := "cred_jar_" + clientID
+	f.addCredentials(t, clientID, pkjwtCred{id: credID, spki: "rsa2048.spki.pem", alg: "RS256"})
+	ctx := context.Background()
+	c, err := f.st.Clients().Get(ctx, f.tenantID(t, "acme"), clientID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.SignedRequestObject = &store.SignedRequestObject{Required: required, Credentials: []string{credID}}
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func jarObject(t *testing.T, kv ...any) string {
+	t.Helper()
+	claims := assertionClaims("par-web", "sub", nil, "client_id", "par-web", "response_type", "code",
+		"redirect_uri", "https://par.acme.test/cb", "scope", "openid profile", "state", "inner-st")
+	for i := 0; i+1 < len(kv); i += 2 {
+		if kv[i+1] == nil {
+			delete(claims, kv[i].(string))
+		} else {
+			claims[kv[i].(string)] = kv[i+1]
+		}
+	}
+	return signAssertion(t, pkjwtKey(t, "rsa2048.priv.pem"), jose.RS256, "", claims)
+}
+
+// jarPARForm is a PAR body whose authorization parameters are only in the
+// signed request object.
+func jarPARForm(obj string) url.Values {
+	return url.Values{"client_id": {"par-web"}, "client_secret": {"par-web-secret"}, "request": {obj}}
+}
+
+func (f *fixture) storedPAR(t *testing.T, body map[string]any) *store.PushedAuthRequest {
+	t.Helper()
+	id, ok := strings.CutPrefix(fmt.Sprint(body["request_uri"]), authz.RequestURIPrefix)
+	if !ok {
+		t.Fatalf("body = %v", body)
+	}
+	p, err := f.st.PushedAuthRequests().Get(context.Background(), f.tenantID(t, "acme"), secrets.HashToken(id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func TestPARSignedRequest(t *testing.T) {
+	f := newPKJWTFixture(t)
+	f.useJAR(t, "par-web", true)
+	rec, body := f.par(t, "acme.example.test", formType, jarPARForm(jarObject(t)).Encode())
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status %d, body %v", rec.Code, body)
+	}
+	p := f.storedPAR(t, body)
+	if !p.Signed || p.Params["redirect_uri"] != "https://par.acme.test/cb" || p.Params["state"] != "inner-st" || p.Params["scope"] != "openid profile" || p.Params["request"] != "" {
+		t.Fatalf("stored = signed %v params %v", p.Signed, p.Params)
+	}
+
+	// /authorize with its request_uri succeeds although the client requires
+	// signed requests.
+	ah := &authz.Handlers{Store: f.st, Now: fixedNow}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /authorize", ah.Authorize)
+	srv := contract.Wrap(t, tenant.NewResolver(f.st.Tenants(), "", false).Middleware(mux))
+	q := url.Values{"client_id": {"par-web"}, "request_uri": {fmt.Sprint(body["request_uri"])}}
+	arec := httptest.NewRecorder()
+	srv.ServeHTTP(arec, httptest.NewRequest("GET", "https://acme.example.test/authorize?"+q.Encode(), nil))
+	loc, _ := url.Parse(arec.Header().Get("Location"))
+	if arec.Code != http.StatusFound || loc.Path != "/u/login" {
+		t.Fatalf("authorize = %d %v %s", arec.Code, arec.Header(), arec.Body)
+	}
+
+	// A client_secret_basic client pushes a signed request too: the client
+	// authenticates with any of its methods.
+	f.useJAR(t, "par-basic", false)
+	form := url.Values{"request": {jarObject(t, "iss", "par-basic", "client_id", "par-basic")}}
+	if rec, body := f.par(t, "acme.example.test", formType, form.Encode(), "par-basic", "par-basic-secret"); rec.Code != http.StatusCreated {
+		t.Fatalf("basic: status %d, body %v", rec.Code, body)
+	}
+}
+
+func TestPARSignedRequestRefusals(t *testing.T) {
+	f := newPKJWTFixture(t)
+	f.useJAR(t, "par-web", true)
+	replayed := jarObject(t)
+	if rec, body := f.par(t, "acme.example.test", formType, jarPARForm(replayed).Encode()); rec.Code != http.StatusCreated {
+		t.Fatalf("first push: %d %v", rec.Code, body)
+	}
+	unsigned := "eyJhbGciOiJub25lIn0." + base64.RawURLEncoding.EncodeToString([]byte(`{"iss":"par-web"}`)) + "."
+	for _, tc := range []struct {
+		name string
+		form url.Values
+		code string
+	}{
+		{"replayed jti", jarPARForm(replayed), "invalid_request_object"},
+		{"client_id mismatch", jarPARForm(jarObject(t, "client_id", "web")), "invalid_request_object"},
+		{"bad aud", jarPARForm(jarObject(t, "aud", "https://evil.test/")), "invalid_request_object"},
+		{"not a JWS", jarPARForm("not-a-jwt"), "invalid_request_object"},
+		{"unsigned", parForm("request", unsigned), "request_not_supported"},
+		{"required, plain", parForm(), "invalid_request"},
+		{"inner unregistered redirect", jarPARForm(jarObject(t, "redirect_uri", "https://evil.test/cb")), "invalid_request"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec, body := f.par(t, "acme.example.test", formType, tc.form.Encode())
+			if rec.Code != http.StatusBadRequest || body["error"] != tc.code {
+				t.Fatalf("got %d %v; want 400 %s", rec.Code, body, tc.code)
+			}
+		})
+	}
+	// Without client_credentials.v1 a pushed request object keeps today's refusal.
+	f.h.Store = noClientCredentialsStore{f.st}
+	if rec, body := f.par(t, "acme.example.test", formType, parForm("request", jarObject(t)).Encode()); rec.Code != 400 || body["error"] != "request_not_supported" {
+		t.Fatalf("no capability: %d %v", rec.Code, body)
+	}
+}
+
+// The pushed request object is registered as a log mask at /oauth/par.
+func TestPARRequestObjectRegisteredForScrub(t *testing.T) {
+	f := newPKJWTFixture(t)
+	f.useJAR(t, "par-web", false)
+	obj := jarObject(t, "client_id", "web")
+	var seen string
+	h := tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.h.OauthPar(w, r)
+		seen = logscrub.MaskText(r.Context(), "logged "+obj)
+	}))
+	req := httptest.NewRequest("POST", "https://acme.example.test/oauth/par", strings.NewReader(jarPARForm(obj).Encode()))
+	req.Header.Set("Content-Type", formType)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest || strings.Contains(seen, obj) {
+		t.Fatalf("= %d; log text %q", rec.Code, seen)
+	}
 }

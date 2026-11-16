@@ -157,3 +157,37 @@ func TestSuspiciousIPEditExitsOnlyLegacyIPMode(t *testing.T) {
 		})
 	}
 }
+
+// Auth0's custom token exchange attack-protection page: 10 attempts, one back
+// every 10 minutes. The other stages keep their defaults.
+func TestCustomTokenExchangeStageDefault(t *testing.T) {
+	stage := Defaults().SuspiciousIP.Stage
+	if got := stage.PreCustomTokenExchange; got.MaxAttempts != 10 || got.Rate != 600000 {
+		t.Fatalf("pre-custom-token-exchange default = %+v", got)
+	}
+	if stage.PreLogin.MaxAttempts != 100 || stage.PreLogin.Rate != 864000 || stage.PreUserRegistration.MaxAttempts != 50 || stage.PreUserRegistration.Rate != 1728000 {
+		t.Fatalf("other stage defaults changed: %+v", stage)
+	}
+	var inv map[string]any
+	if err := json.Unmarshal([]byte(inventory), &inv); err != nil {
+		t.Fatal(err)
+	}
+	var walk func(any) any
+	walk = func(v any) any {
+		m, _ := v.(map[string]any)
+		for k, x := range m {
+			if k == "pre-custom-token-exchange" {
+				return x
+			}
+			if r := walk(x); r != nil {
+				return r
+			}
+		}
+		return nil
+	}
+	cte, _ := walk(inv).(map[string]any)
+	rate := cte["properties"].(map[string]any)["rate"].(map[string]any)
+	if rate["default"] != float64(600000) {
+		t.Fatalf("inventory rate = %v", rate)
+	}
+}

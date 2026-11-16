@@ -11,6 +11,7 @@ const { t } = useI18n(), { tenant, id } = useActionContext()
     <RouterLink :to="{ name: 'actions', params: { tenant: tenant.name } }">{{ t('actions.library') }}</RouterLink>
     <RouterLink :to="{ name: 'action-triggers', params: { tenant: tenant.name } }">{{ t('actions.triggers') }}</RouterLink>
     <RouterLink :to="{ name: 'action-execution', params: { tenant: tenant.name } }">{{ t('actions.execution') }}</RouterLink>
+    <RouterLink :to="{ name: 'token-exchange-profiles', params: { tenant: tenant.name } }">{{ t('tep.title') }}</RouterLink>
     <RouterLink :to="{ name: 'action-modules', params: { tenant: tenant.name } }">{{ t('actions.modules') }}</RouterLink>
     <RouterLink :to="{ name: 'actions-logs', params: { tenant: tenant.name } }">{{ t('monitor.actionsLogs') }}</RouterLink>
     <template v-if="!String(route.name).includes('execution') && id && !String(route.name).startsWith('action-module')">

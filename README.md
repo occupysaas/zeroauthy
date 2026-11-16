@@ -148,12 +148,20 @@ each with its console screens; the full breakdown is in the
   SMS and voice MFA, phone identifiers and phone password reset. See
   [passwordless](docs/passwordless.md) and [phone providers](docs/phone-providers.md).
 
-**Later** (Plans 33b, 35–48)
+**Client keys, signed requests and token exchange (Plan 35)**
+
+- `private_key_jwt` client authentication with registered public keys,
+  JWT-secured authorization requests (JAR), custom token exchange with
+  profiles and the `custom-token-exchange` Action trigger, and `HS256` and
+  `PS256` API access tokens, with console controls, seed and Deploy CLI notes.
+  See [client authentication](docs/client-authentication.md) and
+  [custom token exchange](docs/token-exchange.md).
+
+**Later** (Plans 33b, 36–48)
 
 | Plan | Area | Depth | Needs |
 |---|---|---|---|
 | 33b | WebAuthn MFA and passkeys | full | 33 |
-| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
 | 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |

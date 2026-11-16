@@ -26,6 +26,12 @@
 //   - WebAuthn (capability webauthn.v1, Plan 33b) carries passkeys, ceremony
 //     snoozes and the session, client and tenant fields. Without it the host
 //     keeps passkeys stored-only and drops those fields on write.
+//   - ClientCredentials (capability client_credentials.v1, Plan 35) carries
+//     client public keys, assertion jti replay rows and token exchange
+//     profiles, plus the client private_key_jwt, signed-request and token
+//     exchange fields, the API signing secret and the pushed-request signed
+//     flag. Without it the host drops those fields on write and answers the
+//     new Management API writes with 501.
 //   - Keep main to a single call, storeplugin.Serve(yourStore).
 //   - Stdout carries the go-plugin handshake, so write logs to stderr only.
 //     Lines on stderr that start with "[ERROR] " reach the host's log.
@@ -278,6 +284,16 @@ func (o *opened) OrganizationsIISupported() bool {
 // CheckWebAuthnSupport preserves the client's webauthn.v1 probe through the SDK wrapper.
 func (o *opened) CheckWebAuthnSupport(ctx context.Context) error {
 	return o.Store.(store.WebAuthnSupporter).CheckWebAuthnSupport(ctx)
+}
+
+// CheckClientCredentialsSupport preserves the client's client_credentials.v1 probe through the SDK wrapper.
+func (o *opened) CheckClientCredentialsSupport(ctx context.Context) error {
+	return o.Store.(store.ClientCredentialsSupporter).CheckClientCredentialsSupport(ctx)
+}
+
+// ClientCredentialsSupported preserves the client's cached client_credentials.v1 answer.
+func (o *opened) ClientCredentialsSupported() bool {
+	return o.Store.(store.ClientCredentialsSupporter).ClientCredentialsSupported()
 }
 
 // WebAuthnSupported preserves the client's cached webauthn.v1 answer.
