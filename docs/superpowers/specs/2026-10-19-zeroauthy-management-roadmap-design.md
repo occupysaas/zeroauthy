@@ -411,6 +411,8 @@ The Plan 12 follow-ups: the `claims` parameter, `acr_values`, `address`/`phone` 
 
 Auth0's end-user-facing APIs outside `/api/v2`: the My Account API (users manage their own authentication methods, passkeys and connected identities) and the My Organization API (organization administrators manage members, invitations and roles; Early Access since 2026-09, with log events). Both reuse Plans 30 and 33 and need their own audiences, scopes and consent. **Full.**
 
+**Split by the parallel paths:** U1 = 42a My Account, U2 = 42b My Organization. **42a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-my-account-api-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) (8 tasks, D-0210), from Auth0's My Account OpenAPI (`/docs/oas/myaccount/myaccount-api-oas.json`): GA authentication methods plus the factors list. Connected accounts belong to Plan 43 (P6); consents, consent signing keys, the profile routes and the Authentication Assurance default policy are pre-GA and tracked only. Auth0 also publishes `/docs/oas/myorganization/myorganization-api-oas.json` for U2.
+
 ### Plan 43 — Token Vault and connected accounts
 
 `federated-connections-tokensets` and the token-exchange path that lets an application obtain a user's upstream provider tokens (Auth0's Token Vault, used by its AI-agent features), which Plan 24 explicitly left out. Needs Plan 24's sealed upstream-token storage and Plan 35's token exchange. **Full**, because refresh, revocation and consent policy are product decisions.
