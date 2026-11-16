@@ -33,6 +33,11 @@ Specs and plans that already exist are under `docs/superpowers/specs/` and
 `docs/superpowers/`. Check them before starting, and pick up the next
 unfinished item rather than starting a new one.
 
+**Every remaining roadmap item already has a spec and a plan** (written
+2026-11-16, not yet implemented). The index is
+[`docs/superpowers/README.md`](docs/superpowers/README.md); it links each
+spec and plan and points to the roadmap table of rulings still needed.
+
 ### 1. Set up Claude Code with the Superpowers plugin
 
 Install [Claude Code](https://claude.com/claude-code), then install the

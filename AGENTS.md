@@ -1,5 +1,12 @@
 # Repository agent rules
 
+## Where the work is
+
+Specs and implementation plans for every remaining roadmap item are indexed
+in `docs/superpowers/README.md` (written 2026-11-16, not yet implemented).
+Before implementing an item, read its spec and plan and check the roadmap's
+"Designed 2026-11-16" table for open maintainer rulings.
+
 ## Long-running test suites
 
 For full suites and other test commands expected to take more than a few minutes:
