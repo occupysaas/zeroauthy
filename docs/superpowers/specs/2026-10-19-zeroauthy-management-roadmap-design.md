@@ -14,6 +14,41 @@ early preview to give people something to try (maintainer, 2026-11-03);
 Plans 35–48 continue after it. Review findings that can wait were moved into
 the plans below, marked "(pre-1.0 review)".
 
+### Designed 2026-11-16 (spec and plan merged; not implemented)
+
+Every remaining parallel-paths item except X1 (maintainer-only) has a spec and
+an implementation plan. Rulings the maintainer still has to give are listed
+per item; items without rulings can start as soon as their track allows.
+
+| Item | Plan | Spec | Rulings needed before (parts of) implementation |
+|---|---|---|---|
+| F1 | 36 enterprise OIDC | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
+| P2 | 48 refresh tokens II | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
+| P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | front-channel logout not built; compat switch defaults; certification timing |
+| P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
+| P5 | 41c CIBA (email channel) | [spec](2026-11-16-zeroauthy-ciba-design.md) | none |
+| P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
+| F2 | 37a SAML | [spec](2026-11-16-zeroauthy-saml-design.md) | XML-signature implementation; E2E npm pins; SHA-1 |
+| F3 | 37b WS-Fed and ADFS | [spec](2026-11-16-zeroauthy-ws-federation-design.md) | none (inherits F2's) |
+| F4 | 37c SCIM, groups, self-service | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | phase order; directory-sync testing |
+| F5 | 38a AD/LDAP | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | connector protocol vs LDAP bind; connector E2E pin; replica forwarding |
+| S1 | 39a Apple | [spec](2026-11-16-zeroauthy-apple-design.md) | none |
+| S2 | 39b social providers | [spec](2026-11-16-zeroauthy-social-providers-design.md) | provider order; Tier 2 timing; live checks |
+| A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |
+| A2 | 38b Forms and Flows | [spec](2026-11-16-zeroauthy-forms-flows-design.md) | console builder scope; vendor order |
+| U1 | 42a My Account API | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |
+| U2 | 42b My Organization API | [spec](2026-11-16-zeroauthy-my-organization-api-design.md) | build while Early Access; Phase B timing |
+| H1 | 44 ACUL | [spec](2026-11-16-zeroauthy-acul-design.md) | Classic Login; security boundary; canonical host; ACUL SDK pin |
+| M1 | 38d Management gaps | [spec](2026-11-16-zeroauthy-management-gaps-design.md) | verifiable-credential templates; `/keys/encryption` owner |
+| O1 | 38c network ACLs | [spec](2026-11-16-zeroauthy-network-acls-design.md) | geo/ASN signals; system-tenant exemption |
+| O2 | 45a security hardening | [spec](2026-11-16-zeroauthy-security-hardening-design.md) | key hierarchy; sandbox failure policy; DB TLS default; external KMS |
+| O3 | 45b flow and API fixes | [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md) | none |
+| O4 | 45c infrastructure | [spec](2026-11-16-zeroauthy-infrastructure-hardening-design.md) | DNS providers; backoff values; axe-core pin |
+| O5 | 46 leftovers | [spec](2026-11-16-zeroauthy-release-leftovers-design.md) | next languages; French reviewer; TV sample CI |
+
+Decision-ID blocks follow the parallel-paths design; migrations in the plans
+carry provisional numbers (0037 onward) and are renumbered at merge.
+
 ### Done
 
 | Plans | What |

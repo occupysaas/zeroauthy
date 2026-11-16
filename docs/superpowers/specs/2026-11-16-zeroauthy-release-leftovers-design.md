@@ -6,8 +6,8 @@
 ("Left: versioned docs links from the console, `govulncheck` in CI if not
 added for 1.0, the Android TV sample and translations"); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
 item **O5** (track O, independent). Read `RELEASING.md`, `docs/i18n.md`,
-`docs/device-flow.md`, the [console visual direction] memory notes
-(translations must be supported; globe language menu) and `AGENTS.md`.
+`docs/device-flow.md` and `AGENTS.md`. The console design direction
+requires translations and a globe language menu (maintainer, 2026-10-19).
 
 ## 1. Status of the Plan 46 list (checked 2026-11-16)
 
