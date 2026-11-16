@@ -14,6 +14,7 @@ import (
 
 // Strategy names, re-exported from rules.
 const (
+	StrategyApple       = rules.Apple
 	StrategyWindowsLive = rules.WindowsLive
 	StrategyWAAD        = rules.WAAD
 	StrategyGoogle      = rules.Google

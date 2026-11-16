@@ -121,5 +121,5 @@ func Connection(spec *connrules.Spec, id string, withClients bool) (map[string]a
 var passwordlessHiddenOptions = []string{"requires_username", "enabledDatabaseCustomization", "import_mode", "password_options", "validation"}
 
 // federatedHiddenOptions are left out of a federated connection's options.
-var federatedHiddenOptions = []string{"client_secret", "disable_signup", "requires_username",
+var federatedHiddenOptions = []string{"client_secret", "app_secret", "disable_signup", "requires_username",
 	"enabledDatabaseCustomization", "import_mode", "password_options", "brute_force_protection", "validation"}

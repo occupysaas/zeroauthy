@@ -16,6 +16,8 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 // Config is a federated connection's validated runtime configuration. It
 // holds a reference to the sealed credentials, never the plaintext secret.
 type Config struct {
+	AppleTeamID          string
+	AppleKID             string
 	MicrosoftAuthority   string
 	MicrosoftMultiTenant bool
 	Strategy             string
@@ -50,6 +52,8 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 		return Config{}, errors.Join(errs...)
 	}
 	c := Config{
+		AppleTeamID:          settings.AppleTeamID,
+		AppleKID:             settings.AppleKID,
 		MicrosoftAuthority:   settings.MicrosoftAuthority,
 		MicrosoftMultiTenant: settings.MicrosoftMultiTenant,
 		Strategy:             settings.Strategy,
@@ -66,6 +70,8 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 		IsSocial:             rules.IsSocial(settings.Strategy),
 	}
 	switch c.Strategy {
+	case StrategyApple:
+		c.Issuer = rules.AppleIssuer
 	case StrategyGoogle:
 		c.Issuer = rules.GoogleIssuer
 	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC:
@@ -108,7 +114,7 @@ func ValidateConfigUpdate(prev, next Config) error {
 // affects authentication, so the connection's FederationRevision must
 // increase and pending attempts become stale.
 func EffectiveChange(prev, next Config) bool {
-	return prev.MicrosoftAuthority != next.MicrosoftAuthority || prev.MicrosoftMultiTenant != next.MicrosoftMultiTenant || prev.Strategy != next.Strategy || prev.ClientID != next.ClientID ||
+	return prev.AppleTeamID != next.AppleTeamID || prev.AppleKID != next.AppleKID || prev.MicrosoftAuthority != next.MicrosoftAuthority || prev.MicrosoftMultiTenant != next.MicrosoftMultiTenant || prev.Strategy != next.Strategy || prev.ClientID != next.ClientID ||
 		!slices.Equal(prev.SecretReference, next.SecretReference) ||
 		prev.AuthorizationURL != next.AuthorizationURL || prev.TokenURL != next.TokenURL ||
 		prev.DiscoveryURL != next.DiscoveryURL || !slices.Equal(prev.Scopes, next.Scopes) ||
