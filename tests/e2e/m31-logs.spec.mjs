@@ -12,7 +12,7 @@ test('Action deny → Logs Live failure → masked execution → console redeplo
  const pending=[];let monitorIndex=0;
  const listen=page=>{
   page.on('response',response=>{const path=new URL(response.url()).pathname;if(!(/\/(?:logs(?:\/|$)|stats(?:\/|$)|actions\/executions(?:\/|$)|executions(?:\/|$)|log-streams\/status)/.test(path)))return;
-   pending.push((async()=>{const body=await response.text();noSecrets(body,'browser monitoring response');await appendFile(`${work}/browser-monitoring.jsonl`,JSON.stringify({n:++monitorIndex,url:response.url(),status:response.status(),body})+'\n');})());});
+   pending.push((async()=>{let body;try{body=await response.text();}catch(e){if(/navigated away|No resource with given identifier/.test(String(e)))return;throw e;}noSecrets(body,'browser monitoring response');await appendFile(`${work}/browser-monitoring.jsonl`,JSON.stringify({n:++monitorIndex,url:response.url(),status:response.status(),body})+'\n');})());});
   page.on('console',msg=>pending.push(appendFile(`${work}/browser-console.jsonl`,JSON.stringify({type:msg.type(),text:msg.text()})+'\n')));
  };
  const consolePage=await operator.newPage(),loginPage=await customer.newPage();listen(consolePage);listen(loginPage);let tail,tailFailure;
