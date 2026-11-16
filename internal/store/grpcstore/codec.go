@@ -832,6 +832,13 @@ func userToPB(u *store.User) (*storev1.User, error) {
 				}
 				pid.ProfileDataJson = b
 			}
+			if id.ProviderData != nil {
+				b, err := json.Marshal(id.ProviderData)
+				if err != nil {
+					return nil, fmt.Errorf("grpcstore: encode identity provider data: %w", err)
+				}
+				pid.ProviderDataJson = b
+			}
 			pb.Identities.Values = append(pb.Identities.Values, pid)
 		}
 	}
@@ -874,6 +881,11 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 			if id.ProfileDataJson != nil {
 				if err := json.Unmarshal(id.ProfileDataJson, &sid.ProfileData); err != nil {
 					return nil, fmt.Errorf("grpcstore: decode identity profile data: %w", err)
+				}
+			}
+			if id.ProviderDataJson != nil {
+				if err := json.Unmarshal(id.ProviderDataJson, &sid.ProviderData); err != nil {
+					return nil, fmt.Errorf("grpcstore: decode identity provider data: %w", err)
 				}
 			}
 			u.Identities = append(u.Identities, sid)

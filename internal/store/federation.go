@@ -50,6 +50,8 @@ type FederationEndpoints struct {
 	UserInfoURL      string
 	// TokenAuthMethod is client_secret_basic or client_secret_post.
 	TokenAuthMethod string
+	// PKCES256 records explicit metadata support (Apple auto policy).
+	PKCES256 bool
 }
 
 // FederationAttempt is one upstream authorization attempt, single use. Only
@@ -176,7 +178,7 @@ func (UnimplementedFederation) DeleteExpired(context.Context, time.Time) (int, e
 func IsFederatedProvider(provider string) bool { return rules.IsFederated(provider) }
 
 // FederatedSubject returns the upstream subject of a federated identity and
-// true, or ("", false, nil) for any other identity. Google and personal
+// true, or ("", false, nil) for any other identity. Apple, Google and personal
 // Microsoft identities carry the raw subject in UserID; OAuth2, OIDC and Entra carry
 // "<connection-name>|<subject>", and only that fixed prefix is stripped, so
 // the subject may itself contain "|". A malformed identity is ErrInvalid.
@@ -185,7 +187,7 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 		return "", false, nil
 	}
 	sub := id.UserID
-	if id.Provider != rules.Google && id.Provider != rules.WindowsLive {
+	if id.Provider != rules.Google && id.Provider != rules.WindowsLive && id.Provider != rules.Apple {
 		rest, ok := strings.CutPrefix(id.UserID, id.Connection+"|")
 		if !ok || id.Connection == "" {
 			return "", true, fmt.Errorf("%w: %s identity user_id must start with %q", ErrInvalid, id.Provider, id.Connection+"|")
@@ -199,10 +201,10 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 }
 
 // FederatedPublicID returns the local public user ID of a federated identity:
-// "google-oauth2|<sub>", "oauth2|<connection>|<sub>" or
+// "apple|<sub>", "google-oauth2|<sub>", "oauth2|<connection>|<sub>" or
 // "oidc|<connection>|<sub>", "windowslive|<sub>" or "waad|<connection>|<subject>".
 func FederatedPublicID(provider, connection, subject string) string {
-	if provider == rules.Google || provider == rules.WindowsLive {
+	if provider == rules.Google || provider == rules.WindowsLive || provider == rules.Apple {
 		return provider + "|" + subject
 	}
 	return provider + "|" + connection + "|" + subject

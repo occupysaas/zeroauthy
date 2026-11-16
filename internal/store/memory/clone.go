@@ -109,6 +109,7 @@ func cloneUser(u *store.User) *store.User {
 	out.Identities = slices.Clone(u.Identities)
 	for i := range out.Identities {
 		out.Identities[i].ProfileData = cloneJSON(out.Identities[i].ProfileData)
+		out.Identities[i].ProviderData = cloneJSON(out.Identities[i].ProviderData)
 	}
 	if u.LastLogin != nil {
 		t := *u.LastLogin

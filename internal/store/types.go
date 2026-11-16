@@ -642,6 +642,8 @@ type Identity struct {
 	// had one (D-0043). A linked identity logs in with these, not with the
 	// user's root email and username.
 	ProfileData map[string]any `json:",omitempty"`
+	// ProviderData is provider-owned identity metadata, independent of Linked.
+	ProviderData map[string]any `json:",omitempty"`
 }
 
 // Linked reports whether id is a linked (secondary) identity.

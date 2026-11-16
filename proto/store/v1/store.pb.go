@@ -3285,6 +3285,7 @@ type FederationEndpoints struct {
 	JwksUrl          string                 `protobuf:"bytes,3,opt,name=jwks_url,json=jwksUrl,proto3" json:"jwks_url,omitempty"`
 	UserinfoUrl      string                 `protobuf:"bytes,4,opt,name=userinfo_url,json=userinfoUrl,proto3" json:"userinfo_url,omitempty"`
 	TokenAuthMethod  string                 `protobuf:"bytes,5,opt,name=token_auth_method,json=tokenAuthMethod,proto3" json:"token_auth_method,omitempty"`
+	PkceS256         bool                   `protobuf:"varint,6,opt,name=pkce_s256,json=pkceS256,proto3" json:"pkce_s256,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -3352,6 +3353,13 @@ func (x *FederationEndpoints) GetTokenAuthMethod() string {
 		return x.TokenAuthMethod
 	}
 	return ""
+}
+
+func (x *FederationEndpoints) GetPkceS256() bool {
+	if x != nil {
+		return x.PkceS256
+	}
+	return false
 }
 
 type FederationAttempt struct {
@@ -5504,15 +5512,16 @@ func (x *Connection) GetFederationSecretsSealed() []byte {
 }
 
 type Identity struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Connection      string                 `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
-	Provider        string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	UserId          string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	PasswordHash    string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
-	ProfileDataJson []byte                 `protobuf:"bytes,5,opt,name=profile_data_json,json=profileDataJson,proto3,oneof" json:"profile_data_json,omitempty"` // absent = nil map (the user's own identity)
-	ImportedHash    string                 `protobuf:"bytes,6,opt,name=imported_hash,json=importedHash,proto3" json:"imported_hash,omitempty"`                  // JSON of an imported password hash spec; opaque
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Connection       string                 `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	Provider         string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	UserId           string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	PasswordHash     string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
+	ProfileDataJson  []byte                 `protobuf:"bytes,5,opt,name=profile_data_json,json=profileDataJson,proto3,oneof" json:"profile_data_json,omitempty"`    // absent = nil map (the user's own identity)
+	ImportedHash     string                 `protobuf:"bytes,6,opt,name=imported_hash,json=importedHash,proto3" json:"imported_hash,omitempty"`                     // JSON of an imported password hash spec; opaque
+	ProviderDataJson []byte                 `protobuf:"bytes,7,opt,name=provider_data_json,json=providerDataJson,proto3,oneof" json:"provider_data_json,omitempty"` // provider claims, independent of linked marker
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Identity) Reset() {
@@ -5585,6 +5594,13 @@ func (x *Identity) GetImportedHash() string {
 		return x.ImportedHash
 	}
 	return ""
+}
+
+func (x *Identity) GetProviderDataJson() []byte {
+	if x != nil {
+		return x.ProviderDataJson
+	}
+	return nil
 }
 
 type IdentityList struct {
@@ -28607,13 +28623,14 @@ const file_store_proto_rawDesc = "" +
 	"\x16HostedLoginConfigWrite\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12;\n" +
 	"\x05value\x18\x02 \x01(\v2%.zeroauthy.store.v1.HostedLoginConfigR\x05value\x12+\n" +
-	"\x11expected_revision\x18\x03 \x01(\x03R\x10expectedRevision\"\xc9\x01\n" +
+	"\x11expected_revision\x18\x03 \x01(\x03R\x10expectedRevision\"\xe6\x01\n" +
 	"\x13FederationEndpoints\x12+\n" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x1b\n" +
 	"\ttoken_url\x18\x02 \x01(\tR\btokenUrl\x12\x19\n" +
 	"\bjwks_url\x18\x03 \x01(\tR\ajwksUrl\x12!\n" +
 	"\fuserinfo_url\x18\x04 \x01(\tR\vuserinfoUrl\x12*\n" +
-	"\x11token_auth_method\x18\x05 \x01(\tR\x0ftokenAuthMethod\"\x80\x05\n" +
+	"\x11token_auth_method\x18\x05 \x01(\tR\x0ftokenAuthMethod\x12\x1b\n" +
+	"\tpkce_s256\x18\x06 \x01(\bR\bpkceS256\"\x80\x05\n" +
 	"\x11FederationAttempt\x12\x1d\n" +
 	"\n" +
 	"state_hash\x18\x01 \x01(\tR\tstateHash\x12\x1b\n" +
@@ -28807,7 +28824,7 @@ const file_store_proto_rawDesc = "" +
 	"\x19federation_secrets_sealed\x18\x17 \x01(\fH\x02R\x17federationSecretsSealed\x88\x01\x01B\x17\n" +
 	"\x15_configuration_sealedB\r\n" +
 	"\v_extra_jsonB\x1c\n" +
-	"\x1a_federation_secrets_sealed\"\xf0\x01\n" +
+	"\x1a_federation_secrets_sealed\"\xba\x02\n" +
 	"\bIdentity\x12\x1e\n" +
 	"\n" +
 	"connection\x18\x01 \x01(\tR\n" +
@@ -28816,8 +28833,10 @@ const file_store_proto_rawDesc = "" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12#\n" +
 	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\x12/\n" +
 	"\x11profile_data_json\x18\x05 \x01(\fH\x00R\x0fprofileDataJson\x88\x01\x01\x12#\n" +
-	"\rimported_hash\x18\x06 \x01(\tR\fimportedHashB\x14\n" +
-	"\x12_profile_data_json\"D\n" +
+	"\rimported_hash\x18\x06 \x01(\tR\fimportedHash\x121\n" +
+	"\x12provider_data_json\x18\a \x01(\fH\x01R\x10providerDataJson\x88\x01\x01B\x14\n" +
+	"\x12_profile_data_jsonB\x15\n" +
+	"\x13_provider_data_json\"D\n" +
 	"\fIdentityList\x124\n" +
 	"\x06values\x18\x01 \x03(\v2\x1c.zeroauthy.store.v1.IdentityR\x06values\"\x8a\b\n" +
 	"\x04User\x12\x1b\n" +

@@ -11,6 +11,7 @@ import (
 
 // Plan 24: linking and unlinking a social identity moves index ownership;
 // the sealed token record stays with the identity.
+func TestAppleLinkUnlink(t *testing.T)  { socialLinkUnlink(t, "apple", nil, "Raw|Subject", true) }
 func TestSocialLinkUnlink(t *testing.T) { socialLinkUnlink(t, "google-oauth2", nil, "G1", true) }
 func TestMicrosoftLinkUnlink(t *testing.T) {
 	const tid = "11111111-2222-3333-4444-555555555555"
@@ -41,7 +42,7 @@ func socialLinkUnlink(t *testing.T, provider string, extra map[string]any, sub s
 	publicID := store.FederatedPublicID(provider, g.Name, sub)
 	key := store.FederatedIdentityKey{TenantID: e.tn.ID, ConnectionID: g.ID, Subject: sub}
 	if err := e.st.Users().Create(ctx, &store.User{TenantID: e.tn.ID, UserID: publicID, Email: "g@x.test", EmailVerified: true,
-		Identities: []store.Identity{{Connection: g.Name, Provider: provider, UserID: identityID}}, CreatedAt: now, UpdatedAt: now}); err != nil {
+		Identities: []store.Identity{{Connection: g.Name, Provider: provider, UserID: identityID, ProviderData: map[string]any{"is_private_email": true}}}, CreatedAt: now, UpdatedAt: now}); err != nil {
 		t.Fatal(err)
 	}
 	if err := e.st.Federation().PutTokens(ctx, key, []byte("sealed-tokens")); err != nil {
@@ -62,6 +63,9 @@ func socialLinkUnlink(t *testing.T, provider string, extra map[string]any, sub s
 	if err != nil || owner.UserID != p {
 		t.Fatalf("owner after link %v %v", owner, err)
 	}
+	if !owner.Identities[1].Linked() || owner.Identities[1].ProviderData["is_private_email"] != true {
+		t.Fatal("provider data lost or linked marker changed")
+	}
 	if b, err := e.st.Federation().GetTokens(ctx, key); err != nil || string(b) != "sealed-tokens" {
 		t.Fatalf("tokens after link %q %v", b, err)
 	}
@@ -75,6 +79,9 @@ func socialLinkUnlink(t *testing.T, provider string, extra map[string]any, sub s
 	owner, err = e.st.Users().FindByIdentity(ctx, e.tn.ID, g.ID, sub)
 	if err != nil || owner.UserID != publicID {
 		t.Fatalf("owner after unlink %v %v", owner, err)
+	}
+	if owner.Identities[0].Linked() || owner.Identities[0].ProviderData["is_private_email"] != true {
+		t.Fatal("provider data lost or unlinked marker changed")
 	}
 	if b, _ := e.st.Federation().GetTokens(ctx, key); string(b) != "sealed-tokens" {
 		t.Fatal("tokens lost on unlink")

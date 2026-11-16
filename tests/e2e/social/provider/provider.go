@@ -47,7 +47,10 @@ type Provider struct {
 	codes  map[string]code
 	tokens map[string]string
 	// Exchanges counts token requests per flavor, for the control endpoint.
-	Exchanges map[string]int
+	Exchanges    map[string]int
+	appleClients map[string]AppleRegistration
+	appleCodes   map[string]appleCode
+	appleSeen    map[string]bool
 }
 
 // New returns a provider for base.
@@ -75,6 +78,10 @@ var form = template.Must(template.New("f").Parse(`<!doctype html><html lang="en"
 </form></body></html>`))
 
 func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/apple/") {
+		p.serveApple(w, r)
+		return
+	}
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/"), "/", 2)
 	if len(parts) != 2 {
 		http.NotFound(w, r)

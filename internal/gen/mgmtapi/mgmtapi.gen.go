@@ -13049,7 +13049,9 @@ type UserIdentity struct {
 
 	// ProfileData On a linked (secondary) identity: `email`, `email_verified` and,
 	// when it has one, `username`. The link and unlink responses also
-	// give it for the primary's own identity.
+	// give it for the primary's own identity. Apple identities also include
+	// provider-owned `is_private_email` and `real_user_status` when supplied,
+	// including on the primary identity.
 	ProfileData *map[string]interface{} `json:"profileData,omitempty"`
 	Provider    string                  `json:"provider"`
 

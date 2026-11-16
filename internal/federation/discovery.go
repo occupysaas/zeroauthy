@@ -59,12 +59,13 @@ type Metadata struct {
 	JWKSURI               string
 	UserInfoEndpoint      string
 	TokenAuthMethod       string
+	PKCES256              bool
 }
 
 // Endpoints is the endpoint snapshot an attempt pins.
 func (m Metadata) Endpoints() Endpoints {
 	return Endpoints{AuthorizationURL: m.AuthorizationEndpoint, TokenURL: m.TokenEndpoint, JWKSURL: m.JWKSURI,
-		UserInfoURL: m.UserInfoEndpoint, TokenAuthMethod: m.TokenAuthMethod}
+		UserInfoURL: m.UserInfoEndpoint, TokenAuthMethod: m.TokenAuthMethod, PKCES256: m.PKCES256}
 }
 
 // GoogleEndpoints are Google's fixed endpoints.
@@ -82,6 +83,7 @@ type Providers struct {
 	discovery     *ttlCache[Metadata]
 	keys          *keyCache
 	scripts       script.Executor
+	appleFix      *AppleOverride
 	googleFix     *GoogleOverride
 	microsoftFix  *MicrosoftOverride
 	appleSecretMu sync.Mutex
@@ -135,6 +137,8 @@ func (ps *Providers) HTTPClient() *http.Client { return ps.client }
 // For returns the adapter of cfg's strategy.
 func (ps *Providers) For(cfg Config) Provider {
 	switch cfg.Strategy {
+	case StrategyApple:
+		return appleProvider{ps}
 	case StrategyOAuth2:
 		return oauth2Provider{ps}
 	case StrategyWindowsLive, StrategyWAAD:

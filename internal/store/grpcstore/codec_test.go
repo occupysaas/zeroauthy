@@ -334,7 +334,7 @@ func TestUserRoundTrip(t *testing.T) {
 		UserMetadata: map[string]any{"plan": "pro", "seats": float64(3), "tags": []any{"x", "y"}, "nested": map[string]any{"k": true}, "none": nil},
 		AppMetadata:  map[string]any{"plan": "gold", "n": float64(3), "roles": []any{"a"}},
 		Blocked:      true,
-		Identities: []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$..."},
+		Identities: []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$...", ProviderData: map[string]any{"is_private_email": true}},
 			{Connection: "db", Provider: "auth0", UserID: "u2", PasswordHash: "$argon2id$2", ProfileData: map[string]any{"email": "b@example.test", "email_verified": false}},
 			{Connection: "other", Provider: "auth0", UserID: "u3", ImportedHash: `{"alg":"bcrypt","hash":"$2b$10$x"}`, ProfileData: map[string]any{}}},
 		LastPasswordReset: ptr(nanoTime.Add(-time.Hour)), LastLogin: ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime,
