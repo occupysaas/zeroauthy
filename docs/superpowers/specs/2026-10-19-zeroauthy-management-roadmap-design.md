@@ -397,7 +397,7 @@ Work that earlier plans deferred or that sits outside the Management API referen
 
 `apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the rest of Auth0's social strategy list, on Plan 24's federation core (deferred from Plan 25). Apple needs the client-secret JWT, `form_post` callback and private-relay email handling, so it gets a full design; the others are profile mapping plus a fixture provider each. Extends the Deploy CLI federated fixture lane. **Short, Apple full.**
 
-**Split by the parallel paths:** S1 = 39a Apple, S2 = 39b the rest. **39a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-apple-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-39a-apple.md) (8 tasks, D-0170). Includes the native iOS authorization-code exchange and the client `native_social_login`/`mobile.ios` fields; S2 adds the Google and Facebook native exchanges.
+**Split by the parallel paths:** S1 = 39a Apple, S2 = 39b the rest. **39a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-apple-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-39a-apple.md) (8 tasks, D-0170). Includes the native iOS authorization-code exchange and the client `native_social_login`/`mobile.ios` fields; S2 adds the Google and Facebook native exchanges. **39b designed 2026-11-16 (S2):** [spec](2026-11-16-zeroauthy-social-providers-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-39b-social-providers.md) (8 tasks, D-0180): data-driven descriptors for every remaining OpenAPI social strategy in two tiers (order for the maintainer to confirm), generic `oauth1`, Twitter on OAuth 2.0 and 1.0a, and native Google and Facebook. Marketplace-only providers (Discord, Slack, …) use generic `oauth2` examples.
 
 ### Plan 40 — Actions III
 
