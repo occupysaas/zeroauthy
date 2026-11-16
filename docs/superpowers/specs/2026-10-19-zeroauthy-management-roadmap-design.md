@@ -419,6 +419,8 @@ Auth0's end-user-facing APIs outside `/api/v2`: the My Account API (users manage
 
 `federated-connections-tokensets` and the token-exchange path that lets an application obtain a user's upstream provider tokens (Auth0's Token Vault, used by its AI-agent features), which Plan 24 explicitly left out. Needs Plan 24's sealed upstream-token storage and Plan 35's token exchange. **Full**, because refresh, revocation and consent policy are product decisions.
 
+**Designed 2026-11-16 (paths item P6):** [spec](2026-11-16-zeroauthy-token-vault-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-43-token-vault.md) (6 tasks, D-0110): the My Account Connected Accounts flow, the vault with provider refresh, and Auth0's federated-connection access-token exchange (refresh-token and access-token subjects). Proposed policy for the maintainer: first-party clients only, best-effort upstream revocation, vault separate from login identities. The privileged worker exchange is Early Access and is tracked only.
+
 ### Plan 44 — ACUL and the remaining Universal Login modes
 
 Advanced Customizations for Universal Login (tenant-built screens through the prompt rendering API), Classic Login, WebAuthn-first and social controls on hosted pages, prompt partials with custom-domain context: all deferred by Plans 22–23. ACUL runs tenant JavaScript in the browser, which Plan 22 rejects today, so the design must settle the content-security boundary first. Unblocks the Deploy CLI ACUL export. Pre-1.0 review addition: the phone factor on MFA enrollment tickets. **Full.**
