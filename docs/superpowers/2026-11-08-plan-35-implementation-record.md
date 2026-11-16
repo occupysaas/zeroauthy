@@ -307,4 +307,4 @@ Verdict: ready with fixes. No Critical findings.
   configuration was already documented); D4 the deferred review items in the
   [follow-ups](plan-1-followups.md); D5 this record and the roadmap wording.
 
-CI for the fix wave: pending.
+CI for the fix wave: run 43783803375 on d2496b8 passed every job (race tests, PostgreSQL/MySQL, console build check, every E2E suite, conformance). An earlier run on f2ad7a8 was cancelled by the next push before it reported.
