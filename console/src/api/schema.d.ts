@@ -1343,10 +1343,10 @@ export interface paths {
          *     unknown keys inside `options` are stored and returned as sent.
          *     `options.configuration` values are sealed at rest and returned as
          *     opaque blobs, never as plaintext.
-         *     Plan 39a freezes `apple` options in `ConnectionOptionsApple`:
+         *     Plan 39a implements `apple` options in `ConnectionOptionsApple`:
          *     operator credentials are required on create, `client_id` is immutable,
-         *     and `app_secret` is sealed and never returned. Apple strategy and
-         *     login runtime are planned; this schema does not activate them (D-0170).
+         *     and `app_secret` is sealed and never returned. Apple web and native
+         *     authorization-code login are active (D-0170).
          */
         post: operations["createConnection"];
         delete?: never;
@@ -4445,8 +4445,7 @@ export interface components {
             time_step?: number;
         };
         /**
-         * @description Planned Apple connection contract (D-0170); login is not operational
-         *     yet. Create requires client_id (Services ID), team_id, kid and
+         * @description Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
          *     app_secret; no developer credentials are supplied. The Services ID
          *     is immutable. PATCH omitting app_secret preserves the sealed key;
          *     empty/null keys are refused. Key parsing and consistency between
@@ -7815,7 +7814,7 @@ export interface components {
             enabled?: boolean;
         };
         /**
-         * @description Stored native social switches (Plan 39a, D-0170).
+         * @description Stored native social switches; Apple is enforced (Plan 39a, D-0170).
          *     Apple exchange additionally requires
          *     mobile.ios.app_bundle_identifier and an enabled Apple connection.
          *     Facebook and Google enforcement belongs to Plan 39b.
@@ -7832,7 +7831,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** @description Stored and returned iOS identity (Plan 33b). Planned Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170). */
+        /** @description Stored and returned iOS identity (Plan 33b). Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170). */
         ClientMobileIOS: {
             /** @default  */
             team_id?: string;
@@ -8392,7 +8391,7 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; runtime is planned (D-0170).
+             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
              * @enum {string}
              */
             strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple";

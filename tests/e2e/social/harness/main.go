@@ -7,10 +7,12 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	pemencoding "encoding/pem"
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
@@ -68,6 +70,33 @@ func run() error {
 	idp, err := provider.New("https://" + idpHost)
 	if err != nil {
 		return err
+	}
+	var apple *provider.Provider
+	if os.Getenv("E2E_M39A") == "1" {
+		apple, err = provider.New("https://apple.idp.test")
+		if err != nil {
+			return err
+		}
+		raw, err := os.ReadFile(os.Getenv("E2E_APPLE_KEY"))
+		if err != nil {
+			return err
+		}
+		block, _ := pemencoding.Decode(raw)
+		if block == nil {
+			return fmt.Errorf("invalid Apple fixture key")
+		}
+		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return err
+		}
+		ec, ok := key.(*ecdsa.PrivateKey)
+		if !ok {
+			return fmt.Errorf("invalid Apple fixture key type")
+		}
+		if err := apple.RegisterApple(provider.AppleRegistration{ServicesID: "test.apple.web", BundleID: "test.apple.native", TeamID: "ABCDE12345", KeyID: "ABCDE67890", PublicKey: &ec.PublicKey}); err != nil {
+			return err
+		}
+		apple.EnableAppleAudit()
 	}
 	var dnsMu sync.RWMutex
 	records := map[string][]string{}
@@ -146,6 +175,10 @@ func run() error {
 			return err
 		}
 		defer runner.Close()
+		if apple != nil {
+			base := "https://apple.idp.test/apple"
+			ps.WithAppleFixture(federation.AppleOverride{Issuer: base, DiscoveryURL: base + "/.well-known/openid-configuration", Endpoints: federation.Endpoints{AuthorizationURL: base + "/authorize", TokenURL: base + "/token", JWKSURL: base + "/jwks", TokenAuthMethod: "client_secret_post"}})
+		}
 		flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: ps, Log: slog.Default()}
 		domains := customdomain.NewService(st, &customdomain.BoundedResolver{Server: "127.0.0.1:8073"}, customdomain.ServiceConfig{SystemHost: "system.e2e.test", OriginDomain: "origin.e2e.test", OriginTLSReady: true, Proxy: customdomain.ProxyPolicy{Trusted: []netip.Prefix{netip.MustParsePrefix("127.0.0.1/32")}}}, time.Now, rand.Reader)
 		var engine *actions.Engine
@@ -214,6 +247,10 @@ location.replace('https://sdk.e2e.test/authorize?'+p);
 				}
 				return
 			}
+			if apple != nil && strings.EqualFold(strings.Split(r.Host, ":")[0], "apple.idp.test") {
+				apple.ServeHTTP(w, r)
+				return
+			}
 			if strings.EqualFold(strings.Split(r.Host, ":")[0], idpHost) {
 				idp.ServeHTTP(w, r)
 				return
@@ -232,6 +269,26 @@ location.replace('https://sdk.e2e.test/authorize?'+p);
 		}()
 	}
 	control := http.NewServeMux()
+	if apple != nil {
+		control.HandleFunc("POST /apple/code", func(w http.ResponseWriter, r *http.Request) {
+			var v struct{ Client, Subject string }
+			if json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&v) != nil {
+				http.Error(w, "bad request", 400)
+				return
+			}
+			code, err := apple.AppleCode(v.Client, v.Subject)
+			if err != nil {
+				http.Error(w, "invalid client", 400)
+				return
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			_ = json.NewEncoder(w).Encode(map[string]string{"code": code})
+		})
+		control.HandleFunc("GET /apple/audit", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			_ = json.NewEncoder(w).Encode(apple.AppleAuditSecrets())
+		})
+	}
 	if os.Getenv("E2E_M28") == "1" {
 		var mu sync.Mutex
 		rows := []json.RawMessage{}

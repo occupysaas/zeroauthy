@@ -7612,7 +7612,7 @@ type Client struct {
 	Mobile *ClientMobile `json:"mobile,omitempty"`
 	Name   string        `json:"name"`
 
-	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
 	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
@@ -7765,7 +7765,7 @@ type ClientCreate struct {
 	// Name The application's name.
 	Name string `json:"name"`
 
-	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
 	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
@@ -8031,7 +8031,7 @@ type ClientGrantUpdate = ClientGrantSettings
 type ClientMobile struct {
 	Android *ClientMobileAndroid `json:"android,omitempty"`
 
-	// Ios Stored and returned iOS identity (Plan 33b). Planned Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
+	// Ios Stored and returned iOS identity (Plan 33b). Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
 	Ios                  *ClientMobileIOS       `json:"ios,omitempty"`
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
@@ -8043,7 +8043,7 @@ type ClientMobileAndroid struct {
 	AdditionalProperties   map[string]interface{} `json:"-"`
 }
 
-// ClientMobileIOS Stored and returned iOS identity (Plan 33b). Planned Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
+// ClientMobileIOS Stored and returned iOS identity (Plan 33b). Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
 type ClientMobileIOS struct {
 	AppBundleIdentifier  *string                `json:"app_bundle_identifier,omitempty"`
 	TeamId               *string                `json:"team_id,omitempty"`
@@ -8137,7 +8137,7 @@ type ClientSettings struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
 	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
@@ -8300,7 +8300,7 @@ type ClientUpdate struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
 	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
@@ -8465,11 +8465,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; runtime is planned (D-0170).
+	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; runtime is planned (D-0170).
+// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -8477,8 +8477,7 @@ type ConnectionDeleted struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }
 
-// ConnectionOptionsApple Planned Apple connection contract (D-0170); login is not operational
-// yet. Create requires client_id (Services ID), team_id, kid and
+// ConnectionOptionsApple Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
 // app_secret; no developer credentials are supplied. The Services ID
 // is immutable. PATCH omitting app_secret preserves the sealed key;
 // empty/null keys are refused. Key parsing and consistency between
@@ -11297,7 +11296,7 @@ type ManagementError struct {
 	StatusCode int `json:"statusCode"`
 }
 
-// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+// NativeSocialLogin Stored native social switches; Apple is enforced (Plan 39a, D-0170).
 // Apple exchange additionally requires
 // mobile.ios.app_bundle_identifier and an enabled Apple connection.
 // Facebook and Google enforcement belongs to Plan 39b.

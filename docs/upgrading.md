@@ -90,3 +90,19 @@ HS256 and PS256 API tokens and custom token exchange. When you upgrade:
   features. Without it, the new Management API writes answer `501`, and
   `private_key_jwt`, signed requests and token exchange are unavailable; the
   other features keep working. See [stability](stability.md).
+
+## Plan 39a: Sign in with Apple
+
+Migration **0037** adds the native-social client JSON column in SQLite,
+PostgreSQL and MySQL. Apply migrations before starting the new server, or use
+`storage.auto_migrate`; gRPC store plugins must also be rebuilt for the
+additive client and identity fields. Existing mobile settings are preserved.
+Old clients default to native social login disabled. Check migration numbers
+against main before merging concurrent plans.
+
+Apple connections require the operator's Services ID, Team ID, Key ID and
+PKCS#8 P-256 `.p8` key. Seed keys use `file://` or `env://` references; Deploy
+CLI exports omit the key and imports require explicit credential reinjection.
+Enable native Apple separately per application and set its iOS bundle ID.
+Facebook and Google switches persist but do not enable their native flows.
+See [social connections](social-connections.md) and D-0170.

@@ -50,6 +50,8 @@ type Provider struct {
 	Exchanges    map[string]int
 	appleClients map[string]AppleRegistration
 	appleCodes   map[string]appleCode
+	appleAudit   bool
+	appleSecrets []string
 	appleSeen    map[string]bool
 }
 

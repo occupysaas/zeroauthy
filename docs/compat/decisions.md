@@ -628,7 +628,7 @@ them. Each entry: context, sources consulted, decision, rationale.
     - **Origins:** `web_origins` and `allowed_origins` must be origins (scheme and host, no path).
     - **`update:client_keys`:** needed to set `client_secret` on `PATCH`; a body with only `client_secret` needs no `update:clients`.
     - **Accepted and ignored** (sent by `auth0-cli` or exported by `auth0-deploy-cli`): `description`, `logo_uri`, `client_metadata`, `sso`, `sso_disabled`, `cross_origin_authentication`, `cross_origin_auth`, `cross_origin_loc`, `custom_login_page_on`, `custom_login_page`, `initiate_login_uri`, `native_social_login`, `is_token_endpoint_ip_header_trusted`, `allowed_clients` (`organization_usage` and `organization_require_behavior` were here until Plan 29 made them live, D-0055); also `jwt_configuration.secret_encoded` and `refresh_token.infinite_idle_token_lifetime`. `refresh_token.infinite_token_lifetime` sets the expiration type when `expiration_type` is absent.
-    - **Mobile/native social amendment (Plan 39a Task 1):** `mobile.ios.team_id` and `mobile.ios.app_bundle_identifier` already persist and round-trip through Plan 33b's `ClientMobile` contract; they are no longer ignored. D-0170 freezes the planned typed `native_social_login` switches (`apple`, `facebook`, `google`, each `{enabled}`, default false). They remain ignored until Task 6 adds persistence and Apple enforcement; Facebook/Google enforcement is deferred to Plan 39b. Publishing those schemas does not activate native login.
+    - **Mobile/native social amendment (Plan 39a):** `mobile.ios.team_id` and `mobile.ios.app_bundle_identifier` persist and round-trip through Plan 33b's `ClientMobile` contract. The typed `native_social_login` switches (`apple`, `facebook`, `google`, each `{enabled}`, default false) now persist and round-trip. Apple is enforced; Facebook and Google are stored-only until Plan 39b. See D-0170.
     - **Read-only fields** in a body (`tenant`, `global`, `callback_url_template`, `signing_keys`, `created_at`) are unknown properties. `client_id` is `403 operation_not_supported` on `POST` (M10) and allowed on `PATCH` only unchanged.
     - **The console's own client** (`zeroauthy-console` in the system tenant) cannot be changed, rotated or deleted through the API (`403 operation_not_supported`).
     - **Deleting** a client deletes its client grants, user grants and refresh tokens and removes it from every connection's enabled clients; login sessions stay.
@@ -3336,8 +3336,9 @@ copied to `docs/superpowers/plan-1-followups.md`:
 
 ## D-0170 — Plan 39a Sign in with Apple (2026-11-16)
 
-**Status:** started with Task 3, the internal client-secret signer and cache.
-The Apple connection strategy and web/native login flows are not operational.
+**Status:** implemented on `plan-39a-apple`; local acceptance, final review and CI are tracked separately.
+The Apple connection strategy and web/native login flows are implemented.
+Plan-wide verification and CI status are tracked separately in the record.
 See the [implementation record](../superpowers/2026-11-16-plan-39a-implementation-record.md).
 
 **Authority:** [Plan 39a design](../superpowers/specs/2026-11-16-zeroauthy-apple-design.md),
@@ -3348,42 +3349,41 @@ Apple's [client-secret contract](https://developer.apple.com/documentation/accou
 and [Sign in with Apple response errors](https://developer.apple.com/documentation/technotes/tn3107-resolving-sign-in-with-apple-response-errors).
 Only public documentation was consulted; no live tenant or Apple account was observed.
 
-The design freezes these local rulings for the remaining implementation:
+The implementation follows these local rulings:
 
 | ID | Contract | Status |
 |---|---|---|
-| LR39a-1 | Operator supplies Apple credentials; no borrowed developer keys. | Pending option/provider work. |
+| LR39a-1 | Operator supplies Apple credentials; no borrowed developer keys. | Implemented. |
 | LR39a-2 | No server-to-server Apple notification endpoint. | Out of scope. |
-| LR39a-3 | No automatic upstream token revocation; applications may read sealed upstream tokens with the proper scope. | Pending provider work. |
-| LR39a-4 | Connection `client_id` is immutable. | Pending option rules. |
-| LR39a-5 | `team_id` and `kid` are 10 uppercase alphanumerics. | Pending option rules. |
-| LR39a-6 | Only `name` and `email` scopes. | Pending option rules. |
+| LR39a-3 | No automatic upstream token revocation; applications may read sealed upstream tokens with the proper scope. | Implemented; automatic revocation remains out of scope. |
+| LR39a-4 | Connection `client_id` is immutable. | Implemented. |
+| LR39a-5 | `team_id` and `kid` are 10 uppercase alphanumerics. | Implemented. |
+| LR39a-6 | Only `name` and `email` scopes. | Implemented. |
 | LR39a-7 | ES256 client secret lives five minutes; cache at most four minutes. | Implemented in Task 3. |
-| LR39a-8 | Share `POST /login/callback` with Plan 36. | Pending callback work. |
-| LR39a-9 | Native exchange uses the first enabled Apple connection in client order. | Pending native flow. |
-| LR39a-10 | Preserve Apple's first-login name on later logins. | Pending profile/callback work. |
+| LR39a-8 | Share `POST /login/callback` with Plan 36. | Implemented. |
+| LR39a-9 | Native exchange uses the first usable Apple connection in LOWER(name), id store order. | Implemented. |
+| LR39a-10 | Preserve Apple's first-login name on later logins. | Implemented. |
 
 Task 3 caches signed JWTs in bounded process memory, isolated by tenant,
 connection, configuration revision, Team ID, Key ID and subject. It retains no
 private key in the cache. The subject is the web Services ID or native bundle
 ID; the JWT audience is Apple's fixed issuer. Concurrent requests share a
-signature for the same configuration. Callers will enforce revision changes
-when credentials rotate; pending-attempt invalidation remains due in the
-provider/configuration tasks.
+signature for the same configuration. Credential rotation increments the revision and invalidates pending attempts;
+new signatures use the new revision.
 
 Task 1 freezes `ConnectionOptionsApple`, the `apple` strategy name, native
 social client switches and `user_profile` in the OpenAPI contracts and the
-federation inventory. These are planned public contracts, not operational
-provider or token-handler behavior. Apple `scope` is a space-separated
+federation inventory. The provider and token handler implement these contracts. Apple `scope` is a space-separated
 string (Management OpenAPI), unlike the existing Google array contract.
 The local credential formats and scope restrictions are stricter than the
 upstream schema and follow LR39a-1 and LR39a-4–6. Create requires all four
 credentials; PATCH may omit the signing key to preserve it; responses never
 return it. `upstream_params` and `non_persistent_attrs` remain stored-only.
 
-D-0039's ignored status remains for `native_social_login` until Task 6.
+`native_social_login` now persists (migration 0037); Apple is enforced,
+while Google and Facebook remain stored-only until Plan 39b.
 `mobile` already persists via Plan 33b and is preserved, including Android
-settings. Planned Apple native exchange binds token-request `client_id`,
+settings. Apple native exchange binds token-request `client_id`,
 client-secret `sub` and verified Apple ID-token `aud` to the stored iOS
 bundle ID. It allows public native authentication method `none`, requires
 the Apple switch and an enabled Apple connection, and bypasses custom

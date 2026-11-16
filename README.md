@@ -165,7 +165,7 @@ each with its console screens; the full breakdown is in the
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
 | 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |
-| 39 | Additional social providers (Apple, Facebook, GitHub, …) | short (Apple full) | 24 |
+| 39 | Apple web/native implemented on plan branch; remaining social providers (Facebook, GitHub, …) in 39b | short (Apple full) | 24 |
 | 40 | Actions III: newer triggers, Early Access members, `/userinfo` claims | short | 28, 22 |
 | 41 | OIDC protocol extras, CIBA, formal OIDF certification | full | 33, 35 |
 | 42 | My Account API and My Organization API | full | 30, 33 |

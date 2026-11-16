@@ -6,6 +6,14 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Sign in with Apple web login and native iOS authorization-code exchange,
+  operator-owned signing keys, private-relay profiles and first-login names.
+  Console, seed and Deploy CLI support include stored native-social switches;
+  Google and Facebook native exchanges remain deferred to Plan 39b. Migration
+  0037 adds native-social client persistence. See [the guide](docs/social-connections.md).
+
 ### Changed
 
 - The tenant JWKS (`/.well-known/jwks.json`) no longer includes `alg` on the

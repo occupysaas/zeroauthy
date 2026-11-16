@@ -95,7 +95,7 @@ func TestFederationInventory(t *testing.T) {
 			if rule.Type == "" || rule.Validation == "" || rule.Secret == "" || rule.Runtime == "" || rule.Source == "" || len(rule.Default) == 0 {
 				t.Errorf("incomplete %s option %s", strategy, field)
 			}
-			if !slices.Contains([]string{"active", "stored-only", "rejected"}, rule.Runtime) && !(strategy == "apple" && rule.Runtime == "planned") {
+			if !slices.Contains([]string{"active", "stored-only", "rejected"}, rule.Runtime) {
 				t.Errorf("unclassified runtime %s.%s", strategy, field)
 			}
 		}

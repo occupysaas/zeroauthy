@@ -15,11 +15,11 @@ This folder holds how zeroauthy is designed and built:
 ## What to work on next
 
 Every remaining roadmap item except X1 (hosted zeroauthy, maintainer-only)
-has a spec and a plan, written 2026-11-16. **None is fully implemented yet.**
+has a spec and a plan, written 2026-11-16. Implementation and verification states are recorded per item.
 
-S1 / Plan 39a has [started](2026-11-16-plan-39a-implementation-record.md)
-on `plan-39a-apple` (internal client-secret signer/cache); the remaining
-Apple tasks are pending.
+S1 / Plan 39a has implemented web/native Apple login on `plan-39a-apple`;
+[its record](2026-11-16-plan-39a-implementation-record.md) tracks local checks,
+final review and CI separately. It has not been approved for merge.
 
 O3 / Plan 45b has its [initial fixes](2026-11-16-plan-45b-implementation-record.md)
 merged into `main` (decisions and signup-code fix); its remaining tasks are pending.

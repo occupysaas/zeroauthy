@@ -1,9 +1,10 @@
 # Social and OpenID Connect connections
 
-Plan 24 adds three federated connection strategies:
+Plan 24 adds the federation core; Plan 39a adds Apple web and native login:
 
 | Strategy | Kind | Identity key | Public user ID |
 |---|---|---|---|
+| `apple` | social (`isSocial: true`) | Apple `sub` | `apple|<sub>` |
 | `google-oauth2` | social (`isSocial: true`) | Google `sub` | `google-oauth2|<sub>` |
 | `oauth2` | social (`isSocial: true`) | `user_id` returned by the profile script | `oauth2|<connection>|<subject>` |
 | `oidc` (`type: back_channel`) | enterprise (`isSocial: false`), supported subset | ID token `sub` | `oidc|<connection>|<sub>` |
@@ -186,13 +187,51 @@ secret reinjection and post-import logins; see
 ## Not included
 
 Microsoft accounts (see [email-account-connections.md](email-account-connections.md)),
-the remaining social providers (deferred; no plan number assigned), One Tap, Google/Facebook native token exchange, automatic linking,
+the remaining social providers (Plan 39b), One Tap, Google/Facebook native token exchange, automatic linking,
 provider-initiated login, federated logout or revocation, organizations, MFA,
 Actions, Token Vault, development keys, arbitrary upstream parameter
 forwarding, front-channel OIDC and the remaining enterprise OIDC features (Plan
 36).
 
-## Apple seed credentials and native client settings
+## Sign in with Apple
+
+In the Apple developer account, enable Sign in with Apple on the primary
+App ID. Associate a Services ID for web sign-in, configure the tenant domain
+and the return URL `https://<tenant-domain>/login/callback`, and create a
+Sign in with Apple signing key for that App ID. Download the `.p8` key and
+record its Key ID and the developer Team ID. For native iOS, enable the
+capability on the app and use its bundle identifier in the zeroauthy
+application device settings. These credentials belong to the operator;
+zeroauthy supplies no developer account or borrowed keys (LR39a-1).
+
+Create an Apple connection in **Social** or through the Management API and
+enable it for the application. The hosted login button and
+`/authorize?connection=apple` start the same flow. With either name or email
+requested (both default true), Apple returns a cross-site form POST to
+`/login/callback`; the attempt cookie uses `SameSite=None; Secure`. With both
+scopes disabled, the callback uses query mode. Only `name` and `email` scopes
+are accepted. Web tokens require the saved nonce; S256 is sent only when
+Apple discovery advertises it. Endpoints are fixed to Apple in production.
+
+The Services ID is immutable. Team ID and Key ID are exactly ten uppercase
+alphanumerics. Credential rotation invalidates pending login attempts and
+the client-secret cache. zeroauthy signs an ES256 client-secret JWT with a
+five-minute lifetime and caches it for at most four minutes (LR39a-4–8).
+The posted name is used only after the signed ID token validates and only
+on the first identity creation, even with root synchronization on every
+login. The name JSON is limited to 1 KiB and 150 characters per component.
+Email comes from the verified ID token, never the posted form. Private-relay
+addresses are preserved; only boolean `true` or string `"true"` marks email
+verified. Identity `profileData` exposes `is_private_email` and
+`real_user_status`. Identities never link automatically by email.
+
+There is no Apple server-notification endpoint and no automatic upstream
+token revocation on deletion or unlink (LR39a-2–3). Applications can retrieve
+sealed upstream tokens with the explicit scopes described above. Optional
+compatibility observations A1–A7 remain unobserved; local fixture results
+do not establish live Apple interoperability or certification.
+
+### Seed credentials and native client settings
 
 An `apple` connection uses its Services ID as `options.client_id`, a 10-character
 uppercase alphanumeric `team_id` and `kid`, and a PKCS#8 PEM EC P-256 signing key
@@ -251,3 +290,40 @@ The Apple Deploy CLI lane is `bash tests/e2e/run-m39a-apple-deploy.sh`. It runs
 the pinned CLI through YAML/directory exports and generated/preserved client
 IDs. Public exports omit both `app_secret` and `client_secret`; the private
 migration staging step must explicitly reinject the Apple PEM as `app_secret`.
+
+### Native authorization-code exchange
+
+Enable **Native Social Login: Apple** in the application's device settings,
+set `mobile.ios.app_bundle_identifier`, and enable an Apple connection for
+that client. If several are enabled, the first in the store's documented `LOWER(name), id` order
+is selected (LR39a-9). An iOS application obtains a fresh Apple authorization
+code without a nonce, then posts this JSON to `/oauth/token`:
+
+```json
+{
+  "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+  "subject_token_type": "http://auth0.com/oauth/token-type/apple-authz-code",
+  "subject_token": "<Apple authorization code>",
+  "client_id": "<zeroauthy native client ID>",
+  "scope": "openid profile email",
+  "user_profile": {"name": {"firstName": "Ada", "lastName": "Example"}}
+}
+```
+
+Public native clients use authentication method `none`; confidential clients
+must authenticate normally. `audience` and `organization` are optional.
+`user_profile` is optional bounded name JSON (JSON-encoded in a form field
+for form requests). It cannot change a later login's name (LR39a-10).
+Apple's token-request client ID, signed client-secret subject and verified
+ID-token audience must all match the stored bundle ID. A wrong-bundle code
+fails without creating a user. Missing prerequisites produce `invalid_request`;
+bad or expired Apple codes produce `invalid_grant`. The reserved Apple type
+never runs a custom token exchange profile; normal post-login Actions, MFA
+and organization policy still apply.
+
+`make e2e-apple` runs the complete local acceptance lane: genuine cross-site
+browser POSTs and repeated names; private relay and email verification;
+raw Node native exchange, authentication and failure cases; node-auth0 7.4.0
+connection CRUD; Auth0 CLI 1.37.0 list/show; a scan against actual runtime
+secret values; seed file/environment references; and all four Deploy CLI
+9.1.0 cells. No live Apple account is used.

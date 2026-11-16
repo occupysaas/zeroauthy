@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "reviewed": "2026-10-26",
-  "status": "frozen implementation contract; runtime not implemented by Task 1",
+  "reviewed": "2026-11-16",
+  "status": "implemented federation contract; Apple web/native active (Plan 39a)",
   "strategies": {
     "google-oauth2": {
       "is_social": true,
@@ -285,7 +285,7 @@
       }
     },
     "apple": {
-      "status": "planned; internal client-secret signer/cache only; option/provider/native runtime pending",
+      "status": "active; local fixture verification, no live Apple observation",
       "is_social": true,
       "id_format": "apple|<sub>",
       "default_scopes": [
@@ -298,7 +298,7 @@
           "default": null,
           "validation": "required 1-255 characters; Services ID; immutable after creation (LR39a-4)",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "team_id": {
@@ -306,7 +306,7 @@
           "default": null,
           "validation": "required exactly 10 uppercase alphanumerics (LR39a-5); change increments FederationRevision",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "kid": {
@@ -314,7 +314,7 @@
           "default": null,
           "validation": "required exactly 10 uppercase alphanumerics (LR39a-5); change increments FederationRevision",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "app_secret": {
@@ -322,7 +322,7 @@
           "default": null,
           "validation": "required PKCS#8 PEM EC P-256 key on create; omitted PATCH preserves; empty/null rejected; seal before persistence; replacement increments FederationRevision",
           "secret": "write-only",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "name": {
@@ -330,7 +330,7 @@
           "default": true,
           "validation": "true requests name on first authorization; false omits name",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "email": {
@@ -338,7 +338,7 @@
           "default": true,
           "validation": "true requests email; private relay permitted; never identity key",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "scope": {
@@ -346,7 +346,7 @@
           "default": null,
           "validation": "space-separated name/email only; explicit scope must agree with computed name/email flags (LR39a-6)",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "freeform_scopes": {
@@ -354,7 +354,7 @@
           "default": [],
           "validation": "only name/email; all other scopes rejected (LR39a-6)",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "set_user_root_attributes": {
@@ -362,7 +362,7 @@
           "default": "on_each_login",
           "validation": "on_each_login, on_first_login, never_on_login; first-login Apple name preserved on later logins regardless of setting (LR39a-10)",
           "secret": "public",
-          "runtime": "planned",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "upstream_params": {
@@ -821,7 +821,7 @@
       "pkce": "S256 only; auto treated as require S256"
     },
     "apple": {
-      "status": "planned; signer/cache implemented in Task 3",
+      "status": "active; web/native provider and short-lived client-secret signing/cache",
       "authorization_endpoint": "https://appleid.apple.com/auth/authorize",
       "token_endpoint": "https://appleid.apple.com/auth/token",
       "jwks_uri": "https://appleid.apple.com/auth/keys",
@@ -950,7 +950,7 @@
     "upstream": "exact strategy-specific errorCode identifiers unavailable without separate observer"
   },
   "apple_native_exchange": {
-    "status": "planned; not operational in Task 1",
+    "status": "active",
     "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
     "subject_token_type": "http://auth0.com/oauth/token-type/apple-authz-code",
     "subject_token": "Apple authorization code; never logged",
@@ -969,7 +969,7 @@
     "preconditions": [
       "native_social_login.apple.enabled=true",
       "mobile.ios.app_bundle_identifier nonempty",
-      "first enabled apple connection in client order (LR39a-9)"
+      "first usable apple connection in LOWER(name), id store order (LR39a-9)"
     ],
     "client_auth": "none for public native clients; registered authentication for confidential clients",
     "custom_profiles": "reserved type; never invokes custom-token-exchange Action",
@@ -995,7 +995,7 @@
     "source": "https://auth0.com/docs/api/authentication/token-exchange-for-native-social/token-exchange-native-social"
   },
   "apple_profile": {
-    "status": "planned",
+    "status": "active",
     "identity": "apple|<sub>; isSocial=true; never auto-link by email",
     "email": "verified ID-token claim; relay addresses accepted",
     "email_verified": "boolean true or string true only; all other values false",
@@ -1011,7 +1011,7 @@
     "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-apple-design.md"
   },
   "native_social_client_fields": {
-    "status": "native_social_login currently ignored; persistence and Apple enforcement planned for Task 6; mobile already stored by Plan 33b",
+    "status": "stored and returned; Apple enforced; Facebook/Google stored-only until Plan 39b",
     "native_social_login": {
       "apple": {
         "enabled": false

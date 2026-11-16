@@ -1,6 +1,6 @@
 # Plan 39a — Sign in with Apple (web and native)
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** implementation complete on `plan-39a-apple`; final plan verification, review and CI tracked in the [record](../2026-11-16-plan-39a-implementation-record.md).
 
 **Roadmap entry:** [management roadmap, Plan 39](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("short, Apple full"); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
@@ -178,7 +178,7 @@ Read 2026-11-16:
   never reaches the custom token exchange Action.
 - Preconditions: client has `native_social_login.apple.enabled: true` and
   `mobile.ios.app_bundle_identifier`; an `apple` connection is enabled for
-  the client (if several, the first in the client's connection order,
+  the client (if several, the first usable in the store's `LOWER(name), id` order,
   LR39a-9); otherwise `invalid_request` "Native Social Login is not
   enabled for this client" (A5: Auth0's wording).
 - Client authentication: public native clients (`none`) as Auth0 allows for
@@ -238,10 +238,10 @@ Observe later (`docs/superpowers/plan-1-followups.md`):
 
 ## 9. Storage, console, seed, Deploy CLI, tests
 
-- **Storage:** no migration expected: connection options and sealed
-  secrets use Plan 24's columns; client `native_social_login` and `mobile`
-  join the client JSON (check `sqlstore/clients.go`; add columns in one
-  migration numbered at merge only if clients are typed columns). Plugins:
+- **Storage:** migration 0037 adds typed client native-social persistence.
+  Connection options and sealed secrets use Plan 24's columns;
+  `native_social_login` uses a typed JSON column. `mobile` already persists
+  through Plan 33b. Check migration numbering against main before merge. Plugins:
   the existing federation capability covers `apple`; client fields ride the
   existing client message (proto fields added, absent fields read as
   `null`).

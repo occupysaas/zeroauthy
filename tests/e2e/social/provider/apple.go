@@ -53,6 +53,9 @@ func (p *Provider) AppleCode(clientID, subject string) (string, error) {
 	}
 	c := random()
 	p.appleCodes[c] = appleCode{client: clientID, sub: subject}
+	if p.appleAudit {
+		p.appleSecrets = append(p.appleSecrets, c)
+	}
 	return c, nil
 }
 
@@ -131,6 +134,9 @@ func (p *Provider) appleAuthorize(w http.ResponseWriter, r *http.Request) {
 		c := random()
 		p.mu.Lock()
 		p.appleCodes[c] = appleCode{client: f.Get("client_id"), sub: sub, redirect: cb.String(), nonce: f.Get("nonce"), challenge: f.Get("code_challenge")}
+		if p.appleAudit {
+			p.appleSecrets = append(p.appleSecrets, c)
+		}
 		seen := p.appleSeen[sub]
 		p.appleSeen[sub] = true
 		p.mu.Unlock()
@@ -157,6 +163,9 @@ func (p *Provider) appleToken(w http.ResponseWriter, r *http.Request) {
 	f := r.PostForm
 	p.mu.Lock()
 	p.Exchanges["apple"]++
+	if p.appleAudit {
+		p.appleSecrets = append(p.appleSecrets, f.Get("client_secret"))
+	}
 	a, registered := p.appleClients[f.Get("client_id")]
 	c, ok := p.appleCodes[f.Get("code")]
 	delete(p.appleCodes, f.Get("code"))
@@ -193,7 +202,13 @@ func (p *Provider) appleToken(w http.ResponseWriter, r *http.Request) {
 	signer, _ := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: p.key}, (&jose.SignerOptions{}).WithHeader("kid", "apple-fixture"))
 	obj, _ := signer.Sign(payload)
 	id, _ := obj.CompactSerialize()
-	writeJSON(w, map[string]any{"access_token": random(), "refresh_token": "apple-refresh-" + c.sub, "token_type": "Bearer", "expires_in": 3600, "id_token": id})
+	access, refresh := random(), "apple-refresh-"+c.sub
+	p.mu.Lock()
+	if p.appleAudit {
+		p.appleSecrets = append(p.appleSecrets, access, refresh, id)
+	}
+	p.mu.Unlock()
+	writeJSON(w, map[string]any{"access_token": access, "refresh_token": refresh, "token_type": "Bearer", "expires_in": 3600, "id_token": id})
 }
 func verifyAppleSecret(raw, client string, a AppleRegistration) bool {
 	obj, err := jose.ParseSigned(raw, []jose.SignatureAlgorithm{jose.ES256})
@@ -216,4 +231,13 @@ func verifyAppleSecret(raw, client string, a AppleRegistration) bool {
 	}
 	now := time.Now().Unix()
 	return c.Issuer == a.TeamID && c.Subject == client && c.Audience == "https://appleid.apple.com" && c.Issued > 0 && c.Issued <= now+60 && c.Expires > now && c.Expires > c.Issued && c.Expires-c.Issued <= 15777000
+}
+
+// EnableAppleAudit records actual fixture credentials in memory for the isolated
+// E2E secret scanner. Never enable it on a non-test provider.
+func (p *Provider) EnableAppleAudit() { p.mu.Lock(); defer p.mu.Unlock(); p.appleAudit = true }
+func (p *Provider) AppleAuditSecrets() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]string(nil), p.appleSecrets...)
 }
