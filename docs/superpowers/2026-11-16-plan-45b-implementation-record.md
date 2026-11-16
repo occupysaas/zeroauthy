@@ -14,6 +14,7 @@ Verification (Go 1.26.11, short tmpfs paths):
 
 - RED: `go test ./internal/login -run '^(TestSignupCodeLifetime900|TestCodeBudgetPerConnectionAndKind)$' -count=1`, exit 1: signup rejected at 899 s; alternate connection and reset denied after exhausting signup.
 - GREEN: same tests plus `TestSignupWithPhoneVerification`, `TestResetByPhone`, `TestPhoneIdentifierSendsShareIPBudget`, exit 0.
+- Final focused check: `GOTOOLCHAIN=go1.26.11 TMPDIR=/dev/shm/za45b GOTMPDIR=/dev/shm/za45b go test ./internal/login ./internal/phonerules -run 'Phone|Identifier|Code|Limits' -count=1`, exit 0 (login 1.859 s, phonerules 0.082 s), at `51dd8844`; log `task-3-tests.log`.
 - Logs retained in `.superpowers/sdd/2026-11-16-zeroauthy-plan-45b-flow-api-fixes/task3-{red,green}.log`.
 
 The newly scoped identifier-budget keys start fresh on upgrade; the shared IP
