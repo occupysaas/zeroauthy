@@ -54,8 +54,8 @@ node-auth0 7.4.0, auth0-cli 1.37.0.
 ### Task 1: Inventory, audit test, decisions
 
 **Files:**
-- Create: `api/gap_inventory.md` is **not** created; the inventory lives in
-  the roadmap §0 table and D-0240.
+- The inventory lives in the roadmap §0 table and D-0240 (no separate
+  file).
 - Create: `internal/mgmt/param_audit_test.go` with a fixture extracted
   from the pinned Auth0 OpenAPI (`testdata/auth0-list-params.json`: route →
   documented query parameters, generated once by a small script kept in
