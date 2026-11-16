@@ -453,7 +453,7 @@ scopes; the v1-only `connection` filter; non-secret email-provider fields
 
 ### Plan 46 — Release pipeline, packaging and samples
 
-Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.** Core done 2026-11-03 for 1.0: `release.yml` (release branches only), reproducible `scripts/dist.sh` archives, the multi-arch image, `CHANGELOG.md`, `RELEASING.md`. Left: versioned docs links from the console, `govulncheck` in CI if not added for 1.0, the Android TV sample and translations.
+Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.** Core done 2026-11-03 for 1.0: `release.yml` (release branches only), reproducible `scripts/dist.sh` archives, the multi-arch image, `CHANGELOG.md`, `RELEASING.md`. Left: versioned docs links from the console, `govulncheck` in CI if not added for 1.0, the Android TV sample and translations. **Leftovers designed 2026-11-16 (O5):** [spec](2026-11-16-zeroauthy-release-leftovers-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-46-release-leftovers.md) (5 tasks, D-0290). `govulncheck`, the conformance release gate and the rollback notes are already done; what remains is versioned console docs links, a French console catalog (beta until reviewed) and the Android TV sample.
 
 ### Plan 47 — Hosted zeroauthy
 
