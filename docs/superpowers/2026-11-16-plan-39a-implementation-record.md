@@ -145,3 +145,22 @@ no skips. Database execution was SQLite; embedded version/set checks cover
 all three dialects. The existing full-tier failure remains recorded in
 `final-go.log`; this focused pass does not establish a full-tier pass.
 The controller will rerun that tier and perform final review. No push or CI.
+
+## Local completion and final review
+
+At `02d6e210`, the required `GOTOOLCHAIN=go1.26.11 TMPDIR=/dev/shm/za39a
+GOTMPDIR=/dev/shm/za39a go test -p 4 ./...` rerun exited **0**
+(`final-go-2.log`, actual exit retained). The earlier failed run is recorded
+above. Apple acceptance passed all four browser tests, native/SDK/CLI checks,
+the runtime secret audit and four actual Deploy CLI cells. Console 684 tests,
+lint, typecheck and build passed. No additional runtime changes followed
+that acceptance run.
+
+All eight implementation tasks and task reviews are complete. Independent
+whole-branch review of `326fc3bf..02d6e210` found no Critical, Important or
+Minor issues. Final review inspected recorded evidence without rerunning tests.
+Migration 0037 remains next after main's 0036 at this check. The completed
+branch is ready for plan-branch CI; PostgreSQL/MySQL, full race, remaining
+E2E regression suites and conformance results are pending that CI. No live
+Apple tenant test or formal certification is claimed. Merge still requires
+green CI and maintainer approval.
