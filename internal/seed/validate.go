@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/rbacrules"
@@ -245,6 +247,24 @@ func (t *Tenant) validate() []error {
 		// A confidential client may omit client_secret: an existing client
 		// then keeps its stored secret (Plan 13). Creating one without a
 		// secret fails when the seed is applied.
+		c.nativeSocialLogin = nil
+		if c.NativeSocialLogin != nil {
+			raw, err := json.Marshal(c.NativeSocialLogin)
+			if err == nil {
+				c.nativeSocialLogin, err = clientrules.ParseNativeSocialLogin(raw)
+			}
+			if err != nil {
+				fail("client %q: native_social_login: %v", c.ClientID, err)
+			}
+		} else {
+			for _, raw := range t.suppliedClients() {
+				if raw["client_id"] == c.ClientID {
+					if _, named := raw["native_social_login"]; named {
+						fail("client %q: native_social_login must be an object", c.ClientID)
+					}
+				}
+			}
+		}
 		c.mobile = nil
 		if c.Mobile != nil {
 			m, err := parseMobile(c.Mobile)
@@ -344,8 +364,8 @@ func (t *Tenant) validate() []error {
 			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive and waad strategies", c.Name)
 		}
 		if spec.Federated() {
-			if _, named := c.Options["client_secret"]; !named {
-				fail("connection %q: options.client_secret is required", c.Name)
+			if _, named := c.Options[rules.SecretOption(spec.Strategy)]; !named {
+				fail("connection %q: options.%s is required", c.Name, rules.SecretOption(spec.Strategy))
 			}
 		}
 		for _, err := range connrules.Normalize(&spec) {
@@ -411,4 +431,16 @@ func (t *Tenant) validate() []error {
 		}
 	}
 	return errs
+}
+
+func (t *Tenant) suppliedClients() []map[string]any {
+	var out []map[string]any
+	if rows, ok := t.supplied["clients"].([]any); ok {
+		for _, row := range rows {
+			if m, ok := row.(map[string]any); ok {
+				out = append(out, m)
+			}
+		}
+	}
+	return out
 }

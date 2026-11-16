@@ -28,10 +28,12 @@ func FederationImport(export Export, credentials map[string]string) (json.RawMes
 		if !ok {
 			return nil, errors.New("deploymigration: federation options are missing")
 		}
-		if _, exported := options["client_secret"]; exported || strings.TrimSpace(secret) == "" || strings.Contains(secret, "********") {
+		_, exportedClient := options["client_secret"]
+		_, exportedApple := options["app_secret"]
+		if exportedClient || exportedApple || strings.TrimSpace(secret) == "" || strings.Contains(secret, "********") {
 			return nil, errors.New("deploymigration: explicit provider-secret injection is required")
 		}
-		options["client_secret"] = secret
+		options[rules.SecretOption(strategy)] = secret
 		if strategy == rules.OAuth2 {
 			scripts, ok := options["scripts"].(map[string]any)
 			if !ok {

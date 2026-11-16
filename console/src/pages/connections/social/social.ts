@@ -2,8 +2,8 @@ import type { Connection, SystemTenant } from '../../../api/client'
 
 // Classification and route support are distinct: historical social routes
 // must continue opening generic OIDC connections.
-export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad'] as const
-export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive'] as const
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad', 'apple'] as const
+export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive', 'apple'] as const
 export const enterpriseStrategies = ['oidc', 'waad'] as const
 export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
@@ -78,3 +78,15 @@ export type Options = Record<string, unknown>
 export function optionsOf(c: Connection): Options {
   return (c.options ?? {}) as Options
 }
+
+/** A local PEM/PKCS#8 envelope check; the server validates the EC private key. */
+export function applePEM(value: string): boolean {
+  const match = /^\s*-----BEGIN PRIVATE KEY-----\s+([A-Za-z0-9+/=\s]+)\s+-----END PRIVATE KEY-----\s*$/.exec(value)
+  if (!match) return false
+  try {
+    const der = atob(match[1]!.replace(/\s/g, ''))
+    return der.charCodeAt(0) === 0x30 && der.includes('\x06\x07\x2a\x86\x48\xce\x3d\x02\x01') && der.includes('\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07')
+  } catch { return false }
+}
+
+export const APPLE_IDENTIFIER = /^[A-Z0-9]{10}$/

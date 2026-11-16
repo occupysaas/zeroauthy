@@ -10,7 +10,7 @@ import Button from '../../../ui/Button.vue'
 import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
 import MicrosoftOptions from './MicrosoftOptions.vue'
-import { callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
+import { applePEM, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
 
 const { t } = useI18n()
 const { api } = useServices()
@@ -29,6 +29,7 @@ const draft = reactive({
   displayName: '',
   clientId: '',
   clientSecret: '',
+  appleTeam: '', appleKID: '', appleKey: '', appleName: true,
   email: true,
   profile: true,
   authorizationURL: '',
@@ -75,7 +76,11 @@ function validate(): boolean {
   if (!n) errors.name = t('social.nameRequired')
   else if (n.length > 128 || !NAME.test(n)) errors.name = t('social.nameInvalid')
   need('clientId', draft.clientId)
-  need('clientSecret', draft.clientSecret)
+  if (draft.strategy === 'apple') {
+ if (!APPLE_IDENTIFIER.test(draft.appleTeam)) errors.appleTeam = t('social.appleIdentifier')
+ if (!APPLE_IDENTIFIER.test(draft.appleKID)) errors.appleKID = t('social.appleIdentifier')
+ if (!applePEM(draft.appleKey)) errors.appleKey = t('social.applePEM')
+ } else need('clientSecret', draft.clientSecret)
   if (draft.strategy === 'windowslive' || draft.strategy === 'waad') {
     if (!MICROSOFT_GUID.test(draft.clientId.trim())) errors.clientId = t('social.microsoftClientId')
     if (draft.strategy === 'waad' && draft.microsoftMode === 'single' && !microsoftTenant(draft.tenantDomain)) errors.tenantDomain = t('social.microsoftTenantInvalid')
@@ -98,6 +103,10 @@ function validate(): boolean {
 function body(): ConnectionCreate {
   const options: Options = { client_id: draft.clientId.trim(), client_secret: draft.clientSecret }
   switch (draft.strategy) {
+    case 'apple':
+      delete options.client_secret
+      Object.assign(options, { team_id: draft.appleTeam, kid: draft.appleKID, app_secret: draft.appleKey, name: draft.appleName, email: draft.email })
+      break
     case 'windowslive':
       options.client_id = draft.clientId.trim().toLowerCase()
       options.strategy_version = 2
@@ -131,6 +140,7 @@ async function submit() {
   try {
     const c = await api.createConnection(tn, body())
     draft.clientSecret = ''
+    draft.appleKey = ''
     await router.push({ name: enterprise.value ? 'enterprise-connection' : 'social-connection', params: { tenant: tn.name, id: c.id } })
   } catch (e) {
     if (e instanceof ApiError) {
@@ -171,12 +181,19 @@ function describedBy(id: string, key: string, hint = false): string {
       <Field id="social-display" :label="t('social.displayName')" :hint="t('social.displayNameHint')">
         <input id="social-display" v-model="draft.displayName" type="text" maxlength="128" autocomplete="off" aria-describedby="social-display-hint" />
       </Field>
-      <Field id="social-client-id" :label="t('social.clientId')" :error="errors.clientId">
+      <Field id="social-client-id" :label="t(draft.strategy === 'apple' ? 'social.appleServices' : 'social.clientId')" :error="errors.clientId">
         <input id="social-client-id" v-model="draft.clientId" type="text" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.clientId" :aria-describedby="describedBy('social-client-id', 'clientId')" />
       </Field>
-      <Field id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
+      <Field v-if="draft.strategy !== 'apple'" id="social-client-secret" :label="t('social.clientSecret')" :hint="t('social.clientSecretNew')" :error="errors.clientSecret">
         <input id="social-client-secret" v-model="draft.clientSecret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.clientSecret" :aria-describedby="describedBy('social-client-secret', 'clientSecret', true)" />
       </Field>
+      <template v-if="draft.strategy === 'apple'">
+        <Field id="apple-team" :label="t('social.appleTeam')" :error="errors.appleTeam"><input id="apple-team" v-model="draft.appleTeam" maxlength="10" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.appleTeam" :aria-describedby="errors.appleTeam ? 'apple-team-error' : undefined" /></Field>
+        <Field id="apple-kid" :label="t('social.appleKID')" :error="errors.appleKID"><input id="apple-kid" v-model="draft.appleKID" maxlength="10" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.appleKID" :aria-describedby="errors.appleKID ? 'apple-kid-error' : undefined" /></Field>
+        <Field id="apple-key" :label="t('social.appleKey')" :hint="t('social.appleKeyHint')" :error="errors.appleKey"><textarea id="apple-key" v-model="draft.appleKey" rows="7" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.appleKey" :aria-describedby="errors.appleKey ? 'apple-key-hint apple-key-error' : 'apple-key-hint'" /></Field>
+        <label class="check"><input id="apple-name" v-model="draft.appleName" type="checkbox" /> {{ t('social.appleName') }}</label>
+        <label class="check"><input id="apple-email" v-model="draft.email" type="checkbox" /> {{ t('social.googleEmail') }}</label>
+      </template>
       <template v-if="draft.strategy === 'google-oauth2'">
         <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>
         <label class="check"><input v-model="draft.profile" type="checkbox" /> <span>{{ t('social.googleProfile') }}</span></label>

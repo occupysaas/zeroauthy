@@ -10,6 +10,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
@@ -222,8 +223,10 @@ type Client struct {
 	// ios.app_bundle_identifier, android.app_package_name,
 	// android.sha256_cert_fingerprints), used for native passkeys and the
 	// association files. It needs a store with webauthn.v1.
-	Mobile map[string]any `yaml:"mobile"`
-	mobile *store.ClientMobile
+	NativeSocialLogin any `yaml:"native_social_login"`
+	nativeSocialLogin map[string]bool
+	Mobile            map[string]any `yaml:"mobile"`
+	mobile            *store.ClientMobile
 
 	// Credentials are the public keys of the client (at most two). The
 	// three settings below name them by name; they need a store with
@@ -261,6 +264,7 @@ func (c *Client) spec() clientrules.Spec {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
 		Mobile:                                         c.mobile.Clone(),
+		NativeSocialLogin:                              maps.Clone(c.nativeSocialLogin),
 	}
 }
 
@@ -290,7 +294,7 @@ func Load(path string) (*File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("seed: %w", err)
 	}
-	f, err := Parse(data)
+	f, err := parse(data, filepath.Dir(path))
 	if err != nil {
 		return nil, fmt.Errorf("seed %s: %w", path, err)
 	}
@@ -298,7 +302,9 @@ func Load(path string) (*File, error) {
 }
 
 // Parse decodes seed YAML, rejecting unknown fields, and validates it.
-func Parse(data []byte) (*File, error) {
+func Parse(data []byte) (*File, error) { return parse(data, "") }
+
+func parse(data []byte, baseDir string) (*File, error) {
 	normalized, domainRPIDs, err := decodeDomainAliases(data)
 	if err != nil {
 		return nil, fmt.Errorf("seed: %w", err)
@@ -323,6 +329,9 @@ func Parse(data []byte) (*File, error) {
 		if i < len(domainRPIDs) {
 			f.Tenants[i].DomainRPIDs = domainRPIDs[i]
 		}
+	}
+	if err := resolveAppleSecrets(&f, baseDir); err != nil {
+		return nil, err
 	}
 	if err := f.validate(); err != nil {
 		return nil, err

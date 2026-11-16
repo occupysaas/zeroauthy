@@ -1343,6 +1343,10 @@ export interface paths {
          *     unknown keys inside `options` are stored and returned as sent.
          *     `options.configuration` values are sealed at rest and returned as
          *     opaque blobs, never as plaintext.
+         *     Plan 39a freezes `apple` options in `ConnectionOptionsApple`:
+         *     operator credentials are required on create, `client_id` is immutable,
+         *     and `app_secret` is sealed and never returned. Apple strategy and
+         *     login runtime are planned; this schema does not activate them (D-0170).
          */
         post: operations["createConnection"];
         delete?: never;
@@ -4439,6 +4443,52 @@ export interface components {
              * @default 180
              */
             time_step?: number;
+        };
+        /**
+         * @description Planned Apple connection contract (D-0170); login is not operational
+         *     yet. Create requires client_id (Services ID), team_id, kid and
+         *     app_secret; no developer credentials are supplied. The Services ID
+         *     is immutable. PATCH omitting app_secret preserves the sealed key;
+         *     empty/null keys are refused. Key parsing and consistency between
+         *     scope and the name/email flags are checked by the option rules.
+         *     Rotating team_id, kid or app_secret increments FederationRevision.
+         *     Local format and scope limits follow LR39a-4 through LR39a-6.
+         */
+        ConnectionOptionsApple: {
+            /** @description Apple Services ID; immutable after creation. */
+            client_id?: string;
+            team_id?: string;
+            kid?: string;
+            /** @description PKCS#8 PEM EC P-256 private key; sealed at write and never returned, logged or exported. */
+            app_secret?: string;
+            /**
+             * @description Request the name on the first authorization.
+             * @default true
+             */
+            name?: boolean;
+            /**
+             * @description Request email; the user may choose an Apple relay address.
+             * @default true
+             */
+            email?: boolean;
+            /** @description Space-separated name/email scopes; when sent must agree with the computed flags. */
+            scope?: string;
+            /** @description Only Apple's name and email scopes are accepted (LR39a-6). */
+            freeform_scopes?: ("name" | "email")[];
+            /**
+             * @description Apple names are preserved after the first login regardless of this setting (LR39a-10).
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+            /** @description Stored only; reserved protocol and security overrides are refused (Plan 24 policy). */
+            upstream_params?: {
+                [key: string]: unknown;
+            };
+            /** @description Stored only. */
+            non_persistent_attrs?: string[];
+        } & {
+            [key: string]: unknown;
         };
         /**
          * @description Options of the `email` passwordless connection (name `email`).
@@ -7743,6 +7793,38 @@ export interface components {
              */
             user_verification: "discouraged" | "preferred" | "required";
         };
+        NativeSocialLoginApple: {
+            /**
+             * @description Permission to exchange an Apple authorization code natively (D-0170).
+             * @default false
+             */
+            enabled?: boolean;
+        };
+        NativeSocialLoginFacebook: {
+            /**
+             * @description Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+             * @default false
+             */
+            enabled?: boolean;
+        };
+        NativeSocialLoginGoogle: {
+            /**
+             * @description Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+             * @default false
+             */
+            enabled?: boolean;
+        };
+        /**
+         * @description Stored native social switches (Plan 39a, D-0170).
+         *     Apple exchange additionally requires
+         *     mobile.ios.app_bundle_identifier and an enabled Apple connection.
+         *     Facebook and Google enforcement belongs to Plan 39b.
+         */
+        NativeSocialLogin: {
+            apple?: components["schemas"]["NativeSocialLoginApple"];
+            facebook?: components["schemas"]["NativeSocialLoginFacebook"];
+            google?: components["schemas"]["NativeSocialLoginGoogle"];
+        };
         /** @description Native application identities. Unknown settings are accepted and ignored. */
         ClientMobile: {
             ios?: components["schemas"]["ClientMobileIOS"];
@@ -7750,6 +7832,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** @description Stored and returned iOS identity (Plan 33b). Planned Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170). */
         ClientMobileIOS: {
             /** @default  */
             team_id?: string;
@@ -7832,8 +7915,7 @@ export interface components {
              * @description HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
              */
             initiate_login_uri?: string;
-            /** @description Accepted and ignored. */
-            native_social_login?: unknown;
+            native_social_login?: components["schemas"]["NativeSocialLogin"];
             mobile?: components["schemas"]["ClientMobile"];
             /**
              * @description Whether the application logs users in through organizations:
@@ -7895,6 +7977,7 @@ export interface components {
         };
         /** @description An application. */
         Client: {
+            native_social_login?: components["schemas"]["NativeSocialLogin"];
             mobile?: components["schemas"]["ClientMobile"];
             /**
              * Format: uri
@@ -8309,10 +8392,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34).
+             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; runtime is planned (D-0170).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -8581,7 +8664,9 @@ export interface components {
             /**
              * @description On a linked (secondary) identity: `email`, `email_verified` and,
              *     when it has one, `username`. The link and unlink responses also
-             *     give it for the primary's own identity.
+             *     give it for the primary's own identity. Apple identities also include
+             *     provider-owned `is_private_email` and `real_user_status` when supplied,
+             *     including on the primary identity.
              */
             profileData?: {
                 [key: string]: unknown;
