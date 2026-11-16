@@ -136,9 +136,12 @@ Action but does not change what is issued.
 
 ## What persists when a later step fails
 
-The Action's user creation or update, and any metadata it wrote, are saved
-before the later steps run. If organization membership, post-login or token
-minting then fails, the exchange is refused but those changes stay.
+A user the Action creates or updates with `setUserByConnection` is saved
+before the later steps run. If the organization-membership check, post-login
+or token minting then fails, the exchange is refused but that user change
+stays. Metadata the Action sets (`setAppMetadata`, `setUserMetadata`) is saved
+after the organization-membership check, so it persists only when post-login
+or token minting fails.
 
 ## Throttling and logs
 

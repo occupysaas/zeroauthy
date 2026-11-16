@@ -579,7 +579,9 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
 
 **Deferred review findings** (minor; none blocks the release):
 
-- *clientcred:* `ParsePEM` accepts text before the PEM block; `jti` length is
+- *clientcred:* confirm by test that a request object signed without a `typ`
+  header cannot be accepted as a client assertion (it should fail the `iss` =
+  `sub` check); `ParsePEM` accepts text before the PEM block; `jti` length is
   counted in bytes; assertion size and algorithm bounds are repeated outside
   the package; a mismatch of `iss` alone answers 401, not 400; `aud` is
   accepted as an array (RFC 7523 allows it; Auth0 unobserved); the endpoint

@@ -64,8 +64,10 @@ This release adds `private_key_jwt`, signed authorization requests (JAR),
 HS256 and PS256 API tokens and custom token exchange. When you upgrade:
 
 - **Migration 0036** adds the client credential, token exchange profile and
-  assertion-replay tables, plus a `signed` marker on pushed authorization
-  requests. It is forward only; back up first as above.
+  assertion-replay tables; the nullable `clients` columns
+  `client_authentication_methods`, `signed_request_object` and
+  `token_exchange`; `resource_servers.signing_secret_sealed`; and
+  `pushed_auth_requests.signed`. It is forward only; back up first as above.
 - **Published signing keys lose `alg`.** The tenant's JWKS now lists each
   signing key without an `alg` member (RFC 7517 makes it optional), so a
   verifier accepts both RS256 and PS256 tokens signed with that key. `kty`,
