@@ -377,6 +377,8 @@ Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm 
 
 SAML as identity provider (`samlp` addon on clients) and as service provider (`samlp` connections), WS-Federation (`wsfed` addon, `adfs` connection), `/samlp/{client_id}` metadata, SAML logout; `/api/v2/connections/{id}/scim-configuration` (and tokens) with an inbound SCIM 2.0 server; `/api/v2/self-service-profiles` and SSO tickets with the self-service setup flow. Directory groups from SCIM and enterprise connections (Plan 26 left groups out) land here if Auth0 documents a groups resource at build time. Likely two or three plans after its design.
 
+**Split by the parallel paths:** F2 = 37a SAML, F3 = 37b WS-Federation and ADFS, F4 = 37c SCIM and self-service SSO. **37a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-saml-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-37a-saml.md) (10 tasks, D-0130): the IdP addon (SSO, metadata, SLO, IdP-initiated, `api.samlResponse`) and SP connections (ACS, metadata, encryption, IdP-initiated, SLO, keys). Defaults the docs omit come from Auth0's MIT `node-samlp`. Rulings needed: the XML-signature implementation (recommended: vendor goxmldsig + etree into `internal/third_party`), E2E npm pins, and SHA-1.
+
 ### Plan 38 — AD/LDAP, Forms and Flows, the rest (full design)
 
 - **AD/LDAP:** the `ad` strategy. Auth0's AD/LDAP connector is open source (MIT); the design decides whether zeroauthy speaks that connector's protocol (so existing connectors keep working) or ships its own LDAP bind.
