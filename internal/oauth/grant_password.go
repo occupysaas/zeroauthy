@@ -291,6 +291,9 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 	if flow.Passkey {
 		grantType = "webauthn"
 	}
+	if flow.Native != nil {
+		grantType = GrantTokenExchange
+	}
 	if flow.Organization != nil {
 		orgID = flow.Organization.ID
 	}
@@ -299,6 +302,10 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 	})
 	if oerr != nil {
 		return nil, nil, oerr
+	}
+	if flow.Native != nil {
+		issued := issuedTokenTypeAccessToken
+		resp.IssuedTokenType = &issued
 	}
 	var rt *store.RefreshToken
 	var raw string

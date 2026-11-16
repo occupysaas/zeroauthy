@@ -36,11 +36,15 @@ func TestOrganizationsIIMigrationFrom25(t *testing.T) {
 			}
 			seedLegacyTenant(t, s, "t")
 			// Seed the version-25 shape, before 0027 adds initiate_login_uri and 0035
-			// adds mobile and 0036 the client credential settings.
+			// adds mobile, 0036 client credential settings, and 0037 native social switches.
 			clientValues, err := clientArgs(&store.Client{TenantID: "t", ClientID: "c"})
 			must(err)
-			oldColumns := strings.TrimSuffix(clientCols, ", initiate_login_uri, mobile,\n client_authentication_methods, signed_request_object, token_exchange")
-			mustExec(t, s, "INSERT INTO clients ("+oldColumns+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", len(clientValues)-5), ",")+")", clientValues[:len(clientValues)-5]...)
+			oldColumns, _, found := strings.Cut(clientCols, ", initiate_login_uri")
+			if !found {
+				t.Fatal("legacy client column boundary missing")
+			}
+			oldCount := len(strings.Split(oldColumns, ","))
+			mustExec(t, s, "INSERT INTO clients ("+oldColumns+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", oldCount), ",")+")", clientValues[:oldCount]...)
 			must(s.Connections().Create(ctx, &store.Connection{TenantID: "t", ID: "conn", Name: "database", Strategy: "auth0"}))
 			userValues, err := userArgs(&store.User{TenantID: "t", UserID: "auth0|u"})
 			must(err)

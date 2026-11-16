@@ -242,15 +242,14 @@ paths:
         | `http://auth0.com/oauth/grant-type/passwordless/otp` | Exchange a passwordless code: `realm` (`email` or `sms`), `username` (the email or E.164 number) and `otp`. The client must have the grant enabled. Same MFA decision as password grants. `redirect_uri` is validated when sent (D-0060 P11). |
         | `urn:ietf:params:oauth:grant-type:token-exchange` | Custom token exchange (RFC 8693): trade `subject_token` of a `subject_token_type` that a token exchange profile binds to a `custom-token-exchange` Action for tokens of the user the Action selects. Optional `audience`, `scope`, `organization`, `actor_token`, `actor_token_type` and `requested_token_type`. The application must be first-party, OIDC-conformant and allow `custom_authentication` in `token_exchange`. An unknown `subject_token_type` is `400 invalid_request`; a blocked source IP is `429 too_many_attempts` (D-0063). |
 
-        **Planned native Apple exchange (D-0170).** The same token-exchange
+        **Native Apple exchange (D-0170).** The same token-exchange
         grant reserves `subject_token_type`
         `http://auth0.com/oauth/token-type/apple-authz-code`; `subject_token`
         is the Apple authorization code and `client_id` is required.
         This reserved type bypasses custom token exchange profiles and their
-        Action. Native Apple runtime is not operational yet. The frozen
-        contract requires `native_social_login.apple.enabled: true`,
+        Action. Native Apple exchange requires `native_social_login.apple.enabled: true`,
         `mobile.ios.app_bundle_identifier` and an enabled Apple connection
-        (the first in client order, LR39a-9). Public native clients use
+        (the first in connection listing order, LR39a-9). Public native clients use
         authentication method `none`; confidential clients authenticate
         normally. Apple validates the code and ID-token audience against
         the bundle ID, without a nonce. Optional `user_profile` supplies
@@ -314,10 +313,7 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: "#/components/schemas/TokenRequest"
-            encoding:
-              user_profile:
-                contentType: application/json
+              $ref: "#/components/schemas/TokenFormRequest"
           application/json:
             schema:
               $ref: "#/components/schemas/TokenRequest"
@@ -1764,7 +1760,7 @@ components:
       type: object
       additionalProperties: false
       description: |
-        Planned native iOS first-login name (D-0170). At most 1024 UTF-8
+        Native iOS first-login name (D-0170). At most 1024 UTF-8
         bytes of JSON, enforced by the handler. For form requests encode
         this object as JSON in user_profile. Untrusted profile values are
         used only after the Apple ID token has validated.
@@ -1778,6 +1774,22 @@ components:
             firstName: {type: string, maxLength: 150}
             lastName: {type: string, maxLength: 150}
     TokenRequest:
+      type: object
+      allOf:
+        - {$ref: "#/components/schemas/TokenRequestFields"}
+      properties:
+        user_profile: {$ref: "#/components/schemas/NativeSocialUserProfile"}
+    TokenFormRequest:
+      type: object
+      allOf:
+        - {$ref: "#/components/schemas/TokenRequestFields"}
+      properties:
+        user_profile:
+          type: string
+          maxLength: 1024
+          x-max-bytes: 1024
+          description: JSON-encoded NativeSocialUserProfile; the handler enforces a 1024 UTF-8 byte bound before decoding.
+    TokenRequestFields:
       type: object
       required: [grant_type]
       properties:
@@ -1798,11 +1810,10 @@ components:
         subject_token:
           type: string
           writeOnly: true
-          description: The external token to exchange, or an Apple authorization code for the planned native Apple type (D-0170). Never logged.
+          description: The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
         subject_token_type:
           type: string
-          description: "Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the planned native Apple exchange and never invokes a custom profile (D-0170)."
-        user_profile: {$ref: "#/components/schemas/NativeSocialUserProfile"}
+          description: "Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the native Apple exchange and never invokes a custom profile (D-0170)."
         actor_token:
           type: string
           writeOnly: true
@@ -1874,7 +1885,7 @@ components:
         refresh_token:
           type: string
         recovery_code: {type: string, description: One-time replacement after a successful MFA recovery-code grant.}
-        issued_token_type: {type: string, description: "Sent only by the custom token exchange grant (RFC 8693 section 2.2.1): always `urn:ietf:params:oauth:token-type:access_token` (LR35-15).", examples: ["urn:ietf:params:oauth:token-type:access_token"]}
+        issued_token_type: {type: string, description: "Sent by the token exchange grant (RFC 8693 section 2.2.1): always `urn:ietf:params:oauth:token-type:access_token` (LR35-15).", examples: ["urn:ietf:params:oauth:token-type:access_token"]}
     OpenIDConfiguration:
       type: object
       required:

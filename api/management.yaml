@@ -22037,7 +22037,7 @@ components:
       minProperties: 1
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
-        enabled: {type: boolean, default: false, description: Planned permission to exchange an Apple authorization code natively (D-0170).}
+        enabled: {type: boolean, default: false, description: Permission to exchange an Apple authorization code natively (D-0170).}
     NativeSocialLoginFacebook:
       type: object
       additionalProperties: false
@@ -22056,8 +22056,8 @@ components:
       type: object
       additionalProperties: false
       description: |
-        Planned stored/returned native social switches (Plan 39a Task 6).
-        Currently accepted and ignored. Apple exchange additionally requires
+        Stored native social switches (Plan 39a, D-0170).
+        Apple exchange additionally requires
         mobile.ios.app_bundle_identifier and an enabled Apple connection.
         Facebook and Google enforcement belongs to Plan 39b.
       x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]

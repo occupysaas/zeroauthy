@@ -164,7 +164,8 @@ func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
 		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
 		PrivateKeyJWTCredentials: []string{"cred_1"}, SignedRequestObject: &store.SignedRequestObject{Required: true, Credentials: []string{"cred_1"}}, TokenExchangeTypes: []string{"urn:example:t"},
-		Mobile: &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "T", AppBundleIdentifier: "com.example"}, Android: &store.ClientMobileAndroid{AppPackageName: "com.example", SHA256CertFingerprints: []string{"AA:BB"}}},
+		NativeSocialLogin: map[string]bool{"apple": true, "facebook": false, "google": true},
+		Mobile:            &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "T", AppBundleIdentifier: "com.example"}, Android: &store.ClientMobileAndroid{AppPackageName: "com.example", SHA256CertFingerprints: []string{"AA:BB"}}},
 		Secrets: []store.ClientSecret{
 			{Hash: "h1", CreatedAt: nanoTime},
 			{Hash: "h2", CreatedAt: nanoTime, ExpiresAt: ptr(nanoTime.Add(time.Hour))},

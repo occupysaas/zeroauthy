@@ -1733,6 +1733,7 @@ type Client struct {
 	// the capability drops them.
 	ClientAuthenticationMethods []byte `protobuf:"bytes,26,opt,name=client_authentication_methods,json=clientAuthenticationMethods,proto3" json:"client_authentication_methods,omitempty"` // {"private_key_jwt":{"credentials":[ids]}}
 	SignedRequestObject         []byte `protobuf:"bytes,27,opt,name=signed_request_object,json=signedRequestObject,proto3" json:"signed_request_object,omitempty"`                         // store.SignedRequestObject
+	NativeSocialLogin           []byte `protobuf:"bytes,29,opt,name=native_social_login,json=nativeSocialLogin,proto3" json:"native_social_login,omitempty"`                               // Plan 39a; map<string,bool> JSON, absent = unset
 	TokenExchange               []byte `protobuf:"bytes,28,opt,name=token_exchange,json=tokenExchange,proto3" json:"token_exchange,omitempty"`                                             // {"allow_any_profile_of_type":[types]}
 	unknownFields               protoimpl.UnknownFields
 	sizeCache                   protoimpl.SizeCache
@@ -1953,6 +1954,13 @@ func (x *Client) GetClientAuthenticationMethods() []byte {
 func (x *Client) GetSignedRequestObject() []byte {
 	if x != nil {
 		return x.SignedRequestObject
+	}
+	return nil
+}
+
+func (x *Client) GetNativeSocialLogin() []byte {
+	if x != nil {
+		return x.NativeSocialLogin
 	}
 	return nil
 }
@@ -28464,7 +28472,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06leeway\x18\x02 \x01(\x03R\x06leeway\x12\x1a\n" +
 	"\bexpiring\x18\x03 \x01(\bR\bexpiring\x12%\n" +
 	"\x0etoken_lifetime\x18\x04 \x01(\x03R\rtokenLifetime\x12.\n" +
-	"\x13idle_token_lifetime\x18\x05 \x01(\x03R\x11idleTokenLifetime\"\xf8\f\n" +
+	"\x13idle_token_lifetime\x18\x05 \x01(\x03R\x11idleTokenLifetime\"\xa8\r\n" +
 	"\x06Client\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12\x12\n" +
@@ -28496,7 +28504,8 @@ const file_store_proto_rawDesc = "" +
 	"\x1eorganization_discovery_methods\x18\x17 \x01(\v2\x1e.zeroauthy.store.v1.StringListR\x1corganizationDiscoveryMethods\x12\x16\n" +
 	"\x06mobile\x18\x19 \x01(\fR\x06mobile\x12B\n" +
 	"\x1dclient_authentication_methods\x18\x1a \x01(\fR\x1bclientAuthenticationMethods\x122\n" +
-	"\x15signed_request_object\x18\x1b \x01(\fR\x13signedRequestObject\x12%\n" +
+	"\x15signed_request_object\x18\x1b \x01(\fR\x13signedRequestObject\x12.\n" +
+	"\x13native_social_login\x18\x1d \x01(\fR\x11nativeSocialLogin\x12%\n" +
 	"\x0etoken_exchange\x18\x1c \x01(\fR\rtokenExchangeB\x11\n" +
 	"\x0f_is_first_partyB7\n" +
 	"5_skip_non_verifiable_callback_uri_confirmation_prompt\"?\n" +

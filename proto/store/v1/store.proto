@@ -684,6 +684,7 @@ message Client {
   // the capability drops them.
   bytes client_authentication_methods = 26; // {"private_key_jwt":{"credentials":[ids]}}
   bytes signed_request_object = 27;         // store.SignedRequestObject
+  bytes native_social_login = 29; // Plan 39a; map<string,bool> JSON, absent = unset
   bytes token_exchange = 28;                // {"allow_any_profile_of_type":[types]}
 }
 

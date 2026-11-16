@@ -371,6 +371,9 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		}
 	}
 	var err error
+	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
+		return nil, err
+	}
 	if pb.Mobile, err = optJSON(c.Mobile, c.Mobile == nil); err != nil {
 		return nil, err
 	}
@@ -425,6 +428,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 			c.Secrets = append(c.Secrets, store.ClientSecret{
 				Hash: s.GetHash(), Sealed: optBytes(s.GetSealed()), CreatedAt: tsFromPB(s.GetCreatedAt()), ExpiresAt: optTSFromPB(s.GetExpiresAt())})
 		}
+	}
+	if err := fromOptJSON(pb.NativeSocialLogin, &c.NativeSocialLogin); err != nil {
+		return nil, err
 	}
 	if err := fromOptJSON(pb.Mobile, &c.Mobile); err != nil {
 		return nil, err

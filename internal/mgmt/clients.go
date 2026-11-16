@@ -596,6 +596,19 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		b := *p
 		v.SkipNonVerifiableCallbackUriConfirmationPrompt = &b
 	}
+	if c.NativeSocialLogin != nil {
+		v.NativeSocialLogin = &mgmtapi.NativeSocialLogin{}
+		for name, enabled := range c.NativeSocialLogin {
+			switch name {
+			case "apple":
+				v.NativeSocialLogin.Apple = &mgmtapi.NativeSocialLoginApple{Enabled: &enabled}
+			case "facebook":
+				v.NativeSocialLogin.Facebook = &mgmtapi.NativeSocialLoginFacebook{Enabled: &enabled}
+			case "google":
+				v.NativeSocialLogin.Google = &mgmtapi.NativeSocialLoginGoogle{Enabled: &enabled}
+			}
+		}
+	}
 	if c.Mobile != nil {
 		v.Mobile = &mgmtapi.ClientMobile{}
 		if ios := c.Mobile.IOS; ios != nil {
@@ -670,7 +683,6 @@ var ignoredClientFields = []string{
 	"description", "logo_uri", "client_metadata", "sso", "sso_disabled",
 	"cross_origin_authentication", "cross_origin_auth", "cross_origin_loc",
 	"custom_login_page_on", "custom_login_page",
-	"native_social_login",
 	"is_token_endpoint_ip_header_trusted", "allowed_clients", "created_at", "updated_at",
 }
 
@@ -702,6 +714,8 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			if err == nil {
 				_, err = orglogin.BuildInvitationURL(s.InitiateLoginURI, "validation", "validation", "validation")
 			}
+		case "native_social_login":
+			s.NativeSocialLogin, err = clientrules.ParseNativeSocialLogin(raw)
 		case "mobile":
 			s.Mobile, err = clientrules.ParseMobile(raw)
 		case "name":

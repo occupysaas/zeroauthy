@@ -138,6 +138,8 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	// NativeSocialLogin stores provider-specific native exchange switches.
+	NativeSocialLogin map[string]bool
 	// Mobile holds native app identities for passkey association files.
 	Mobile                  *ClientMobile
 	InitiateLoginURI        string

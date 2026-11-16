@@ -7612,8 +7612,8 @@ type Client struct {
 	Mobile *ClientMobile `json:"mobile,omitempty"`
 	Name   string        `json:"name"`
 
-	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
-	// Currently accepted and ignored. Apple exchange additionally requires
+	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
 	NativeSocialLogin *NativeSocialLogin   `json:"native_social_login,omitempty"`
@@ -7765,8 +7765,8 @@ type ClientCreate struct {
 	// Name The application's name.
 	Name string `json:"name"`
 
-	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
-	// Currently accepted and ignored. Apple exchange additionally requires
+	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
@@ -8137,8 +8137,8 @@ type ClientSettings struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
-	// Currently accepted and ignored. Apple exchange additionally requires
+	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
@@ -8300,8 +8300,8 @@ type ClientUpdate struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
-	// Currently accepted and ignored. Apple exchange additionally requires
+	// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+	// Apple exchange additionally requires
 	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
 	// Facebook and Google enforcement belongs to Plan 39b.
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
@@ -11297,8 +11297,8 @@ type ManagementError struct {
 	StatusCode int `json:"statusCode"`
 }
 
-// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
-// Currently accepted and ignored. Apple exchange additionally requires
+// NativeSocialLogin Stored native social switches (Plan 39a, D-0170).
+// Apple exchange additionally requires
 // mobile.ios.app_bundle_identifier and an enabled Apple connection.
 // Facebook and Google enforcement belongs to Plan 39b.
 type NativeSocialLogin struct {
@@ -11309,7 +11309,7 @@ type NativeSocialLogin struct {
 
 // NativeSocialLoginApple defines model for NativeSocialLoginApple.
 type NativeSocialLoginApple struct {
-	// Enabled Planned permission to exchange an Apple authorization code natively (D-0170).
+	// Enabled Permission to exchange an Apple authorization code natively (D-0170).
 	Enabled *bool `json:"enabled,omitempty"`
 }
 

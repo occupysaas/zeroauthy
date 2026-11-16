@@ -421,6 +421,21 @@ func (e RevokeRequestClientAssertionType) Valid() bool {
 	}
 }
 
+// Defines values for TokenFormRequestClientAssertionType.
+const (
+	TokenFormRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer TokenFormRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the TokenFormRequestClientAssertionType enum.
+func (e TokenFormRequestClientAssertionType) Valid() bool {
+	switch e {
+	case TokenFormRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TokenRequestClientAssertionType.
 const (
 	TokenRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer TokenRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
@@ -430,6 +445,21 @@ const (
 func (e TokenRequestClientAssertionType) Valid() bool {
 	switch e {
 	case TokenRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TokenRequestFieldsClientAssertionType.
+const (
+	TokenRequestFieldsClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer TokenRequestFieldsClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the TokenRequestFieldsClientAssertionType enum.
+func (e TokenRequestFieldsClientAssertionType) Valid() bool {
+	switch e {
+	case TokenRequestFieldsClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
 		return true
 	default:
 		return false
@@ -661,7 +691,7 @@ type MFARequired struct {
 // MFARequiredError defines model for MFARequired.Error.
 type MFARequiredError string
 
-// NativeSocialUserProfile Planned native iOS first-login name (D-0170). At most 1024 UTF-8
+// NativeSocialUserProfile Native iOS first-login name (D-0170). At most 1024 UTF-8
 // bytes of JSON, enforced by the handler. For form requests encode
 // this object as JSON in user_profile. Untrusted profile values are
 // used only after the Apple ID token has validated.
@@ -943,6 +973,87 @@ type SignupResponse struct {
 	Username      *string `json:"username,omitempty"`
 }
 
+// TokenFormRequest defines model for TokenFormRequest.
+type TokenFormRequest struct {
+	// ActorToken Optional token of the acting party (token-exchange grant). Never logged.
+	ActorToken *string `json:"actor_token,omitempty"`
+
+	// ActorTokenType Required with `actor_token`.
+	ActorTokenType *string `json:"actor_token_type,omitempty"`
+
+	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	Audience      *string                         `json:"audience,omitempty"`
+	AuthSession   *string                         `json:"auth_session,omitempty"`
+	AuthnResponse *TokenFormRequest_AuthnResponse `json:"authn_response,omitempty"`
+	BindingCode   *string                         `json:"binding_code,omitempty"`
+
+	// ClientAssertion A signed JWT that authenticates the application (`private_key_jwt`, RFC 7523). At most 2048 bytes; never logged.
+	ClientAssertion     *string                              `json:"client_assertion,omitempty"`
+	ClientAssertionType *TokenFormRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                              `json:"client_id,omitempty"`
+	ClientSecret        *string                              `json:"client_secret,omitempty"`
+
+	// Code Authorization code (grant_type=authorization_code).
+	Code *string `json:"code,omitempty"`
+
+	// CodeVerifier PKCE verifier for the code_challenge sent to /authorize.
+	CodeVerifier *string `json:"code_verifier,omitempty"`
+
+	// GrantType Examples: client_credentials
+	GrantType string  `json:"grant_type"`
+	MfaToken  *string `json:"mfa_token,omitempty"`
+	OobCode   *string `json:"oob_code,omitempty"`
+
+	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The native passkey grant binds an organization through membership, connection and application policy. The password, password-realm and device code grants ignore it (D-0055).
+	Organization *string `json:"organization,omitempty"`
+	Otp          *string `json:"otp,omitempty"`
+
+	// Password The user's password (password grants).
+	Password *string `json:"password,omitempty"`
+
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), email/sms for the passwordless OTP grant, or a database realm for the native passkey grant.
+	Realm        *string `json:"realm,omitempty"`
+	RecoveryCode *string `json:"recovery_code,omitempty"`
+
+	// RedirectUri Must equal the redirect_uri of the authorization request.
+	RedirectUri *string `json:"redirect_uri,omitempty"`
+
+	// RefreshToken Refresh token (grant_type=refresh_token).
+	RefreshToken *string `json:"refresh_token,omitempty"`
+
+	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
+	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	Scope *string `json:"scope,omitempty"`
+
+	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
+	SubjectToken *string `json:"subject_token,omitempty"`
+
+	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the native Apple exchange and never invokes a custom profile (D-0170).
+	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+
+	// UserProfile JSON-encoded NativeSocialUserProfile; the handler enforces a 1024 UTF-8 byte bound before decoding.
+	UserProfile *string `json:"user_profile,omitempty"`
+
+	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
+	Username *string `json:"username,omitempty"`
+}
+
+// TokenFormRequestAuthnResponse0 defines model for TokenFormRequest.AuthnResponse.0.
+type TokenFormRequestAuthnResponse0 = string
+
+// TokenFormRequestAuthnResponse1 defines model for TokenFormRequest.AuthnResponse.1.
+type TokenFormRequestAuthnResponse1 map[string]interface{}
+
+// TokenFormRequest_AuthnResponse defines model for TokenFormRequest.AuthnResponse.
+type TokenFormRequest_AuthnResponse struct {
+	union json.RawMessage
+}
+
+// TokenFormRequestClientAssertionType defines model for TokenFormRequest.ClientAssertionType.
+type TokenFormRequestClientAssertionType string
+
 // TokenRequest defines model for TokenRequest.
 type TokenRequest struct {
 	// ActorToken Optional token of the acting party (token-exchange grant). Never logged.
@@ -997,13 +1108,13 @@ type TokenRequest struct {
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
-	// SubjectToken The external token to exchange, or an Apple authorization code for the planned native Apple type (D-0170). Never logged.
+	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
 	SubjectToken *string `json:"subject_token,omitempty"`
 
-	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the planned native Apple exchange and never invokes a custom profile (D-0170).
+	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the native Apple exchange and never invokes a custom profile (D-0170).
 	SubjectTokenType *string `json:"subject_token_type,omitempty"`
 
-	// UserProfile Planned native iOS first-login name (D-0170). At most 1024 UTF-8
+	// UserProfile Native iOS first-login name (D-0170). At most 1024 UTF-8
 	// bytes of JSON, enforced by the handler. For form requests encode
 	// this object as JSON in user_profile. Untrusted profile values are
 	// used only after the Apple ID token has validated.
@@ -1027,6 +1138,84 @@ type TokenRequest_AuthnResponse struct {
 // TokenRequestClientAssertionType defines model for TokenRequest.ClientAssertionType.
 type TokenRequestClientAssertionType string
 
+// TokenRequestFields defines model for TokenRequestFields.
+type TokenRequestFields struct {
+	// ActorToken Optional token of the acting party (token-exchange grant). Never logged.
+	ActorToken *string `json:"actor_token,omitempty"`
+
+	// ActorTokenType Required with `actor_token`.
+	ActorTokenType *string `json:"actor_token_type,omitempty"`
+
+	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	Audience      *string                           `json:"audience,omitempty"`
+	AuthSession   *string                           `json:"auth_session,omitempty"`
+	AuthnResponse *TokenRequestFields_AuthnResponse `json:"authn_response,omitempty"`
+	BindingCode   *string                           `json:"binding_code,omitempty"`
+
+	// ClientAssertion A signed JWT that authenticates the application (`private_key_jwt`, RFC 7523). At most 2048 bytes; never logged.
+	ClientAssertion     *string                                `json:"client_assertion,omitempty"`
+	ClientAssertionType *TokenRequestFieldsClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                                `json:"client_id,omitempty"`
+	ClientSecret        *string                                `json:"client_secret,omitempty"`
+
+	// Code Authorization code (grant_type=authorization_code).
+	Code *string `json:"code,omitempty"`
+
+	// CodeVerifier PKCE verifier for the code_challenge sent to /authorize.
+	CodeVerifier *string `json:"code_verifier,omitempty"`
+
+	// GrantType Examples: client_credentials
+	GrantType string  `json:"grant_type"`
+	MfaToken  *string `json:"mfa_token,omitempty"`
+	OobCode   *string `json:"oob_code,omitempty"`
+
+	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The native passkey grant binds an organization through membership, connection and application policy. The password, password-realm and device code grants ignore it (D-0055).
+	Organization *string `json:"organization,omitempty"`
+	Otp          *string `json:"otp,omitempty"`
+
+	// Password The user's password (password grants).
+	Password *string `json:"password,omitempty"`
+
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), email/sms for the passwordless OTP grant, or a database realm for the native passkey grant.
+	Realm        *string `json:"realm,omitempty"`
+	RecoveryCode *string `json:"recovery_code,omitempty"`
+
+	// RedirectUri Must equal the redirect_uri of the authorization request.
+	RedirectUri *string `json:"redirect_uri,omitempty"`
+
+	// RefreshToken Refresh token (grant_type=refresh_token).
+	RefreshToken *string `json:"refresh_token,omitempty"`
+
+	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
+	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	Scope *string `json:"scope,omitempty"`
+
+	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
+	SubjectToken *string `json:"subject_token,omitempty"`
+
+	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the native Apple exchange and never invokes a custom profile (D-0170).
+	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+
+	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
+	Username *string `json:"username,omitempty"`
+}
+
+// TokenRequestFieldsAuthnResponse0 defines model for TokenRequestFields.AuthnResponse.0.
+type TokenRequestFieldsAuthnResponse0 = string
+
+// TokenRequestFieldsAuthnResponse1 defines model for TokenRequestFields.AuthnResponse.1.
+type TokenRequestFieldsAuthnResponse1 map[string]interface{}
+
+// TokenRequestFields_AuthnResponse defines model for TokenRequestFields.AuthnResponse.
+type TokenRequestFields_AuthnResponse struct {
+	union json.RawMessage
+}
+
+// TokenRequestFieldsClientAssertionType defines model for TokenRequestFields.ClientAssertionType.
+type TokenRequestFieldsClientAssertionType string
+
 // TokenResponse defines model for TokenResponse.
 type TokenResponse struct {
 	AccessToken string `json:"access_token"`
@@ -1035,7 +1224,7 @@ type TokenResponse struct {
 	ExpiresIn int     `json:"expires_in"`
 	IdToken   *string `json:"id_token,omitempty"`
 
-	// IssuedTokenType Sent only by the custom token exchange grant (RFC 8693 section 2.2.1): always `urn:ietf:params:oauth:token-type:access_token` (LR35-15).
+	// IssuedTokenType Sent by the token exchange grant (RFC 8693 section 2.2.1): always `urn:ietf:params:oauth:token-type:access_token` (LR35-15).
 	//
 	// Examples: urn:ietf:params:oauth:token-type:access_token
 	IssuedTokenType *string `json:"issued_token_type,omitempty"`
@@ -1261,7 +1450,7 @@ type OauthRevokeFormdataRequestBody = RevokeRequest
 type OauthTokenJSONRequestBody = TokenRequest
 
 // OauthTokenFormdataRequestBody defines body for OauthToken for application/x-www-form-urlencoded ContentType.
-type OauthTokenFormdataRequestBody = TokenRequest
+type OauthTokenFormdataRequestBody = TokenFormRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
@@ -1772,6 +1961,68 @@ func (a UserInfo) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// AsTokenFormRequestAuthnResponse0 returns the union data inside the TokenFormRequest_AuthnResponse as a TokenFormRequestAuthnResponse0
+func (t TokenFormRequest_AuthnResponse) AsTokenFormRequestAuthnResponse0() (TokenFormRequestAuthnResponse0, error) {
+	var body TokenFormRequestAuthnResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenFormRequestAuthnResponse0 overwrites any union data inside the TokenFormRequest_AuthnResponse as the provided TokenFormRequestAuthnResponse0
+func (t *TokenFormRequest_AuthnResponse) FromTokenFormRequestAuthnResponse0(v TokenFormRequestAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenFormRequestAuthnResponse0 performs a merge with any union data inside the TokenFormRequest_AuthnResponse, using the provided TokenFormRequestAuthnResponse0
+func (t *TokenFormRequest_AuthnResponse) MergeTokenFormRequestAuthnResponse0(v TokenFormRequestAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenFormRequestAuthnResponse1 returns the union data inside the TokenFormRequest_AuthnResponse as a TokenFormRequestAuthnResponse1
+func (t TokenFormRequest_AuthnResponse) AsTokenFormRequestAuthnResponse1() (TokenFormRequestAuthnResponse1, error) {
+	var body TokenFormRequestAuthnResponse1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenFormRequestAuthnResponse1 overwrites any union data inside the TokenFormRequest_AuthnResponse as the provided TokenFormRequestAuthnResponse1
+func (t *TokenFormRequest_AuthnResponse) FromTokenFormRequestAuthnResponse1(v TokenFormRequestAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenFormRequestAuthnResponse1 performs a merge with any union data inside the TokenFormRequest_AuthnResponse, using the provided TokenFormRequestAuthnResponse1
+func (t *TokenFormRequest_AuthnResponse) MergeTokenFormRequestAuthnResponse1(v TokenFormRequestAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenFormRequest_AuthnResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenFormRequest_AuthnResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsTokenRequestAuthnResponse0 returns the union data inside the TokenRequest_AuthnResponse as a TokenRequestAuthnResponse0
 func (t TokenRequest_AuthnResponse) AsTokenRequestAuthnResponse0() (TokenRequestAuthnResponse0, error) {
 	var body TokenRequestAuthnResponse0
@@ -1830,6 +2081,68 @@ func (t TokenRequest_AuthnResponse) MarshalJSON() ([]byte, error) {
 }
 
 func (t *TokenRequest_AuthnResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsTokenRequestFieldsAuthnResponse0 returns the union data inside the TokenRequestFields_AuthnResponse as a TokenRequestFieldsAuthnResponse0
+func (t TokenRequestFields_AuthnResponse) AsTokenRequestFieldsAuthnResponse0() (TokenRequestFieldsAuthnResponse0, error) {
+	var body TokenRequestFieldsAuthnResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestFieldsAuthnResponse0 overwrites any union data inside the TokenRequestFields_AuthnResponse as the provided TokenRequestFieldsAuthnResponse0
+func (t *TokenRequestFields_AuthnResponse) FromTokenRequestFieldsAuthnResponse0(v TokenRequestFieldsAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestFieldsAuthnResponse0 performs a merge with any union data inside the TokenRequestFields_AuthnResponse, using the provided TokenRequestFieldsAuthnResponse0
+func (t *TokenRequestFields_AuthnResponse) MergeTokenRequestFieldsAuthnResponse0(v TokenRequestFieldsAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenRequestFieldsAuthnResponse1 returns the union data inside the TokenRequestFields_AuthnResponse as a TokenRequestFieldsAuthnResponse1
+func (t TokenRequestFields_AuthnResponse) AsTokenRequestFieldsAuthnResponse1() (TokenRequestFieldsAuthnResponse1, error) {
+	var body TokenRequestFieldsAuthnResponse1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestFieldsAuthnResponse1 overwrites any union data inside the TokenRequestFields_AuthnResponse as the provided TokenRequestFieldsAuthnResponse1
+func (t *TokenRequestFields_AuthnResponse) FromTokenRequestFieldsAuthnResponse1(v TokenRequestFieldsAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestFieldsAuthnResponse1 performs a merge with any union data inside the TokenRequestFields_AuthnResponse, using the provided TokenRequestFieldsAuthnResponse1
+func (t *TokenRequestFields_AuthnResponse) MergeTokenRequestFieldsAuthnResponse1(v TokenRequestFieldsAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenRequestFields_AuthnResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenRequestFields_AuthnResponse) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

@@ -33,6 +33,7 @@ func cloneClient(c *store.Client) *store.Client {
 	out.AllowedOrigins = slices.Clone(c.AllowedOrigins)
 	out.OrganizationDiscoveryMethods = slices.Clone(c.OrganizationDiscoveryMethods)
 	out.Mobile = c.Mobile.Clone()
+	out.NativeSocialLogin = maps.Clone(c.NativeSocialLogin)
 	out.PrivateKeyJWTCredentials = slices.Clone(c.PrivateKeyJWTCredentials)
 	if c.SignedRequestObject != nil {
 		sro := *c.SignedRequestObject

@@ -377,7 +377,7 @@ func TestClientAuthContracts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := auth.Components.Schemas["TokenRequest"].Value
+	token := auth.Components.Schemas["TokenRequestFields"].Value
 	for _, p := range []string{"client_assertion", "client_assertion_type", "subject_token", "subject_token_type", "actor_token", "actor_token_type", "requested_token_type"} {
 		if token.Properties[p] == nil {
 			t.Errorf("TokenRequest.%s missing", p)

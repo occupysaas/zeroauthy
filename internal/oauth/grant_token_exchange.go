@@ -28,7 +28,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/userrules"
 )
 
-// GrantTokenExchange is the RFC 8693 grant, served for custom token exchange.
+// GrantTokenExchange serves custom token exchange and reserved native social types.
 const GrantTokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange"
 
 // customAuthentication is the only token exchange profile type, and the value
@@ -55,6 +55,9 @@ func tooManyAttempts() *Error {
 // profile's Action, user resolution, post-login, tokens. The subject and
 // actor tokens are credentials: they are masked in every log of the request.
 func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
+	if form.Get("subject_token_type") == nativeAppleSubjectType {
+		return h.nativeAppleExchange(ctx, res, c, form)
+	}
 	subject, actorToken := form.Get("subject_token"), form.Get("actor_token")
 	ctx = logscrub.WithCredentials(ctx, subject, actorToken)
 	logs.AddCredentials(ctx, subject, actorToken)
