@@ -15,7 +15,8 @@ design is `docs/superpowers/specs/2026-10-26-zeroauthy-social-connections-design
 
 Create connections through `POST /api/v2/connections`, the seed (`options:`
 plus `display_name`/`show_as_button`), or the console (**Social**). Every
-strategy needs your own provider `client_id` and `client_secret`; zeroauthy has
+strategy needs your own provider credentials (`client_id` and `client_secret`,
+or Apple’s `app_secret` signing key described below); zeroauthy has
 no shared development keys.
 
 - **Google:** `email` and `profile` flags (both default `true`); scopes are
@@ -185,8 +186,68 @@ secret reinjection and post-import logins; see
 ## Not included
 
 Microsoft accounts (see [email-account-connections.md](email-account-connections.md)),
-the remaining social providers (deferred; no plan number assigned), One Tap/native token exchange, automatic linking,
+the remaining social providers (deferred; no plan number assigned), One Tap, Google/Facebook native token exchange, automatic linking,
 provider-initiated login, federated logout or revocation, organizations, MFA,
 Actions, Token Vault, development keys, arbitrary upstream parameter
 forwarding, front-channel OIDC and the remaining enterprise OIDC features (Plan
 36).
+
+## Apple seed credentials and native client settings
+
+An `apple` connection uses its Services ID as `options.client_id`, a 10-character
+uppercase alphanumeric `team_id` and `kid`, and a PKCS#8 PEM EC P-256 signing key
+as the write-only `app_secret`. The console accepts a pasted `.p8` key and
+name/email switches. Omitting `app_secret` on a Management API PATCH preserves
+the stored key; replacing it rotates the sealed credential.
+
+Seed files require an explicit reference for the Apple signing key:
+
+- `env://NAME` reads the complete PEM from that environment variable. `NAME`
+  must be an environment variable name, such as `APPLE_SIGNING_KEY`.
+- `file://path` reads the complete PEM from a file. `seed.Load` resolves a
+  relative path against the seed file's directory; `seed.Parse` requires an
+  absolute path because it has no seed filename.
+
+Inline Apple keys in seed YAML are refused. Reference errors omit the variable
+name, file path and key contents. Protect referenced files and environment
+variables like other credentials. Reapplying the same key keeps its connection
+identity and revision; changing it rotates the credential on that connection.
+
+```yaml
+tenants:
+  - name: example
+    domains: [login.example.test]
+    clients:
+      - client_id: native-app
+        name: Native app
+        app_type: native
+        token_endpoint_auth_method: none
+        native_social_login:
+          apple: {enabled: true}
+        mobile:
+          ios:
+            team_id: ABCDE12345
+            app_bundle_identifier: test.example.app
+    connections:
+      - name: apple
+        strategy: apple
+        enabled_clients: [native-app]
+        options:
+          client_id: test.example.web
+          team_id: ABCDE12345
+          kid: ABCDE67890
+          app_secret: env://APPLE_SIGNING_KEY # or file://keys/apple.p8
+          name: true
+          email: true
+```
+
+`native_social_login` accepts `apple`, `facebook` and `google`, each with a
+boolean `enabled`; only Apple native exchange is implemented here. An empty
+object enables no providers. Native Apple login also needs the iOS bundle ID
+and an enabled Apple connection. Android and iOS mobile settings retain their
+existing seed shape.
+
+The Apple Deploy CLI lane is `bash tests/e2e/run-m39a-apple-deploy.sh`. It runs
+the pinned CLI through YAML/directory exports and generated/preserved client
+IDs. Public exports omit both `app_secret` and `client_secret`; the private
+migration staging step must explicitly reinject the Apple PEM as `app_secret`.

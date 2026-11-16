@@ -77,10 +77,10 @@ function validate(): boolean {
   else if (n.length > 128 || !NAME.test(n)) errors.name = t('social.nameInvalid')
   need('clientId', draft.clientId)
   if (draft.strategy === 'apple') {
- if (!APPLE_IDENTIFIER.test(draft.appleTeam)) errors.appleTeam = t('social.appleIdentifier')
- if (!APPLE_IDENTIFIER.test(draft.appleKID)) errors.appleKID = t('social.appleIdentifier')
- if (!applePEM(draft.appleKey)) errors.appleKey = t('social.applePEM')
- } else need('clientSecret', draft.clientSecret)
+    if (!APPLE_IDENTIFIER.test(draft.appleTeam)) errors.appleTeam = t('social.appleIdentifier')
+    if (!APPLE_IDENTIFIER.test(draft.appleKID)) errors.appleKID = t('social.appleIdentifier')
+    if (!applePEM(draft.appleKey)) errors.appleKey = t('social.applePEM')
+  } else need('clientSecret', draft.clientSecret)
   if (draft.strategy === 'windowslive' || draft.strategy === 'waad') {
     if (!MICROSOFT_GUID.test(draft.clientId.trim())) errors.clientId = t('social.microsoftClientId')
     if (draft.strategy === 'waad' && draft.microsoftMode === 'single' && !microsoftTenant(draft.tenantDomain)) errors.tenantDomain = t('social.microsoftTenantInvalid')

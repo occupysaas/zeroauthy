@@ -46,9 +46,9 @@ function reset(c: Connection) {
   draft.scopes = typeof o.scopes === 'string' ? o.scopes : ''
   draft.email = o.email !== false
   draft.profile = o.profile !== false
- draft.appleName = o.name !== false
- draft.appleTeam = typeof o.team_id === 'string' ? o.team_id : ''
- draft.appleKID = typeof o.kid === 'string' ? o.kid : ''
+  draft.appleName = o.name !== false
+  draft.appleTeam = typeof o.team_id === 'string' ? o.team_id : ''
+  draft.appleKID = typeof o.kid === 'string' ? o.kid : ''
   draft.newSecret = ''
 }
 watch(() => props.connection.id, () => reset(props.connection), { immediate: true })
@@ -56,11 +56,11 @@ watch(() => props.connection.id, () => reset(props.connection), { immediate: tru
 function validate(): boolean {
   for (const k of Object.keys(errors)) delete errors[k]
   if (strategy.value === 'apple') {
- if (!APPLE_IDENTIFIER.test(draft.appleTeam)) errors.appleTeam = t('social.appleIdentifier')
- if (!APPLE_IDENTIFIER.test(draft.appleKID)) errors.appleKID = t('social.appleIdentifier')
- if (draft.newSecret && !applePEM(draft.newSecret)) errors.newSecret = t('social.applePEM')
- }
- if (draft.newSecret && !draft.newSecret.trim()) errors.newSecret = t('social.required')
+    if (!APPLE_IDENTIFIER.test(draft.appleTeam)) errors.appleTeam = t('social.appleIdentifier')
+    if (!APPLE_IDENTIFIER.test(draft.appleKID)) errors.appleKID = t('social.appleIdentifier')
+    if (draft.newSecret && !applePEM(draft.newSecret)) errors.newSecret = t('social.applePEM')
+  }
+  if (draft.newSecret && !draft.newSecret.trim()) errors.newSecret = t('social.required')
   if (strategy.value === 'oauth2' && !draft.scope.trim()) errors.scope = t('social.required')
   if (strategy.value === 'oidc' && !draft.scopes.split(/\s+/).includes('openid')) errors.scopes = t('social.openidRequired')
   return Object.keys(errors).length === 0
@@ -76,7 +76,7 @@ async function save() {
   // sent only when replaced.
   const opts: Options = { ...options.value }
   delete opts.client_secret
- delete opts.app_secret
+  delete opts.app_secret
   if (draft.sync === 'on_each_login' && opts.set_user_root_attributes === undefined) delete opts.set_user_root_attributes
   else opts.set_user_root_attributes = draft.sync
   if (strategy.value === 'oauth2') opts.scope = draft.scope.trim()
@@ -87,11 +87,11 @@ async function save() {
     delete opts.scope
   }
   if (strategy.value === 'apple') {
- Object.assign(opts, {team_id: draft.appleTeam, kid: draft.appleKID, name: draft.appleName, email: draft.email})
- delete opts.scope
- delete opts.freeform_scopes
- }
- if (draft.newSecret) opts[strategy.value === 'apple' ? 'app_secret' : 'client_secret'] = draft.newSecret
+    Object.assign(opts, { team_id: draft.appleTeam, kid: draft.appleKID, name: draft.appleName, email: draft.email })
+    delete opts.scope
+    delete opts.freeform_scopes
+  }
+  if (draft.newSecret) opts[strategy.value === 'apple' ? 'app_secret' : 'client_secret'] = draft.newSecret
   const body: Record<string, unknown> = {
     options: opts,
     show_as_button: draft.showAsButton,
@@ -142,13 +142,13 @@ function fixed(key: string): string {
       <input id="social-secret" v-model="draft.newSecret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.newSecret" :aria-describedby="errors.newSecret ? 'social-secret-hint social-secret-error' : 'social-secret-hint'" />
     </Field>
 
-      <template v-if="strategy === 'apple'">
-        <Field id="apple-team" :label="t('social.appleTeam')" :error="errors.appleTeam"><input id="apple-team" v-model="draft.appleTeam" maxlength="10" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.appleTeam" :aria-describedby="errors.appleTeam ? 'apple-team-error' : undefined" /></Field>
-        <Field id="apple-kid" :label="t('social.appleKID')" :error="errors.appleKID"><input id="apple-kid" v-model="draft.appleKID" maxlength="10" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.appleKID" :aria-describedby="errors.appleKID ? 'apple-kid-error' : undefined" /></Field>
-        <Field id="apple-key" :label="t('social.appleKey')" :hint="t('social.appleKeyKeep')" :error="errors.newSecret"><textarea id="apple-key" v-model="draft.newSecret" rows="7" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.newSecret" :aria-describedby="errors.newSecret ? 'apple-key-hint apple-key-error' : 'apple-key-hint'" /></Field>
-        <label class="check"><input id="apple-name" v-model="draft.appleName" type="checkbox" /> {{ t('social.appleName') }}</label>
-        <label class="check"><input id="apple-email" v-model="draft.email" type="checkbox" /> {{ t('social.googleEmail') }}</label>
-      </template>
+    <template v-if="strategy === 'apple'">
+      <Field id="apple-team" :label="t('social.appleTeam')" :error="errors.appleTeam"><input id="apple-team" v-model="draft.appleTeam" maxlength="10" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.appleTeam" :aria-describedby="errors.appleTeam ? 'apple-team-error' : undefined" /></Field>
+      <Field id="apple-kid" :label="t('social.appleKID')" :error="errors.appleKID"><input id="apple-kid" v-model="draft.appleKID" maxlength="10" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.appleKID" :aria-describedby="errors.appleKID ? 'apple-kid-error' : undefined" /></Field>
+      <Field id="apple-key" :label="t('social.appleKey')" :hint="t('social.appleKeyKeep')" :error="errors.newSecret"><textarea id="apple-key" v-model="draft.newSecret" rows="7" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.newSecret" :aria-describedby="errors.newSecret ? 'apple-key-hint apple-key-error' : 'apple-key-hint'" /></Field>
+      <label class="check"><input id="apple-name" v-model="draft.appleName" type="checkbox" /> {{ t('social.appleName') }}</label>
+      <label class="check"><input id="apple-email" v-model="draft.email" type="checkbox" /> {{ t('social.googleEmail') }}</label>
+    </template>
     <MicrosoftOptions v-if="strategy === 'windowslive' || strategy === 'waad'" :strategy="strategy" :mode="options.useCommonEndpoint === true ? 'organizations' : 'single'" :tenant-domain="fixed('tenant_domain')" readonly />
 
     <template v-if="strategy === 'google-oauth2'">

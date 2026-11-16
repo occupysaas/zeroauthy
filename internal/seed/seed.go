@@ -219,14 +219,17 @@ type Client struct {
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool  `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	RequirePushedAuthorizationRequests             bool   `yaml:"require_pushed_authorization_requests"`
 
+	// NativeSocialLogin stores the public apple/facebook/google enabled objects.
+	// Shared rules validate its shape; omitted providers remain disabled.
+	NativeSocialLogin any `yaml:"native_social_login"`
+	nativeSocialLogin map[string]bool
+
 	// Mobile is Auth0's client mobile object (ios.team_id,
 	// ios.app_bundle_identifier, android.app_package_name,
 	// android.sha256_cert_fingerprints), used for native passkeys and the
 	// association files. It needs a store with webauthn.v1.
-	NativeSocialLogin any `yaml:"native_social_login"`
-	nativeSocialLogin map[string]bool
-	Mobile            map[string]any `yaml:"mobile"`
-	mobile            *store.ClientMobile
+	Mobile map[string]any `yaml:"mobile"`
+	mobile *store.ClientMobile
 
 	// Credentials are the public keys of the client (at most two). The
 	// three settings below name them by name; they need a store with
@@ -376,7 +379,8 @@ type Connection struct {
 	IsDomainConnection bool `yaml:"is_domain_connection"`
 
 	// Options are the options of a database, passwordless or federated strategy (google-oauth2,
-	// oauth2, oidc, windowslive, waad) in Auth0's names. options.client_secret is plaintext in
+	// oauth2, oidc, windowslive, waad, apple) in Auth0's names. Apple app_secret
+	// requires a file:// or env:// reference. Other options.client_secret is plaintext in
 	// the seed file and sealed when applied; it is required.
 	Options      map[string]any `yaml:"options"`
 	DisplayName  string         `yaml:"display_name"`

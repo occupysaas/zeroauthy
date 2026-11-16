@@ -41,7 +41,7 @@ func TestDeployedAppleKey(t *testing.T) {
 		if err != nil {
 			t.Fatal("fixture tenant unavailable")
 		}
-		c, err := st.Connections().GetByName(t.Context(), tenant.ID, "Apple deploy")
+		c, err := st.Connections().GetByName(t.Context(), tenant.ID, "Apple-deploy")
 		if err != nil {
 			t.Fatal("imported connection missing")
 		}

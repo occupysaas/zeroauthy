@@ -361,7 +361,7 @@ func (t *Tenant) validate() []error {
 		}
 		spec := c.spec()
 		if c.Options != nil && !spec.Federated() && !spec.Passwordless() && spec.Strategy != store.StrategyDatabase {
-			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive and waad strategies", c.Name)
+			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive, waad and apple strategies", c.Name)
 		}
 		if spec.Federated() {
 			if _, named := c.Options[rules.SecretOption(spec.Strategy)]; !named {
