@@ -120,6 +120,26 @@ when `setActor` was used. The access token carries no `gty`;
 `event.transaction.protocol` is `oauth2-token-exchange` in post-login. Login
 counters and `last_login` update as for any login (C13).
 
+## Second factors are not requested
+
+The tenant's MFA policy is **not** applied to a custom token exchange: the
+Action decides whose tokens are issued, and no second factor is asked for.
+This is a local ruling pending observation of Auth0 (D-0063, C20). If you
+require a second factor, do not enable the grant for that application.
+
+## The response
+
+A successful exchange returns the usual token response plus
+`issued_token_type`, always `urn:ietf:params:oauth:token-type:access_token`
+(RFC 8693 section 2.2.1; LR35-15). `requested_token_type` is passed to the
+Action but does not change what is issued.
+
+## What persists when a later step fails
+
+The Action's user creation or update, and any metadata it wrote, are saved
+before the later steps run. If organization membership, post-login or token
+minting then fails, the exchange is refused but those changes stay.
+
 ## Throttling and logs
 
 The suspicious-IP stage `pre-custom-token-exchange` bounds failed attempts per

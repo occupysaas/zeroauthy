@@ -3211,6 +3211,8 @@ and the RFC 8693 grant with the `custom-token-exchange` trigger; `HS256` and
 | LR35-12 | A client with `signed_request_object.required` cannot use `/passwordless/verify_redirect` magic links (they carry no signed mark), so the request fails closed | A required client's magic links fail where Auth0 may allow them |
 | LR35-13 | HS256 secrets from 16 characters are accepted, and the HS256 JWS is built in-tree because the JOSE library refuses keys under 32 bytes | A strict verifier may reject a short secret; generated secrets are 43 characters |
 | LR35-14 | `setUserByConnection` accepts `verify_email` but sends no email yet | A caller that relies on the verification email gets none |
+| LR35-15 | A custom token exchange response always carries `issued_token_type: urn:ietf:params:oauth:token-type:access_token` (RFC 8693 section 2.2.1 makes it required); `requested_token_type` is passed to the Action but does not change what is issued | A client that asks for another type still gets an access token; Auth0's value is unobserved (observe what Auth0 returns for `issued_token_type` and for a `requested_token_type` it does not issue) |
+| LR35-16 | A client assertion whose header `typ` is `oauth-authz-req+jwt` is refused, so a request object cannot be replayed as an assertion when one key serves both settings; absent `typ`, `JWT` and `jwt` stay accepted | A client that signs assertions with that `typ` fails |
 
 **Observe later (C1 to C19)**; each has a local answer now, and the points are
 copied to `docs/superpowers/plan-1-followups.md`:

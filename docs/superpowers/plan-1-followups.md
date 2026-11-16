@@ -566,6 +566,68 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
 
 ## Plan 35 follow-ups
 
+**Open points for the maintainer (whole-branch review, 2026-11-15):**
+
+1. Tenant MFA policy on custom token exchange: keep it not applied (current,
+   documented), or fail closed.
+2. JWKS without `alg`: keep, or publish `alg` again with a second PS256 entry
+   for the same key.
+3. Discovery `id_token_signing_alg_values_supported`: whether to list PS256
+   and HS256 (it lists only RS256 today).
+4. HS256 minimum secret length: 16 characters (current) or 32.
+5. Seed apply deleting API-added keys on seed-owned clients.
+
+**Deferred review findings** (minor; none blocks the release):
+
+- *clientcred:* `ParsePEM` accepts text before the PEM block; `jti` length is
+  counted in bytes; assertion size and algorithm bounds are repeated outside
+  the package; a mismatch of `iss` alone answers 401, not 400; `aud` is
+  accepted as an array (RFC 7523 allows it; Auth0 unobserved); the endpoint
+  `aud` comes from the raw request path.
+- *store and SQL:* `UseJTI` and `UpdateExpiry` read the wall clock, not the
+  store clock; `ListProfiles` with a limit of 0; the sweeper has no wiring
+  test; memory and SQL differ in credential key shape; duplicate credential
+  ids or `kid`s are accepted; created and updated times use different clocks;
+  the conformance test builds an extra fixture for the capability check.
+- *gRPC:* no mixed test of a plugin that lacks the capability while the
+  client also carries mobile and new fields.
+- *Management API:* a `signed_request_object` patch merges credentials (note
+  in D-0063); create and update answer different errors without the
+  capability; no rollback test for inline credentials on create; a failed
+  signing-secret write returns an unlogged bare 500; reads of `signing_secret`
+  are not audited; `signing_secret` has no upper length bound; the Action
+  delete guard checks before it deletes (narrow race); no name-only profile
+  PATCH test; reserved-prefix tests for `http://` pass on the scheme check.
+- *authz and JAR:* the JAR replay test moves only the handler clock;
+  `ApplyRequestObject` sets `objectErr` implicitly and loads the client twice;
+  a client that requires signed requests cannot use passwordless magic links
+  (fails closed).
+- *token exchange:* the deny branch repeats the credentials-exchange branch;
+  very short subject tokens become log masks; the Action's rejection reason is
+  not returned; log redaction matches only exact registered credentials;
+  `checkActor` has no UTF-8 check; `fecte` has no description; no tests for
+  the MFA-API and unknown-audience refusals; user creation and metadata persist
+  when a later step fails (documented; moving the writes later is open).
+- *console:* the credentials tab leaves a stale list when the refresh after a
+  delete fails; the exchange toggle is disabled without the unavailable
+  notice; HS256 on a plugin without the capability shows a generic 501; no
+  past-date check on `expires_at`; the console tests have no recorded failing
+  run.
+- *seed:* no further items beyond open point 5.
+- *docs:* the `logs.md` and `matrix.md` emitted-event counts look stale;
+  a dangling clause in the D-0063 seed bullet; `decisions.md` still says quota
+  controls stay in Plan 35 (moved to Plan 48); `logs.md` rows for on-behalf-of,
+  ID-JAG and jwt-bearer types name Plan 35 as owner (out of scope); the claims
+  about `jti` consumed on a later failure, the magic-link refusal and the
+  secret-deny-code refusal were not re-verified.
+- *E2E test strictness:* the JAR-required check accepts a redirect or an error
+  page; the unsigned PAR push only expects a rejection; `assert.rejects` with
+  a message string accepts any rejection (`m35-node.mjs`, `m35-cli.mjs`); the
+  "Action does not run" comment is unasserted; a CLI-created `signing_secret`
+  is outside the secret audit; Deploy CLI prints "may be destructive"
+  warnings; the run script header says the memory backend works (untested).
+- *other:* the m20 Deploy CLI matrix lacks token exchange profiles (above).
+
 ### Client credentials, JAR and custom token exchange observation gaps (C1 to C22, observation optional)
 
 D-0063 froze a local answer for each point; observe later and change

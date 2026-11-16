@@ -2,7 +2,7 @@
 
 Plan: `docs/superpowers/plans/2026-11-08-zeroauthy-plan-35-client-credentials-jar-token-exchange.md`.
 Spec: `docs/superpowers/specs/2026-11-08-zeroauthy-client-credentials-jar-token-exchange-design.md`.
-Decision: D-0063 (LR35-1 to LR35-14, C1 to C22). Guides:
+Decision: D-0063 (LR35-1 to LR35-16, C1 to C22). Guides:
 `docs/client-authentication.md`, `docs/token-exchange.md`.
 Executor: subagent-driven (one implementer and one reviewer per task).
 Branch `plan-35-client-auth`, worktree `/mnt/nvme2/code/zeroauthy-plan35`,
@@ -228,7 +228,7 @@ matrix, with precise reasons:
 
 ## Local rulings and deferrals
 
-- D-0063: LR35-1 to LR35-14 and C1 to C22. C19 was resolved by test
+- D-0063: LR35-1 to LR35-16 and C1 to C22. C19 was resolved by test
   (2026-11-15).
 - `verify_email` is accepted by `setUserByConnection` but sends nothing yet
   (LR35-14; follow-up).
@@ -285,4 +285,26 @@ other E2E suites and conformance.
 - Run 43754757189 on 4f91f71 failed in the console job on a stale console
   bundle, fixed by the Task 13 rebuild.
 
-Final CI run: pending (controller fills in).
+Final CI run: run 43761646827 on 95691f7 (all sixteen tasks) passed every
+job, including race tests, PostgreSQL and MySQL, the console build check,
+every E2E suite including `e2e-client-auth`, and conformance.
+
+## Whole-branch review
+
+Verdict: ready with fixes. No Critical findings.
+
+- Important findings fixed in the fix wave: F1, an invitation ticket inside a
+  signed request object was not masked in logs at `/authorize` and
+  `/oauth/par`; F2, the exchange response lacked `issued_token_type`
+  (LR35-15).
+- Left for a maintainer ruling: the tenant MFA policy is not applied to a
+  custom token exchange (keep, or fail closed).
+- Minor, also in the wave: F3 a request object is refused as a client
+  assertion (LR35-16); F4 the gRPC client probes `client_credentials.v1` once
+  per connection; F5 the `SignWithAlg` comment.
+- Documentation in the wave: D1 upgrade notes; D2 the token exchange page
+  (MFA, `issued_token_type`, persistence); D3 checked, no change (PS256 verifier
+  configuration was already documented); D4 the deferred review items in the
+  [follow-ups](plan-1-followups.md); D5 this record and the roadmap wording.
+
+CI for the fix wave: pending.
