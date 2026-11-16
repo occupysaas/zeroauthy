@@ -667,3 +667,18 @@ database connections only); C22 the description of a rejected subject token
   quota headers.
 - **Not built (D-0063):** mTLS client authentication, RAR, JWE access tokens,
   DPoP, `api.transaction.setMetadata` for custom token exchange.
+
+
+### Plan 39a — Sign in with Apple (started 2026-11-16)
+
+D-0170 and [the implementation record](2026-11-16-plan-39a-implementation-record.md)
+track the internal signer/cache foundation. Option rules, provider, callbacks,
+native flow, console, seed and E2E remain pending. Optional observations:
+
+- **A1:** Whether Auth0 consumes Apple server notifications.
+- **A2:** Whether it revokes Apple tokens on user deletion/unlink.
+- **A3:** Apple's native `subject_token_type` value.
+- **A4:** PKCE support advertised by Apple metadata.
+- **A5:** Native-exchange error wording.
+- **A6:** Actions `event.transaction.protocol` for native exchanges.
+- **A7:** Log types for native social exchanges.

@@ -76,14 +76,16 @@ func GoogleEndpoints() Endpoints {
 // Providers builds strategy adapters over one bounded HTTP client and
 // process-wide discovery and key caches.
 type Providers struct {
-	client       *http.Client
-	policy       NetworkPolicy
-	now          func() time.Time
-	discovery    *ttlCache[Metadata]
-	keys         *keyCache
-	scripts      script.Executor
-	googleFix    *GoogleOverride
-	microsoftFix *MicrosoftOverride
+	client        *http.Client
+	policy        NetworkPolicy
+	now           func() time.Time
+	discovery     *ttlCache[Metadata]
+	keys          *keyCache
+	scripts       script.Executor
+	googleFix     *GoogleOverride
+	microsoftFix  *MicrosoftOverride
+	appleSecretMu sync.Mutex
+	appleSecrets  *ttlCache[appleSecretEntry]
 }
 
 // GoogleOverride replaces Google's fixed endpoints and issuer for a local
@@ -120,7 +122,8 @@ func NewProviders(policy NetworkPolicy, now func() time.Time) *Providers {
 		client: &http.Client{Transport: NewTransport(policy), CheckRedirect: func(*http.Request, []*http.Request) error {
 			return fmt.Errorf("%w: redirect refused", ErrNetworkPolicy)
 		}},
-		discovery: newTTLCache[Metadata](maxCacheEntries, maxCacheTTL, now),
+		discovery:    newTTLCache[Metadata](maxCacheEntries, maxCacheTTL, now),
+		appleSecrets: newTTLCache[appleSecretEntry](maxCacheEntries, appleSecretCacheTTL, now),
 	}
 	ps.keys = &keyCache{ps: ps, sets: newTTLCache[*keySet](maxCacheEntries, maxCacheTTL, now), inflight: map[string]*keyFetch{}}
 	return ps

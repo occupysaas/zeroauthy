@@ -15,7 +15,11 @@ This folder holds how zeroauthy is designed and built:
 ## What to work on next
 
 Every remaining roadmap item except X1 (hosted zeroauthy, maintainer-only)
-has a spec and a plan, written 2026-11-16. **None is implemented yet.**
+has a spec and a plan, written 2026-11-16. **None is fully implemented yet.**
+
+S1 / Plan 39a has [started](2026-11-16-plan-39a-implementation-record.md)
+on `plan-39a-apple` (internal client-secret signer/cache); the remaining
+Apple tasks are pending.
 
 Start at the roadmap's **"Designed 2026-11-16"** table
 ([roadmap §0](specs/2026-10-19-zeroauthy-management-roadmap-design.md)).

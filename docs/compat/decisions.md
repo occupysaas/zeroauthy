@@ -3329,3 +3329,47 @@ copied to `docs/superpowers/plan-1-followups.md`:
 - Conformance: `oidcc-ensure-request-object-with-redirect-uri` sends an
   unsigned object and is now skipped by the suite in Basic and Form Post; it
   is listed in expected-skips.
+
+
+## D-0170 — Plan 39a Sign in with Apple (2026-11-16)
+
+**Status:** started with Task 3, the internal client-secret signer and cache.
+The Apple connection strategy and web/native login flows are not operational.
+See the [implementation record](../superpowers/2026-11-16-plan-39a-implementation-record.md).
+
+**Authority:** [Plan 39a design](../superpowers/specs/2026-11-16-zeroauthy-apple-design.md),
+Apple's [client-secret contract](https://developer.apple.com/documentation/accountorganizationaldatasharing/creating-a-client-secret),
+and [Sign in with Apple response errors](https://developer.apple.com/documentation/technotes/tn3107-resolving-sign-in-with-apple-response-errors).
+Only public documentation was consulted; no live tenant or Apple account was observed.
+
+The design freezes these local rulings for the remaining implementation:
+
+| ID | Contract | Status |
+|---|---|---|
+| LR39a-1 | Operator supplies Apple credentials; no borrowed developer keys. | Pending option/provider work. |
+| LR39a-2 | No server-to-server Apple notification endpoint. | Out of scope. |
+| LR39a-3 | No automatic upstream token revocation; applications may read sealed upstream tokens with the proper scope. | Pending provider work. |
+| LR39a-4 | Connection `client_id` is immutable. | Pending option rules. |
+| LR39a-5 | `team_id` and `kid` are 10 uppercase alphanumerics. | Pending option rules. |
+| LR39a-6 | Only `name` and `email` scopes. | Pending option rules. |
+| LR39a-7 | ES256 client secret lives five minutes; cache at most four minutes. | Implemented in Task 3. |
+| LR39a-8 | Share `POST /login/callback` with Plan 36. | Pending callback work. |
+| LR39a-9 | Native exchange uses the first enabled Apple connection in client order. | Pending native flow. |
+| LR39a-10 | Preserve Apple's first-login name on later logins. | Pending profile/callback work. |
+
+Task 3 caches signed JWTs in bounded process memory, isolated by tenant,
+connection, configuration revision, Team ID, Key ID and subject. It retains no
+private key in the cache. The subject is the web Services ID or native bundle
+ID; the JWT audience is Apple's fixed issuer. Concurrent requests share a
+signature for the same configuration. Callers will enforce revision changes
+when credentials rotate; pending-attempt invalidation remains due in the
+provider/configuration tasks.
+
+D-0039's accepted-and-ignored status for client `native_social_login` and
+`mobile` remains in force until Task 6 persists and enforces those fields.
+The rest of Task 1's API/inventory freeze remains pending.
+
+Optional observation points A1–A7 remain open: server notifications, automatic
+upstream revocation, native subject-token-type value, provider PKCE support,
+native errors, Actions protocol, and native log types. Their local answers
+are recorded in the design; none is claimed observed.
