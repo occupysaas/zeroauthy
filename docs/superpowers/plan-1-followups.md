@@ -667,3 +667,15 @@ database connections only); C22 the description of a rejected subject token
   quota headers.
 - **Not built (D-0063):** mTLS client authentication, RAR, JWE access tokens,
   DPoP, `api.transaction.setMetadata` for custom token exchange.
+
+
+### Plan 45b — flow and API fixes (started 2026-11-16)
+
+Contracts and intended amendments are in D-0270; completion is tracked in
+[the implementation record](2026-11-16-plan-45b-implementation-record.md).
+Observation remains optional, and these points have not been observed:
+
+- **B1:** Whether Auth0 emits `limit_wc` once per brute-force block or per denied attempt.
+- **B2:** Clearing a connection's required identifier with `null` (local: `400`).
+- **B3:** The delivery triggered by `verify_phone_number` (local: Plan 34 phone verification code).
+- **B4:** `stats.logins_count` as seen by post-login Actions (local: keep current Action ordering).
