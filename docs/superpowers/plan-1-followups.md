@@ -672,13 +672,30 @@ database connections only); C22 the description of a rejected subject token
 ### Plan 39a — Sign in with Apple (started 2026-11-16)
 
 D-0170 and [the implementation record](2026-11-16-plan-39a-implementation-record.md)
-track the internal signer/cache foundation. Option rules, provider, callbacks,
-native flow, console, seed and E2E remain pending. Optional observations:
+track the signer/cache foundation and Task 1's API/inventory contract freeze.
+Option rules, provider, callbacks, native flow, console, seed and E2E remain
+pending; Apple login is not operational yet. These are optional observations,
+not blockers or claims of observed parity. Local contracts apply meanwhile:
 
-- **A1:** Whether Auth0 consumes Apple server notifications.
-- **A2:** Whether it revokes Apple tokens on user deletion/unlink.
-- **A3:** Apple's native `subject_token_type` value.
-- **A4:** PKCE support advertised by Apple metadata.
-- **A5:** Native-exchange error wording.
-- **A6:** Actions `event.transaction.protocol` for native exchanges.
-- **A7:** Log types for native social exchanges.
+- **A1 (open):** Whether Auth0 consumes Apple server notifications. No
+  notification endpoint is built (LR39a-2).
+- **A2 (open):** Whether it revokes Apple tokens on user deletion/unlink.
+  No automatic revocation; apps can retrieve upstream tokens with
+  `read:user_idp_tokens` to revoke them (LR39a-3).
+- **A3 (open):** Apple's native `subject_token_type` value. The design pins
+  `http://auth0.com/oauth/token-type/apple-authz-code`; it is reserved for
+  native dispatch and cannot invoke a custom exchange Action. This value
+  has not been tenant-observed.
+- **A4 (open):** PKCE support advertised by Apple metadata. Planned web
+  flow sends S256 only when advertised, following Plan 36's `auto` rule.
+- **A5 (open):** Native-exchange error wording. Planned local error codes
+  are `invalid_request` for missing prerequisites and `invalid_grant` for
+  refused/expired Apple codes; descriptions are local wording.
+- **A6 (open):** Actions `event.transaction.protocol` for native exchanges.
+  Planned local value is `oauth2-token-exchange`, strategy `apple`.
+- **A7 (open):** Log types for native social exchanges. Implementation must
+  select types from the public logs schema and otherwise reuse the existing
+  token-exchange success/failure pair; no new log type is invented.
+
+Sources: Auth0's [native Apple guide](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native)
+and [native exchange reference](https://auth0.com/docs/api/authentication/token-exchange-for-native-social/token-exchange-native-social).

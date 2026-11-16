@@ -4667,10 +4667,15 @@ paths:
         unknown keys inside `options` are stored and returned as sent.
         `options.configuration` values are sealed at rest and returned as
         opaque blobs, never as plaintext.
+        Plan 39a freezes `apple` options in `ConnectionOptionsApple`:
+        operator credentials are required on create, `client_id` is immutable,
+        and `app_secret` is sealed and never returned. Apple strategy and
+        login runtime are planned; this schema does not activate them (D-0170).
       x-source:
         - https://auth0.com/docs/api/management/v2/connections/post-connections
         - https://auth0.com/docs/oas/management/v2/management-api-oas.json
         - https://auth0.com/docs/authenticate/passwordless
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native
       requestBody:
         required: true
         content:
@@ -13836,6 +13841,57 @@ components:
       properties:
         length: {type: integer, minimum: 4, maximum: 40, default: 6}
         time_step: {type: integer, minimum: 60, default: 180, description: Code and link lifetime in seconds.}
+    ConnectionOptionsApple:
+      type: object
+      description: |
+        Planned Apple connection contract (D-0170); login is not operational
+        yet. Create requires client_id (Services ID), team_id, kid and
+        app_secret; no developer credentials are supplied. The Services ID
+        is immutable. PATCH omitting app_secret preserves the sealed key;
+        empty/null keys are refused. Key parsing and consistency between
+        scope and the name/email flags are checked by the option rules.
+        Rotating team_id, kid or app_secret increments FederationRevision.
+        Local format and scope limits follow LR39a-4 through LR39a-6.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native
+      additionalProperties: true
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 255, description: Apple Services ID; immutable after creation.}
+        team_id: {type: string, pattern: '^[A-Z0-9]{10}$'}
+        kid: {type: string, pattern: '^[A-Z0-9]{10}$'}
+        app_secret:
+          type: string
+          minLength: 1
+          maxLength: 5120
+          writeOnly: true
+          description: PKCS#8 PEM EC P-256 private key; sealed at write and never returned, logged or exported.
+        name: {type: boolean, default: true, description: Request the name on the first authorization.}
+        email: {type: boolean, default: true, description: Request email; the user may choose an Apple relay address.}
+        scope:
+          type: string
+          pattern: '^(name( email)?|email( name)?)?$'
+          description: Space-separated name/email scopes; when sent must agree with the computed flags.
+        freeform_scopes:
+          type: array
+          uniqueItems: true
+          maxItems: 2
+          items: {type: string, enum: [name, email]}
+          description: Only Apple's name and email scopes are accepted (LR39a-6).
+        set_user_root_attributes:
+          type: string
+          enum: [on_each_login, on_first_login, never_on_login]
+          default: on_each_login
+          description: Apple names are preserved after the first login regardless of this setting (LR39a-10).
+        upstream_params:
+          type: object
+          additionalProperties: true
+          description: Stored only; reserved protocol and security overrides are refused (Plan 24 policy).
+        non_persistent_attrs:
+          type: array
+          maxItems: 96
+          items: {type: string, maxLength: 255}
+          description: Stored only.
     ConnectionOptionsEmail:
       type: object
       description: |
@@ -21975,6 +22031,40 @@ components:
       required: [user_verification]
       properties:
         user_verification: {type: string, enum: [discouraged, preferred, required], default: discouraged}
+    NativeSocialLoginApple:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        enabled: {type: boolean, default: false, description: Planned permission to exchange an Apple authorization code natively (D-0170).}
+    NativeSocialLoginFacebook:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+    NativeSocialLoginGoogle:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+    NativeSocialLogin:
+      type: object
+      additionalProperties: false
+      description: |
+        Planned stored/returned native social switches (Plan 39a Task 6).
+        Currently accepted and ignored. Apple exchange additionally requires
+        mobile.ios.app_bundle_identifier and an enabled Apple connection.
+        Facebook and Google enforcement belongs to Plan 39b.
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        apple: {$ref: "#/components/schemas/NativeSocialLoginApple"}
+        facebook: {$ref: "#/components/schemas/NativeSocialLoginFacebook"}
+        google: {$ref: "#/components/schemas/NativeSocialLoginGoogle"}
     ClientMobile:
       type: object
       additionalProperties: true
@@ -21986,6 +22076,8 @@ components:
     ClientMobileIOS:
       type: object
       additionalProperties: true
+      description: Stored and returned iOS identity (Plan 33b). Planned Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
         team_id: {type: string, default: ""}
         app_bundle_identifier: {type: string, default: ""}
@@ -22060,7 +22152,7 @@ components:
           type: string
           format: uri
           description: HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
-        native_social_login: {description: Accepted and ignored.}
+        native_social_login: {$ref: "#/components/schemas/NativeSocialLogin"}
         mobile: {$ref: "#/components/schemas/ClientMobile"}
         organization_usage:
           type: [string, "null"]
@@ -22126,6 +22218,7 @@ components:
       description: An application.
       required: [tenant, client_id, name, app_type, is_first_party, oidc_conformant, callbacks, allowed_logout_urls, web_origins, allowed_origins, grant_types, token_endpoint_auth_method, jwt_configuration, refresh_token, global, callback_url_template, require_pushed_authorization_requests]
       properties:
+        native_social_login: {$ref: "#/components/schemas/NativeSocialLogin"}
         mobile: {$ref: "#/components/schemas/ClientMobile"}
         initiate_login_uri:
           type: string
@@ -22571,7 +22664,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; runtime is planned (D-0170)."}
             enabled_clients:
               type: array
               items: {type: string}

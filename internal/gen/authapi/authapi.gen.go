@@ -661,6 +661,17 @@ type MFARequired struct {
 // MFARequiredError defines model for MFARequired.Error.
 type MFARequiredError string
 
+// NativeSocialUserProfile Planned native iOS first-login name (D-0170). At most 1024 UTF-8
+// bytes of JSON, enforced by the handler. For form requests encode
+// this object as JSON in user_profile. Untrusted profile values are
+// used only after the Apple ID token has validated.
+type NativeSocialUserProfile struct {
+	Name *struct {
+		FirstName *string `json:"firstName,omitempty"`
+		LastName  *string `json:"lastName,omitempty"`
+	} `json:"name,omitempty"`
+}
+
 // OAuthError defines model for OAuthError.
 type OAuthError struct {
 	// Error Examples: invalid_client
@@ -986,11 +997,17 @@ type TokenRequest struct {
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
-	// SubjectToken The external token to exchange (token-exchange grant). Never logged.
+	// SubjectToken The external token to exchange, or an Apple authorization code for the planned native Apple type (D-0170). Never logged.
 	SubjectToken *string `json:"subject_token,omitempty"`
 
-	// SubjectTokenType Identifies the kind of `subject_token`; it selects the token exchange profile (token-exchange grant).
+	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the planned native Apple exchange and never invokes a custom profile (D-0170).
 	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+
+	// UserProfile Planned native iOS first-login name (D-0170). At most 1024 UTF-8
+	// bytes of JSON, enforced by the handler. For form requests encode
+	// this object as JSON in user_profile. Untrusted profile values are
+	// used only after the Apple ID token has validated.
+	UserProfile *NativeSocialUserProfile `json:"user_profile,omitempty"`
 
 	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
 	Username *string `json:"username,omitempty"`

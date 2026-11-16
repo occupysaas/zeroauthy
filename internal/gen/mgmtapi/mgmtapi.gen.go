@@ -1442,6 +1442,7 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 
 // Defines values for ConnectionCreateStrategy.
 const (
+	ConnectionCreateStrategyApple        ConnectionCreateStrategy = "apple"
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
 	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
 	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
@@ -1455,6 +1456,8 @@ const (
 // Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
 func (e ConnectionCreateStrategy) Valid() bool {
 	switch e {
+	case ConnectionCreateStrategyApple:
+		return true
 	case ConnectionCreateStrategyAuth0:
 		return true
 	case ConnectionCreateStrategyEmail:
@@ -1470,6 +1473,45 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	case ConnectionCreateStrategyWaad:
 		return true
 	case ConnectionCreateStrategyWindowslive:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsAppleFreeformScopes.
+const (
+	ConnectionOptionsAppleFreeformScopesEmail ConnectionOptionsAppleFreeformScopes = "email"
+	ConnectionOptionsAppleFreeformScopesName  ConnectionOptionsAppleFreeformScopes = "name"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsAppleFreeformScopes enum.
+func (e ConnectionOptionsAppleFreeformScopes) Valid() bool {
+	switch e {
+	case ConnectionOptionsAppleFreeformScopesEmail:
+		return true
+	case ConnectionOptionsAppleFreeformScopesName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsAppleSetUserRootAttributes.
+const (
+	NeverOnLogin ConnectionOptionsAppleSetUserRootAttributes = "never_on_login"
+	OnEachLogin  ConnectionOptionsAppleSetUserRootAttributes = "on_each_login"
+	OnFirstLogin ConnectionOptionsAppleSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsAppleSetUserRootAttributes enum.
+func (e ConnectionOptionsAppleSetUserRootAttributes) Valid() bool {
+	switch e {
+	case NeverOnLogin:
+		return true
+	case OnEachLogin:
+		return true
+	case OnFirstLogin:
 		return true
 	default:
 		return false
@@ -2714,19 +2756,19 @@ func (e IIOrganizationMemberAccessLevelEnumWithNull) Valid() bool {
 
 // Defines values for IIOrganizationSortFieldEnum.
 const (
-	CreatedAt   IIOrganizationSortFieldEnum = "created_at"
-	DisplayName IIOrganizationSortFieldEnum = "display_name"
-	Name        IIOrganizationSortFieldEnum = "name"
+	IIOrganizationSortFieldEnumCreatedAt   IIOrganizationSortFieldEnum = "created_at"
+	IIOrganizationSortFieldEnumDisplayName IIOrganizationSortFieldEnum = "display_name"
+	IIOrganizationSortFieldEnumName        IIOrganizationSortFieldEnum = "name"
 )
 
 // Valid indicates whether the value is a known member of the IIOrganizationSortFieldEnum enum.
 func (e IIOrganizationSortFieldEnum) Valid() bool {
 	switch e {
-	case CreatedAt:
+	case IIOrganizationSortFieldEnumCreatedAt:
 		return true
-	case DisplayName:
+	case IIOrganizationSortFieldEnumDisplayName:
 		return true
-	case Name:
+	case IIOrganizationSortFieldEnumName:
 		return true
 	default:
 		return false
@@ -7567,9 +7609,15 @@ type Client struct {
 	JwtConfiguration JwtConfiguration `json:"jwt_configuration"`
 
 	// Mobile Native application identities. Unknown settings are accepted and ignored.
-	Mobile         *ClientMobile        `json:"mobile,omitempty"`
-	Name           string               `json:"name"`
-	OidcConformant ClientOidcConformant `json:"oidc_conformant"`
+	Mobile *ClientMobile `json:"mobile,omitempty"`
+	Name   string        `json:"name"`
+
+	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
+	// Currently accepted and ignored. Apple exchange additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
+	// Facebook and Google enforcement belongs to Plan 39b.
+	NativeSocialLogin *NativeSocialLogin   `json:"native_social_login,omitempty"`
+	OidcConformant    ClientOidcConformant `json:"oidc_conformant"`
 
 	// OrganizationDiscoveryMethods Left out when unset.
 	OrganizationDiscoveryMethods *[]ClientOrganizationDiscoveryMethods `json:"organization_discovery_methods,omitempty"`
@@ -7717,8 +7765,11 @@ type ClientCreate struct {
 	// Name The application's name.
 	Name string `json:"name"`
 
-	// NativeSocialLogin Accepted and ignored.
-	NativeSocialLogin interface{} `json:"native_social_login,omitempty"`
+	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
+	// Currently accepted and ignored. Apple exchange additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
+	// Facebook and Google enforcement belongs to Plan 39b.
+	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
 	OidcConformant *bool `json:"oidc_conformant,omitempty"`
@@ -7978,7 +8029,9 @@ type ClientGrantUpdate = ClientGrantSettings
 
 // ClientMobile Native application identities. Unknown settings are accepted and ignored.
 type ClientMobile struct {
-	Android              *ClientMobileAndroid   `json:"android,omitempty"`
+	Android *ClientMobileAndroid `json:"android,omitempty"`
+
+	// Ios Stored and returned iOS identity (Plan 33b). Planned Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
 	Ios                  *ClientMobileIOS       `json:"ios,omitempty"`
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
@@ -7990,7 +8043,7 @@ type ClientMobileAndroid struct {
 	AdditionalProperties   map[string]interface{} `json:"-"`
 }
 
-// ClientMobileIOS defines model for ClientMobileIOS.
+// ClientMobileIOS Stored and returned iOS identity (Plan 33b). Planned Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
 type ClientMobileIOS struct {
 	AppBundleIdentifier  *string                `json:"app_bundle_identifier,omitempty"`
 	TeamId               *string                `json:"team_id,omitempty"`
@@ -8084,8 +8137,11 @@ type ClientSettings struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Accepted and ignored.
-	NativeSocialLogin interface{} `json:"native_social_login,omitempty"`
+	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
+	// Currently accepted and ignored. Apple exchange additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
+	// Facebook and Google enforcement belongs to Plan 39b.
+	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
 	OidcConformant *bool `json:"oidc_conformant,omitempty"`
@@ -8244,8 +8300,11 @@ type ClientUpdate struct {
 	// Name The application's name.
 	Name *string `json:"name,omitempty"`
 
-	// NativeSocialLogin Accepted and ignored.
-	NativeSocialLogin interface{} `json:"native_social_login,omitempty"`
+	// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
+	// Currently accepted and ignored. Apple exchange additionally requires
+	// mobile.ios.app_bundle_identifier and an enabled Apple connection.
+	// Facebook and Google enforcement belongs to Plan 39b.
+	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
 	OidcConformant *bool `json:"oidc_conformant,omitempty"`
@@ -8406,17 +8465,63 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34).
+	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; runtime is planned (D-0170).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34).
+// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; runtime is planned (D-0170).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
 type ConnectionDeleted struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }
+
+// ConnectionOptionsApple Planned Apple connection contract (D-0170); login is not operational
+// yet. Create requires client_id (Services ID), team_id, kid and
+// app_secret; no developer credentials are supplied. The Services ID
+// is immutable. PATCH omitting app_secret preserves the sealed key;
+// empty/null keys are refused. Key parsing and consistency between
+// scope and the name/email flags are checked by the option rules.
+// Rotating team_id, kid or app_secret increments FederationRevision.
+// Local format and scope limits follow LR39a-4 through LR39a-6.
+type ConnectionOptionsApple struct {
+	// AppSecret PKCS#8 PEM EC P-256 private key; sealed at write and never returned, logged or exported.
+	AppSecret *string `json:"app_secret,omitempty"`
+
+	// ClientId Apple Services ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// Email Request email; the user may choose an Apple relay address.
+	Email *bool `json:"email,omitempty"`
+
+	// FreeformScopes Only Apple's name and email scopes are accepted (LR39a-6).
+	FreeformScopes *[]ConnectionOptionsAppleFreeformScopes `json:"freeform_scopes,omitempty"`
+	Kid            *string                                 `json:"kid,omitempty"`
+
+	// Name Request the name on the first authorization.
+	Name *bool `json:"name,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+
+	// Scope Space-separated name/email scopes; when sent must agree with the computed flags.
+	Scope *string `json:"scope,omitempty"`
+
+	// SetUserRootAttributes Apple names are preserved after the first login regardless of this setting (LR39a-10).
+	SetUserRootAttributes *ConnectionOptionsAppleSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+	TeamId                *string                                      `json:"team_id,omitempty"`
+
+	// UpstreamParams Stored only; reserved protocol and security overrides are refused (Plan 24 policy).
+	UpstreamParams       *map[string]interface{} `json:"upstream_params,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// ConnectionOptionsAppleFreeformScopes defines model for ConnectionOptionsApple.FreeformScopes.
+type ConnectionOptionsAppleFreeformScopes string
+
+// ConnectionOptionsAppleSetUserRootAttributes Apple names are preserved after the first login regardless of this setting (LR39a-10).
+type ConnectionOptionsAppleSetUserRootAttributes string
 
 // ConnectionOptionsEmail Options of the `email` passwordless connection (name `email`).
 // `authParams` is a JSON object encoded as a string, merged into magic
@@ -11190,6 +11295,34 @@ type ManagementError struct {
 
 	// StatusCode The HTTP status code.
 	StatusCode int `json:"statusCode"`
+}
+
+// NativeSocialLogin Planned stored/returned native social switches (Plan 39a Task 6).
+// Currently accepted and ignored. Apple exchange additionally requires
+// mobile.ios.app_bundle_identifier and an enabled Apple connection.
+// Facebook and Google enforcement belongs to Plan 39b.
+type NativeSocialLogin struct {
+	Apple    *NativeSocialLoginApple    `json:"apple,omitempty"`
+	Facebook *NativeSocialLoginFacebook `json:"facebook,omitempty"`
+	Google   *NativeSocialLoginGoogle   `json:"google,omitempty"`
+}
+
+// NativeSocialLoginApple defines model for NativeSocialLoginApple.
+type NativeSocialLoginApple struct {
+	// Enabled Planned permission to exchange an Apple authorization code natively (D-0170).
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// NativeSocialLoginFacebook defines model for NativeSocialLoginFacebook.
+type NativeSocialLoginFacebook struct {
+	// Enabled Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// NativeSocialLoginGoogle defines model for NativeSocialLoginGoogle.
+type NativeSocialLoginGoogle struct {
+	// Enabled Stored by Plan 39a; native enforcement is deferred to Plan 39b.
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // Operator defines model for Operator.
@@ -14769,6 +14902,224 @@ func (a ClientMobileIOS) MarshalJSON() ([]byte, error) {
 		object["team_id"], err = json.Marshal(a.TeamId)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'team_id': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsApple. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsApple) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsApple
+func (a *ConnectionOptionsApple) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsApple to handle AdditionalProperties
+func (a *ConnectionOptionsApple) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["app_secret"]; found {
+		err = json.Unmarshal(raw, &a.AppSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'app_secret': %w", err)
+		}
+		delete(object, "app_secret")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["kid"]; found {
+		err = json.Unmarshal(raw, &a.Kid)
+		if err != nil {
+			return fmt.Errorf("error reading 'kid': %w", err)
+		}
+		delete(object, "kid")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["team_id"]; found {
+		err = json.Unmarshal(raw, &a.TeamId)
+		if err != nil {
+			return fmt.Errorf("error reading 'team_id': %w", err)
+		}
+		delete(object, "team_id")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsApple to handle AdditionalProperties
+func (a ConnectionOptionsApple) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AppSecret != nil {
+		object["app_secret"], err = json.Marshal(a.AppSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'app_secret': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.Kid != nil {
+		object["kid"], err = json.Marshal(a.Kid)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'kid': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.TeamId != nil {
+		object["team_id"], err = json.Marshal(a.TeamId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'team_id': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
 		}
 	}
 

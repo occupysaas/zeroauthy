@@ -627,7 +627,8 @@ them. Each entry: context, sources consulted, decision, rationale.
     - **Grant types:** Auth0's names are accepted and stored, including `implicit` and the MFA grants that `auth0-cli` sends by default; the token endpoint serves only the grants zeroauthy implements. Unknown names are `400 invalid_body`.
     - **Origins:** `web_origins` and `allowed_origins` must be origins (scheme and host, no path).
     - **`update:client_keys`:** needed to set `client_secret` on `PATCH`; a body with only `client_secret` needs no `update:clients`.
-    - **Accepted and ignored** (sent by `auth0-cli` or exported by `auth0-deploy-cli`): `description`, `logo_uri`, `client_metadata`, `sso`, `sso_disabled`, `cross_origin_authentication`, `cross_origin_auth`, `cross_origin_loc`, `custom_login_page_on`, `custom_login_page`, `initiate_login_uri`, `native_social_login`, `mobile`, `is_token_endpoint_ip_header_trusted`, `allowed_clients` (`organization_usage` and `organization_require_behavior` were here until Plan 29 made them live, D-0055); also `jwt_configuration.secret_encoded` and `refresh_token.infinite_idle_token_lifetime`. `refresh_token.infinite_token_lifetime` sets the expiration type when `expiration_type` is absent.
+    - **Accepted and ignored** (sent by `auth0-cli` or exported by `auth0-deploy-cli`): `description`, `logo_uri`, `client_metadata`, `sso`, `sso_disabled`, `cross_origin_authentication`, `cross_origin_auth`, `cross_origin_loc`, `custom_login_page_on`, `custom_login_page`, `initiate_login_uri`, `native_social_login`, `is_token_endpoint_ip_header_trusted`, `allowed_clients` (`organization_usage` and `organization_require_behavior` were here until Plan 29 made them live, D-0055); also `jwt_configuration.secret_encoded` and `refresh_token.infinite_idle_token_lifetime`. `refresh_token.infinite_token_lifetime` sets the expiration type when `expiration_type` is absent.
+    - **Mobile/native social amendment (Plan 39a Task 1):** `mobile.ios.team_id` and `mobile.ios.app_bundle_identifier` already persist and round-trip through Plan 33b's `ClientMobile` contract; they are no longer ignored. D-0170 freezes the planned typed `native_social_login` switches (`apple`, `facebook`, `google`, each `{enabled}`, default false). They remain ignored until Task 6 adds persistence and Apple enforcement; Facebook/Google enforcement is deferred to Plan 39b. Publishing those schemas does not activate native login.
     - **Read-only fields** in a body (`tenant`, `global`, `callback_url_template`, `signing_keys`, `created_at`) are unknown properties. `client_id` is `403 operation_not_supported` on `POST` (M10) and allowed on `PATCH` only unchanged.
     - **The console's own client** (`zeroauthy-console` in the system tenant) cannot be changed, rotated or deleted through the API (`403 operation_not_supported`).
     - **Deleting** a client deletes its client grants, user grants and refresh tokens and removes it from every connection's enabled clients; login sessions stay.
@@ -3338,6 +3339,9 @@ The Apple connection strategy and web/native login flows are not operational.
 See the [implementation record](../superpowers/2026-11-16-plan-39a-implementation-record.md).
 
 **Authority:** [Plan 39a design](../superpowers/specs/2026-11-16-zeroauthy-apple-design.md),
+Auth0's [Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+[native Apple guide](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native),
+[native token exchange reference](https://auth0.com/docs/api/authentication/token-exchange-for-native-social/token-exchange-native-social),
 Apple's [client-secret contract](https://developer.apple.com/documentation/accountorganizationaldatasharing/creating-a-client-secret),
 and [Sign in with Apple response errors](https://developer.apple.com/documentation/technotes/tn3107-resolving-sign-in-with-apple-response-errors).
 Only public documentation was consulted; no live tenant or Apple account was observed.
@@ -3365,9 +3369,28 @@ signature for the same configuration. Callers will enforce revision changes
 when credentials rotate; pending-attempt invalidation remains due in the
 provider/configuration tasks.
 
-D-0039's accepted-and-ignored status for client `native_social_login` and
-`mobile` remains in force until Task 6 persists and enforces those fields.
-The rest of Task 1's API/inventory freeze remains pending.
+Task 1 freezes `ConnectionOptionsApple`, the `apple` strategy name, native
+social client switches and `user_profile` in the OpenAPI contracts and the
+federation inventory. These are planned public contracts, not operational
+provider or token-handler behavior. Apple `scope` is a space-separated
+string (Management OpenAPI), unlike the existing Google array contract.
+The local credential formats and scope restrictions are stricter than the
+upstream schema and follow LR39a-1 and LR39a-4–6. Create requires all four
+credentials; PATCH may omit the signing key to preserve it; responses never
+return it. `upstream_params` and `non_persistent_attrs` remain stored-only.
+
+D-0039's ignored status remains for `native_social_login` until Task 6.
+`mobile` already persists via Plan 33b and is preserved, including Android
+settings. Planned Apple native exchange binds token-request `client_id`,
+client-secret `sub` and verified Apple ID-token `aud` to the stored iOS
+bundle ID. It allows public native authentication method `none`, requires
+the Apple switch and an enabled Apple connection, and bypasses custom
+exchange profiles for the reserved Apple subject-token type. Optional
+`user_profile` is a JSON object (JSON-encoded in a form field), at most
+1024 UTF-8 bytes, with bounded `name.firstName` / `name.lastName` only;
+it supplies a first-login name only after ID-token validation. Standard
+Actions, MFA and organization issuance policy still applies. Missing
+prerequisites use `invalid_request`, bad Apple codes `invalid_grant`.
 
 Optional observation points A1–A7 remain open: server notifications, automatic
 upstream revocation, native subject-token-type value, provider PKCE support,
