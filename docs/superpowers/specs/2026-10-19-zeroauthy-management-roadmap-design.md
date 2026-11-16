@@ -421,6 +421,8 @@ Auth0's end-user-facing APIs outside `/api/v2`: the My Account API (users manage
 
 Advanced Customizations for Universal Login (tenant-built screens through the prompt rendering API), Classic Login, WebAuthn-first and social controls on hosted pages, prompt partials with custom-domain context: all deferred by Plans 22–23. ACUL runs tenant JavaScript in the browser, which Plan 22 rejects today, so the design must settle the content-security boundary first. Unblocks the Deploy CLI ACUL export. Pre-1.0 review addition: the phone factor on MFA enrollment tickets. **Full.**
 
+**Designed 2026-11-16 (paths item H1):** [spec](2026-11-16-zeroauthy-acul-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-44-acul.md) (10 tasks, D-0230). The host-page contract comes from Auth0's MIT ACUL SDK (`auth0/universal-login`, `auth0-acul-js-v1.11.0`). Four maintainer rulings gate Tasks 2–10: Classic Login (proposed: not built), the content-security boundary (allowlisted head tags, mandatory SRI, strict CSP), ACUL on the canonical host, and an E2E pin of `@auth0/auth0-acul-js`.
+
 ### Plan 45 — Operational hardening sweep
 
 Open items from the follow-ups file with no feature home: general Authentication API rate limiting and shared device-activation counters (Plans 2, 11, 19); custom-script Try limiting; CORS origin index for large tenants; orphaned sealed-token sweep (Plan 24); a durable retry schedule for hosted wildcard certificates, additional DNS providers and challenge delegation (Plan 23); custom public signing JWKS publication (Plans 20, 23); the Plan 27 MySQL deploy/delete freshness closure; a Playwright accessibility audit of the console. **Short**; may split by area.
