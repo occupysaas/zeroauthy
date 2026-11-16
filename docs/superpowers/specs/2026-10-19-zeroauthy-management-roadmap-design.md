@@ -449,6 +449,8 @@ verification jobs and tickets; narrowing `GET /users/{id}/organizations`
 scopes; the v1-only `connection` filter; non-secret email-provider fields
 (`api_user`, `region`, `smtp_*`) on `GET /emails/provider`.
 
+**Split by the parallel paths:** O2 = 45a security hardening, O3 = 45b flow and API fixes, O4 = 45c infrastructure. **45a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-security-hardening-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45a-security-hardening.md) (12 tasks, D-0260): envelope v2 with per-tenant master keys, root-key rotation, Auth0's `/keys/encryption*` customer-managed keys (moved from Plan 38d), a Landlock/seccomp runner sandbox with one shared prelude, retirement on spent budgets, HSTS, database TLS checks and plugin stderr scrubbing. Four maintainer rulings gate parts of it (spec §9).
+
 ### Plan 46 — Release pipeline, packaging and samples
 
 Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.** Core done 2026-11-03 for 1.0: `release.yml` (release branches only), reproducible `scripts/dist.sh` archives, the multi-arch image, `CHANGELOG.md`, `RELEASING.md`. Left: versioned docs links from the console, `govulncheck` in CI if not added for 1.0, the Android TV sample and translations.
