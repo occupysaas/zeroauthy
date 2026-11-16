@@ -59,6 +59,7 @@ Counts: 0 critical, 0 high, 3 medium, 5 low. **3 fix-before-1.0** (F1, F2, F3).
 - Suggested fix: add `phone` to the loop when `PhoneMethods` is non-empty. Reject unsupported ticket factors at creation, or document them as stored-only.
 
 ### F6 [low] [parity-gap] Signup verification codes live 5 minutes, not the frozen 900 s; the send budget is not connection-scoped
+- Status: fixed by Plan 45b Task 3 (2026-11-16); regression tests cover signup/reset expiry boundaries, connection/purpose isolation, normalization and budget rollover.
 - Where: internal/login/phone_codes.go:44 (key has no `ConnectionID`, and signup/reset share `identifier-phone`) and :74 (`ExpiresAt: now+5m` for every kind)
 - What: D-0060 freezes "Signup verification codes live 900 s; `limit_signup_otp` is scoped to tenant, identifier and connection" (`phonerules.Limits.SignupOTPLifetimeSeconds` = 900, which is never read). Signup codes expire after 5 minutes, and one budget is shared across connections and across the signup and reset purposes.
 - Verdict: CONFIRMED

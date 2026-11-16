@@ -2348,7 +2348,9 @@ bodies are written in our own words. MFA SMS: 10 sends per user per hour
 refilling one per hour, at most one new voice request per hour, Guardian code
 length 4–10 (default 6) and lifetime 30–3600 s (default 300); voice codes are
 read digit by digit. Signup verification codes live 900 s; `limit_signup_otp`
-is scoped to tenant, identifier and connection. Actions:
+is scoped to tenant, identifier and connection. Plan 45b Task 3 enforces this
+lifetime and separates identifier send budgets by connection and purpose
+(signup/reset); the tenant-wide per-IP send limit is still shared. Actions:
 `custom-phone-provider` (`onExecuteCustomPhoneProvider`, v1, notification
 event, `api.notification.drop|retry`, up to five retries, one bound Action)
 and `send-phone-message` (`onExecuteSendPhoneMessage`, blocking,
