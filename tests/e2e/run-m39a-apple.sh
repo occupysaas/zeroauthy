@@ -8,6 +8,7 @@ export E2E_M39A=1
 export E2E_CHROMIUM="${E2E_CHROMIUM:-$(command -v chromium || true)}"
 export AUTH0_BIN="${AUTH0_BIN:-$(command -v auth0 || true)}"
 [[ -x "$AUTH0_BIN" ]] && "$AUTH0_BIN" --version | grep -q '1.37.0' || { echo 'e2e-apple requires Auth0 CLI 1.37.0' >&2; exit 1; }
+node --test tests/e2e/apple-discovery.test.mjs
 (
 exec 9>/tmp/zeroauthy-e2e-social.lock
 flock 9

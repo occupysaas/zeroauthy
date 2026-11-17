@@ -164,3 +164,32 @@ branch is ready for plan-branch CI; PostgreSQL/MySQL, full race, remaining
 E2E regression suites and conformance results are pending that CI. No live
 Apple tenant test or formal certification is claimed. Merge still requires
 green CI and maintainer approval.
+
+## Plan-branch CI follow-up: browser discovery
+
+[Run 43981706721](https://github.com/occupysaas/zeroauthy/actions/runs/43981706721)
+failed only `ci / e2e (e2e)`: `make e2e` exited **2**. Its general browser
+runner discovered the dedicated Apple spec with no Apple fixture flag, and
+the spec's top-level guard threw before execution. The dedicated Apple job
+passed; the overall branch CI is still failed until a subsequent green run.
+
+The shared Playwright configuration now excludes that dedicated spec outside
+Apple mode. Apple mode keeps the existing fail-fast guard and all four
+required browser cases. A Node regression runs actual general/Apple collection
+and checks that the general SPA suite remains selected, Apple is excluded
+outside its lane, and Apple mode discovers exactly four runnable cases. The
+Apple runner includes that regression as preflight. No production code or
+validation policy changed. Local results and the exact CI failure are retained
+in `.superpowers/sdd/2026-11-16-zeroauthy-plan-39a-apple/ci-fix-report.md`.
+
+Local follow-up verification passed: the collection regression first reproduced
+the failure, then passed **2/2** with no skips; the general browser runner's
+focused `m4-spa-login` case passed its real SDK login/API flow. A subsequent
+sequential `make e2e-apple` exited **0**: discovery preflight 2/2, Apple
+browser 4/4, native/SDK/CLI checks, 39-value/12-artifact runtime secret audit,
+and all four actual Deploy CLI cells. An earlier local Apple attempt failed
+because it overlapped the general runner's `npm ci` against shared
+`node_modules`; that orchestration failure and its exact exits/artifacts are
+retained in the report. No production fix was required. Test-only integration
+changes do not require another broad Go run. This fix still requires review
+and a new green plan-branch CI run before merge approval.
