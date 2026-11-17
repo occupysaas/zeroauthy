@@ -107,11 +107,18 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 // cookie. Any session the request already carries is deleted first, so a
 // login always gets a new session identifier.
 func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, userID, connection string, authTime time.Time, methods ...store.AuthMethod) (*store.LoginSession, error) {
-	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
-		if s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value)); err == nil {
-			_ = m.Store.Sessions().Delete(ctx, t.ID, s.ID)
-		}
+	s, token, err := m.Prepare(ctx, r, t, userID, connection, authTime, methods...)
+	if err != nil {
+		return nil, err
 	}
+	if err = m.Commit(ctx, w, r, t, s, token); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// Prepare builds first-factor evidence without creating a session or cookie.
+func (m *Manager) Prepare(ctx context.Context, r *http.Request, t *store.Tenant, userID, connection string, authTime time.Time, methods ...store.AuthMethod) (*store.LoginSession, string, error) {
 	now := m.now()
 	ip, ua := httpx.RecordedIP(r, m.TrustProxyHeaders), r.UserAgent()
 	mode := t.SessionCookieMode
@@ -124,7 +131,7 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		if cap, ok := m.Store.(store.WebAuthnSupporter); ok {
 			if err := cap.CheckWebAuthnSupport(ctx); err != nil {
 				if !errors.Is(err, store.ErrWebAuthnUnavailable) {
-					return nil, err
+					return nil, "", err
 				}
 				methods = nil
 			} else if !cap.WebAuthnSupported() {
@@ -154,8 +161,25 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		UpdatedAt:       now, LastInteractedAt: now,
 		InitialIP: ip, InitialUserAgent: ua, LastIP: ip, LastUserAgent: ua,
 	}
+	return s, token, nil
+}
+
+// Commit persists prepared evidence. The caller owns the transaction and must
+// buffer the response cookie until that transaction has committed.
+func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, s *store.LoginSession, token string) error {
+	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
+		previous, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value))
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		if err == nil {
+			if err = m.Store.Sessions().Delete(ctx, t.ID, previous.ID); err != nil {
+				return err
+			}
+		}
+	}
 	if err := m.Store.Sessions().Create(ctx, s); err != nil {
-		return nil, err
+		return err
 	}
 	cookie := &http.Cookie{
 		Name:     CookieName,
@@ -168,11 +192,11 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		// authentication (response_mode=web_message).
 		SameSite: http.SameSiteNoneMode,
 	}
-	if mode == "non-persistent" {
+	if s.CookieMode == "non-persistent" {
 		cookie.Expires = time.Time{}
 	}
 	http.SetCookie(w, cookie)
-	return s, nil
+	return nil
 }
 
 // AddClient records that clientID received tokens through s.

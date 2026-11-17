@@ -106,6 +106,12 @@ type EmailInput struct {
 
 // PostLoginInput is everything a post-login flow sees.
 type PostLoginInput struct {
+	// PendingMembership is a validated auto-enrollment intent: until committed,
+	// the event includes tenant roles only and token permissions stay personal.
+	PendingMembership bool
+	// PendingInvitationRoleIDs is a server-validated, prospective invitation
+	// event view. It grants no persisted membership or token permissions.
+	PendingInvitationRoleIDs []string
 	// OrganizationID is the bound organization used by the permission snapshot.
 	OrganizationID string
 	// Organization is frozen before external code and sealed with continuations.

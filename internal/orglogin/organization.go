@@ -58,6 +58,15 @@ func EligibleConnections(conns []*store.Connection, oc Context) []*store.Connect
 // EnsureMembership must run inside the caller's user/session transaction. The
 // page snapshot never authorizes a write; connection flags are reloaded here.
 func EnsureMembership(ctx context.Context, tx store.Store, oc Context, userID, connectionID string) error {
+	return membership(ctx, tx, oc, userID, connectionID, true)
+}
+
+// CheckMembership validates current membership or assign-on-login eligibility
+// without enrolling the user before MFA and consent.
+func CheckMembership(ctx context.Context, tx store.Store, oc Context, userID, connectionID string) error {
+	return membership(ctx, tx, oc, userID, connectionID, false)
+}
+func membership(ctx context.Context, tx store.Store, oc Context, userID, connectionID string, commit bool) error {
 	if oc.Org == nil {
 		return nil
 	}
@@ -81,6 +90,9 @@ func EnsureMembership(ctx context.Context, tx store.Store, oc Context, userID, c
 	}
 	if !link.AssignMembershipOnLogin {
 		return ErrNotMember
+	}
+	if !commit {
+		return nil
 	}
 	inserted, err := store.AddMembersResult(ctx, tx.Organizations(), tid, id, []string{userID})
 	if err != nil {

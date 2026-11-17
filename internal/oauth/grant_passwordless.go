@@ -14,7 +14,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
-	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
@@ -97,9 +96,7 @@ func (h *Handlers) passwordlessOTPGrant(ctx context.Context, res tenant.Resolved
 	eventUserID = user.UserID
 	ctx = logs.WithEvent(ctx, logs.Event{UserID: user.UserID, UserName: passwordless.MaskIdentifier(conn.Strategy, user.Name), Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "passwordless"})
 	now := h.now().UTC()
-	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
-		h.log().WarnContext(ctx, "record login", "tenant", tenantID, "err", err)
-	}
+
 	aud := form.Get("audience")
 	if aud == "" {
 		aud = res.Tenant.DefaultAudience

@@ -15,7 +15,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
-	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -333,13 +332,11 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 			return nil
 		},
 		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error {
-			bound := session.Manager{Store: tx, Now: h.Sessions.Now, TrustProxyHeaders: h.Sessions.TrustProxyHeaders}
+			bound := *h.Authz
+			bound.Store = tx
 			var err error
-			sess, err = bound.Start(ctx, w, r, res.Tenant, user.UserID, conn.Name, h.now(), store.AuthMethod{Name: "federated"})
-			if err != nil {
-				return err
-			}
-			return tx.Users().RecordLogin(ctx, res.Tenant.ID, user.UserID, h.now(), httpx.RecordedIP(r, h.TrustProxyHeaders))
+			sess, err = bound.BeginLogin(w, r, res, txn, user, conn.Name, store.AuthMethod{Name: "federated"})
+			return err
 		},
 	})
 	if err != nil {

@@ -195,7 +195,7 @@ func (h *Handlers) requireMFA(w http.ResponseWriter, r *http.Request, res tenant
 }
 
 // PendingMFA validates the stored transaction, browser binding, origin and
-// current active session before opening its sealed requirement. It is suitable
+// current hosted identity before opening its sealed requirement. It is suitable
 // for every MFA page request; it does not consume the transaction.
 func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) (*MFAPending, error) {
 	invalid := errors.New("authz: invalid MFA transaction")
@@ -221,7 +221,7 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 	sid := ""
 	var current *store.LoginSession
 	if !ticket && !reset {
-		current, err = h.ActiveSession(ctx, r, res)
+		current, err = h.FlowSession(ctx, r, res)
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +273,7 @@ func (h *Handlers) PendingMFA(ctx context.Context, r *http.Request, res tenant.R
 	return &pending, nil
 }
 
-// MFAComplete resumes only after a fresh proof marked the bound active session.
+// MFAComplete resumes only after a fresh proof marked the bound hosted identity.
 // Consuming the transaction is single-use; Actions are carried and never rerun.
 // enrolledFactor is supplied only by the final server-proven enrollment page.
 func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession, enrolledFactor ...string) {
@@ -301,7 +301,7 @@ func (h *Handlers) MFAComplete(w http.ResponseWriter, r *http.Request, res tenan
 		h.invalidMFA(w, r, res)
 		return
 	}
-	current, err := h.ActiveSession(r.Context(), r, res)
+	current, err := h.FlowSession(r.Context(), r, res)
 	if err != nil || current == nil || current.MFAAt.IsZero() || current.MFAAt.Equal(pending.PreviousMFAAt) || current.MFAAt.Before(stored.CreatedAt) {
 		h.invalidMFA(w, r, res)
 		return

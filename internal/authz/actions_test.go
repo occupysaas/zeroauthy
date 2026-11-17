@@ -431,3 +431,7 @@ func TestActionsNoBindingsCost(t *testing.T) {
 		}
 	}
 }
+
+func (s codeCounter) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(codeCounter{Store: tx, n: s.n}) })
+}

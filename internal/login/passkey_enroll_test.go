@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/webauthn"
 	"github.com/zeroauthy/zeroauthy/internal/webauthn/webauthntest"
@@ -535,6 +536,18 @@ func TestEnrollmentPromptPurposeBinding(t *testing.T) {
 
 func TestProgressiveEnrollmentAfterPasswordSignup(t *testing.T) {
 	e, _ := signupPasskeyEnv(t)
+	old := e.srv
+	e.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/u/passkey-enrollment" {
+			fn := e.h.PasskeyEnrollmentPage
+			if r.Method == "POST" {
+				fn = e.h.PasskeyEnrollmentPost
+			}
+			tenantHandler(fn, e.st).ServeHTTP(w, r)
+			return
+		}
+		old.ServeHTTP(w, r)
+	})
 	tn := mustTenant(t, e, "acme")
 	conn, _ := e.st.Connections().GetByName(context.Background(), tn.ID, "Username-Password-Authentication")
 	conn.Extra["passkey_options"] = map[string]any{"progressive_enrollment_enabled": true}
@@ -548,6 +561,21 @@ func TestProgressiveEnrollmentAfterPasswordSignup(t *testing.T) {
 	done := b.do(t, "POST", "/u/signup/password", url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {revisionFrom(t, page.Body.String())}, "password": {"correct horse battery"}})
 	if !strings.HasPrefix(done.Header().Get("Location"), "/u/passkey-enrollment?") {
 		t.Fatalf("password signup continuation: %d %s %s", done.Code, done.Header().Get("Location"), done.Body)
+	}
+	if b.cookies[session.CookieName] != nil {
+		t.Fatal("session before enrollment continuation")
+	}
+	loc, _ := url.Parse(done.Header().Get("Location"))
+	page = b.do(t, "GET", loc.RequestURI(), nil)
+	state = loc.Query().Get("state")
+	m := csrfField.FindStringSubmatch(page.Body.String())
+	if page.Code != 200 || m == nil {
+		t.Fatalf("enrollment page: %d %s", page.Code, page.Body)
+	}
+	csrf = m[1]
+	done = b.do(t, "POST", loc.Path, url.Values{"state": {state}, "csrf": {csrf}, "skip": {"1"}})
+	if !strings.Contains(done.Header().Get("Location"), "code=") {
+		t.Fatalf("skip enrollment: %d %s %s", done.Code, done.Header().Get("Location"), done.Body)
 	}
 	assertSessionMethods(t, b, "pwd")
 }
@@ -587,8 +615,24 @@ func TestProgressiveEnrollmentInvitationWaitsForVerification(t *testing.T) {
 		t.Fatalf("verified invitation continuation: %d %s %s", done.Code, done.Header().Get("Location"), done.Body)
 	}
 	member, err := e.st.Organizations().IsMember(ctx, org.TenantID, org.ID, u.UserID)
+	if err != nil || member {
+		t.Fatalf("invitation membership before completion: %v %v", member, err)
+	}
+	loc, _ := url.Parse(done.Header().Get("Location"))
+	page = b.do(t, "GET", loc.RequestURI(), nil)
+	state = loc.Query().Get("state")
+	m := csrfField.FindStringSubmatch(page.Body.String())
+	if page.Code != 200 || m == nil {
+		t.Fatalf("enrollment page: %d %s", page.Code, page.Body)
+	}
+	csrf = m[1]
+	done = b.do(t, "POST", loc.Path, url.Values{"state": {state}, "csrf": {csrf}, "skip": {"1"}})
+	if !strings.Contains(done.Header().Get("Location"), "code=") {
+		t.Fatalf("skip invitation enrollment: %d %s %s", done.Code, done.Header().Get("Location"), done.Body)
+	}
+	member, err = e.st.Organizations().IsMember(ctx, org.TenantID, org.ID, u.UserID)
 	if err != nil || !member {
-		t.Fatalf("invitation membership: %v %v", member, err)
+		t.Fatal("invitation completion", member, err)
 	}
 }
 

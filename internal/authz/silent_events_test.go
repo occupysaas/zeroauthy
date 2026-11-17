@@ -132,3 +132,7 @@ type failedIssueCodes struct{ store.AuthCodes }
 func (s failedIssueCodes) Create(context.Context, *store.AuthCode) error {
 	return errors.New("private issue error")
 }
+
+func (s failedIssueStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(failedIssueStore{tx}) })
+}

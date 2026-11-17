@@ -105,8 +105,13 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 			return errTxn
 		}
 		if cur.Params[store.TxnParamOrgMode] == string(authz.OrgPickAfter) {
-			sess, e := tx.Sessions().Get(r.Context(), cur.TenantID, cur.Params["za_org_session"])
-			if e != nil {
+			local := *h.Authz
+			local.Store = tx
+			sm := *h.Sessions
+			sm.Store = tx
+			local.Sessions = &sm
+			sess, e := local.FlowSession(ctx, r, f.res)
+			if e != nil || sess == nil || sess.ID != cur.Params["za_org_session"] {
 				return errTxn
 			}
 			conn, e := tx.Connections().GetByName(r.Context(), cur.TenantID, sess.Connection)
@@ -127,7 +132,7 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 				return errTxn
 			}
 			ctx = logs.WithEvent(ctx, logs.Event{ClientID: client.ClientID, ClientName: client.Name, ConnectionID: conn.ID, Connection: conn.Name, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)})
-			if e = EnsureMembership(ctx, tx, OrgContext{Org: org}, sess.UserID, conn.ID); e != nil {
+			if e = orglogin.CheckMembership(ctx, tx, OrgContext{Org: org}, sess.UserID, conn.ID); e != nil {
 				return e
 			}
 		}
@@ -163,7 +168,7 @@ func (h *Handlers) organizationStep(w http.ResponseWriter, r *http.Request, f *f
 		return h.organizationDiscoveryStep(w, r, f)
 	}
 
-	sess, err := h.Authz.ActiveSession(r.Context(), r, f.res)
+	sess, err := h.Authz.FlowSession(r.Context(), r, f.res)
 	if err != nil {
 		h.fail(w, r, err, f)
 		return true

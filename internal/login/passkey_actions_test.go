@@ -70,13 +70,23 @@ func TestHostedSkipMFAAfterPasskeyAction(t *testing.T) {
 			} else if loc.Path != "/u/mfa" || loc.Query().Get("state") == "" || loc.Query().Get("code") != "" {
 				t.Fatalf("password bypassed MFA: %s", loc)
 			}
-			cookie := b.cookies[session.CookieName]
-			if cookie == nil {
-				t.Fatal("missing first-factor session")
-			}
-			s, err := e.st.Sessions().GetByTokenHash(ctx, u.TenantID, secrets.HashToken(cookie.Value))
-			if err != nil || len(s.AuthMethods) != 1 || s.AuthMethods[0].Name != first || !s.MFAAt.IsZero() {
-				t.Fatalf("first factor became MFA: %+v err=%v", s, err)
+			if first == "pwd" {
+				if b.cookies[session.CookieName] != nil {
+					t.Fatal("password before MFA created SSO")
+				}
+				rows, err := e.st.Sessions().ListByUser(ctx, u.TenantID, u.UserID)
+				if err != nil || len(rows) != 0 {
+					t.Fatal("pending MFA session", rows, err)
+				}
+			} else {
+				cookie := b.cookies[session.CookieName]
+				if cookie == nil {
+					t.Fatal("missing first-factor session")
+				}
+				s, err := e.st.Sessions().GetByTokenHash(ctx, u.TenantID, secrets.HashToken(cookie.Value))
+				if err != nil || len(s.AuthMethods) != 1 || s.AuthMethods[0].Name != first || !s.MFAAt.IsZero() {
+					t.Fatalf("first factor became MFA: %+v err=%v", s, err)
+				}
 			}
 			saved, err := e.st.Users().Get(ctx, u.TenantID, u.UserID)
 			if err != nil || saved.AppMetadata["action_first_factor"] != first {

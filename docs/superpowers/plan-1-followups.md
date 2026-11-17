@@ -448,8 +448,12 @@ behaviour only where Auth0 is shown to differ.
   lane fails once the handler changes, so re-include it then. Optional: report
   the bug upstream to auth0/auth0-deploy-cli. See D-0059.
 
-- **Plan 33 review Minors (deferred, not 1.0 blockers):** M1 consent is
-  shown and persisted before MFA (Auth0 runs MFA first); M3 abandoned
+- **Plan 33 review M1 (fixed Plan 45b Task 2, 2026-11-17):** consent
+  follows MFA, and its grant commits atomically with login completion.
+  `TestConsentAfterMFA` and `TestSideEffectsOneTransactionAfterConsent` pass
+  in the focused login suite. Whole-plan E2E/SQL/CI remains due at Task 14.
+
+- **Plan 33 review Minors (deferred, not 1.0 blockers):** M3 abandoned
   pending authenticators are never purged and are each unsealed on OTP
   challenge; M6 `multifactor: []` is emitted on every user and costs one
   authenticator list per user in `GET /users`; M7 ID-token `amr` reads the

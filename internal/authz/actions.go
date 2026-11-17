@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -71,7 +72,26 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 			if errors.Is(err, store.ErrNotFound) {
 				conn, err = nil, nil
 			}
-			in.User, in.Connection = user, conn
+			if fr.OrgID != "" {
+				member, e := h.Store.Organizations().IsMember(ctx, res.Tenant.ID, fr.OrgID, sess.UserID)
+				if e != nil {
+					return e
+				}
+				in.PendingMembership = !member
+			}
+			in.User, in.Connection = h.prospectiveUser(r, res, sess, user), conn
+			if fr.invitationBinding[orglogin.InvitationIDParam] != "" {
+				txn, e := h.completionTransaction(ctx, r, res)
+				if e != nil {
+					return e
+				}
+				inv, e := orglogin.PreviewInvitation(ctx, h.Store, txn, sess, h.now())
+				if e != nil {
+					return e
+				}
+				in.User = orglogin.InvitationUserView(in.User, inv)
+				in.PendingInvitationRoleIDs = append([]string{}, inv.Roles...)
+			}
 			return err
 		},
 		// The login form's body (with the password) is never passed on.

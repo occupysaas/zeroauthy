@@ -88,8 +88,8 @@ func TestOrganizationMembership(t *testing.T) {
 			if member != auto {
 				t.Fatalf("membership=%v want %v", member, auto)
 			}
-			if b.cookies[session.CookieName] == nil {
-				t.Fatal("authenticated session lost")
+			if (b.cookies[session.CookieName] != nil) != auto {
+				t.Fatal("session must exist only after authorization")
 			}
 			if auto && loc.Query().Get("code") == "" {
 				t.Fatalf("auto login: %s %s", loc, rec.Body)
@@ -250,8 +250,8 @@ func TestOrganizationMembershipFederationAtomic(t *testing.T) {
 				if member != allowed {
 					t.Fatalf("membership %v want %v", member, allowed)
 				}
-				if b.cookies[session.CookieName] == nil {
-					t.Fatal("authenticated session lost")
+				if (b.cookies[session.CookieName] != nil) != allowed {
+					t.Fatal("session must exist only after authorization")
 				}
 			})
 		}

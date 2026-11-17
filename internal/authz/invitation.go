@@ -94,21 +94,3 @@ func (h *Handlers) acceptInvitation(ctx context.Context, txn *store.AuthTransact
 	_, e = orglogin.AcceptInvitation(ctx, h.Store, orglogin.AcceptanceInput{TenantID: txn.TenantID, OrganizationID: txn.Params[store.TxnParamOrgID], ClientID: txn.ClientID, InvitationID: txn.Params[orglogin.InvitationIDParam], TransactionID: txn.ID, UserID: sess.UserID, PrimaryConnectionID: conn.ID, Now: h.now()})
 	return e
 }
-
-// Claim final authorization once, independently of idempotent acceptance. A
-// concurrent same-transaction request must not execute Actions or mint twice.
-func (h *Handlers) claimInvitationCompletion(ctx context.Context, txn *store.AuthTransaction, sess *store.LoginSession) error {
-	return h.Store.WithTx(ctx, func(tx store.Store) error {
-		cur, err := tx.AuthTransactions().Get(ctx, txn.TenantID, txn.ID)
-		if err != nil {
-			return err
-		}
-		if cur.Params[orglogin.InvitationSessionParam] != sess.ID {
-			return store.ErrPrecondition
-		}
-		if err = tx.AuthTransactions().CompareAndSwapHosted(ctx, cur.TenantID, cur.ID, cur.HostedState.Revision, cur.HostedState, h.now()); err != nil {
-			return err
-		}
-		return tx.AuthTransactions().Delete(ctx, cur.TenantID, cur.ID)
-	})
-}

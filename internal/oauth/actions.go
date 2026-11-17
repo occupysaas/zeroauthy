@@ -39,11 +39,12 @@ func requestInfoFrom(ctx context.Context) actions.RequestInfo {
 
 // loginFlow is a token-endpoint grant that runs the post-login flow.
 type loginFlow struct {
-	session        *store.LoginSession
-	organizationID string
-	connectionID   string // original connection of an organization refresh family
-	user           *store.User
-	connection     *store.Connection // nil when unknown
+	pendingMembership bool
+	session           *store.LoginSession
+	organizationID    string
+	connectionID      string // original connection of an organization refresh family
+	user              *store.User
+	connection        *store.Connection // nil when unknown
 	// userConnection resolves the pinned connectionID, or the first identity
 	// for individual grants, only when Actions are bound.
 	userConnection bool
@@ -63,7 +64,7 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 		return nil, nil
 	}
 	in := actions.PostLoginInput{
-		Session: f.session, OrganizationID: f.organizationID, Tenant: res, Client: c, User: f.user, Connection: f.connection, Request: requestInfoFrom(ctx),
+		PendingMembership: f.pendingMembership, Session: f.session, OrganizationID: f.organizationID, Tenant: res, Client: c, User: f.user, Connection: f.connection, Request: requestInfoFrom(ctx),
 		Protocol: f.protocol, RequestedScopes: f.requested, TargetScopes: f.target, ResourceServer: f.rs,
 	}
 	if f.userConnection {

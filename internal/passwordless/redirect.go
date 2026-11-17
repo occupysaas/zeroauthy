@@ -290,7 +290,7 @@ func (h *Handlers) VerifyRedirectConfirm(w http.ResponseWriter, r *http.Request)
 	h.continueAuthorization(w, r, res, client, req, g.User, g.Connection)
 }
 
-// continueAuthorization starts the session and resumes the authorization in
+// continueAuthorization records first-factor evidence and resumes authorization in
 // a fresh transaction, exactly as a hosted login does after its password.
 func (h *Handlers) continueAuthorization(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req authz.Request, u *store.User, conn *store.Connection) {
 	ctx := r.Context()
@@ -299,19 +299,14 @@ func (h *Handlers) continueAuthorization(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	*r = *r.WithContext(logs.WithEvent(ctx, logs.Event{UserID: u.UserID, UserName: MaskIdentifier(conn.Strategy, u.Name), Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: "passwordless"}))
-	now := h.Service.now()
-	sess, err := h.Sessions.Start(r.Context(), w, r, res.Tenant, u.UserID, conn.Name, now, store.AuthMethod{Name: conn.Strategy})
-	if err != nil {
-		h.log().ErrorContext(ctx, "passwordless: start session", "tenant", res.Tenant.ID, "err", err)
-		h.Authz.Deny(w, r, res, client, req, "server_error", "internal error")
-		return
-	}
-	if err := h.Service.Store.Users().RecordLogin(ctx, res.Tenant.ID, u.UserID, now, httpx.RecordedIP(r, h.TrustProxyHeaders)); err != nil {
-		h.log().WarnContext(ctx, "record login", "tenant", res.Tenant.ID, "err", err)
-	}
 	txn, err := h.Authz.CreateTxn(w, r, res, client.ClientID, req.Params(), "/u")
 	if err != nil {
 		h.log().ErrorContext(ctx, "passwordless: create transaction", "tenant", res.Tenant.ID, "err", err)
+		h.Authz.Deny(w, r, res, client, req, "server_error", "internal error")
+		return
+	}
+	sess, err := h.Authz.BeginLogin(w, r, res, txn, u, conn.Name, store.AuthMethod{Name: conn.Strategy})
+	if err != nil {
 		h.Authz.Deny(w, r, res, client, req, "server_error", "internal error")
 		return
 	}

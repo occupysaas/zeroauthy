@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -222,6 +223,16 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	for _, id := range in.PendingInvitationRoleIDs {
+		if slices.ContainsFunc(roles, func(r roleJSON) bool { return r.ID == id }) {
+			continue
+		}
+		role, err := e.Store.RBAC().GetRole(ctx, tenantID, id)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+		roles = append(roles, roleJSON{ID: role.ID, Name: role.Name, Description: role.Description})
+	}
 	names := make([]string, len(roles))
 	for i, r := range roles {
 		names[i] = r.Name
@@ -230,7 +241,11 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		units: pinned(bound), roles: roles, acc: newAccum(TriggerPostLogin, in.TargetScopes, nil, in.CanRedirect),
 		cache: e.caches.get(tenantID, TriggerPostLogin), input: &in}
 	if in.User != nil && in.ResourceServer != nil && !in.ResourceServer.IsSystem && in.ResourceServer.EnforcePolicies {
-		snapshot, err := store.OrganizationAuthorizationSnapshot(ctx, e.Store, tenantID, in.User.UserID, in.OrganizationID, in.ResourceServer.Identifier)
+		snapshotOrg := in.OrganizationID
+		if in.PendingMembership {
+			snapshotOrg = ""
+		}
+		snapshot, err := store.OrganizationAuthorizationSnapshot(ctx, e.Store, tenantID, in.User.UserID, snapshotOrg, in.ResourceServer.Identifier)
 		if err != nil {
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
