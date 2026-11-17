@@ -825,6 +825,9 @@ func (h *Handlers) completeWithMethods(w http.ResponseWriter, r *http.Request, f
 	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: user.UserID, UserName: passwordless.MaskIdentifier(f.conn.Strategy, user.Name)}))
 	sess, err := h.Authz.BeginLogin(w, r, f.res, f.txn, user, f.conn.Name, methods...)
 	if err != nil {
+		if h.Authz.HandleLoginAdmissionError(w, r, f.res, err) {
+			return
+		}
 		h.fail(w, r, err, f)
 		return
 	}

@@ -152,7 +152,7 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 			state := target.Query().Get("state")
 			// This is only a selector. The original pending credential and the sealed
 			// Action state's session/tenant/origin binding still authorize continuation.
-			http.SetCookie(w, &http.Cookie{Name: continueSelectorCookie(state), Value: p.Transaction.ID, Path: "/continue", MaxAge: int(p.Transaction.ExpiresAt.Sub(h.now()).Seconds()), Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+			http.SetCookie(w, &http.Cookie{Name: continueSelectorCookie(state), Value: p.Transaction.ID, Path: "/continue", MaxAge: int(p.Transaction.ExpiresAt.Sub(h.now()).Seconds()), Secure: true, HttpOnly: true, SameSite: http.SameSiteNoneMode})
 		}
 		redirect(w, r, result.Redirect.URL)
 		return nil, false

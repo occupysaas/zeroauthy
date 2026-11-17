@@ -408,3 +408,109 @@ func TestHostedInvitationConcurrentFirstFactors(t *testing.T) {
 		t.Fatal("pending invitation consumed", err)
 	}
 }
+
+// crossSitePost sends only cookies permitted on a cross-site form POST; Lax
+// and Strict credentials are withheld. Cookie policy is tested, not bypassed.
+func crossSitePost(b *browser, path string, form url.Values) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "https://"+b.host+path, strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Set("Origin", "https://external.example")
+	r.Header.Set("Sec-Fetch-Site", "cross-site")
+	for _, c := range b.cookies {
+		if c.SameSite == http.SameSiteNoneMode && c.Secure && strings.HasPrefix(path, c.Path) {
+			r.AddCookie(c)
+		}
+	}
+	rec := httptest.NewRecorder()
+	b.e.srv.ServeHTTP(rec, r)
+	return rec
+}
+func TestCrossSitePostContinuePendingIdentity(t *testing.T) {
+	f := newMFAFixture(t)
+	reviewAction(t, f, `exports.onExecutePostLogin=(e,a)=>a.redirect.sendUserTo('https://external.example/');exports.onContinuePostLogin=(e,a)=>{if(e.request.body.answer!=='yes')throw Error('lost form')}`)
+	rec := reviewLogin(t, f)
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	reviewCode(t, crossSitePost(f.b, "/continue", url.Values{"state": {loc.Query().Get("state")}, "answer": {"yes"}}))
+}
+func TestCrossSitePostLogoutRevokesPendingConsent(t *testing.T) {
+	for _, existing := range []bool{false, true} {
+		t.Run(map[bool]string{false: "fresh", true: "existing"}[existing], func(t *testing.T) {
+			f := newMFAFixture(t)
+			if existing {
+				appCode(t, reviewLogin(t, f))
+			}
+			f.policy(t, "otp")
+			secret := f.enrolled(t, "otp", true)
+			form := reviewConsent(t, f, reviewMFA(t, f, reviewLogin(t, f, append(reviewConsentArgs, "prompt", "login")...), secret, false))
+			old := f.srv
+			logout := &oidc.Handlers{Store: f.st, Sessions: f.h.Sessions, Now: f.h.Now}
+			f.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/oidc/logout" {
+					tenantHandler(logout.OidcLogout, f.st).ServeHTTP(w, r)
+					return
+				}
+				old.ServeHTTP(w, r)
+			})
+			out := url.Values{}
+			if existing {
+				rows, _ := f.st.Sessions().ListByUser(context.Background(), f.tn.ID, f.uid)
+				out.Set("logout_hint", rows[0].ID)
+			}
+			rec := crossSitePost(f.b, "/oidc/logout", out)
+			if rec.Code >= 400 {
+				t.Fatal(rec.Code, rec.Body)
+			}
+			// Retain all pre-logout cookies: even an open old tab cannot regain authority.
+			rec = f.b.do(t, "POST", "/u/consent", form)
+			loc, _ := url.Parse(rec.Header().Get("Location"))
+			if loc.Query().Get("code") != "" {
+				t.Fatal("cross-site logout left pending authority")
+			}
+		})
+	}
+}
+func TestInvitationAdmissionPolicyResponse(t *testing.T) {
+	for _, kind := range []string{"unverified", "mismatch"} {
+		t.Run(kind, func(t *testing.T) {
+			f := newMFAFixture(t)
+			email := ""
+			if kind == "mismatch" {
+				email = "other@example.test"
+			}
+			args := reviewInvitation(t, f, "spa", email)
+			if kind == "unverified" {
+				u, _ := f.st.Users().Get(context.Background(), f.tn.ID, f.uid)
+				u.EmailVerified = false
+				_ = f.st.Users().Update(context.Background(), u)
+			}
+			rec := reviewLogin(t, f, args...)
+			assertInvitationRefusal(t, rec, "app-state")
+		})
+	}
+}
+func assertInvitationRefusal(t *testing.T, rec *httptest.ResponseRecorder, state string) {
+	t.Helper()
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	if rec.Code != 302 || loc.Host != "app.acme.test" || loc.Path != "/cb" || loc.Query().Get("error") != "access_denied" || loc.Query().Get("state") != state {
+		t.Fatalf("invitation refusal: %d %s", rec.Code, loc)
+	}
+}
+func TestSocialInvitationAdmissionPolicyResponse(t *testing.T) {
+	s := newSocialEnv(t)
+	ctx := context.Background()
+	toApp(t, s.explicitLogin(t, s.browser("acme.example.test"), s.idp, "corp", "Invited"), "app.acme.test")
+	o, _, _ := organizationFixture(t, s.env, store.OrgBehaviorNoPrompt, true, true)
+	if err := s.st.Organizations().PutConnection(ctx, store.OrganizationConnection{TenantID: o.TenantID, OrganizationID: o.ID, ConnectionID: "con_corp", IsEnabled: true, IsEnabledSet: true, ShowAsButton: true}, true); err != nil {
+		t.Fatal(err)
+	}
+	inv := &store.OrganizationInvitation{TenantID: o.TenantID, OrganizationID: o.ID, ID: "social-invite", ClientID: "spa", InviteeEmail: "different@idp.example", ConnectionID: "con_corp", TicketHash: orglogin.InvitationTicketHash("bearer"), WrappedTicket: []byte("sealed"), ExpiresAt: time.Now().Add(time.Hour)}
+	if err := s.st.OrganizationsII().CreateInvitation(ctx, inv); err != nil {
+		t.Fatal(err)
+	}
+	b := s.browser("acme.example.test")
+	page := s.authorizeTo(t, b, "spa", "organization", o.ID, "invitation", "bearer", "connection", "corp", "state", "social-state")
+	rec := b.do(t, "GET", page, nil)
+	callback := s.idp.authorize(t, providerURL(t, rec), "Invited")
+	rec = b.do(t, "GET", callback, nil)
+	assertInvitationRefusal(t, rec, "social-state")
+}

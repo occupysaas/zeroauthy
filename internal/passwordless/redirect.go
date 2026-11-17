@@ -307,6 +307,9 @@ func (h *Handlers) continueAuthorization(w http.ResponseWriter, r *http.Request,
 	}
 	sess, err := h.Authz.BeginLogin(w, r, res, txn, u, conn.Name, store.AuthMethod{Name: conn.Strategy})
 	if err != nil {
+		if h.Authz.HandleLoginAdmissionError(w, r, res, err) {
+			return
+		}
 		h.Authz.Deny(w, r, res, client, req, "server_error", "internal error")
 		return
 	}

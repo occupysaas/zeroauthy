@@ -70,7 +70,7 @@ func (m *Manager) EndPending(ctx context.Context, w http.ResponseWriter, r *http
 		return err
 	}
 	for _, name := range cleared {
-		http.SetCookie(w, &http.Cookie{Name: name, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		http.SetCookie(w, &http.Cookie{Name: name, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteNoneMode})
 	}
 	return nil
 }

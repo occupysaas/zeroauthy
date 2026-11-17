@@ -340,6 +340,9 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
+		if h.Authz.HandleLoginAdmissionError(w, r, res, err) {
+			return
+		}
 		h.socialFailure(w, r, nil, err)
 		return
 	}

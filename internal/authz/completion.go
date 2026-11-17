@@ -74,6 +74,9 @@ func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant
 		// Admit ownership before claiming the one-time first-factor/Action transition.
 		if current.Params[orglogin.InvitationIDParam] != "" {
 			if _, e = orglogin.PreviewInvitation(r.Context(), tx, current, sess, h.now()); e != nil {
+				if errors.Is(e, orglogin.ErrInvitationIdentity) || errors.Is(e, orglogin.ErrNotMember) || errors.Is(e, store.ErrPrecondition) || errors.Is(e, store.ErrNotFound) {
+					return &loginAdmissionError{TransactionID: current.ID, Cause: e}
+				}
 				return e
 			}
 		}
@@ -87,7 +90,9 @@ func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant
 	*txn = *current
 	p := &pendingLogin{Transaction: current, Session: sess}
 	*r = *r.WithContext(context.WithValue(r.Context(), pendingLoginKey{}, p))
-	http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + txn.ID, Value: token, Path: "/", MaxAge: int(txn.ExpiresAt.Sub(h.now()).Seconds()), Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	// Cross-site Action form returns and RP logout POSTs must carry this credential.
+	// Hosted changes still require their transaction/CSRF or sealed Action state.
+	http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + txn.ID, Value: token, Path: "/", MaxAge: int(txn.ExpiresAt.Sub(h.now()).Seconds()), Secure: true, HttpOnly: true, SameSite: http.SameSiteNoneMode})
 	return sess, nil
 }
 
@@ -320,7 +325,7 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		h.clearTxnCookie(w, txn)
 	}
 	if p != nil && p.Session.ID == sess.ID {
-		http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + p.Transaction.ID, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + p.Transaction.ID, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteNoneMode})
 	}
 	return nil
 }
@@ -374,6 +379,43 @@ func (h *Handlers) retirePending(w http.ResponseWriter, r *http.Request, res ten
 		return err
 	}
 	h.clearTxnCookie(w, p.Transaction)
-	http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + p.Transaction.ID, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + p.Transaction.ID, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteNoneMode})
 	return nil
+}
+
+// A policy refusal is distinct from a storage failure. Preserve the original
+// transaction for verification retry and render only its revalidated OAuth flow.
+type loginAdmissionError struct {
+	TransactionID string
+	Cause         error
+}
+
+func (e *loginAdmissionError) Error() string { return "authz: invitation admission refused" }
+func (e *loginAdmissionError) Unwrap() error { return e.Cause }
+func (h *Handlers) HandleLoginAdmissionError(w http.ResponseWriter, r *http.Request, res tenant.Resolved, err error) bool {
+	var refusal *loginAdmissionError
+	if !errors.As(err, &refusal) {
+		return false
+	}
+	txn, e := h.Store.AuthTransactions().Get(r.Context(), res.Tenant.ID, refusal.TransactionID)
+	if e != nil || res.CheckOrigin(txn.Origin) != nil || !h.now().Before(txn.ExpiresAt) {
+		h.invalidTxn(w, r, res, &store.AuthTransaction{Params: map[string]string{}})
+		return true
+	}
+	fr := flowFromParams(txn.Params)
+	client, verr, redirectable := h.validateFlow(r.Context(), res, &fr)
+	if verr != nil {
+		if redirectable {
+			h.refuse(w, r, res, client, fr, verr)
+		} else {
+			h.flowError(w, r, res, fr, verr)
+		}
+		return true
+	}
+	description := "the invitation can no longer be accepted"
+	if errors.Is(refusal.Cause, orglogin.ErrInvitationIdentity) {
+		description = orglogin.ErrInvitationIdentity.Error()
+	}
+	h.refuse(w, r, res, client, fr, errAccessDenied(description))
+	return true
 }
