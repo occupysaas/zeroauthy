@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -306,7 +307,11 @@ func TestPendingLoginCannotBecomeSSO(t *testing.T) {
 			u, _ := f.st.Users().Get(context.Background(), f.tn.ID, f.uid)
 			switch mode {
 			case "cookie":
-				delete(f.b.cookies, "za_pending_login")
+				for name := range f.b.cookies {
+					if strings.HasPrefix(name, session.PendingCookiePrefix) {
+						delete(f.b.cookies, name)
+					}
+				}
 			case "origin":
 				tn := mustTenant(t, f.env, "acme")
 				tn.Domains = append(tn.Domains, "login.acme.test")

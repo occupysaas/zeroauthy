@@ -142,7 +142,7 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 			policyError = errAccessDenied("an organization must be selected before issuing a code")
 			return store.ErrPrecondition
 		}
-		if e := local.commitLogin(&staged, request, res, fr, sess); e != nil {
+		if e := local.commitLogin(&staged, request, res, fr, sess, eff); e != nil {
 			return e
 		}
 		if fr.invitationBinding[orglogin.InvitationIDParam] != "" && eff != nil && eff.RBAC != nil {
@@ -205,6 +205,12 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 // device code for the device flow. A server error leaves a device code
 // pending.
 func (h *Handlers) refuse(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, e *Error) {
+	if e.Code != "server_error" {
+		if err := h.retirePending(w, r, res); err != nil {
+			e = errServer()
+		}
+	}
+
 	if txn, ok := r.Context().Value(completionTxnKey{}).(*store.AuthTransaction); ok && e.Code != "server_error" {
 		h.EndTxn(w, r, res, txn)
 	}

@@ -360,6 +360,13 @@ func (h *Handlers) startTxn(w http.ResponseWriter, r *http.Request, res tenant.R
 // startTxnWith is startTxn with createTxn's prepare.
 func (h *Handlers) startTxnWith(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, params map[string]string, page string,
 	prepare func(string, map[string]string) error) {
+	if p, _ := r.Context().Value(pendingLoginKey{}).(*pendingLogin); p != nil {
+		params[pendingRootParam] = p.Transaction.ID
+	}
+	if choice, ok := r.Context().Value(rememberChoiceKey{}).(rememberChoice); ok {
+		params["za_remember_epoch"] = strconv.Itoa(choice.Epoch)
+		params["za_remember_user"] = choice.UserID
+	}
 	txn, err := h.createTxn(w, r, res, client.ClientID, params, "/u", prepare)
 	if err != nil {
 		h.log().ErrorContext(r.Context(), "create login transaction", "tenant", res.Tenant.ID, "err", err)

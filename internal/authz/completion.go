@@ -6,19 +6,28 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
-const pendingLoginCookie = "za_pending_login"
-const pendingIdentityParam = "za_pending_identity"
+const pendingLoginCookie = session.PendingCookiePrefix
+const pendingIdentityParam = session.PendingIdentityParam
+const pendingRootParam = "za_pending_root"
+
+type pendingSelectorKey struct{}
+type rememberChoiceKey struct{}
+type rememberChoice struct {
+	UserID string
+	Epoch  int
+}
 
 type pendingLoginKey struct{}
 type completionTxnKey struct{}
@@ -30,6 +39,10 @@ type pendingLogin struct {
 // BeginLogin records first-factor evidence on the original browser transaction.
 // It is never a session: only the hosted continuation paths can read it.
 func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, user *store.User, connection string, methods ...store.AuthMethod) (*store.LoginSession, error) {
+	// Keep the number of outstanding credentials bounded without evicting another flow.
+	if session.PendingCookieCount(r) >= session.MaxPendingLogins {
+		return nil, store.ErrPrecondition
+	}
 	sess, _, err := h.Sessions.Prepare(r.Context(), r, res.Tenant, user.UserID, connection, h.now(), methods...)
 	if err != nil {
 		return nil, err
@@ -47,7 +60,7 @@ func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant
 		if e != nil {
 			return e
 		}
-		if !h.now().Before(current.ExpiresAt) || res.CheckOrigin(current.Origin) != nil {
+		if !h.now().Before(current.ExpiresAt) || res.CheckOrigin(current.Origin) != nil || current.Params[pendingIdentityParam] != "" {
 			return store.ErrPrecondition
 		}
 		fresh, e := tx.Users().Get(r.Context(), res.Tenant.ID, user.UserID)
@@ -56,6 +69,13 @@ func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant
 		}
 		if fresh.Blocked || fresh.Version != user.Version {
 			return store.ErrPrecondition
+		}
+		// Unverified invitation signup retains its original verification retry.
+		// Admit ownership before claiming the one-time first-factor/Action transition.
+		if current.Params[orglogin.InvitationIDParam] != "" {
+			if _, e = orglogin.PreviewInvitation(r.Context(), tx, current, sess, h.now()); e != nil {
+				return e
+			}
 		}
 		current.Params["za_pending_user_version"] = strconv.FormatInt(user.Version, 10)
 		current.Params[pendingIdentityParam] = string(raw)
@@ -67,7 +87,7 @@ func (h *Handlers) BeginLogin(w http.ResponseWriter, r *http.Request, res tenant
 	*txn = *current
 	p := &pendingLogin{Transaction: current, Session: sess}
 	*r = *r.WithContext(context.WithValue(r.Context(), pendingLoginKey{}, p))
-	http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie, Value: txn.ID + "." + token, Path: "/", MaxAge: int(txn.ExpiresAt.Sub(h.now()).Seconds()), Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + txn.ID, Value: token, Path: "/", MaxAge: int(txn.ExpiresAt.Sub(h.now()).Seconds()), Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	return sess, nil
 }
 
@@ -75,17 +95,18 @@ func (h *Handlers) pendingLogin(ctx context.Context, r *http.Request, res tenant
 	if p, ok := ctx.Value(pendingLoginKey{}).(*pendingLogin); ok {
 		return p, nil
 	}
-	c, err := r.Cookie(pendingLoginCookie)
-	if err != nil {
+	id, _ := ctx.Value(pendingSelectorKey{}).(string)
+	if id == "" {
 		return nil, nil
 	}
-	id, token, ok := strings.Cut(c.Value, ".")
-	if !ok {
+	c, err := r.Cookie(pendingLoginCookie + id)
+	if err != nil {
 		return nil, store.ErrInvalid
 	}
+	token := c.Value
 	txn, err := h.Store.AuthTransactions().Get(ctx, res.Tenant.ID, id)
 	if errors.Is(err, store.ErrNotFound) {
-		return nil, nil
+		return nil, store.ErrInvalid
 	}
 	if err != nil {
 		return nil, err
@@ -107,11 +128,41 @@ func (h *Handlers) pendingLogin(ctx context.Context, r *http.Request, res tenant
 // FlowSession is scoped to hosted steps and Action continuations. Authorize and
 // all other SSO consumers deliberately use ActiveSession, which ignores it.
 func (h *Handlers) FlowSession(ctx context.Context, r *http.Request, res tenant.Resolved) (*store.LoginSession, error) {
+	// A hosted state selects only its own server-bound first-factor evidence.
+	// Ordinary SSO requests have no selector and ignore pending credentials.
+	var expected string
+	if _, ok := ctx.Value(pendingLoginKey{}).(*pendingLogin); !ok && r.URL.Path != "/continue" {
+		state := r.FormValue("state")
+		if state != "" {
+			txn, e := h.Store.AuthTransactions().Get(ctx, res.Tenant.ID, state)
+			if e != nil {
+				return nil, e
+			}
+			if !h.now().Before(txn.ExpiresAt) || res.CheckOrigin(txn.Origin) != nil {
+				return nil, store.ErrInvalid
+			}
+			expected = txn.Params[sessionKey]
+			if root := txn.Params[pendingRootParam]; root != "" {
+				ctx = context.WithValue(ctx, pendingSelectorKey{}, root)
+			}
+			if epoch, ok := txn.Params["za_remember_epoch"]; ok {
+				n, e := strconv.Atoi(epoch)
+				if e != nil {
+					return nil, e
+				}
+				ctx = context.WithValue(ctx, rememberChoiceKey{}, rememberChoice{UserID: txn.Params["za_remember_user"], Epoch: n})
+			}
+		}
+	}
+	*r = *r.WithContext(ctx)
 	p, err := h.pendingLogin(ctx, r, res)
 	if err != nil {
 		return nil, err
 	}
 	if p != nil {
+		if expected != "" && expected != p.Session.ID {
+			return nil, store.ErrInvalid
+		}
 		*r = *r.WithContext(context.WithValue(r.Context(), pendingLoginKey{}, p))
 		return p.Session, nil
 	}
@@ -169,7 +220,7 @@ type consentGrantKey struct{}
 
 // commitLogin is the single boundary for non-Action authorization effects.
 // Cookie headers are staged by approve alongside code/device issuance.
-func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, fr flowReq, sess *store.LoginSession) error {
+func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, fr flowReq, sess *store.LoginSession, eff *actions.Effects) error {
 	ctx := r.Context()
 	p, err := h.pendingLogin(ctx, r, res)
 	if err != nil {
@@ -218,7 +269,7 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		txn, _ = ctx.Value(completionTxnKey{}).(*store.AuthTransaction)
 	}
 	if txn != nil && txn.Params[orglogin.InvitationIDParam] != "" {
-		if err = h.acceptInvitation(ctx, txn, sess); err != nil {
+		if err = h.acceptInvitation(ctx, txn, sess, eff); err != nil {
 			return err
 		}
 	}
@@ -240,6 +291,18 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 			return e
 		}
 	}
+	if choice, ok := ctx.Value(rememberChoiceKey{}).(rememberChoice); ok {
+		user, e := h.Store.Users().Get(ctx, res.Tenant.ID, sess.UserID)
+		if e != nil {
+			return e
+		}
+		if choice.UserID != sess.UserID || choice.Epoch != user.RememberBrowserEpoch {
+			return store.ErrPrecondition
+		}
+		if e = h.Sessions.SetMFABrowser(ctx, w, user, "remember"); e != nil {
+			return e
+		}
+	}
 	if grant, ok := ctx.Value(consentGrantKey{}).(*store.UserGrant); ok {
 		if _, err = h.Store.UserGrants().Upsert(ctx, grant); err != nil {
 			return err
@@ -257,7 +320,7 @@ func (h *Handlers) commitLogin(w http.ResponseWriter, r *http.Request, res tenan
 		h.clearTxnCookie(w, txn)
 	}
 	if p != nil && p.Session.ID == sess.ID {
-		http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + p.Transaction.ID, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	}
 	return nil
 }
@@ -290,4 +353,27 @@ func (h *Handlers) completionTransaction(ctx context.Context, r *http.Request, r
 		return nil, store.ErrNotFound
 	}
 	return h.Store.AuthTransactions().Get(ctx, res.Tenant.ID, txn.ID)
+}
+
+// RememberFlow carries a server-validated choice to the final completion. It
+// grants no browser authority until approve commits its staged row and cookie.
+func (h *Handlers) RememberFlow(r *http.Request, res tenant.Resolved, sess *store.LoginSession) error {
+	u, err := h.Store.Users().Get(r.Context(), res.Tenant.ID, sess.UserID)
+	if err != nil {
+		return err
+	}
+	*r = *r.WithContext(context.WithValue(r.Context(), rememberChoiceKey{}, rememberChoice{UserID: u.UserID, Epoch: u.RememberBrowserEpoch}))
+	return nil
+}
+func (h *Handlers) retirePending(w http.ResponseWriter, r *http.Request, res tenant.Resolved) error {
+	p, _ := r.Context().Value(pendingLoginKey{}).(*pendingLogin)
+	if p == nil {
+		return nil
+	}
+	if err := h.Store.AuthTransactions().Delete(r.Context(), res.Tenant.ID, p.Transaction.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+	h.clearTxnCookie(w, p.Transaction)
+	http.SetCookie(w, &http.Cookie{Name: pendingLoginCookie + p.Transaction.ID, Path: "/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	return nil
 }

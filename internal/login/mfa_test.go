@@ -428,7 +428,7 @@ func (f *mfaFixture) setRemember(t *testing.T, allow bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := httptest.NewRequest("GET", "https://"+f.b.host+"/", nil)
+	r := httptest.NewRequest("GET", "https://"+f.b.host+"/u/mfa?state="+f.state, nil)
 	for _, c := range f.b.cookies {
 		r.AddCookie(c)
 	}

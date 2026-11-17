@@ -18,6 +18,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -30,6 +31,7 @@ type mfaRequest struct {
 	LoginPending                 bool
 	Native                       *federation.NativeBinding
 	Passkey                      bool
+	PasskeyBinding               *passkey.Binding
 	OrganizationID, ConnectionID string
 	Audience, Origin             string
 	Scopes, Ceiling              []string
@@ -107,7 +109,7 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 	}
 	raw := secrets.RandomString(48)
 	t := &store.MFAToken{TenantID: res.Tenant.ID, Hash: secrets.HashToken(raw), ClientID: c.ClientID, UserID: u.UserID, Connection: conn.ID, ExpiresAt: now.Add(mfaTokenLifetime)}
-	p, err := json.Marshal(mfaRequest{LoginPending: true, PendingMembership: flow.PendingMembership, Native: flow.Native, Passkey: flow.Passkey, OrganizationID: orgID, ConnectionID: flow.ConnectionID, Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
+	p, err := json.Marshal(mfaRequest{PasskeyBinding: flow.PasskeyBinding, LoginPending: true, PendingMembership: flow.PendingMembership, Native: flow.Native, Passkey: flow.Passkey, OrganizationID: orgID, ConnectionID: flow.ConnectionID, Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
 	if err != nil {
 		return serverError()
 	}
@@ -279,6 +281,11 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 	}
 	ctx, flushMembership := orglogin.StageMembershipEvents(ctx)
 	svc := h.MFA.WithProofCommit(func(tx store.Store) error {
+		if p.Passkey {
+			if err := h.checkPasskeyCompletion(ctx, tx, res, c.ClientID, p.ConnectionID, p.PasskeyBinding); err != nil {
+				return err
+			}
+		}
 		if p.Native != nil {
 			if h.Federation == nil {
 				return errUserChanged

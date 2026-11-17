@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -141,6 +143,17 @@ func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res t
 		return nil, false
 	}
 	if result.Redirect != nil {
+		if p, _ := r.Context().Value(pendingLoginKey{}).(*pendingLogin); p != nil {
+			target, e := url.Parse(result.Redirect.URL)
+			if e != nil {
+				h.actionsFailed(w, r, res, client, fr, result.ExecutionID)
+				return nil, false
+			}
+			state := target.Query().Get("state")
+			// This is only a selector. The original pending credential and the sealed
+			// Action state's session/tenant/origin binding still authorize continuation.
+			http.SetCookie(w, &http.Cookie{Name: continueSelectorCookie(state), Value: p.Transaction.ID, Path: "/continue", MaxAge: int(p.Transaction.ExpiresAt.Sub(h.now()).Seconds()), Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		}
 		redirect(w, r, result.Redirect.URL)
 		return nil, false
 	}
@@ -174,7 +187,7 @@ const ranEmpty = "-"
 // sealConsent seals eff for consent transaction txnID of sessionID and
 // client; a flow without effects is only marked as run.
 func (h *Handlers) sealConsent(tenantID, txnID, sessionID, clientID string, eff *actions.Effects) (string, error) {
-	if !eff.HasTokenEffects() && eff.Target == nil && eff.MFA == nil {
+	if !eff.HasTokenEffects() && eff.Target == nil && eff.MFA == nil && !hasMetadataDeletion(eff) {
 		return ranEmpty, nil
 	}
 	b, err := actions.SealEffects(h.Wrapper, tenantID, actions.SealConsent, eff, txnID, sessionID, clientID)
@@ -209,4 +222,17 @@ func (h *Handlers) sealFor(tenantID, purpose, hash string, eff *actions.Effects)
 		return nil, nil
 	}
 	return actions.SealEffects(h.Wrapper, tenantID, purpose, eff, hash)
+}
+
+func continueSelectorCookie(state string) string { return "za_continue_" + secrets.HashToken(state) }
+
+func hasMetadataDeletion(eff *actions.Effects) bool {
+	for _, patch := range []map[string]any{eff.AppMetadata, eff.UserMetadata} {
+		for _, v := range patch {
+			if v == nil {
+				return true
+			}
+		}
+	}
+	return false
 }

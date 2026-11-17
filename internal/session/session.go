@@ -167,6 +167,16 @@ func (m *Manager) Prepare(ctx context.Context, r *http.Request, t *store.Tenant,
 // Commit persists prepared evidence. The caller owns the transaction and must
 // buffer the response cookie until that transaction has committed.
 func (m *Manager) Commit(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant, s *store.LoginSession, token string) error {
+	// The SSO lifetime starts when the session is created. Authentication evidence
+	// retains the original first-factor time and methods across slow MFA/consent.
+	now := m.now()
+	absolute, idle := lifetimes(t, s.CookieMode)
+	s.ExpiresAt = expiry(now, absolute)
+	s.IdleExpiresAt = minTime(expiry(now, idle), s.ExpiresAt)
+	s.CreatedAt = now
+	s.UpdatedAt = now
+	s.LastInteractedAt = now
+
 	if old, err := r.Cookie(CookieName); err == nil && old.Value != "" {
 		previous, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(old.Value))
 		if err != nil && !errors.Is(err, store.ErrNotFound) {
@@ -221,6 +231,10 @@ func minTime(a, b time.Time) time.Time {
 // End deletes the request's session, if any, and clears the cookie. It
 // returns the ended session, or nil if there was none.
 func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant) (*store.LoginSession, error) {
+	if err := m.EndPending(ctx, w, r, t); err != nil {
+		return nil, err
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name: CookieName, Value: "", Path: "/", MaxAge: -1,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode,

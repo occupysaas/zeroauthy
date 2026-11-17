@@ -33,10 +33,11 @@ type firstFactorTokens struct {
 	LoginAlreadyRecorded bool
 	Native               *federation.NativeBinding
 	// RPID scopes enrolled MFA keys independently of native factor availability.
-	RPID         string
-	Passkey      bool
-	Organization *store.Organization
-	ConnectionID string
+	RPID           string
+	Passkey        bool
+	PasskeyBinding *passkey.Binding
+	Organization   *store.Organization
+	ConnectionID   string
 }
 
 func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
@@ -295,7 +296,8 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 		}
 	}
 	ceiling := actions.CeilingOf(d.Scopes, before)
-	flow := firstFactorTokens{PendingMembership: pendingMembership, Passkey: true, Organization: org, ConnectionID: conn.ID, RPID: rp.RPID}
+	binding := nativeBinding(conn, rp, c, org)
+	flow := firstFactorTokens{PasskeyBinding: &binding, PendingMembership: pendingMembership, Passkey: true, Organization: org, ConnectionID: conn.ID, RPID: rp.RPID}
 	if required := h.passwordMFA(ctx, res, c, user, conn, aud, d.Scopes, ceiling, eff, now, flow); required != nil {
 		return nil, required
 	}
@@ -306,6 +308,9 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 	version := user.Version
 	ctx, flushMembership := orglogin.StageMembershipEvents(ctx)
 	err = h.mintCheckedTx(ctx, tid, user.UserID, &version, func(tx store.Store) error {
+		if err := h.checkPasskeyCompletion(ctx, tx, res, c.ClientID, conn.ID, &binding); err != nil {
+			return err
+		}
 		return checkPendingOrganization(ctx, tx, tid, user.UserID, orgID, conn.ID, c.ClientID, pendingMembership, true)
 	}, write)
 	flushMembership(err)

@@ -29,6 +29,7 @@ type AcceptanceInput struct {
 	Recorder                                                                                     logs.Recorder
 	TenantID, OrganizationID, ClientID, InvitationID, TransactionID, UserID, PrimaryConnectionID string
 	Now                                                                                          time.Time
+	ExcludeAppMetadata, ExcludeUserMetadata                                                      []string
 }
 
 // AcceptInvitation runs after the existing authentication pipeline completes.
@@ -123,7 +124,7 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if invite.ClientID != in.ClientID || !in.Now.Before(invite.ExpiresAt) || (invite.ConnectionID != "" && invite.ConnectionID != conn.ID) {
 			return store.ErrPrecondition
 		}
-		if !u.EmailVerified || strings.ToLower(strings.TrimSpace(u.Email)) != strings.ToLower(strings.TrimSpace(invite.InviteeEmail)) {
+		if !u.EmailVerified || !invitationEmailMatches(u.Email, invite.InviteeEmail) {
 			return ErrInvitationIdentity
 		}
 		// Consumption validates role ownership again, and all subsequent writes
@@ -142,8 +143,8 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 				return err
 			}
 		}
-		u.UserMetadata = mergeInvitationMetadata(u.UserMetadata, invite.UserMetadata)
-		u.AppMetadata = mergeInvitationMetadata(u.AppMetadata, invite.AppMetadata)
+		u.UserMetadata = mergeInvitationDefaults(u.UserMetadata, invite.UserMetadata, in.ExcludeUserMetadata)
+		u.AppMetadata = mergeInvitationDefaults(u.AppMetadata, invite.AppMetadata, in.ExcludeAppMetadata)
 		if err = tx.Users().Update(ctx, u); err != nil {
 			return err
 		}
@@ -260,7 +261,7 @@ func PreviewInvitation(ctx context.Context, st store.Store, txn *store.AuthTrans
 	if inv.ClientID != txn.ClientID || !now.Before(inv.ExpiresAt) || (inv.ConnectionID != "" && inv.ConnectionID != conn.ID) {
 		return nil, store.ErrPrecondition
 	}
-	if !user.EmailVerified || !strings.EqualFold(strings.TrimSpace(user.Email), strings.TrimSpace(inv.InviteeEmail)) {
+	if !user.EmailVerified || !invitationEmailMatches(user.Email, inv.InviteeEmail) {
 		return nil, ErrInvitationIdentity
 	}
 	for _, id := range inv.Roles {
@@ -277,4 +278,17 @@ func InvitationUserView(user *store.User, inv *store.OrganizationInvitation) *st
 	copy.AppMetadata = mergeInvitationMetadata(user.AppMetadata, inv.AppMetadata)
 	copy.UserMetadata = mergeInvitationMetadata(user.UserMetadata, inv.UserMetadata)
 	return &copy
+}
+
+func invitationEmailMatches(actual, invited string) bool {
+	return strings.ToLower(strings.TrimSpace(actual)) == strings.ToLower(strings.TrimSpace(invited))
+}
+func mergeInvitationDefaults(existing, defaults map[string]any, excluded []string) map[string]any {
+	filtered := map[string]any{}
+	for k, v := range defaults {
+		if !slices.Contains(excluded, k) {
+			filtered[k] = v
+		}
+	}
+	return mergeInvitationMetadata(existing, filtered)
 }

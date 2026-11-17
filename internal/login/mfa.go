@@ -884,12 +884,7 @@ func (h *Handlers) finishMFA(w http.ResponseWriter, r *http.Request, f *mfaFlow)
 			return
 		}
 		if f.page.Remember && f.pending.Requirement.AllowRemember {
-			u, err := h.Store.Users().Get(r.Context(), f.res.Tenant.ID, f.pending.UserID)
-			if err != nil {
-				h.fail(w, r, err, f.flow)
-				return
-			}
-			if err = h.Sessions.SetMFABrowser(r.Context(), w, u, "remember"); err != nil {
+			if err := h.Authz.RememberFlow(r, f.res, f.sess); err != nil {
 				h.fail(w, r, err, f.flow)
 				return
 			}

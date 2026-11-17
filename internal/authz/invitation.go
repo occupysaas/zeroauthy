@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -83,7 +84,7 @@ func (h *Handlers) bindInvitationSession(ctx context.Context, txn *store.AuthTra
 	})
 }
 
-func (h *Handlers) acceptInvitation(ctx context.Context, txn *store.AuthTransaction, sess *store.LoginSession) error {
+func (h *Handlers) acceptInvitation(ctx context.Context, txn *store.AuthTransaction, sess *store.LoginSession, effects ...*actions.Effects) error {
 	if e := h.bindInvitationSession(ctx, txn, sess); e != nil {
 		return e
 	}
@@ -91,6 +92,19 @@ func (h *Handlers) acceptInvitation(ctx context.Context, txn *store.AuthTransact
 	if e != nil {
 		return e
 	}
-	_, e = orglogin.AcceptInvitation(ctx, h.Store, orglogin.AcceptanceInput{TenantID: txn.TenantID, OrganizationID: txn.Params[store.TxnParamOrgID], ClientID: txn.ClientID, InvitationID: txn.Params[orglogin.InvitationIDParam], TransactionID: txn.ID, UserID: sess.UserID, PrimaryConnectionID: conn.ID, Now: h.now()})
+	var app, user []string
+	if len(effects) > 0 && effects[0] != nil {
+		for k, v := range effects[0].AppMetadata {
+			if v == nil {
+				app = append(app, k)
+			}
+		}
+		for k, v := range effects[0].UserMetadata {
+			if v == nil {
+				user = append(user, k)
+			}
+		}
+	}
+	_, e = orglogin.AcceptInvitation(ctx, h.Store, orglogin.AcceptanceInput{ExcludeAppMetadata: app, ExcludeUserMetadata: user, TenantID: txn.TenantID, OrganizationID: txn.Params[store.TxnParamOrgID], ClientID: txn.ClientID, InvitationID: txn.Params[orglogin.InvitationIDParam], TransactionID: txn.ID, UserID: sess.UserID, PrimaryConnectionID: conn.ID, Now: h.now()})
 	return e
 }
