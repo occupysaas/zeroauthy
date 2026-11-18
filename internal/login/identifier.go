@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -53,7 +54,7 @@ func (h *Handlers) identifierPost(w http.ResponseWriter, r *http.Request, f *flo
 		h.renderIdentifier(w, r, http.StatusBadRequest, f, d)
 		return
 	}
-	if h.Federation != nil {
+	if h.Federation != nil && f.txn.Params["connection"] == "" {
 		conns, e := h.socialConnections(r.Context(), f, true)
 		if e != nil {
 			h.fail(w, r, e, f)
@@ -71,6 +72,12 @@ func (h *Handlers) identifierPost(w http.ResponseWriter, r *http.Request, f *flo
 			h.startSocialHint(w, r, f, conn, identifier)
 			return
 		}
+	}
+	if f.conn == nil {
+		d := h.stageData(f, identifier)
+		d.Error = f.view.L.T(i18n.KeyErrNoConnection)
+		h.renderIdentifier(w, r, http.StatusBadRequest, f, d)
+		return
 	}
 	next := f.txn.HostedState.Clone()
 	next.Step = "password"
@@ -169,4 +176,23 @@ func (h *Handlers) renderLoginStage(w http.ResponseWriter, r *http.Request, stat
 	}
 	data.HostedRevision = hostedRevision(f)
 	ui.RenderLogin(w, status, f.view, data)
+}
+
+// homeRealmAvailable allows an enterprise-only application to show the identifier
+// prompt without choosing a password database as a prerequisite.
+func (h *Handlers) homeRealmAvailable(r *http.Request, f *flow) bool {
+	if f.txn.Params["connection"] != "" || f.txn.HostedState.Step != "identifier" {
+		return false
+	}
+	conns, e := h.socialConnections(r.Context(), f, true)
+	if e != nil {
+		return false
+	}
+	for _, c := range conns {
+		cfg, e := federation.ParseConfig(*connrules.FromConnection(c))
+		if e == nil && len(cfg.DomainAliases) > 0 {
+			return true
+		}
+	}
+	return false
 }

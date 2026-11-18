@@ -89,8 +89,9 @@ type Begun struct {
 }
 
 type proof struct {
-	Verifier string `json:"v"`
-	Nonce    string `json:"n"`
+	Verifier  string     `json:"v"`
+	Nonce     string     `json:"n"`
+	Endpoints *Endpoints `json:"e,omitempty"`
 }
 
 func randomToken() string {
@@ -180,7 +181,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	now := s.now()
 	state, nonce, verifier, cookie := randomToken(), randomToken(), randomToken(), randomToken()
 	stateHash := StateHash(state)
-	sealed, err := s.sealProof(conn.TenantID, stateHash, proof{Verifier: verifier, Nonce: nonce})
+	sealed, err := s.sealProof(conn.TenantID, stateHash, proof{Verifier: verifier, Nonce: nonce, Endpoints: &endpoints})
 	if err != nil {
 		return nil, err
 	}
@@ -344,6 +345,18 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	if err != nil {
 		return nil, ErrConnectionUnusable
 	}
+	pr, err := s.openProof(a.TenantID, a.StateHash, a.SealedProof)
+	if err != nil {
+		return nil, ErrAttemptStale
+	}
+	// Older plugin codecs preserve SealedProof but do not know endpoint fields.
+	if pr.Endpoints != nil {
+		a.Endpoints = *pr.Endpoints
+	} else if cfg.Strategy == StrategyOIDC && a.Endpoints.ResponseType == "" {
+		// Pre-enterprise attempts were always code/S256.
+		a.Endpoints.ResponseType = "code"
+		a.Endpoints.PKCEMethod = "S256"
+	}
 	front := cfg.Channel == "front_channel"
 	if front {
 		if !in.Params.FormPost || a.Endpoints.ResponseType != "id_token" || in.Params.Code != "" {
@@ -364,10 +377,6 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		}
 	} else if cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 		return nil, ErrConnectionUnusable
-	}
-	pr, err := s.openProof(a.TenantID, a.StateHash, a.SealedProof)
-	if err != nil {
-		return nil, ErrAttemptStale
 	}
 	var appleUser *AppleUser
 	if cfg.Strategy == StrategyApple && slices.Contains(cfg.Scopes, "name") {

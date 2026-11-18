@@ -20,9 +20,7 @@ func mappedProfile(cfg Config, connectionID, sub string, claims, info map[string
 	for k, v := range claims {
 		tokenSet[k] = v
 	}
-	if tokens.AccessToken != "" {
-		tokenSet["access_token"] = tokens.AccessToken
-	}
+
 	root, extra := compiled.Apply(MapContext{TokenSet: tokenSet, UserInfo: info, ConnectionID: connectionID, Strategy: cfg.Strategy})
 	b, e := json.Marshal(extra)
 	if e != nil || len(b) > maxMetadataBytes || depth(extra) > maxMetadataDepth || hasPollution(extra) {

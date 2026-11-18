@@ -14,6 +14,8 @@ if(mode==='setup'){
  assert.equal(front.options.type,'front_channel');assert.equal(front.options.client_secret,undefined);
  await register({ClientID:'front-client'});
  const back=await client.connections.create({name:'enterprise-private',strategy:'oidc',enabled_clients:['m24-spa'],options:{type:'back_channel',client_id:'private-client',scope:'openid profile email',discovery_url:discovery,token_endpoint_auth_method:'private_key_jwt',domain_aliases:['corp.example'],attribute_map:{mapping_mode:'use_map',userinfo_scope:'openid profile groups',attributes:{name:'Mapped ${context.tokenset.name}',email:'${context.tokenset.email}',email_verified:'${context.tokenset.email_verified}',federated_groups:'${context.userinfo.groups}'}}}});
+ await assert.rejects(client.connections.update(back.id,{options:{...back.options,attribute_map:{mapping_mode:'use_map',attributes:{name:'${context.tokenset.access_token}'}}}}),e=>e.statusCode===400);
+ const malformed=await api(`connections/${back.id}`,'PATCH',{options:{...back.options,scope:['openid'],scopes:['openid']}});assert.equal(malformed.status,400);
  assert.deepEqual(await client.connections.keys.get(back.id),[]);
  const signing=await client.connections.keys.create(back.id,{key_use:'signing',signing_alg:'RS256'});
  assert.equal(signing.length,2);assert.ok(signing.every(k=>!k.cert.includes('PRIVATE KEY')));

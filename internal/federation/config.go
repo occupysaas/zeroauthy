@@ -3,6 +3,7 @@ package federation
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 
@@ -62,6 +63,20 @@ type Config struct {
 func ParseConfig(spec connrules.Spec) (Config, error) {
 	if !spec.Federated() {
 		return Config{}, fmt.Errorf("federation: strategy %q is not federated", spec.Strategy)
+	}
+	// Existing plugin records predate the SQL migration. Sealed credentials
+	// distinguish them from a new secretless front-channel request.
+	if spec.Strategy == StrategyOIDC && len(spec.FederationSecretsSealed) > 0 {
+		if _, exists := spec.Options.Extra["type"]; !exists {
+			spec.Options.Extra = maps.Clone(spec.Options.Extra)
+			if spec.Options.Extra == nil {
+				spec.Options.Extra = map[string]any{}
+			}
+			spec.Options.Extra["type"] = "back_channel"
+			if _, exists := spec.Options.Extra["connection_settings"]; !exists {
+				spec.Options.Extra["connection_settings"] = map[string]any{"pkce": "S256"}
+			}
+		}
 	}
 	settings, errs := rules.Parse(spec.FederationInput())
 	if len(errs) > 0 {

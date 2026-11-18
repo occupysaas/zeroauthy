@@ -174,3 +174,39 @@ func TestDomainAliasesNormalization(t *testing.T) {
 		t.Fatal("Google accepted enterprise aliases")
 	}
 }
+
+func TestEnterpriseReviewValidation(t *testing.T) {
+	for name, change := range map[string]func(map[string]any){
+		"empty signatures":    func(o map[string]any) { o["id_token_signed_response_algs"] = []any{} },
+		"array scopes":        func(o map[string]any) { o["scope"] = []any{"openid"}; o["scopes"] = []any{"openid"} },
+		"object scopes":       func(o map[string]any) { o["scope"] = map[string]any{}; o["scopes"] = map[string]any{} },
+		"mapping mode type":   func(o map[string]any) { o["attribute_map"] = map[string]any{"mapping_mode": false} },
+		"userinfo scope type": func(o map[string]any) { o["attribute_map"] = map[string]any{"userinfo_scope": false} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("validation panicked: %v", r)
+				}
+			}()
+			o := enterpriseOptions()
+			change(o)
+			if _, errs := Parse(Input{Strategy: OIDC, Options: o}); len(errs) == 0 {
+				t.Fatal("invalid option accepted")
+			}
+		})
+	}
+	for _, source := range []string{"tokenset", "userinfo"} {
+		for _, claim := range []string{"access_token", "refresh_token", "id_token", "client_secret", "private_key"} {
+			t.Run(source+claim, func(t *testing.T) {
+				o := enterpriseOptions()
+				o["type"] = "back_channel"
+				o["client_secret"] = "throwaway"
+				o["attribute_map"] = map[string]any{"mapping_mode": "use_map", "attributes": map[string]any{"name": "prefix-${context." + source + "." + claim + "}"}}
+				if _, errs := Parse(Input{Strategy: OIDC, Options: o}); len(errs) == 0 {
+					t.Fatal("credential reference accepted")
+				}
+			})
+		}
+	}
+}

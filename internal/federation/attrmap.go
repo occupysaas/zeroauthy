@@ -52,13 +52,13 @@ func (c *CompiledMap) Apply(ctx MapContext) (root, profileData map[string]any) {
 		if rules.RestrictedTarget(k) || v == nil {
 			return
 		}
-		if k == "email_verified" {
+		if k == "email_verified" || k == "phone_verified" {
 			if _, ok := v.(bool); !ok {
 				return
 			}
 		}
 		switch k {
-		case "email", "email_verified", "name", "nickname", "given_name", "family_name", "picture", "username", "phone_number", "phone_verified":
+		case "email", "email_verified", "name", "nickname", "given_name", "family_name", "picture", "username":
 			root[k] = cloneMapValue(v)
 		default:
 			profileData[k] = cloneMapValue(v)
@@ -80,9 +80,15 @@ func (c *CompiledMap) Apply(ctx MapContext) (root, profileData map[string]any) {
 	get := func(p rules.MapPart) (any, bool) {
 		switch p.Source {
 		case "tokenset":
+			if rules.CredentialClaim(p.Claim) {
+				return nil, false
+			}
 			v, ok := ctx.TokenSet[p.Claim]
 			return v, ok
 		case "userinfo":
+			if rules.CredentialClaim(p.Claim) {
+				return nil, false
+			}
 			v, ok := ctx.UserInfo[p.Claim]
 			return v, ok
 		case "connection":

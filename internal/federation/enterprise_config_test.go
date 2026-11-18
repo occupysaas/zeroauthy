@@ -72,3 +72,24 @@ func TestEnterpriseSecretlessWrite(t *testing.T) {
 		}
 	}
 }
+
+func TestEnterpriseReviewStoredLegacyConfig(t *testing.T) {
+	s := configSpec(t, "oidc", `{"client_id":"client","scope":"openid","discovery_url":"https://provider.example/discovery"}`)
+	s.FederationSecretsSealed = []byte("opaque-existing-envelope")
+	cfg, e := ParseConfig(s)
+	if e != nil || cfg.Channel != "back_channel" || cfg.PKCE != "S256" {
+		t.Fatal("legacy plugin configuration changed meaning", cfg, e)
+	}
+}
+func TestEnterpriseReviewAuthenticationRevision(t *testing.T) {
+	s := configSpec(t, "oidc", `{"type":"back_channel","client_id":"client","client_secret":"throwaway","scope":"openid","discovery_url":"https://provider.example/discovery"}`)
+	before, e := ParseConfig(s)
+	if e != nil {
+		t.Fatal(e)
+	}
+	s.Options.Extra["token_endpoint_auth_method"] = "private_key_jwt"
+	after, e := ParseConfig(s)
+	if e != nil || !EffectiveChange(before, after) {
+		t.Fatal("auth change did not invalidate attempts", e)
+	}
+}

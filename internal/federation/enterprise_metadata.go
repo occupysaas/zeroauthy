@@ -51,16 +51,18 @@ func (ps *Providers) ResolveEnterpriseMetadata(ctx context.Context, key CacheKey
 	if cfg.Issuer != "" && m.Issuer != cfg.Issuer {
 		return Metadata{}, idTokenError("issuer mismatch")
 	}
-	methods, _ := stringSlice(raw["token_endpoint_auth_methods_supported"])
-	m.TokenAuthMethod = cfg.TokenAuth
-	if m.TokenAuthMethod == "" {
-		switch {
-		case len(methods) == 0 || slices.Contains(methods, authBasic):
-			m.TokenAuthMethod = authBasic
-		case slices.Contains(methods, authPost):
-			m.TokenAuthMethod = authPost
-		default:
-			return Metadata{}, fmt.Errorf("%w: unusable client authentication", ErrProviderResponse)
+	if cfg.Channel != "front_channel" {
+		methods, _ := stringSlice(raw["token_endpoint_auth_methods_supported"])
+		m.TokenAuthMethod = cfg.TokenAuth
+		if m.TokenAuthMethod == "" {
+			switch {
+			case len(methods) == 0 || slices.Contains(methods, authBasic):
+				m.TokenAuthMethod = authBasic
+			case slices.Contains(methods, authPost):
+				m.TokenAuthMethod = authPost
+			default:
+				return Metadata{}, fmt.Errorf("%w: unusable client authentication", ErrProviderResponse)
+			}
 		}
 	}
 	if cfg.Channel == "front_channel" {

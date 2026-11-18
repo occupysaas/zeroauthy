@@ -96,8 +96,12 @@ func parseOIDC(o map[string]any, out *Settings) []error {
 		fail("options.%s must contain openid", scopeKey)
 	}
 	if a, ok := o["scope"]; ok {
-		if b, named := o["scopes"]; named && a != b {
-			fail("options.scope and options.scopes conflict")
+		if b, named := o["scopes"]; named {
+			as, aok := a.(string)
+			bs, bok := b.(string)
+			if !aok || !bok || as != bs {
+				fail("options.scope and options.scopes conflict")
+			}
 		}
 	}
 	out.TokenAuth = enum("token_endpoint_auth_method", "", []string{"client_secret_post", "private_key_jwt"})
@@ -156,6 +160,9 @@ func parseOIDC(o map[string]any, out *Settings) []error {
 		return a
 	}
 	out.IDTokenAlgs = list("id_token_signed_response_algs", IDTokenAlgorithms)
+	if o["id_token_signed_response_algs"] != nil && len(out.IDTokenAlgs) == 0 {
+		fail("options.id_token_signed_response_algs must not be empty")
+	}
 	out.EncAlg = enum("id_token_encrypted_response_alg", "", EncryptionAlgorithms)
 	out.EncEncs = list("id_token_encrypted_response_encs", ContentAlgorithms)
 	if v := o["dpop_signing_alg"]; v != nil {
@@ -215,8 +222,20 @@ func parseOIDC(o map[string]any, out *Settings) []error {
 			fail("options.attribute_map must be an object")
 		} else {
 			am := &AttrMap{Attributes: map[string]string{}}
-			am.Mode, _ = m["mapping_mode"].(string)
-			am.UserinfoScope, _ = m["userinfo_scope"].(string)
+			if v, present := m["mapping_mode"]; present {
+				var valid bool
+				am.Mode, valid = v.(string)
+				if !valid || am.Mode == "" {
+					fail("options.attribute_map.mapping_mode must be a nonempty string")
+				}
+			}
+			if v, present := m["userinfo_scope"]; present {
+				var valid bool
+				am.UserinfoScope, valid = v.(string)
+				if !valid {
+					fail("options.attribute_map.userinfo_scope must be a string")
+				}
+			}
 			if am.Mode == "" {
 				if out.Strategy == Okta {
 					am.Mode = "basic_profile"

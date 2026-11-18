@@ -58,7 +58,7 @@ HttpOnly, SameSite=None attempt cookie; it never uses PKCE. Setting
 subset of `RS256 RS384 RS512 PS256 PS384 PS512 ES256 ES384 ES512`; absent or
 null accepts this supported set. Unsigned and symmetric ID tokens are
 refused. The issuer, audience, times, subject and required nonce are checked
-against the pinned attempt.
+against the pinned attempt. An explicitly empty signing allowlist is refused.
 
 `enable_pushed_authorization_requests` enables upstream PAR on back-channel
 connections. Set `pushed_authorization_request_endpoint` or advertise it in
@@ -129,19 +129,22 @@ selects attributes with templates:
 ```
 
 References can read validated token claims, userinfo claims, and
-`context.connection.id` or `.strategy`. Claim names may contain dots and
+`context.connection.id` or `.strategy`. Credential claims such as `access_token`,
+`refresh_token` and `id_token` cannot be mapping sources; upstream tokens
+remain behind the `read:user_idp_tokens` boundary. Claim names may contain dots and
 URL characters; dots are part of a claim name, not object traversal. No
 functions, arbitrary expressions or nesting are evaluated. A whole-value
 missing claim omits the attribute; a missing part of a concatenation is
 empty. Limits are 100 attributes and 1024 bytes per template, plus bounded
 profile output. `email_verified` requires a boolean upstream value.
 
-Userinfo is fetched only when referenced, or for `bind_all` with a userinfo
-scope. Its subject must match the ID token. Userinfo references are refused
+Userinfo is fetched when referenced, for `bind_all` with a userinfo scope,
+or as the existing unmapped back-channel email fallback. Its subject must match the ID token. Userinfo references are refused
 for front-channel connections, which have no access token. Reserved claims
 and server-owned fields cannot be mapping targets; bind-all drops them.
 Custom attributes appear in identity `profileData`, independent of account
-linking. Profile synchronization follows `set_user_root_attributes`.
+linking. Mapped phone attributes are identity profile data; they do not claim
+ownership or verification of a local phone identifier. Profile synchronization follows `set_user_root_attributes`.
 Identity ownership always uses connection plus upstream subject; email
 never automatically links accounts. Front-channel login stores no upstream
 tokens and clears historical tokens from an earlier back-channel login.
@@ -154,8 +157,10 @@ There are at most 1000 aliases per connection, each at most 256 characters.
 No wildcard or subdomain matching is performed. Client, purpose and
 organization filters apply first; organization discovery retains priority.
 Matching needs no user lookup and forwards the email as `login_hint`.
-Multiple matches use the available connection name order. Single-screen
-username/password login does not use this routing.
+Multiple matches use the available connection name order. An explicit connection selection takes priority. Enterprise-only applications
+can use the identifier prompt, including hidden workforce connections; an
+unmatched identifier has no password fallback without an eligible database.
+Single-screen username/password login does not use this routing.
 
 `GET /api/v2/connections/{id}/status` is an AD/LDAP-only online check. The
 current strategies answer 404. `DELETE /api/v2/connections/{id}/users?email=`

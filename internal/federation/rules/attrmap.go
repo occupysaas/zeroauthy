@@ -18,6 +18,11 @@ func RestrictedTarget(k string) bool {
 	return slices.Contains(RestrictedTargets, k) || strings.HasPrefix(k, "_") || strings.HasPrefix(k, "zeroauthy")
 }
 
+// CredentialClaim identifies provider credentials that never become user profile data.
+func CredentialClaim(k string) bool {
+	return slices.Contains([]string{"access_token", "refresh_token", "id_token", "client_secret", "private_key", "password", "password_hash"}, strings.ToLower(k))
+}
+
 type MapPart struct{ Literal, Source, Claim string }
 
 func ParseTemplate(template string) ([]MapPart, error) {
@@ -95,6 +100,9 @@ func ValidateAttrMap(m *AttrMap, strategy, channel string) error {
 			return err
 		}
 		for _, p := range parts {
+			if p.Source != "" && CredentialClaim(p.Claim) {
+				return fmt.Errorf("credential references are not profile attributes")
+			}
 			if p.Source == "userinfo" && channel == "front_channel" {
 				return fmt.Errorf("userinfo requires back_channel")
 			}

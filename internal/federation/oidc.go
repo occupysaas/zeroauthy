@@ -239,7 +239,7 @@ func (p oidcProvider) Exchange(ctx context.Context, in ExchangeInput) (ProviderR
 		return ProviderResult{}, mapErr
 	}
 	var userinfo map[string]any
-	legacy := in.Config.AttrMap == nil && (in.Config.Channel == "" || in.Config.Strategy == StrategyGoogle)
+	legacy := in.Config.AttrMap == nil && (in.Config.Channel != "front_channel")
 	_, hasEmail := claims["email"]
 	if compiled.NeedsUserInfo() || legacy && !hasEmail && e.UserInfoURL != "" {
 		if e.UserInfoURL == "" || tokens.AccessToken == "" {

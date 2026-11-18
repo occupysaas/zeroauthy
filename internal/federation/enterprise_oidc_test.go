@@ -199,3 +199,13 @@ func TestOktaExplicitEndpoints(t *testing.T) {
 		t.Fatal(m, e)
 	}
 }
+
+func TestEnterpriseReviewFrontIgnoresTokenAuth(t *testing.T) {
+	p := newIDP(t)
+	cfg := oidcConfig()
+	cfg.Channel = "front_channel"
+	cfg.Explicit = &rules.ExplicitEndpoints{Metadata: map[string]any{"issuer": p.issuer(), "authorization_endpoint": p.issuer() + "/authorize", "jwks_uri": p.issuer() + "/jwks", "token_endpoint_auth_methods_supported": []any{"private_key_jwt"}}}
+	if _, e := p.providers().ResolveEnterpriseMetadata(context.Background(), CacheKey{}, cfg); e != nil {
+		t.Fatal(e)
+	}
+}

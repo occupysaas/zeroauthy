@@ -24,6 +24,14 @@ describe('Enterprise connection editors',()=>{
   const options=(calls.find(c=>c.method==='PATCH')?.body as {options:Record<string,unknown>}).options
   expect(options.connection_settings).toEqual({pkce:'plain'});expect(options.tenant_domain).toBe('corp.example');expect(options).not.toHaveProperty('client_secret');wrapper.unmount()
  })
+ it('retains authentication and profile synchronization controls',async()=>{
+  const {wrapper,calls}=await editor(Settings)
+  await wrapper.find('#enterprise-active').setValue(false)
+  await wrapper.find('#enterprise-sync').setValue('on_first_login')
+  await wrapper.find('form').trigger('submit');await flushPromises()
+  expect(calls.find(c=>c.method==='PATCH')?.body).toMatchObject({authentication:{active:false},options:{set_user_root_attributes:'on_first_login'}})
+  wrapper.unmount()
+ })
  it('refuses restricted mapping targets before writing, and saves a valid map',async()=>{
   const {wrapper,calls}=await editor(Mapping)
   await wrapper.find('#enterprise-mapping-mode').setValue('use_map')

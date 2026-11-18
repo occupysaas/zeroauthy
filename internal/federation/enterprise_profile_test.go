@@ -139,3 +139,24 @@ func TestMappedUsername(t *testing.T) {
 		t.Fatal(u, e)
 	}
 }
+
+func TestEnterpriseReviewPhoneAttributes(t *testing.T) {
+	cfg := Config{Strategy: StrategyOIDC, Channel: "back_channel", AttrMap: &rules.AttrMap{Mode: "use_map", Attributes: map[string]string{"phone_number": "${context.tokenset.phone_number}", "phone_verified": "${context.tokenset.phone_verified}"}}}
+	p, e := mappedProfile(cfg, "c", "s", map[string]any{"phone_number": "+12025550123", "phone_verified": true}, nil, TokenSet{})
+	if e != nil || p.ProviderData["phone_number"] != "+12025550123" || p.ProviderData["phone_verified"] != true {
+		t.Fatal("phone identity attributes lost", p, e)
+	}
+}
+func TestEnterpriseReviewLegacyUserinfo(t *testing.T) {
+	p := newIDP(t)
+	p.claims = func(c map[string]any) { delete(c, "email"); delete(c, "email_verified") }
+	p.userinfo = map[string]any{"sub": "Subject-1", "email": "legacy@example.test", "email_verified": true}
+	ps := p.providers()
+	in := p.exchangeInput(t, ps)
+	in.Config.Channel = "back_channel"
+	in.Endpoints.PKCEMethod = "S256"
+	r, e := ps.For(in.Config).Exchange(context.Background(), in)
+	if e != nil || r.Profile.Email == nil || *r.Profile.Email != "legacy@example.test" || r.Profile.EmailVerified == nil || !*r.Profile.EmailVerified {
+		t.Fatal("userinfo fallback lost", r.Profile, e)
+	}
+}
