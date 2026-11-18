@@ -1449,7 +1449,7 @@ export interface paths {
          *     `sort` is `field:1` or `field:-1` (`400 invalid_query_string`
          *     otherwise); unknown and metadata fields are ignored. Without `sort`,
          *     users are ordered by `last_login` descending, those who never logged
-         *     in last. `connection` keeps users with an identity on that connection.
+         *     in last. To filter by connection, use `q=identities.connection:"connection_name"`.
          *
          *     Offset paging (`page`, `per_page` 1 to 100, 50 by default). Only the
          *     first 1000 results can be reached: `(page + 1) × per_page` above 1000
@@ -14382,7 +14382,10 @@ export interface operations {
                 include_totals?: components["parameters"]["include_totals"];
                 /** @description `field:1` (ascending) or `field:-1` (descending). */
                 sort?: string;
-                /** @description Only users with an identity on this connection. */
+                /**
+                 * @description This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+                 *     valid UTF-8 without NUL characters. Use `q` to filter by connection.
+                 */
                 connection?: string;
                 /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. */
                 fields?: string;

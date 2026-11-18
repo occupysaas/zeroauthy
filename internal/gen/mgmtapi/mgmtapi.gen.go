@@ -14179,7 +14179,8 @@ type GetUsersParams struct {
 	// Sort `field:1` (ascending) or `field:-1` (descending).
 	Sort *string `form:"sort,omitempty" json:"sort,omitempty"`
 
-	// Connection Only users with an identity on this connection.
+	// Connection This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+	// valid UTF-8 without NUL characters. Use `q` to filter by connection.
 	Connection *string `form:"connection,omitempty" json:"connection,omitempty"`
 
 	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out.

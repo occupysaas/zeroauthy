@@ -162,7 +162,8 @@ session.
   login and a Blocked tag, sortable by clicking the headings. The search box
   takes Auth0's v3 query syntax (`name:ada`, `blocked:true`,
   `app_metadata.plan:pro`); the help button beside it lists examples and links
-  to the [query guide](user-search.md). A connection filter narrows the list.
+  to the [query guide](user-search.md). The connection filter matches users
+  with any identity on the selected connection and combines with the search text.
   **Create user** asks for a connection, an email (and a username when the
   connection requires one), a password, checked as you type against the
   connection's rules, and whether to send the verification email. Each user has

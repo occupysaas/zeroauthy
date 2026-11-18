@@ -80,7 +80,18 @@ describe('users list', () => {
     expect(new URL(usersCalls(calls).at(-1)!.url).searchParams.get('sort')).toBe('last_login:-1')
     await wrapper.get('#users-connection').setValue('Users c0')
     await flushPromises()
-    expect(new URL(usersCalls(calls).at(-1)!.url).searchParams.get('connection')).toBe('Users c0')
+    const params = new URL(usersCalls(calls).at(-1)!.url).searchParams
+    expect(params.get('q')).toBe('identities.connection:"Users c0"')
+    expect(params.has('connection')).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('groups the search before applying an escaped connection filter', async () => {
+    const query = new URLSearchParams({ q: 'name:Ada OR name:Grace', connection: 'A "quoted" \\ name' })
+    const { wrapper, calls } = await mountAt(List, `/t/acme/users?${query}`, backend([]))
+    const params = new URL(usersCalls(calls).at(-1)!.url).searchParams
+    expect(params.get('q')).toBe(String.raw`(name:Ada OR name:Grace) AND identities.connection:"A \"quoted\" \\ name"`)
+    expect(params.has('connection')).toBe(false)
     wrapper.unmount()
   })
 

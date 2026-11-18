@@ -623,9 +623,16 @@ export class Api {
     return this.tenantRequest(t, 'GET', '/api/v2/connections', { query: { fields: 'id,name,strategy,is_domain_connection', ...q, include_fields: true, include_totals: true } })
   }
 
-  // listUsers searches with Auth0's v3 query syntax; q goes out as typed.
-  listUsers(t: SystemTenant, q: { q?: string; page: number; per_page: number; sort?: string; connection?: string }): Promise<UserPage> {
-    return this.tenantRequest(t, 'GET', '/api/v2/users', { query: { ...q, search_engine: 'v3', include_totals: true } })
+  // listUsers uses Auth0's v3 query syntax for both search text and connection filters.
+  listUsers(t: SystemTenant, params: { q?: string; page: number; per_page: number; sort?: string; connection?: string }): Promise<UserPage> {
+    const { connection, q, ...paging } = params
+    let query = q
+    if (connection) {
+      const escaped = connection.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
+      const term = `identities.connection:"${escaped}"`
+      query = q?.trim() ? `(${q}) AND ${term}` : term
+    }
+    return this.tenantRequest(t, 'GET', '/api/v2/users', { query: { ...paging, q: query, search_engine: 'v3', include_totals: true } })
   }
 
   createUser(t: SystemTenant, body: UserCreate): Promise<User> {

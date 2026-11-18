@@ -165,6 +165,7 @@ func fieldError(err error) error {
 // GetUsers lists or searches the tenant's users (U4).
 func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetUsersParams) {
 	q := r.URL.Query()
+	// connection is a v1-only filter. Validate its text even for v2 and v3.
 	if err := checkQueryText(r, "connection"); err != nil {
 		Fail(w, err)
 		return
@@ -201,14 +202,6 @@ func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.Ge
 	if err != nil {
 		Fail(w, searchError(err))
 		return
-	}
-	if c := q.Get("connection"); c != "" {
-		leaf := &store.UserQuery{Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: c}
-		if tree == nil {
-			tree = leaf
-		} else {
-			tree = &store.UserQuery{Op: store.QueryAnd, Kids: []*store.UserQuery{tree, leaf}}
-		}
 	}
 	// The parser only builds valid trees; anything the store would still
 	// refuse is the caller's input, never a driver's text.

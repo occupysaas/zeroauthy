@@ -25,7 +25,8 @@ expiry; newly issued signup codes use 900 seconds.
 - Task 4 implemented the durable first-denial `limit_wc` claim and resumable MySQL migration in `e8e3c0f5` and `f9173b5e`.
 - Task 5 moved passwordless test sends to the operator-only system route. Its route and console call-site regressions cover tenant grants, delivery through a provider fixture, an empty success response and system-host authorization.
 - Task 6 made the console CSP independent of tenant data. For custom-host tenants, console Management requests go through the canonical system host, which checks the signed and current operator grants before dispatching to the existing handlers.
-- Tasks 7–14, full fast-tier and E2E verification, and CI for the resumed branch are pending.
+- Task 10 made `GET /api/v2/users` validate and ignore the v1-only `connection` parameter on supported engines. The console connection selector combines the user's search text with an `identities.connection` term.
+- Tasks 11–14, full fast-tier and E2E verification, and CI for the resumed branch are pending.
 
 The plan's Go 1.26.10 reference predates main's Go 1.26.11 minimum;
 repository toolchain and dependency pins are retained.
