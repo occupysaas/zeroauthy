@@ -116,7 +116,7 @@ func Auth(cfg Config) func(http.Handler) http.Handler {
 	}
 }
 
-// operatorTarget binds system presentation extension routes to the path
+// operatorTarget binds tenant-scoped system extension routes to the path
 // tenant for both token and persisted operator grant checks. The request's
 // resolved system tenant remains in context for system-host routing.
 func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tenant.Resolved) (tenant.Resolved, error) {
@@ -127,9 +127,10 @@ func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tena
 	executions := (len(parts) == 6 || len(parts) == 7) && parts[4] == "actions" && parts[5] == "executions"
 	roamingSettings := len(parts) == 8 && parts[4] == "guardian" && parts[5] == "factors" && parts[6] == "webauthn-roaming" && parts[7] == "settings"
 	passkeyPrerequisites := len(parts) == 7 && parts[4] == "connections" && parts[6] == "passkey-prerequisites"
+	passwordlessTry := len(parts) == 8 && parts[4] == "connections" && parts[6] == "passwordless" && parts[7] == "try"
 	consoleMethods := (len(parts) == 7 || len(parts) == 8) && parts[4] == "users" && parts[6] == "authentication-methods"
 	rpStatus := len(parts) == 5 && parts[4] == "relying-party-ids"
-	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus || passkeyPrerequisites || roamingSettings || consoleMethods || rpStatus) {
+	if len(parts) < 4 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || !(presentation || attempt || executions || streamStatus || passkeyPrerequisites || passwordlessTry || roamingSettings || consoleMethods || rpStatus) {
 		return base, nil
 	}
 	t, err := cfg.Store.Tenants().GetByName(ctx, parts[3])

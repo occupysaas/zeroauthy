@@ -88,7 +88,9 @@ Trademark use is descriptive throughout. NOTICE has a nominative-use disclaimer,
 - Recommendation: fix-before-1.0 for the bootstrap and operator-scope lines (they mislead a first-run user); the screen inventory can follow, under Plan 46 docs.
 - Suggested fix: Replace the bootstrap paragraph with README's setup-file wording. Describe scoped operators. Regenerate the sidebar list from `sections.ts` and link each feature guide.
 
-### F7 [medium] [defect] Passwordless "send test" in the console calls `/passwordless/start` cross-origin and is blocked by CORS
+### F7 [medium] [defect] [fixed Plan 45b Task 5] Passwordless "send test" in the console calls `/passwordless/start` cross-origin and is blocked by CORS
+
+- Plan 45b Task 5 fixed this on 2026-11-17. The console submits to `POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try` on the system host. The server checks both operator grants against the target tenant and sends through the saved connection. `TestPasswordlessTryRoute` exercises the real start service and a provider transport fixture. The console test submits both forms and verifies the operator bearer is sent only to the system Try route.
 - Where: console/src/pages/connections/PasswordlessSettings.vue:192-212; internal/server/cors.go:23,35-40,59-71; internal/server/server.go:241
 - What:
   - The test send POSTs JSON with `Authorization: Bearer <operator token>` from the system origin to `https://<tenant host>/passwordless/start`. That route uses the Authentication API `cors()`, which allows only origins listed in the tenant's clients' `allowed_origins` or `web_origins`, not `mgmtCORS`.

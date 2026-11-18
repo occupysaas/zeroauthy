@@ -26,6 +26,7 @@ export interface Call {
   method: string
   url: string
   body: unknown
+  authorization?: string
   // form is the multipart body of an upload, as name to text or File.
   form?: Record<string, string | File>
 }
@@ -38,6 +39,7 @@ export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
     const c: Call = {
       method: init?.method ?? 'GET',
       url: String(url),
+      authorization: new Headers(init?.headers).get('Authorization') ?? undefined,
       body: init?.body && !isForm ? JSON.parse(String(init.body)) : undefined,
       form: isForm ? (Object.fromEntries((init!.body as FormData).entries()) as Record<string, string | File>) : undefined,
     }

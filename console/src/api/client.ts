@@ -793,6 +793,11 @@ export class Api {
     return this.request(this.systemOrigin, 'POST', path, { body: { args } })
   }
 
+  tryConnectionPasswordless(t: Pick<SystemTenant, 'name'>, id: string, body: components['schemas']['PasswordlessTryRequest']): Promise<void> {
+    const path = `/api/system/tenants/${encodeURIComponent(t.name)}/connections/${encodeURIComponent(id)}/passwordless/try`
+    return this.request(this.systemOrigin, 'POST', path, { body })
+  }
+
   // The *All methods read every page (100 at a time) of a listing that the
   // screens need whole: the APIs and machine-to-machine applications to
   // pick from, and the grants for one API or application.

@@ -24,12 +24,14 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
-// StartInput is one /passwordless/start request (or a hosted send). The
-// caller has authenticated the client as the tenant's rules require.
+// StartInput is a passwordless send. The caller enforces the authorization
+// policy of its entry point before invoking Start.
 type StartInput struct {
 	TenantID, ClientID, Connection, Email, PhoneNumber, Send string // Send: code|link
-	AuthParams                                               url.Values
-	IP, UserAgent, Locale                                    string
+	// ConnectionID pins the named connection when the caller selected it by ID.
+	ConnectionID          string
+	AuthParams            url.Values
+	IP, UserAgent, Locale string
 	// Origin is the public tenant origin magic links point at.
 	Origin string
 	// Hosted marks a send from the hosted login prompt (Universal Login),
@@ -92,11 +94,14 @@ func (s *Service) Start(ctx context.Context, in StartInput) (*StartResult, error
 		return nil, refuse(http.StatusForbidden, "unauthorized_client", fmt.Sprintf("grant type %q is not allowed for this client", clientrules.GrantPasswordlessOTP))
 	}
 	conn, err := s.passwordlessConnection(ctx, in.TenantID, in.Connection)
-	if errors.Is(err, store.ErrNotFound) || (err == nil && !enabledFor(conn, client.ClientID)) {
+	if errors.Is(err, store.ErrNotFound) {
 		return nil, refuse(http.StatusBadRequest, "invalid_request", notEnabled)
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !enabledFor(conn, client.ClientID) || (in.ConnectionID != "" && conn.ID != in.ConnectionID) {
+		return nil, refuse(http.StatusBadRequest, "invalid_request", notEnabled)
 	}
 	opts, err := connrules.PasswordlessOf(*conn, nil)
 	if err != nil {

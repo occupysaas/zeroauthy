@@ -5520,6 +5520,24 @@ func (e OrganizationEffectiveRoleSources) Valid() bool {
 	}
 }
 
+// Defines values for PasswordlessTryRequestSend.
+const (
+	Code PasswordlessTryRequestSend = "code"
+	Link PasswordlessTryRequestSend = "link"
+)
+
+// Valid indicates whether the value is a known member of the PasswordlessTryRequestSend enum.
+func (e PasswordlessTryRequestSend) Valid() bool {
+	switch e {
+	case Code:
+		return true
+	case Link:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PhoneProviderChannel.
 const (
 	PhoneProviderChannelPhone PhoneProviderChannel = "phone"
@@ -11704,6 +11722,23 @@ type PasswordChangeTicketCreate struct {
 	UserId *string `json:"user_id,omitempty"`
 }
 
+// PasswordlessTryRequest defines model for PasswordlessTryRequest.
+type PasswordlessTryRequest struct {
+	ClientId string `json:"client_id"`
+
+	// Email Required for an email connection.
+	Email *openapi_types.Email `json:"email,omitempty"`
+
+	// PhoneNumber E.164 number required for an SMS connection.
+	PhoneNumber *string `json:"phone_number,omitempty"`
+
+	// Send Defaults to code for SMS and link for email.
+	Send *PasswordlessTryRequestSend `json:"send,omitempty"`
+}
+
+// PasswordlessTryRequestSend Defaults to code for SMS and link for email.
+type PasswordlessTryRequestSend string
+
 // PhoneDeliveryMethods defines model for PhoneDeliveryMethods.
 type PhoneDeliveryMethods = []string
 
@@ -14296,6 +14331,9 @@ type UpdateTenantJSONRequestBody = TenantUpdate
 
 // PreviewTenantBrandingJSONRequestBody defines body for PreviewTenantBranding for application/json ContentType.
 type PreviewTenantBrandingJSONRequestBody PreviewTenantBrandingJSONBody
+
+// TryConnectionPasswordlessJSONRequestBody defines body for TryConnectionPasswordless for application/json ContentType.
+type TryConnectionPasswordlessJSONRequestBody = PasswordlessTryRequest
 
 // TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
 type TryConnectionScriptJSONRequestBody = ScriptTry
@@ -21050,6 +21088,9 @@ type ServerInterface interface {
 	// GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
 	// (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
 	GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string)
+	// TryConnectionPasswordless Send a test code or magic link through a saved passwordless connection.
+	// (POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try)
+	TryConnectionPasswordless(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
@@ -22052,6 +22093,12 @@ func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Requ
 // GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
 // (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
 func (_ Unimplemented) GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TryConnectionPasswordless Send a test code or magic link through a saved passwordless connection.
+// (POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try)
+func (_ Unimplemented) TryConnectionPasswordless(w http.ResponseWriter, r *http.Request, tenant string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -24287,6 +24334,41 @@ func (siw *ServerInterfaceWrapper) GetTenantPasskeyPrerequisites(w http.Response
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTenantPasskeyPrerequisites(w, r, tenant, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TryConnectionPasswordless operation middleware
+func (siw *ServerInterfaceWrapper) TryConnectionPasswordless(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TryConnectionPasswordless(w, r, tenant, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -35024,6 +35106,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/test", wrapper.TestTenantEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/passwordless/try", wrapper.TryConnectionPasswordless)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try", wrapper.TryConnectionScript)

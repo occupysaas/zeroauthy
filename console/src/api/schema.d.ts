@@ -2644,6 +2644,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/connections/{id}/passwordless/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The saved passwordless connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test code or magic link through a saved passwordless connection.
+         * @description A zeroauthy extension on the system host (D-0270). Requires signed
+         *     and current operator grants for the target tenant. The application
+         *     must be enabled for the connection and have the passwordless OTP
+         *     grant. The operator authorizes this call without a client credential.
+         *     The send uses the saved delivery configuration and the same policies,
+         *     budgets and outstanding-credential replacement as a regular start.
+         *     Magic links use the target tenant's canonical origin and saved
+         *     authorization parameters.
+         */
+        post: operations["tryConnectionPasswordless"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try": {
         parameters: {
             query?: never;
@@ -6913,6 +6945,21 @@ export interface components {
                     [key: string]: unknown;
                 };
             };
+        };
+        PasswordlessTryRequest: {
+            client_id: string;
+            /**
+             * Format: email
+             * @description Required for an email connection.
+             */
+            email?: string;
+            /** @description E.164 number required for an SMS connection. */
+            phone_number?: string;
+            /**
+             * @description Defaults to code for SMS and link for email.
+             * @enum {string}
+             */
+            send?: "code" | "link";
         };
         EmailTestRequest: {
             template: string;
@@ -16025,6 +16072,91 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    tryConnectionPasswordless: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The saved passwordless connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordlessTryRequest"];
+            };
+        };
+        responses: {
+            /** @description Delivery accepted. The response has no body. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request or SMS delivery was refused. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Operator authentication failed or the application does not exist in the tenant. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Tenant, application, connection or user policy refused the attempt. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description A passwordless start budget was exhausted. */
+            429: {
+                headers: {
+                    /** @description Seconds until another send is allowed. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Email delivery failed or an internal error occurred. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The storage plugin lacks the Phone capability. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     tryConnectionScript: {

@@ -405,6 +405,7 @@ func New(d Deps) http.Handler {
 		Recorder:       d.Recorder,
 		Store:          d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify, EmailService: d.EmailService,
+		Passwordless:           pwl,
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
 		Protection:             sharedProtection,

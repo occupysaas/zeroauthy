@@ -3414,4 +3414,16 @@ are recorded in the design; none is claimed observed.
 
 **B1 local implementation (Task 4):** Once settled failures reach the brute-force threshold, the store atomically claims the first denied admission for `limit_wc`. Password brute-force uses `limit_wc` exclusively. The SQL migration initializes the claim as unset, so an existing block can report one denial after upgrade. An older store plugin without this claim continues to enforce its admission decision and omits `limit_wc`.
 
+Task 5 implements the console's passwordless test send at
+`POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try` on
+the system host. Signed and current operator grants must cover the
+non-reserved target tenant. The operator selects an email address or
+phone number and an application enabled on that connection with the
+passwordless OTP grant. Operator authority covers this extension for
+public and confidential applications. The Authentication API keeps its
+client authentication policy. The server uses the saved provider,
+connection options and normal passwordless send budgets. An accepted
+send returns `204` with an empty body. It replaces the outstanding
+credential as in a regular start.
+
 **Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial; B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.
