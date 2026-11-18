@@ -1,6 +1,7 @@
 package mgmt_test
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -116,6 +117,9 @@ func TestPatchUserNulls(t *testing.T) {
 		{name: "phone required", field: "phone_number", phone: "+14155550100", email: "primary@example.test", attrs: map[string]any{
 			"phone_number": identifierOptions("required"),
 		}},
+		{name: "required phone with phone login disabled", field: "phone_number", phone: "+14155550100", email: "primary@example.test", attrs: map[string]any{
+			"phone_number": map[string]any{"identifier": map[string]any{"active": false}, "signup": map[string]any{"status": "required"}},
+		}},
 		{name: "last active identifier", field: "phone_number", phone: "+14155550100", email: "primary@example.test", attrs: map[string]any{
 			"phone_number": identifierOptions("optional"), "email": map[string]any{"identifier": map[string]any{"active": false}},
 		}},
@@ -219,4 +223,75 @@ func TestPatchUserNulls(t *testing.T) {
 
 func identifierOptions(status string) map[string]any {
 	return map[string]any{"identifier": map[string]any{"active": true}, "signup": map[string]any{"status": status}}
+}
+
+type beforeUserPatchTx struct {
+	store.Store
+	before func(context.Context) error
+}
+
+func (s beforeUserPatchTx) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	if err := s.before(ctx); err != nil {
+		return err
+	}
+	return s.Store.WithTx(ctx, fn)
+}
+
+func TestPatchUserPhoneClearBeforeLegacyVerification(t *testing.T) {
+	for _, tc := range []struct {
+		field, value, script string
+	}{
+		{"email", "replacement@example.test", store.ScriptChangeEmail},
+		{"password", "replacement pass 2", store.ScriptChangePassword},
+	} {
+		t.Run(tc.field, func(t *testing.T) {
+			e := newUsersEnv(t)
+			ctx := t.Context()
+			conn, exec := e.legacy(t, "LegacyDb", false, map[string]func([]any) (any, error){
+				tc.script: func([]any) (any, error) { return true, nil },
+			})
+			conn.Extra = phoneIdentifierOptions()
+			if err := e.st.Connections().Update(ctx, conn); err != nil {
+				t.Fatal(err)
+			}
+			u := &store.User{
+				TenantID: e.tn.ID, UserID: "auth0|legacy", Email: "old@example.test", Name: "Original",
+				PhoneNumber: "+14155550100", PhoneVerified: true,
+				Identities: []store.Identity{{Provider: store.StrategyDatabase, Connection: conn.Name, UserID: "legacy"}},
+			}
+			if err := e.st.Users().Create(ctx, u); err != nil {
+				t.Fatal(err)
+			}
+
+			// Commit a concurrent phone clear after preflight and before the
+			// first PATCH takes the user lock.
+			var cleared *store.User
+			e.h.Store = beforeUserPatchTx{Store: e.st, before: func(ctx context.Context) error {
+				return e.st.WithTx(ctx, func(tx store.Store) error {
+					current, err := tx.Users().GetForUpdate(ctx, e.tn.ID, u.UserID)
+					if err != nil {
+						return err
+					}
+					current.PhoneNumber, current.PhoneNormalized, current.PhoneVerified = "", "", false
+					if err := tx.Users().Update(ctx, current); err != nil {
+						return err
+					}
+					cleared, err = tx.Users().Get(ctx, e.tn.ID, u.UserID)
+					return err
+				})
+			}}
+			w, body := e.patch(t, u.UserID, map[string]any{tc.field: tc.value, "name": "Rejected", "verify_phone_number": true})
+			wantUserError(t, "phone cleared before locked validation", w, body, 400, "invalid_body", "")
+			if len(exec.Requests()) != 0 {
+				t.Error("refused PATCH called the legacy database script")
+			}
+			after, err := e.st.Users().Get(ctx, e.tn.ID, u.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cleared == nil || cleared.PhoneNumber != "" || !reflect.DeepEqual(after, cleared) {
+				t.Error("profile differs from the concurrent phone clear")
+			}
+		})
+	}
 }

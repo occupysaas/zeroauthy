@@ -252,7 +252,7 @@ func CheckIdentifierClears(c *store.Connection, u *store.User, in *Patch) error 
 	if in.ClearUsername && (c.RequiresUsername || store.IdentifierSignupStatus(c, "username") == "required") {
 		return invalid("Cannot clear required identifier: username")
 	}
-	if in.ClearPhoneNumber && phoneActive && store.PhoneSignupStatus(c) == "required" {
+	if in.ClearPhoneNumber && store.PhoneSignupStatus(c) == "required" {
 		return invalid("Cannot clear required identifier: phone_number")
 	}
 	emailActive := store.IdentifierActive(c, "email")

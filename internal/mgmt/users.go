@@ -872,12 +872,6 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 			}
 		}
 	}
-	if legacy {
-		if err := h.legacyPatch(r, conn, u, &next, emailChanged, in.Password != nil, password); err != nil {
-			Fail(w, err)
-			return
-		}
-	}
 	now := h.now()
 	var out *store.User
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
@@ -908,6 +902,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		if err := userrules.CheckIdentifierClears(conn, cur, in); err != nil {
 			return fieldError(err)
 		}
+		previousEmail := cur.Email
 		// Determine committed changes under the existing row lock, so a
 		// concurrent identical update cannot manufacture another change event.
 		changedPhone = in.PhoneNumber != nil && *in.PhoneNumber != cur.PhoneNumber
@@ -951,12 +946,22 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 				}
 			}
 		}
-		if out, err = tx.Users().Get(ctx, u.TenantID, id); err != nil || in.Password == nil {
+		if out, err = tx.Users().Get(ctx, u.TenantID, id); err != nil {
 			return err
 		}
-		res, _ := tenant.FromContext(ctx)
-		return actions.PasswordChanged(ctx, tx, h.Actions, res, out, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
-			Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")})
+		if in.Password != nil {
+			res, _ := tenant.FromContext(ctx)
+			if err := actions.PasswordChanged(ctx, tx, h.Actions, res, out, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
+				Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")}); err != nil {
+				return err
+			}
+		}
+		// Hold the lock through the external change so the checked phone
+		// and email remain current. A failed script rolls back local writes.
+		if legacy {
+			return h.legacyPatch(r, conn, previousEmail, out, changedEmail, in.Password != nil, password)
+		}
+		return nil
 	})
 	if err != nil {
 		h.failTx(w, r, "update user", err)
@@ -1017,7 +1022,7 @@ func (h *Handlers) sendPhoneVerification(r *http.Request, u *store.User, conn *s
 
 // legacyPatch runs change_email or change_password on a legacy connection.
 // CheckPatch refuses both in one request.
-func (h *Handlers) legacyPatch(r *http.Request, conn *store.Connection, u, next *store.User, emailChanged, passwordChanged bool, password string) error {
+func (h *Handlers) legacyPatch(r *http.Request, conn *store.Connection, previousEmail string, next *store.User, emailChanged, passwordChanged bool, password string) error {
 	if !emailChanged && !passwordChanged {
 		return nil
 	}
@@ -1031,15 +1036,15 @@ func (h *Handlers) legacyPatch(r *http.Request, conn *store.Connection, u, next 
 	var ok bool
 	var err error
 	if emailChanged {
-		ok, err = h.Scripts.ChangeEmail(r.Context(), conn, u.Email, next.Email, next.EmailVerified)
+		ok, err = h.Scripts.ChangeEmail(r.Context(), conn, previousEmail, next.Email, next.EmailVerified)
 	} else {
-		ok, err = h.Scripts.ChangePassword(r.Context(), conn, u.Email, password)
+		ok, err = h.Scripts.ChangePassword(r.Context(), conn, previousEmail, password)
 	}
 	if err != nil {
 		return h.scriptFail(r, conn, script, err)
 	}
 	if !ok {
-		h.log().WarnContext(r.Context(), "management API: custom database script made no change", "connection", conn.Name, "script", script, "user_id", u.UserID)
+		h.log().WarnContext(r.Context(), "management API: custom database script made no change", "connection", conn.Name, "script", script, "user_id", next.UserID)
 		return &Error{Status: http.StatusBadRequest, Code: "auth0_idp_error", Message: "The custom database script did not make the change"}
 	}
 	return nil
