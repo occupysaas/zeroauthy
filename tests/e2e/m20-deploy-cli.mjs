@@ -499,7 +499,7 @@ const imported = (await exportClients(targetConfig))[0];
 await api(targetConfig, 'PUT', 'guardian/policies', []);
 const browser=(await api(targetConfig,'GET','clients')).find(c=>c.name==='E2E deploy browser');
 assert.ok(browser,'browser application was not migrated');
-const expectedUsers={'google-oauth2':['deploy-google','google-oauth2|deploy-google'],'deploy-oauth':['deploy-oauth-user','oauth2|deploy-oauth|deploy-oauth-user'],'deploy-oidc':['deploy-oidc-user',null],'microsoft-personal':['outlook','windowslive|Sub-outlook'],'microsoft-directory':['work','waad|microsoft-directory|aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],'microsoft-organizations':['work','waad|microsoft-organizations|11111111-1111-4111-8111-111111111111:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']};
+const expectedUsers={'google-oauth2':['deploy-google','google-oauth2|deploy-google'],'deploy-oauth':['deploy-oauth-user','oauth2|deploy-oauth|deploy-oauth-user'],'deploy-oidc':['deploy-oidc-user',null],'deploy-okta':['deploy-okta-user','okta|deploy-okta|deploy-okta-user'],'microsoft-personal':['outlook','windowslive|Sub-outlook'],'microsoft-directory':['work','waad|microsoft-directory|aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],'microsoft-organizations':['work','waad|microsoft-organizations|11111111-1111-4111-8111-111111111111:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']};
 assert.deepEqual(Object.keys(expectedUsers).sort(),federation.map(c=>c.name).sort());
 for(const [connection,[subject,want]] of Object.entries(expectedUsers)) {
   const sub=await federatedLogin(browser.client_id,connection,subject);
@@ -523,7 +523,7 @@ await api(targetConfig, 'PUT', 'guardian/policies', guardianFixtures.guardianPol
 console.log('Plan 28 deploy: shared module code/private secret and canonical name/version pins; all five new trigger Actions and bindings; real post-import module claim passed');
 console.log('Plan 27 deploy: Actions/code/ordered trigger bindings, private keyword replacement and all post-import login claims passed');
 console.log('Plan 26 deploy: tenant role/API fields and post-import federated RBAC code exchange passed');
-console.log(`Plan 25 deploy: ${federation.length} federated connections (5 strategies) imported with explicit secret reinjection; missing/uninjected imports rejected; first and repeat provider logins passed`);
+console.log(`Plan 25 deploy: ${federation.length} federated connections (6 strategies) imported with explicit secret reinjection; missing/uninjected imports rejected; first and repeat provider logins passed`);
 assert.equal(imported.client_id === original.client_id, mode === 'preserved');
 assert.ok((imported.client_secret === original.client_secret) === (mode === 'preserved'), 'credential preservation mode mismatch');
 assert.ok(imported.client_secret);

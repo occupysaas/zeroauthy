@@ -14,7 +14,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
-	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/rbacrules"
@@ -363,11 +362,7 @@ func (t *Tenant) validate() []error {
 		if c.Options != nil && !spec.Federated() && !spec.Passwordless() && spec.Strategy != store.StrategyDatabase {
 			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive, waad and apple strategies", c.Name)
 		}
-		if spec.Federated() {
-			if _, named := c.Options[rules.SecretOption(spec.Strategy)]; !named {
-				fail("connection %q: options.%s is required", c.Name, rules.SecretOption(spec.Strategy))
-			}
-		}
+
 		for _, err := range connrules.Normalize(&spec) {
 			fail("connection %q: %v", c.Name, err)
 		}

@@ -71,6 +71,15 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 			}
 		}
 	}
+	for _, t := range f.Tenants {
+		for _, c := range t.Connections {
+			if c.Options["token_endpoint_auth_method"] == "private_key_jwt" || c.Options["id_token_encrypted_response_alg"] != nil {
+				if supporter, ok := st.(store.ConnectionKeysSupporter); ok && !supporter.ConnectionKeysSupported() {
+					return store.ErrConnectionKeysUnavailable
+				}
+			}
+		}
+	}
 	if err := checkWebAuthnStorage(ctx, st, f); err != nil {
 		return err
 	}
@@ -481,6 +490,12 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 }
 
 func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time, w keys.Wrapper, createOnly bool) error {
+	if in.Options["token_endpoint_auth_method"] == "private_key_jwt" || in.Options["id_token_encrypted_response_alg"] != nil {
+		if supporter, ok := st.(store.ConnectionKeysSupporter); ok && !supporter.ConnectionKeysSupported() {
+			return store.ErrConnectionKeysUnavailable
+		}
+	}
+
 	if c, err := st.Connections().GetByName(ctx, tenantID, in.Name); err == nil && (createOnly || c.Origin == store.OriginAPI) {
 		// Created through the Management API, or create-only mode: the seed
 		// never touches it.
@@ -517,7 +532,7 @@ func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 		return errors.New("the connection was not validated")
 	}
 	var prev *store.Connection
-	if len(c.FederationSecretsSealed) > 0 {
+	if c.FederationRevision > 0 || len(c.FederationSecretsSealed) > 0 {
 		p := *c
 		prev = &p
 	}

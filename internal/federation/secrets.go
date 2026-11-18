@@ -79,6 +79,9 @@ func ApplyConnection(w keys.Wrapper, prev *store.Connection, spec *connrules.Spe
 	} else if prev != nil {
 		next.FederationSecretsSealed = slices.Clone(prev.FederationSecretsSealed)
 	}
+	if cfg.Channel == "front_channel" {
+		next.FederationSecretsSealed = nil
+	}
 	if len(next.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 		return fmt.Errorf("%w: options.%s is required", ErrInvalidConfig, rules.SecretOption(spec.Strategy))
 	}

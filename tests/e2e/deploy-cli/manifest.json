@@ -54,7 +54,7 @@
       "name": "connections",
       "status": "included",
       "owner": "Plan 25",
-      "reason": "All five federated strategies round trip with explicit provider-secret reinjection, materialized OAuth profile scripts and post-import provider logins; database connections and their passkey options belong to the databases handler, which this handler filters out",
+      "reason": "Six federated strategies, including enterprise OIDC and Okta, round trip with explicit provider-secret reinjection, materialized OAuth profile scripts and post-import provider logins; database connections and their passkey options belong to the databases handler, which this handler filters out",
       "fixture": "fixtures/connections.json"
     },
     {

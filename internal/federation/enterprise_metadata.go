@@ -15,7 +15,7 @@ func (ps *Providers) ResolveEnterpriseMetadata(ctx context.Context, key CacheKey
 	cache := key.with("enterprise-discovery", cfg.DiscoveryURL, cfg.Issuer, cfg.Channel, cfg.PKCE, cfg.TokenAuth)
 	if cfg.Explicit != nil && len(cfg.Explicit.Metadata) > 0 {
 		raw = cfg.Explicit.Metadata
-	} else if cfg.Explicit != nil && cfg.DiscoveryURL == "" {
+	} else if cfg.Explicit != nil && (cfg.DiscoveryURL == "" || cfg.Strategy == StrategyOkta && cfg.Explicit.Authorization != "" && cfg.Explicit.JWKS != "") {
 		e := cfg.Explicit
 		raw = map[string]any{"issuer": e.Issuer, "authorization_endpoint": e.Authorization, "token_endpoint": e.Token, "jwks_uri": e.JWKS, "userinfo_endpoint": e.UserInfo}
 	} else {

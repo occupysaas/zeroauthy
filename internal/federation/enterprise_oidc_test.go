@@ -190,3 +190,12 @@ func TestOIDCIDTokenES256(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestOktaExplicitEndpoints(t *testing.T) {
+	p := newIDP(t)
+	cfg := Config{Strategy: StrategyOkta, Channel: "back_channel", ClientID: "client", DiscoveryURL: "https://must-not-fetch.example/.well-known/openid-configuration", Issuer: "https://provider.example/oidc", Explicit: &rules.ExplicitEndpoints{Issuer: "https://provider.example/oidc", Authorization: "https://provider.example/oidc/authorize", Token: "https://provider.example/oidc/token", JWKS: "https://provider.example/oidc/jwks"}}
+	m, e := p.providers().ResolveEnterpriseMetadata(context.Background(), CacheKey{}, cfg)
+	if e != nil || m.Issuer != cfg.Issuer {
+		t.Fatal(m, e)
+	}
+}
