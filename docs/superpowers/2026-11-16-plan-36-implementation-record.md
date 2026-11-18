@@ -170,3 +170,27 @@ are present. PostgreSQL/MySQL service coverage belongs to CI.
 
 All local gates now pass. Required whole-branch review and its single fix
 pass are complete. Plan-branch CI is the next gate; main remains untouched.
+
+## Plan-branch CI
+
+First run: [44378564795](https://github.com/occupysaas/zeroauthy/actions/runs/44378564795),
+source head `fec98154`. The general `ci / e2e (e2e)` job
+[135064216607](https://github.com/occupysaas/zeroauthy/actions/runs/44378564795/job/135064216607)
+failed, `make e2e` exit 2: its Playwright discovery selected the five new
+enterprise tests without their dedicated fixture. Four failed with
+`ERR_PROXY_CONNECTION_FAILED` to the local test host and one had an
+undefined setup-file path. Actual job summary: 5 failed, 78 skipped, 25 passed.
+
+The enterprise spec now uses the same dedicated-fixture environment guard as
+other dedicated suites. Selecting it without `E2E_M36_WORK` exits 0 with five
+intentional skips; `make e2e-enterprise-oidc` must still execute all five.
+This is a change-related CI failure and was fixed rather than rerunning the
+failed job. No check was weakened; the required dedicated CI matrix entry
+continues to run the complete enterprise acceptance lane.
+
+Dedicated acceptance after the guard fix passed, actual exit 0: five browser
+tests ran with none skipped; SDK/CLI and the 14-sample/12-file runtime audit
+passed. Evidence: `ci-fix-e2e.*`; artifacts `/dev/shm/za36/tmp.cf9B8r5NNw`.
+No Go/console sources changed for this CI harness fix, so their completed
+local gates remain applicable. The corrected plan branch is pushed for full
+CI again, without rerunning a failed job in place.

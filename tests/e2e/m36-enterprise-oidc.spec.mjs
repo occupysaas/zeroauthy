@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {createHash,randomBytes}from 'node:crypto';
 import {readFile}from 'node:fs/promises';
+test.skip(!process.env.E2E_M36_WORK,'Run make e2e-enterprise-oidc');
 test.use({proxy:{server:'http://127.0.0.1:9198'}});
 function authorize(extra={}){const verifier=randomBytes(32).toString('base64url');return `https://sdk.e2e.test/authorize?${new URLSearchParams({client_id:'m24-spa',redirect_uri:'https://callback.e2e.test/',response_type:'code',scope:'openid profile email',state:'app-state',nonce:'app-nonce',code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',...extra})}`;}
 for(const [connection,subject]of [['enterprise-front','front-user'],['enterprise-private','private-user'],['enterprise-okta','okta-user']]){
