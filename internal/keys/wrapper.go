@@ -49,7 +49,9 @@ func newGCM(key []byte) (cipher.AEAD, error) {
 }
 
 func gcmSeal(aead cipher.AEAD, plaintext, aad []byte) ([]byte, error) {
-	nonce := make([]byte, aead.NonceSize(), aead.NonceSize()+len(plaintext)+aead.Overhead())
+	// No capacity hint: Seal grows the slice, so no size arithmetic on the
+	// plaintext length can overflow.
+	nonce := make([]byte, aead.NonceSize())
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
 	}
