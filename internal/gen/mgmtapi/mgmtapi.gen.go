@@ -8909,7 +8909,10 @@ type EmailVerificationTicketCreate struct {
 	Identity               *TicketIdentity `json:"identity,omitempty"`
 	IncludeEmailInRedirect *bool           `json:"includeEmailInRedirect,omitempty"`
 
-	// ResultUrl Where the page redirects after opening. Not with `client_id`.
+	// OrganizationId The organization whose branding the result page uses. The user must be a member.
+	OrganizationId *string `json:"organization_id,omitempty"`
+
+	// ResultUrl Where the page redirects after opening. Not with `client_id` or `organization_id`.
 	ResultUrl *string `json:"result_url,omitempty"`
 
 	// TtlSec Seconds the ticket is valid; 0 or absent is 432000 (5 days).
@@ -13303,6 +13306,9 @@ type VerificationEmailJobCreate struct {
 		// UserId The identity's ID, without the provider.
 		UserId *string `json:"user_id,omitempty"`
 	} `json:"identity,omitempty"`
+
+	// OrganizationId The organization whose branding the verification uses. The user must be a member.
+	OrganizationId *string `json:"organization_id,omitempty"`
 
 	// UserId The user to send the email to.
 	UserId string `json:"user_id"`

@@ -7039,6 +7039,7 @@ type EmailVerificationTicket struct {
 	IncludeEmailInRedirect bool                   `protobuf:"varint,12,opt,name=include_email_in_redirect,json=includeEmailInRedirect,proto3" json:"include_email_in_redirect,omitempty"`
 	Email                  string                 `protobuf:"bytes,13,opt,name=email,proto3" json:"email,omitempty"`
 	Origin                 string                 `protobuf:"bytes,14,opt,name=origin,proto3" json:"origin,omitempty"`
+	OrganizationId         string                 `protobuf:"bytes,15,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"` // Organizations II capability 2; empty = no organization
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -7167,6 +7168,13 @@ func (x *EmailVerificationTicket) GetEmail() string {
 func (x *EmailVerificationTicket) GetOrigin() string {
 	if x != nil {
 		return x.Origin
+	}
+	return ""
+}
+
+func (x *EmailVerificationTicket) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
 	}
 	return ""
 }
@@ -29051,7 +29059,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06origin\x18\x0e \x01(\tR\x06origin\x12J\n" +
 	"\x13challenge_passed_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\x11challengePassedAt\x120\n" +
 	"\x14challenge_result_url\x18\x10 \x01(\tR\x12challengeResultUrl\x12'\n" +
-	"\x0forganization_id\x18\x11 \x01(\tR\x0eorganizationId\"\x82\x04\n" +
+	"\x0forganization_id\x18\x11 \x01(\tR\x0eorganizationId\"\xab\x04\n" +
 	"\x17EmailVerificationTicket\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +
@@ -29073,7 +29081,8 @@ const file_store_proto_rawDesc = "" +
 	"result_url\x18\v \x01(\tR\tresultUrl\x129\n" +
 	"\x19include_email_in_redirect\x18\f \x01(\bR\x16includeEmailInRedirect\x12\x14\n" +
 	"\x05email\x18\r \x01(\tR\x05email\x12\x16\n" +
-	"\x06origin\x18\x0e \x01(\tR\x06origin\"p\n" +
+	"\x06origin\x18\x0e \x01(\tR\x06origin\x12'\n" +
+	"\x0forganization_id\x18\x0f \x01(\tR\x0eorganizationId\"p\n" +
 	"\n" +
 	"JobSummary\x12\x16\n" +
 	"\x06failed\x18\x01 \x01(\x03R\x06failed\x12\x18\n" +

@@ -213,7 +213,7 @@ func (s *Store) migrateTo(ctx context.Context, version int64) error {
 func (s *Store) applyMigration(ctx context.Context, m migration) error {
 	if s.d.name == "mysql" {
 		switch m.version {
-		case 20, 21, 29, 30, 31, 32, 33, 34, 35, 38:
+		case 20, 21, 29, 30, 31, 32, 33, 34, 35, 38, 39:
 			return s.applyResumableMySQL(ctx, m)
 		}
 	}

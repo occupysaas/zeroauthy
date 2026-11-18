@@ -7,6 +7,7 @@ import (
 	texttemplate "text/template"
 
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 var (
@@ -18,11 +19,8 @@ var (
 
 // VerifyEmailMessage renders the email verification email in l's
 // language. The caller sets To.
-func VerifyEmailMessage(l *i18n.Localizer, link string) Message {
-	data := struct {
-		L    *i18n.Localizer
-		Link string
-	}{l, link}
+func VerifyEmailMessage(l *i18n.Localizer, link string, organizations ...*store.Organization) Message {
+	data := linkTemplateData(l, link, organizations)
 	var txt, htm bytes.Buffer
 	// The templates are embedded and the data is plain strings, so
 	// execution cannot fail.
@@ -32,7 +30,7 @@ func VerifyEmailMessage(l *i18n.Localizer, link string) Message {
 	if err := verifyHTML.Execute(&htm, data); err != nil {
 		panic(err)
 	}
-	return Message{Type: "verify_email", Locale: l.Lang(), Subject: l.T(i18n.KeyEmailVerifySubject), Text: txt.String(), HTML: htm.String()}
+	return Message{OrganizationID: data.OrganizationID, Type: "verify_email", Locale: l.Lang(), Subject: l.T(i18n.KeyEmailVerifySubject), Text: txt.String(), HTML: htm.String()}
 }
 
 // VerifyEmail is one verification email: the recipient, the language and

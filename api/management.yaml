@@ -5458,10 +5458,13 @@ paths:
         the page redirects there, appending `success`, `message`, `code`,
         `supportSignUp`, `supportForgotPassword` and, with
         `includeEmailInRedirect`, `email` to its query.
+        With `organization_id`, the user must be a member of the organization
+        and the result page uses that organization's branding.
 
         A missing `user_id`, a negative `ttl_sec`, `result_url` together with
-        `client_id` and an unknown property are `400 invalid_body`; an unknown
-        user is `404 inexistent_user`.
+        `client_id` or `organization_id`, invalid organization membership and
+        an unknown property are `400 invalid_body`. An unknown user is
+        `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/tickets/post-email-verification
       requestBody:
@@ -5840,12 +5843,12 @@ paths:
         and answers `201` with the job, `status: pending`, whether or not the
         user is already verified. Without an email provider the job still
         completes. `identity` names one of the user's identities and
-        `client_id` the application the email is for.
+        `client_id` the application the email is for. `organization_id` adds
+        the organization and its branding to the email and the result page.
 
-        A missing or empty `user_id`, a wrong type and an unknown property
-        (`organization_id` too: zeroauthy has no organizations) are
-        `400 invalid_body`; as on Auth0 every other error is a `400` too: an
-        unknown user is `inexistent_user`; an identity the user does not have
+        A missing or empty `user_id`, a wrong type, an unknown property and
+        invalid organization membership are `400 invalid_body`. An unknown
+        user is `inexistent_user`; an identity the user does not have
         is `inexistent_identity`; an unknown `client_id` is
         `inexistent_client`; a user without an email address, or an identity
         that is not in a database connection, is `operation_not_supported`.
@@ -23235,6 +23238,7 @@ components:
       properties:
         user_id: {type: string, description: The user to send the email to.}
         client_id: {type: string, description: The application the email is for.}
+        organization_id: {type: string, description: The organization whose branding the verification uses. The user must be a member.}
         identity:
           type: object
           description: One of the user's database identities; the user's primary one when absent.
@@ -23321,8 +23325,9 @@ components:
       description: Unknown properties are `400 invalid_body`.
       properties:
         user_id: {type: string}
-        result_url: {type: string, description: "Where the page redirects after opening. Not with `client_id`."}
+        result_url: {type: string, description: "Where the page redirects after opening. Not with `client_id` or `organization_id`."}
         client_id: {type: string}
+        organization_id: {type: string, description: The organization whose branding the result page uses. The user must be a member.}
         ttl_sec: {type: integer, minimum: 0, description: "Seconds the ticket is valid; 0 or absent is 432000 (5 days)."}
         includeEmailInRedirect: {type: boolean}
         identity: {$ref: "#/components/schemas/TicketIdentity"}

@@ -410,7 +410,7 @@ func TestPasswordResetTicketRoundTrip(t *testing.T) {
 
 func TestEmailVerificationTicketRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.EmailVerificationTicket{
-		Origin:   "https://login.example",
+		OrganizationID: "org_abcdefghijklmnop", Origin: "https://login.example",
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
 		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true, Email: "a@b.test",

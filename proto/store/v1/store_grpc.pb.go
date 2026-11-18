@@ -610,6 +610,7 @@ type StoreServiceClient interface {
 	RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	// Version 2 also persists organization IDs on email verification tickets.
 	OrganizationsIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsIICreateInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
 	OrganizationsIIGetInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
@@ -5118,6 +5119,7 @@ type StoreServiceServer interface {
 	RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
 	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	// Version 2 also persists organization IDs on email verification tickets.
 	OrganizationsIICapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsIICreateInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
 	OrganizationsIIGetInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)

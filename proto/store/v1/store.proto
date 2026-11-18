@@ -191,6 +191,7 @@ service StoreService {
   rpc RBACSnapshot(RBACRequest) returns (RBACResponse);
 
   // Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+  // Version 2 also persists organization IDs on email verification tickets.
   rpc OrganizationsIICapabilities(PingRequest) returns (OrganizationsCapabilitiesResult);
   rpc OrganizationsIICreateInvitation(OrganizationsIIRequest) returns (OrganizationsIIResponse);
   rpc OrganizationsIIGetInvitation(OrganizationsIIRequest) returns (OrganizationsIIResponse);
@@ -949,6 +950,7 @@ message EmailVerificationTicket {
   string result_url = 11; bool include_email_in_redirect = 12;
   string email = 13;
   string origin = 14;
+  string organization_id = 15; // Organizations II capability 2; empty = no organization
 }
 
 // A Management API job. type and status are store.JobType and

@@ -112,7 +112,7 @@ func TestVerificationEmailJobCases(t *testing.T) {
 		{"identity of another connection", map[string]any{"user_id": uid, "identity": map[string]any{"user_id": bare, "provider": "auth0", "connection_id": "con_other"}}, nil, 400, "inexistent_identity",
 			"The user exists, but does not contain the given identity"},
 		{"unknown property", map[string]any{"user_id": uid, "foo": 1}, nil, 400, "invalid_body", "Payload validation error: 'Additional properties not allowed: foo'."},
-		{"organization_id", map[string]any{"user_id": uid, "organization_id": "org_1"}, nil, 400, "invalid_body", "Payload validation error: 'Additional properties not allowed: organization_id'."},
+		{"malformed organization_id", map[string]any{"user_id": uid, "organization_id": "org_1"}, nil, 400, "invalid_body", "Invalid organization_id."},
 		{"unknown identity property", map[string]any{"user_id": uid, "identity": map[string]any{"user_id": bare, "provider": "auth0", "x": 1}}, nil, 400, "invalid_body",
 			"Payload validation error: 'Additional properties not allowed: x' on property identity."},
 		{"unknown client", map[string]any{"user_id": uid, "client_id": "nope"}, nil, 400, "inexistent_client", "The client does not exist"},

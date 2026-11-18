@@ -1176,8 +1176,9 @@ func emailVerificationTicketToPB(p *store.EmailVerificationTicket) (*storev1.Ema
 		return nil, nil
 	}
 	return &storev1.EmailVerificationTicket{
-		Origin:   p.Origin,
-		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
+		OrganizationId: p.OrganizationID,
+		Origin:         p.Origin,
+		TenantId:       p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
 		ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect, Email: p.Email,
@@ -1192,8 +1193,9 @@ func emailVerificationTicketFromPB(pb *storev1.EmailVerificationTicket) (*store.
 		return nil, err
 	}
 	return &store.EmailVerificationTicket{
-		Origin:   pb.Origin,
-		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
+		OrganizationID: pb.OrganizationId,
+		Origin:         pb.Origin,
+		TenantID:       pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
 		ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect, Email: pb.Email,
