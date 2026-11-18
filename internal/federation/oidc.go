@@ -49,6 +49,9 @@ func authorizationURL(endpoint string, cfg Config, in StartInput, withNonce bool
 	}
 	q.Set("scope", strings.Join(scopes, " "))
 	q.Set("state", in.State)
+	if in.LoginHint != "" {
+		q.Set("login_hint", in.LoginHint)
+	}
 	q.Set("code_challenge", in.CodeChallenge)
 	q.Set("code_challenge_method", "S256")
 	if enterprise {

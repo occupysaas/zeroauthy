@@ -154,6 +154,9 @@ func (h *Handlers) rerenderLogin(w http.ResponseWriter, r *http.Request, f *flow
 // startSocial applies the social-login protection budget and redirects to
 // the provider.
 func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, conn *store.Connection) {
+	h.startSocialHint(w, r, f, conn, "")
+}
+func (h *Handlers) startSocialHint(w http.ResponseWriter, r *http.Request, f *flow, conn *store.Connection, hint string) {
 	ctx := r.Context()
 	svc := h.protectionService()
 	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: f.res.Tenant, Connection: conn, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "social-login"})
@@ -179,7 +182,7 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 	if origin == "" {
 		origin = tenant.CanonicalOrigin(f.res.Tenant)
 	}
-	begun, err := h.Federation.Begin(ctx, federation.BeginInput{Tenant: f.res.Tenant, Origin: origin, Txn: f.txn, Client: client, Connection: conn})
+	begun, err := h.Federation.Begin(ctx, federation.BeginInput{Tenant: f.res.Tenant, Origin: origin, Txn: f.txn, Client: client, Connection: conn, LoginHint: hint})
 	if err != nil {
 		h.socialFailure(w, r, f, err)
 		return
@@ -191,7 +194,7 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
 		HttpOnly: true, Secure: true, SameSite: sameSite})
 	w.Header().Set("Cache-Control", "no-store")
-	if r.Method == http.MethodPost {
+	if r.Method == http.MethodPost && hint == "" {
 		u, err := url.Parse(begun.URL)
 		if err != nil {
 			h.fail(w, r, err, f)

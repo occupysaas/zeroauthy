@@ -42,6 +42,7 @@ type Provider interface {
 
 // StartInput is what an adapter needs to build the authorization redirect.
 type StartInput struct {
+	LoginHint     string
 	Config        Config
 	Endpoints     Endpoints
 	CallbackURL   string

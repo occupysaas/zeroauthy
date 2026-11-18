@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -51,6 +52,25 @@ func (h *Handlers) identifierPost(w http.ResponseWriter, r *http.Request, f *flo
 		d.Error = f.view.L.T(i18n.KeyInvalidIdentifier)
 		h.renderIdentifier(w, r, http.StatusBadRequest, f, d)
 		return
+	}
+	if h.Federation != nil {
+		conns, e := h.socialConnections(r.Context(), f, true)
+		if e != nil {
+			h.fail(w, r, e, f)
+			return
+		}
+		if conn := federation.MatchHomeRealm(identifier, conns); conn != nil {
+			next := f.txn.HostedState.Clone()
+			next.Step = "authenticating"
+			next.Identifier = identifier
+			next.ConnectionID = conn.ID
+			if e := h.transitionHosted(r, f, next); e != nil {
+				h.fail(w, r, errTxn, f)
+				return
+			}
+			h.startSocialHint(w, r, f, conn, identifier)
+			return
+		}
 	}
 	next := f.txn.HostedState.Clone()
 	next.Step = "password"

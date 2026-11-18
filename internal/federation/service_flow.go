@@ -70,7 +70,8 @@ type FlowService struct {
 
 // BeginInput binds an attempt to the browser transaction.
 type BeginInput struct {
-	Tenant *store.Tenant
+	LoginHint string
+	Tenant    *store.Tenant
 	// Origin is the transaction's active public origin, e.g.
 	// "https://login.example.com"; the callback is Origin + CallbackPath.
 	Origin     string
@@ -207,7 +208,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		challenge = verifier
 	}
 	u, err := s.Providers.For(cfg).AuthorizationURL(StartInput{Config: cfg, Endpoints: endpoints, CallbackURL: callback,
-		State: state, Nonce: nonce, CodeChallenge: challenge})
+		State: state, Nonce: nonce, CodeChallenge: challenge, LoginHint: in.LoginHint})
 	if err != nil {
 		return nil, err
 	}

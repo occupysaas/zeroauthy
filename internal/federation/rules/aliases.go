@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"golang.org/x/net/idna"
 	"net/url"
 	"strings"
 	"unicode/utf8"
@@ -43,6 +44,10 @@ func ParseDomainAliases(v any) ([]string, error) {
 		s = strings.ToLower(s)
 		u, err := url.Parse(s)
 		isURI := err == nil && u.IsAbs() && u.Host != "" && u.User == nil && u.Fragment == ""
+		ascii, dnsErr := idna.Lookup.ToASCII(s)
+		if !isURI && dnsErr == nil {
+			s = strings.ToLower(ascii)
+		}
 		if utf8.RuneCountInString(s) > 256 || !cleanText(s) || (!validDNS(s) && !isURI) {
 			return nil, fmt.Errorf("domain_aliases entries must be DNS names or URIs of at most 256 characters")
 		}
