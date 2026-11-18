@@ -10,6 +10,10 @@ import (
 )
 
 type (
+	ConnectionKey                  = store.ConnectionKey
+	ConnectionKeys                 = store.ConnectionKeys
+	ConnectionKeysSupporter        = store.ConnectionKeysSupporter
+	UnimplementedConnectionKeys    = store.UnimplementedConnectionKeys
 	MFASupporter                   = store.MFASupporter
 	PhoneSupporter                 = store.PhoneSupporter
 	WebAuthnSupporter              = store.WebAuthnSupporter
@@ -404,3 +408,5 @@ var ErrClientCredentialsUnavailable = store.ErrClientCredentialsUnavailable
 
 // ErrWebAuthnUnavailable means the driver lacks the webauthn.v1 capability.
 var ErrWebAuthnUnavailable = store.ErrWebAuthnUnavailable
+
+var ErrConnectionKeysUnavailable = store.ErrConnectionKeysUnavailable

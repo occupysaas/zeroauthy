@@ -164,6 +164,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.emailTemplates, id)
 	purgeEmailClaims(s.emailNotifications, id)
 	purge(s.connections, id)
+	purge(s.connectionKeys, id)
 	purge(s.passwordHistories, id)
 	purge(s.users, id)
 	purge(s.sessions, id)
