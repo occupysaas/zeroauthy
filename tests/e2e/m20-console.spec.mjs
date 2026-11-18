@@ -78,7 +78,17 @@ test('operator rotates and revokes a tenant signing key and sees custom-key limi
   await page.getByRole('button', { name: 'Replace keys' }).click();
   await confirmModal(page, 'Replace keys', 'Replace the stored custom public keys?');
   await expect(page.locator('#custom-signing-jwks')).toHaveValue(/custom-m20/);
-  await expect.poll(async () => (await management.keys.customSigning.get()).keys[0].kid).toBe('custom-m20');
+  // The textarea already holds what the test typed, so it doesn't prove the
+  // save finished; until the PUT lands the API answers 404, which expect.poll
+  // doesn't retry. Treat 404 as "not stored yet".
+  await expect.poll(async () => {
+    try {
+      return (await management.keys.customSigning.get()).keys[0].kid;
+    } catch (err) {
+      if (err?.statusCode === 404) return null;
+      throw err;
+    }
+  }).toBe('custom-m20');
   await page.getByRole('button', { name: 'Delete keys' }).click();
   await confirmModal(page, 'Delete keys', 'Delete the stored custom public keys?');
   await expect(page.locator('#custom-signing-jwks')).not.toHaveValue(/custom-m20/);
