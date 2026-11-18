@@ -45,7 +45,9 @@ func (h *Handlers) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	view := *p
-	if len(fields) == 0 || slices.Contains(fields, "credentials") == include {
+	// Legacy region is exposed in both credentials and settings. Hydrate the
+	// retained fields before applying the same projection to either row format.
+	if len(fields) == 0 || slices.Contains(fields, "credentials") == include || slices.Contains(fields, "settings") == include {
 		if err := emailrules.LegacyPublicConfig(h.Wrapper, resolved(r).ID, &view); err != nil {
 			h.failTx(w, r, "get email provider", err)
 			return

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"maps"
 
+	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"google.golang.org/grpc/codes"
@@ -24,18 +25,12 @@ func publicCredentials(src map[string]any) (map[string]any, error) {
 			continue
 		}
 		if key == "smtp_port" {
-			switch port := v.(type) {
-			case float64:
-				if port < 1 || port > 65535 || port != float64(int(port)) {
-					return nil, ErrInvalidProvider
-				}
-			case int:
-				if port < 1 || port > 65535 {
-					return nil, ErrInvalidProvider
-				}
-			default:
+			port, valid := providers.SMTPPort(v)
+			if !valid {
 				return nil, ErrInvalidProvider
 			}
+			// JSON config maps use float64 for numbers. A bounded SMTP port is exact.
+			v = float64(port)
 		} else if _, ok := v.(string); !ok {
 			return nil, ErrInvalidProvider
 		}

@@ -6,14 +6,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log/slog"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/storage"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 func TestEmailProviderMigrationIdempotent(t *testing.T) {
@@ -36,12 +39,18 @@ func TestEmailProviderMigrationIdempotent(t *testing.T) {
 		if err := a.store.Tenants().Create(ctx, &store.Tenant{ID: id, Name: id}); err != nil {
 			t.Fatal(err)
 		}
-		plain, _ := json.Marshal(map[string]any{"smtp_host": "mail.example.test", "smtp_user": "mailer", "smtp_port": 587, "smtp_pass": secret})
+		creds := map[string]any{"smtp_host": "mail.example.test", "smtp_user": "mailer", "smtp_port": 587, "smtp_pass": secret}
+		var public map[string]any
+		if id == "beta" {
+			delete(creds, "smtp_port")
+			public = map[string]any{"smtp_port": "0587"}
+		}
+		plain, _ := json.Marshal(creds)
 		b, err := keys.SealEmailProvider(w, id, "smtp", plain)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := a.store.EmailProviders().Put(ctx, &store.EmailProvider{TenantID: id, Name: "smtp", Enabled: true, SealedCredentials: b}, 0); err != nil {
+		if err := a.store.EmailProviders().Put(ctx, &store.EmailProvider{TenantID: id, Name: "smtp", Enabled: true, PublicConfig: public, SealedCredentials: b}, 0); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -85,11 +94,24 @@ func TestEmailProviderMigrationIdempotent(t *testing.T) {
 		}
 		host := "mail.example.test"
 		if migrated {
-			if p.Revision != 2 || len(creds) != 1 || p.PublicConfig["smtp_host"] != host || len(p.PublicConfig) != 3 {
+			if p.Revision != 2 || len(creds) != 1 || p.PublicConfig["smtp_host"] != host || p.PublicConfig["smtp_port"] != float64(587) || len(p.PublicConfig) != 3 {
 				t.Fatalf("incomplete migrated row: %s", id)
 			}
-		} else if p.Revision != 1 || creds["smtp_host"] != host || len(p.PublicConfig) != 0 {
+		} else if p.Revision != 1 || creds["smtp_host"] != host || p.PublicConfig["smtp_port"] != "0587" || len(p.PublicConfig) != 1 {
 			t.Fatalf("partial update on interruption: %s", id)
+		}
+		// The GET must return a JSON number even while this row is still legacy.
+		req := httptest.NewRequest("GET", "/api/v2/emails/provider?fields=credentials", nil)
+		req = req.WithContext(tenant.WithResolved(ctx, tenant.Resolved{Tenant: &store.Tenant{ID: id, Name: id}}))
+		rec := httptest.NewRecorder()
+		(&mgmt.Handlers{Store: st, Wrapper: w}).GetEmailProvider(rec, req)
+		var view struct {
+			Credentials struct {
+				Port int `json:"smtp_port"`
+			} `json:"credentials"`
+		}
+		if rec.Code != 200 || json.Unmarshal(rec.Body.Bytes(), &view) != nil || view.Credentials.Port != 587 {
+			t.Fatalf("GET port for %s did not return the integer 587 (status %d)", id, rec.Code)
 		}
 		// Invitation delivery validates the transport using either row encoding.
 		engine := actions.Engine{Store: st, Secrets: w}

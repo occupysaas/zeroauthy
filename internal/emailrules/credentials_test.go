@@ -132,3 +132,35 @@ func TestEmailProviderBackfillWithoutEnvelope(t *testing.T) {
 		t.Fatal("backfill silently repaired a provider without an authenticated envelope")
 	}
 }
+
+func TestEmailProviderStoredPortProjection(t *testing.T) {
+	for _, tc := range []struct {
+		stored any
+		want   int
+	}{{int64(65535), 65535}, {"00001", 1}} {
+		row := store.EmailProvider{Name: "smtp", PublicConfig: map[string]any{"smtp_port": tc.stored}}
+		b, err := json.Marshal(ProjectProvider(&row))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var view struct {
+			Credentials struct {
+				Port int `json:"smtp_port"`
+			} `json:"credentials"`
+		}
+		if err := json.Unmarshal(b, &view); err != nil {
+			t.Fatal(err)
+		}
+		if view.Credentials.Port != tc.want {
+			t.Errorf("stored port %v projected as %d, want %d", tc.stored, view.Credentials.Port, tc.want)
+		}
+	}
+	for _, port := range []any{int64(65536), "0", "587.5", 1.5} {
+		if _, err := publicCredentials(map[string]any{"smtp_port": port}); !errors.Is(err, ErrInvalidProvider) {
+			t.Errorf("accepted invalid port %v", port)
+		}
+	}
+	if err := ValidateProvider(rawProvider(map[string]any{"name": "smtp", "credentials": map[string]any{"smtp_host": "mail.example.test", "smtp_port": "587"}}), nil); !errors.Is(err, ErrInvalidProvider) {
+		t.Fatal("accepted string port on the management write endpoint")
+	}
+}

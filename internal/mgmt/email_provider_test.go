@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zeroauthy/zeroauthy/internal/emailrules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -200,5 +201,39 @@ func TestEmailProviderNullableRegion(t *testing.T) {
 	view := out.(map[string]any)
 	if _, ok := view["credentials"]; ok || !reflect.DeepEqual(view["settings"], map[string]any{"domain": "mail.example.test"}) {
 		t.Fatal("clearing region retained stale public credential or lost the domain")
+	}
+}
+
+func TestEmailProviderLegacySettingsProjection(t *testing.T) {
+	e := newClientsEnv(t)
+	secret := secrets.RandomString(32)
+	b, _ := json.Marshal(map[string]any{"api_key": secret, "region": "eu"})
+	cipher, err := keys.SealEmailProvider(e.w, e.tn.ID, "sparkpost", b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := e.st.EmailProviders()
+	if err := repo.Put(t.Context(), &store.EmailProvider{TenantID: e.tn.ID, Name: "sparkpost", Enabled: true, SealedCredentials: cipher}, 0); err != nil {
+		t.Fatal(err)
+	}
+	for _, stage := range []string{"legacy", "migrated"} {
+		if stage == "migrated" {
+			if err := emailrules.BackfillProvider(t.Context(), repo, e.w, e.tn.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+		settings := map[string]any{"region": "eu"}
+		for _, tc := range []struct {
+			query string
+			want  map[string]any
+		}{
+			{"?fields=settings", map[string]any{"settings": settings}},
+			{"?fields=credentials&include_fields=false", map[string]any{"name": "sparkpost", "enabled": true, "settings": settings}},
+		} {
+			rec, got := e.call(t, e.tn, m2mCaller("read:email_provider"), "GET", "/api/v2/emails/provider"+tc.query, nil, e.h.GetEmailProvider)
+			if rec.Code != 200 || !reflect.DeepEqual(got, tc.want) || strings.Contains(rec.Body.String(), secret) {
+				t.Errorf("%s projection dropped or changed settings for %s (status %d)", stage, tc.query, rec.Code)
+			}
+		}
 	}
 }
