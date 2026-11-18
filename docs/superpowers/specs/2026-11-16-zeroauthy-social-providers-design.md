@@ -10,6 +10,8 @@ framework this plan reuses). Read the [clean-room policy](../../../CLEAN_ROOM.md
 `AGENTS.md`, the [Plan 24 spec](2026-10-26-zeroauthy-social-connections-design.md)
 and the [Plan 39a spec](2026-11-16-zeroauthy-apple-design.md).
 
+**GitHub moved out (maintainer, 2026-11-18):** `github` is built by the [GitHub connection design](2026-11-16-zeroauthy-github-connection-design.md) on branch `plan-39-github-social`, as a dedicated Go adapter. Leave it out of this plan's descriptors and Tier 1 group.
+
 ## 1. Outcome and scope
 
 Every social strategy in Auth0's Management OpenAPI that zeroauthy lacks
@@ -35,7 +37,7 @@ D-0180–0189).
 
 | Group | Strategies (OpenAPI `ConnectionOptions*`) |
 |---|---|
-| Tier 1 (proposed first) | `facebook` (48 permission switches), `github` (20 scope switches), `linkedin` (`strategy_version`, OpenID-based v2), `twitter` (`protocol` `oauth1` / `oauth2`, `tweet_read`, `users_read`, `offline_access`), `amazon`, `paypal` (+ `paypal-sandbox`, SP-1), `salesforce`, `salesforce-community` (`community_base_url`), `salesforce-sandbox`, `yahoo`, `line`, `dropbox`, `box`, `bitbucket`, `shopify` |
+| Tier 1 (proposed first) | `facebook` (48 permission switches), `linkedin` (`strategy_version`, OpenID-based v2), `twitter` (`protocol` `oauth1` / `oauth2`, `tweet_read`, `users_read`, `offline_access`), `amazon`, `paypal` (+ `paypal-sandbox`, SP-1), `salesforce`, `salesforce-community` (`community_base_url`), `salesforce-sandbox`, `yahoo`, `line`, `dropbox`, `box`, `bitbucket`, `shopify` |
 | Tier 2 | `baidu`, `bitly`, `daccount`, `dwolla`, `evernote` (+ `evernote-sandbox`), `exact` (`baseUrl`), `fitbit`, `instagram`, `planningcenter`, `soundcloud`, `thirtysevensignals`, `untappd`, `vkontakte`, `weibo`, `wordpress`, `yandex` |
 | Generic | `oauth1` (`requestTokenURL`, `accessTokenURL`, `userAuthorizationURL`, `signatureMethod`, `scripts.fetchUserProfile`) |
 | Native | `native_social_login.google` (Google ID token exchange), `native_social_login.facebook` (Facebook session-info access token exchange) — the client fields stored since Plan 39a |
@@ -58,8 +60,8 @@ trip, a fixture provider mode for tests.
 ### Anti-goals
 
 - **Email trust drift.** `email_verified` true only where the provider
-  documents verified emails (e.g. GitHub's primary verified email from
-  `/user/emails`, Facebook's emails are verified by Facebook per its docs,
+  documents verified emails (for example, Facebook's emails are verified by
+  Facebook per its docs,
   SP-2); otherwise false. No automatic linking by email (Plan 24 rule).
 - **Scope inflation.** Scope switches map one-to-one to the provider's
   scopes; `freeform_scopes` are passed only where Auth0 documents them for
@@ -78,8 +80,8 @@ trip, a fixture provider mode for tests.
 
 - Management OpenAPI (read 2026-11-16): the `ConnectionOptions*` schemas
   listed above (e.g. Facebook's permission booleans such as `email`,
-  `public_profile`, `user_birthday`, …; GitHub's `repo`, `read_user`,
-  `admin_org`, …; LinkedIn `strategy_version`, `basic_profile`,
+  `public_profile`, `user_birthday`, …; LinkedIn `strategy_version`,
+  `basic_profile`,
   `full_profile`, `openid`; Twitter `protocol`, `tweet_read`, `users_read`,
   `offline_access`; Amazon `postal_code`; PayPal `address`, `phone`;
   Salesforce Community `community_base_url`; Exact `baseUrl`; OAuth1

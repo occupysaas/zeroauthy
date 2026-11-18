@@ -7,6 +7,8 @@ social strategy (Tier 1, then Tier 2), the generic `oauth1` strategy,
 Twitter on OAuth 2.0 and 1.0a, and the Google and Facebook native
 exchanges.
 
+**GitHub moved out (maintainer, 2026-11-18):** `github` is built by the [GitHub connection design](../specs/2026-11-16-zeroauthy-github-connection-design.md) on branch `plan-39-github-social`, as a dedicated Go adapter. Leave it out of this plan's descriptors and Tier 1 group.
+
 **Architecture:** `internal/federation/providers/` (JSON descriptors + Go
 loader + hooks), a generic descriptor-driven `Provider` on the Plan 24
 core, `internal/federation/oauth1.go`, native exchanges on Plan 39a's
@@ -56,7 +58,7 @@ Playwright 1.64.0, node-auth0 7.4.0, auth0-deploy-cli 9.1.0.
 
 ### Task 3: Tier 1 descriptors
 **Files:** one descriptor per Tier 1 strategy, hooks (Facebook `appsecret_proof`, Salesforce identity URL and community/sandbox hosts, Shopify shop domain), rules in `internal/federation/rules`, tests.
-- [ ] Tests per provider: option rules (switch → scope table), authorize URL, token exchange, profile mapping, `TestDescriptorEmailRules` (Review Focus 1), user ID → implement → commit per group (`feat(social): Facebook, GitHub, LinkedIn`, `feat(social): Amazon, PayPal, Salesforce, Yahoo`, `feat(social): LINE, Dropbox, Box, Bitbucket, Shopify`).
+- [ ] Tests per provider: option rules (switch → scope table), authorize URL, token exchange, profile mapping, `TestDescriptorEmailRules` (Review Focus 1), user ID → implement → commit per group (`feat(social): Facebook, LinkedIn`, `feat(social): Amazon, PayPal, Salesforce, Yahoo`, `feat(social): LINE, Dropbox, Box, Bitbucket, Shopify`).
 
 ### Task 4: Twitter/X
 - [ ] OAuth 2.0 (PKCE) and OAuth 1.0a variants by `protocol`; email handling; tests → commit `feat(social): Twitter on OAuth 2.0 and 1.0a`.
