@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -28,21 +29,80 @@ func protectionFromTime(n int64) time.Time {
 	return time.UnixMicro(n).UTC()
 }
 func (s *Store) protectionLock(ctx context.Context, tenant string) error {
+	return s.protectionTenant(ctx, tenant, s.d.forUpdate)
+}
+
+// Admissions share the tenant lifecycle guard. There are no foreign keys on
+// the protection tables, so a delete or policy change must wait for them.
+func (s *Store) protectionAttemptTenant(ctx context.Context, tenant string) error {
+	lock := ""
+	if s.d.name != "sqlite" {
+		lock = " FOR SHARE"
+	}
+	return s.protectionTenant(ctx, tenant, lock)
+}
+
+func (s *Store) protectionTenant(ctx context.Context, tenant, lock string) error {
 	var n int
-	err := s.queryRow(ctx, "SELECT 1 FROM tenants WHERE id=?"+s.d.forUpdate, tenant).Scan(&n)
+	err := s.queryRow(ctx, "SELECT 1 FROM tenants WHERE id=?"+lock, tenant).Scan(&n)
 	if errors.Is(err, sql.ErrNoRows) {
 		return store.ErrNotFound
 	}
 	return err
 }
 
-// loadProtection loads only selected buckets and their completion history. The
-// tenant row is held before this query, including on first bucket insertion.
+// Filtered maintenance holds the exclusive tenant guard, including while
+// discovering which buckets the filter covers.
 func (s *Store) loadProtection(ctx context.Context, tenant, where string, args ...any) (*protectionstate.State, error) {
 	p := protectionstate.NewState()
+	if err := s.readProtectionBuckets(ctx, p, tenant, where, args...); err != nil {
+		return nil, err
+	}
+	return p, s.readProtectionMembers(ctx, p, tenant, s.d.forUpdate)
+}
+
+// loadProtectionKeys locks exact primary keys in one order across all callers.
+// A reserve first materializes each missing key in the same transaction. Its
+// empty algorithm makes State.Reserve initialize the bucket with the real limit.
+func (s *Store) loadProtectionKeys(ctx context.Context, tenant string, ids []string, create bool) (*protectionstate.State, error) {
+	if s.d.name == "sqlite" {
+		args := make([]any, len(ids))
+		for i, id := range ids {
+			args[i] = id
+		}
+		return s.loadProtection(ctx, tenant, " AND bucket_id IN ("+strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")+")", args...)
+	}
+	p := protectionstate.NewState()
+	ordered := slices.Clone(ids)
+	slices.Sort(ordered)
+	for _, id := range ordered {
+		if create {
+			q := `INSERT INTO protection_buckets (
+tenant_id,bucket_id,kind,connection_id,identifier,ip,generation,algorithm,
+capacity,window_us,refill_us,lockout_us,tokens,failures,reserved,next_sequence,
+updated_at,blocked_until,expires_at) VALUES (?,?,'','','','','','',0,0,0,0,0,0,0,0,0,0,0)`
+			if s.d.name == "postgres" {
+				q += " ON CONFLICT (tenant_id,bucket_id) DO NOTHING"
+			} else {
+				q += " ON DUPLICATE KEY UPDATE bucket_id=protection_buckets.bucket_id"
+			}
+			if _, err := s.exec(ctx, q, tenant, id); err != nil {
+				return nil, err
+			}
+		}
+		if err := s.readProtectionBuckets(ctx, p, tenant, " AND bucket_id=?", id); err != nil {
+			return nil, err
+		}
+	}
+	// Bucket locks protect each membership. Receipts can span unrelated
+	// buckets: locking the join would serialize disjoint subsequent attempts.
+	return p, s.readProtectionMembers(ctx, p, tenant, "")
+}
+
+func (s *Store) readProtectionBuckets(ctx context.Context, p *protectionstate.State, tenant, where string, args ...any) error {
 	rows, err := s.query(ctx, `SELECT bucket_id,kind,connection_id,identifier,ip,generation,algorithm,capacity,window_us,refill_us,lockout_us,tokens,next_sequence,updated_at,blocked_until,expires_at,brute_force_denial_claimed FROM protection_buckets WHERE tenant_id=?`+where+s.d.forUpdate, append([]any{tenant}, args...)...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for rows.Next() {
 		b := &protectionstate.Bucket{Members: map[string]protectionstate.Member{}}
@@ -64,13 +124,14 @@ func (s *Store) loadProtection(ctx context.Context, tenant, where string, args .
 		err = e
 	}
 	rows.Close()
-	if err != nil {
-		return nil, err
-	}
+	return err
+}
+
+func (s *Store) readProtectionMembers(ctx context.Context, p *protectionstate.State, tenant, lock string) error {
 	for id, b := range p.Buckets {
-		rows, err = s.query(ctx, `SELECT m.receipt_id,m.generation,m.admission_sequence,m.outcome,r.reserved_at,r.expires_at,r.completed,r.outcome FROM protection_reservations m JOIN protection_receipts r ON r.tenant_id=m.tenant_id AND r.id=m.receipt_id WHERE m.tenant_id=? AND m.bucket_id=?`+s.d.forUpdate, tenant, id)
+		rows, err := s.query(ctx, `SELECT m.receipt_id,m.generation,m.admission_sequence,m.outcome,r.reserved_at,r.expires_at,r.completed,r.outcome FROM protection_reservations m JOIN protection_receipts r ON r.tenant_id=m.tenant_id AND r.id=m.receipt_id WHERE m.tenant_id=? AND m.bucket_id=?`+lock, tenant, id)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for rows.Next() {
 			var m protectionstate.Member
@@ -90,10 +151,10 @@ func (s *Store) loadProtection(ctx context.Context, tenant, where string, args .
 		}
 		rows.Close()
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return p, nil
+	return nil
 }
 func (s *Store) saveProtection(ctx context.Context, tenant string, before, after *protectionstate.State) error {
 	for id, r := range after.Receipts {
@@ -175,18 +236,16 @@ func (r protection) Reserve(ctx context.Context, ls []store.ProtectionLimit, now
 		return store.ProtectionAdmission{Allowed: true}, nil
 	}
 	ids := make([]string, len(ls))
-	args := make([]any, len(ls))
 	for i, l := range ls {
 		ids[i] = protectionstate.ID(l.Key)
-		args[i] = ids[i]
 	}
 	id, gen := protectionstate.NewID(), protectionstate.NewID()
 	tenant := ls[0].Key.TenantID
-	err = r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		if e := tx.protectionLock(ctx, tenant); e != nil {
+	err = r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) error {
+		if e := tx.protectionAttemptTenant(ctx, tenant); e != nil {
 			return e
 		}
-		p, e := tx.loadProtection(ctx, tenant, " AND bucket_id IN ("+strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")+")", args...)
+		p, e := tx.loadProtectionKeys(ctx, tenant, ids, true)
 		if e != nil {
 			return e
 		}
@@ -203,15 +262,17 @@ func (r protection) Complete(ctx context.Context, receipt store.ProtectionReceip
 	if receipt.ID == "" {
 		return nil
 	}
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		if e := tx.protectionLock(ctx, receipt.TenantID); e != nil {
+	return r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) error {
+		if e := tx.protectionAttemptTenant(ctx, receipt.TenantID); e != nil {
 			return e
 		}
-		rows, e := tx.query(ctx, `SELECT bucket_id FROM protection_reservations WHERE tenant_id=? AND receipt_id=?`+tx.d.forUpdate, receipt.TenantID, receipt.ID)
+		// A committed receipt never gains bucket memberships. Discover its
+		// candidates without member locks, then reload under the bucket locks.
+		rows, e := tx.query(ctx, `SELECT bucket_id FROM protection_reservations WHERE tenant_id=? AND receipt_id=?`, receipt.TenantID, receipt.ID)
 		if e != nil {
 			return e
 		}
-		var ids []any
+		var ids []string
 		for rows.Next() {
 			var id string
 			if e = rows.Scan(&id); e != nil {
@@ -229,7 +290,7 @@ func (r protection) Complete(ctx context.Context, receipt store.ProtectionReceip
 		if len(ids) == 0 {
 			return nil
 		}
-		p, e := tx.loadProtection(ctx, receipt.TenantID, " AND bucket_id IN ("+strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")+")", ids...)
+		p, e := tx.loadProtectionKeys(ctx, receipt.TenantID, ids, false)
 		if e != nil {
 			return e
 		}
@@ -360,7 +421,7 @@ func (r protection) Sweep(ctx context.Context, now time.Time, limit int) (n int,
 	if limit <= 0 {
 		return 0, store.ErrInvalid
 	}
-	err = r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	err = r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) error {
 		n = 0
 		// Every selected item consumes one unit, including abandoned conversions.
 		rows, e := tx.query(ctx, `SELECT tenant_id,id FROM protection_receipts WHERE completed=? AND reserved_at<=? ORDER BY reserved_at LIMIT ?`, false, protectionTime(now.Add(-time.Minute)), limit)
@@ -383,7 +444,14 @@ func (r protection) Sweep(ctx context.Context, now time.Time, limit int) (n int,
 			return e
 		}
 		for _, a := range receipts {
-			if e = (protection{tx}).Complete(ctx, a, "failure", now); e != nil && !errors.Is(e, store.ErrNotFound) {
+			// Take maintenance's exclusive guard before Complete. A later
+			// deletion in this sweep must not need to upgrade a shared lock.
+			if e = tx.protectionLock(ctx, a.TenantID); errors.Is(e, store.ErrNotFound) {
+				continue
+			} else if e != nil {
+				return e
+			}
+			if e = (protection{tx}).Complete(ctx, a, "failure", now); e != nil {
 				return e
 			}
 			if _, e = tx.exec(ctx, `UPDATE protection_receipts SET completed=?,outcome=? WHERE tenant_id=? AND id=?`, true, "failure", a.TenantID, a.ID); e != nil {

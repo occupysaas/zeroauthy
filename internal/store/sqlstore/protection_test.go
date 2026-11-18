@@ -2,6 +2,7 @@ package sqlstore
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -85,6 +86,87 @@ tenant_id,bucket_id,kind,connection_id,identifier,ip,generation,algorithm,capaci
 	wg.Wait()
 	if claims.Load() != 1 {
 		t.Fatalf("first denial claimed %d times across two connections", claims.Load())
+	}
+}
+
+// Hold an admission transaction open on one connection. A second connection
+// must be able to commit work on independent buckets before the first commits.
+func TestProtectionBucketLocks(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		if name == "sqlite" {
+			continue // SQLite has a single writer.
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := t.Context()
+			dsn := mk(t)
+			s, peer := mustOpen(t, dsn), mustOpenRaw(t, dsn)
+			for _, id := range []string{"one", "two"} {
+				mustEvent(t, s.Tenants().Create(ctx, &store.Tenant{ID: id, Name: id}))
+			}
+			now := time.Now().UTC()
+			a := store.ProtectionLimit{Key: store.ProtectionKey{TenantID: "one", Kind: store.ProtectionBruteForce, Identifier: "a"}, Algorithm: "brute-force", Capacity: 2, Lockout: time.Hour}
+			b, newID, other := a, a, a
+			b.Key.Identifier = "b"
+			newID.Key.Identifier = "new"
+			other.Key.TenantID = "two"
+			// A and B have a historical receipt in common. That receipt
+			// must not act as a lock shared by two unrelated admissions.
+			prior, err := s.Protection().Reserve(ctx, []store.ProtectionLimit{a, b}, now)
+			mustEvent(t, err)
+			mustEvent(t, s.Protection().Complete(ctx, prior.Receipt, "failure", now))
+			mustEvent(t, s.WithTx(ctx, func(tx store.Store) error {
+				held, err := tx.Protection().Reserve(ctx, []store.ProtectionLimit{a}, now)
+				if err != nil || !held.Allowed {
+					t.Fatalf("reserve held bucket: %+v, %v", held, err)
+				}
+				if err := tx.Protection().Complete(ctx, held.Receipt, "failure", now); err != nil {
+					return err
+				}
+				for _, tc := range []struct {
+					name  string
+					limit store.ProtectionLimit
+				}{{"other tenant", other}, {"other identifier", b}, {"new identifier", newID}} {
+					t.Run(tc.name, func(t *testing.T) {
+						bounded, cancel := context.WithTimeout(ctx, 3*time.Second)
+						defer cancel()
+						result, err := peer.Protection().Reserve(bounded, []store.ProtectionLimit{tc.limit}, now)
+						if err != nil || !result.Allowed {
+							t.Fatalf("independent bucket could not reserve before commit: %+v, %v", result, err)
+						}
+						mustEvent(t, peer.Protection().Complete(bounded, result.Receipt, "failure", now))
+					})
+				}
+				bounded, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+				defer cancel()
+				_, err = peer.Protection().Reserve(bounded, []store.ProtectionLimit{a}, now)
+				if !errors.Is(err, context.DeadlineExceeded) {
+					t.Errorf("same bucket should wait for commit: %v", err)
+				}
+				return nil
+			}))
+			denied, err := peer.Protection().Reserve(ctx, []store.ProtectionLimit{a}, now)
+			if err != nil || denied.Allowed || !denied.FirstBruteForceDenial {
+				t.Fatalf("expected first denial after commit: %+v, %v", denied, err)
+			}
+			// No foreign key protects a bucket first inserted during tenant
+			// deletion. Check the lifecycle guard with a previously unused key.
+			newID.Key.Identifier = "during-delete"
+			mustEvent(t, s.WithTx(ctx, func(tx store.Store) error {
+				if err := tx.Tenants().Delete(ctx, "one"); err != nil {
+					return err
+				}
+				bounded, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+				defer cancel()
+				_, err := peer.Protection().Reserve(bounded, []store.ProtectionLimit{newID}, now)
+				if !errors.Is(err, context.DeadlineExceeded) {
+					t.Errorf("new admission should wait for tenant deletion: %v", err)
+				}
+				return nil
+			}))
+			if _, err = peer.Protection().Reserve(ctx, []store.ProtectionLimit{newID}, now); !errors.Is(err, store.ErrNotFound) {
+				t.Errorf("reserve after deletion: %v", err)
+			}
+		})
 	}
 }
 

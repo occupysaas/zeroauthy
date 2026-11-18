@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -96,6 +98,42 @@ func testProtection(t *testing.T, f Factory) {
 		wg.Wait()
 		if admitted.Load() != 3 {
 			t.Fatalf("admitted %d, want 3", admitted.Load())
+		}
+	})
+	t.Run("TestProtectionBucketLocksRandomOrder", func(t *testing.T) {
+		s, l, now := protectionFixture(t, f)
+		limits := make([]store.ProtectionLimit, 4)
+		for i := range limits {
+			limits[i] = l
+			limits[i].Key.Identifier = fmt.Sprint(i)
+		}
+		var wg sync.WaitGroup
+		var admitted atomic.Int32
+		start := make(chan struct{})
+		for i := range 12 {
+			order := slices.Clone(limits)
+			rng := rand.New(rand.NewPCG(12, uint64(i)))
+			rng.Shuffle(len(order), func(i, j int) { order[i], order[j] = order[j], order[i] })
+			wg.Go(func() {
+				<-start
+				// WithTx has no automatic deadlock retries.
+				err := s.WithTx(ctx, func(tx store.Store) error {
+					a, err := tx.Protection().Reserve(ctx, order, now)
+					if err != nil || !a.Allowed {
+						return err
+					}
+					admitted.Add(1)
+					return tx.Protection().Complete(ctx, a.Receipt, "failure", now)
+				})
+				if err != nil {
+					t.Error(err)
+				}
+			})
+		}
+		close(start)
+		wg.Wait()
+		if got := admitted.Load(); got != 3 {
+			t.Fatalf("admitted %d multi-bucket attempts, want 3", got)
 		}
 	})
 	t.Run("TestProtectionStaleCompletion", func(t *testing.T) {
