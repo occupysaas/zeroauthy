@@ -32,7 +32,7 @@ export interface Call {
 }
 
 // fakeServices answers API calls with handler, signed in, with no guards.
-export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
+export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>, baseDomain = 'example.test') {
   const calls: Call[] = []
   const fetchFn = async (url: RequestInfo | URL, init?: RequestInit) => {
     const isForm = init?.body instanceof FormData
@@ -47,7 +47,7 @@ export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
     const r = await handler(c)
     return new Response(r.body === undefined ? null : JSON.stringify(r.body), { status: r.status, headers: r.headers })
   }
-  const api = new Api('https://admin.example.test', async () => 'token', fetchFn as typeof fetch)
+  const api = new Api('https://admin.example.test', async () => 'token', fetchFn as typeof fetch, baseDomain)
   const auth = {
     user: reactive({ authenticated: true, email: 'op@example.test', sub: 'auth0|op' }),
     login: async () => undefined,

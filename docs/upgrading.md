@@ -106,3 +106,15 @@ CLI exports omit the key and imports require explicit credential reinjection.
 Enable native Apple separately per application and set its iOS bundle ID.
 Facebook and Google switches persist but do not enable their native flows.
 See [social connections](social-connections.md) and D-0170.
+
+## Plan 45b: Console Management requests and CSP
+
+The `/admin/` CSP allows its own origin, the configured HTTPS base-domain
+wildcard when present, and the canonical system host. For tenants using
+custom hosts, the bundled console sends Management requests to
+`/api/console/tenants/{name}/api/v2/*` on the system host. If a reverse
+proxy uses path allowlists, allow `/api/console/*` on the system host and
+pass the `Authorization` header. The bundled console and server ship together.
+Reload an open console after upgrading to pick up the new client and CSP.
+Existing tenant Management endpoints and M2M credentials continue to work
+on their configured hosts.

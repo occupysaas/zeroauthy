@@ -12373,7 +12373,7 @@ type SystemTenant struct {
 	Domains      []string `json:"domains"`
 	FriendlyName string   `json:"friendly_name"`
 
-	// Host The tenant's canonical host, where the console calls its Management API.
+	// Host The tenant's canonical host. It serves the tenant's public Management API.
 	Host string `json:"host"`
 
 	// ManagementApiIdentifier The audience of the tenant's machine-to-machine Management API tokens.

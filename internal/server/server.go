@@ -454,7 +454,7 @@ func New(d Deps) http.Handler {
 	}
 	r.Group(func(ar chi.Router) {
 		ar.Use(d.Resolver.Middleware)
-		a := admin{files: files, store: d.Store, baseDomain: d.BaseDomain}
+		a := admin{files: files, baseDomain: tenant.NormalizeHost(d.BaseDomain), systemHost: tenant.NormalizeHost(d.SystemHost)}
 		ar.Method(http.MethodGet, "/admin", a)
 		ar.Method(http.MethodGet, "/admin/*", a)
 		ar.Method(http.MethodHead, "/admin/*", a)

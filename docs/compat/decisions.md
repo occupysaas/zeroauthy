@@ -3405,7 +3405,7 @@ are recorded in the design; none is claimed observed.
 
 **Authority:** [Plan 45b design](../superpowers/specs/2026-11-16-zeroauthy-flow-api-fixes-design.md), the cited pre-1.0 review findings, and their public documentation/OpenAPI evidence. No live Auth0 tenant observation was performed.
 
-- **LR45b-1:** Admin CSP uses the base-domain wildcard and system host. Custom-domain Management calls go through the system host; the unauthenticated admin page must not enumerate tenant domains (Task 6 pending).
+- **LR45b-1 (implemented):** The admin CSP derives `connect-src` from `'self'`, the configured HTTPS base-domain wildcard when present, and the canonical system host. It is independent of tenant data. Console Management calls for custom hosts use the internal `/api/console/tenants/{name}/api/v2/*` route on the canonical system host. The route dispatches to the existing Management handlers after checking the operator token and current grant for the named tenant. Direct tenant Management API URLs and M2M token audiences are unchanged.
 - **LR45b-2:** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members, retaining the extra roles check (Task 9 pending; amends D-0055 when implemented).
 - **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (Task 11 pending; amends D-0047 when implemented).
 - **LR45b-4:** Keep post-login Actions in their current position relative to MFA (maintainer ruling, 2026-11-08). Move non-Action invitation, membership, session, login-counter and consent side effects after MFA (Task 2 pending).

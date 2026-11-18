@@ -14,7 +14,8 @@ applyTheme(savedTheme())
 
 const origin = window.location.origin
 const auth = new Auth({ origin })
-const api = new Api(origin, () => auth.accessToken())
+const baseDomain = document.querySelector<HTMLMetaElement>('meta[name="zeroauthy-base-domain"]')?.content
+const api = new Api(origin, () => auth.accessToken(), undefined, baseDomain)
 const services: Services = { auth, api }
 
 const locale = savedLocale()

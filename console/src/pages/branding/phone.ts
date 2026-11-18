@@ -1,4 +1,4 @@
-import { Api, type SystemTenant } from '../../api/client'
+import type { Api, SystemTenant } from '../../api/client'
 import type { components } from '../../api/schema'
 export type PhoneProvider = components['schemas']['PhoneProvider']
 export type ProviderWrite = components['schemas']['PhoneProviderCreate']
@@ -23,7 +23,5 @@ export function tryPhone(
   to: string,
   delivery_method: 'text' | 'voice'
 ) {
-  return api.request(Api.tenantOrigin(tenant), 'POST', '/api/v2/' + resource + '/try', {
-    body: { to, delivery_method },
-  })
+  return api.writeBrandingResource(tenant, 'POST', resource + '/try', { to, delivery_method })
 }

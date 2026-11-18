@@ -8554,7 +8554,7 @@ export interface components {
             friendly_name: string;
             /** @description Custom domains the tenant answers on. */
             domains: string[];
-            /** @description The tenant's canonical host, where the console calls its Management API. */
+            /** @description The tenant's canonical host. It serves the tenant's public Management API. */
             host: string;
             /** @description The audience of the tenant's machine-to-machine Management API tokens. */
             management_api_identifier: string;

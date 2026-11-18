@@ -209,9 +209,11 @@ See [user-import.md](user-import.md) for supported hashes and reset advice.
 
 ## Security
 
-- Its own Content Security Policy: only its own scripts and styles, no
-  inline code, `connect-src` limited to the system host and the tenants'
-  hosts, `frame-ancestors 'none'`.
+- The console's Content Security Policy allows its own scripts and styles
+  and sets `frame-ancestors 'none'`. Its `connect-src` allows its own origin,
+  the canonical system host, and the HTTPS base-domain wildcard when
+  configured. Console Management requests for custom hosts go through the
+  system host.
 - The Management API and system API accept cross-origin calls only from the
   system host's origin.
 - Operator tokens are bound to the console client and checked against the

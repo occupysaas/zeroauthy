@@ -107,9 +107,8 @@ Trademark use is descriptive throughout. NOTICE has a nominative-use disclaimer,
 - Where: internal/server/admin.go:68-80
 - What: `csp()` adds `https://<d>` for every domain of every tenant to `connect-src`. It does this on every response, before any sign-in, and for every operator whatever their tenant scope. Anyone who can reach the system host can list all tenants' hosts. In multi-customer setups with per-tenant operators (the Plans 29, 30 and 47 vision), customers learn about each other.
 - Evidence: admin_test.go:41 asserts the tenant domains appear in the header.
-- Verdict: CONFIRMED
-- Recommendation: defer-to-Plan-45 (or Plan 47 before hosting)
-- Suggested fix: Rely on `https://*.<base_domain>`. For explicit domains, accept `https:` in `connect-src`, or serve the console on the system host only and proxy tenant Management calls through it.
+- Verdict: CONFIRMED. Fixed by Plan 45b Task 6 (D-0270). The console CSP now derives its connection sources from server configuration. Custom-host Management requests use the system host and require both signed and current operator grants for the named tenant.
+- Regression coverage: `TestAdminCSPNoTenantDomains` checks anonymous responses and zero `Tenants.List` calls as custom domains change and listings fail. `TestConsoleManagementProxy` and the console Management routing tests cover requests to the selected tenant through the system host.
 
 ### F9 [low] [docs-drift] Console links point at `main`, not the shipped version's docs
 - Where: console/src/links.ts:7-18 (`tree/main/docs`, `blob/main/...`)
