@@ -4,6 +4,7 @@ import { apiError, mountAt } from '../../../test/mount'
 import { client, connection, type Call } from '../../../test/services'
 import Create from './Create.vue'
 import { appleKey } from '../../../test/apple'
+import { appStorageKeys } from '../../../test/storage'
 
 const apps = (c: Call) =>
   new URL(c.url).pathname === '/api/v2/clients' ? { status: 200, body: { clients: [client('a1', { name: 'Web' })], start: 0, limit: 100, total: 1 } } : undefined
@@ -74,7 +75,7 @@ describe('Create social connection', () => {
       options: { client_id: 'cid', client_secret: 's3cret', type: 'back_channel', discovery_url: 'https://idp.example/.well-known/openid-configuration', scopes: 'openid profile email' },
     })
     expect(router.currentRoute.value.path).toBe('/t/acme/enterprise/con_new')
-    expect(window.localStorage.length + window.sessionStorage.length).toBe(0)
+    expect(appStorageKeys()).toEqual([])
     wrapper.unmount()
   })
 
