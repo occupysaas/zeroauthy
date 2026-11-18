@@ -60,6 +60,9 @@ e2e-email-accounts:
 e2e-apple:
 	./tests/e2e/run-m39a-apple.sh
 
+e2e-enterprise-oidc:
+	./tests/e2e/run-m36-enterprise-oidc.sh
+
 e2e-social:
 	./tests/e2e/run-m24-social.sh
 

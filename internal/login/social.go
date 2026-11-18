@@ -194,7 +194,7 @@ func (h *Handlers) startSocialHint(w http.ResponseWriter, r *http.Request, f *fl
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
 		HttpOnly: true, Secure: true, SameSite: sameSite})
 	w.Header().Set("Cache-Control", "no-store")
-	if r.Method == http.MethodPost && hint == "" {
+	if r.Method == http.MethodPost {
 		u, err := url.Parse(begun.URL)
 		if err != nil {
 			h.fail(w, r, err, f)

@@ -43,10 +43,17 @@ func TestIdentifierHRDRedirect(t *testing.T) {
 			b := s.browser("acme.example.test")
 			page, state, csrf := b.begin(t)
 			r := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {revisionFrom(t, page.Body.String())}, "username": {tc.email}})
-			if r.Code != 303 {
+			if !tc.route && r.Code != 303 {
 				t.Fatal(r.Code, r.Body.String())
 			}
-			u, e := url.Parse(r.Header().Get("Location"))
+			location := r.Header().Get("Location")
+			if tc.route {
+				if r.Code != 200 {
+					t.Fatalf("HRD must end the POST navigation with a handoff page: status %d", r.Code)
+				}
+				location = providerURL(t, r)
+			}
+			u, e := url.Parse(location)
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -85,8 +92,15 @@ func TestHRDCandidatesOrganization(t *testing.T) {
 		b := s.browser("acme.example.test")
 		page, state, csrf := b.begin(t, "organization", org.ID)
 		r := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {revisionFrom(t, page.Body.String())}, "username": {"a@corp.example"}})
-		u, e := url.Parse(r.Header().Get("Location"))
-		if e != nil || r.Code != 303 {
+		location := r.Header().Get("Location")
+		if linked {
+			if r.Code != 200 {
+				t.Fatalf("HRD must end the POST navigation with a handoff page: status %d", r.Code)
+			}
+			location = providerURL(t, r)
+		}
+		u, e := url.Parse(location)
+		if e != nil || !linked && r.Code != 303 {
 			t.Fatal(r.Code, e)
 		}
 		if (u.Host != "") != linked {

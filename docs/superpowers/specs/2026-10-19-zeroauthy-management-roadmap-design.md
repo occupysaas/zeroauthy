@@ -22,7 +22,7 @@ per item; items without rulings can start as soon as their track allows.
 
 | Item | Plan | Spec | Rulings needed before (parts of) implementation |
 |---|---|---|---|
-| F1 | 36 enterprise OIDC | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
+| F1 | 36 enterprise OIDC (implementation branch; verification pending) | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
 | P2 | 48 refresh tokens II | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
 | P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
 | P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
