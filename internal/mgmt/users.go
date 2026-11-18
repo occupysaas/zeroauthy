@@ -1084,47 +1084,47 @@ func (h *Handlers) legacyPatch(r *http.Request, conn *store.Connection, previous
 // DeleteUser deletes a user with everything that names it (U12). An
 // unknown well-formed ID answers 204 too.
 func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string) {
-	if !validUserID(id) {
-		Fail(w, badUserID(id))
+	if err := h.deleteUser(r, id); err != nil {
+		h.failTx(w, r, "delete user", err)
 		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// deleteUser is shared by ID and connection-email deletion. It retains the
+// operator guard, legacy script, storage cascades, epoch changes and events.
+func (h *Handlers) deleteUser(r *http.Request, id string) error {
+	if !validUserID(id) {
+		return badUserID(id)
 	}
 	ctx := r.Context()
 	tn := resolved(r)
 	u, err := h.Store.Users().Get(ctx, tn.ID, id)
 	if errors.Is(err, store.ErrNotFound) {
-		w.Header().Set("Cache-Control", "no-store")
-		w.WriteHeader(http.StatusNoContent)
-		return
+		return nil
 	}
 	if err != nil {
-		Fail(w, internalError(h, r, "delete user", err))
-		return
+		return internalError(h, r, "delete user", err)
 	}
-	removed := false
-	recordDeletion := true
+	removed, recordDeletion := false, true
 	var eventConnection *store.Connection
 	defer func() {
-		if !recordDeletion {
-			return
+		if recordDeletion {
+			typ := "fdu"
+			if removed {
+				typ = "sdu"
+			}
+			h.domainEvent(r, typ, u, eventConnection, nil)
 		}
-		typ := "fdu"
-		if removed {
-			typ = "sdu"
-		}
-		h.domainEvent(r, typ, u, eventConnection, nil)
 	}()
 	if err := federation.RequireMicrosoftUser(ctx, h.Store, u); err != nil {
-		h.failTx(w, r, "delete user", err)
-		return
+		return err
 	}
-	// Refuse before a script deletes the user from a legacy store; the
-	// transaction below checks again under the user's lock.
 	if last, err := lastOperator(ctx, h.Store, tn, id); err != nil {
-		Fail(w, internalError(h, r, "delete user", err))
-		return
+		return internalError(h, r, "delete user", err)
 	} else if last {
-		Fail(w, errLastOperatorRemove)
-		return
+		return errLastOperatorRemove
 	}
 	conn, ident, err := h.userConnection(r, u, "")
 	if err == nil {
@@ -1134,18 +1134,14 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 	eventConnection = conn
 	switch {
 	case errors.Is(err, errUserConnection), errors.Is(err, errNoDatabaseIdentity):
-		// No connection to run a script on: delete the local record.
 	case err != nil:
-		Fail(w, err)
-		return
+		return err
 	case identity.IsLegacy(conn):
 		if h.Scripts == nil {
-			Fail(w, h.scriptFail(r, conn, store.ScriptDelete, customdb.ErrUnavailable))
-			return
+			return h.scriptFail(r, conn, store.ScriptDelete, customdb.ErrUnavailable)
 		}
 		if err := h.Scripts.Delete(ctx, conn, ident.UserID); err != nil {
-			Fail(w, h.scriptFail(r, conn, store.ScriptDelete, err))
-			return
+			return h.scriptFail(r, conn, store.ScriptDelete, err)
 		}
 	}
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
@@ -1167,8 +1163,7 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		return tx.Users().Delete(ctx, tn.ID, id)
 	})
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		h.failTx(w, r, "delete user", err)
-		return
+		return err
 	}
 	if err == nil {
 		removed = true
@@ -1176,8 +1171,7 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		recordDeletion = false
 	}
 	logDetails(r, "delete user", "user_id", id)
-	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(http.StatusNoContent)
+	return nil
 }
 
 func (h *Handlers) checkPassword(r *http.Request, tenant *store.Tenant, stage, password string, subject *store.User, conn *store.Connection) error {

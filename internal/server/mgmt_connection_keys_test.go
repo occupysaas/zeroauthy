@@ -27,3 +27,16 @@ func TestKeysScopes(t *testing.T) {
 		}
 	}
 }
+
+func TestConnectionUsersAndStatusScopes(t *testing.T) {
+	h := mgmtapi.Handler(mgmtAPI{h: &mgmt.Handlers{}})
+	for _, tc := range []struct{ method, path string }{{"DELETE", "/users?email=a@example.com"}, {"GET", "/status"}} {
+		r := httptest.NewRequest(tc.method, "/api/v2/connections/con_one"+tc.path, nil)
+		r = r.WithContext(mgmt.WithCaller(r.Context(), mgmt.Caller{Kind: mgmt.M2M, Scopes: []string{"update:connections"}}))
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != 403 {
+			t.Fatal(tc.path, w.Code)
+		}
+	}
+}

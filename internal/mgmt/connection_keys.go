@@ -7,19 +7,11 @@ import (
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
-	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/keycert"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"net/http"
 	"slices"
 )
-
-func (h *Handlers) GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string) {
-	WriteError(w, 501, "not_implemented", "Connection status is not implemented yet")
-}
-func (h *Handlers) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.DeleteConnectionUsersByEmailParams) {
-	WriteError(w, 501, "not_implemented", "Connection user deletion is not implemented yet")
-}
 
 func (h *Handlers) keyConnection(r *http.Request, id string) (*store.Connection, error) {
 	if !connectionID.MatchString(id) {
