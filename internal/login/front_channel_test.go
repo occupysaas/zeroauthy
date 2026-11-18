@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"net/http"
 	"net/url"
@@ -169,5 +170,35 @@ func TestBackChannelRejectsPost(t *testing.T) {
 	}
 	if s.idp.exchanges.Load() != 0 {
 		t.Fatal("back-channel POST exchanged token")
+	}
+}
+
+func TestMappedTokensNeverLogged(t *testing.T) {
+	s := newSocialEnv(t)
+	ctx := context.Background()
+	c, e := s.st.Connections().Get(ctx, s.tenant.ID, "con_corp")
+	if e != nil {
+		t.Fatal(e)
+	}
+	c.Extra["attribute_map"] = map[string]any{"mapping_mode": "use_map", "attributes": map[string]any{"name": "${context.tokenset.access_token}", "email": "${context.tokenset.email}"}}
+	c.FederationRevision++
+	if e := s.st.Connections().Update(ctx, c); e != nil {
+		t.Fatal(e)
+	}
+	recorder := logs.NewRecorder(s.st, logs.Config{}, nil)
+	s.h.Recorder = recorder
+	b := s.browser("acme.example.test")
+	toApp(t, s.explicitLogin(t, b, s.idp, "corp", "mapped-token"), "app.acme.test")
+	if e := recorder.Flush(ctx); e != nil {
+		t.Fatal(e)
+	}
+	events, _, e := s.st.Logs().SearchLogs(ctx, s.tenant.ID, nil, store.LogPage{PerPage: 100})
+	if e != nil || len(events) == 0 {
+		t.Fatal(events, e)
+	}
+	for _, event := range events {
+		if strings.Contains(string(event.Body), "upstream-at") {
+			t.Fatal("mapped access token leaked into login log")
+		}
 	}
 }

@@ -31,6 +31,7 @@ const (
 // erases a stored value.
 type Profile struct {
 	Subject       string
+	Username      *string
 	Email         *string
 	EmailVerified *bool
 	Name          *string
@@ -51,6 +52,7 @@ var rootStrings = []struct {
 	limit int
 	field func(*Profile) **string
 }{
+	{"username", 128, func(p *Profile) **string { return &p.Username }},
 	{"email", 254, func(p *Profile) **string { return &p.Email }},
 	{"name", 300, func(p *Profile) **string { return &p.Name }},
 	{"nickname", 300, func(p *Profile) **string { return &p.Nickname }},

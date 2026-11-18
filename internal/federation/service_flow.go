@@ -280,6 +280,7 @@ func ParseCallback(rawQuery string) (CallbackParams, error) {
 
 // CompleteInput is one callback.
 type CompleteInput struct {
+	OnSensitiveValues func(...string) // register upstream values with request log scrubbing
 	// OnResolved observes only immutable attribution already established by the flow.
 	// It receives no configuration, credentials, transaction or profile objects.
 	OnResolved func(logs.Event)
@@ -395,7 +396,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 			return nil, e
 		}
 		sub, _ := claims["sub"].(string)
-		profile, e := profileFromClaims(sub, claims)
+		profile, e := mappedProfile(cfg, conn.ID, sub, claims, nil, TokenSet{})
 		if e != nil {
 			return nil, e
 		}
@@ -405,6 +406,11 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	}
 	if err != nil {
 		return nil, err // the attempt stays claimed: never retried
+	}
+	values := []string{res.Tokens.AccessToken, res.Tokens.RefreshToken, res.Tokens.IDToken, creds.ClientSecret, in.Params.IDToken}
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, values...), values...)
+	if in.OnSensitiveValues != nil {
+		in.OnSensitiveValues(values...)
 	}
 	if in.BeforeProvision != nil {
 		if _, err := s.Store.Users().FindByIdentity(ctx, conn.TenantID, conn.ID, res.Profile.Subject); errors.Is(err, store.ErrNotFound) {

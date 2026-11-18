@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -306,6 +307,9 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: federation.CallbackPath, MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 	var sess *store.LoginSession
 	done, err := h.Federation.Complete(ctx, federation.CompleteInput{
+		OnSensitiveValues: func(values ...string) {
+			*r = *r.WithContext(logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...))
+		},
 		OnResolved: func(event logs.Event) { *r = *r.WithContext(logs.WithEvent(r.Context(), event)) },
 		Tenant:     res.Tenant, Origin: res.Origin(), Params: params, CookieValue: c.Value,
 		BeforeProvision: func(ctx context.Context) error {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +39,15 @@ func authorizationURL(endpoint string, cfg Config, in StartInput, withNonce bool
 	q.Set("response_type", "code")
 	q.Set("client_id", cfg.ClientID)
 	q.Set("redirect_uri", in.CallbackURL)
-	q.Set("scope", strings.Join(cfg.Scopes, " "))
+	scopes := slices.Clone(cfg.Scopes)
+	if cfg.AttrMap != nil {
+		for _, scope := range strings.Fields(cfg.AttrMap.UserinfoScope) {
+			if !slices.Contains(scopes, scope) {
+				scopes = append(scopes, scope)
+			}
+		}
+	}
+	q.Set("scope", strings.Join(scopes, " "))
 	q.Set("state", in.State)
 	q.Set("code_challenge", in.CodeChallenge)
 	q.Set("code_challenge_method", "S256")
@@ -222,7 +231,17 @@ func (p oidcProvider) Exchange(ctx context.Context, in ExchangeInput) (ProviderR
 		return ProviderResult{}, err
 	}
 	sub, _ := claims["sub"].(string)
-	if _, hasEmail := claims["email"]; !hasEmail && e.UserInfoURL != "" {
+	compiled, mapErr := CompileAttrMap(in.Config.AttrMap, in.Config.Strategy, in.Config.Channel)
+	if mapErr != nil {
+		return ProviderResult{}, mapErr
+	}
+	var userinfo map[string]any
+	legacy := in.Config.AttrMap == nil && (in.Config.Channel == "" || in.Config.Strategy == StrategyGoogle)
+	_, hasEmail := claims["email"]
+	if compiled.NeedsUserInfo() || legacy && !hasEmail && e.UserInfoURL != "" {
+		if e.UserInfoURL == "" || tokens.AccessToken == "" {
+			return ProviderResult{}, fmt.Errorf("%w: userinfo unavailable", ErrProviderResponse)
+		}
 		var info map[string]any
 		if err := p.ps.getJSON(ctx, e.UserInfoURL, tokens.AccessToken, &info); err != nil {
 			return ProviderResult{}, err
@@ -230,13 +249,14 @@ func (p oidcProvider) Exchange(ctx context.Context, in ExchangeInput) (ProviderR
 		if s, _ := info["sub"].(string); s != sub {
 			return ProviderResult{}, fmt.Errorf("%w: userinfo subject differs from the ID token", ErrProviderResponse)
 		}
+		userinfo = info
 		for k, v := range info {
-			if _, ok := claims[k]; !ok {
+			if _, ok := claims[k]; !ok && legacy {
 				claims[k] = v
 			}
 		}
 	}
-	profile, err := profileFromClaims(sub, claims)
+	profile, err := mappedProfile(in.Config, in.Cache.ConnectionID, sub, claims, userinfo, tokens)
 	if err != nil {
 		return ProviderResult{}, fmt.Errorf("%w: %w", ErrProviderResponse, err)
 	}
@@ -301,7 +321,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 }
 
 // profileClaims are the standard claims mapped to root attributes.
-var profileClaims = []string{"email", "email_verified", "name", "nickname", "given_name", "family_name", "picture"}
+var profileClaims = []string{"username", "email", "email_verified", "name", "nickname", "given_name", "family_name", "picture"}
 
 // profileFromClaims maps verified claims to a Profile. An optional claim of
 // the wrong type or shape is dropped rather than failing the login; the

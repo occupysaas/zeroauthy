@@ -11,7 +11,7 @@ import (
 // The same set governs write validation and bind_all filtering.
 var RestrictedTargets = []string{
 	"ath", "attest", "client_id", "dest", "entitlements", "events", "groups", "sub_jwk", "acr", "act", "active", "amr", "at_hash", "aud", "auth_time", "authorization_details", "azp", "c_hash", "cnf", "cty", "exp", "gty", "htm", "htu", "iat", "internalService", "iss", "jcard", "jku", "jti", "jwe", "jwk", "kid", "may_act", "mky", "nbf", "nonce", "object_id", "org_id", "org_name", "orig", "origid", "permissions", "roles", "rph", "s_hash", "sid", "sip_callid", "sip_cseq_num", "sip_date", "sip_from_tag", "sip_via_branch", "sub", "toe", "txn", "typ", "uuid", "vot", "vtm", "x5t#S256",
-	"user_id", "identities", "app_metadata", "user_metadata", "blocked", "logins_count", "last_login", "last_ip", "created_at", "updated_at", "email_verified_at", "password", "password_hash", "password_set_date", "tenant_id", "connection", "connection_id", "provider", "isSocial", "multifactor", "guardian_authenticators", "enrollments", "access_token", "refresh_token", "id_token", "client_secret", "private_key",
+	"constructor", "prototype", "authorization", "scope", "scopes", "organization", "user_id", "identities", "app_metadata", "user_metadata", "blocked", "logins_count", "last_login", "last_ip", "created_at", "updated_at", "email_verified_at", "password", "password_hash", "password_set_date", "tenant_id", "connection", "connection_id", "provider", "isSocial", "multifactor", "guardian_authenticators", "enrollments", "access_token", "refresh_token", "id_token", "client_secret", "private_key",
 }
 
 func RestrictedTarget(k string) bool {
