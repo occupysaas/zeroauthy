@@ -106,8 +106,8 @@ func TestOrganizationPickerClientPolicy(t *testing.T) {
 					t.Fatalf("binding=%q/%q; want %q/fixed", fr.OrgID, fr.OrgMode, wantID)
 				}
 				member, err := e.st.Organizations().IsMember(ctx, e.tenant.ID, wantID, sess.UserID)
-				if err != nil || !member {
-					t.Fatalf("selected membership=%v err=%v", member, err)
+				if err != nil || member == tc.auto {
+					t.Fatalf("selection must not add membership: %v %v", member, err)
 				}
 			})
 		}

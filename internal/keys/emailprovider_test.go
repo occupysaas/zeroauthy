@@ -2,6 +2,7 @@ package keys
 
 import (
 	"bytes"
+	"crypto/rand"
 	"strings"
 	"testing"
 )
@@ -47,4 +48,45 @@ func errorString(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+func TestEmailProviderSplitEnvelopeBinding(t *testing.T) {
+	master := make([]byte, 32)
+	if _, err := rand.Read(master); err != nil {
+		t.Fatal(err)
+	}
+	w, err := NewLocalWrapper(master)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(`{"example":true}`)
+	old, err := SealEmailProvider(w, "t", "smtp", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := SealEmailProviderSecrets(w, "t", "smtp", payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if EmailProviderSecretsOnly(old) || !EmailProviderSecretsOnly(current) {
+		t.Fatal("incorrect envelope format")
+	}
+	got, err := OpenEmailProvider(w, "t", "smtp", current)
+	if err != nil || !bytes.Equal(got, payload) {
+		t.Fatal("split envelope roundtrip failed")
+	}
+	tampered := bytes.Clone(current)
+	tampered[len(tampered)-1] ^= 1
+	for _, tc := range []struct {
+		id, kind string
+		sealed   []byte
+	}{
+		{"other", "smtp", current}, {"t", "ses", current}, {"t", "smtp", tampered},
+		{"t", "smtp", current[len(splitEmailProviderTag):]},
+		{"t", "smtp", append([]byte(splitEmailProviderTag), old...)},
+	} {
+		if got, err := OpenEmailProvider(w, tc.id, tc.kind, tc.sealed); err == nil || got != nil {
+			t.Fatal("opened a transplanted or altered envelope")
+		}
+	}
 }

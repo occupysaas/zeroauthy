@@ -11,11 +11,14 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passkey"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -24,7 +27,11 @@ import (
 // The entire request is sealed: Action custom claims and their values may
 // contain credentials. No raw token or unsealed Action material is persisted.
 type mfaRequest struct {
+	PendingMembership            bool
+	LoginPending                 bool
+	Native                       *federation.NativeBinding
 	Passkey                      bool
+	PasskeyBinding               *passkey.Binding
 	OrganizationID, ConnectionID string
 	Audience, Origin             string
 	Scopes, Ceiling              []string
@@ -102,7 +109,7 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 	}
 	raw := secrets.RandomString(48)
 	t := &store.MFAToken{TenantID: res.Tenant.ID, Hash: secrets.HashToken(raw), ClientID: c.ClientID, UserID: u.UserID, Connection: conn.ID, ExpiresAt: now.Add(mfaTokenLifetime)}
-	p, err := json.Marshal(mfaRequest{Passkey: flow.Passkey, OrganizationID: orgID, ConnectionID: flow.ConnectionID, Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
+	p, err := json.Marshal(mfaRequest{PasskeyBinding: flow.PasskeyBinding, LoginPending: true, PendingMembership: flow.PendingMembership, Native: flow.Native, Passkey: flow.Passkey, OrganizationID: orgID, ConnectionID: flow.ConnectionID, Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
 	if err != nil {
 		return serverError()
 	}
@@ -114,7 +121,36 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 	if err != nil {
 		return serverError()
 	}
-	if err = h.Store.MFA().CreateMFAToken(ctx, t); err != nil {
+	create := func(tx store.Store) error {
+		if flow.Native != nil {
+			if h.Federation == nil {
+				return errUserChanged
+			}
+			if _, err := h.Federation.CheckNative(ctx, tx, flow.Native); err != nil {
+				return err
+			}
+			if err := checkPendingOrganization(ctx, tx, res.Tenant.ID, u.UserID, orgID, flow.ConnectionID, c.ClientID, flow.PendingMembership, false); err != nil {
+				return err
+			}
+			current, err := tx.Users().GetForUpdate(ctx, res.Tenant.ID, u.UserID)
+			if err != nil {
+				return err
+			}
+			if current.Blocked || current.Version != u.Version {
+				return errUserChanged
+			}
+		}
+		return tx.MFA().CreateMFAToken(ctx, t)
+	}
+	if flow.Native != nil {
+		err = h.Store.WithTx(ctx, create)
+		if errors.Is(err, federation.ErrAttemptStale) || errors.Is(err, federation.ErrConnectionUnusable) || errors.Is(err, errOrganizationGrant) {
+			return invalidGrant("the native login is no longer eligible")
+		}
+	} else {
+		err = create(h.Store)
+	}
+	if err != nil {
 		return mfaError(err)
 	}
 	logs.AddCredentials(ctx, raw)
@@ -235,16 +271,30 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 	if e != nil {
 		return nil, e
 	}
-	org, e := h.organizationForToken(ctx, t.TenantID, uid, p.OrganizationID, p.ConnectionID, c)
+	org, err := pendingOrganization(ctx, h.Store, t.TenantID, uid, p.OrganizationID, p.ConnectionID, c, p.PendingMembership)
+	if err != nil {
+		return nil, invalidGrant("the organization grant is no longer eligible")
+	}
+	resp, write, e := h.preparePasswordTokens(ctx, res, c, u, rs, lifetime, p.Audience, d.Scopes, p.Ceiling, p.Effects, p.AuthTime, h.now(), firstFactorTokens{LoginAlreadyRecorded: !p.LoginPending && p.Native == nil, PendingMembership: p.PendingMembership, Native: p.Native, Passkey: p.Passkey, Organization: org, ConnectionID: p.ConnectionID})
 	if e != nil {
 		return nil, e
 	}
-	resp, write, e := h.preparePasswordTokens(ctx, res, c, u, rs, lifetime, p.Audience, d.Scopes, p.Ceiling, p.Effects, p.AuthTime, h.now(), firstFactorTokens{Passkey: p.Passkey, Organization: org, ConnectionID: p.ConnectionID})
-	if e != nil {
-		return nil, e
-	}
+	ctx, flushMembership := orglogin.StageMembershipEvents(ctx)
 	svc := h.MFA.WithProofCommit(func(tx store.Store) error {
-		if err := checkTokenOrganization(ctx, tx, t.TenantID, uid, p.OrganizationID, p.ConnectionID, c.ClientID); err != nil {
+		if p.Passkey {
+			if err := h.checkPasskeyCompletion(ctx, tx, res, c.ClientID, p.ConnectionID, p.PasskeyBinding); err != nil {
+				return err
+			}
+		}
+		if p.Native != nil {
+			if h.Federation == nil {
+				return errUserChanged
+			}
+			if _, err := h.Federation.CheckNative(ctx, tx, p.Native); err != nil {
+				return errUserChanged
+			}
+		}
+		if err := checkPendingOrganization(ctx, tx, t.TenantID, uid, p.OrganizationID, p.ConnectionID, c.ClientID, p.PendingMembership, true); err != nil {
 			return err
 		}
 		current, err := tx.Users().GetForUpdate(ctx, t.TenantID, uid)
@@ -259,7 +309,6 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 		}
 		return write(tx)
 	})
-	var err error
 	var next string
 	switch factor {
 	case "recovery-code":
@@ -308,9 +357,11 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 			}
 		}
 	}
+	flushMembership(err)
 	if err != nil {
 		return nil, mfaError(err)
 	}
+
 	if next != "" {
 		resp.RecoveryCode = &next
 		logs.AddCredentials(ctx, next)

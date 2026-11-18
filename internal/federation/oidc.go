@@ -54,6 +54,14 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 		"redirect_uri":  {in.CallbackURL},
 		"code_verifier": {in.CodeVerifier},
 	}
+	if in.Config.Strategy == StrategyApple {
+		if in.CodeVerifier == "" {
+			form.Del("code_verifier")
+		}
+		if in.CallbackURL == "" {
+			form.Del("redirect_uri")
+		}
+	}
 	if method == authPost {
 		form.Set("client_id", in.Config.ClientID)
 		form.Set("client_secret", in.ClientSecret)

@@ -14,6 +14,7 @@ import (
 
 // Strategy names, re-exported from rules.
 const (
+	StrategyApple       = rules.Apple
 	StrategyWindowsLive = rules.WindowsLive
 	StrategyWAAD        = rules.WAAD
 	StrategyGoogle      = rules.Google
@@ -61,7 +62,11 @@ type ExchangeInput struct {
 	CodeVerifier string
 	Nonce        string
 	ClientSecret string
-	Now          time.Time
+	// AppleNative permits nonce-free exchange only for StrategyApple.
+	AppleNative bool
+	// AppleUser carries bounded posted names, after attempt validation.
+	AppleUser *AppleUser
+	Now       time.Time
 }
 
 // TokenSet is a successful token response. Values are sensitive.

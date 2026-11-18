@@ -133,6 +133,16 @@ func (m *Manager) Sign(ctx context.Context, tenantID string, claims any) (string
 // SignWithType signs a JWT or RFC 9068 access token with the tenant's current
 // managed key. The allowlist prevents callers choosing unrelated token formats.
 func (m *Manager) SignWithType(ctx context.Context, tenantID string, claims any, tokenType string) (string, error) {
+	return m.SignWithAlg(ctx, tenantID, claims, tokenType, jose.RS256)
+}
+
+// SignWithAlg is SignWithType with an algorithm: RS256, or PS256 for an API
+// that asks for it (Plan 35). Both use the same RSA key, whose published JWK
+// carries no alg, so a verifier may use either (C19).
+func (m *Manager) SignWithAlg(ctx context.Context, tenantID string, claims any, tokenType string, alg jose.SignatureAlgorithm) (string, error) {
+	if alg != jose.RS256 && alg != jose.PS256 {
+		return "", errors.New("keys: unsupported signing algorithm")
+	}
 	if tokenType != "JWT" && tokenType != "at+jwt" {
 		return "", errors.New("keys: unsupported token type")
 	}
@@ -142,7 +152,7 @@ func (m *Manager) SignWithType(ctx context.Context, tenantID string, claims any,
 	}
 	for _, k := range ks {
 		if k.Status == store.KeyCurrent {
-			signer, err := m.signer(k, tokenType)
+			signer, err := m.signer(k, tokenType, alg)
 			if err != nil {
 				return "", err
 			}
@@ -166,7 +176,9 @@ func (m *Manager) generateAt(tenantID string, status store.KeyStatus, at time.Ti
 	if err != nil {
 		return nil, err
 	}
-	pub := jose.JSONWebKey{Key: &priv.PublicKey, Algorithm: string(jose.RS256), Use: "sig"}
+	// No alg (C19): one key signs RS256 and PS256, and jose-based verifiers
+	// skip a JWK whose alg differs from the token's.
+	pub := jose.JSONWebKey{Key: &priv.PublicKey, Use: "sig"}
 	thumb, err := pub.Thumbprint(crypto.SHA256)
 	if err != nil {
 		return nil, err
@@ -207,15 +219,21 @@ func (m *Manager) generateAt(tenantID string, status store.KeyStatus, at time.Ti
 	}, nil
 }
 
-type signerCacheKey struct{ tenant, kid, tokenType string }
-
-func (m *Manager) evictSigners(tenantID, kid string) {
-	m.signers.Delete(signerCacheKey{tenantID, kid, "JWT"})
-	m.signers.Delete(signerCacheKey{tenantID, kid, "at+jwt"})
+type signerCacheKey struct {
+	tenant, kid, tokenType string
+	alg                    jose.SignatureAlgorithm
 }
 
-func (m *Manager) signer(k *store.SigningKey, tokenType string) (jose.Signer, error) {
-	cacheKey := signerCacheKey{k.TenantID, k.KID, tokenType}
+func (m *Manager) evictSigners(tenantID, kid string) {
+	for _, typ := range []string{"JWT", "at+jwt"} {
+		for _, alg := range []jose.SignatureAlgorithm{jose.RS256, jose.PS256} {
+			m.signers.Delete(signerCacheKey{tenantID, kid, typ, alg})
+		}
+	}
+}
+
+func (m *Manager) signer(k *store.SigningKey, tokenType string, alg jose.SignatureAlgorithm) (jose.Signer, error) {
+	cacheKey := signerCacheKey{k.TenantID, k.KID, tokenType, alg}
 	if s, ok := m.signers.Load(cacheKey); ok {
 		return s.(jose.Signer), nil
 	}
@@ -232,7 +250,7 @@ func (m *Manager) signer(k *store.SigningKey, tokenType string) (jose.Signer, er
 		return nil, fmt.Errorf("keys: %s is not an RSA key", k.KID)
 	}
 	s, err := jose.NewSigner(
-		jose.SigningKey{Algorithm: jose.RS256, Key: rsaKey},
+		jose.SigningKey{Algorithm: alg, Key: rsaKey},
 		(&jose.SignerOptions{}).WithType(jose.ContentType(tokenType)).WithHeader("kid", k.KID),
 	)
 	if err != nil {
@@ -246,11 +264,11 @@ func (m *Manager) signer(k *store.SigningKey, tokenType string) (jose.Signer, er
 // moved to another record.
 func aad(tenantID, kid string) []byte { return []byte(tenantID + "|" + kid) }
 
-// Verify checks raw's signature against the tenant's published keys
+// Verify checks raw's RS256 or PS256 signature against the tenant's published keys
 // (current, next, previous) and decodes its claims into dst. It does not
 // validate time or audience claims.
 func (m *Manager) Verify(ctx context.Context, tenantID, raw string, dst ...any) error {
-	tok, err := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256})
+	tok, err := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256, jose.PS256})
 	if err != nil || len(tok.Headers) != 1 {
 		return ErrInvalidToken
 	}

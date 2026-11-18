@@ -45,6 +45,16 @@ spend the registration budget before revealing whether the user exists.
 Failed security-key and device-biometrics attempts count in the MFA throttle
 instead (LR33b-30, [passkeys](passkeys.md)).
 
+**Custom token exchange (Plan 35).** The suspicious-IP
+`pre-custom-token-exchange` stage is a third token bucket per IP, separate from
+the login and registration budgets (defaults 10 tokens / 600000 milliseconds
+per token, one attempt back every 10 minutes; a stored value is kept). The token endpoint reserves an attempt before the profile's Action
+runs; only an Action that calls `api.access.rejectInvalidSubjectToken` spends
+it, and every other outcome gives it back. An exhausted budget answers
+`429 too_many_attempts` without running the Action and records `limit_mu`.
+Monitoring mode, the allowlist and a policy change behave as for the other
+stages; `/api/v2/anomaly/blocks/ips/{id}` reports and clears this stage too.
+
 IPv4-mapped IPv6 shares its IPv4 key. Invalid addresses use one non-allowlisted
 unknown key. Existing single-trusted-proxy rules apply. Public clients cannot
 spoof `auth0-forwarded-for`; confidential password clients retain the existing
@@ -135,8 +145,7 @@ required proofs count at most once per attempt. Success does not erase history;
 normal reset-email requests, infrastructure outages and already-throttled
 requests do not add risk. This deterministic rule differs from Auth0's
 proprietary classifier. Policies support never/always/when_risky, monitoring
-and allowlists; custom-token-exchange stages remain inert
-until Plan 35.
+and allowlists.
 
 Supported verifiers/widgets: reCAPTCHA v2, reCAPTCHA Enterprise (API-key
 assessments), hCaptcha and Friendly Captcha v1. Arkose, Auth Challenge and
@@ -196,12 +205,17 @@ to make those limits shared.
 ## Tenant log evidence
 
 Use the console's **Logs** page to inspect committed protection decisions.
-`limit_wc`, `limit_sul` and `limit_mu` record applicable denied admissions;
+`limit_wc` records the first denied admission for each password brute-force
+block after settled failures reach the threshold. In-flight reservations can
+temporarily deny admission before this threshold. `limit_mu` records
+applicable suspicious-IP denials on each denied admission.
 `pwd_leak`, `signup_pwd_leak` and `reset_pwd_leak` record the corresponding
 confirmed breach outcomes. `ublkdu` records an actual unblock write. Existing
 members/cleared blocks and rolled-back changes do not manufacture events;
 older plugins without optional mutation-outcome reporting omit uncertain
-outcomes. Management 429 responses can emit `api_limit`.
+outcomes. Older plugins without first-denial attribution continue to enforce
+brute-force blocks while omitting `limit_wc`. Management 429 responses can
+emit `api_limit`.
 
 The [logging guide](logs.md) documents privacy, the bounded failure-only
 window, retention and the complete code inventory. Recording is asynchronous

@@ -59,12 +59,13 @@ type Metadata struct {
 	JWKSURI               string
 	UserInfoEndpoint      string
 	TokenAuthMethod       string
+	PKCES256              bool
 }
 
 // Endpoints is the endpoint snapshot an attempt pins.
 func (m Metadata) Endpoints() Endpoints {
 	return Endpoints{AuthorizationURL: m.AuthorizationEndpoint, TokenURL: m.TokenEndpoint, JWKSURL: m.JWKSURI,
-		UserInfoURL: m.UserInfoEndpoint, TokenAuthMethod: m.TokenAuthMethod}
+		UserInfoURL: m.UserInfoEndpoint, TokenAuthMethod: m.TokenAuthMethod, PKCES256: m.PKCES256}
 }
 
 // GoogleEndpoints are Google's fixed endpoints.
@@ -76,14 +77,17 @@ func GoogleEndpoints() Endpoints {
 // Providers builds strategy adapters over one bounded HTTP client and
 // process-wide discovery and key caches.
 type Providers struct {
-	client       *http.Client
-	policy       NetworkPolicy
-	now          func() time.Time
-	discovery    *ttlCache[Metadata]
-	keys         *keyCache
-	scripts      script.Executor
-	googleFix    *GoogleOverride
-	microsoftFix *MicrosoftOverride
+	client        *http.Client
+	policy        NetworkPolicy
+	now           func() time.Time
+	discovery     *ttlCache[Metadata]
+	keys          *keyCache
+	scripts       script.Executor
+	appleFix      *AppleOverride
+	googleFix     *GoogleOverride
+	microsoftFix  *MicrosoftOverride
+	appleSecretMu sync.Mutex
+	appleSecrets  *ttlCache[appleSecretEntry]
 }
 
 // GoogleOverride replaces Google's fixed endpoints and issuer for a local
@@ -120,7 +124,8 @@ func NewProviders(policy NetworkPolicy, now func() time.Time) *Providers {
 		client: &http.Client{Transport: NewTransport(policy), CheckRedirect: func(*http.Request, []*http.Request) error {
 			return fmt.Errorf("%w: redirect refused", ErrNetworkPolicy)
 		}},
-		discovery: newTTLCache[Metadata](maxCacheEntries, maxCacheTTL, now),
+		discovery:    newTTLCache[Metadata](maxCacheEntries, maxCacheTTL, now),
+		appleSecrets: newTTLCache[appleSecretEntry](maxCacheEntries, appleSecretCacheTTL, now),
 	}
 	ps.keys = &keyCache{ps: ps, sets: newTTLCache[*keySet](maxCacheEntries, maxCacheTTL, now), inflight: map[string]*keyFetch{}}
 	return ps
@@ -132,6 +137,8 @@ func (ps *Providers) HTTPClient() *http.Client { return ps.client }
 // For returns the adapter of cfg's strategy.
 func (ps *Providers) For(cfg Config) Provider {
 	switch cfg.Strategy {
+	case StrategyApple:
+		return appleProvider{ps}
 	case StrategyOAuth2:
 		return oauth2Provider{ps}
 	case StrategyWindowsLive, StrategyWAAD:

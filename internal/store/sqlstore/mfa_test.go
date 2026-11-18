@@ -187,3 +187,37 @@ func TestMFAUserIndexes(t *testing.T) {
 		})
 	}
 }
+
+func TestGuardianUsersPageQueries(t *testing.T) {
+	for driver, mk := range dialectsUnderTest(t) {
+		t.Run(driver, func(t *testing.T) {
+			s := mk(t)
+			counter := &orgQueryCounter{querier: s.q}
+			s.q = counter
+			if _, err := s.MFA().GuardianUsers(t.Context(), "t", []string{"u1", "u2", "u3"}); err != nil {
+				t.Fatal(err)
+			}
+			if len(counter.queries) != 1 {
+				t.Fatalf("MFA queries for a page: %v", counter.queries)
+			}
+		})
+	}
+}
+
+func TestAuthCodeLegacyMFASnapshot(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := t.Context()
+			s := openAtVersion(t, mk(t), 39)
+			_, err := s.exec(ctx, `INSERT INTO auth_codes (tenant_id,code_hash,client_id,redirect_uri,user_id,session_id,scopes,audience,nonce,code_challenge,code_challenge_method,auth_time,expires_at,created_at)
+             VALUES ('t','old','c','','u','s','[]','','','','',1,3,1)`)
+			mustEvent(t, err)
+			mustEvent(t, s.Migrate(ctx))
+			code, err := s.AuthCodes().Consume(ctx, "t", "old", time.UnixMicro(2))
+			mustEvent(t, err)
+			if !code.MFAAt.IsZero() {
+				t.Fatalf("pre-migration code has MFA at %v", code.MFAAt)
+			}
+		})
+	}
+}

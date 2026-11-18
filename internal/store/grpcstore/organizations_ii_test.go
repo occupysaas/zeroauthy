@@ -47,6 +47,40 @@ func (noIIBackend) OrganizationsII() store.OrganizationsII {
 	return store.UnimplementedOrganizationsII{}
 }
 
+func TestEmailVerificationTicketOrganizationCapabilities(t *testing.T) {
+	ctx := t.Context()
+	t.Run("older peer", func(t *testing.T) {
+		plugin := &iiCapabilityPlugin{Server: NewServer(memory.New())}
+		plugin.version.Store(1)
+		t.Cleanup(plugin.Close)
+		peer := serveWith(t, plugin)
+		tickets := peer.EmailVerificationTickets()
+		tk := &store.EmailVerificationTicket{TenantID: "t", ID: "verify", TokenHash: "hash", OrganizationID: "org_abcdefghijklmnop"}
+		if err := tickets.Create(ctx, tk); !errors.Is(err, store.ErrOrganizationsIIUnavailable) {
+			t.Fatalf("old peer accepted an organization-bound ticket: %v", err)
+		}
+		tk.OrganizationID = ""
+		if err := tickets.Create(ctx, tk); err != nil {
+			t.Fatalf("old peer rejected a legacy ticket: %v", err)
+		}
+		got, err := tickets.GetByTokenHash(ctx, tk.TenantID, tk.TokenHash)
+		if err != nil || got.OrganizationID != "" {
+			t.Fatalf("legacy round trip: %+v %v", got, err)
+		}
+	})
+	t.Run("current peer", func(t *testing.T) {
+		tickets := inProcess(t).EmailVerificationTickets()
+		tk := &store.EmailVerificationTicket{TenantID: "t", ID: "verify", TokenHash: "hash", OrganizationID: "org_abcdefghijklmnop"}
+		if err := tickets.Create(ctx, tk); err != nil {
+			t.Fatal(err)
+		}
+		got, err := tickets.GetByTokenHash(ctx, tk.TenantID, tk.TokenHash)
+		if err != nil || got.OrganizationID != tk.OrganizationID {
+			t.Fatalf("organization round trip: %+v %v", got, err)
+		}
+	})
+}
+
 func TestOrganizationsIICapabilities(t *testing.T) {
 	ctx := context.Background()
 	for _, tc := range []struct {

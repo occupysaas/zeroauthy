@@ -181,7 +181,7 @@ func (h *Handlers) IPBlock(w http.ResponseWriter, r *http.Request, raw string) {
 	}
 	blocked := false
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
-		for _, kind := range []string{store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration} {
+		for _, kind := range []string{store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration, store.ProtectionSuspiciousIPTokenExchange} {
 			f := store.ProtectionFilter{Kind: kind, IP: ip}
 			if r.Method == "DELETE" {
 				if err := tx.Protection().Clear(r.Context(), resolved(r).ID, f); err != nil {

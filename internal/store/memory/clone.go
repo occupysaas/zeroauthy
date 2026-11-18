@@ -33,6 +33,14 @@ func cloneClient(c *store.Client) *store.Client {
 	out.AllowedOrigins = slices.Clone(c.AllowedOrigins)
 	out.OrganizationDiscoveryMethods = slices.Clone(c.OrganizationDiscoveryMethods)
 	out.Mobile = c.Mobile.Clone()
+	out.NativeSocialLogin = maps.Clone(c.NativeSocialLogin)
+	out.PrivateKeyJWTCredentials = slices.Clone(c.PrivateKeyJWTCredentials)
+	if c.SignedRequestObject != nil {
+		sro := *c.SignedRequestObject
+		sro.Credentials = slices.Clone(sro.Credentials)
+		out.SignedRequestObject = &sro
+	}
+	out.TokenExchangeTypes = slices.Clone(c.TokenExchangeTypes)
 	if c.SkipNonVerifiableCallbackURIConfirmationPrompt != nil {
 		v := *c.SkipNonVerifiableCallbackURIConfirmationPrompt
 		out.SkipNonVerifiableCallbackURIConfirmationPrompt = &v
@@ -43,6 +51,7 @@ func cloneClient(c *store.Client) *store.Client {
 func cloneResourceServer(rs *store.ResourceServer) *store.ResourceServer {
 	out := *rs
 	out.Scopes = slices.Clone(rs.Scopes)
+	out.SigningSecretSealed = bytes.Clone(rs.SigningSecretSealed)
 	return &out
 }
 
@@ -101,6 +110,7 @@ func cloneUser(u *store.User) *store.User {
 	out.Identities = slices.Clone(u.Identities)
 	for i := range out.Identities {
 		out.Identities[i].ProfileData = cloneJSON(out.Identities[i].ProfileData)
+		out.Identities[i].ProviderData = cloneJSON(out.Identities[i].ProviderData)
 	}
 	if u.LastLogin != nil {
 		t := *u.LastLogin

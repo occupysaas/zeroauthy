@@ -336,8 +336,8 @@ func normalize(s *Spec, api bool) []error {
 		s.Strategy = store.StrategyDatabase
 	}
 	if s.Strategy != store.StrategyDatabase && !s.Federated() && !s.Passwordless() {
-		fail("strategy %q is not supported (only %q, %q, %q, %q, %q, %q, %q or %q)", s.Strategy,
-			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD,
+		fail("strategy %q is not supported (only %q, %q, %q, %q, %q, %q, %q, %q or %q)", s.Strategy,
+			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD, rules.Apple,
 			StrategyEmail, StrategySMS)
 	}
 	for _, r := range s.Realms {
@@ -419,6 +419,9 @@ func normalizeFederated(s *Spec) []error {
 		// Microsoft personal uses the same wire key for its required v2 mode.
 		// Its value is checked by Microsoft rules below.
 		if s.Strategy == rules.WindowsLive && k == "strategy_version" {
+			continue
+		}
+		if s.Strategy == rules.Apple && k == "non_persistent_attrs" {
 			continue
 		}
 		if _, ok := o.Extra[k]; ok {
@@ -667,6 +670,9 @@ func FromConnection(c *store.Connection) *Spec {
 	if s.Federated() {
 		// Database options have no meaning on federated connections.
 		s.Options.PasswordOptions, s.Options.BruteForceProtection, s.Options.Validation = nil, nil, nil
+		// Stored provider credentials are never part of an update/read/export spec.
+		delete(s.Options.Extra, "client_secret")
+		delete(s.Options.Extra, "app_secret")
 	}
 	if s.Passwordless() {
 		s.Options.PasswordOptions, s.Options.Validation = nil, nil

@@ -10,8 +10,8 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
-	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
@@ -29,11 +29,15 @@ import (
 // firstFactorTokens preserves the initial factor and organization through a
 // sealed MFA continuation and the normal user-token/refresh issuance path.
 type firstFactorTokens struct {
+	PendingMembership    bool
+	LoginAlreadyRecorded bool
+	Native               *federation.NativeBinding
 	// RPID scopes enrolled MFA keys independently of native factor availability.
-	RPID         string
-	Passkey      bool
-	Organization *store.Organization
-	ConnectionID string
+	RPID           string
+	Passkey        bool
+	PasskeyBinding *passkey.Binding
+	Organization   *store.Organization
+	ConnectionID   string
 }
 
 func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
@@ -152,7 +156,7 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 		in = signupactions.WithOrganization(in, org)
 		callbacks := signupactions.Callbacks(h.Store, h.Actions, in)
 		callbacks.Commit = func(ctx context.Context, tx store.Store, u *store.User) error {
-			return nativeMembership(ctx, tx, tid, u.UserID, conn.ID, c.ClientID, org)
+			return checkNativeMembership(ctx, tx, tid, u.UserID, conn.ID, c.ClientID, org)
 		}
 		if h.Database == nil {
 			return nil, serverError()
@@ -241,7 +245,7 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 			return nil, &Error{Status: 401, Code: "requires_verification", Description: "Complete verification using interactive web login."}
 		}
 		if err := orglogin.WithMembershipEvents(ctx, h.Store, func(ctx context.Context, tx store.Store) error {
-			return nativeMembership(ctx, tx, tid, user.UserID, conn.ID, c.ClientID, org)
+			return checkNativeMembership(ctx, tx, tid, user.UserID, conn.ID, c.ClientID, org)
 		}); err != nil {
 			reason = "organization"
 			return invalid()
@@ -254,9 +258,7 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 	if org != nil {
 		ctx = logs.WithEvent(ctx, logs.Event{OrganizationID: org.ID, OrganizationName: org.Name})
 	}
-	if err := h.Store.Users().RecordLogin(ctx, tid, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
-		h.log().WarnContext(ctx, "record passkey login", "err", err)
-	}
+
 	aud := form.Get("audience")
 	if aud == "" {
 		aud = res.Tenant.DefaultAudience
@@ -274,7 +276,15 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 	if org != nil {
 		orgID = org.ID
 	}
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: orgID, user: user, connection: conn, rs: rs, protocol: actions.ProtocolWebAuthn, requested: requested, target: requested, session: &store.LoginSession{AuthMethods: []store.AuthMethod{{Name: "passkey", At: now}}}})
+	pendingMembership := false
+	if org != nil {
+		member, e := h.Store.Organizations().IsMember(ctx, tid, org.ID, user.UserID)
+		if e != nil {
+			return nil, serverError()
+		}
+		pendingMembership = !member
+	}
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{pendingMembership: pendingMembership, organizationID: orgID, user: user, connection: conn, rs: rs, protocol: actions.ProtocolWebAuthn, requested: requested, target: requested, session: &store.LoginSession{AuthMethods: []store.AuthMethod{{Name: "passkey", At: now}}}})
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -286,7 +296,8 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 		}
 	}
 	ceiling := actions.CeilingOf(d.Scopes, before)
-	flow := firstFactorTokens{Passkey: true, Organization: org, ConnectionID: conn.ID, RPID: rp.RPID}
+	binding := nativeBinding(conn, rp, c, org)
+	flow := firstFactorTokens{PasskeyBinding: &binding, PendingMembership: pendingMembership, Passkey: true, Organization: org, ConnectionID: conn.ID, RPID: rp.RPID}
 	if required := h.passwordMFA(ctx, res, c, user, conn, aud, d.Scopes, ceiling, eff, now, flow); required != nil {
 		return nil, required
 	}
@@ -295,9 +306,14 @@ func (h *Handlers) passkeyGrant(ctx context.Context, res tenant.Resolved, c *sto
 		return nil, oerr
 	}
 	version := user.Version
+	ctx, flushMembership := orglogin.StageMembershipEvents(ctx)
 	err = h.mintCheckedTx(ctx, tid, user.UserID, &version, func(tx store.Store) error {
-		return checkTokenOrganization(ctx, tx, tid, user.UserID, orgID, conn.ID, c.ClientID)
+		if err := h.checkPasskeyCompletion(ctx, tx, res, c.ClientID, conn.ID, &binding); err != nil {
+			return err
+		}
+		return checkPendingOrganization(ctx, tx, tid, user.UserID, orgID, conn.ID, c.ClientID, pendingMembership, true)
 	}, write)
+	flushMembership(err)
 	if errors.Is(err, errUserBlocked) {
 		return nil, invalidGrant("user is blocked")
 	}
@@ -313,7 +329,7 @@ func boundedPasskeyReason(err error) string {
 	}
 	return "challenge"
 }
-func nativeMembership(ctx context.Context, tx store.Store, tid, uid, connectionID, clientID string, org *store.Organization) error {
+func checkNativeMembership(ctx context.Context, tx store.Store, tid, uid, connectionID, clientID string, org *store.Organization) error {
 	c, err := tx.Clients().Get(ctx, tid, clientID)
 	if err != nil {
 		return err
@@ -330,8 +346,9 @@ func nativeMembership(ctx context.Context, tx store.Store, tid, uid, connectionI
 	if err := orglogin.CheckMemberClient(ctx, tx, tid, org.ID, clientID); err != nil {
 		return err
 	}
-	if err := orglogin.EnsureMembership(ctx, tx, orglogin.Context{Org: org}, uid, connectionID); err != nil {
+	if err := orglogin.CheckMembership(ctx, tx, orglogin.Context{Org: org}, uid, connectionID); err != nil {
 		return err
 	}
-	return checkTokenOrganization(ctx, tx, tid, uid, org.ID, connectionID, clientID)
+	_, err = pendingOrganization(ctx, tx, tid, uid, org.ID, connectionID, c, true)
+	return err
 }

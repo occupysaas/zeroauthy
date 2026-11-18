@@ -75,6 +75,14 @@ operators manage it.
 | `POST /api/v2/resource-servers` | `create:resource_servers` |
 | `PATCH /api/v2/resource-servers/{id}` | `update:resource_servers` |
 | `DELETE /api/v2/resource-servers/{id}` | `delete:resource_servers` |
+| `GET /api/v2/clients/{id}/credentials`, `GET .../credentials/{credential_id}` | `read:client_credentials` |
+| `POST /api/v2/clients/{id}/credentials` | `create:client_credentials` |
+| `PATCH /api/v2/clients/{id}/credentials/{credential_id}` | `update:client_credentials` or `update:credentials` |
+| `DELETE /api/v2/clients/{id}/credentials/{credential_id}` | `delete:client_credentials` |
+| `GET /api/v2/token-exchange-profiles`, `GET /api/v2/token-exchange-profiles/{id}` | `read:token_exchange_profiles` |
+| `POST /api/v2/token-exchange-profiles` | `create:token_exchange_profiles` |
+| `PATCH /api/v2/token-exchange-profiles/{id}` | `update:token_exchange_profiles` |
+| `DELETE /api/v2/token-exchange-profiles/{id}` | `delete:token_exchange_profiles` |
 | `GET /api/v2/client-grants`, `GET /api/v2/client-grants/{id}` | `read:client_grants` |
 | `POST /api/v2/client-grants` | `create:client_grants` |
 | `PATCH /api/v2/client-grants/{id}` | `update:client_grants` |
@@ -123,6 +131,7 @@ Fields: `client_id`, `tenant`, `name`, `app_type`, `is_first_party`,
 - **Create defaults:** `app_type` `regular_web`; `token_endpoint_auth_method` `none` for `spa` and `native`, `client_secret_post` otherwise; `grant_types` `authorization_code` and `refresh_token`, plus `client_credentials` for confidential clients; rotating, expiring refresh tokens for `spa`. The console sends defaults per type instead.
 - **Secrets** are generated with 64 characters, or supplied (at least 48). They are encrypted under the master key (D-0038) and returned only with `read:client_keys`. Secrets stored before D-0038 keep working but cannot be shown: rotate them to get one you can see. Public clients (`none`) have no secret.
 - **Rotation** replaces the secret at once; the old one stops working immediately.
+- **Keys and signed requests** (Plan 35): `client_authentication_methods` (`private_key_jwt` with credential references), `signed_request_object` and `token_exchange` are accepted on create and update and returned on read; with `private_key_jwt`, `token_endpoint_auth_method` is `null`. The credentials sub-resource holds at most two keys per application. A storage plugin without `client_credentials.v1` answers these with `501 client_credentials_unavailable`. See [client authentication](client-authentication.md) and [custom token exchange](token-exchange.md).
 - **Fixed after creation:** `is_first_party` and `third_party_security_mode`.
 - **Organizations** (D-0055): `organization_usage` (`deny`, `allow`, `require`), `organization_require_behavior` (`no_prompt`, `pre_login_prompt`, `post_login_prompt`) and `organization_discovery_methods` (`email`, `organization_name`; only with `pre_login_prompt`) are stored and reported once set; null unsets them. A `require` application cannot hold the `password`, password-realm or device grants, whichever is set first (`400`). A storage plugin without Organizations refuses a usage other than `deny` (`501 organizations_unavailable`).
 - **Unknown fields** are refused (`invalid_body`), except those Auth0's tools always send, which are accepted and ignored (`description`, `client_metadata`, `logo_uri` and others; D-0039).
@@ -168,8 +177,15 @@ first.
 
 Differences from Auth0 (D-0041):
 
-- **Signing is RS256 only.** `HS256`, `PS256` and `signing_secret` are
-  `400 invalid_body`.
+- **Signing algorithms.** `signing_alg` is `RS256` (the default), `PS256`
+  (the tenant's RSA key) or `HS256` (the API's `signing_secret`). An HS256 API
+  created without a secret gets a generated one (32 random bytes, base64url);
+  a supplied secret is at least 16 characters, and `signing_secret` with
+  another algorithm is `400 invalid_body`. The secret is sealed at rest and
+  returned on read. A patch may change the algorithm: moving to HS256
+  generates a secret, and moving away discards it. HS256 needs a storage
+  plugin with the `client_credentials.v1` capability (`501` without it). HS256
+  tokens carry no `{issuer}userinfo` audience. System APIs keep RS256.
 - **Inert-only fields.** `token_lifetime_for_web` is stored and reported but
   used by nothing (no implicit or hybrid flow). `enforce_policies` accepts only
   `false` and `token_dialect` only `access_token`, since there are no roles or
@@ -372,7 +388,14 @@ metadata are absent until set; `blocked: false` is never shown (D-0043).
   together with `password` in one request, and username or phone on a
   connection without them, are `400 operation_not_supported`. Neither a
   password change nor `blocked: true` ends sessions or refresh tokens (a
-  blocked user's refresh and password grants are refused).
+  blocked user's refresh and password grants are refused). Supply `null` to
+  clear `email`, `phone_number`, `username`, `given_name`, `family_name`,
+  `name`, `nickname`, or `picture`. Clearing a required identifier or the
+  user's last active login identifier returns `400 invalid_body`.
+  `verify_phone_number: true` sends a text verification code to the resulting
+  phone number without setting `phone_verified`. `false` sends nothing.
+  Delivery uses the tenant's phone provider, country restrictions and send
+  budgets. A delivery error leaves the profile update committed.
 - **Delete:** `204`, also for an unknown well-formed ID. It deletes the
   user's sessions, refresh tokens, grants, tickets and password history.
 - **Errors:** an ID that is not `provider|id` is `400 invalid_uri`, an unknown
@@ -560,11 +583,13 @@ tokens must carry the origin serving the request as issuer.
 
 [Organizations](organizations.md) covers CRUD/name lookup, enabled connections,
 members, member-role/effective-role lists, role members and user organizations.
-Scopes follow the inventory, including `read:organization_member_effective_roles`;
-member listing accepts either members-read or member-roles-read, user organizations
-accepts either users-read or organizations-read, and role members requires both
-members-read and roles-read. Organization creation with `enabled_connections`
-also requires connection-create scope, including an empty supplied array.
+The member list requires `read:organization_members` and also requires
+`read:organization_member_roles` when roles are included via `fields`. The
+user-organization list requires `read:organizations`. Effective roles require
+`read:organization_member_effective_roles`. A role's member list requires both
+`read:organization_members` and `read:roles`. Organization creation with
+`enabled_connections` also requires `create:organization_connections`,
+including an empty supplied array.
 
 D-0055 observed corrections govern validation and replacement PATCH behavior.
 The Early Access `connections` alias manages the same links for Deploy CLI;

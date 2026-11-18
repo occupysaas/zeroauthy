@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"maps"
 	"math"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
@@ -343,7 +343,7 @@ func (h *Handlers) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.
 		Fail(w, err)
 		return
 	}
-	in, err := readTicketBody(body, "result_url", "user_id", "client_id", "ttl_sec", "includeEmailInRedirect", "identity")
+	in, err := readTicketBody(body, "result_url", "user_id", "client_id", "ttl_sec", "includeEmailInRedirect", "identity", "organization_id")
 	if err != nil {
 		Fail(w, err)
 		return
@@ -372,13 +372,18 @@ func (h *Handlers) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.
 		Fail(w, err)
 		return
 	}
+	if err := h.checkVerificationOrganization(r, in.organizationID, u); err != nil {
+		Fail(w, err)
+		return
+	}
 	host, err := h.notificationHost(r)
 	if err != nil {
 		Fail(w, err)
 		return
 	}
 	raw, err := dbconn.IssueVerificationTicket(r.Context(), h.Store, store.EmailVerificationTicket{
-		Origin: "https://" + host, TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID, Email: strings.ToLower(u.Email),
+		OrganizationID: in.organizationID,
+		Origin:         "https://" + host, TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID, Email: strings.ToLower(u.Email),
 		ResultURL: in.resultURL, IncludeEmailInRedirect: in.includeEmail,
 	}, h.now(), in.lifetime())
 	if err != nil {
@@ -387,4 +392,20 @@ func (h *Handlers) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.
 	}
 	logDetails(r, "create email verification ticket", "user_id", u.UserID, "connection", connection, "ttl_sec", int64(in.lifetime()/time.Second))
 	writeJSON(w, http.StatusCreated, map[string]string{"ticket": dbconn.VerificationLink("https://"+host+"/", raw)})
+}
+
+// checkVerificationOrganization requires membership only for an explicitly
+// requested organization. Both missing organizations and nonmembers are 400.
+func (h *Handlers) checkVerificationOrganization(r *http.Request, organizationID string, u *store.User) error {
+	if organizationID == "" {
+		return nil
+	}
+	member, err := h.Store.Organizations().IsMember(r.Context(), u.TenantID, organizationID, u.UserID)
+	switch {
+	case errors.Is(err, store.ErrNotFound), err == nil && !member:
+		return badBodyRaw("The user is not a member of the organization.")
+	case err != nil:
+		return internalError(h, r, "check verification organization membership", err)
+	}
+	return nil
 }

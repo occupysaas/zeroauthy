@@ -1,0 +1,47 @@
+name: cflite-pr
+# ClusterFuzzLite PR fuzzing (https://google.github.io/clusterfuzzlite/): builds
+# the fuzz targets in .clusterfuzzlite/build.sh from the pull request and fuzzes
+# them for 10 minutes in total, starting from the corpus that cflite_batch.yml
+# keeps. A crash fails the job and is uploaded as an artifact. Runs only when a
+# pull request changes Go code or the fuzzing setup, and on the pull_request
+# event, so fork pull requests get a read-only token and no secrets.
+on:
+  pull_request:
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - ".clusterfuzzlite/**"
+
+permissions: {}
+
+concurrency:
+  # A newer push to the same pull request cancels the running fuzzing.
+  group: cflite-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: PR fuzzing
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # The build action looks up a coverage report to skip targets the change
+    # can't reach; nothing produces one yet, so every target runs.
+    permissions:
+      contents: read # the build action clones the repository with the token
+      actions: read # both actions read earlier runs' artifacts: the corpus and any coverage report
+    steps:
+      - name: Build fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: go
+          sanitizer: address
+          github-token: ${{ github.token }}
+      - name: Run fuzzers
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: go
+          sanitizer: address
+          mode: code-change
+          fuzz-seconds: 600
+          github-token: ${{ github.token }}

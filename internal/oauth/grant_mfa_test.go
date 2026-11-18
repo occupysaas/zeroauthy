@@ -888,3 +888,121 @@ func TestMFAActionEnrollStaleTypeFailsClosed(t *testing.T) {
 		t.Fatalf("confirmed OTP count=%d", confirmed)
 	}
 }
+
+func TestNoSideEffectsBeforeMFANativePassword(t *testing.T) {
+	f, _ := mfaFixture(t)
+	ctx := context.Background()
+	tid := f.tenantID(t, "acme")
+	before, err := f.st.Users().FindByLogin(ctx, tid, "Username-Password-Authentication", "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tok := f.mfaRequired(t)
+	pending, err := f.st.Users().Get(ctx, tid, before.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pending.LoginsCount != before.LoginsCount || pending.LastLogin != nil {
+		t.Errorf("first factor recorded login: count=%d last=%v", pending.LoginsCount, pending.LastLogin)
+	}
+	secret, _ := f.associateOTP(t, tok)
+	f.proveOTP(t, tok, secret)
+	after, err := f.st.Users().Get(ctx, tid, before.UserID)
+	if err != nil || after.LoginsCount != before.LoginsCount+1 {
+		t.Fatal("completed login not recorded once", after, err)
+	}
+}
+
+type nativeLoginCommitFailure struct{ store.Store }
+type nativeLoginCountFailure struct{ store.Users }
+
+func (s nativeLoginCommitFailure) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(nativeLoginCommitFailure{tx}) })
+}
+func (s nativeLoginCommitFailure) Users() store.Users {
+	return nativeLoginCountFailure{s.Store.Users()}
+}
+func (s nativeLoginCountFailure) RecordLogin(context.Context, string, string, time.Time, string) error {
+	return errors.New("injected native login counter failure")
+}
+
+func TestNativeMFASideEffectsOneTransaction(t *testing.T) {
+	f := newNativeAppleFixture(t)
+	org := f.organization(t, true)
+	f.enableMFA(t, false)
+	v := f.form(t, "rollback")
+	v.Set("client_id", "ropg")
+	v.Set("client_secret", "ropg-secret")
+	v.Set("organization", org.ID)
+	status, b := f.token(t, v)
+	if status != 403 || b["error"] != "mfa_required" {
+		t.Fatal(status, b)
+	}
+	tok := b["mfa_token"].(string)
+	secret, _ := f.associateOTP(t, tok)
+	failing := nativeLoginCommitFailure{f.st}
+	f.h.Store = failing
+	f.h.MFA = f.h.MFA.WithStore(failing)
+	status, b = f.token(t, mfaForm(otpGrant, tok, "otp", otpAt(secret, f.h.now())))
+	if status == 200 || b["access_token"] != nil {
+		t.Fatal("tokens returned after failed commit", status, b)
+	}
+	ctx := context.Background()
+	u := f.user(t, "apple|rollback")
+	if u.LoginsCount != 0 {
+		t.Fatal("failed native login counted", u.LoginsCount)
+	}
+	member, err := f.st.Organizations().IsMember(ctx, f.tid, org.ID, u.UserID)
+	if err != nil || member {
+		t.Fatal("membership survived failed proof commit", member, err)
+	}
+	if _, err = f.st.MFA().PeekMFAToken(ctx, f.tid, secrets.HashToken(tok), f.h.now()); err != nil {
+		t.Fatal("proof token consumed by rolled back commit", err)
+	}
+	f.h.Store = f.st
+	f.h.MFA = f.h.MFA.WithStore(f.st)
+	out := f.proveOTP(t, tok, secret)
+	if out["access_token"] == nil {
+		t.Fatal("retry proof did not complete", out)
+	}
+}
+
+func TestLegacyPendingMFAKeepsRecordedLoginCount(t *testing.T) {
+	f, _ := mfaFixture(t)
+	ctx := context.Background()
+	tid := f.tenantID(t, "acme")
+	token := f.mfaRequired(t)
+	tn, _ := f.st.Tenants().Get(ctx, tid)
+	saved, p, oerr := f.h.pendingMFAToken(ctx, tenant.Resolved{Tenant: tn, Host: "acme.example.test"}, token, "ropg")
+	if oerr != nil {
+		t.Fatal(oerr)
+	}
+	// Model the pre-deferral wire payload and its already-recorded first factor.
+	p.LoginPending = false
+	if err := f.st.Users().RecordLogin(ctx, tid, saved.UserID, f.h.now(), "192.0.2.1"); err != nil {
+		t.Fatal(err)
+	}
+	oldToken := secrets.RandomString(48)
+	saved.Hash = secrets.HashToken(oldToken)
+	plain, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := keys.SealBound(f.wrapper, "oauth-mfa-request/v1", mfaBinding(saved), plain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved.Request, err = json.Marshal(mfaEnvelope{Sealed: sealed})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.st.MFA().CreateMFAToken(ctx, saved); err != nil {
+		t.Fatal(err)
+	}
+	secret, _ := f.associateOTP(t, oldToken)
+	f.proveOTP(t, oldToken, secret)
+	u, err := f.st.Users().Get(ctx, tid, saved.UserID)
+	if err != nil || u.LoginsCount != 1 {
+		t.Fatal("legacy login counted twice", u, err)
+	}
+}

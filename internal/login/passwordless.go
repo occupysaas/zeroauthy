@@ -350,34 +350,5 @@ func (h *Handlers) PasswordlessCodeSubmit(w http.ResponseWriter, r *http.Request
 		h.fail(w, r, err, f)
 		return
 	}
-	if err := h.passwordlessMembership(r.Context(), f, user); err != nil {
-		h.fail(w, r, err, f)
-		return
-	}
 	h.complete(w, r, f, user)
-}
-
-// passwordlessMembership applies the organization's membership rules as a
-// password login does: assign on login when the connection says so; a
-// non-member keeps the session and authorization refuses it.
-func (h *Handlers) passwordlessMembership(ctx context.Context, f *flow, u *store.User) error {
-	if f.org.Org == nil || f.txn.Params[orglogin.InvitationIDParam] != "" {
-		return nil
-	}
-	return h.Store.WithTx(ctx, func(tx store.Store) error {
-		oc, err := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
-		if err != nil {
-			return err
-		}
-		if oc.Org != nil {
-			err = orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID)
-		}
-		if err == nil {
-			err = EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
-		}
-		if errors.Is(err, ErrNotMember) {
-			return nil
-		}
-		return err
-	})
 }

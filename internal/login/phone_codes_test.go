@@ -2,6 +2,7 @@ package login
 
 import (
 	"context"
+	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"testing"
@@ -77,5 +78,89 @@ func TestPhoneIdentifierSendsShareIPBudget(t *testing.T) {
 	}
 	if err := f.h.sendIdentifierCode(ctx, f.tn.ID, c.ID, "+14155550111", "signup", ""); err == nil {
 		t.Fatal("IP budget bypassed")
+	}
+}
+
+func TestSignupCodeLifetime900(t *testing.T) {
+	for _, tc := range []struct {
+		kind  string
+		age   time.Duration
+		valid bool
+	}{
+		{"signup", 899 * time.Second, true},
+		{"signup", 900 * time.Second, false},
+		{"signup", 901 * time.Second, false},
+		{"reset", 299 * time.Second, true},
+		{"reset", 300 * time.Second, false},
+	} {
+		t.Run(fmt.Sprintf("%s/%s", tc.kind, tc.age), func(t *testing.T) {
+			f, runner := newPhoneMFAFixture(t, "sms")
+			ctx := t.Context()
+			conn, err := f.st.Connections().GetByName(ctx, f.tn.ID, "Username-Password-Authentication")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := f.h.sendIdentifierCode(ctx, f.tn.ID, conn.ID, "+14155550100", tc.kind, ""); err != nil {
+				t.Fatal(err)
+			}
+			code := runner.last(t).Message.Code
+			*f.clock = f.clock.Add(tc.age)
+			_, err = f.h.consumeIdentifierCode(ctx, f.tn.ID, conn.ID, "+14155550100", tc.kind, code)
+			if (err == nil) != tc.valid {
+				t.Fatalf("code at %s: err=%v, want valid=%v", tc.age, err, tc.valid)
+			}
+		})
+	}
+}
+
+func TestCodeBudgetPerConnectionAndKind(t *testing.T) {
+	for _, dimension := range []string{"connection", "kind", "identifier"} {
+		t.Run(dimension, func(t *testing.T) {
+			f, runner := newPhoneMFAFixture(t, "sms")
+			ctx := t.Context()
+			conn, err := f.st.Connections().GetByName(ctx, f.tn.ID, "Username-Password-Authentication")
+			if err != nil {
+				t.Fatal(err)
+			}
+			const number = "+14155550100"
+			for range 10 {
+				if err := f.h.sendIdentifierCode(ctx, f.tn.ID, conn.ID, number, "signup", ""); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := f.h.sendIdentifierCode(ctx, f.tn.ID, conn.ID, number, "signup", ""); err == nil {
+				t.Fatal("exhausted signup budget accepted")
+			}
+			if runner.count() != 10 {
+				t.Fatalf("denied send reached provider: %d sends", runner.count())
+			}
+			otherConn, otherKind, otherNumber := conn.ID, "signup", number
+			switch dimension {
+			case "connection":
+				other, err := f.st.Connections().GetByName(ctx, f.tn.ID, "Invite-Only")
+				if err != nil {
+					t.Fatal(err)
+				}
+				otherConn = other.ID
+			case "kind":
+				otherKind = "reset"
+			case "identifier":
+				otherNumber = "+14155550101"
+			}
+			if err := f.h.sendIdentifierCode(ctx, f.tn.ID, otherConn, otherNumber, otherKind, ""); err != nil {
+				t.Fatalf("independent %s budget denied: %v", dimension, err)
+			}
+			if runner.count() != 11 {
+				t.Fatalf("independent send missing: %d sends", runner.count())
+			}
+			// Alternate formatting must still hit the original identifier's budget.
+			if err := f.h.sendIdentifierCode(ctx, f.tn.ID, conn.ID, "+1 415 555 0100", "signup", ""); err == nil {
+				t.Fatal("normalization bypassed exhausted budget")
+			}
+			*f.clock = f.clock.Add(time.Hour)
+			if err := f.h.sendIdentifierCode(ctx, f.tn.ID, conn.ID, number, "signup", ""); err != nil {
+				t.Fatalf("budget did not reset: %v", err)
+			}
+		})
 	}
 }

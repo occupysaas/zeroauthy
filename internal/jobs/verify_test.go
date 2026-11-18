@@ -16,7 +16,7 @@ type fakeSender struct {
 	err   error
 }
 
-func (f *fakeSender) SendVerification(_ context.Context, _ string, u *store.User, clientID, host string) error {
+func (f *fakeSender) SendVerificationJob(_ context.Context, _ string, u *store.User, clientID, host, _ string) error {
 	f.calls = append(f.calls, u.UserID+"/"+clientID+"@"+host)
 	return f.err
 }

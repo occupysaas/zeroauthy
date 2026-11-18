@@ -29,6 +29,7 @@ type AcceptanceInput struct {
 	Recorder                                                                                     logs.Recorder
 	TenantID, OrganizationID, ClientID, InvitationID, TransactionID, UserID, PrimaryConnectionID string
 	Now                                                                                          time.Time
+	ExcludeAppMetadata, ExcludeUserMetadata                                                      []string
 }
 
 // AcceptInvitation runs after the existing authentication pipeline completes.
@@ -123,7 +124,7 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 		if invite.ClientID != in.ClientID || !in.Now.Before(invite.ExpiresAt) || (invite.ConnectionID != "" && invite.ConnectionID != conn.ID) {
 			return store.ErrPrecondition
 		}
-		if !u.EmailVerified || strings.ToLower(strings.TrimSpace(u.Email)) != strings.ToLower(strings.TrimSpace(invite.InviteeEmail)) {
+		if !u.EmailVerified || !invitationEmailMatches(u.Email, invite.InviteeEmail) {
 			return ErrInvitationIdentity
 		}
 		// Consumption validates role ownership again, and all subsequent writes
@@ -142,8 +143,8 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 				return err
 			}
 		}
-		u.UserMetadata = mergeInvitationMetadata(u.UserMetadata, invite.UserMetadata)
-		u.AppMetadata = mergeInvitationMetadata(u.AppMetadata, invite.AppMetadata)
+		u.UserMetadata = mergeInvitationDefaults(u.UserMetadata, invite.UserMetadata, in.ExcludeUserMetadata)
+		u.AppMetadata = mergeInvitationDefaults(u.AppMetadata, invite.AppMetadata, in.ExcludeAppMetadata)
 		if err = tx.Users().Update(ctx, u); err != nil {
 			return err
 		}
@@ -158,14 +159,14 @@ func AcceptInvitation(ctx context.Context, st store.Store, in AcceptanceInput) (
 	}
 	if err != nil {
 		event.Type = "fi"
-		logs.RecordEvent(ctx, recorder, event)
+		recordInvitationEvent(ctx, recorder, event)
 	} else if acceptedNew {
 		if added {
 			event.Type = "organization_member_added"
-			logs.RecordEvent(ctx, recorder, event)
+			recordInvitationEvent(ctx, recorder, event)
 		}
 		event.Type = "si"
-		logs.RecordEvent(ctx, recorder, event)
+		recordInvitationEvent(ctx, recorder, event)
 	}
 	return result, err
 }
@@ -193,4 +194,101 @@ func SaveInvitationTransaction(ctx context.Context, tx store.Store, txn *store.A
 		return err
 	}
 	return tx.AuthTransactions().Create(ctx, txn)
+}
+
+// Invitation success events share the outer login commit when present.
+func recordInvitationEvent(ctx context.Context, recorder logs.Recorder, event logs.Event) {
+	if pending, ok := ctx.Value(membershipEventsKey{}).(*membershipEvents); ok && event.Type != "fi" {
+		pending.events = append(pending.events, event)
+		return
+	}
+	logs.RecordEvent(ctx, recorder, event)
+}
+
+// PreviewInvitation validates the same server-owned bindings and live policy as
+// acceptance, without consuming the invitation or granting membership. Hosted
+// Actions may use its metadata/role view while MFA and consent are pending.
+func PreviewInvitation(ctx context.Context, st store.Store, txn *store.AuthTransaction, sess *store.LoginSession, now time.Time) (*store.OrganizationInvitation, error) {
+	if txn == nil || sess == nil || txn.TenantID != sess.TenantID || !now.Before(txn.ExpiresAt) || txn.Params[store.TxnParamOrgMode] != "fixed" || txn.Params[InvitationClientParam] != txn.ClientID {
+		return nil, store.ErrPrecondition
+	}
+	conn, err := st.Connections().GetByName(ctx, txn.TenantID, sess.Connection)
+	if err != nil {
+		return nil, err
+	}
+	if bound := txn.Params[InvitationConnectionParam]; bound != "" && bound != conn.ID {
+		return nil, store.ErrPrecondition
+	}
+	user, err := st.Users().Get(ctx, txn.TenantID, sess.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if user.Blocked {
+		return nil, ErrNotMember
+	}
+	client, err := st.Clients().Get(ctx, txn.TenantID, txn.ClientID)
+	if err != nil {
+		return nil, err
+	}
+	if !access.ConnectionUsable(client, conn) || (client.OrganizationUsage != store.OrgUsageAllow && client.OrganizationUsage != store.OrgUsageRequire) {
+		return nil, ErrNotMember
+	}
+	oid := txn.Params[store.TxnParamOrgID]
+	org, err := st.Organizations().Get(ctx, txn.TenantID, oid)
+	if err != nil {
+		return nil, err
+	}
+	if !client.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
+		return nil, ErrNotMember
+	}
+	if err = CheckMemberClient(ctx, st, txn.TenantID, oid, txn.ClientID); err != nil {
+		return nil, err
+	}
+	link, err := st.Organizations().GetConnection(ctx, txn.TenantID, oid, conn.ID)
+	if err != nil {
+		return nil, err
+	}
+	if link.IsEnabledSet && !link.IsEnabled {
+		return nil, ErrNotMember
+	}
+	if (txn.Params[InvitationSignupParam] == "1" || txn.Params["screen_hint"] == "signup") && (conn.DisableSignup || !link.IsSignupEnabled) {
+		return nil, ErrNotMember
+	}
+	inv, err := st.OrganizationsII().GetInvitation(ctx, txn.TenantID, oid, txn.Params[InvitationIDParam])
+	if err != nil {
+		return nil, err
+	}
+	if inv.ClientID != txn.ClientID || !now.Before(inv.ExpiresAt) || (inv.ConnectionID != "" && inv.ConnectionID != conn.ID) {
+		return nil, store.ErrPrecondition
+	}
+	if !user.EmailVerified || !invitationEmailMatches(user.Email, inv.InviteeEmail) {
+		return nil, ErrInvitationIdentity
+	}
+	for _, id := range inv.Roles {
+		if _, err = st.RBAC().GetRole(ctx, txn.TenantID, id); err != nil {
+			return nil, err
+		}
+	}
+	return inv, nil
+}
+
+// InvitationUserView applies the acceptance merge to a copy for an Action event.
+func InvitationUserView(user *store.User, inv *store.OrganizationInvitation) *store.User {
+	copy := *user
+	copy.AppMetadata = mergeInvitationMetadata(user.AppMetadata, inv.AppMetadata)
+	copy.UserMetadata = mergeInvitationMetadata(user.UserMetadata, inv.UserMetadata)
+	return &copy
+}
+
+func invitationEmailMatches(actual, invited string) bool {
+	return strings.ToLower(strings.TrimSpace(actual)) == strings.ToLower(strings.TrimSpace(invited))
+}
+func mergeInvitationDefaults(existing, defaults map[string]any, excluded []string) map[string]any {
+	filtered := map[string]any{}
+	for k, v := range defaults {
+		if !slices.Contains(excluded, k) {
+			filtered[k] = v
+		}
+	}
+	return mergeInvitationMetadata(existing, filtered)
 }

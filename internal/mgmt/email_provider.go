@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/emailrules"
-	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -30,6 +30,11 @@ func emailWriteAllowed(h *Handlers, r *http.Request) error {
 }
 
 func (h *Handlers) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+	fields, include, err := Fields(r)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
 	p, err := h.Store.EmailProviders().Get(r.Context(), resolved(r).ID)
 	if errors.Is(err, store.ErrNotFound) {
 		Fail(w, errEmailProviderNotFound)
@@ -39,7 +44,16 @@ func (h *Handlers) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
 		h.failTx(w, r, "get email provider", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, emailrules.ProjectProvider(p))
+	view := *p
+	// Legacy region is exposed in both credentials and settings. Hydrate the
+	// retained fields before applying the same projection to either row format.
+	if len(fields) == 0 || slices.Contains(fields, "credentials") == include || slices.Contains(fields, "settings") == include {
+		if err := emailrules.LegacyPublicConfig(h.Wrapper, resolved(r).ID, &view); err != nil {
+			h.failTx(w, r, "get email provider", err)
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, ProjectKeeping(emailrules.ProjectProvider(&view), fields, include, nil))
 }
 
 func (h *Handlers) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {
@@ -158,12 +172,10 @@ func (h *Handlers) writeProvider(r *http.Request, tenantID string, current *stor
 		from = current.DefaultFrom
 	}
 	creds := map[string]any{}
-	if current != nil && current.Name == name && len(current.SealedCredentials) > 0 {
-		plain, err := keys.OpenEmailProvider(h.Wrapper, tenantID, name, current.SealedCredentials)
+	if current != nil && current.Name == name {
+		var err error
+		creds, err = emailrules.OpenCredentials(h.Wrapper, tenantID, current)
 		if err != nil {
-			return nil, errors.New("email provider credentials unavailable")
-		}
-		if json.Unmarshal(plain, &creds) != nil {
 			return nil, errors.New("email provider credentials unavailable")
 		}
 	}
@@ -193,14 +205,6 @@ func (h *Handlers) writeProvider(r *http.Request, tenantID string, current *stor
 	if name == "custom" {
 		creds = map[string]any{}
 	}
-	plain, err := json.Marshal(creds)
-	if err != nil {
-		return nil, err
-	}
-	sealed, err := keys.SealEmailProvider(h.Wrapper, tenantID, name, plain)
-	if err != nil {
-		return nil, errors.New("email provider encryption unavailable")
-	}
 	settings := map[string]any{}
 	if current != nil && current.Name == name {
 		for k, v := range current.PublicConfig {
@@ -220,30 +224,24 @@ func (h *Handlers) writeProvider(r *http.Request, tenantID string, current *stor
 			}
 		}
 	}
-	if v, ok := raw["credentials"]; ok {
-		var patch map[string]json.RawMessage
-		if json.Unmarshal(v, &patch) == nil {
-			if region, ok := patch["region"]; ok && string(region) == "null" {
-				delete(settings, "region")
-			}
-		}
+	if val, ok := creds["domain"]; ok {
+		settings["domain"] = val
 	}
-	for _, key := range []string{"domain", "region"} {
-		if val, ok := creds[key]; ok {
-			settings[key] = val
-		}
-	}
+
 	if name != "custom" {
 		if _, err := (&providers.Factory{}).New(r.Context(), tenantID, 1, providers.Config{Name: name, Credentials: creds, Settings: settings}); err != nil {
 			return nil, store.ErrInvalid
 		}
 	}
-	p := &store.EmailProvider{TenantID: tenantID, Name: name, Enabled: enabled, DefaultFrom: from, PublicConfig: settings, SealedCredentials: sealed}
+	p := &store.EmailProvider{TenantID: tenantID, Name: name, Enabled: enabled, DefaultFrom: from, PublicConfig: settings}
+	if err := emailrules.SealCredentials(h.Wrapper, p, creds); err != nil {
+		return nil, err
+	}
 	expected := int64(0)
 	if current != nil {
 		expected = current.Revision
 	}
-	if err = h.Store.EmailProviders().Put(r.Context(), p, expected); err != nil {
+	if err := h.Store.EmailProviders().Put(r.Context(), p, expected); err != nil {
 		return nil, err
 	}
 	return h.Store.EmailProviders().Get(r.Context(), tenantID)

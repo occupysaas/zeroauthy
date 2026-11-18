@@ -33,6 +33,11 @@ Specs and plans that already exist are under `docs/superpowers/specs/` and
 `docs/superpowers/`. Check them before starting, and pick up the next
 unfinished item rather than starting a new one.
 
+**Every remaining roadmap item already has a spec and a plan** (written
+2026-11-16, not yet implemented). The index is
+[`docs/superpowers/README.md`](docs/superpowers/README.md); it links each
+spec and plan and points to the roadmap table of rulings still needed.
+
 ### 1. Set up Claude Code with the Superpowers plugin
 
 Install [Claude Code](https://claude.com/claude-code), then install the
@@ -119,6 +124,10 @@ Signed-off-by: Your Name <you@example.com>
 
 Use your real name and an email address you control. Pull requests with
 unsigned commits will not be merged.
+
+Dependabot's own commits are exempt, but only in pull requests Dependabot
+opened, since the bot doesn't sign off. Any other commit pushed to a
+Dependabot pull request still needs a sign-off.
 
 The commands below take `upstream/main`: this repository's `main`, fetched
 with `git fetch upstream` after

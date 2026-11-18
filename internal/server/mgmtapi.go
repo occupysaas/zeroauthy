@@ -176,6 +176,47 @@ func (a mgmtAPI) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id st
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteClientGrant(w, r, id) }, "delete:client_grants")
 }
 
+func (a mgmtAPI) GetClientCredentials(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClientCredentials(w, r, id) }, "read:client_credentials")
+}
+
+func (a mgmtAPI) PostClientCredentials(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostClientCredentials(w, r, id) }, "create:client_credentials")
+}
+
+func (a mgmtAPI) GetClientCredential(w http.ResponseWriter, r *http.Request, id, credentialID string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClientCredential(w, r, id, credentialID) }, "read:client_credentials")
+}
+
+func (a mgmtAPI) PatchClientCredential(w http.ResponseWriter, r *http.Request, id, credentialID string) {
+	scopedAnyOf(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PatchClientCredential(w, r, id, credentialID) },
+		[]string{"update:credentials"}, []string{"update:client_credentials"})
+}
+
+func (a mgmtAPI) DeleteClientCredential(w http.ResponseWriter, r *http.Request, id, credentialID string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteClientCredential(w, r, id, credentialID) }, "delete:client_credentials")
+}
+
+func (a mgmtAPI) GetTokenExchangeProfiles(w http.ResponseWriter, r *http.Request, p mgmtapi.GetTokenExchangeProfilesParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTokenExchangeProfiles(w, r, p) }, "read:token_exchange_profiles")
+}
+
+func (a mgmtAPI) PostTokenExchangeProfile(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.PostTokenExchangeProfile, "create:token_exchange_profiles")
+}
+
+func (a mgmtAPI) GetTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTokenExchangeProfile(w, r, id) }, "read:token_exchange_profiles")
+}
+
+func (a mgmtAPI) PatchTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PatchTokenExchangeProfile(w, r, id) }, "update:token_exchange_profiles")
+}
+
+func (a mgmtAPI) DeleteTokenExchangeProfile(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteTokenExchangeProfile(w, r, id) }, "delete:token_exchange_profiles")
+}
+
 func (a mgmtAPI) GetConnections(w http.ResponseWriter, r *http.Request, p mgmtapi.GetConnectionsParams) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetConnections(w, r, p) }, "read:connections")
 }
@@ -288,6 +329,10 @@ func (a mgmtAPI) TryConnectionScript(w http.ResponseWriter, r *http.Request, ten
 	a.h.TryConnectionScript(w, r, tenant, id, name)
 }
 
+func (a mgmtAPI) TryConnectionPasswordless(w http.ResponseWriter, r *http.Request, tenant, id string) {
+	a.h.TryConnectionPasswordless(w, r, tenant, id)
+}
+
 func (a mgmtAPI) PreviewTenantEmail(w http.ResponseWriter, r *http.Request, tenant string) {
 	a.h.PreviewEmail(w, r, tenant)
 }
@@ -383,7 +428,7 @@ func (a mgmtAPI) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.UpdateTenantSettings, "update:tenant_settings")
 }
 
-func (a mgmtAPI) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+func (a mgmtAPI) GetEmailProvider(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetEmailProviderParams) {
 	scoped(w, r, a.h.GetEmailProvider, "read:email_provider")
 }
 func (a mgmtAPI) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {
@@ -783,12 +828,10 @@ func (a mgmtAPI) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Req
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationClientGrants(w, r, id) }, "read:organization_client_grants")
 }
 
-// Organization members and roles (Plan 29, D-0055). The member list and the
-// user organizations accept any of their scopes; role members need both.
-// fields=roles on the member list also needs read:organization_member_roles;
-// the handler checks it.
+// Organization members and roles (D-0055). The handler checks the additional
+// read:organization_member_roles scope when the member list includes roles.
 func (a mgmtAPI) ListOrganizationMembers(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationMembersParams) {
-	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMembers(w, r, id) }, "read:organization_members", "read:organization_member_roles")
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMembers(w, r, id) }, "read:organization_members")
 }
 func (a mgmtAPI) AddOrganizationMembers(w http.ResponseWriter, r *http.Request, id string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AddOrganizationMembers(w, r, id) }, "create:organization_members")
@@ -814,7 +857,7 @@ func (a mgmtAPI) ListOrganizationRoleMembers(w http.ResponseWriter, r *http.Requ
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationRoleMembers(w, r, id, roleID) }, "read:organization_members", "read:roles")
 }
 func (a mgmtAPI) ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListUserOrganizationsParams) {
-	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:users", "read:organizations")
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:organizations")
 }
 
 func (a mgmtAPI) CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.CreateOrganizationInvitationParams) {

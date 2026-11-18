@@ -1,0 +1,82 @@
+name: cflite-batch
+# ClusterFuzzLite batch fuzzing and corpus pruning on the default branch
+# (https://google.github.io/clusterfuzzlite/). Daily at 01:23 UTC, batch
+# fuzzing runs the targets in .clusterfuzzlite/build.sh for an hour and grows
+# the corpus that PR fuzzing (cflite_pr.yml) starts from; a crash fails the job
+# and is uploaded as an artifact. At 04:23 UTC, pruning shrinks the corpus to
+# the inputs that still add coverage; ClusterFuzzLite requires pruning wherever
+# batch fuzzing runs. Corpora are kept as workflow artifacts. Either task can
+# also be started from the Actions tab ("Run workflow").
+#
+# Batch fuzzing and pruning run as separate workflow runs: both upload the
+# corpus under the same artifact names, and a run can't upload an artifact
+# name twice. Each job's `if` must match its cron line below exactly.
+on:
+  schedule:
+    - cron: "23 1 * * *" # batch fuzzing
+    - cron: "23 4 * * *" # corpus pruning
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Task to run"
+        type: choice
+        options:
+          - batch
+          - prune
+        default: batch
+
+permissions: {}
+
+concurrency:
+  # Batch fuzzing and pruning both download, change and upload the corpus, so
+  # never run two at once; a new run waits rather than cancelling one.
+  group: cflite-batch
+  cancel-in-progress: false
+
+jobs:
+  batch:
+    name: Batch fuzzing
+    if: github.event.schedule == '23 1 * * *' || inputs.task == 'batch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # The build action clones this public repository without a token. If the
+    # repository becomes private, pass it github-token and add contents: read.
+    permissions:
+      actions: read # the run action downloads the corpus from earlier runs' artifacts
+    steps:
+      - name: Build fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: go
+          sanitizer: address
+      - name: Run fuzzers
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: go
+          sanitizer: address
+          mode: batch
+          fuzz-seconds: 3600
+          github-token: ${{ github.token }}
+
+  prune:
+    name: Corpus pruning
+    if: github.event.schedule == '23 4 * * *' || inputs.task == 'prune'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # As for batch fuzzing, the build action clones without a token.
+    permissions:
+      actions: read # the run action downloads the corpus from earlier runs' artifacts
+    steps:
+      - name: Build fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: go
+          sanitizer: address
+      - name: Prune the corpus
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: go
+          sanitizer: address
+          mode: prune
+          fuzz-seconds: 600
+          github-token: ${{ github.token }}

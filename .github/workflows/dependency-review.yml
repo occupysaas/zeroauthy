@@ -1,0 +1,27 @@
+name: Dependency review
+# Checks the dependencies each pull request adds or changes (go.mod, npm
+# lockfiles, pip requirements, NuGet) against GitHub's advisory database,
+# and fails on known vulnerabilities of high severity or worse.
+on: pull_request
+
+permissions: {}
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # check out the repository and compare its dependency graph
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          # Accepted advisories, each with its reason. Remove an entry once a
+          # fixed release is available and adopted.
+          # - GHSA-fc5q-39xc-vjpf: picomatch <= 4.0.7 ReDoS (no fixed release
+          #   on 2026-11-17). Console build-time only (vite, vitest and
+          #   vue-router's file-routing plugin); it isn't in console/dist and
+          #   the build never matches attacker-supplied globs.
+          allow-ghsas: GHSA-fc5q-39xc-vjpf

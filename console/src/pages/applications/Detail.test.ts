@@ -144,3 +144,18 @@ describe('Application detail', () => {
     wrapper.unmount()
   })
 })
+
+
+describe('Apple native application settings', () => {
+ it('writes Apple switch and iOS fields while preserving other native providers and Android', async () => {
+   const app = client('abc', { native_social_login: { facebook: {enabled: true}, google: {enabled: false} }, mobile: { android: {app_package_name: 'test.acme.android'} } })
+   const { wrapper, calls } = await mountAt(Detail, path, () => ({status: 200, body: app}))
+   tabTo('Settings'); await flushPromises()
+   await wrapper.find('#app-native-apple').setValue(true)
+   await wrapper.find('#app-ios-team').setValue('ABCDE12345')
+   await wrapper.find('#app-ios-bundle').setValue('test.acme.ios')
+   await wrapper.find('form').trigger('submit'); await flushPromises()
+   expect(calls.find(c => c.method === 'PATCH')?.body).toMatchObject({native_social_login: {apple: {enabled: true}, facebook: {enabled: true}, google: {enabled: false}}, mobile: {ios: {team_id: 'ABCDE12345', app_bundle_identifier: 'test.acme.ios'}, android: {app_package_name: 'test.acme.android'}}})
+   wrapper.unmount()
+ })
+})

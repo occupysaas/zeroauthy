@@ -91,10 +91,10 @@ func (s *Service) resolveIdentity(ctx context.Context, tx store.Store, conn *sto
 	return user, created, err
 }
 
-// identityUserID is the identity's user_id: Google and Microsoft personal
+// identityUserID is the identity's user_id: Apple, Google and Microsoft personal
 // use the raw subject; OAuth2, OIDC and Entra use "<connection>|<subject>".
 func identityUserID(conn *store.Connection, sub string) string {
-	if conn.Strategy == rules.Google || conn.Strategy == rules.WindowsLive {
+	if conn.Strategy == rules.Google || conn.Strategy == rules.WindowsLive || conn.Strategy == rules.Apple {
 		return sub
 	}
 	return conn.Name + "|" + sub
@@ -109,7 +109,7 @@ func (s *Service) provision(ctx context.Context, tx store.Store, conn *store.Con
 		return nil, err
 	}
 	u := &store.User{TenantID: conn.TenantID, UserID: id, CreatedAt: now, UpdatedAt: now,
-		Identities: []store.Identity{{Connection: conn.Name, Provider: conn.Strategy, UserID: identityUserID(conn, p.Subject)}}}
+		Identities: []store.Identity{{Connection: conn.Name, Provider: conn.Strategy, UserID: identityUserID(conn, p.Subject), ProviderData: maps.Clone(p.ProviderData)}}}
 	applyRoot(u, p)
 	u.Name, u.Nickname = identity.DefaultNames(u.Name, u.Nickname, u.Email, "")
 	if p.UserMetadata != nil {
@@ -157,6 +157,14 @@ func (s *Service) synchronize(ctx context.Context, tx store.Store, conn *store.C
 	if id == nil {
 		return fmt.Errorf("%w: index owner lacks the identity", ErrIdentityConflict)
 	}
+	providerChanged := !maps.Equal(id.ProviderData, p.ProviderData) && p.ProviderData != nil
+	if providerChanged {
+		id.ProviderData = maps.Clone(p.ProviderData)
+	}
+	if conn.Strategy == rules.Apple {
+		// Apple names are accepted only at identity creation, even on each-login sync.
+		p.Name, p.GivenName, p.FamilyName = nil, nil, nil
+	}
 	if id.Linked() {
 		pd := maps.Clone(id.ProfileData)
 		email, _ := pd["email"].(string)
@@ -169,18 +177,22 @@ func (s *Service) synchronize(ctx context.Context, tx store.Store, conn *store.C
 		if p.EmailVerified != nil {
 			pd["email_verified"] = *p.EmailVerified
 		}
-		if maps.Equal(pd, id.ProfileData) {
+		if maps.Equal(pd, id.ProfileData) && !providerChanged {
 			return nil
 		}
 		id.ProfileData = pd
 	} else {
 		if sync := conn.SetUserRootAttributes; sync != "" && sync != rules.SyncOnEachLogin {
-			return nil
+			if !providerChanged {
+				return nil
+			}
+			u.UpdatedAt = s.now()
+			return tx.Users().Update(ctx, u)
 		}
 		before := *u
 		applyRoot(u, p)
 		if before.Email == u.Email && before.EmailVerified == u.EmailVerified && before.Name == u.Name && before.Nickname == u.Nickname &&
-			before.GivenName == u.GivenName && before.FamilyName == u.FamilyName && before.Picture == u.Picture {
+			before.GivenName == u.GivenName && before.FamilyName == u.FamilyName && before.Picture == u.Picture && !providerChanged {
 			return nil
 		}
 	}

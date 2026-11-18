@@ -215,7 +215,7 @@ func (a clientTenants) Delete(ctx context.Context, id string) error {
 type clientClients struct{ c *Client }
 
 func (a clientClients) Create(ctx context.Context, v *store.Client) error {
-	v = a.c.webauthnClient(v)
+	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsCreate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		return a.c.rpc.ClientsCreate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -227,7 +227,7 @@ func (a clientClients) Get(ctx context.Context, tenantID, clientID string) (*sto
 }
 
 func (a clientClients) Update(ctx context.Context, v *store.Client) error {
-	v = a.c.webauthnClient(v)
+	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsUpdate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		return a.c.rpc.ClientsUpdate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -303,6 +303,7 @@ func (a clientResourceServers) Create(ctx context.Context, v *store.ResourceServ
 			return err
 		}
 	}
+	v = a.c.clientCredentialsResourceServer(v)
 	return put("ResourceServersCreate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
 		return a.c.rpc.ResourceServersCreate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -324,6 +325,7 @@ func (a clientResourceServers) Update(ctx context.Context, v *store.ResourceServ
 			return err
 		}
 	}
+	v = a.c.clientCredentialsResourceServer(v)
 	return put("ResourceServersUpdate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
 		return a.c.rpc.ResourceServersUpdate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -819,6 +821,7 @@ func (a clientPushedAuthRequests) Create(ctx context.Context, v *store.PushedAut
 			return err
 		}
 	}
+	v = a.c.clientCredentialsPAR(v)
 	return put("PushedAuthRequestsCreate", v, pushedAuthRequestToPB, func(pb *storev1.PushedAuthRequest) (result, error) {
 		return a.c.rpc.PushedAuthRequestsCreate(ctx, &storev1.PushedAuthRequestWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -1023,6 +1026,15 @@ func (a clientPasswordResetTickets) DeleteExpired(ctx context.Context, before ti
 type clientEmailVerificationTickets struct{ c *Client }
 
 func (a clientEmailVerificationTickets) Create(ctx context.Context, v *store.EmailVerificationTicket) error {
+	if v != nil && v.OrganizationID != "" {
+		version, err := a.c.organizationsIIVersion(ctx)
+		if err != nil {
+			return err
+		}
+		if version < organizationsIIVerificationTicketCapability {
+			return fmt.Errorf("storage plugin needs Organizations II capability 2 to store the verification organization: %w", store.ErrOrganizationsIIUnavailable)
+		}
+	}
 	if v != nil && v.Origin != "" {
 		if err := a.c.requireCustomDomains(ctx); err != nil {
 			return err

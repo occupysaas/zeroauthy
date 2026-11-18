@@ -479,8 +479,6 @@ func TestListUsers(t *testing.T) {
 		"?q=" + url.QueryEscape(`ex.test`):                               2,
 		"?q=" + url.QueryEscape(`email:*@ex.test`) + "&search_engine=v2": 2,
 		"?q=alice&search_engine=v3":                                      1,
-		"?connection=" + dbConn:                                          3,
-		"?connection=Other":                                              0,
 	} {
 		rec, out := e.list(t, q)
 		if rec.Code != 200 || len(listUsers(t, out)) != want {
@@ -521,6 +519,44 @@ func TestListUsers(t *testing.T) {
 	if strings.Contains(rec.Body.String(), "argon2") {
 		t.Error("a hash leaked")
 	}
+}
+
+func TestUsersConnectionV1Only(t *testing.T) {
+	e := newUsersEnv(t)
+	other := &store.Connection{TenantID: e.tn.ID, ID: "con_other", Name: "Other", Strategy: store.StrategyDatabase, CreatedAt: now}
+	if err := e.st.Connections().Create(t.Context(), other); err != nil {
+		t.Fatal(err)
+	}
+	e.mustCreate(t, map[string]any{"email": "first@ex.test"})
+	e.mustCreate(t, map[string]any{"email": "second@ex.test", "connection": other.Name})
+
+	for _, tc := range []struct{ name, engine string }{
+		{"default", ""},
+		{"v2", "&search_engine=v2"},
+		{"v3", "&search_engine=v3"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			query := "?connection=Other" + tc.engine
+			if rec, out := e.list(t, query); rec.Code != http.StatusOK || len(listUsers(t, out)) != 2 {
+				t.Errorf("connection-only list = %d %s, want both users", rec.Code, rec.Body)
+			}
+			rec, out := e.list(t, query+"&q="+url.QueryEscape(`identities.connection:"Username-Password-Authentication"`))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("connection with q = %d %s", rec.Code, rec.Body)
+			}
+			if users := listUsers(t, out); len(users) != 1 || users[0]["email"] != "first@ex.test" {
+				t.Errorf("connection with q = %s, want only first@ex.test", rec.Body)
+			}
+			for _, bad := range []string{"first%00last", "first%FFlast"} {
+				rec, out := e.list(t, query+"&connection="+bad)
+				m, _ := out.(map[string]any)
+				wantUserError(t, bad, rec, m, http.StatusBadRequest, "invalid_query_string", "")
+			}
+		})
+	}
+	rec, out := e.list(t, "?connection=Other&search_engine=v1")
+	m, _ := out.(map[string]any)
+	wantUserError(t, "v1", rec, m, http.StatusBadRequest, "operation_not_supported", "")
 }
 
 // U5: users-by-email is case-sensitive.

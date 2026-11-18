@@ -303,10 +303,11 @@ func New(d Deps) http.Handler {
 		authapi.HandlerWithOptions(authAPI{
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
-				MFA:      d.MFA,
-				Passkeys: d.Passkeys,
-				Recorder: d.Recorder,
-				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
+				Federation: d.Federation,
+				MFA:        d.MFA,
+				Passkeys:   d.Passkeys,
+				Recorder:   d.Recorder,
+				Store:      d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
 				LegacySecretSlots:       d.LegacySecretSlots,
 				Auth0RefreshErrorStatus: d.Auth0RefreshErrorStatus,
 				BaseDomain:              d.BaseDomain,
@@ -358,6 +359,7 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPost)
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
+		tr.Post("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
 		tr.Get("/u/signup", lg.SignupPage)
@@ -403,6 +405,8 @@ func New(d Deps) http.Handler {
 		Recorder:       d.Recorder,
 		Store:          d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify, EmailService: d.EmailService,
+		Passwordless:           pwl,
+		PhoneDispatcher:        d.Phone,
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
 		Protection:             sharedProtection,
@@ -451,7 +455,7 @@ func New(d Deps) http.Handler {
 	}
 	r.Group(func(ar chi.Router) {
 		ar.Use(d.Resolver.Middleware)
-		a := admin{files: files, store: d.Store, baseDomain: d.BaseDomain}
+		a := admin{files: files, baseDomain: tenant.NormalizeHost(d.BaseDomain), systemHost: tenant.NormalizeHost(d.SystemHost)}
 		ar.Method(http.MethodGet, "/admin", a)
 		ar.Method(http.MethodGet, "/admin/*", a)
 		ar.Method(http.MethodHead, "/admin/*", a)

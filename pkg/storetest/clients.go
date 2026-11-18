@@ -62,6 +62,36 @@ func testClients(t *testing.T, newStore Factory) {
 		mustErrIs(t, s.Clients().Update(ctx, want), store.ErrNotFound)
 	})
 
+	t.Run("NativeSocialLogin", func(t *testing.T) {
+		s := open(t, newStore)
+		c := newClient("ten_a", "native")
+		c.NativeSocialLogin = map[string]bool{"apple": true, "facebook": false, "google": true}
+		c.Mobile = &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "ABCDEFGHIJ", AppBundleIdentifier: "com.example.native"}}
+		mustNoErr(t, s.Clients().Create(ctx, c))
+		c.NativeSocialLogin["apple"] = false // input must have been copied
+		got, err := s.Clients().Get(ctx, "ten_a", "native")
+		mustNoErr(t, err)
+		mustEqual(t, got.NativeSocialLogin["apple"], true)
+		got.NativeSocialLogin["apple"] = false
+		again, err := s.Clients().Get(ctx, "ten_a", "native")
+		mustNoErr(t, err)
+		mustEqual(t, again.NativeSocialLogin["apple"], true)
+		mustNoErr(t, s.Clients().Update(ctx, got))
+		again, err = s.Clients().Get(ctx, "ten_a", "native")
+		mustNoErr(t, err)
+		mustEqual(t, again, got)
+		got.NativeSocialLogin = map[string]bool{}
+		mustNoErr(t, s.Clients().Update(ctx, got))
+		again, err = s.Clients().Get(ctx, "ten_a", "native")
+		mustNoErr(t, err)
+		mustEqual(t, again.NativeSocialLogin, map[string]bool{})
+		got.NativeSocialLogin = nil
+		mustNoErr(t, s.Clients().Update(ctx, got))
+		again, err = s.Clients().Get(ctx, "ten_a", "native")
+		mustNoErr(t, err)
+		mustEqual(t, again.NativeSocialLogin, map[string]bool(nil))
+	})
+
 	t.Run("DeleteCascades", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.Clients().Create(ctx, newClient("ten_a", "gone")))

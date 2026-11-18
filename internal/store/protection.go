@@ -36,9 +36,8 @@ type SuspiciousIPPolicy struct {
 	Stage     SuspiciousIPStages `json:"stage"`
 }
 type SuspiciousIPStages struct {
-	PreLogin            ProtectionRate `json:"pre-login"`
-	PreUserRegistration ProtectionRate `json:"pre-user-registration"`
-	// PreCustomTokenExchange is stored only until Plan 35.
+	PreLogin               ProtectionRate `json:"pre-login"`
+	PreUserRegistration    ProtectionRate `json:"pre-user-registration"`
 	PreCustomTokenExchange ProtectionRate `json:"pre-custom-token-exchange"`
 }
 
@@ -101,10 +100,11 @@ type RecaptchaEnterpriseProvider struct {
 
 // Bucket kinds shared by runtime consumers, policy invalidation and block queries.
 const (
-	ProtectionBruteForce               = "brute-force"
-	ProtectionSuspiciousIPLogin        = "suspicious-ip-login"
-	ProtectionSuspiciousIPRegistration = "suspicious-ip-registration"
-	ProtectionResetMail                = "reset-mail"
+	ProtectionBruteForce                = "brute-force"
+	ProtectionSuspiciousIPLogin         = "suspicious-ip-login"
+	ProtectionSuspiciousIPRegistration  = "suspicious-ip-registration"
+	ProtectionSuspiciousIPTokenExchange = "suspicious-ip-token-exchange"
+	ProtectionResetMail                 = "reset-mail"
 )
 
 // ProtectionKey is tenant-scoped. ConnectionID is stable, never a mutable name.
@@ -120,9 +120,14 @@ type ProtectionAdmission struct {
 	// DeniedKinds identifies only budgets that actually refused this admission.
 	// Optional for older plugins; an absent value never changes the decision.
 	DeniedKinds []string
-	Allowed     bool
-	Receipt     ProtectionReceipt
-	RetryAt     time.Time
+	// FirstBruteForceDenial is true when this admission claims the first refusal
+	// of a brute-force bucket at its settled failure threshold. The claim is
+	// atomic with the admission and persists until the bucket is unblocked.
+	// Older plugins omit the claim while continuing to enforce the decision.
+	FirstBruteForceDenial bool
+	Allowed               bool
+	Receipt               ProtectionReceipt
+	RetryAt               time.Time
 }
 type ProtectionBlock struct {
 	Key          ProtectionKey

@@ -259,6 +259,10 @@ func (mfaReadError) ListAuthenticators(context.Context, string, string) ([]store
 	return nil, store.ErrInvalid
 }
 
+func (mfaReadError) GuardianUsers(context.Context, string, []string) ([]string, error) {
+	return nil, store.ErrInvalid
+}
+
 type mfaReadErrorStore struct{ store.Store }
 
 func (s mfaReadErrorStore) MFA() store.MFA { return mfaReadError{s.Store.MFA()} }
@@ -268,6 +272,18 @@ func TestUserMultifactorReadFailure(t *testing.T) {
 	r, _ := e.get(t, uid, "")
 	if r.Code != 500 {
 		t.Fatalf("MFA store failure silently rendered empty enrollment: %d", r.Code)
+	}
+	if r, _ := e.list(t, ""); r.Code != 500 {
+		t.Fatalf("batch read error: status=%d", r.Code)
+	}
+	e.h.Store = noMFA{e.st}
+	r, out := e.list(t, "")
+	if r.Code != 200 {
+		t.Fatal(r.Body)
+	}
+	users := out.([]any)
+	if len(users) != 1 || fmt.Sprint(users[0].(map[string]any)["multifactor"]) != "[]" {
+		t.Fatalf("pre-MFA page=%v", users)
 	}
 }
 
@@ -342,5 +358,59 @@ func TestAuthMethodsZeroPageSize(t *testing.T) {
 		} else if len(out.([]any)) != 0 {
 			t.Fatal(out)
 		}
+	}
+}
+
+type countFactorLists struct {
+	store.MFA
+	lists, batches int
+}
+
+func (m *countFactorLists) ListAuthenticators(ctx context.Context, tid, uid string) ([]store.Authenticator, error) {
+	m.lists++
+	return m.MFA.ListAuthenticators(ctx, tid, uid)
+}
+func (m *countFactorLists) GuardianUsers(ctx context.Context, tid string, ids []string) ([]string, error) {
+	m.batches++
+	return m.MFA.GuardianUsers(ctx, tid, ids)
+}
+
+type countFactorStore struct {
+	store.Store
+	m *countFactorLists
+}
+
+func (s countFactorStore) MFA() store.MFA { return s.m }
+func TestUsersMultifactorBatched(t *testing.T) {
+	e, uid := mfaUser(t)
+	other := e.mustCreate(t, map[string]any{"email": "pending@example.test"})["user_id"].(string)
+	for _, a := range []store.Authenticator{{UserID: uid, ID: "email", Type: "email", Confirmed: true}, {UserID: other, ID: "pending", Type: "totp"}, {UserID: other, ID: "recovery", Type: "recovery-code", Confirmed: true}, {UserID: other, ID: "passkey", Type: "passkey", Confirmed: true}} {
+		a.TenantID = e.tn.ID
+		if err := e.st.MFA().CreateAuthenticator(t.Context(), &a); err != nil {
+			t.Fatal(err)
+		}
+	}
+	m := &countFactorLists{MFA: e.st.MFA()}
+	e.h.Store = countFactorStore{e.st, m}
+	rec, v := e.list(t, "?fields=user_id,multifactor")
+	if rec.Code != 200 {
+		t.Fatal(rec.Body)
+	}
+	users := v.([]any)
+	if len(users) != 2 {
+		t.Fatalf("users=%v", users)
+	}
+	for _, v := range users {
+		u := v.(map[string]any)
+		want := "[]"
+		if u["user_id"] == uid {
+			want = "[guardian]"
+		}
+		if fmt.Sprint(u["multifactor"]) != want {
+			t.Fatalf("multifactor=%v want %s", u, want)
+		}
+	}
+	if m.lists != 0 || m.batches != 1 {
+		t.Fatalf("MFA loads for page: %d lists, %d batches", m.lists, m.batches)
 	}
 }

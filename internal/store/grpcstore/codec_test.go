@@ -162,7 +162,10 @@ func TestTenantRoundTrip(t *testing.T) {
 
 func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
-		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes", Mobile: &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "T", AppBundleIdentifier: "com.example"}, Android: &store.ClientMobileAndroid{AppPackageName: "com.example", SHA256CertFingerprints: []string{"AA:BB"}}},
+		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
+		PrivateKeyJWTCredentials: []string{"cred_1"}, SignedRequestObject: &store.SignedRequestObject{Required: true, Credentials: []string{"cred_1"}}, TokenExchangeTypes: []string{"urn:example:t"},
+		NativeSocialLogin: map[string]bool{"apple": true, "facebook": false, "google": true},
+		Mobile:            &store.ClientMobile{IOS: &store.ClientMobileIOS{TeamID: "T", AppBundleIdentifier: "com.example"}, Android: &store.ClientMobileAndroid{AppPackageName: "com.example", SHA256CertFingerprints: []string{"AA:BB"}}},
 		Secrets: []store.ClientSecret{
 			{Hash: "h1", CreatedAt: nanoTime},
 			{Hash: "h2", CreatedAt: nanoTime, ExpiresAt: ptr(nanoTime.Add(time.Hour))},
@@ -199,7 +202,7 @@ func TestResourceServerRoundTrip(t *testing.T) {
 		TenantID: "ten", ID: "rs", Identifier: "https://api", Name: "API",
 		EnforcePolicies: true, TokenDialect: "rfc9068_profile_authz",
 		Scopes:     []store.Scope{{Value: "read", Description: "Read"}, {Value: "write"}},
-		SigningAlg: "RS256", TokenLifetime: 7200, TokenLifetimeForWeb: 3600, AllowOfflineAccess: true, CreatedAt: nanoTime,
+		SigningAlg: "RS256", TokenLifetime: 7200, TokenLifetimeForWeb: 3600, SigningSecretSealed: []byte{1, 2}, AllowOfflineAccess: true, CreatedAt: nanoTime,
 		SkipConsentForVerifiableFirstPartyClients: true,
 		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant},
 		IsSystem:                                  true,
@@ -332,7 +335,7 @@ func TestUserRoundTrip(t *testing.T) {
 		UserMetadata: map[string]any{"plan": "pro", "seats": float64(3), "tags": []any{"x", "y"}, "nested": map[string]any{"k": true}, "none": nil},
 		AppMetadata:  map[string]any{"plan": "gold", "n": float64(3), "roles": []any{"a"}},
 		Blocked:      true,
-		Identities: []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$..."},
+		Identities: []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$...", ProviderData: map[string]any{"is_private_email": true}},
 			{Connection: "db", Provider: "auth0", UserID: "u2", PasswordHash: "$argon2id$2", ProfileData: map[string]any{"email": "b@example.test", "email_verified": false}},
 			{Connection: "other", Provider: "auth0", UserID: "u3", ImportedHash: `{"alg":"bcrypt","hash":"$2b$10$x"}`, ProfileData: map[string]any{}}},
 		LastPasswordReset: ptr(nanoTime.Add(-time.Hour)), LastLogin: ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime,
@@ -372,7 +375,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 		Origin:   "https://login.example",
 		TenantID: "ten", CodeHash: "ch", ClientID: "cid", RedirectURI: "https://cb", UserID: "auth0|u1",
 		SessionID: "sid", Scopes: []string{"openid", "email"}, Audience: "https://api", Nonce: "n",
-		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime,
+		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime, MFAAt: nanoTime,
 		ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
 		UsedAt: ptr(nanoTime.Add(time.Second)), ReplayedAt: ptr(nanoTime.Add(2 * time.Second)),
 		ActionEffects: []byte{0, 0xff, 'x'}, OrganizationID: "org_0123456789abcdef", OrganizationConnectionID: "con_original",
@@ -407,7 +410,7 @@ func TestPasswordResetTicketRoundTrip(t *testing.T) {
 
 func TestEmailVerificationTicketRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.EmailVerificationTicket{
-		Origin:   "https://login.example",
+		OrganizationID: "org_abcdefghijklmnop", Origin: "https://login.example",
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
 		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true, Email: "a@b.test",
@@ -518,7 +521,7 @@ func TestErrorMapping(t *testing.T) {
 }
 
 func TestPushedAuthRequestCodecRoundTrip(t *testing.T) {
-	roundTrip(t, "full", &store.PushedAuthRequest{TenantID: "ten", IDHash: "h", ClientID: "cid", Origin: "https://login.example", Params: map[string]string{"state": "s"}, ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime, UsedAt: &nanoTime}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
+	roundTrip(t, "full", &store.PushedAuthRequest{TenantID: "ten", IDHash: "h", ClientID: "cid", Origin: "https://login.example", Params: map[string]string{"state": "s"}, ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime, UsedAt: &nanoTime, Signed: true}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
 	roundTrip(t, "zero", &store.PushedAuthRequest{}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
 	used := time.Date(2026, 1, 2, 3, 4, 5, 6000, time.UTC)
 	for _, in := range []*store.PushedAuthRequest{

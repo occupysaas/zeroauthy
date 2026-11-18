@@ -13,10 +13,11 @@ export const eventTemplates: Record<string, Record<string, unknown>> = {
  'post-change-password': { user, tenant, request, connection },
  'password-reset-post-challenge': { user, client, tenant, request, connection, transaction: { locale: 'en', correlation_id: '' } },
  'custom-email-provider': { user, client, tenant, request, notification: { from: 'sender@example.test', to: 'demo@example.test', subject: 'Sample verification', html: '<p>Sample email</p>', text: 'Sample email', locale: 'en', message_type: 'verify_email' } },
+ 'custom-token-exchange': { client, tenant, request, resource_server: { identifier: 'https://api.example.test/' }, transaction: { subject_token: 'sample-subject-token', subject_token_type: 'urn:example:sample-token', requested_scopes: [], requested_token_type: 'urn:ietf:params:oauth:token-type:access_token' }, secrets: {} },
 }
 
 export const triggerHandlers: Record<string, string> = {
  'event-stream': 'onExecuteEventStream',
- 'post-login': 'onExecutePostLogin', 'credentials-exchange': 'onExecuteCredentialsExchange', 'pre-user-registration': 'onExecutePreUserRegistration', 'post-user-registration': 'onExecutePostUserRegistration', 'post-change-password': 'onExecutePostChangePassword', 'password-reset-post-challenge': 'onExecutePostChallenge', 'custom-email-provider': 'onExecuteCustomEmailProvider',
+ 'post-login': 'onExecutePostLogin', 'credentials-exchange': 'onExecuteCredentialsExchange', 'pre-user-registration': 'onExecutePreUserRegistration', 'post-user-registration': 'onExecutePostUserRegistration', 'post-change-password': 'onExecutePostChangePassword', 'password-reset-post-challenge': 'onExecutePostChallenge', 'custom-email-provider': 'onExecuteCustomEmailProvider', 'custom-token-exchange': 'onExecuteCustomTokenExchange',
 }
 export const triggerCode = (trigger: string) => trigger === 'event-stream' ? `exports.onExecuteEventStream = async (event, api) => {\n  const message = event.message;\n  const secrets = event.secrets;\n  const cache = api.cache;\n};\n` : `exports.${triggerHandlers[trigger]} = async (event, api) => {\n  // Add your Action here.\n};\n`

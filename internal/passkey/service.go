@@ -139,20 +139,7 @@ func (s *Service) Effective(ctx context.Context, tid string, res tenant.Resolved
 	return p, rp, p.Effective && rp.Valid && available, err
 }
 func (s *Service) supported(ctx context.Context) (bool, error) {
-	if cap, ok := s.Store.(store.WebAuthnSupporter); ok {
-		if err := cap.CheckWebAuthnSupport(ctx); err != nil {
-			if errors.Is(err, store.ErrWebAuthnUnavailable) {
-				return false, nil
-			}
-			return false, err
-		}
-		return cap.WebAuthnSupported(), nil
-	}
-	switch s.Store.WebAuthn().(type) {
-	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
-		return false, nil
-	}
-	return true, nil
+	return store.WebAuthnAvailable(ctx, s.Store)
 }
 
 // Login verifies a discoverable assertion and atomically advances the counter.

@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
 	"github.com/zeroauthy/zeroauthy/internal/webauthn"
+	"github.com/zeroauthy/zeroauthy/internal/webauthnrules"
 )
 
 const hostedPasskeyLifetime = 5 * time.Minute
@@ -57,8 +58,7 @@ func (h *Handlers) preparePasskey(r *http.Request, f *flow, data *ui.LoginStageD
 
 // webAuthnErrorName is an allowlist, never text supplied by the browser.
 func webAuthnErrorName(name string) string {
-	switch name {
-	case "NotAllowedError", "InvalidStateError", "NotSupportedError", "SecurityError", "AbortError", "ConstraintError", "UnknownError":
+	if webauthnrules.KnownBrowserError(name) {
 		return name
 	}
 	return "UnknownError"

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { apiError, mountAt } from '../../../test/mount'
 import { client, connection, type Call } from '../../../test/services'
 import Create from './Create.vue'
+import { appleKey } from '../../../test/apple'
+import { appStorageKeys } from '../../../test/storage'
 
 const apps = (c: Call) =>
   new URL(c.url).pathname === '/api/v2/clients' ? { status: 200, body: { clients: [client('a1', { name: 'Web' })], start: 0, limit: 100, total: 1 } } : undefined
@@ -14,7 +16,7 @@ async function open(handler: (c: Call) => unknown = () => ({ status: 201, body: 
 describe('Create social connection', () => {
   it('offers social providers once and keeps generic OIDC reachable through Enterprise', async () => {
     const { wrapper } = await open()
-    expect(wrapper.findAll('input[name="strategy"]').map((i) => (i.element as HTMLInputElement).value)).toEqual(['google-oauth2', 'oauth2', 'windowslive'])
+    expect(wrapper.findAll('input[name="strategy"]').map((i) => (i.element as HTMLInputElement).value)).toEqual(['google-oauth2', 'oauth2', 'windowslive', 'apple'])
     expect(wrapper.find('[data-testid="oidc-subset"]').exists()).toBe(false)
     expect(wrapper.find('a[href="/admin/t/acme/enterprise/new"]').exists()).toBe(true)
     await wrapper.find('input[value="oauth2"]').setValue(true)
@@ -73,7 +75,7 @@ describe('Create social connection', () => {
       options: { client_id: 'cid', client_secret: 's3cret', type: 'back_channel', discovery_url: 'https://idp.example/.well-known/openid-configuration', scopes: 'openid profile email' },
     })
     expect(router.currentRoute.value.path).toBe('/t/acme/enterprise/con_new')
-    expect(window.localStorage.length + window.sessionStorage.length).toBe(0)
+    expect(appStorageKeys()).toEqual([])
     wrapper.unmount()
   })
 
@@ -134,6 +136,27 @@ describe('Microsoft personal setup', () => {
     expect(wrapper.find('#social-client-id-error').text()).toContain('GUID')
     expect(wrapper.find('#social-client-secret-error').exists()).toBe(true)
     expect(calls.filter(c => c.method === 'POST')).toHaveLength(0)
+    wrapper.unmount()
+  })
+})
+
+describe('Apple setup', () => {
+  it('checks the pasted key and sends Apple fields without a client_secret', async () => {
+    const { wrapper, calls } = await open()
+    await wrapper.find('input[value="apple"]').setValue(true)
+    await wrapper.find('#social-name').setValue('apple')
+    await wrapper.find('#social-client-id').setValue('test.acme.web')
+    await wrapper.find('#apple-team').setValue('ABCDE12345')
+    await wrapper.find('#apple-kid').setValue('ABCDE67890')
+    await wrapper.find('#apple-key').setValue('invalid-private-material')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect(wrapper.find('#apple-key-error').text()).toContain('PKCS#8')
+    expect(calls.filter(c => c.method === 'POST')).toHaveLength(0)
+    await wrapper.find('#apple-key').setValue(appleKey)
+    await wrapper.find('#apple-name').setValue(false)
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect(calls.find(c => c.method === 'POST')?.body).toEqual({ name: 'apple', strategy: 'apple', enabled_clients: [], options: { client_id: 'test.acme.web', team_id: 'ABCDE12345', kid: 'ABCDE67890', app_secret: appleKey, name: false, email: true } })
+    expect(wrapper.find<HTMLTextAreaElement>('#apple-key').element.value).toBe('')
     wrapper.unmount()
   })
 })

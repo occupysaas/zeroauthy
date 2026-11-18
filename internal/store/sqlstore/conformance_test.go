@@ -14,6 +14,11 @@ var _ store.Store = (*Store)(nil)
 func TestConformance(t *testing.T) {
 	for name, fresh := range dialectsUnderTest(t) {
 		t.Run(name, func(t *testing.T) {
+			// A regression must fail here, never show up as a silent SKIP of
+			// the ClientCredentials suite.
+			if !store.ClientCredentialsAvailable(context.Background(), fresh(t)) {
+				t.Fatal("SQL store must report client credentials available")
+			}
 			storetest.Run(t, func(t *testing.T) store.Store { return fresh(t) })
 		})
 	}

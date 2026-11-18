@@ -200,7 +200,8 @@ it('shows eight trigger choices from the catalogue', async () => {
 })
 it('offers each trigger sample payload and preserves manual event edits until explicitly loading a template', async () => {
  const { wrapper: w } = await setup('action-test', '/t/acme/actions/a/test', () => ok(action()))
- expect(w.findAll('#event-template option')).toHaveLength(8)
+ expect(w.findAll('#event-template option')).toHaveLength(9)
+ expect(w.findAll('#event-template option').map(o => o.text())).toContain('custom-token-exchange')
  await w.get('#event-template').setValue('custom-email-provider'); await click(w, 'Load sample event'); await flushPromises()
  expect(JSON.parse((w.get('#action-event').element as HTMLTextAreaElement).value)).toHaveProperty('notification.to')
  await w.get('#action-event').setValue('{"my":"draft"}'); await w.get('#event-template').setValue('pre-user-registration')
@@ -212,7 +213,7 @@ it('shows actual persisted job attempts via the local operator endpoint', async 
 })
 
 it('creates correct entrypoint templates for every trigger', async () => {
- const handlers = ['onExecuteEventStream', 'onExecutePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onExecuteCustomEmailProvider']
+ const handlers = ['onExecuteEventStream', 'onExecutePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onExecuteCustomEmailProvider', 'onExecuteCustomTokenExchange']
  const { triggerCode, eventTemplates } = await import('./templates')
  Object.keys(eventTemplates).forEach((id, i) => { expect(triggerCode(id)).toContain(`exports.${handlers[i]} = async (event, api)`); expect(eventTemplates[id]).toHaveProperty(id === 'event-stream' ? 'message' : 'tenant') })
 })

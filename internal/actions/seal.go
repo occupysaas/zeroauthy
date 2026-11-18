@@ -21,17 +21,21 @@ const (
 )
 
 // sealedEffects is the part of Effects that outlives the flow: claims and
-// scope edits. Metadata is committed (or discarded) when the flow ends and
-// transaction metadata never leaves it.
+// scope edits. Consent also retains deletion keys for deferred invitation
+// defaults; metadata values commit when the flow ends. Transaction metadata
+// never leaves the flow.
 type sealedEffects struct {
-	MFA          *MFAEffects    `json:"mfa,omitempty"`
-	RBAC         *RBACSnapshot  `json:"rbac,omitempty"`
-	AccessClaims map[string]any `json:"access_claims,omitempty"`
-	IDClaims     map[string]any `json:"id_claims,omitempty"`
-	AddScopes    []string       `json:"add_scopes,omitempty"`
-	RemoveScopes []string       `json:"remove_scopes,omitempty"`
-	Target       *[]string      `json:"target,omitempty"`
-	Ceiling      *[]string      `json:"ceiling,omitempty"`
+	// Only explicit deletion keys survive consent to suppress deferred invitation defaults.
+	DeletedAppMetadata  []string       `json:"deleted_app_metadata,omitempty"`
+	DeletedUserMetadata []string       `json:"deleted_user_metadata,omitempty"`
+	MFA                 *MFAEffects    `json:"mfa,omitempty"`
+	RBAC                *RBACSnapshot  `json:"rbac,omitempty"`
+	AccessClaims        map[string]any `json:"access_claims,omitempty"`
+	IDClaims            map[string]any `json:"id_claims,omitempty"`
+	AddScopes           []string       `json:"add_scopes,omitempty"`
+	RemoveScopes        []string       `json:"remove_scopes,omitempty"`
+	Target              *[]string      `json:"target,omitempty"`
+	Ceiling             *[]string      `json:"ceiling,omitempty"`
 }
 
 // SealEffects envelope-encrypts e's token effects (custom claims may be
@@ -46,6 +50,16 @@ func SealEffects(w keys.Wrapper, tenantID, purpose string, e *Effects, bind ...s
 		s = sealedEffects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes, RBAC: e.RBAC}
 		if purpose == SealConsent {
 			s.MFA = e.MFA
+			for k, v := range e.AppMetadata {
+				if v == nil {
+					s.DeletedAppMetadata = append(s.DeletedAppMetadata, k)
+				}
+			}
+			for k, v := range e.UserMetadata {
+				if v == nil {
+					s.DeletedUserMetadata = append(s.DeletedUserMetadata, k)
+				}
+			}
 		}
 		if e.Target != nil {
 			t := append([]string{}, e.Target.Scopes...)
@@ -78,6 +92,20 @@ func OpenEffects(w keys.Wrapper, tenantID, purpose string, sealed []byte, bind .
 		return nil, fmt.Errorf("actions: decoding effects: %w", err)
 	}
 	e := &Effects{MFA: s.MFA, AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes, RBAC: s.RBAC}
+	if purpose == SealConsent {
+		if len(s.DeletedAppMetadata) > 0 {
+			e.AppMetadata = map[string]any{}
+			for _, k := range s.DeletedAppMetadata {
+				e.AppMetadata[k] = nil
+			}
+		}
+		if len(s.DeletedUserMetadata) > 0 {
+			e.UserMetadata = map[string]any{}
+			for _, k := range s.DeletedUserMetadata {
+				e.UserMetadata[k] = nil
+			}
+		}
+	}
 	if s.Target != nil {
 		e.Target = &TargetEdit{Scopes: *s.Target}
 	}

@@ -31,7 +31,7 @@ func attemptToPB(a *store.FederationAttempt) (*storev1.FederationAttempt, error)
 		CallbackUrl: a.CallbackURL, Issuer: a.Issuer,
 		Endpoints: &storev1.FederationEndpoints{
 			AuthorizationUrl: a.Endpoints.AuthorizationURL, TokenUrl: a.Endpoints.TokenURL, JwksUrl: a.Endpoints.JWKSURL,
-			UserinfoUrl: a.Endpoints.UserInfoURL, TokenAuthMethod: a.Endpoints.TokenAuthMethod,
+			UserinfoUrl: a.Endpoints.UserInfoURL, TokenAuthMethod: a.Endpoints.TokenAuthMethod, PkceS256: a.Endpoints.PKCES256,
 		},
 		ExpiresAt: tsToPB(a.ExpiresAt), Status: a.Status, Superseded: a.Superseded, CreatedAt: tsToPB(a.CreatedAt),
 	}
@@ -58,7 +58,7 @@ func attemptFromPB(pb *storev1.FederationAttempt) (*store.FederationAttempt, err
 		CallbackURL: pb.CallbackUrl, Issuer: pb.Issuer,
 		Endpoints: store.FederationEndpoints{
 			AuthorizationURL: e.GetAuthorizationUrl(), TokenURL: e.GetTokenUrl(), JWKSURL: e.GetJwksUrl(),
-			UserInfoURL: e.GetUserinfoUrl(), TokenAuthMethod: e.GetTokenAuthMethod(),
+			UserInfoURL: e.GetUserinfoUrl(), TokenAuthMethod: e.GetTokenAuthMethod(), PKCES256: e.GetPkceS256(),
 		},
 		ExpiresAt: tsFromPB(pb.ExpiresAt), Status: pb.Status, Superseded: pb.Superseded, CreatedAt: tsFromPB(pb.CreatedAt),
 	}

@@ -80,7 +80,28 @@ describe('users list', () => {
     expect(new URL(usersCalls(calls).at(-1)!.url).searchParams.get('sort')).toBe('last_login:-1')
     await wrapper.get('#users-connection').setValue('Users c0')
     await flushPromises()
-    expect(new URL(usersCalls(calls).at(-1)!.url).searchParams.get('connection')).toBe('Users c0')
+    const params = new URL(usersCalls(calls).at(-1)!.url).searchParams
+    expect(params.get('q')).toBeNull()
+    expect(params.get('console_connection')).toBe('Users c0')
+    expect(params.has('connection')).toBe(false)
+    wrapper.unmount()
+  })
+
+  it.each([
+    ['boolean expression', 'name:Ada OR name:Grace'],
+    ['terminal escape', 'name:Ada\\'],
+    ['Go whitespace', '\u0085'],
+    ['literal zero-width no-break space', '\uFEFF'],
+    ['maximum group depth', '('.repeat(64) + 'name:Grace' + ')'.repeat(64)],
+    ['malformed expression', 'name:Ada) OR (name:Grace'],
+  ])('forwards the %s unchanged with a connection selection', async (_, q) => {
+    const connection = 'A "quoted" \\ name'
+    const query = new URLSearchParams({ q, connection })
+    const { wrapper, calls } = await mountAt(List, `/t/acme/users?${query}`, backend([]))
+    const params = new URL(usersCalls(calls).at(-1)!.url).searchParams
+    expect(params.get('q')).toBe(q)
+    expect(params.get('console_connection')).toBe(connection)
+    expect(params.has('connection')).toBe(false)
     wrapper.unmount()
   })
 

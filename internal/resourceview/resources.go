@@ -3,6 +3,7 @@ package resourceview
 
 import (
 	"encoding/json"
+	"maps"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
@@ -55,8 +56,13 @@ func User(u *store.User) map[string]any {
 
 func Identity(id *store.Identity) map[string]any {
 	m := map[string]any{"connection": id.Connection, "user_id": id.UserID, "provider": id.Provider, "isSocial": rules.IsSocial(id.Provider)}
-	if id.Linked() {
-		m["profileData"] = id.ProfileData
+	if id.Linked() || id.ProviderData != nil {
+		pd := maps.Clone(id.ProfileData)
+		if pd == nil {
+			pd = map[string]any{}
+		}
+		maps.Copy(pd, id.ProviderData)
+		m["profileData"] = pd
 	}
 	return m
 }
@@ -121,5 +127,5 @@ func Connection(spec *connrules.Spec, id string, withClients bool) (map[string]a
 var passwordlessHiddenOptions = []string{"requires_username", "enabledDatabaseCustomization", "import_mode", "password_options", "validation"}
 
 // federatedHiddenOptions are left out of a federated connection's options.
-var federatedHiddenOptions = []string{"client_secret", "disable_signup", "requires_username",
+var federatedHiddenOptions = []string{"client_secret", "app_secret", "disable_signup", "requires_username",
 	"enabledDatabaseCustomization", "import_mode", "password_options", "brute_force_protection", "validation"}

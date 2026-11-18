@@ -135,15 +135,16 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
-	organization *store.Organization
-	user         *store.User
-	rs           *store.ResourceServer // nil: the token is for /userinfo only
-	lifetime     time.Duration
-	scopes       []string
-	nonce        string
-	sessionID    string
-	authTime     time.Time
-	mfaAt        time.Time
+	organization      *store.Organization
+	user              *store.User
+	rs                *store.ResourceServer // nil: the token is for /userinfo only
+	lifetime          time.Duration
+	scopes            []string
+	nonce             string
+	sessionID         string
+	authTime          time.Time
+	mfaAt             time.Time
+	refreshSessionMFA bool // Refresh grants retain their existing live session lookup.
 	// grantType becomes the access token's gty claim; empty omits it.
 	grantType string
 	// omitAtHash leaves at_hash out of the ID token.
@@ -151,6 +152,9 @@ type userTokens struct {
 	// effects are the post-login flow's: custom claims and accessToken
 	// scope edits. nil when no Action ran.
 	effects *actions.Effects
+	// actor is the access token's act claim (custom token exchange); nil
+	// omits it.
+	actor map[string]any
 }
 
 // mintUserTokens returns an access token and, with scope openid, an ID
@@ -234,11 +238,17 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			idClaims[k] = v
 		}
 	}
+	signingAlg, signingSecret, err := h.apiSigning(ut.rs)
+	if err != nil {
+		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
+		return nil, false, serverError()
+	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
+		SigningAlg: signingAlg, SigningSecret: signingSecret,
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
 		ClientID: c.ClientID, Scopes: final, Lifetime: ut.lifetime, GrantType: ut.grantType,
 		Operator: operator, TokenDialect: dialect, Permissions: auth.Permissions, IncludePermissions: auth.IncludePermissions,
-		CustomClaims: accessClaims,
+		CustomClaims: accessClaims, Actor: ut.actor,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
@@ -256,7 +266,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			atHashSource = ""
 		}
 		mfaAt := ut.mfaAt
-		if ut.sessionID != "" {
+		if ut.refreshSessionMFA && ut.sessionID != "" {
 			sess, err := h.Store.Sessions().Get(ctx, tenantID, ut.sessionID)
 			if err != nil && !errors.Is(err, store.ErrNotFound) {
 				return nil, false, serverError()

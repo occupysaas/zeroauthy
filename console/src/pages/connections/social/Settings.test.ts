@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { mountAt } from '../../../test/mount'
 import { connection } from '../../../test/services'
 import Detail from './Detail.vue'
+import { appleKey } from '../../../test/apple'
 
 const clientId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 describe('Microsoft settings', () => {
@@ -38,6 +39,31 @@ describe('Microsoft settings', () => {
     const { wrapper } = await mountAt(Detail, '/t/acme/enterprise/con_ms', () => ({ status: 200, body: item }))
     expect(wrapper.find('#microsoft-tenant').exists()).toBe(false)
     expect(wrapper.find('[data-testid="any-organization-warning"]').text()).toContain('every organizational directory')
+    wrapper.unmount()
+  })
+})
+
+describe('Apple settings', () => {
+  it('keeps Services ID immutable, preserves an omitted key, rotates write-only key and updates scopes', async () => {
+    const options = { client_id: 'test.acme.web', team_id: 'ABCDE12345', kid: 'ABCDE67890', name: true, email: true, scope: 'name email' }
+    const item = connection('con_apple', { strategy: 'apple', options })
+    const { wrapper, calls } = await mountAt(Detail, '/t/acme/social/con_apple', () => ({ status: 200, body: item }))
+    expect(wrapper.find<HTMLInputElement>('#social-client-id').element.readOnly).toBe(true)
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    const first = (calls.find(c => c.method === 'PATCH')?.body as {options: Record<string, unknown>}).options
+    expect(first.app_secret).toBeUndefined(); expect(first.client_secret).toBeUndefined()
+    await wrapper.find('#apple-key').setValue('not-a-key')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect(calls.filter(c => c.method === 'PATCH')).toHaveLength(1)
+    await wrapper.find('#apple-key').setValue(appleKey)
+    await wrapper.find('#apple-team').setValue('ABCDE54321')
+    await wrapper.find('#apple-kid').setValue('ABCDE09876')
+    await wrapper.find('#apple-name').setValue(false)
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    const second = (calls.filter(c => c.method === 'PATCH')[1]?.body as {options: Record<string, unknown>}).options
+    expect(second).toMatchObject({app_secret: appleKey, team_id: 'ABCDE54321', kid: 'ABCDE09876', name: false, email: true})
+    expect(second.scope).toBeUndefined(); expect(second.client_secret).toBeUndefined()
+    expect(wrapper.find<HTMLTextAreaElement>('#apple-key').element.value).toBe('')
     wrapper.unmount()
   })
 })

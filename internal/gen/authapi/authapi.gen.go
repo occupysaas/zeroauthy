@@ -205,6 +205,21 @@ func (e MFAChallengeRequestChallengeType) Valid() bool {
 	}
 }
 
+// Defines values for MFAChallengeRequestClientAssertionType.
+const (
+	MFAChallengeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer MFAChallengeRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the MFAChallengeRequestClientAssertionType enum.
+func (e MFAChallengeRequestClientAssertionType) Valid() bool {
+	switch e {
+	case MFAChallengeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MFAChallengeResponseBindingMethod.
 const (
 	MFAChallengeResponseBindingMethodPrompt MFAChallengeResponseBindingMethod = "prompt"
@@ -253,6 +268,48 @@ func (e MFARequiredError) Valid() bool {
 	}
 }
 
+// Defines values for OpenIDConfigurationRequestObjectSigningAlgValuesSupported.
+const (
+	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedPS256 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "PS256"
+	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS256 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "RS256"
+	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS384 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "RS384"
+)
+
+// Valid indicates whether the value is a known member of the OpenIDConfigurationRequestObjectSigningAlgValuesSupported enum.
+func (e OpenIDConfigurationRequestObjectSigningAlgValuesSupported) Valid() bool {
+	switch e {
+	case OpenIDConfigurationRequestObjectSigningAlgValuesSupportedPS256:
+		return true
+	case OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS256:
+		return true
+	case OpenIDConfigurationRequestObjectSigningAlgValuesSupportedRS384:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported.
+const (
+	OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedPS256 OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported = "PS256"
+	OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS256 OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported = "RS256"
+	OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS384 OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported = "RS384"
+)
+
+// Valid indicates whether the value is a known member of the OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported enum.
+func (e OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported) Valid() bool {
+	switch e {
+	case OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedPS256:
+		return true
+	case OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS256:
+		return true
+	case OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupportedRS384:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PasskeyNotFoundError.
 const (
 	NotFound PasskeyNotFoundError = "not_found"
@@ -270,13 +327,13 @@ func (e PasskeyNotFoundError) Valid() bool {
 
 // Defines values for PasswordlessStartRequestClientAssertionType.
 const (
-	UrnIetfParamsOauthClientAssertionTypeJwtBearer PasswordlessStartRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+	PasswordlessStartRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer PasswordlessStartRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 )
 
 // Valid indicates whether the value is a known member of the PasswordlessStartRequestClientAssertionType enum.
 func (e PasswordlessStartRequestClientAssertionType) Valid() bool {
 	switch e {
-	case UrnIetfParamsOauthClientAssertionTypeJwtBearer:
+	case PasswordlessStartRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
 		return true
 	default:
 		return false
@@ -319,6 +376,21 @@ func (e PasswordlessStartRequestSend) Valid() bool {
 	}
 }
 
+// Defines values for PushedAuthorizationRequestClientAssertionType.
+const (
+	PushedAuthorizationRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer PushedAuthorizationRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the PushedAuthorizationRequestClientAssertionType enum.
+func (e PushedAuthorizationRequestClientAssertionType) Valid() bool {
+	switch e {
+	case PushedAuthorizationRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PushedAuthorizationResponseExpiresIn.
 const (
 	N30 PushedAuthorizationResponseExpiresIn = 30
@@ -328,6 +400,66 @@ const (
 func (e PushedAuthorizationResponseExpiresIn) Valid() bool {
 	switch e {
 	case N30:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RevokeRequestClientAssertionType.
+const (
+	RevokeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer RevokeRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the RevokeRequestClientAssertionType enum.
+func (e RevokeRequestClientAssertionType) Valid() bool {
+	switch e {
+	case RevokeRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TokenFormRequestClientAssertionType.
+const (
+	TokenFormRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer TokenFormRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the TokenFormRequestClientAssertionType enum.
+func (e TokenFormRequestClientAssertionType) Valid() bool {
+	switch e {
+	case TokenFormRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TokenRequestClientAssertionType.
+const (
+	TokenRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer TokenRequestClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the TokenRequestClientAssertionType enum.
+func (e TokenRequestClientAssertionType) Valid() bool {
+	switch e {
+	case TokenRequestClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TokenRequestFieldsClientAssertionType.
+const (
+	TokenRequestFieldsClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer TokenRequestFieldsClientAssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Valid indicates whether the value is a known member of the TokenRequestFieldsClientAssertionType enum.
+func (e TokenRequestFieldsClientAssertionType) Valid() bool {
+	switch e {
+	case TokenRequestFieldsClientAssertionTypeUrnIetfParamsOauthClientAssertionTypeJwtBearer:
 		return true
 	default:
 		return false
@@ -449,8 +581,6 @@ type ExtensibilityErrorStatusCode int
 
 // JWK defines model for JWK.
 type JWK struct {
-	// Alg Examples: RS256
-	Alg string `json:"alg"`
 	E   string `json:"e"`
 	Kid string `json:"kid"`
 
@@ -517,15 +647,20 @@ type MFAAuthenticatorAuthenticatorType string
 
 // MFAChallengeRequest defines model for MFAChallengeRequest.
 type MFAChallengeRequest struct {
-	AuthenticatorId *string                          `json:"authenticator_id,omitempty"`
-	ChallengeType   MFAChallengeRequestChallengeType `json:"challenge_type"`
-	ClientId        *string                          `json:"client_id,omitempty"`
-	ClientSecret    *string                          `json:"client_secret,omitempty"`
-	MfaToken        *string                          `json:"mfa_token,omitempty"`
+	AuthenticatorId     *string                                 `json:"authenticator_id,omitempty"`
+	ChallengeType       MFAChallengeRequestChallengeType        `json:"challenge_type"`
+	ClientAssertion     *string                                 `json:"client_assertion,omitempty"`
+	ClientAssertionType *MFAChallengeRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                                 `json:"client_id,omitempty"`
+	ClientSecret        *string                                 `json:"client_secret,omitempty"`
+	MfaToken            *string                                 `json:"mfa_token,omitempty"`
 }
 
 // MFAChallengeRequestChallengeType defines model for MFAChallengeRequest.ChallengeType.
 type MFAChallengeRequestChallengeType string
+
+// MFAChallengeRequestClientAssertionType defines model for MFAChallengeRequest.ClientAssertionType.
+type MFAChallengeRequestClientAssertionType string
 
 // MFAChallengeResponse defines model for MFAChallengeResponse.
 type MFAChallengeResponse struct {
@@ -555,6 +690,17 @@ type MFARequired struct {
 
 // MFARequiredError defines model for MFARequired.Error.
 type MFARequiredError string
+
+// NativeSocialUserProfile Native iOS first-login name (D-0170). At most 1024 UTF-8
+// bytes of JSON, enforced by the handler. For form requests encode
+// this object as JSON in user_profile. Untrusted profile values are
+// used only after the Apple ID token has validated.
+type NativeSocialUserProfile struct {
+	Name *struct {
+		FirstName *string `json:"firstName,omitempty"`
+		LastName  *string `json:"lastName,omitempty"`
+	} `json:"name,omitempty"`
+}
 
 // OAuthError defines model for OAuthError.
 type OAuthError struct {
@@ -594,20 +740,34 @@ type OpenIDConfiguration struct {
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
 
-	// RequestParameterSupported Always false: request objects are refused with `request_not_supported`.
+	// RequestObjectSigningAlgValuesSupported Algorithms accepted for request objects; present when the store supports client credentials.
+	RequestObjectSigningAlgValuesSupported *[]OpenIDConfigurationRequestObjectSigningAlgValuesSupported `json:"request_object_signing_alg_values_supported,omitempty"`
+
+	// RequestParameterSupported Present and true when the store supports client credentials (D-0063, lifting D-0035): signed request objects are processed and unsigned ones are refused.
 	RequestParameterSupported *bool `json:"request_parameter_supported,omitempty"`
 
 	// RequestUriParameterSupported Always false: `request_uri` is accepted only from `/oauth/par`.
-	RequestUriParameterSupported      *bool     `json:"request_uri_parameter_supported,omitempty"`
-	ResponseModesSupported            *[]string `json:"response_modes_supported,omitempty"`
-	ResponseTypesSupported            []string  `json:"response_types_supported"`
-	RevocationEndpoint                *string   `json:"revocation_endpoint,omitempty"`
-	ScopesSupported                   *[]string `json:"scopes_supported,omitempty"`
-	SubjectTypesSupported             []string  `json:"subject_types_supported"`
-	TokenEndpoint                     string    `json:"token_endpoint"`
+	RequestUriParameterSupported *bool     `json:"request_uri_parameter_supported,omitempty"`
+	ResponseModesSupported       *[]string `json:"response_modes_supported,omitempty"`
+	ResponseTypesSupported       []string  `json:"response_types_supported"`
+	RevocationEndpoint           *string   `json:"revocation_endpoint,omitempty"`
+	ScopesSupported              *[]string `json:"scopes_supported,omitempty"`
+	SubjectTypesSupported        []string  `json:"subject_types_supported"`
+	TokenEndpoint                string    `json:"token_endpoint"`
+
+	// TokenEndpointAuthMethodsSupported Lists `private_key_jwt` when the store supports client credentials.
 	TokenEndpointAuthMethodsSupported *[]string `json:"token_endpoint_auth_methods_supported,omitempty"`
-	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
+
+	// TokenEndpointAuthSigningAlgValuesSupported Algorithms accepted for client assertions; present when the store supports client credentials.
+	TokenEndpointAuthSigningAlgValuesSupported *[]OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
+	UserinfoEndpoint                           *string                                                          `json:"userinfo_endpoint,omitempty"`
 }
+
+// OpenIDConfigurationRequestObjectSigningAlgValuesSupported defines model for OpenIDConfiguration.RequestObjectSigningAlgValuesSupported.
+type OpenIDConfigurationRequestObjectSigningAlgValuesSupported string
+
+// OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported defines model for OpenIDConfiguration.TokenEndpointAuthSigningAlgValuesSupported.
+type OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported string
 
 // PasskeyChallengeRequest defines model for PasskeyChallengeRequest.
 type PasskeyChallengeRequest struct {
@@ -709,15 +869,25 @@ type PasswordlessStartResponse struct {
 
 // PushedAuthorizationRequest The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
 type PushedAuthorizationRequest struct {
-	Audience             *string           `json:"audience,omitempty"`
-	ClientId             *string           `json:"client_id,omitempty"`
-	ClientSecret         *string           `json:"client_secret,omitempty"`
-	RedirectUri          *string           `json:"redirect_uri,omitempty"`
+	Audience *string `json:"audience,omitempty"`
+
+	// ClientAssertion A signed client assertion JWT (`private_key_jwt`).
+	ClientAssertion     *string                                        `json:"client_assertion,omitempty"`
+	ClientAssertionType *PushedAuthorizationRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                                        `json:"client_id,omitempty"`
+	ClientSecret        *string                                        `json:"client_secret,omitempty"`
+	RedirectUri         *string                                        `json:"redirect_uri,omitempty"`
+
+	// Request A signed request object (JAR).
+	Request              *string           `json:"request,omitempty"`
 	ResponseType         *string           `json:"response_type,omitempty"`
 	Scope                *string           `json:"scope,omitempty"`
 	State                *string           `json:"state,omitempty"`
 	AdditionalProperties map[string]string `json:"-"`
 }
+
+// PushedAuthorizationRequestClientAssertionType defines model for PushedAuthorizationRequest.ClientAssertionType.
+type PushedAuthorizationRequestClientAssertionType string
 
 // PushedAuthorizationResponse defines model for PushedAuthorizationResponse.
 type PushedAuthorizationResponse struct {
@@ -732,8 +902,10 @@ type PushedAuthorizationResponseExpiresIn int
 
 // RevokeRequest defines model for RevokeRequest.
 type RevokeRequest struct {
-	ClientId     *string `json:"client_id,omitempty"`
-	ClientSecret *string `json:"client_secret,omitempty"`
+	ClientAssertion     *string                           `json:"client_assertion,omitempty"`
+	ClientAssertionType *RevokeRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                           `json:"client_id,omitempty"`
+	ClientSecret        *string                           `json:"client_secret,omitempty"`
 
 	// Token The refresh token to revoke.
 	Token string `json:"token"`
@@ -741,6 +913,9 @@ type RevokeRequest struct {
 	// TokenTypeHint Accepted and ignored; only refresh tokens can be revoked.
 	TokenTypeHint *string `json:"token_type_hint,omitempty"`
 }
+
+// RevokeRequestClientAssertionType defines model for RevokeRequest.ClientAssertionType.
+type RevokeRequestClientAssertionType string
 
 // SignupFormRequest The form-encoded variant of SignupRequest. Form bodies cannot carry
 // the `user_metadata` object.
@@ -798,15 +973,25 @@ type SignupResponse struct {
 	Username      *string `json:"username,omitempty"`
 }
 
-// TokenRequest defines model for TokenRequest.
-type TokenRequest struct {
+// TokenFormRequest defines model for TokenFormRequest.
+type TokenFormRequest struct {
+	// ActorToken Optional token of the acting party (token-exchange grant). Never logged.
+	ActorToken *string `json:"actor_token,omitempty"`
+
+	// ActorTokenType Required with `actor_token`.
+	ActorTokenType *string `json:"actor_token_type,omitempty"`
+
 	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
-	Audience      *string                     `json:"audience,omitempty"`
-	AuthSession   *string                     `json:"auth_session,omitempty"`
-	AuthnResponse *TokenRequest_AuthnResponse `json:"authn_response,omitempty"`
-	BindingCode   *string                     `json:"binding_code,omitempty"`
-	ClientId      *string                     `json:"client_id,omitempty"`
-	ClientSecret  *string                     `json:"client_secret,omitempty"`
+	Audience      *string                         `json:"audience,omitempty"`
+	AuthSession   *string                         `json:"auth_session,omitempty"`
+	AuthnResponse *TokenFormRequest_AuthnResponse `json:"authn_response,omitempty"`
+	BindingCode   *string                         `json:"binding_code,omitempty"`
+
+	// ClientAssertion A signed JWT that authenticates the application (`private_key_jwt`, RFC 7523). At most 2048 bytes; never logged.
+	ClientAssertion     *string                              `json:"client_assertion,omitempty"`
+	ClientAssertionType *TokenFormRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                              `json:"client_id,omitempty"`
+	ClientSecret        *string                              `json:"client_secret,omitempty"`
 
 	// Code Authorization code (grant_type=authorization_code).
 	Code *string `json:"code,omitempty"`
@@ -836,8 +1021,104 @@ type TokenRequest struct {
 	// RefreshToken Refresh token (grant_type=refresh_token).
 	RefreshToken *string `json:"refresh_token,omitempty"`
 
+	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
+
+	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
+	SubjectToken *string `json:"subject_token,omitempty"`
+
+	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the native Apple exchange and never invokes a custom profile (D-0170).
+	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+
+	// UserProfile JSON-encoded NativeSocialUserProfile; the handler enforces a 1024 UTF-8 byte bound before decoding.
+	UserProfile *string `json:"user_profile,omitempty"`
+
+	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
+	Username *string `json:"username,omitempty"`
+}
+
+// TokenFormRequestAuthnResponse0 defines model for TokenFormRequest.AuthnResponse.0.
+type TokenFormRequestAuthnResponse0 = string
+
+// TokenFormRequestAuthnResponse1 defines model for TokenFormRequest.AuthnResponse.1.
+type TokenFormRequestAuthnResponse1 map[string]interface{}
+
+// TokenFormRequest_AuthnResponse defines model for TokenFormRequest.AuthnResponse.
+type TokenFormRequest_AuthnResponse struct {
+	union json.RawMessage
+}
+
+// TokenFormRequestClientAssertionType defines model for TokenFormRequest.ClientAssertionType.
+type TokenFormRequestClientAssertionType string
+
+// TokenRequest defines model for TokenRequest.
+type TokenRequest struct {
+	// ActorToken Optional token of the acting party (token-exchange grant). Never logged.
+	ActorToken *string `json:"actor_token,omitempty"`
+
+	// ActorTokenType Required with `actor_token`.
+	ActorTokenType *string `json:"actor_token_type,omitempty"`
+
+	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	Audience      *string                     `json:"audience,omitempty"`
+	AuthSession   *string                     `json:"auth_session,omitempty"`
+	AuthnResponse *TokenRequest_AuthnResponse `json:"authn_response,omitempty"`
+	BindingCode   *string                     `json:"binding_code,omitempty"`
+
+	// ClientAssertion A signed JWT that authenticates the application (`private_key_jwt`, RFC 7523). At most 2048 bytes; never logged.
+	ClientAssertion     *string                          `json:"client_assertion,omitempty"`
+	ClientAssertionType *TokenRequestClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                          `json:"client_id,omitempty"`
+	ClientSecret        *string                          `json:"client_secret,omitempty"`
+
+	// Code Authorization code (grant_type=authorization_code).
+	Code *string `json:"code,omitempty"`
+
+	// CodeVerifier PKCE verifier for the code_challenge sent to /authorize.
+	CodeVerifier *string `json:"code_verifier,omitempty"`
+
+	// GrantType Examples: client_credentials
+	GrantType string  `json:"grant_type"`
+	MfaToken  *string `json:"mfa_token,omitempty"`
+	OobCode   *string `json:"oob_code,omitempty"`
+
+	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The native passkey grant binds an organization through membership, connection and application policy. The password, password-realm and device code grants ignore it (D-0055).
+	Organization *string `json:"organization,omitempty"`
+	Otp          *string `json:"otp,omitempty"`
+
+	// Password The user's password (password grants).
+	Password *string `json:"password,omitempty"`
+
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), email/sms for the passwordless OTP grant, or a database realm for the native passkey grant.
+	Realm        *string `json:"realm,omitempty"`
+	RecoveryCode *string `json:"recovery_code,omitempty"`
+
+	// RedirectUri Must equal the redirect_uri of the authorization request.
+	RedirectUri *string `json:"redirect_uri,omitempty"`
+
+	// RefreshToken Refresh token (grant_type=refresh_token).
+	RefreshToken *string `json:"refresh_token,omitempty"`
+
+	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
+	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	Scope *string `json:"scope,omitempty"`
+
+	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
+	SubjectToken *string `json:"subject_token,omitempty"`
+
+	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the native Apple exchange and never invokes a custom profile (D-0170).
+	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+
+	// UserProfile Native iOS first-login name (D-0170). At most 1024 UTF-8
+	// bytes of JSON, enforced by the handler. For form requests encode
+	// this object as JSON in user_profile. Untrusted profile values are
+	// used only after the Apple ID token has validated.
+	UserProfile *NativeSocialUserProfile `json:"user_profile,omitempty"`
 
 	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
 	Username *string `json:"username,omitempty"`
@@ -854,6 +1135,87 @@ type TokenRequest_AuthnResponse struct {
 	union json.RawMessage
 }
 
+// TokenRequestClientAssertionType defines model for TokenRequest.ClientAssertionType.
+type TokenRequestClientAssertionType string
+
+// TokenRequestFields defines model for TokenRequestFields.
+type TokenRequestFields struct {
+	// ActorToken Optional token of the acting party (token-exchange grant). Never logged.
+	ActorToken *string `json:"actor_token,omitempty"`
+
+	// ActorTokenType Required with `actor_token`.
+	ActorTokenType *string `json:"actor_token_type,omitempty"`
+
+	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	Audience      *string                           `json:"audience,omitempty"`
+	AuthSession   *string                           `json:"auth_session,omitempty"`
+	AuthnResponse *TokenRequestFields_AuthnResponse `json:"authn_response,omitempty"`
+	BindingCode   *string                           `json:"binding_code,omitempty"`
+
+	// ClientAssertion A signed JWT that authenticates the application (`private_key_jwt`, RFC 7523). At most 2048 bytes; never logged.
+	ClientAssertion     *string                                `json:"client_assertion,omitempty"`
+	ClientAssertionType *TokenRequestFieldsClientAssertionType `json:"client_assertion_type,omitempty"`
+	ClientId            *string                                `json:"client_id,omitempty"`
+	ClientSecret        *string                                `json:"client_secret,omitempty"`
+
+	// Code Authorization code (grant_type=authorization_code).
+	Code *string `json:"code,omitempty"`
+
+	// CodeVerifier PKCE verifier for the code_challenge sent to /authorize.
+	CodeVerifier *string `json:"code_verifier,omitempty"`
+
+	// GrantType Examples: client_credentials
+	GrantType string  `json:"grant_type"`
+	MfaToken  *string `json:"mfa_token,omitempty"`
+	OobCode   *string `json:"oob_code,omitempty"`
+
+	// Organization For client_credentials, explicit organization uses grant organization_usage deny/allow/require and explicit association or allow_any_organization. Malformed parameters return invalid_request; valid but forbidden organization returns access_denied (local D-0056). No default organization is inferred. The native passkey grant binds an organization through membership, connection and application policy. The password, password-realm and device code grants ignore it (D-0055).
+	Organization *string `json:"organization,omitempty"`
+	Otp          *string `json:"otp,omitempty"`
+
+	// Password The user's password (password grants).
+	Password *string `json:"password,omitempty"`
+
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory), email/sms for the passwordless OTP grant, or a database realm for the native passkey grant.
+	Realm        *string `json:"realm,omitempty"`
+	RecoveryCode *string `json:"recovery_code,omitempty"`
+
+	// RedirectUri Must equal the redirect_uri of the authorization request.
+	RedirectUri *string `json:"redirect_uri,omitempty"`
+
+	// RefreshToken Refresh token (grant_type=refresh_token).
+	RefreshToken *string `json:"refresh_token,omitempty"`
+
+	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
+	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	Scope *string `json:"scope,omitempty"`
+
+	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
+	SubjectToken *string `json:"subject_token,omitempty"`
+
+	// SubjectTokenType Identifies the kind of subject_token. Custom types select a token exchange profile. The reserved http://auth0.com/oauth/token-type/apple-authz-code selects the native Apple exchange and never invokes a custom profile (D-0170).
+	SubjectTokenType *string `json:"subject_token_type,omitempty"`
+
+	// Username The user's email or username (password grants), or the email or E.164 number (passwordless OTP grant).
+	Username *string `json:"username,omitempty"`
+}
+
+// TokenRequestFieldsAuthnResponse0 defines model for TokenRequestFields.AuthnResponse.0.
+type TokenRequestFieldsAuthnResponse0 = string
+
+// TokenRequestFieldsAuthnResponse1 defines model for TokenRequestFields.AuthnResponse.1.
+type TokenRequestFieldsAuthnResponse1 map[string]interface{}
+
+// TokenRequestFields_AuthnResponse defines model for TokenRequestFields.AuthnResponse.
+type TokenRequestFields_AuthnResponse struct {
+	union json.RawMessage
+}
+
+// TokenRequestFieldsClientAssertionType defines model for TokenRequestFields.ClientAssertionType.
+type TokenRequestFieldsClientAssertionType string
+
 // TokenResponse defines model for TokenResponse.
 type TokenResponse struct {
 	AccessToken string `json:"access_token"`
@@ -861,6 +1223,11 @@ type TokenResponse struct {
 	// ExpiresIn Lifetime of the access token in seconds.
 	ExpiresIn int     `json:"expires_in"`
 	IdToken   *string `json:"id_token,omitempty"`
+
+	// IssuedTokenType Sent by the token exchange grant (RFC 8693 section 2.2.1): always `urn:ietf:params:oauth:token-type:access_token` (LR35-15).
+	//
+	// Examples: urn:ietf:params:oauth:token-type:access_token
+	IssuedTokenType *string `json:"issued_token_type,omitempty"`
 
 	// RecoveryCode One-time replacement after a successful MFA recovery-code grant.
 	RecoveryCode *string `json:"recovery_code,omitempty"`
@@ -950,7 +1317,7 @@ type AuthorizeParams struct {
 	// RequestUri A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match.
 	RequestUri *string `form:"request_uri,omitempty" json:"request_uri,omitempty"`
 
-	// Request A request object (JAR). Not supported: refused with `request_not_supported` (`invalid_request` for strict third-party applications).
+	// Request A signed request object (JAR, RFC 9101): a JWS signed with RS256, RS384 or PS256 by a credential of the application's `signed_request_object`. Its parameters win over the query; `client_id` in the query must equal its `iss`. A bad signature or claim is `invalid_request_object`; an unsigned object (`alg` none) is refused with `request_not_supported` (LR35-4, D-0063). An application whose `signed_request_object.required` is true must send one (`invalid_request`).
 	Request *string `form:"request,omitempty" json:"request,omitempty"`
 
 	// Organization An organization ID, or its name while the tenant's `allow_organization_name_in_authentication_api` is on (the ID is matched first). An empty value counts as absent. Refused with `invalid_request` when the application's `organization_usage` is `deny`, when the organization is unknown, or when a name is sent while names are off; a third-party application facing an organization that blocks third-party access gets `access_denied`. An application with `organization_usage` `require` and `no_prompt` must send one. With `request_uri`, only the pushed value counts (D-0055).
@@ -1083,7 +1450,7 @@ type OauthRevokeFormdataRequestBody = RevokeRequest
 type OauthTokenJSONRequestBody = TokenRequest
 
 // OauthTokenFormdataRequestBody defines body for OauthToken for application/x-www-form-urlencoded ContentType.
-type OauthTokenFormdataRequestBody = TokenRequest
+type OauthTokenFormdataRequestBody = TokenFormRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
@@ -1238,6 +1605,22 @@ func (a *PushedAuthorizationRequest) UnmarshalJSON(b []byte) error {
 		delete(object, "audience")
 	}
 
+	if raw, found := object["client_assertion"]; found {
+		err = json.Unmarshal(raw, &a.ClientAssertion)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_assertion': %w", err)
+		}
+		delete(object, "client_assertion")
+	}
+
+	if raw, found := object["client_assertion_type"]; found {
+		err = json.Unmarshal(raw, &a.ClientAssertionType)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_assertion_type': %w", err)
+		}
+		delete(object, "client_assertion_type")
+	}
+
 	if raw, found := object["client_id"]; found {
 		err = json.Unmarshal(raw, &a.ClientId)
 		if err != nil {
@@ -1260,6 +1643,14 @@ func (a *PushedAuthorizationRequest) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("error reading 'redirect_uri': %w", err)
 		}
 		delete(object, "redirect_uri")
+	}
+
+	if raw, found := object["request"]; found {
+		err = json.Unmarshal(raw, &a.Request)
+		if err != nil {
+			return fmt.Errorf("error reading 'request': %w", err)
+		}
+		delete(object, "request")
 	}
 
 	if raw, found := object["response_type"]; found {
@@ -1312,6 +1703,20 @@ func (a PushedAuthorizationRequest) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if a.ClientAssertion != nil {
+		object["client_assertion"], err = json.Marshal(a.ClientAssertion)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_assertion': %w", err)
+		}
+	}
+
+	if a.ClientAssertionType != nil {
+		object["client_assertion_type"], err = json.Marshal(a.ClientAssertionType)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_assertion_type': %w", err)
+		}
+	}
+
 	if a.ClientId != nil {
 		object["client_id"], err = json.Marshal(a.ClientId)
 		if err != nil {
@@ -1330,6 +1735,13 @@ func (a PushedAuthorizationRequest) MarshalJSON() ([]byte, error) {
 		object["redirect_uri"], err = json.Marshal(a.RedirectUri)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'redirect_uri': %w", err)
+		}
+	}
+
+	if a.Request != nil {
+		object["request"], err = json.Marshal(a.Request)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'request': %w", err)
 		}
 	}
 
@@ -1549,6 +1961,68 @@ func (a UserInfo) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// AsTokenFormRequestAuthnResponse0 returns the union data inside the TokenFormRequest_AuthnResponse as a TokenFormRequestAuthnResponse0
+func (t TokenFormRequest_AuthnResponse) AsTokenFormRequestAuthnResponse0() (TokenFormRequestAuthnResponse0, error) {
+	var body TokenFormRequestAuthnResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenFormRequestAuthnResponse0 overwrites any union data inside the TokenFormRequest_AuthnResponse as the provided TokenFormRequestAuthnResponse0
+func (t *TokenFormRequest_AuthnResponse) FromTokenFormRequestAuthnResponse0(v TokenFormRequestAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenFormRequestAuthnResponse0 performs a merge with any union data inside the TokenFormRequest_AuthnResponse, using the provided TokenFormRequestAuthnResponse0
+func (t *TokenFormRequest_AuthnResponse) MergeTokenFormRequestAuthnResponse0(v TokenFormRequestAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenFormRequestAuthnResponse1 returns the union data inside the TokenFormRequest_AuthnResponse as a TokenFormRequestAuthnResponse1
+func (t TokenFormRequest_AuthnResponse) AsTokenFormRequestAuthnResponse1() (TokenFormRequestAuthnResponse1, error) {
+	var body TokenFormRequestAuthnResponse1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenFormRequestAuthnResponse1 overwrites any union data inside the TokenFormRequest_AuthnResponse as the provided TokenFormRequestAuthnResponse1
+func (t *TokenFormRequest_AuthnResponse) FromTokenFormRequestAuthnResponse1(v TokenFormRequestAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenFormRequestAuthnResponse1 performs a merge with any union data inside the TokenFormRequest_AuthnResponse, using the provided TokenFormRequestAuthnResponse1
+func (t *TokenFormRequest_AuthnResponse) MergeTokenFormRequestAuthnResponse1(v TokenFormRequestAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenFormRequest_AuthnResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenFormRequest_AuthnResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsTokenRequestAuthnResponse0 returns the union data inside the TokenRequest_AuthnResponse as a TokenRequestAuthnResponse0
 func (t TokenRequest_AuthnResponse) AsTokenRequestAuthnResponse0() (TokenRequestAuthnResponse0, error) {
 	var body TokenRequestAuthnResponse0
@@ -1607,6 +2081,68 @@ func (t TokenRequest_AuthnResponse) MarshalJSON() ([]byte, error) {
 }
 
 func (t *TokenRequest_AuthnResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsTokenRequestFieldsAuthnResponse0 returns the union data inside the TokenRequestFields_AuthnResponse as a TokenRequestFieldsAuthnResponse0
+func (t TokenRequestFields_AuthnResponse) AsTokenRequestFieldsAuthnResponse0() (TokenRequestFieldsAuthnResponse0, error) {
+	var body TokenRequestFieldsAuthnResponse0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestFieldsAuthnResponse0 overwrites any union data inside the TokenRequestFields_AuthnResponse as the provided TokenRequestFieldsAuthnResponse0
+func (t *TokenRequestFields_AuthnResponse) FromTokenRequestFieldsAuthnResponse0(v TokenRequestFieldsAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestFieldsAuthnResponse0 performs a merge with any union data inside the TokenRequestFields_AuthnResponse, using the provided TokenRequestFieldsAuthnResponse0
+func (t *TokenRequestFields_AuthnResponse) MergeTokenRequestFieldsAuthnResponse0(v TokenRequestFieldsAuthnResponse0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenRequestFieldsAuthnResponse1 returns the union data inside the TokenRequestFields_AuthnResponse as a TokenRequestFieldsAuthnResponse1
+func (t TokenRequestFields_AuthnResponse) AsTokenRequestFieldsAuthnResponse1() (TokenRequestFieldsAuthnResponse1, error) {
+	var body TokenRequestFieldsAuthnResponse1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestFieldsAuthnResponse1 overwrites any union data inside the TokenRequestFields_AuthnResponse as the provided TokenRequestFieldsAuthnResponse1
+func (t *TokenRequestFields_AuthnResponse) FromTokenRequestFieldsAuthnResponse1(v TokenRequestFieldsAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestFieldsAuthnResponse1 performs a merge with any union data inside the TokenRequestFields_AuthnResponse, using the provided TokenRequestFieldsAuthnResponse1
+func (t *TokenRequestFields_AuthnResponse) MergeTokenRequestFieldsAuthnResponse1(v TokenRequestFieldsAuthnResponse1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenRequestFields_AuthnResponse) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenRequestFields_AuthnResponse) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

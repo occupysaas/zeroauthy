@@ -311,8 +311,8 @@
     {
       "name": "tokenExchangeProfiles",
       "status": "excluded",
-      "owner": "roadmap: token exchange profiles milestone",
-      "reason": "Token exchange profiles are outside Plan 20",
+      "owner": "Plan 35",
+      "reason": "The pinned 9.1.0 handler works against zeroauthy: e2e-client-auth imports a profile that names its Action, exports it with the Action name in place of action_id, renames it (matched by subject_token_type), re-imports it unchanged and deletes it with AUTH0_ALLOW_DELETE. The family is not yet in this four-cell export/import matrix: the m20 fixtures carry no custom-token-exchange Action or profile and internal/deploymigration does not classify the family's directory (Plan 35 follow-up)",
       "fixture": null
     },
     {
@@ -339,8 +339,8 @@
     {
       "name": "clientAuthCredentials",
       "status": "excluded",
-      "owner": "roadmap: client authentication credentials milestone",
-      "reason": "External client authentication credentials are outside Plan 20",
+      "owner": "Plan 35",
+      "reason": "Deploy-only by design: the pinned 9.1.0 handler (and its clientAuthCredentialsPre pre-pass) creates credentials from the PEM inside client_authentication_methods, rewires the client and deletes replaced keys, and e2e-client-auth proves create, unchanged re-import, rotation and full removal against zeroauthy. An export carries only credential names and types because the PEM is never returned, so an export cannot round-trip through this matrix. token_exchange travels with the clients handler",
       "fixture": null
     },
     {

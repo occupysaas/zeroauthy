@@ -2,6 +2,7 @@
 import { test, expect } from '@playwright/test';
 import { ManagementClient } from 'auth0';
 const m = new ManagementClient({ domain: 'localhost:8443', clientId: 'e2e-m17-admin', clientSecret: 'e2e-m17-admin-secret-not-for-production' });
+const tenantSettings = tenant => `https://system.localhost:8443/api/console/tenants/${tenant}/api/v2/tenants/settings`;
 test('settings, automatic blocks, breach refusal and hosted challenge replay', async ({ page, browser }) => {
   test.setTimeout(120_000);
   test.skip(process.env.E2E_M19_HARNESS !== '1', 'Use run-m19.sh for the local-only protection fixture');
@@ -77,23 +78,21 @@ test('settings, automatic blocks, breach refusal and hosted challenge replay', a
     const started = new Promise(resolve => { received = resolve; });
     let delivered;
     const fulfilled = new Promise(resolve => { delivered = resolve; });
-    await page.route('https://localhost:8443/api/v2/tenants/settings', async route => {
+    await page.route(tenantSettings('e2e'), async route => {
       if (route.request().method() !== 'GET') return route.continue();
       const response = await route.fetch(); received(); await held;
       await route.fulfill({ response }); delivered();
     });
     await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Tenant settings', exact: true }).click();
     await started;
-    await page.route('https://cli.e2e.test/api/v2/tenants/settings', async route => {
-      const response = await route.fetch({ url: 'https://localhost:8443/api/v2/tenants/settings', headers: { ...route.request().headers(), host: 'cli.e2e.test' } });
-      await route.fulfill({ response });
-    });
     await page.getByRole('button', { name: 'Switch tenant' }).click();
     await page.getByRole('menuitem').filter({ hasText: 'cli' }).click();
+    const otherResponse = page.waitForResponse(response => response.url() === tenantSettings('cli') && response.request().method() === 'GET');
     await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Tenant settings', exact: true }).click();
+    expect((await otherResponse).ok()).toBe(true);
     await expect(page.locator('#friendly_name')).not.toHaveValue('M19 Browser');
     const otherName = await page.locator('#friendly_name').inputValue();
-    const delayedResponse = page.waitForResponse(response => response.url() === 'https://localhost:8443/api/v2/tenants/settings' && response.request().method() === 'GET');
+    const delayedResponse = page.waitForResponse(response => response.url() === tenantSettings('e2e') && response.request().method() === 'GET');
     release();
     await fulfilled;
     await (await delayedResponse).finished();
@@ -101,7 +100,7 @@ test('settings, automatic blocks, breach refusal and hosted challenge replay', a
     // before an assertion that could otherwise pass against the old DOM.
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    await page.unroute('https://localhost:8443/api/v2/tenants/settings');
+    await page.unroute(tenantSettings('e2e'));
     await expect(page.locator('#friendly_name')).toHaveValue(otherName);
 
   } finally {

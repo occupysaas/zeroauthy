@@ -3,6 +3,8 @@ package login
 import (
 	"context"
 	"errors"
+	"io"
+	"mime"
 	"net/http"
 	"net/url"
 
@@ -13,7 +15,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
-	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -182,8 +183,12 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 		h.socialFailure(w, r, f, err)
 		return
 	}
+	sameSite := http.SameSiteLaxMode
+	if conn.Strategy == federation.StrategyApple {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
-		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
+		HttpOnly: true, Secure: true, SameSite: sameSite})
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodPost {
 		u, err := url.Parse(begun.URL)
@@ -255,17 +260,32 @@ func federationErrorClass(err error) string {
 	return "internal"
 }
 
-// SocialCallback is GET /login/callback.
+// SocialCallback handles the query and form-post provider callbacks.
 func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 	h.maskRequest(r)
+	raw := r.URL.RawQuery
+	var parseErr error
+	if r.Method == http.MethodPost {
+		// Read and parse a bounded body ourselves. Register partial parsed
+		// credentials before handling any error, including malformed forms.
+		body, err := io.ReadAll(io.LimitReader(r.Body, federation.MaxCallbackSize+1))
+		r.PostForm, parseErr = url.ParseQuery(string(body))
+		h.maskRequest(r)
+		// POST callbacks use body fields only; never merge query parameters.
+		mediaType, _, mediaErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if err != nil || len(body) > federation.MaxCallbackSize || mediaErr != nil || mediaType != "application/x-www-form-urlencoded" || raw != "" {
+			parseErr = federation.ErrCallbackRejected
+		}
+		raw = string(body)
+	}
 	ctx := r.Context()
 	w.Header().Set("Cache-Control", "no-store")
 	res, ok := tenant.FromContext(ctx)
-	if !ok || h.Federation == nil || r.Method != http.MethodGet {
+	if !ok || h.Federation == nil || (r.Method != http.MethodGet && r.Method != http.MethodPost) || parseErr != nil {
 		h.socialFailure(w, r, nil, federation.ErrCallbackRejected)
 		return
 	}
-	params, err := federation.ParseCallback(r.URL.RawQuery)
+	params, err := federation.ParseCallback(raw)
 	if err != nil {
 		h.socialFailure(w, r, nil, err)
 		return
@@ -312,16 +332,22 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 			return nil
 		},
 		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error {
-			bound := session.Manager{Store: tx, Now: h.Sessions.Now, TrustProxyHeaders: h.Sessions.TrustProxyHeaders}
-			var err error
-			sess, err = bound.Start(ctx, w, r, res.Tenant, user.UserID, conn.Name, h.now(), store.AuthMethod{Name: "federated"})
-			if err != nil {
-				return err
+			bound := *h.Authz
+			bound.Store = tx
+			if bound.Sessions != nil {
+				sm := *bound.Sessions
+				sm.Store = tx
+				bound.Sessions = &sm
 			}
-			return tx.Users().RecordLogin(ctx, res.Tenant.ID, user.UserID, h.now(), httpx.RecordedIP(r, h.TrustProxyHeaders))
+			var err error
+			sess, err = bound.BeginLogin(w, r, res, txn, user, conn.Name, store.AuthMethod{Name: "federated"})
+			return err
 		},
 	})
 	if err != nil {
+		if h.Authz.HandleLoginAdmissionError(w, r, res, err) {
+			return
+		}
 		h.socialFailure(w, r, nil, err)
 		return
 	}

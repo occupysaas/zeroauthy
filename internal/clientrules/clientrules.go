@@ -8,6 +8,7 @@ package clientrules
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"slices"
 	"strings"
@@ -69,6 +70,7 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // Spec is a client's settings. Empty strings and nil pointers mean "the
 // default", which Normalize fills in.
 type Spec struct {
+	NativeSocialLogin map[string]bool
 	// Mobile configures native app associations.
 	Mobile                  *store.ClientMobile
 	InitiateLoginURI        string
@@ -379,6 +381,7 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 // client ID, creation time, origin) and the secrets alone.
 func Apply(c *store.Client, s *Spec) {
 	c.Mobile = s.Mobile.Clone()
+	c.NativeSocialLogin = maps.Clone(s.NativeSocialLogin)
 	c.InitiateLoginURI = s.InitiateLoginURI
 	c.Name, c.AppType = s.Name, store.AppType(s.AppType)
 	c.TokenEndpointAuthMethod = s.TokenEndpointAuthMethod
@@ -410,8 +413,9 @@ func Apply(c *store.Client, s *Spec) {
 func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
-		Mobile:           c.Mobile.Clone(),
-		InitiateLoginURI: c.InitiateLoginURI, Name: c.Name, AppType: string(c.AppType),
+		Mobile:            c.Mobile.Clone(),
+		NativeSocialLogin: maps.Clone(c.NativeSocialLogin),
+		InitiateLoginURI:  c.InitiateLoginURI, Name: c.Name, AppType: string(c.AppType),
 		TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
 		GrantTypes:              slices.Clone(c.GrantTypes),
 		Callbacks:               slices.Clone(c.Callbacks), AllowedLogoutURLs: slices.Clone(c.AllowedLogoutURLs),

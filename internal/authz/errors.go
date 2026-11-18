@@ -17,6 +17,13 @@ func errUnsupportedResponseType(d string) *Error {
 func errRequestNotSupported() *Error {
 	return &Error{"request_not_supported", "the request parameter (request objects) is not supported"}
 }
+
+// errInvalidRequestObject is RFC 9101 §6.3's error for a signed request
+// object that fails verification. The reason goes to the server log only.
+func errInvalidRequestObject() *Error {
+	return &Error{"invalid_request_object", "the request object is invalid"}
+}
+
 func errLoginRequired() *Error { return &Error{"login_required", "the user must log in"} }
 func errServer() *Error        { return &Error{"server_error", "internal error"} }
 

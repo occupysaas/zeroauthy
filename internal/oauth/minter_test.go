@@ -13,7 +13,10 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 )
@@ -169,27 +172,48 @@ func TestAMRClaim(t *testing.T) {
 	}
 }
 
-func TestAMRClaimFromAuthorizationSession(t *testing.T) {
+func TestAMRAtCodeIssue(t *testing.T) {
 	f := newFixture(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	tid := f.tenantID(t, "acme")
-	u, err := f.st.Users().FindByLogin(ctx, tid, "Username-Password-Authentication", "alice@acme.test")
+	af := &actionsFixture{fixture: f, tid: tid, az: &authz.Handlers{Store: f.st, Sessions: &session.Manager{Store: f.st, Now: fixedNow}, Now: fixedNow, Wrapper: f.wrapper}}
+	cookie := af.sessionCookie(t)
+	sess, err := f.st.Sessions().GetByTokenHash(ctx, tid, secrets.HashToken(cookie.Value))
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := &store.LoginSession{TenantID: tid, ID: "sid-1", TokenHash: "test-session-hash", UserID: u.UserID, AuthenticatedAt: fixedNow(), ExpiresAt: fixedNow().Add(time.Hour), IdleExpiresAt: fixedNow().Add(time.Hour), CreatedAt: fixedNow(), UpdatedAt: fixedNow()}
-	if err = f.st.Sessions().Create(ctx, s); err != nil {
+	const client, redirect = "rt-spa", "https://rt.acme.test/cb"
+	before := af.authorizeWithCookie(t, client, redirect, "openid offline_access", cookie)
+	if err = f.st.Sessions().MarkMFA(ctx, tid, sess.ID, fixedNow()); err != nil {
 		t.Fatal(err)
 	}
-	if err = f.st.Sessions().MarkMFA(ctx, tid, s.ID, fixedNow()); err != nil {
-		t.Fatal(err)
+	after := af.authorizeWithCookie(t, client, redirect, "openid", cookie)
+	exchange := func(code string) map[string]any {
+		t.Helper()
+		rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, client, redirect, pkceVerifier)})
+		if rec.Code != 200 {
+			t.Fatalf("exchange: %d %v", rec.Code, body)
+		}
+		return body
 	}
-	code := f.issueCode(t, "code-spa", "https://app.acme.test/cb", "https://api.acme.test", []string{"openid"}, pkceChallenge)
-	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, "code-spa", "https://app.acme.test/cb", pkceVerifier)})
-	if rec.Code != 200 {
-		t.Fatalf("status=%d body=%v", rec.Code, body)
-	}
+	body := exchange(before)
 	claims, _ := verifyToken(t, f.keys, tid, body["id_token"].(string))
+	if _, ok := claims["amr"]; ok {
+		t.Fatalf("session step-up after issue changed code AMR: %v", claims["amr"])
+	}
+	// A refresh grant keeps its own live-session semantics.
+	status, refreshed := f.refresh(t, refreshForm(client, body["refresh_token"].(string)))
+	if status != 200 {
+		t.Fatalf("refresh: %d %v", status, refreshed)
+	}
+	claims, _ = verifyToken(t, f.keys, tid, refreshed["id_token"].(string))
+	if diff := cmp.Diff([]any{"mfa"}, claims["amr"]); diff != "" {
+		t.Fatal(diff)
+	}
+	if err := f.st.Sessions().Delete(ctx, tid, sess.ID); err != nil {
+		t.Fatal(err)
+	}
+	claims, _ = verifyToken(t, f.keys, tid, exchange(after)["id_token"].(string))
 	if diff := cmp.Diff([]any{"mfa"}, claims["amr"]); diff != "" {
 		t.Fatal(diff)
 	}

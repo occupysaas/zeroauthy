@@ -20,6 +20,7 @@ import (
 
 // The federated strategies.
 const (
+	Apple       = "apple"
 	WindowsLive = "windowslive"
 	WAAD        = "waad"
 	Google      = "google-oauth2"
@@ -58,13 +59,13 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == OAuth2 || strategy == OIDC
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == OAuth2 || strategy == OIDC
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
 // OIDC is an enterprise strategy.
 func IsSocial(strategy string) bool {
-	return strategy == WindowsLive || strategy == Google || strategy == OAuth2
+	return strategy == Apple || strategy == WindowsLive || strategy == Google || strategy == OAuth2
 }
 
 // RejectedKeys are the upstream parameter names that no inert map may target
@@ -133,6 +134,8 @@ type Input struct {
 // Settings are the validated runtime settings. They never contain the
 // plaintext client secret.
 type Settings struct {
+	AppleTeamID          string
+	AppleKID             string
 	MicrosoftAuthority   string
 	MicrosoftMultiTenant bool
 	Strategy             string
@@ -177,12 +180,14 @@ func Parse(in Input) (Settings, []error) {
 
 	if id, ok := o["client_id"].(string); !ok || strings.TrimSpace(id) == "" {
 		fail("options.client_id is required")
-	} else if len(id) > maxClientID || !cleanText(id) {
+	} else if len(id) > maxClientID || !cleanText(id) || (in.Strategy == Apple && utf8.RuneCountInString(id) > 255) {
 		fail("options.client_id is invalid")
 	} else {
 		out.ClientID = id
 	}
-	if v, named := o["client_secret"]; named {
+	if in.Strategy == Apple {
+		errs = append(errs, validateAppleSecret(o, in.HasSealedSecret, &out)...)
+	} else if v, named := o["client_secret"]; named {
 		s, ok := v.(string)
 		switch {
 		case !ok || s == "":
@@ -221,7 +226,7 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(rejectedOptions)) {
-		if _, ok := o[k]; ok && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain")) {
+		if _, ok := o[k]; ok && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain")) && !(in.Strategy == Apple && k == "freeform_scopes") {
 			fail("options.%s: %s", k, rejectedOptions[k])
 		}
 	}
@@ -252,6 +257,8 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	switch in.Strategy {
+	case Apple:
+		errs = append(errs, parseApple(o, &out)...)
 	case WindowsLive, WAAD:
 		errs = append(errs, parseMicrosoft(o, &out)...)
 	case Google:

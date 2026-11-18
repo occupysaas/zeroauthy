@@ -21,8 +21,10 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/identifiercode"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -140,13 +142,30 @@ func UserJSON(u *store.User) map[string]any { return resourceview.User(u) }
 func userTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }
 
 func (h *Handlers) userViews(r *http.Request, us []*store.User, fields []string, include bool) ([]map[string]any, error) {
-	out := make([]map[string]any, len(us))
-	for i, u := range us {
-		view, err := h.userView(r, u)
-		if err != nil {
-			return nil, err
+	out := make([]map[string]any, 0, len(us))
+	// GetUsers returns at most one page. GetUsersByEmail can return more.
+	for page := range slices.Chunk(us, store.GuardianUsersLimit) {
+		ids := make([]string, len(page))
+		for i, u := range page {
+			ids[i] = u.UserID
 		}
-		out[i] = ProjectKeeping(view, fields, include, nil)
+		enrolled, err := h.Store.MFA().GuardianUsers(r.Context(), resolved(r).ID, ids)
+		if err != nil && !errors.Is(err, store.ErrMFAUnavailable) {
+			return nil, internalError(h, r, "load users multifactor", err)
+		}
+		guardians := make(map[string]bool, len(enrolled))
+		for _, uid := range enrolled {
+			guardians[uid] = true
+		}
+		for _, u := range page {
+			view := resourceview.User(u)
+			methods := []string{}
+			if guardians[u.UserID] {
+				methods = []string{"guardian"}
+			}
+			view["multifactor"] = methods
+			out = append(out, ProjectKeeping(view, fields, include, nil))
+		}
 	}
 	return out, nil
 }
@@ -162,10 +181,23 @@ func fieldError(err error) error {
 
 // GetUsers lists or searches the tenant's users (U4).
 func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetUsersParams) {
+	const consoleConnection = "console_connection"
 	q := r.URL.Query()
+	// connection is a v1-only filter. Validate its text even for v2 and v3.
 	if err := checkQueryText(r, "connection"); err != nil {
 		Fail(w, err)
 		return
+	}
+	if q.Has(consoleConnection) {
+		caller, _ := CallerFrom(r.Context())
+		if caller.Kind != Operator {
+			WriteError(w, http.StatusForbidden, "insufficient_scope", "Only console operators may use console_connection")
+			return
+		}
+		if err := checkQueryText(r, consoleConnection); err != nil {
+			Fail(w, err)
+			return
+		}
 	}
 	switch q.Get("search_engine") {
 	case "", "v2", "v3":
@@ -200,12 +232,13 @@ func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.Ge
 		Fail(w, searchError(err))
 		return
 	}
-	if c := q.Get("connection"); c != "" {
-		leaf := &store.UserQuery{Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: c}
+	// Apply the console selector separately so it cannot change how q parses.
+	if name := q.Get(consoleConnection); name != "" {
+		term := &store.UserQuery{Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: name}
 		if tree == nil {
-			tree = leaf
+			tree = term
 		} else {
-			tree = &store.UserQuery{Op: store.QueryAnd, Kids: []*store.UserQuery{tree, leaf}}
+			tree = &store.UserQuery{Op: store.QueryAnd, Kids: []*store.UserQuery{tree, term}}
 		}
 	}
 	// The parser only builds valid trees; anything the store would still
@@ -463,8 +496,8 @@ func readCreateBody(body map[string]json.RawMessage) (*userrules.Create, error) 
 	return in, nil
 }
 
-// readPatchBody reads a PATCH body. given_name and family_name accept null,
-// which removes them.
+// readPatchBody reads the fields to change. Nullable strings use null to
+// remove the value. Identifiers distinguish a clear from an empty string.
 func readPatchBody(body map[string]json.RawMessage) (in *userrules.Patch, clientID string, err error) {
 	b := userBody{body}
 	in = &userrules.Patch{}
@@ -474,11 +507,18 @@ func readPatchBody(body map[string]json.RawMessage) (in *userrules.Patch, client
 	}
 	bools := map[string]**bool{
 		"email_verified": &in.EmailVerified, "phone_verified": &in.PhoneVerified, "blocked": &in.Blocked, "verify_email": &in.VerifyEmail,
+		"verify_phone_number": &in.VerifyPhoneNumber,
+	}
+	clears := map[string]*bool{
+		"email": &in.ClearEmail, "username": &in.ClearUsername, "phone_number": &in.ClearPhoneNumber,
 	}
 	for _, k := range slices.Sorted(maps.Keys(body)) {
 		switch {
 		case strs[k] != nil:
-			*strs[k], err = b.strPtr(k, k == "given_name" || k == "family_name")
+			*strs[k], err = b.strPtr(k, k != "password")
+			if flag := clears[k]; flag != nil {
+				*flag = isNull(body[k])
+			}
 		case bools[k] != nil:
 			*bools[k], err = b.boolPtr(k)
 		case k == "connection":
@@ -772,6 +812,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, err)
 		return
 	}
+	sendPhoneCode := deref(in.VerifyPhoneNumber)
 	ctx := r.Context()
 	u, err := h.getUser(r, id)
 	if err != nil {
@@ -823,7 +864,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	next := *u
 	userrules.ApplyPatch(&next, in)
 	emailChanged := next.Email != u.Email
-	if emailChanged {
+	if emailChanged && next.Email != "" {
 		if err := h.loginTaken(r, conn, u.UserID, next.Email); err != nil {
 			Fail(w, err)
 			return
@@ -862,12 +903,6 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 			}
 		}
 	}
-	if legacy {
-		if err := h.legacyPatch(r, conn, u, &next, emailChanged, in.Password != nil, password); err != nil {
-			Fail(w, err)
-			return
-		}
-	}
 	now := h.now()
 	var out *store.User
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
@@ -884,6 +919,10 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		if err := federation.RequireMicrosoftUser(ctx, tx, cur); err != nil {
 			return err
 		}
+		if in.VerifyPhoneNumber != nil && !sendPhoneCode && len(body) == 1 {
+			out = cur
+			return nil
+		}
 		if in.Blocked != nil && *in.Blocked {
 			if last, err := lastOperator(ctx, tx, resolved(r), id); err != nil {
 				return err
@@ -891,12 +930,19 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 				return errLastOperatorBlock
 			}
 		}
+		if err := userrules.CheckIdentifierClears(conn, cur, in); err != nil {
+			return fieldError(err)
+		}
+		previousEmail := cur.Email
 		// Determine committed changes under the existing row lock, so a
 		// concurrent identical update cannot manufacture another change event.
 		changedPhone = in.PhoneNumber != nil && *in.PhoneNumber != cur.PhoneNumber
 		changedEmail = in.Email != nil && *in.Email != cur.Email
 		changedUsername = in.Username != nil && *in.Username != cur.Username
 		userrules.ApplyPatch(cur, in)
+		if sendPhoneCode && userrules.NormalizePhone(cur.PhoneNumber) == "" {
+			return badBody("A valid phone_number is required to send a verification code")
+		}
 		cur.UpdatedAt = now
 		if in.Password != nil {
 			cur.LastPasswordReset = &now
@@ -909,7 +955,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		// Links sent to the old address must not verify the new one: drop
 		// the open verification tickets, and the unused reset tickets
 		// (one with mark_email_as_verified would verify it).
-		if emailChanged {
+		if changedEmail {
 			if _, err := tx.EmailVerificationTickets().DeleteByUser(ctx, u.TenantID, id); err != nil {
 				return err
 			}
@@ -931,12 +977,22 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 				}
 			}
 		}
-		if out, err = tx.Users().Get(ctx, u.TenantID, id); err != nil || in.Password == nil {
+		if out, err = tx.Users().Get(ctx, u.TenantID, id); err != nil {
 			return err
 		}
-		res, _ := tenant.FromContext(ctx)
-		return actions.PasswordChanged(ctx, tx, h.Actions, res, out, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
-			Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")})
+		if in.Password != nil {
+			res, _ := tenant.FromContext(ctx)
+			if err := actions.PasswordChanged(ctx, tx, h.Actions, res, out, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
+				Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")}); err != nil {
+				return err
+			}
+		}
+		// Hold the lock through the external change so the checked phone
+		// and email remain current. A failed script rolls back local writes.
+		if legacy {
+			return h.legacyPatch(r, conn, previousEmail, out, changedEmail, in.Password != nil, password)
+		}
+		return nil
 	})
 	if err != nil {
 		h.failTx(w, r, "update user", err)
@@ -944,8 +1000,14 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	}
 	changed = true
 	logDetails(r, "update user", "user_id", id, "fields", strings.Join(slices.Sorted(maps.Keys(body)), ","))
-	if (in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && emailChanged && !out.EmailVerified) {
+	if out.Email != "" && ((in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && changedEmail && !out.EmailVerified)) {
 		h.sendVerification(r, out, clientID)
+	}
+	if sendPhoneCode {
+		if err := h.sendPhoneVerification(r, out, conn); err != nil {
+			Fail(w, err)
+			return
+		}
 	}
 	view, viewErr := h.userView(r, out)
 	if viewErr != nil {
@@ -955,9 +1017,43 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	writeJSON(w, http.StatusOK, view)
 }
 
+// sendPhoneVerification runs after the profile commit, using the stored
+// destination. Provider diagnostics are kept out of Management responses.
+func (h *Handlers) sendPhoneVerification(r *http.Request, u *store.User, conn *store.Connection) error {
+	unavailable := &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Message: "Phone verification delivery is unavailable"}
+	if h.PhoneDispatcher == nil {
+		return unavailable
+	}
+	event := logs.FromRequest(r)
+	event.IP = httpx.RecordedIP(r, h.TrustProxyHeaders)
+	event.UserID = u.UserID
+	event.Connection, event.ConnectionID = conn.Name, conn.ID
+	ctx := logs.WithEvent(r.Context(), event)
+	svc := identifiercode.Service{Store: h.Store, Phone: h.PhoneDispatcher, Recorder: h.Recorder, Now: h.now}
+	err := svc.Send(ctx, identifiercode.SendInput{
+		TenantID: u.TenantID, ConnectionID: conn.ID, Identifier: u.PhoneNumber, Kind: identifiercode.Verify, UserID: u.UserID,
+	})
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, phone.ErrInvalidPhone):
+		return badBody("A valid phone_number is required to send a verification code")
+	case errors.Is(err, identifiercode.ErrCountryBlocked):
+		return badBody("Phone verification is unavailable in the destination country")
+	case errors.Is(err, identifiercode.ErrSendLimit):
+		return errPhoneThrottled
+	case errors.Is(err, store.ErrPhoneUnavailable):
+		return errPhoneUnavailable
+	case errors.Is(err, identifiercode.ErrDelivery):
+		return unavailable
+	default:
+		return internalError(h, r, "send phone verification code", err)
+	}
+}
+
 // legacyPatch runs change_email or change_password on a legacy connection.
 // CheckPatch refuses both in one request.
-func (h *Handlers) legacyPatch(r *http.Request, conn *store.Connection, u, next *store.User, emailChanged, passwordChanged bool, password string) error {
+func (h *Handlers) legacyPatch(r *http.Request, conn *store.Connection, previousEmail string, next *store.User, emailChanged, passwordChanged bool, password string) error {
 	if !emailChanged && !passwordChanged {
 		return nil
 	}
@@ -971,15 +1067,15 @@ func (h *Handlers) legacyPatch(r *http.Request, conn *store.Connection, u, next 
 	var ok bool
 	var err error
 	if emailChanged {
-		ok, err = h.Scripts.ChangeEmail(r.Context(), conn, u.Email, next.Email, next.EmailVerified)
+		ok, err = h.Scripts.ChangeEmail(r.Context(), conn, previousEmail, next.Email, next.EmailVerified)
 	} else {
-		ok, err = h.Scripts.ChangePassword(r.Context(), conn, u.Email, password)
+		ok, err = h.Scripts.ChangePassword(r.Context(), conn, previousEmail, password)
 	}
 	if err != nil {
 		return h.scriptFail(r, conn, script, err)
 	}
 	if !ok {
-		h.log().WarnContext(r.Context(), "management API: custom database script made no change", "connection", conn.Name, "script", script, "user_id", u.UserID)
+		h.log().WarnContext(r.Context(), "management API: custom database script made no change", "connection", conn.Name, "script", script, "user_id", next.UserID)
 		return &Error{Status: http.StatusBadRequest, Code: "auth0_idp_error", Message: "The custom database script did not make the change"}
 	}
 	return nil

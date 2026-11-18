@@ -45,8 +45,8 @@ type Options struct {
 // user) as missing, and the loser's insert conflicts. On the retry the
 // winner's rows exist and are updated instead.
 func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper, options ...Options) error {
-	if hasActions(f) {
-		return errors.New("seed: Actions require ApplyWithActions")
+	if hasActions(f) || hasProfiles(f) {
+		return errors.New("seed: Actions and token exchange profiles require ApplyWithActions")
 	}
 	return applyOrdinary(ctx, st, f, now, w, options...)
 }
@@ -72,6 +72,9 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 		}
 	}
 	if err := checkWebAuthnStorage(ctx, st, f); err != nil {
+		return err
+	}
+	if err := checkClientCredentialsStorage(ctx, st, f); err != nil {
 		return err
 	}
 	return st.WithTx(ctx, func(tx store.Store) error {
@@ -225,7 +228,7 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	for _, rs := range in.ResourceServers {
-		if err := applyResourceServer(ctx, st, tn.ID, rs, now, createOnly); err != nil {
+		if err := applyResourceServer(ctx, st, tn.ID, rs, now, w, createOnly); err != nil {
 			return fmt.Errorf("resource server %q: %w", rs.Identifier, err)
 		}
 	}
@@ -336,7 +339,7 @@ func applyHostedLogin(ctx context.Context, st store.Store, tn *store.Tenant, in 
 	return st.HostedLogins().Put(ctx, next, current.Revision)
 }
 
-func applyResourceServer(ctx context.Context, st store.Store, tenantID string, in ResourceServer, now time.Time, createOnly bool) error {
+func applyResourceServer(ctx context.Context, st store.Store, tenantID string, in ResourceServer, now time.Time, w keys.Wrapper, createOnly bool) error {
 	if rs, err := st.ResourceServers().GetByIdentifier(ctx, tenantID, in.Identifier); err == nil && (createOnly || rs.Origin == store.OriginAPI) {
 		// Created through the Management API, or create-only mode: the seed
 		// never touches it.
@@ -348,6 +351,9 @@ func applyResourceServer(ctx context.Context, st store.Store, tenantID string, i
 	}
 	return tenantsetup.UpsertResourceServer(ctx, st, tenantID, in.Identifier, now, func(rs *store.ResourceServer) error {
 		apirules.Apply(rs, spec)
+		if spec.SigningAlg == apirules.SigningAlgHS256 {
+			return setSigningSecret(w, rs, in.SigningSecret)
+		}
 		return nil
 	})
 }
@@ -362,9 +368,22 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	if in.OrganizationUsage != "" && in.OrganizationUsage != store.OrgUsageDeny && !store.OrganizationsSupported(st) {
 		return store.ErrOrganizationsUnavailable
 	}
-	return tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
-		return setClient(c, create, in, now, w)
-	})
+	capable := store.ClientCredentialsAvailable(ctx, st)
+	if err := tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
+		if err := setClient(c, create, in, now, w); err != nil {
+			return err
+		}
+		if capable {
+			setClientCredentialSettings(c, in)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if !capable {
+		return nil
+	}
+	return applyClientCredentials(ctx, st, tenantID, in, now)
 }
 
 func setClient(c *store.Client, create bool, in Client, now time.Time, w keys.Wrapper) error {
@@ -381,6 +400,9 @@ func setClient(c *store.Client, create bool, in Client, now time.Time, w keys.Wr
 
 	public := c.TokenEndpointAuthMethod == store.AuthMethodNone
 	switch {
+	case in.usesPrivateKeyJWT():
+		// A private_key_jwt client authenticates with its keys; a stored
+		// secret stays as it is.
 	case public:
 		c.Secrets = nil
 	case in.ClientSecret == "":

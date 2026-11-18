@@ -203,9 +203,6 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, serverError()
 	}
 	now := h.now().UTC()
-	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
-		h.log().WarnContext(ctx, "record login", "tenant", tenantID, "err", err)
-	}
 
 	aud := form.Get("audience")
 	if aud == "" {
@@ -291,14 +288,36 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 	if flow.Passkey {
 		grantType = "webauthn"
 	}
+	if flow.Native != nil {
+		grantType = GrantTokenExchange
+	}
 	if flow.Organization != nil {
 		orgID = flow.Organization.ID
+	}
+	// A pending auto-membership has no organization roles yet. Preserve the
+	// user's existing tenant permissions for signing; the final transaction
+	// validates and commits membership before these tokens can be returned.
+	if flow.PendingMembership && rs != nil && !rs.IsSystem && (eff == nil || eff.RBAC == nil) {
+		snapshot, err := store.OrganizationAuthorizationSnapshot(ctx, h.Store, tenantID, user.UserID, "", rs.Identifier)
+		if err != nil || snapshot == nil {
+			return nil, nil, serverError()
+		}
+		copied := actions.Effects{}
+		if eff != nil {
+			copied = *eff
+		}
+		copied.RBAC = &actions.RBACSnapshot{Audience: rs.Identifier, Permissions: append([]string{}, snapshot.Permissions...)}
+		eff = &copied
 	}
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		organization: flow.Organization, user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: grantType, effects: eff, mfaAt: mfaAt,
 	})
 	if oerr != nil {
 		return nil, nil, oerr
+	}
+	if flow.Native != nil {
+		issued := issuedTokenTypeAccessToken
+		resp.IssuedTokenType = &issued
 	}
 	var rt *store.RefreshToken
 	var raw string
@@ -319,6 +338,11 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 		resp.RefreshToken = &raw
 	}
 	return resp, func(tx store.Store) error {
+		if !flow.LoginAlreadyRecorded {
+			if err := tx.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
+				return err
+			}
+		}
 		if rt == nil {
 			return nil
 		}

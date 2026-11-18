@@ -65,6 +65,9 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request, objectFields ...s
 			if err := dec.Decode(&raw); err != nil {
 				return nil, bad
 			}
+			if key == "user_profile" && slices.Contains(objectFields, key) && len(raw) > 1024 {
+				return nil, invalidRequest("user_profile must be at most 1 KiB")
+			}
 			var v any
 			valueDecoder := json.NewDecoder(bytes.NewReader(raw))
 			valueDecoder.UseNumber()
@@ -141,7 +144,9 @@ func registerOAuthAuthorization(r *http.Request) {
 func registerOAuthForm(r *http.Request, form url.Values) {
 	var values []string
 	for key, value := range form {
-		if logscrub.SensitiveKey(key) || key == "otp" || key == "code" || key == "ticket" {
+		// A pushed request object is masked by value: the key name request
+		// also names unrelated log fields.
+		if logscrub.SensitiveKey(key) || key == "otp" || key == "code" || key == "ticket" || key == "request" || key == "subject_token" || key == "user_profile" {
 			values = append(values, value...)
 		}
 	}

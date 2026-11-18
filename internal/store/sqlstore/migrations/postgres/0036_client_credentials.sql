@@ -1,0 +1,11 @@
+CREATE TABLE client_credentials (tenant_id VARCHAR(255) NOT NULL, client_id VARCHAR(255) NOT NULL, id VARCHAR(64) NOT NULL, type VARCHAR(32) NOT NULL, name TEXT NOT NULL, kid VARCHAR(255) NOT NULL, alg VARCHAR(32) NOT NULL, public_key_der BYTEA NOT NULL, thumbprint VARCHAR(255) NOT NULL, expires_at BIGINT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,client_id,id));
+CREATE INDEX client_credentials_client ON client_credentials (tenant_id,client_id);
+CREATE TABLE client_assertion_jtis (tenant_id VARCHAR(255) NOT NULL, client_id VARCHAR(255) NOT NULL, jti_hash VARCHAR(64) NOT NULL, expires_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,client_id,jti_hash));
+CREATE INDEX client_assertion_jtis_expires ON client_assertion_jtis (expires_at);
+CREATE TABLE token_exchange_profiles (tenant_id VARCHAR(255) NOT NULL, id VARCHAR(64) NOT NULL, name VARCHAR(255) NOT NULL, subject_token_type VARCHAR(255) NOT NULL, action_id VARCHAR(255) NOT NULL, type VARCHAR(64) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,subject_token_type));
+CREATE INDEX token_exchange_profiles_action ON token_exchange_profiles (tenant_id,action_id);
+ALTER TABLE clients ADD COLUMN client_authentication_methods TEXT NULL;
+ALTER TABLE clients ADD COLUMN signed_request_object TEXT NULL;
+ALTER TABLE clients ADD COLUMN token_exchange TEXT NULL;
+ALTER TABLE resource_servers ADD COLUMN signing_secret_sealed BYTEA NULL;
+ALTER TABLE pushed_auth_requests ADD COLUMN signed BOOLEAN NOT NULL DEFAULT FALSE;

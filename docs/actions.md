@@ -50,8 +50,8 @@ are visible to later Actions. Absent features are not synthesized.
 
 Protocols are `oidc-basic-profile`, `oauth2-device-code`, `oauth2-password`
 (plain password), `oauth2-resource-owner` (password-realm),
-`oauth2-refresh-token`, `oauth2-client-credentials` and `oauth2-webauthn`
-(the native passkey grant). Browser authorization
+`oauth2-refresh-token`, `oauth2-client-credentials`, `oauth2-webauthn`
+(the native passkey grant) and `oauth2-token-exchange` (custom token exchange). Browser authorization
 passes the authorization query and an empty body. Internal `za_*` query keys
 are omitted. Token request bodies omit password, client secret/assertion,
 PKCE verifier, refresh token, device code and authorization code credentials.
@@ -483,9 +483,42 @@ additional equivalent module versions at the destination. Migration comparison
 therefore ignores the module's latest-publication counter while checking exact
 Action version pins, source code and the imported private-secret runtime claim.
 
-Custom token exchange waits for Plan 35. Password-hash migration and
-identifier/credential validation triggers also remain deferred, and so does
-the Forms API.
+Password-hash migration and identifier/credential validation triggers remain
+deferred, and so does the Forms API.
+
+## Custom token exchange
+
+The `custom-token-exchange` trigger (version `v1`, handler
+`onExecuteCustomTokenExchange`) is blocking. It runs when an application
+presents the RFC 8693 token-exchange grant with a `subject_token_type` that a
+token exchange profile binds to the Action; post-login Actions run after it.
+The grant, profiles and setup are in [Custom token exchange](token-exchange.md);
+this section lists what the Action sees.
+
+A profile binds exactly one Action, and the Action must be deployed with this
+trigger. An Action cannot be deleted while a profile binds it. Bindings in the
+trigger flow are not used: the profile decides which Action runs.
+
+| Event member | Notes |
+|---|---|
+| `client`, `tenant.id`, `secrets`, `request` | `request.body` is empty |
+| `organization` | When an `organization` is requested and valid |
+| `resource_server.identifier` | The requested audience |
+| `transaction` | `subject_token`, `subject_token_type`, `actor_token`, `actor_token_type`, `actor_token_user` (only for an unexpired ID token this tenant signed for one of its applications), `requested_scopes`, `requested_token_type` |
+
+| API member | Behavior |
+|---|---|
+| `access.deny(code, reason)` | Fail the exchange with that code; a code containing a secret value is refused |
+| `access.rejectInvalidSubjectToken(reason)` | `invalid_request`, and one count against the suspicious-IP budget |
+| `authentication.setUserById`, `setUserByConnection` | Select the user; exactly one call is required |
+| `authentication.setOrganization`, `setActor` | Select the organization; add an `act` claim |
+| `user.setAppMetadata`, `user.setUserMetadata` | Batch validated metadata patches |
+| `cache.get`, `set`, `delete` | Best-effort cache, as elsewhere |
+
+Unsupported: `api.transaction.setMetadata` and `event.transaction.metadata`
+(Early Access upstream) fail as unknown members. Every other API fails
+closed, as in the other triggers. The event's protocol in later post-login
+Actions is `oauth2-token-exchange`.
 
 ## Event-stream destination
 

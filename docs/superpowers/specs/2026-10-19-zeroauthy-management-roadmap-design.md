@@ -14,6 +14,41 @@ early preview to give people something to try (maintainer, 2026-11-03);
 Plans 35–48 continue after it. Review findings that can wait were moved into
 the plans below, marked "(pre-1.0 review)".
 
+### Designed 2026-11-16 (spec and plan merged; implementation status below)
+
+Every remaining parallel-paths item except X1 (maintainer-only) has a spec and
+an implementation plan. S1 / Plan 39a (Apple) is implemented and merged into `main` (2026-11-17, plan-branch CI green at `74752598`). O3 / Plan 45b is [implemented](../2026-11-16-plan-45b-implementation-record.md) (all 14 tasks). Rulings the maintainer still has to give are listed
+per item; items without rulings can start as soon as their track allows.
+
+| Item | Plan | Spec | Rulings needed before (parts of) implementation |
+|---|---|---|---|
+| F1 | 36 enterprise OIDC | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
+| P2 | 48 refresh tokens II | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
+| P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
+| P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
+| P5 | 41c CIBA (email channel) | [spec](2026-11-16-zeroauthy-ciba-design.md) | none |
+| P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
+| F2 | 37a SAML | [spec](2026-11-16-zeroauthy-saml-design.md) | XML-signature implementation; E2E npm pins; SHA-1 |
+| F3 | 37b WS-Fed and ADFS | [spec](2026-11-16-zeroauthy-ws-federation-design.md) | none (inherits F2's) |
+| F4 | 37c SCIM, groups, self-service | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | phase order; directory-sync testing |
+| F5 | 38a AD/LDAP | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | connector protocol vs LDAP bind; connector E2E pin; replica forwarding |
+| S1 | 39a Apple | [spec](2026-11-16-zeroauthy-apple-design.md) | **done** (merged 2026-11-17, [record](../2026-11-16-plan-39a-implementation-record.md)) |
+| S2 | 39b social providers | [spec](2026-11-16-zeroauthy-social-providers-design.md) | provider order; Tier 2 timing; live checks |
+| A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |
+| A2 | 38b Forms and Flows | [spec](2026-11-16-zeroauthy-forms-flows-design.md) | console builder scope; vendor order |
+| U1 | 42a My Account API | [spec](2026-11-16-zeroauthy-my-account-api-design.md) | none (seed shorthand optional) |
+| U2 | 42b My Organization API | [spec](2026-11-16-zeroauthy-my-organization-api-design.md) | build while Early Access; Phase B timing |
+| H1 | 44 ACUL | [spec](2026-11-16-zeroauthy-acul-design.md) | Classic Login; security boundary; canonical host; ACUL SDK pin |
+| M1 | 38d Management gaps | [spec](2026-11-16-zeroauthy-management-gaps-design.md) | verifiable-credential templates; `/keys/encryption` owner |
+| O1 | 38c network ACLs | [spec](2026-11-16-zeroauthy-network-acls-design.md) | geo/ASN signals; system-tenant exemption |
+| O2 | 45a security hardening | [spec](2026-11-16-zeroauthy-security-hardening-design.md) | key hierarchy; sandbox failure policy; DB TLS default; external KMS |
+| O3 | 45b flow and API fixes | [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md) | none (in progress: Tasks 1–5 done, 6–14 pending) |
+| O4 | 45c infrastructure | [spec](2026-11-16-zeroauthy-infrastructure-hardening-design.md) | DNS providers; backoff values; axe-core pin |
+| O5 | 46 leftovers | [spec](2026-11-16-zeroauthy-release-leftovers-design.md) | next languages; French reviewer; TV sample CI |
+
+Decision-ID blocks follow the parallel-paths design; migrations in the plans
+carry provisional numbers (0037 onward) and are renumbered at merge.
+
 ### Done
 
 | Plans | What |
@@ -39,6 +74,8 @@ the plans below, marked "(pre-1.0 review)".
 | 33 | MFA I: OTP, email, recovery codes, policies, remember browser, hosted prompts, MFA grants and APIs (WebAuthn moved to Plan 33b) |
 | 33b | Passkeys and WebAuthn MFA: passkeys on database connections, security keys and device biometrics, native passkey APIs and grant, per-host relying party IDs |
 | 34 | Passwordless and phone: email/SMS connections, magic links, OTP grant, Twilio/SNS/custom providers, SMS and voice MFA, phone identifiers and reset |
+| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles (merged 2026-11-15, PR #17) |
+| 39a | Sign in with Apple: web and native login, ES256 client secrets, console, seed and Deploy CLI (merged 2026-11-17) |
 
 ### Management API coverage by resource
 
@@ -100,11 +137,11 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full (done; WebAuthn → 33b) | 21, 27 |
 | 33b | Passkeys and WebAuthn MFA: connection passkey options, client `mobile`, native passkey APIs, security-key settings | full | 33, 23 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full (done) | 33 |
-| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
+| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short (done) | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
 | 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |
-| 39 | Additional social providers (Apple, Facebook, GitHub, …) | short (Apple full) | 24 |
+| 39 | Additional social providers (Apple, Facebook, GitHub, …) | short (Apple full; 39a Apple done) | 24 |
 | 40 | Actions III: newer triggers, Early Access members, `/userinfo` claims | short | 28, 22 |
 | 41 | OIDC protocol extras, CIBA, formal OIDF certification | full | 33, 35 |
 | 42 | My Account API and My Organization API | full | 30, 33 |
@@ -224,7 +261,7 @@ guide defines fleet rollout/rollback and legacy noncanonical reauthentication.
 
 **Implemented 2026-10-27:** see the [implementation record](../2026-10-26-plan-25-implementation-record.md) and [operator guide](../../email-account-connections.md). [Standalone spec](2026-10-26-zeroauthy-email-account-connections-design.md) and [implementation plan](../plans/2026-10-26-zeroauthy-plan-25-email-account-connections.md). Add `windowslive` for Microsoft personal accounts (including Outlook/Hotmail) and the `waad` Microsoft Entra work/school sign-in subset brought forward from Plan 36. Preserve and explicitly verify existing `google-oauth2` support for Gmail, other Google accounts and Google Workspace. This is account authentication, not mailbox access or outbound email delivery. **Full**, because organizational issuer/key validation and safe identity migration require more than provider profiles.
 
-**Deferred: Additional social providers (future plan, number unassigned).** Move `apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the remaining social list here. Apple still requires client-secret JWT and private-email relay handling. Do not implement these in Plan 25 or renumber Plans 26–39.
+**Deferred: Additional social providers (future plan, number unassigned).** Move `apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the remaining social list here. Apple is implemented by Plan 39a; remaining providers belong to Plan 39b. Do not implement these in Plan 25 or renumber Plans 26–39.
 
 ### Plan 26 — Roles and permissions (RBAC)
 
@@ -363,13 +400,21 @@ My Organization API/self-service organization administration Plan 42.
 
 `/api/v2/clients/{id}/credentials` (CRUD) with `public_key` and `x509_cert` credentials; `private_key_jwt` client authentication at `/oauth/token`, `/oauth/par` and `/oauth/revoke`; JAR (`request` objects signed with those keys); `signed_request_object` client settings; `/api/v2/token-exchange-profiles` with the custom token exchange grant and its Action (Plan 28). mTLS client auth and RAR are listed in §5 for a later decision. Also carries the `custom-token-exchange` trigger (deferred by Plan 28), its tenant protection settings (Plan 19 owner), `HS256`/`PS256` and `signing_secret` for resource servers, and lifts D-0035 (`request_not_supported`). **Short.**
 
+**Designed 2026-11-08:** [spec](2026-11-08-zeroauthy-client-credentials-jar-token-exchange-design.md), [plan](../plans/2026-11-08-zeroauthy-plan-35-client-credentials-jar-token-exchange.md) (16 tasks, D-0063, migration 0036, store capability `client_credentials.v1`). Guides: [client authentication](../../client-authentication.md), [custom token exchange](../../token-exchange.md).
+
+**Implemented (2026-11-15):** all 16 tasks are implemented, and Tasks 1 to 15 are reviewed; [record](../2026-11-08-plan-35-implementation-record.md). `make e2e-client-auth` (pinned auth-js, node-auth0, express-oauth2-jwt-bearer, auth0-cli 1.37.0, Deploy CLI 9.1.0 handlers, the console and a representative-secret audit) is wired into the plan-branch CI and passed in run 43761646827. The E2E check resolved C19: signing JWKs are now published without `alg`. Merge is pending green CI and maintainer approval. Follow-ups: `verify_email` sends nothing yet; the tenant MFA policy is not applied to exchanges (C20); the Deploy CLI four-cell matrix does not yet carry token exchange profiles; the Task 15 deferrals ([follow-ups](../plan-1-followups.md)).
+
 ### Plan 36 — Enterprise OIDC connections
 
 Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm discovery by `domain_aliases`, and `/api/v2/connections/{id}/keys` (`GET`, `POST .../rotate`) for connections that sign requests. Also `GET /api/v2/connections/{id}/status`, and `DELETE /api/v2/connections/{id}/users?email=`. Basic `oidc` back-channel login was brought forward to Plan 24; the public-cloud v2 `waad` work/school sign-in subset was implemented in Plan 25. This plan retains Entra features beyond that subset and must not reimplement its login adapters. **Short**, on Plans 24–25's federation core.
 
+**Designed 2026-11-16 (paths item F1):** [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-36-enterprise-oidc.md) (16 tasks, D-0120, one migration numbered at merge, store capability `connection_keys.v1`). Adds front channel, explicit endpoints, claim mapping, PKCE modes, `private_key_jwt` and encrypted ID tokens towards the provider, upstream PAR, `okta`, home realm discovery (also `waad`), connection keys, delete-users-by-email and status. `/status` is AD/LDAP only on Auth0 (F5); Okta Universal Logout moves to P3; Entra Graph groups to F4.
+
 ### Plan 37 — SAML, WS-Federation, SCIM, self-service SSO (full design; sub-project 4)
 
 SAML as identity provider (`samlp` addon on clients) and as service provider (`samlp` connections), WS-Federation (`wsfed` addon, `adfs` connection), `/samlp/{client_id}` metadata, SAML logout; `/api/v2/connections/{id}/scim-configuration` (and tokens) with an inbound SCIM 2.0 server; `/api/v2/self-service-profiles` and SSO tickets with the self-service setup flow. Directory groups from SCIM and enterprise connections (Plan 26 left groups out) land here if Auth0 documents a groups resource at build time. Likely two or three plans after its design.
+
+**Split by the parallel paths:** F2 = 37a SAML, F3 = 37b WS-Federation and ADFS, F4 = 37c SCIM and self-service SSO. **37a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-saml-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-37a-saml.md) (10 tasks, D-0130): the IdP addon (SSO, metadata, SLO, IdP-initiated, `api.samlResponse`) and SP connections (ACS, metadata, encryption, IdP-initiated, SLO, keys). Defaults the docs omit come from Auth0's MIT `node-samlp`. Rulings needed: the XML-signature implementation (recommended: vendor goxmldsig + etree into `internal/third_party`), E2E npm pins, and SHA-1. **37b designed 2026-11-16 (F3):** [spec](2026-11-16-zeroauthy-ws-federation-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-37b-ws-federation.md) (6 tasks, D-0140): the `wsfed` addon (passive requestor, SAML 1.1 RSTR, metadata, sign-out; defaults from Auth0's MIT `node-wsfed`) and `adfs` connections, on 37a's XML core. **37c designed 2026-11-16 (F4):** [spec](2026-11-16-zeroauthy-scim-self-service-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-37c-scim-self-service.md) (three phases, D-0150): (A) inbound SCIM 2.0 with directory groups and group roles (groups are GA on Auth0, so they ship), (B) self-service SSO profiles, tickets, the hosted assistant and connection profiles, (C) Google Workspace directory provisioning.
 
 ### Plan 38 — AD/LDAP, Forms and Flows, the rest (full design)
 
@@ -379,6 +424,8 @@ SAML as identity provider (`samlp` addon on clients) and as service provider (`s
 - **Pre-1.0 review additions:** `/api/v2/keys/encryption*` (BYOK, GA in Auth0) and Early Access `/keys/network-acls*`; HTTP message signatures for tenant ACLs (changelog 2026-10-29); OAS routes no plan names yet: `/sessions/{id}/revoke`, `/users/{id}/revoke-access`, effective roles/permissions and the `*/search` routes; silently ignored list parameters (`/clients` `q`/`is_global`/`from`/`take`, `/roles` `from`/`take`); `GET /logs` sorting beyond `date`.
 - **Remaining resources** listed at build time from Auth0's reference: `/api/v2/device-credentials`, `/api/v2/user-attribute-profiles`, `/api/v2/connection-profiles`, `/api/v2/risk-assessments` settings, and anything Auth0 adds while the roadmap runs (the changelog review feeds this plan).
 
+**Split by the parallel paths:** F5 = 38a AD/LDAP, A2 = 38b Forms and Flows, O1 = 38c network ACLs, M1 = 38d. **38d designed 2026-11-16:** [spec](2026-11-16-zeroauthy-management-gaps-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-38d-management-gaps.md) (9 tasks, D-0240). The spec assigns every one of the 195 Auth0 OAS operations missing on 2026-11-16 to an owner: effective roles/permissions, `revoke-access`, client connections, device credentials, risk-assessment settings, the retired rules/hooks routes and the list-parameter audit stay here; `/keys/encryption*` moves to O2; groups, connection profiles and self-service to F4; Early Access resources are tracked only. Open: verifiable-credential templates (proposed for §5). **38c designed 2026-11-16 (O1):** [spec](2026-11-16-zeroauthy-network-acls-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-38c-network-acls.md) (6 tasks, D-0250): first-match tenant ACLs on every tenant request; geo/ASN and Auth0-managed lists stored but never match (no data; maintainer to confirm); HTTP message signatures wait for GA. **38a designed 2026-11-16 (F5):** [spec](2026-11-16-zeroauthy-ad-ldap-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-38a-ad-ldap.md) (7 tasks, D-0160). Recommended: speak Auth0's MIT AD/LDAP Connector protocol (provisioning ticket, AD hub WebSocket, WS-Fed for Kerberos) so installed connectors keep working, using `golang.org/x/net` already in `go.mod`; the maintainer decides between that and a native LDAP bind. **38b designed 2026-11-16 (A2):** [spec](2026-11-16-zeroauthy-forms-flows-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-38b-forms-flows.md) (9 tasks, D-0200), Phase 1: forms, flows, executions, core vault apps (HTTP, JWT, Auth0), a pure-Go expression evaluator and engine with the core actions, hosted form rendering and `api.prompt.render`. The 18 vendor integrations are stored now and executed in a Phase 2 plan; console builder scope is for the maintainer.
+
 ## 3a. Follow-up plans (after Plan 38)
 
 Work that earlier plans deferred or that sits outside the Management API reference but matters for a drop-in replacement. Numbers are proposals; the maintainer may reorder them, and each starts with Task 1 observation and a changelog review like the plans above.
@@ -387,25 +434,37 @@ Work that earlier plans deferred or that sits outside the Management API referen
 
 `apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the rest of Auth0's social strategy list, on Plan 24's federation core (deferred from Plan 25). Apple needs the client-secret JWT, `form_post` callback and private-relay email handling, so it gets a full design; the others are profile mapping plus a fixture provider each. Extends the Deploy CLI federated fixture lane. **Short, Apple full.**
 
+**Split by the parallel paths:** S1 = 39a Apple, S2 = 39b the rest. **39a merged to `main` through `74752598`:** [spec](2026-11-16-zeroauthy-apple-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-39a-apple.md) (8 tasks, D-0170). Includes the native iOS authorization-code exchange and the client `native_social_login`/`mobile.ios` fields; S2 adds the Google and Facebook native exchanges. **39b designed 2026-11-16 (S2):** [spec](2026-11-16-zeroauthy-social-providers-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-39b-social-providers.md) (8 tasks, D-0180): data-driven descriptors for every remaining OpenAPI social strategy in two tiers (order for the maintainer to confirm), generic `oauth1`, Twitter on OAuth 2.0 and 1.0a, and native Google and Facebook. Marketplace-only providers (Discord, Slack, …) use generic `oauth2` examples.
+
 ### Plan 40 — Actions III
 
 Triggers Auth0 lists that Plan 28 deferred: `password-hash-migration`, `login-post-identifier`, `signup-post-identifier`, `post-credential-validation`, each only once Auth0 documents its event and `api`; Early Access members that reach general availability (`api.user.setUserId` in `pre-user-registration`, risk signals, `security_context`). Also the `/userinfo` custom-claim echo deferred by Plan 27, Actions validation of Plan 22's transient `ulp-` fields, and the Plan 27/28 deferred-minor ledgers (console log aggregate cap, sandbox probe assertions). Pre-1.0 review additions (the first-factor entries in `event.authentication.methods` moved to Plan 33b, K11): `event.refresh_token`, `event.session` on token grants, `last_password_reset`/`multifactor` on the post-login user; the custom-database script `context` argument (`enableScriptContext`). **Short**, on Plans 27–28.
+
+**Designed 2026-11-16 (paths item A1):** [spec](2026-11-16-zeroauthy-actions-iii-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-40-actions-iii.md) (10 tasks, D-0190). Adds post-login `api.session`, `api.refreshToken` (metadata members need Plan 48), `setPrimaryUser`, `recordMethod`, local risk assessments, and the newer event members. The four newer trigger IDs and `api.user.setUserId` are still undocumented on 2026-11-16 and stay deferred.
 
 ### Plan 41 — OIDC protocol extras, CIBA and formal certification
 
 The Plan 12 follow-ups: the `claims` parameter, `acr_values`, `address`/`phone` scopes and the remaining `profile` claims; front-channel and back-channel logout; Dynamic Client Registration (`/oidc/register`, Auth0's tenant flag); CIBA (`/bc-authorize`, the `async_approval` template stored since Plan 21). Then the formal OpenID certification submission under the open-source fee waiver (maintainer signs and submits), adding the new profiles (back-channel logout, Dynamic OP, FAPI only if Auth0 supports it) and a `client_secret_post` variant run. Pre-1.0 review additions: whether `/authorize` may omit `redirect_uri` (Auth0's reference lists it optional); the RFC 8707 `resource` parameter (`resource_parameter_profile: compatibility`, stored only today). Implicit/Hybrid profiles only where Auth0 behaviour passes; each spec-vs-Auth0 conflict goes to the maintainer (spec-compliant default plus an opt-in non-compliant environment variable). **Full.**
 
+**Split by the parallel paths:** P3 = 41a, P4 = 41b Dynamic Client Registration, P5 = 41c CIBA. **41a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) (14 tasks, D-0080). Adds `oidc_support`, per-client `HS256`/`PS256` ID tokens and global token revocation (from Plan 36); no Front-Channel Logout (Auth0 has none; maintainer to confirm). New follow-up found: Session Transfer Tokens (Native to Web SSO, client `session_transfer`) are on no plan yet. **41b designed 2026-11-16 (P4):** [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) (8 tasks, D-0090): open RFC 7591 registration with Auth0's strict/permissive modes, CIMD clients (GA Management routes, Early Access tenant flags) and the Dynamic OP conformance plan. **41c designed 2026-11-16 (P5):** [spec](2026-11-16-zeroauthy-ciba-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-41c-ciba.md) (6 tasks, D-0100): CIBA in poll mode over Auth0's documented **email** approval channel (`async_approval` template plus a hosted approval page), so Guardian push is not needed; push-only clients are refused.
+
 ### Plan 42 — My Account API and My Organization API
 
 Auth0's end-user-facing APIs outside `/api/v2`: the My Account API (users manage their own authentication methods, passkeys and connected identities) and the My Organization API (organization administrators manage members, invitations and roles; Early Access since 2026-09, with log events). Both reuse Plans 30 and 33 and need their own audiences, scopes and consent. **Full.**
+
+**Split by the parallel paths:** U1 = 42a My Account, U2 = 42b My Organization. **42a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-my-account-api-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) (8 tasks, D-0210), from Auth0's My Account OpenAPI (`/docs/oas/myaccount/myaccount-api-oas.json`): GA authentication methods plus the factors list. Connected accounts belong to Plan 43 (P6); consents, consent signing keys, the profile routes and the Authentication Assurance default policy are pre-GA and tracked only. Auth0 also publishes `/docs/oas/myorganization/myorganization-api-oas.json` for U2. **42b designed 2026-11-16 (U2):** [spec](2026-11-16-zeroauthy-my-organization-api-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-42b-my-organization-api.md) (6 tasks, D-0220). Phase A (config, details, members, invitations, member roles, scoped by the token's `org_id`) is ready to build. The whole API is Early Access on Auth0, so building it now is a maintainer call (proposed: yes, for the self-service use case). Phase B (domains with real DNS verification, organization-owned identity providers, provisioning) waits for Plans 36, 37a and 37c.
 
 ### Plan 43 — Token Vault and connected accounts
 
 `federated-connections-tokensets` and the token-exchange path that lets an application obtain a user's upstream provider tokens (Auth0's Token Vault, used by its AI-agent features), which Plan 24 explicitly left out. Needs Plan 24's sealed upstream-token storage and Plan 35's token exchange. **Full**, because refresh, revocation and consent policy are product decisions.
 
+**Designed 2026-11-16 (paths item P6):** [spec](2026-11-16-zeroauthy-token-vault-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-43-token-vault.md) (6 tasks, D-0110): the My Account Connected Accounts flow, the vault with provider refresh, and Auth0's federated-connection access-token exchange (refresh-token and access-token subjects). Proposed policy for the maintainer: first-party clients only, best-effort upstream revocation, vault separate from login identities. The privileged worker exchange is Early Access and is tracked only.
+
 ### Plan 44 — ACUL and the remaining Universal Login modes
 
 Advanced Customizations for Universal Login (tenant-built screens through the prompt rendering API), Classic Login, WebAuthn-first and social controls on hosted pages, prompt partials with custom-domain context: all deferred by Plans 22–23. ACUL runs tenant JavaScript in the browser, which Plan 22 rejects today, so the design must settle the content-security boundary first. Unblocks the Deploy CLI ACUL export. Pre-1.0 review addition: the phone factor on MFA enrollment tickets. **Full.**
+
+**Designed 2026-11-16 (paths item H1):** [spec](2026-11-16-zeroauthy-acul-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-44-acul.md) (10 tasks, D-0230). The host-page contract comes from Auth0's MIT ACUL SDK (`auth0/universal-login`, `auth0-acul-js-v1.11.0`). Four maintainer rulings gate Tasks 2–10: Classic Login (proposed: not built), the content-security boundary (allowlisted head tags, mandatory SRI, strict CSP), ACUL on the canonical host, and an E2E pin of `@auth0/auth0-acul-js`.
 
 ### Plan 45 — Operational hardening sweep
 
@@ -431,9 +490,11 @@ verification jobs and tickets; narrowing `GET /users/{id}/organizations`
 scopes; the v1-only `connection` filter; non-secret email-provider fields
 (`api_user`, `region`, `smtp_*`) on `GET /emails/provider`.
 
+**Split by the parallel paths:** O2 = 45a security hardening, O3 = 45b flow and API fixes, O4 = 45c infrastructure. **45a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-security-hardening-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45a-security-hardening.md) (12 tasks, D-0260): envelope v2 with per-tenant master keys, root-key rotation, Auth0's `/keys/encryption*` customer-managed keys (moved from Plan 38d), a Landlock/seccomp runner sandbox with one shared prelude, retirement on spent budgets, HSTS, database TLS checks and plugin stderr scrubbing. Four maintainer rulings gate parts of it (spec §9). **45b implemented (O3):** [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45b-flow-api-fixes.md) (14 tasks, D-0270): the eleven flow and API findings above plus Plan 33 minors M3/M6/M7; Actions keep their position relative to MFA (2026-11-08 ruling). **45c designed 2026-11-16 (O4):** [spec](2026-11-16-zeroauthy-infrastructure-hardening-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45c-infrastructure-hardening.md) (11 tasks, D-0280): durable certificate retries, Cloudflare/Route 53/RFC 2136 DNS-01 with CNAME delegation (maintainer to confirm), custom JWKS publication, a CORS origin index, the orphaned-token sweep, Try limiting, enforced phone backoff, the Plan 27 MySQL freshness closure and an axe accessibility audit.
+
 ### Plan 46 — Release pipeline, packaging and samples
 
-Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.** Core done 2026-11-03 for 1.0: `release.yml` (release branches only), reproducible `scripts/dist.sh` archives, the multi-arch image, `CHANGELOG.md`, `RELEASING.md`. Left: versioned docs links from the console, `govulncheck` in CI if not added for 1.0, the Android TV sample and translations.
+Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.** Core done 2026-11-03 for 1.0: `release.yml` (release branches only), reproducible `scripts/dist.sh` archives, the multi-arch image, `CHANGELOG.md`, `RELEASING.md`. Left: versioned docs links from the console, `govulncheck` in CI if not added for 1.0, the Android TV sample and translations. **Leftovers designed 2026-11-16 (O5):** [spec](2026-11-16-zeroauthy-release-leftovers-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-46-release-leftovers.md) (5 tasks, D-0290). `govulncheck`, the conformance release gate and the rollback notes are already done; what remains is versioned console docs links, a French console catalog (beta until reviewed) and the Android TV sample.
 
 ### Plan 47 — Hosted zeroauthy
 
@@ -442,6 +503,8 @@ The maintainer's hosting offer: tenant sign-up, subdomain and droplet provisioni
 ### Plan 48 — Refresh tokens II
 
 Proposed by the pre-1.0 review. Turning on rotation converts existing non-rotating tokens on their next exchange and deletes the client's other non-rotating tokens (Auth0's documented behaviour); the rotation `leeway` accepts only the immediately previous token; deleting a user grant revokes the refresh tokens issued under it; the refresh grant re-checks the API's `allow_offline_access`; multi-resource and session-bound refresh tokens. **Short.**
+
+**Designed 2026-11-16 (paths item P2):** [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-48-refresh-tokens-ii.md) (12 tasks, D-0070, one migration numbered at merge, store capability `refresh_tokens_ii.v1`). "Session-bound" is Auth0's Online Refresh Tokens (`allow_online_access`, `online_access`). Also carries `token_quota` (from Plan 35), the `/refresh-tokens` list/bulk-revoke/metadata routes, session metadata and `POST /sessions/{id}/revoke` (moved from Plan 38's OAS gap list); `/users/{id}/revoke-access` and `/device-credentials` stay with Plan 38d (M1).
 
 ## 4. Cross-cutting work and where it lands
 

@@ -40,6 +40,8 @@ type Profile struct {
 	Picture       *string
 	// UserMetadata is set only from an explicit bounded object.
 	UserMetadata map[string]any
+	// ProviderData contains provider-owned, whitelisted identity claims.
+	ProviderData map[string]any
 }
 
 // rootStrings are the optional root string attributes with their character

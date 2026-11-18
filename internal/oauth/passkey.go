@@ -47,18 +47,9 @@ func (h *Handlers) nativeSetup(ctx context.Context, res tenant.Resolved, c *stor
 	}
 	// Capability first: without webauthn.v1 every host answers 404, the
 	// canonical host included.
-	if cap, ok := h.Store.(store.WebAuthnSupporter); ok {
-		if err := cap.CheckWebAuthnSupport(ctx); errors.Is(err, store.ErrWebAuthnUnavailable) {
-			return nil, rpid.Result{}, nil, passkeyNotFound()
-		} else if err != nil {
-			return nil, rpid.Result{}, nil, serverError()
-		}
-		if !cap.WebAuthnSupported() {
-			return nil, rpid.Result{}, nil, passkeyNotFound()
-		}
-	}
-	switch h.Store.WebAuthn().(type) {
-	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
+	if available, err := store.WebAuthnAvailable(ctx, h.Store); err != nil {
+		return nil, rpid.Result{}, nil, serverError()
+	} else if !available {
 		return nil, rpid.Result{}, nil, passkeyNotFound()
 	}
 	policy := h.Passkeys.RPID
@@ -297,7 +288,7 @@ func (h *Handlers) nativePasskey(w http.ResponseWriter, r *http.Request, registe
 			options, err = o.JSON()
 		}
 	} else {
-		options, err = json.Marshal(map[string]any{"challenge": base64.RawURLEncoding.EncodeToString(i.Challenge), "timeout": 60000, "rpId": rp.RPID, "userVerification": "preferred"})
+		options, err = json.Marshal(map[string]any{"challenge": base64.RawURLEncoding.EncodeToString(i.Challenge), "timeout": webauthnrules.Limits.NativeTimeout.Milliseconds(), "rpId": rp.RPID, "userVerification": "preferred"})
 	}
 	if err != nil {
 		fail(serverError())
@@ -436,6 +427,38 @@ func (h *Handlers) nativeFailureBudget(ctx context.Context, res tenant.Resolved,
 	}
 	if err := svc.RecordFailure(ctx, a, secrets.RandomString(32)); err != nil {
 		return serverError()
+	}
+	return nil
+}
+
+// Revalidate the exact first-factor RP/client/realm binding in the transaction
+// granting membership and consuming MFA proof. A legacy passkey continuation
+// without this evidence must restart authentication rather than infer a binding.
+func (h *Handlers) checkPasskeyCompletion(ctx context.Context, tx store.Store, res tenant.Resolved, clientID, connectionID string, binding *passkey.Binding) error {
+	if binding == nil {
+		return errUserChanged
+	}
+	c, err := tx.Clients().Get(ctx, res.Tenant.ID, clientID)
+	if err != nil {
+		return err
+	}
+	if !c.IsFirstParty || !slices.Contains(c.GrantTypes, clientrules.GrantPasskey) {
+		return errUserChanged
+	}
+	tn, err := tx.Tenants().Get(ctx, res.Tenant.ID)
+	if err != nil {
+		return err
+	}
+	res.Tenant = tn
+	local := *h
+	local.Store = tx
+	conn, rp, org, e := local.nativeSetup(ctx, res, c, url.Values{"realm": {binding.Realm}, "organization": {binding.Organization}})
+	if e != nil || conn.ID != connectionID {
+		return errUserChanged
+	}
+	current := nativeBinding(conn, rp, c, org)
+	if current.RPID != binding.RPID || current.Realm != binding.Realm || current.ClientID != binding.ClientID || current.Organization != binding.Organization || !slices.Equal(current.Origins, binding.Origins) {
+		return errUserChanged
 	}
 	return nil
 }

@@ -121,6 +121,28 @@ func (r mfa) ListAuthenticators(_ context.Context, tid, uid string) ([]store.Aut
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out, nil
 }
+func (r mfa) GuardianUsers(_ context.Context, tid string, ids []string) ([]string, error) {
+	if len(ids) > store.GuardianUsersLimit {
+		return nil, store.ErrInvalid
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	requested := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		requested[id] = true
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	var out []string
+	for _, a := range r.s.authenticators {
+		if a.TenantID == tid && requested[a.UserID] && a.GuardianEnrollment() {
+			out = append(out, a.UserID)
+			delete(requested, a.UserID)
+		}
+	}
+	return out, nil
+}
 func (r mfa) GetAuthenticatorByEnrollmentID(_ context.Context, tid, enrollmentID string) (*store.Authenticator, error) {
 	r.s.readLock()
 	defer r.s.readUnlock()
@@ -406,6 +428,16 @@ func (r mfa) PurgeMFA(_ context.Context, before time.Time, limit int) (int, erro
 	for k, v := range r.s.browsers {
 		if take(v.ExpiresAt) {
 			delete(r.s.browsers, k)
+		}
+	}
+	cutoff := before.UTC().Add(-store.PendingAuthenticatorRetention)
+	for k, a := range r.s.authenticators {
+		if limit > 0 && n >= limit {
+			break
+		}
+		if !a.Confirmed && a.CreatedAt.Before(cutoff) {
+			delete(r.s.authenticators, k)
+			n++
 		}
 	}
 	return n, nil

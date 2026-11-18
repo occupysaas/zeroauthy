@@ -1,14 +1,13 @@
 package server
 
 import (
+	"html"
 	"io/fs"
 	"net/http"
 	"path"
-	"slices"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
-	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -17,8 +16,8 @@ import (
 // so that the console's router can handle deep links after a reload.
 type admin struct {
 	files      fs.FS
-	store      store.Store
 	baseDomain string
+	systemHost string
 }
 
 func (a admin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +30,8 @@ func (a admin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h := w.Header()
-	h.Set("Content-Security-Policy", a.csp(r))
+	csp := a.csp()
+	h.Set("Content-Security-Policy", csp)
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("X-Frame-Options", "DENY")
@@ -58,26 +58,24 @@ func (a admin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nonce := secrets.RandomString(22)
-	h.Set("Content-Security-Policy", strings.Replace(a.csp(r), "style-src 'self'", "style-src 'self' 'nonce-"+nonce+"'", 1))
-	index = []byte(strings.Replace(string(index), "<head>", `<head><meta name="zeroauthy-preview-style-nonce" content="`+nonce+`">`, 1))
+	h.Set("Content-Security-Policy", strings.Replace(csp, "style-src 'self'", "style-src 'self' 'nonce-"+nonce+"'", 1))
+	head := `<head><meta name="zeroauthy-preview-style-nonce" content="` + nonce + `">`
+	if a.baseDomain != "" {
+		head += `<meta name="zeroauthy-base-domain" content="` + html.EscapeString(a.baseDomain) + `">`
+	}
+	index = []byte(strings.Replace(string(index), "<head>", head, 1))
 	_, _ = w.Write(index)
 }
 
-// csp allows the console's own files only, and API calls to its own
-// origin and to the tenants' hosts.
-func (a admin) csp(r *http.Request) string {
+// csp is independent of tenant data. The console reaches other Management
+// API origins through the system host.
+func (a admin) csp() string {
 	connect := []string{"'self'"}
 	if a.baseDomain != "" {
-		connect = append(connect, "https://*."+tenant.NormalizeHost(a.baseDomain))
+		connect = append(connect, "https://*."+a.baseDomain)
 	}
-	if all, err := a.store.Tenants().List(r.Context()); err == nil {
-		for _, t := range all {
-			for _, d := range t.Domains {
-				if src := "https://" + d; !slices.Contains(connect, src) {
-					connect = append(connect, src)
-				}
-			}
-		}
+	if a.systemHost != "" {
+		connect = append(connect, "https://"+a.systemHost)
 	}
 	return "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; " +
 		"connect-src " + strings.Join(connect, " ") + "; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"

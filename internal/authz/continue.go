@@ -76,7 +76,11 @@ func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
 		h.ResetContinue(w, r, state, info)
 		return
 	}
-	sess, err := h.ActiveSession(r.Context(), r, res)
+	if c, e := r.Cookie(continueSelectorCookie(state)); e == nil {
+		*r = *r.WithContext(context.WithValue(r.Context(), pendingSelectorKey{}, c.Value))
+		http.SetCookie(w, &http.Cookie{Name: c.Name, Path: "/continue", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteNoneMode})
+	}
+	sess, err := h.FlowSession(r.Context(), r, res)
 	if err != nil || sess == nil {
 		invalid()
 		return

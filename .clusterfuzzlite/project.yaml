@@ -1,0 +1,4 @@
+# ClusterFuzzLite project (https://google.github.io/clusterfuzzlite/). The fuzz
+# targets are the native Go fuzz tests that build.sh lists; the workflows are
+# .github/workflows/cflite_pr.yml and cflite_batch.yml.
+language: go

@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/rbacrules"
@@ -43,6 +45,9 @@ func (f *File) validate() error {
 		}
 		if err := validateActions(t); err != nil {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: Actions: %w", t.Name, err))
+		}
+		for _, err := range validateTokenExchangeProfiles(t) {
+			errs = append(errs, fmt.Errorf("seed: tenant %q: %w", t.Name, err))
 		}
 		if err := validateTenantSettings(t); err != nil {
 			errs = append(errs, err)
@@ -192,6 +197,9 @@ func (t *Tenant) validate() []error {
 		for _, err := range apirules.Normalize(&spec) {
 			fail("resource server %q: %v", rs.Identifier, err)
 		}
+		for _, err := range validateSigning(rs, spec.SigningAlg) {
+			fail("resource server %q: %v", rs.Identifier, err)
+		}
 		rs.normalized = &spec
 	}
 
@@ -239,6 +247,24 @@ func (t *Tenant) validate() []error {
 		// A confidential client may omit client_secret: an existing client
 		// then keeps its stored secret (Plan 13). Creating one without a
 		// secret fails when the seed is applied.
+		c.nativeSocialLogin = nil
+		if c.NativeSocialLogin != nil {
+			raw, err := json.Marshal(c.NativeSocialLogin)
+			if err == nil {
+				c.nativeSocialLogin, err = clientrules.ParseNativeSocialLogin(raw)
+			}
+			if err != nil {
+				fail("client %q: native_social_login: %v", c.ClientID, err)
+			}
+		} else {
+			for _, raw := range t.suppliedClients() {
+				if raw["client_id"] == c.ClientID {
+					if _, named := raw["native_social_login"]; named {
+						fail("client %q: native_social_login must be an object", c.ClientID)
+					}
+				}
+			}
+		}
 		c.mobile = nil
 		if c.Mobile != nil {
 			m, err := parseMobile(c.Mobile)
@@ -247,9 +273,15 @@ func (t *Tenant) validate() []error {
 			}
 			c.mobile = m
 		}
+		for _, err := range c.validateCredentials() {
+			fail("%v", err)
+		}
 		spec := c.spec()
 		for _, err := range clientrules.Normalize(&spec, t.PushedAuthorizationRequestsSupported) {
 			fail("client %q: %v", c.ClientID, err)
+		}
+		if c.TokenExchange != nil && len(c.TokenExchange.AllowAnyProfileOfType) > 0 && !*spec.IsFirstParty {
+			fail("client %q: token_exchange is only for first-party applications", c.ClientID)
 		}
 		c.normalized = &spec
 		thirdParty[c.ClientID] = !*spec.IsFirstParty
@@ -329,11 +361,11 @@ func (t *Tenant) validate() []error {
 		}
 		spec := c.spec()
 		if c.Options != nil && !spec.Federated() && !spec.Passwordless() && spec.Strategy != store.StrategyDatabase {
-			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive and waad strategies", c.Name)
+			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive, waad and apple strategies", c.Name)
 		}
 		if spec.Federated() {
-			if _, named := c.Options["client_secret"]; !named {
-				fail("connection %q: options.client_secret is required", c.Name)
+			if _, named := c.Options[rules.SecretOption(spec.Strategy)]; !named {
+				fail("connection %q: options.%s is required", c.Name, rules.SecretOption(spec.Strategy))
 			}
 		}
 		for _, err := range connrules.Normalize(&spec) {
@@ -399,4 +431,16 @@ func (t *Tenant) validate() []error {
 		}
 	}
 	return errs
+}
+
+func (t *Tenant) suppliedClients() []map[string]any {
+	var out []map[string]any
+	if rows, ok := t.supplied["clients"].([]any); ok {
+		for _, row := range rows {
+			if m, ok := row.(map[string]any); ok {
+				out = append(out, m)
+			}
+		}
+	}
+	return out
 }

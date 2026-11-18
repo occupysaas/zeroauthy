@@ -31,3 +31,20 @@ func WithMembershipEvents(ctx context.Context, st store.Store, fn func(context.C
 	}
 	return err
 }
+
+// StageMembershipEvents lets proof services own the transaction while callers
+// retain the success events until its actual commit result is known.
+func StageMembershipEvents(ctx context.Context) (context.Context, func(error)) {
+	if _, ok := ctx.Value(membershipEventsKey{}).(*membershipEvents); ok {
+		return ctx, func(error) {}
+	}
+	pending := &membershipEvents{}
+	scoped := context.WithValue(ctx, membershipEventsKey{}, pending)
+	return scoped, func(err error) {
+		if err == nil {
+			for _, event := range pending.events {
+				logs.RecordEvent(ctx, logs.RecorderFromContext(ctx), event)
+			}
+		}
+	}
+}

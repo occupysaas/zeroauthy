@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"reflect"
 	"strings"
 	"time"
@@ -425,6 +427,59 @@ func (s *Server) MFAGetAuthenticatorByEnrollmentID(ctx context.Context, q *store
 			return err
 		}
 		return copyMFA(&out.Value, v)
+	}))
+	return out, nil
+}
+
+func (o clientMFA) GuardianUsers(ctx context.Context, tid string, ids []string) ([]string, error) {
+	if len(ids) > store.GuardianUsersLimit {
+		return nil, store.ErrInvalid
+	}
+	if o.c.mfaCap.v.Load() != 1 {
+		if err := o.c.CheckMFASupport(ctx); err != nil {
+			return nil, err
+		}
+	}
+	resp, err := o.c.rpc.MFAGuardianUsers(ctx, &storev1.MFAGuardianUsersRequest{TxId: o.c.txID, Tid: tid, UserIds: ids})
+	if status.Code(err) != codes.Unimplemented {
+		if err = mfaRPCError(o.c, err, resp.GetError()); err != nil {
+			return nil, err
+		}
+		return resp.GetUserIds(), nil
+	}
+	// A plugin may support MFA v1 but predate the batch RPC. Only an explicit
+	// unimplemented RPC takes this compatibility path.
+	var out []string
+	seen := map[string]bool{}
+	for _, id := range ids {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		methods, err := o.ListAuthenticators(ctx, tid, id)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range methods {
+			if a.GuardianEnrollment() {
+				out = append(out, id)
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+func (s *Server) MFAGuardianUsers(ctx context.Context, q *storev1.MFAGuardianUsersRequest) (*storev1.MFAGuardianUsersResponse, error) {
+	out := &storev1.MFAGuardianUsersResponse{}
+	if q == nil || len(q.UserIds) > store.GuardianUsersLimit {
+		out.Error = errToPB(store.ErrInvalid)
+		return out, nil
+	}
+	out.Error = errToPB(s.with(q.TxId, func(st store.Store) error {
+		var err error
+		out.UserIds, err = st.MFA().GuardianUsers(ctx, q.Tid, q.UserIds)
+		return err
 	}))
 	return out, nil
 }

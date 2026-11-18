@@ -112,9 +112,12 @@ type state struct {
 	emailProviderRevisions map[string]int64
 	emailTemplates         map[key]*store.EmailTemplate
 	emailNotifications     map[emailClaimKey]store.EmailNotification
-	fedAttempts            map[key]*store.FederationAttempt // by (tenant, StateHash)
-	fedIdentities          map[fedKey]string                // owner UserID
-	fedTokens              map[fedKey][]byte                // sealed token records
+	fedAttempts            map[key]*store.FederationAttempt    // by (tenant, StateHash)
+	fedIdentities          map[fedKey]string                   // owner UserID
+	fedTokens              map[fedKey][]byte                   // sealed token records
+	credentials            map[key]*store.ClientCredential     // by (tenant, ID)
+	assertionJTIs          map[key]time.Time                   // by (tenant, client\x00sha256(jti)); expiry
+	exchangeProfiles       map[key]*store.TokenExchangeProfile // by (tenant, ID)
 }
 
 // NewWithClock returns an empty store whose storage time (attempt budgets,
@@ -161,6 +164,9 @@ func New() *Store {
 		transactions:           map[key]*store.AuthTransaction{},
 		authCodes:              map[key]*store.AuthCode{},
 		pushedAuthRequests:     map[key]*store.PushedAuthRequest{},
+		credentials:            map[key]*store.ClientCredential{},
+		assertionJTIs:          map[key]time.Time{},
+		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},
 		deviceCodes:            map[key]*store.DeviceCode{},
 		refreshTokens:          map[key]*store.RefreshToken{},
 		resetTickets:           map[key]*store.PasswordResetTicket{},
@@ -226,6 +232,7 @@ func (s *Store) Users() store.Users                               { return users
 func (s *Store) Sessions() store.Sessions                         { return sessions{s} }
 func (s *Store) AuthTransactions() store.AuthTransactions         { return authTransactions{s} }
 func (s *Store) AuthCodes() store.AuthCodes                       { return authCodes{s} }
+func (s *Store) ClientCredentials() store.ClientCredentials       { return clientCredentials{s} }
 func (s *Store) PushedAuthRequests() store.PushedAuthRequests     { return pushedAuthRequests{s} }
 func (s *Store) DeviceCodes() store.DeviceCodes                   { return deviceCodes{s} }
 func (s *Store) RefreshTokens() store.RefreshTokens               { return refreshTokens{s} }

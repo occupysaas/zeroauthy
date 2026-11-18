@@ -57,5 +57,10 @@ await secondary.emails.provider.create({
 });
 await secondary.emailTemplates.create({ template: 'verify_email', body: '<p>Secondary verify <a href="{{ url }}">Verify</a></p>', subject: 'Secondary verify', enabled: true });
 await secondary.emailTemplates.create({ template: 'welcome_email', body: '<p>Secondary welcome</p>', subject: 'Secondary welcome', enabled: true });
-assert.equal((await secondary.emails.provider.get()).name, 'smtp');
+const smtpCredentials = { smtp_host: '127.0.0.1', smtp_port: 2526 };
+assert.deepEqual((await secondary.emails.provider.get()).credentials, smtpCredentials);
+assert.deepEqual(await secondary.emails.provider.get({ fields: 'credentials', include_fields: true }), {
+  credentials: smtpCredentials,
+});
+assert.equal((await secondary.emails.provider.get({ fields: 'credentials', include_fields: false })).credentials, undefined);
 console.log('m21-node-auth0: provider/template CRUD, redaction, scopes, errors and tenant isolation passed');

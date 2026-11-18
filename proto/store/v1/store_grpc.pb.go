@@ -25,6 +25,7 @@ const (
 	StoreService_MFACreateAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFACreateAuthenticator"
 	StoreService_MFAGetAuthenticator_FullMethodName                     = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticator"
 	StoreService_MFAGetAuthenticatorByEnrollmentID_FullMethodName       = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticatorByEnrollmentID"
+	StoreService_MFAGuardianUsers_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAGuardianUsers"
 	StoreService_MFAListAuthenticators_FullMethodName                   = "/zeroauthy.store.v1.StoreService/MFAListAuthenticators"
 	StoreService_MFAUpdateAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFAUpdateAuthenticator"
 	StoreService_MFADeleteAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFADeleteAuthenticator"
@@ -76,6 +77,21 @@ const (
 	StoreService_WebAuthnGetSnooze_FullMethodName                       = "/zeroauthy.store.v1.StoreService/WebAuthnGetSnooze"
 	StoreService_WebAuthnHostTenantsUnder_FullMethodName                = "/zeroauthy.store.v1.StoreService/WebAuthnHostTenantsUnder"
 	StoreService_WebAuthnPurge_FullMethodName                           = "/zeroauthy.store.v1.StoreService/WebAuthnPurge"
+	StoreService_ClientCredentialsCapabilities_FullMethodName           = "/zeroauthy.store.v1.StoreService/ClientCredentialsCapabilities"
+	StoreService_ClientCredentialsCreate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreate"
+	StoreService_ClientCredentialsGet_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ClientCredentialsGet"
+	StoreService_ClientCredentialsList_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ClientCredentialsList"
+	StoreService_ClientCredentialsUpdateExpiry_FullMethodName           = "/zeroauthy.store.v1.StoreService/ClientCredentialsUpdateExpiry"
+	StoreService_ClientCredentialsDelete_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsDelete"
+	StoreService_ClientCredentialsUseJTI_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsUseJTI"
+	StoreService_ClientCredentialsPurgeJTIs_FullMethodName              = "/zeroauthy.store.v1.StoreService/ClientCredentialsPurgeJTIs"
+	StoreService_ClientCredentialsCreateProfile_FullMethodName          = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreateProfile"
+	StoreService_ClientCredentialsGetProfile_FullMethodName             = "/zeroauthy.store.v1.StoreService/ClientCredentialsGetProfile"
+	StoreService_ClientCredentialsGetProfileByType_FullMethodName       = "/zeroauthy.store.v1.StoreService/ClientCredentialsGetProfileByType"
+	StoreService_ClientCredentialsListProfiles_FullMethodName           = "/zeroauthy.store.v1.StoreService/ClientCredentialsListProfiles"
+	StoreService_ClientCredentialsUpdateProfile_FullMethodName          = "/zeroauthy.store.v1.StoreService/ClientCredentialsUpdateProfile"
+	StoreService_ClientCredentialsDeleteProfile_FullMethodName          = "/zeroauthy.store.v1.StoreService/ClientCredentialsDeleteProfile"
+	StoreService_ClientCredentialsProfilesForAction_FullMethodName      = "/zeroauthy.store.v1.StoreService/ClientCredentialsProfilesForAction"
 	StoreService_EventsCapabilities_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EventsCapabilities"
 	StoreService_AppendEvents_FullMethodName                            = "/zeroauthy.store.v1.StoreService/AppendEvents"
 	StoreService_GetEvent_FullMethodName                                = "/zeroauthy.store.v1.StoreService/GetEvent"
@@ -473,6 +489,7 @@ type StoreServiceClient interface {
 	MFACreateAuthenticator(ctx context.Context, in *MFACreateAuthenticatorRequest, opts ...grpc.CallOption) (*MFACreateAuthenticatorResponse, error)
 	MFAGetAuthenticator(ctx context.Context, in *MFAGetAuthenticatorRequest, opts ...grpc.CallOption) (*MFAGetAuthenticatorResponse, error)
 	MFAGetAuthenticatorByEnrollmentID(ctx context.Context, in *MFAGetAuthenticatorByEnrollmentIDRequest, opts ...grpc.CallOption) (*MFAGetAuthenticatorByEnrollmentIDResponse, error)
+	MFAGuardianUsers(ctx context.Context, in *MFAGuardianUsersRequest, opts ...grpc.CallOption) (*MFAGuardianUsersResponse, error)
 	MFAListAuthenticators(ctx context.Context, in *MFAListAuthenticatorsRequest, opts ...grpc.CallOption) (*MFAListAuthenticatorsResponse, error)
 	MFAUpdateAuthenticator(ctx context.Context, in *MFAUpdateAuthenticatorRequest, opts ...grpc.CallOption) (*MFAUpdateAuthenticatorResponse, error)
 	MFADeleteAuthenticator(ctx context.Context, in *MFADeleteAuthenticatorRequest, opts ...grpc.CallOption) (*MFADeleteAuthenticatorResponse, error)
@@ -524,6 +541,21 @@ type StoreServiceClient interface {
 	WebAuthnGetSnooze(ctx context.Context, in *WebAuthnGetSnoozeRequest, opts ...grpc.CallOption) (*WebAuthnSnoozeResponse, error)
 	WebAuthnHostTenantsUnder(ctx context.Context, in *WebAuthnHostTenantsRequest, opts ...grpc.CallOption) (*WebAuthnHostTenantsResponse, error)
 	WebAuthnPurge(ctx context.Context, in *WebAuthnPurgeRequest, opts ...grpc.CallOption) (*WebAuthnCountResponse, error)
+	ClientCredentialsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	ClientCredentialsCreate(ctx context.Context, in *ClientCredentialsCreateRequest, opts ...grpc.CallOption) (*Result, error)
+	ClientCredentialsGet(ctx context.Context, in *ClientCredentialKeyRequest, opts ...grpc.CallOption) (*ClientCredentialResult, error)
+	ClientCredentialsList(ctx context.Context, in *ClientCredentialListRequest, opts ...grpc.CallOption) (*ClientCredentialListResult, error)
+	ClientCredentialsUpdateExpiry(ctx context.Context, in *ClientCredentialsUpdateExpiryRequest, opts ...grpc.CallOption) (*Result, error)
+	ClientCredentialsDelete(ctx context.Context, in *ClientCredentialKeyRequest, opts ...grpc.CallOption) (*Result, error)
+	ClientCredentialsUseJTI(ctx context.Context, in *ClientCredentialsUseJTIRequest, opts ...grpc.CallOption) (*Result, error)
+	ClientCredentialsPurgeJTIs(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
+	ClientCredentialsCreateProfile(ctx context.Context, in *TokenExchangeProfileCreateRequest, opts ...grpc.CallOption) (*Result, error)
+	ClientCredentialsGetProfile(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*TokenExchangeProfileResult, error)
+	ClientCredentialsGetProfileByType(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*TokenExchangeProfileResult, error)
+	ClientCredentialsListProfiles(ctx context.Context, in *TokenExchangeProfileListRequest, opts ...grpc.CallOption) (*TokenExchangeProfileListResult, error)
+	ClientCredentialsUpdateProfile(ctx context.Context, in *TokenExchangeProfileWrite, opts ...grpc.CallOption) (*Result, error)
+	ClientCredentialsDeleteProfile(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*Result, error)
+	ClientCredentialsProfilesForAction(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*CountResult, error)
 	EventsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	AppendEvents(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	GetEvent(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
@@ -580,6 +612,7 @@ type StoreServiceClient interface {
 	RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	// Version 2 also persists organization IDs on email verification tickets.
 	OrganizationsIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsIICreateInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
 	OrganizationsIIGetInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
@@ -941,6 +974,16 @@ func (c *storeServiceClient) MFAGetAuthenticatorByEnrollmentID(ctx context.Conte
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MFAGetAuthenticatorByEnrollmentIDResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAGetAuthenticatorByEnrollmentID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) MFAGuardianUsers(ctx context.Context, in *MFAGuardianUsersRequest, opts ...grpc.CallOption) (*MFAGuardianUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MFAGuardianUsersResponse)
+	err := c.cc.Invoke(ctx, StoreService_MFAGuardianUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1451,6 +1494,156 @@ func (c *storeServiceClient) WebAuthnPurge(ctx context.Context, in *WebAuthnPurg
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WebAuthnCountResponse)
 	err := c.cc.Invoke(ctx, StoreService_WebAuthnPurge_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsCreate(ctx context.Context, in *ClientCredentialsCreateRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsGet(ctx context.Context, in *ClientCredentialKeyRequest, opts ...grpc.CallOption) (*ClientCredentialResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClientCredentialResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsList(ctx context.Context, in *ClientCredentialListRequest, opts ...grpc.CallOption) (*ClientCredentialListResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClientCredentialListResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsUpdateExpiry(ctx context.Context, in *ClientCredentialsUpdateExpiryRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsUpdateExpiry_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsDelete(ctx context.Context, in *ClientCredentialKeyRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsUseJTI(ctx context.Context, in *ClientCredentialsUseJTIRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsUseJTI_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsPurgeJTIs(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsPurgeJTIs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsCreateProfile(ctx context.Context, in *TokenExchangeProfileCreateRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsCreateProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsGetProfile(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*TokenExchangeProfileResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenExchangeProfileResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsGetProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsGetProfileByType(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*TokenExchangeProfileResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenExchangeProfileResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsGetProfileByType_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsListProfiles(ctx context.Context, in *TokenExchangeProfileListRequest, opts ...grpc.CallOption) (*TokenExchangeProfileListResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenExchangeProfileListResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsListProfiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsUpdateProfile(ctx context.Context, in *TokenExchangeProfileWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsUpdateProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsDeleteProfile(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsDeleteProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ClientCredentialsProfilesForAction(ctx context.Context, in *TokenExchangeProfileKeyRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_ClientCredentialsProfilesForAction_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4816,6 +5009,7 @@ type StoreServiceServer interface {
 	MFACreateAuthenticator(context.Context, *MFACreateAuthenticatorRequest) (*MFACreateAuthenticatorResponse, error)
 	MFAGetAuthenticator(context.Context, *MFAGetAuthenticatorRequest) (*MFAGetAuthenticatorResponse, error)
 	MFAGetAuthenticatorByEnrollmentID(context.Context, *MFAGetAuthenticatorByEnrollmentIDRequest) (*MFAGetAuthenticatorByEnrollmentIDResponse, error)
+	MFAGuardianUsers(context.Context, *MFAGuardianUsersRequest) (*MFAGuardianUsersResponse, error)
 	MFAListAuthenticators(context.Context, *MFAListAuthenticatorsRequest) (*MFAListAuthenticatorsResponse, error)
 	MFAUpdateAuthenticator(context.Context, *MFAUpdateAuthenticatorRequest) (*MFAUpdateAuthenticatorResponse, error)
 	MFADeleteAuthenticator(context.Context, *MFADeleteAuthenticatorRequest) (*MFADeleteAuthenticatorResponse, error)
@@ -4867,6 +5061,21 @@ type StoreServiceServer interface {
 	WebAuthnGetSnooze(context.Context, *WebAuthnGetSnoozeRequest) (*WebAuthnSnoozeResponse, error)
 	WebAuthnHostTenantsUnder(context.Context, *WebAuthnHostTenantsRequest) (*WebAuthnHostTenantsResponse, error)
 	WebAuthnPurge(context.Context, *WebAuthnPurgeRequest) (*WebAuthnCountResponse, error)
+	ClientCredentialsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	ClientCredentialsCreate(context.Context, *ClientCredentialsCreateRequest) (*Result, error)
+	ClientCredentialsGet(context.Context, *ClientCredentialKeyRequest) (*ClientCredentialResult, error)
+	ClientCredentialsList(context.Context, *ClientCredentialListRequest) (*ClientCredentialListResult, error)
+	ClientCredentialsUpdateExpiry(context.Context, *ClientCredentialsUpdateExpiryRequest) (*Result, error)
+	ClientCredentialsDelete(context.Context, *ClientCredentialKeyRequest) (*Result, error)
+	ClientCredentialsUseJTI(context.Context, *ClientCredentialsUseJTIRequest) (*Result, error)
+	ClientCredentialsPurgeJTIs(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
+	ClientCredentialsCreateProfile(context.Context, *TokenExchangeProfileCreateRequest) (*Result, error)
+	ClientCredentialsGetProfile(context.Context, *TokenExchangeProfileKeyRequest) (*TokenExchangeProfileResult, error)
+	ClientCredentialsGetProfileByType(context.Context, *TokenExchangeProfileKeyRequest) (*TokenExchangeProfileResult, error)
+	ClientCredentialsListProfiles(context.Context, *TokenExchangeProfileListRequest) (*TokenExchangeProfileListResult, error)
+	ClientCredentialsUpdateProfile(context.Context, *TokenExchangeProfileWrite) (*Result, error)
+	ClientCredentialsDeleteProfile(context.Context, *TokenExchangeProfileKeyRequest) (*Result, error)
+	ClientCredentialsProfilesForAction(context.Context, *TokenExchangeProfileKeyRequest) (*CountResult, error)
 	EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	AppendEvents(context.Context, *EventsRequest) (*EventsResponse, error)
 	GetEvent(context.Context, *EventsRequest) (*EventsResponse, error)
@@ -4923,6 +5132,7 @@ type StoreServiceServer interface {
 	RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
 	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	// Version 2 also persists organization IDs on email verification tickets.
 	OrganizationsIICapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsIICreateInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
 	OrganizationsIIGetInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
@@ -5248,6 +5458,9 @@ func (UnimplementedStoreServiceServer) MFAGetAuthenticator(context.Context, *MFA
 func (UnimplementedStoreServiceServer) MFAGetAuthenticatorByEnrollmentID(context.Context, *MFAGetAuthenticatorByEnrollmentIDRequest) (*MFAGetAuthenticatorByEnrollmentIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAGetAuthenticatorByEnrollmentID not implemented")
 }
+func (UnimplementedStoreServiceServer) MFAGuardianUsers(context.Context, *MFAGuardianUsersRequest) (*MFAGuardianUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MFAGuardianUsers not implemented")
+}
 func (UnimplementedStoreServiceServer) MFAListAuthenticators(context.Context, *MFAListAuthenticatorsRequest) (*MFAListAuthenticatorsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAListAuthenticators not implemented")
 }
@@ -5400,6 +5613,51 @@ func (UnimplementedStoreServiceServer) WebAuthnHostTenantsUnder(context.Context,
 }
 func (UnimplementedStoreServiceServer) WebAuthnPurge(context.Context, *WebAuthnPurgeRequest) (*WebAuthnCountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WebAuthnPurge not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsCreate(context.Context, *ClientCredentialsCreateRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsCreate not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsGet(context.Context, *ClientCredentialKeyRequest) (*ClientCredentialResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsList(context.Context, *ClientCredentialListRequest) (*ClientCredentialListResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsList not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsUpdateExpiry(context.Context, *ClientCredentialsUpdateExpiryRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsUpdateExpiry not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsDelete(context.Context, *ClientCredentialKeyRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsUseJTI(context.Context, *ClientCredentialsUseJTIRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsUseJTI not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsPurgeJTIs(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsPurgeJTIs not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsCreateProfile(context.Context, *TokenExchangeProfileCreateRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsCreateProfile not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsGetProfile(context.Context, *TokenExchangeProfileKeyRequest) (*TokenExchangeProfileResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsGetProfile not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsGetProfileByType(context.Context, *TokenExchangeProfileKeyRequest) (*TokenExchangeProfileResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsGetProfileByType not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsListProfiles(context.Context, *TokenExchangeProfileListRequest) (*TokenExchangeProfileListResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsListProfiles not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsUpdateProfile(context.Context, *TokenExchangeProfileWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsUpdateProfile not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsDeleteProfile(context.Context, *TokenExchangeProfileKeyRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsDeleteProfile not implemented")
+}
+func (UnimplementedStoreServiceServer) ClientCredentialsProfilesForAction(context.Context, *TokenExchangeProfileKeyRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsProfilesForAction not implemented")
 }
 func (UnimplementedStoreServiceServer) EventsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method EventsCapabilities not implemented")
@@ -6511,6 +6769,24 @@ func _StoreService_MFAGetAuthenticatorByEnrollmentID_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_MFAGuardianUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MFAGuardianUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).MFAGuardianUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_MFAGuardianUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).MFAGuardianUsers(ctx, req.(*MFAGuardianUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_MFAListAuthenticators_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MFAListAuthenticatorsRequest)
 	if err := dec(in); err != nil {
@@ -7425,6 +7701,276 @@ func _StoreService_WebAuthnPurge_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).WebAuthnPurge(ctx, req.(*WebAuthnPurgeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialsCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsCreate(ctx, req.(*ClientCredentialsCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsGet(ctx, req.(*ClientCredentialKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsList(ctx, req.(*ClientCredentialListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsUpdateExpiry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialsUpdateExpiryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsUpdateExpiry(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsUpdateExpiry_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsUpdateExpiry(ctx, req.(*ClientCredentialsUpdateExpiryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsDelete(ctx, req.(*ClientCredentialKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsUseJTI_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialsUseJTIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsUseJTI(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsUseJTI_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsUseJTI(ctx, req.(*ClientCredentialsUseJTIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsPurgeJTIs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialsPurgeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsPurgeJTIs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsPurgeJTIs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsPurgeJTIs(ctx, req.(*ClientCredentialsPurgeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsCreateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenExchangeProfileCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsCreateProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsCreateProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsCreateProfile(ctx, req.(*TokenExchangeProfileCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsGetProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenExchangeProfileKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsGetProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsGetProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsGetProfile(ctx, req.(*TokenExchangeProfileKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsGetProfileByType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenExchangeProfileKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsGetProfileByType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsGetProfileByType_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsGetProfileByType(ctx, req.(*TokenExchangeProfileKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsListProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenExchangeProfileListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsListProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsListProfiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsListProfiles(ctx, req.(*TokenExchangeProfileListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsUpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenExchangeProfileWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsUpdateProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsUpdateProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsUpdateProfile(ctx, req.(*TokenExchangeProfileWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsDeleteProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenExchangeProfileKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsDeleteProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsDeleteProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsDeleteProfile(ctx, req.(*TokenExchangeProfileKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ClientCredentialsProfilesForAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenExchangeProfileKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientCredentialsProfilesForAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientCredentialsProfilesForAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientCredentialsProfilesForAction(ctx, req.(*TokenExchangeProfileKeyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -13322,6 +13868,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_MFAGetAuthenticatorByEnrollmentID_Handler,
 		},
 		{
+			MethodName: "MFAGuardianUsers",
+			Handler:    _StoreService_MFAGuardianUsers_Handler,
+		},
+		{
 			MethodName: "MFAListAuthenticators",
 			Handler:    _StoreService_MFAListAuthenticators_Handler,
 		},
@@ -13524,6 +14074,66 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WebAuthnPurge",
 			Handler:    _StoreService_WebAuthnPurge_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsCapabilities",
+			Handler:    _StoreService_ClientCredentialsCapabilities_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsCreate",
+			Handler:    _StoreService_ClientCredentialsCreate_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsGet",
+			Handler:    _StoreService_ClientCredentialsGet_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsList",
+			Handler:    _StoreService_ClientCredentialsList_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsUpdateExpiry",
+			Handler:    _StoreService_ClientCredentialsUpdateExpiry_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsDelete",
+			Handler:    _StoreService_ClientCredentialsDelete_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsUseJTI",
+			Handler:    _StoreService_ClientCredentialsUseJTI_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsPurgeJTIs",
+			Handler:    _StoreService_ClientCredentialsPurgeJTIs_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsCreateProfile",
+			Handler:    _StoreService_ClientCredentialsCreateProfile_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsGetProfile",
+			Handler:    _StoreService_ClientCredentialsGetProfile_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsGetProfileByType",
+			Handler:    _StoreService_ClientCredentialsGetProfileByType_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsListProfiles",
+			Handler:    _StoreService_ClientCredentialsListProfiles_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsUpdateProfile",
+			Handler:    _StoreService_ClientCredentialsUpdateProfile_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsDeleteProfile",
+			Handler:    _StoreService_ClientCredentialsDeleteProfile_Handler,
+		},
+		{
+			MethodName: "ClientCredentialsProfilesForAction",
+			Handler:    _StoreService_ClientCredentialsProfilesForAction_Handler,
 		},
 		{
 			MethodName: "EventsCapabilities",

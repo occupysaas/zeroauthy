@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -28,6 +30,57 @@ func testProtection(t *testing.T, f Factory) {
 	testProtectionLifecycle(t, f)
 	testProtectionEdges(t, f)
 	ctx := context.Background()
+	t.Run("TestProtectionFirstBruteForceDenial", func(t *testing.T) {
+		s, l, now := protectionFixture(t, f)
+		l.Capacity = 5
+		fail := func(a store.ProtectionAdmission) {
+			t.Helper()
+			if !a.Allowed || a.FirstBruteForceDenial {
+				t.Fatalf("expected admission, got %+v", a)
+			}
+			mustNoErr(t, s.Protection().Complete(ctx, a.Receipt, "failure", now))
+		}
+		fail(reserveProtection(t, s, now, l))
+		success := reserveProtection(t, s, now, l)
+		fail(reserveProtection(t, s, now, l))
+		fail(reserveProtection(t, s, now, l))
+		pending := reserveProtection(t, s, now, l)
+		l.Capacity = 3
+		denied := func(first bool) {
+			t.Helper()
+			a := reserveProtection(t, s, now, l)
+			if a.Allowed || a.FirstBruteForceDenial != first {
+				t.Fatalf("expected denial with first=%t, got %+v", first, a)
+			}
+		}
+
+		rollback := errors.New("rollback first-denial claim")
+		err := s.WithTx(ctx, func(tx store.Store) error {
+			a, err := tx.Protection().Reserve(ctx, []store.ProtectionLimit{l}, now)
+			if err != nil {
+				return err
+			}
+			if a.Allowed || !a.FirstBruteForceDenial {
+				return fmt.Errorf("expected first denial inside transaction, got %+v", a)
+			}
+			return rollback
+		})
+		if !errors.Is(err, rollback) {
+			t.Fatal(err)
+		}
+		denied(true)
+		denied(false)
+		mustNoErr(t, s.Protection().Complete(ctx, success.Receipt, "success", now))
+		denied(false) // Two failures and one pending slot after success cleared the oldest failure.
+		fail(pending)
+		denied(true)
+		denied(false)
+		now = now.Add(l.Lockout)
+		for range 3 {
+			fail(reserveProtection(t, s, now, l))
+		}
+		denied(true)
+	})
 	t.Run("TestProtectionConcurrentAdmission", func(t *testing.T) {
 		s, l, now := protectionFixture(t, f)
 		var admitted atomic.Int32
@@ -45,6 +98,42 @@ func testProtection(t *testing.T, f Factory) {
 		wg.Wait()
 		if admitted.Load() != 3 {
 			t.Fatalf("admitted %d, want 3", admitted.Load())
+		}
+	})
+	t.Run("TestProtectionBucketLocksRandomOrder", func(t *testing.T) {
+		s, l, now := protectionFixture(t, f)
+		limits := make([]store.ProtectionLimit, 4)
+		for i := range limits {
+			limits[i] = l
+			limits[i].Key.Identifier = fmt.Sprint(i)
+		}
+		var wg sync.WaitGroup
+		var admitted atomic.Int32
+		start := make(chan struct{})
+		for i := range 12 {
+			order := slices.Clone(limits)
+			rng := rand.New(rand.NewPCG(12, uint64(i)))
+			rng.Shuffle(len(order), func(i, j int) { order[i], order[j] = order[j], order[i] })
+			wg.Go(func() {
+				<-start
+				// WithTx has no automatic deadlock retries.
+				err := s.WithTx(ctx, func(tx store.Store) error {
+					a, err := tx.Protection().Reserve(ctx, order, now)
+					if err != nil || !a.Allowed {
+						return err
+					}
+					admitted.Add(1)
+					return tx.Protection().Complete(ctx, a.Receipt, "failure", now)
+				})
+				if err != nil {
+					t.Error(err)
+				}
+			})
+		}
+		close(start)
+		wg.Wait()
+		if got := admitted.Load(); got != 3 {
+			t.Fatalf("admitted %d multi-bucket attempts, want 3", got)
 		}
 	})
 	t.Run("TestProtectionStaleCompletion", func(t *testing.T) {

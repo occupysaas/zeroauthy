@@ -21,6 +21,7 @@ function routePage(name: string) {
 }
 function reply(c: Call): Reply {
   const u = new URL(c.url)
+  if (u.pathname.endsWith('/passwordless/try')) return { status: 204 }
   if (u.pathname.endsWith('/branding/phone/providers/p1') && c.method === 'PATCH')
     return { status: 200, body: provider }
   if (u.pathname.endsWith('/branding/phone/providers'))
@@ -147,11 +148,12 @@ it('edits phone templates with escaped preview and saved-template try', async ()
   expect(calls.at(-1)?.url).toContain('/templates/t1/try')
   wrapper.unmount()
 })
-it.each(['email', 'sms'])('configures passwordless %s, projects lists, sends a test', async (strategy) => {
+it.each(['email', 'sms'])('configures passwordless %s and sends a test through the system API', async (strategy) => {
   const { wrapper, calls } = await mountAt(
     routePage('passwordless-' + strategy),
     '/t/acme/passwordless/' + strategy,
-    reply
+    reply,
+    { host: 'custom.acme.test' }
   )
   expect(wrapper.find('#passwordless-length').exists()).toBe(true)
   const list = calls.find((c) => new URL(c.url).pathname.endsWith('/connections'))!
@@ -164,10 +166,23 @@ it.each(['email', 'sms'])('configures passwordless %s, projects lists, sends a t
   expect(calls.some((c) => c.method === 'PATCH' && JSON.stringify(c.body).includes('"length":8'))).toBe(true)
   await wrapper.get('#passwordless-client').setValue('client1')
   await wrapper.get('#passwordless-to').setValue(strategy === 'email' ? 'test@example.test' : '+15551234567')
+  if (strategy === 'email') await wrapper.get('#passwordless-send').setValue('link')
+  calls.length = 0
   await wrapper.get('#try-passwordless').trigger('click')
   await flushPromises()
-  expect(calls.at(-1)?.url).toContain('/passwordless/start')
-  expect(calls.at(-1)?.body).toMatchObject({ client_id: 'client1', connection: strategy })
+  expect(calls.some((c) => new URL(c.url).pathname === '/passwordless/start' && c.authorization?.startsWith('Bearer '))).toBe(false)
+  expect(calls).toHaveLength(1)
+  expect(calls[0]).toMatchObject({
+    method: 'POST',
+    url: `https://admin.example.test/api/system/tenants/acme/connections/${strategy === 'email' ? 'c1' : 's1'}/passwordless/try`,
+    authorization: 'Bearer token',
+  })
+  expect(calls[0]?.body).toEqual(
+    strategy === 'email'
+      ? { client_id: 'client1', email: 'test@example.test', send: 'link' }
+      : { client_id: 'client1', phone_number: '+15551234567', send: 'code' }
+  )
+  expect(wrapper.text()).toContain('Test message accepted.')
   wrapper.unmount()
 })
 it('disables SMS and voice factors with explanation without a working provider', async () => {

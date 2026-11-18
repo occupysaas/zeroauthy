@@ -1,0 +1,72 @@
+# Weekly update pull requests for every package ecosystem in the repository,
+# including the GitHub Actions in .github/workflows, which are pinned to
+# commit SHAs and would otherwise go stale. Minor and patch updates are
+# grouped per ecosystem; major updates come as separate pull requests so they
+# get a real review. The cooldown skips releases younger than 7 days, the
+# riskiest days for a compromised release. Security updates ignore it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        update-types: [minor, patch]
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      go-modules:
+        update-types: [minor, patch]
+
+  # console/dist is committed and embedded in the binary: after a console
+  # dependency update, rebuild it with `make console` (ci.yml checks it).
+  - package-ecosystem: npm
+    directories:
+      - /console
+      - /tests/e2e
+      - /examples/testing
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm-packages:
+        update-types: [minor, patch]
+
+  # The OpenID conformance runner's hash-pinned requirements.
+  - package-ecosystem: pip
+    directory: /tests/conformance
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      python-packages:
+        update-types: [minor, patch]
+
+  # The Auth0.NET end-to-end client.
+  - package-ecosystem: nuget
+    directory: /tests/e2e/dotnet-device
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  # Base images of the release container (Dockerfile) and of the
+  # ClusterFuzzLite builder (.clusterfuzzlite/Dockerfile).
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /.clusterfuzzlite
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

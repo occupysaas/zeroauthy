@@ -432,20 +432,7 @@ func validStoredCOSE(raw []byte) bool {
 // webAuthnAvailable negotiates before accepting capability-dependent fields.
 // A failed negotiation is different from the explicit absence of the feature.
 func webAuthnAvailable(ctx context.Context, st store.Store) (bool, error) {
-	if cap, ok := st.(store.WebAuthnSupporter); ok {
-		if err := cap.CheckWebAuthnSupport(ctx); err != nil {
-			if errors.Is(err, store.ErrWebAuthnUnavailable) {
-				return false, nil
-			}
-			return false, err
-		}
-		return cap.WebAuthnSupported(), nil
-	}
-	switch st.WebAuthn().(type) {
-	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
-		return false, nil
-	}
-	return true, nil
+	return store.WebAuthnAvailable(ctx, st)
 }
 
 func (h *Handlers) newPasskey(ctx context.Context, tx store.Store, tn *store.Tenant, u *store.User, b map[string]any) (store.Authenticator, error) {

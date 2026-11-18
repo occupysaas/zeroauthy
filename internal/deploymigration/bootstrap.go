@@ -26,6 +26,8 @@ type BootstrapResult struct {
 type BootstrapOptions struct{ ExcludedClientIDs []string }
 
 type exportedClient struct {
+	NativeSocialLogin      map[string]any       `json:"native_social_login"`
+	Mobile                 map[string]any       `json:"mobile"`
 	ClientID               string               `json:"client_id"`
 	Name                   string               `json:"name"`
 	AppType                string               `json:"app_type"`
@@ -140,10 +142,14 @@ func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[strin
 		t.Clients = append(t.Clients, seed.Client{
 			OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 			ClientID: c.ClientID, Name: c.Name, AppType: c.AppType, ClientSecret: secret,
+			Mobile:                  c.Mobile,
 			TokenEndpointAuthMethod: c.AuthMethod, GrantTypes: slices.Clone(c.GrantTypes), Callbacks: slices.Clone(c.Callbacks),
 			AllowedLogoutURLs: slices.Clone(c.AllowedLogoutURLs), WebOrigins: slices.Clone(c.WebOrigins), AllowedOrigins: slices.Clone(c.AllowedOrigins),
 			IDTokenLifetime: c.IDTokenLifetime, IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
 			RedirectionPolicy: c.RedirectionPolicy, RefreshToken: seed.RefreshToken{RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType, Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime, IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime}, SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipConfirmation, RequirePushedAuthorizationRequests: c.RequirePAR})
+		if c.NativeSocialLogin != nil {
+			t.Clients[len(t.Clients)-1].NativeSocialLogin = c.NativeSocialLogin
+		}
 	}
 	for id, secret := range credentials {
 		if secret == "" || (!neededSecrets[id] && !excluded[id]) {

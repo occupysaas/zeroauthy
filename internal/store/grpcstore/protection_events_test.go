@@ -27,15 +27,19 @@ func TestProtectionDeniedKinds(t *testing.T) {
 			now := time.Now()
 			limits := []store.ProtectionLimit{{Key: store.ProtectionKey{TenantID: "tenant", Kind: store.ProtectionBruteForce, Identifier: "user"}, Algorithm: "brute-force", Capacity: 1, Lockout: time.Minute}, {Key: store.ProtectionKey{TenantID: "tenant", Kind: store.ProtectionSuspiciousIPLogin, IP: "192.0.2.1"}, Algorithm: "fixed-window", Capacity: 1, Window: time.Minute}}
 			allowed, err := st.Protection().Reserve(ctx, limits, now)
-			if err != nil || !allowed.Allowed || len(allowed.DeniedKinds) != 0 {
+			if err != nil || !allowed.Allowed || len(allowed.DeniedKinds) != 0 || allowed.FirstBruteForceDenial {
 				t.Fatal(allowed, err)
 			}
 			if err = st.Protection().Complete(ctx, allowed.Receipt, "failure", now); err != nil {
 				t.Fatal(err)
 			}
 			denied, err := st.Protection().Reserve(ctx, limits, now)
-			if err != nil || denied.Allowed || !slices.Contains(denied.DeniedKinds, store.ProtectionBruteForce) || !slices.Contains(denied.DeniedKinds, store.ProtectionSuspiciousIPLogin) {
+			if err != nil || denied.Allowed || !denied.FirstBruteForceDenial || !slices.Contains(denied.DeniedKinds, store.ProtectionBruteForce) || !slices.Contains(denied.DeniedKinds, store.ProtectionSuspiciousIPLogin) {
 				t.Fatalf("denied=%+v err=%v", denied, err)
+			}
+			repeated, err := st.Protection().Reserve(ctx, limits, now)
+			if err != nil || repeated.Allowed || repeated.FirstBruteForceDenial || !slices.Equal(repeated.DeniedKinds, denied.DeniedKinds) {
+				t.Fatalf("repeated=%+v err=%v", repeated, err)
 			}
 		})
 	}

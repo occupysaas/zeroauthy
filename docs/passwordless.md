@@ -23,6 +23,13 @@ frozen phone contract. Delivery needs a working tenant email provider or
 [phone route](phone-providers.md); successful configuration storage alone
 does not demonstrate external delivery.
 
+In the console's Passwordless settings, use **Try saved connection** with
+an enabled application's client ID and a test destination. The application
+needs the passwordless OTP grant. The console's system route checks the
+operator's tenant grant and sends a real code or link through the saved
+configuration. This uses the connection's send budget and replaces any
+outstanding code or link for that destination.
+
 Seed examples:
 
 ```yaml

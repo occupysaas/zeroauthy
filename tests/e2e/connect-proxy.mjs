@@ -16,7 +16,7 @@ server.on('connect', (req, client, head) => {
   // reset a refused socket, which would otherwise crash the proxy.
   client.on('error', () => client.destroy());
   const [host, p] = String(req.url).split(':');
-  if (!host.endsWith('.e2e.test') || p !== '443') {
+  if ((!host.endsWith('.e2e.test') && !(process.env.E2E_M39A === '1' && host === 'apple.idp.test')) || p !== '443') {
     client.end('HTTP/1.1 403 Forbidden\r\n\r\n');
     return;
   }

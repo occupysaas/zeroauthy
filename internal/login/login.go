@@ -287,7 +287,7 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if f.txn.Params[store.TxnParamOrgMode] == string(authz.OrgFixed) && f.txn.Params["za_org_session"] != "" {
-		sess, e := h.Authz.ActiveSession(r.Context(), r, f.res)
+		sess, e := h.Authz.FlowSession(r.Context(), r, f.res)
 		if e != nil {
 			h.fail(w, r, e, f)
 			return
@@ -451,26 +451,6 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 	}
 
 	var commit func(context.Context, store.Store, *store.User) error
-	if f.org.Org != nil && f.txn.Params[orglogin.InvitationIDParam] == "" {
-		commit = func(ctx context.Context, tx store.Store, u *store.User) error {
-			oc, e := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
-			if e != nil {
-				return e
-			}
-			if oc.Org != nil {
-				e = orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID)
-			}
-			if e == nil {
-				e = EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
-			}
-			// Authentication succeeds independently of membership: keep the
-			// identity/session and let authorization redirect the policy refusal.
-			if errors.Is(e, ErrNotMember) {
-				return nil
-			}
-			return e
-		}
-	}
 	var breachErr error
 	var breachHit bool
 	user, err := h.Database.LoginWithCheckAndCommit(ctx, f.conn, login, r.PostForm.Get("password"), func(ctx context.Context) error {
@@ -829,7 +809,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	h.complete(w, r, f, user)
 }
 
-// complete starts the session and hands back to /authorize processing.
+// complete records first-factor evidence and hands back to /authorize.
 func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, user *store.User) {
 	h.completeWithMethods(w, r, f, user, store.AuthMethod{Name: firstFactorMethod(f.conn)})
 }
@@ -843,15 +823,13 @@ func firstFactorMethod(conn *store.Connection) string {
 
 func (h *Handlers) completeWithMethods(w http.ResponseWriter, r *http.Request, f *flow, user *store.User, methods ...store.AuthMethod) {
 	*r = *r.WithContext(logs.WithEvent(r.Context(), logs.Event{UserID: user.UserID, UserName: passwordless.MaskIdentifier(f.conn.Strategy, user.Name)}))
-	ctx := r.Context()
-	now := h.now()
-	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now, methods...)
+	sess, err := h.Authz.BeginLogin(w, r, f.res, f.txn, user, f.conn.Name, methods...)
 	if err != nil {
+		if h.Authz.HandleLoginAdmissionError(w, r, f.res, err) {
+			return
+		}
 		h.fail(w, r, err, f)
 		return
-	}
-	if err := h.Store.Users().RecordLogin(ctx, f.res.Tenant.ID, user.UserID, now, httpx.RecordedIP(r, h.TrustProxyHeaders)); err != nil {
-		h.log().WarnContext(ctx, "record login", "tenant", f.res.Tenant.ID, "err", err)
 	}
 	h.Authz.Resume(w, r, f.res, f.txn, sess)
 }
@@ -967,7 +945,7 @@ func (h *Handlers) signupCallbacks(w http.ResponseWriter, r *http.Request, f *fl
 			cur.Params[orglogin.InvitationSignupParam] = "1"
 			return orglogin.SaveInvitationTransaction(ctx, tx, cur, h.now())
 		}
-		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+		return nil
 	}
 
 	return callbacks, true

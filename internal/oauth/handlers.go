@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
@@ -21,6 +22,7 @@ import (
 )
 
 type Handlers struct {
+	Federation *federation.FlowService
 	// Passkeys supplies hosted and native first-factor ceremonies.
 	Passkeys   *passkey.Service
 	MFA        *mfa.Service

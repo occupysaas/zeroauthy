@@ -19,6 +19,7 @@ const credentialsLabel = "federation-credentials/v1"
 
 // Credentials are a federated connection's provider secrets.
 type Credentials struct {
+	// For Apple, ClientSecret holds the app_secret signing key, never a JWT.
 	ClientSecret string `json:"client_secret"`
 }
 
@@ -58,8 +59,9 @@ func ApplyConnection(w keys.Wrapper, prev *store.Connection, spec *connrules.Spe
 	if !spec.Federated() {
 		return nil
 	}
-	secret, named := rules.ClientSecret(spec.Options.Extra)
+	secret, named := rules.ConnectionSecret(spec.Strategy, spec.Options.Extra)
 	delete(next.Extra, "client_secret")
+	delete(next.Extra, "app_secret")
 	if prev != nil && spec.FederationIssuer == "" {
 		connrules.KeepFederationIssuer(prev, next)
 		spec.FederationIssuer = connrules.FromConnection(next).FederationIssuer
@@ -78,7 +80,7 @@ func ApplyConnection(w keys.Wrapper, prev *store.Connection, spec *connrules.Spe
 		next.FederationSecretsSealed = slices.Clone(prev.FederationSecretsSealed)
 	}
 	if len(next.FederationSecretsSealed) == 0 {
-		return fmt.Errorf("%w: options.client_secret is required", ErrInvalidConfig)
+		return fmt.Errorf("%w: options.%s is required", ErrInvalidConfig, rules.SecretOption(spec.Strategy))
 	}
 	cfg.SecretReference = slices.Clone(next.FederationSecretsSealed)
 	if prev == nil {

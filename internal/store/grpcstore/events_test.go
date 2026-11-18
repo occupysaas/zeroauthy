@@ -32,11 +32,17 @@ import (
 // Exercise a real server and transport, selectively making Events methods look
 // like an older or restarting plugin without replacing any earlier feature.
 type eventsFaults struct {
+	mfaBatch           atomic.Int32
+	mfaBatchCalls      atomic.Int32
+	mfaListCalls       atomic.Int32
 	mfaDomainOperation atomic.Bool
 	mfaDomainMark      atomic.Bool
 	mfaMissing         bool
 	phoneMissing       bool
 	webauthnMissing    bool
+	ccMissing          bool
+	ccProbes           atomic.Int32 // ClientCredentialsCapabilities calls seen
+	ccFieldsSent       atomic.Bool  // a client, API or PAR write carried a Plan 35 field
 	mfaProbe           atomic.Int32
 	mfaOperation       atomic.Int32
 	mfaMark            atomic.Int32
@@ -71,6 +77,26 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 		if name == "WebAuthnCapabilities" && faults.webauthnMissing {
 			return nil, status.Error(codes.Unimplemented, "WebAuthn capability missing")
 		}
+		if name == "ClientCredentialsCapabilities" {
+			faults.ccProbes.Add(1)
+		}
+		if name == "ClientCredentialsCapabilities" && faults.ccMissing {
+			return nil, status.Error(codes.Unimplemented, "pre-client_credentials.v1 plugin")
+		}
+		switch w := req.(type) {
+		case *storev1.ClientWrite:
+			if v := w.GetValue(); v.GetClientAuthenticationMethods() != nil || v.GetSignedRequestObject() != nil || v.GetTokenExchange() != nil {
+				faults.ccFieldsSent.Store(true)
+			}
+		case *storev1.ResourceServerWrite:
+			if w.GetValue().GetSigningSecretSealed() != nil {
+				faults.ccFieldsSent.Store(true)
+			}
+		case *storev1.PushedAuthRequestWrite:
+			if w.GetValue().GetSigned() {
+				faults.ccFieldsSent.Store(true)
+			}
+		}
 		if name == "PhoneCapabilities" && faults.phoneMissing {
 			return nil, status.Error(codes.Unimplemented, "pre-Phone plugin")
 		}
@@ -81,6 +107,15 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 			if code := codes.Code(faults.mfaMark.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "mark failure")
 			}
+		}
+		if name == "MFAGuardianUsers" {
+			faults.mfaBatchCalls.Add(1)
+			if code := codes.Code(faults.mfaBatch.Load()); code != codes.OK {
+				return nil, status.Error(code, "batch unavailable")
+			}
+		}
+		if name == "MFAListAuthenticators" {
+			faults.mfaListCalls.Add(1)
 		}
 		if name == "MFAGetGuardian" {
 			if faults.mfaDomainOperation.Swap(false) {
