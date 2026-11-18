@@ -13195,9 +13195,11 @@ type ProtectionResult struct {
 	Count       int64                  `protobuf:"varint,7,opt,name=count,proto3" json:"count,omitempty"`
 	DeniedKinds []string               `protobuf:"bytes,8,rep,name=denied_kinds,json=deniedKinds,proto3" json:"denied_kinds,omitempty"`
 	// Presence distinguishes older plugins without clear outcome attribution.
-	ClearedBlock  *bool `protobuf:"varint,9,opt,name=cleared_block,json=clearedBlock,proto3,oneof" json:"cleared_block,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ClearedBlock *bool `protobuf:"varint,9,opt,name=cleared_block,json=clearedBlock,proto3,oneof" json:"cleared_block,omitempty"`
+	// True only for the admission that claimed the first denial of a settled brute-force block.
+	FirstBruteForceDenial bool `protobuf:"varint,10,opt,name=first_brute_force_denial,json=firstBruteForceDenial,proto3" json:"first_brute_force_denial,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ProtectionResult) Reset() {
@@ -13289,6 +13291,13 @@ func (x *ProtectionResult) GetDeniedKinds() []string {
 func (x *ProtectionResult) GetClearedBlock() bool {
 	if x != nil && x.ClearedBlock != nil {
 		return *x.ClearedBlock
+	}
+	return false
+}
+
+func (x *ProtectionResult) GetFirstBruteForceDenial() bool {
+	if x != nil {
+		return x.FirstBruteForceDenial
 	}
 	return false
 }
@@ -29544,7 +29553,7 @@ const file_store_proto_rawDesc = "" +
 	"attempt_id\x18\n" +
 	" \x01(\tR\tattemptId\x12\x0e\n" +
 	"\x02ip\x18\v \x01(\tR\x02ip\x12\x14\n" +
-	"\x05limit\x18\f \x01(\x03R\x05limit\"\x82\x03\n" +
+	"\x05limit\x18\f \x01(\x03R\x05limit\"\xbb\x03\n" +
 	"\x10ProtectionResult\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x12\x18\n" +
 	"\aallowed\x18\x02 \x01(\bR\aallowed\x12\x1b\n" +
@@ -29555,7 +29564,9 @@ const file_store_proto_rawDesc = "" +
 	"\x06blocks\x18\x06 \x03(\v2#.zeroauthy.store.v1.ProtectionBlockR\x06blocks\x12\x14\n" +
 	"\x05count\x18\a \x01(\x03R\x05count\x12!\n" +
 	"\fdenied_kinds\x18\b \x03(\tR\vdeniedKinds\x12(\n" +
-	"\rcleared_block\x18\t \x01(\bH\x00R\fclearedBlock\x88\x01\x01B\x10\n" +
+	"\rcleared_block\x18\t \x01(\bH\x00R\fclearedBlock\x88\x01\x01\x127\n" +
+	"\x18first_brute_force_denial\x18\n" +
+	" \x01(\bR\x15firstBruteForceDenialB\x10\n" +
 	"\x0e_cleared_block\"\xa9\v\n" +
 	"\fCustomDomain\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +

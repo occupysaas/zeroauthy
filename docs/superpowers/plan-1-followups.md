@@ -710,7 +710,7 @@ Contracts and intended amendments are in D-0270; completion is tracked in
 [the implementation record](2026-11-16-plan-45b-implementation-record.md).
 Observation remains optional, and these points have not been observed:
 
-- **B1:** Whether Auth0 emits `limit_wc` once per brute-force block or per denied attempt.
+- **B1:** Whether Auth0 emits `limit_wc` once per brute-force block or per denied attempt. Locally, Task 4 claims the first denied admission after settled failures reach the threshold.
 - **B2:** Clearing a connection's required identifier with `null` (local: `400`).
 - **B3:** The delivery triggered by `verify_phone_number` (local: Plan 34 phone verification code).
 - **B4:** `stats.logins_count` as seen by post-login Actions (local: keep current Action ordering).

@@ -1198,6 +1198,8 @@ message ProtectionResult {
  repeated string denied_kinds = 8;
  // Presence distinguishes older plugins without clear outcome attribution.
  optional bool cleared_block = 9;
+ // True only for the admission that claimed the first denial of a settled brute-force block.
+ bool first_brute_force_denial = 10;
 }
 
 // ---- private custom-domain and encrypted TLS persistence (Plan 23) ----

@@ -39,7 +39,13 @@ func (a clientProtection) Reserve(ctx context.Context, ls []store.ProtectionLimi
 	if e = protectionRPCError("ProtectionReserve", r, e); e != nil {
 		return store.ProtectionAdmission{}, e
 	}
-	return store.ProtectionAdmission{DeniedKinds: r.DeniedKinds, Allowed: r.Allowed, Receipt: store.ProtectionReceipt{TenantID: r.TenantId, ID: r.ReceiptId}, RetryAt: tsFromPB(r.RetryAt)}, nil
+	return store.ProtectionAdmission{
+		DeniedKinds:           r.DeniedKinds,
+		FirstBruteForceDenial: r.FirstBruteForceDenial,
+		Allowed:               r.Allowed,
+		Receipt:               store.ProtectionReceipt{TenantID: r.TenantId, ID: r.ReceiptId},
+		RetryAt:               tsFromPB(r.RetryAt),
+	}, nil
 }
 func (a clientProtection) Complete(ctx context.Context, receipt store.ProtectionReceipt, outcome string, now time.Time) error {
 	r, e := a.c.rpc.ProtectionComplete(ctx, &storev1.ProtectionRequest{TxId: a.c.txID, TenantId: receipt.TenantID, ReceiptId: receipt.ID, Outcome: outcome, Now: tsToPB(now)})
@@ -114,6 +120,7 @@ func (s *Server) ProtectionReserve(ctx context.Context, q *storev1.ProtectionReq
 		a, e := p.Reserve(ctx, ls, tsFromPB(q.Now))
 		r.Allowed = a.Allowed
 		r.DeniedKinds = a.DeniedKinds
+		r.FirstBruteForceDenial = a.FirstBruteForceDenial
 		r.TenantId = a.Receipt.TenantID
 		r.ReceiptId = a.Receipt.ID
 		r.RetryAt = tsToPB(a.RetryAt)

@@ -47,6 +47,7 @@ The main defect: tenants can set `phone-provider-protection` to `exponential`, b
 - Verdict: PLAUSIBLE. The schema text supports it; Auth0's runtime emission was not observed.
 - Recommendation: defer to Plan 45
 - Suggested fix: emit only `limit_wc` for brute-force blocks. Consider emitting it once per block transition (the bucket's first denial) rather than per attempt.
+- Status: fixed by Plan 45b Task 4 (2026-11-17). `TestBruteForceLogsLimitWCOnce` covers the first denial, repeat denials, and concurrent denials after unblocking. Auth0's runtime cadence remains unobserved (D-0270 B1).
 
 ### F5 [low] [parity-gap] `GET /logs` and `/users/{id}/logs` only accept `sort=date:±1`
 - Where: internal/mgmt/logs.go:99-105

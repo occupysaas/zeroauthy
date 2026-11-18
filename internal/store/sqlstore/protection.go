@@ -40,7 +40,7 @@ func (s *Store) protectionLock(ctx context.Context, tenant string) error {
 // tenant row is held before this query, including on first bucket insertion.
 func (s *Store) loadProtection(ctx context.Context, tenant, where string, args ...any) (*protectionstate.State, error) {
 	p := protectionstate.NewState()
-	rows, err := s.query(ctx, `SELECT bucket_id,kind,connection_id,identifier,ip,generation,algorithm,capacity,window_us,refill_us,lockout_us,tokens,next_sequence,updated_at,blocked_until,expires_at FROM protection_buckets WHERE tenant_id=?`+where+s.d.forUpdate, append([]any{tenant}, args...)...)
+	rows, err := s.query(ctx, `SELECT bucket_id,kind,connection_id,identifier,ip,generation,algorithm,capacity,window_us,refill_us,lockout_us,tokens,next_sequence,updated_at,blocked_until,expires_at,brute_force_denial_claimed FROM protection_buckets WHERE tenant_id=?`+where+s.d.forUpdate, append([]any{tenant}, args...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (s *Store) loadProtection(ctx context.Context, tenant, where string, args .
 		l := &b.Limit
 		l.Key.TenantID = tenant
 		var window, refill, lockout, updated, blocked, expires int64
-		if err = rows.Scan(&b.ID, &l.Key.Kind, &l.Key.ConnectionID, &l.Key.Identifier, &l.Key.IP, &b.Generation, &l.Algorithm, &l.Capacity, &window, &refill, &lockout, &b.Tokens, &b.NextSequence, &updated, &blocked, &expires); err != nil {
+		if err = rows.Scan(&b.ID, &l.Key.Kind, &l.Key.ConnectionID, &l.Key.Identifier, &l.Key.IP, &b.Generation, &l.Algorithm, &l.Capacity, &window, &refill, &lockout, &b.Tokens, &b.NextSequence, &updated, &blocked, &expires, &b.BruteForceDenialClaimed); err != nil {
 			break
 		}
 		l.Window = time.Duration(window) * time.Microsecond
@@ -128,12 +128,12 @@ func (s *Store) saveProtection(ctx context.Context, tenant string, before, after
 		}
 		f, p := b.Counts()
 		l := b.Limit
-		args := []any{l.Key.Kind, l.Key.ConnectionID, l.Key.Identifier, l.Key.IP, b.Generation, l.Algorithm, l.Capacity, l.Window.Microseconds(), l.Refill.Microseconds(), l.Lockout.Microseconds(), b.Tokens, f, p, b.NextSequence, protectionTime(b.UpdatedAt), protectionTime(b.BlockedUntil), protectionTime(b.ExpiresAt), tenant, id}
+		args := []any{l.Key.Kind, l.Key.ConnectionID, l.Key.Identifier, l.Key.IP, b.Generation, l.Algorithm, l.Capacity, l.Window.Microseconds(), l.Refill.Microseconds(), l.Lockout.Microseconds(), b.Tokens, f, p, b.NextSequence, protectionTime(b.UpdatedAt), protectionTime(b.BlockedUntil), protectionTime(b.ExpiresAt), b.BruteForceDenialClaimed, tenant, id}
 		var err error
 		if exists {
-			_, err = s.exec(ctx, `UPDATE protection_buckets SET kind=?,connection_id=?,identifier=?,ip=?,generation=?,algorithm=?,capacity=?,window_us=?,refill_us=?,lockout_us=?,tokens=?,failures=?,reserved=?,next_sequence=?,updated_at=?,blocked_until=?,expires_at=? WHERE tenant_id=? AND bucket_id=?`, args...)
+			_, err = s.exec(ctx, `UPDATE protection_buckets SET kind=?,connection_id=?,identifier=?,ip=?,generation=?,algorithm=?,capacity=?,window_us=?,refill_us=?,lockout_us=?,tokens=?,failures=?,reserved=?,next_sequence=?,updated_at=?,blocked_until=?,expires_at=?,brute_force_denial_claimed=? WHERE tenant_id=? AND bucket_id=?`, args...)
 		} else {
-			_, err = s.exec(ctx, `INSERT INTO protection_buckets (kind,connection_id,identifier,ip,generation,algorithm,capacity,window_us,refill_us,lockout_us,tokens,failures,reserved,next_sequence,updated_at,blocked_until,expires_at,tenant_id,bucket_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+			_, err = s.exec(ctx, `INSERT INTO protection_buckets (kind,connection_id,identifier,ip,generation,algorithm,capacity,window_us,refill_us,lockout_us,tokens,failures,reserved,next_sequence,updated_at,blocked_until,expires_at,brute_force_denial_claimed,tenant_id,bucket_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 		}
 		if err != nil {
 			return err
