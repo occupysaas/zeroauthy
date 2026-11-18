@@ -1,0 +1,12 @@
+# zizmor configuration: findings we accept, each with the reason.
+# See https://docs.zizmor.sh/configuration/ and .github/workflows/zizmor.yml.
+rules:
+  self-repository:
+    # These files call this repository's reusable workflows with
+    # ./.github/workflows/..., which GitHub resolves at the caller's commit
+    # without a checkout, so they don't load code from the runner's disk.
+    # GitHub's newer $/ syntax would do the same, but actionlint 1.7.12
+    # rejects it. Revisit when the tools that read these workflows accept $/.
+    ignore:
+      - plan-branch.yml
+      - release.yml
