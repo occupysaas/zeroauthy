@@ -112,6 +112,9 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 	if settings.Explicit != nil && settings.Explicit.Issuer != "" {
 		c.Issuer = settings.Explicit.Issuer
 	}
+	if c.Strategy == StrategyOkta && c.Issuer == "" {
+		c.Issuer = "https://" + settings.OktaDomain
+	}
 	return c, nil
 }
 

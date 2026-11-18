@@ -27,7 +27,11 @@ func authorizationURL(endpoint string, cfg Config, in StartInput, withNonce bool
 	if err != nil || endpoint == "" {
 		return "", fmt.Errorf("%w: authorization endpoint", ErrInvalidConfig)
 	}
-	if in.State == "" || in.CodeChallenge == "" || in.CallbackURL == "" || (withNonce && in.Nonce == "") {
+	enterprise := cfg.Channel != "" && (cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyOkta)
+	if enterprise {
+		withNonce = cfg.Channel == "front_channel" || cfg.SendNonce
+	}
+	if in.State == "" || (!enterprise && in.CodeChallenge == "") || in.CallbackURL == "" || (withNonce && in.Nonce == "") {
 		return "", fmt.Errorf("federation: incomplete authorization request")
 	}
 	q := u.Query()
@@ -38,6 +42,18 @@ func authorizationURL(endpoint string, cfg Config, in StartInput, withNonce bool
 	q.Set("state", in.State)
 	q.Set("code_challenge", in.CodeChallenge)
 	q.Set("code_challenge_method", "S256")
+	if enterprise {
+		if cfg.Channel == "front_channel" {
+			q.Set("response_type", "id_token")
+			q.Set("response_mode", "form_post")
+		}
+		if in.Endpoints.PKCEMethod == "" {
+			q.Del("code_challenge")
+			q.Del("code_challenge_method")
+		} else {
+			q.Set("code_challenge_method", in.Endpoints.PKCEMethod)
+		}
+	}
 	if withNonce {
 		q.Set("nonce", in.Nonce)
 	}
@@ -53,6 +69,9 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 		"code":          {in.Code},
 		"redirect_uri":  {in.CallbackURL},
 		"code_verifier": {in.CodeVerifier},
+	}
+	if in.Config.Channel != "" && (in.Config.Strategy == StrategyOIDC || in.Config.Strategy == StrategyOkta) && in.Endpoints.PKCEMethod == "" {
+		form.Del("code_verifier")
 	}
 	if in.Config.Strategy == StrategyApple {
 		if in.CodeVerifier == "" {
@@ -222,7 +241,11 @@ func issuerMatches(cfg Config, expected, got string) bool {
 // JWKS (never one named by the token), issuer, audience/azp, time with
 // skew, nonce, subject and at_hash.
 func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e Endpoints, tokens TokenSet) (map[string]any, error) {
-	obj, err := parseIDToken(tokens.IDToken)
+	allowed := in.Config.IDTokenAlgs
+	if in.Config.Strategy == StrategyGoogle {
+		allowed = []string{"RS256"}
+	}
+	obj, err := parseIDTokenAlgorithms(tokens.IDToken, allowed)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +253,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 	if in.Config.Strategy == StrategyGoogle && issuer == "" {
 		issuer = rules.GoogleIssuer
 	}
-	key, err := ps.keys.key(ctx, in.Cache.with("jwks", issuer, e.JWKSURL), e.JWKSURL, obj.Signatures[0].Header.KeyID)
+	key, err := ps.keys.keyForAlgorithm(ctx, in.Cache.with("jwks", issuer, e.JWKSURL), e.JWKSURL, obj.Signatures[0].Header.KeyID, obj.Signatures[0].Header.Algorithm)
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +268,7 @@ func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e En
 	if iss, _ := c["iss"].(string); !issuerMatches(in.Config, issuer, iss) {
 		return nil, idTokenError("issuer mismatch")
 	}
+	in.IDTokenAlg = obj.Signatures[0].Header.Algorithm
 	if err := validateIDTokenClaims(in, tokens, c, ps.exchangeTime(in)); err != nil {
 		return nil, err
 	}

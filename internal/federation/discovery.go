@@ -3,6 +3,7 @@ package federation
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
@@ -53,19 +54,20 @@ func (k CacheKey) with(parts ...string) string {
 
 // Metadata is validated OpenID provider discovery.
 type Metadata struct {
-	Issuer                string
-	AuthorizationEndpoint string
-	TokenEndpoint         string
-	JWKSURI               string
-	UserInfoEndpoint      string
-	TokenAuthMethod       string
-	PKCES256              bool
+	PKCEMethod, ResponseType, PAREndpoint string
+	Issuer                                string
+	AuthorizationEndpoint                 string
+	TokenEndpoint                         string
+	JWKSURI                               string
+	UserInfoEndpoint                      string
+	TokenAuthMethod                       string
+	PKCES256                              bool
 }
 
 // Endpoints is the endpoint snapshot an attempt pins.
 func (m Metadata) Endpoints() Endpoints {
 	return Endpoints{AuthorizationURL: m.AuthorizationEndpoint, TokenURL: m.TokenEndpoint, JWKSURL: m.JWKSURI,
-		UserInfoURL: m.UserInfoEndpoint, TokenAuthMethod: m.TokenAuthMethod, PKCES256: m.PKCES256}
+		UserInfoURL: m.UserInfoEndpoint, TokenAuthMethod: m.TokenAuthMethod, PKCES256: m.PKCES256, PKCEMethod: m.PKCEMethod, ResponseType: m.ResponseType, PAREndpoint: m.PAREndpoint}
 }
 
 // GoogleEndpoints are Google's fixed endpoints.
@@ -143,7 +145,7 @@ func (ps *Providers) For(cfg Config) Provider {
 		return oauth2Provider{ps}
 	case StrategyWindowsLive, StrategyWAAD:
 		return microsoftProvider{ps}
-	case StrategyOIDC, StrategyGoogle:
+	case StrategyOIDC, StrategyOkta, StrategyGoogle:
 		return oidcProvider{ps}
 	default:
 		return unsupportedProvider{}
@@ -225,6 +227,9 @@ func stringSlice(v any) ([]string, bool) {
 
 // getJSON GETs a JSON object, optionally with a bearer token.
 func (ps *Providers) getJSON(ctx context.Context, url, bearer string, out any) error {
+	return ps.getJSONLimit(ctx, url, bearer, out, 0)
+}
+func (ps *Providers) getJSONLimit(ctx context.Context, url, bearer string, out any, limit int) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("%w: bad URL", ErrProviderResponse)
@@ -240,6 +245,9 @@ func (ps *Providers) getJSON(ctx context.Context, url, bearer string, out any) e
 	body, err := readAll(resp)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrProviderResponse, err)
+	}
+	if limit > 0 && len(body) > limit {
+		return fmt.Errorf("%w: metadata exceeds limit", ErrResponseTooLarge)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%w: status %d", ErrProviderResponse, resp.StatusCode)
@@ -479,4 +487,44 @@ type unsupportedProvider struct{}
 func (unsupportedProvider) AuthorizationURL(StartInput) (string, error) { return "", ErrInvalidConfig }
 func (unsupportedProvider) Exchange(context.Context, ExchangeInput) (ProviderResult, error) {
 	return ProviderResult{}, ErrInvalidConfig
+}
+
+// keyForAlgorithm checks JWK algorithm and key type against the JWS header;
+// legacy Google/Microsoft/Apple selection keeps its RS256-only policy.
+func (kc *keyCache) keyForAlgorithm(ctx context.Context, ck, url, kid, alg string) (*jose.JSONWebKey, error) {
+	k, e := kc.selectKey(ctx, ck, url, func(set *keySet) (*cachedSigningKey, error) {
+		var found *cachedSigningKey
+		for i := range set.keys {
+			entry := &set.keys[i]
+			k := &entry.Key
+			if !k.Valid() || !k.IsPublic() || (kid != "" && k.KeyID != kid) || (k.Use != "" && k.Use != "sig") || (k.Algorithm != "" && k.Algorithm != alg) {
+				continue
+			}
+			switch key := k.Key.(type) {
+			case *rsa.PublicKey:
+				if key.N.BitLen() < 2048 || !(strings.HasPrefix(alg, "RS") || strings.HasPrefix(alg, "PS")) {
+					continue
+				}
+			case *ecdsa.PublicKey:
+				bits := key.Curve.Params().BitSize
+				if !(alg == "ES256" && bits == 256 || alg == "ES384" && bits == 384 || alg == "ES512" && bits == 521) {
+					continue
+				}
+			default:
+				continue
+			}
+			if found != nil {
+				return nil, idTokenError("ambiguous signing key")
+			}
+			found = entry
+		}
+		if found == nil {
+			return nil, errUnknownKID
+		}
+		return found, nil
+	})
+	if e != nil {
+		return nil, e
+	}
+	return &k.Key, nil
 }

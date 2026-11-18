@@ -757,7 +757,7 @@ message HostedLoginConfigWrite { string tx_id = 1; HostedLoginConfig value = 2; 
 // or credential field exists in any message.
 message FederationEndpoints {
   string authorization_url = 1; string token_url = 2; string jwks_url = 3;
-  string userinfo_url = 4; string token_auth_method = 5; bool pkce_s256 = 6;
+  string userinfo_url = 4; string token_auth_method = 5; bool pkce_s256 = 6; string pkce_method=7; string response_type=8; string par_endpoint=9;
 }
 message FederationAttempt {
   string state_hash = 1; string tenant_id = 2; string transaction_id = 3; string connection_id = 4;

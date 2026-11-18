@@ -131,7 +131,7 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	}
 	spec := connrules.FromConnection(conn)
 	cfg, err := ParseConfig(*spec)
-	if err != nil || !cfg.AuthenticationActive || len(conn.FederationSecretsSealed) == 0 {
+	if err != nil || !cfg.AuthenticationActive || len(conn.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 		return nil, ErrConnectionUnusable
 	}
 	if cfg.Strategy == StrategyOAuth2 {
@@ -153,18 +153,18 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		issuer, endpoints = meta.Issuer, meta.Endpoints()
 	case StrategyOAuth2:
 		endpoints = Endpoints{AuthorizationURL: cfg.AuthorizationURL, TokenURL: cfg.TokenURL, TokenAuthMethod: authPost}
-	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC:
+	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
 		var meta Metadata
 		var err error
-		if cfg.Strategy == StrategyOIDC {
-			meta, err = s.Providers.Discover(ctx, key, cfg.DiscoveryURL, cfg.Issuer)
+		if cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyOkta {
+			meta, err = s.Providers.ResolveEnterpriseMetadata(ctx, key, cfg)
 		} else {
 			meta, err = s.Providers.DiscoverMicrosoft(ctx, key, cfg)
 		}
 		if err != nil {
 			return nil, err
 		}
-		if cfg.Issuer == "" && (cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyWAAD && !cfg.MicrosoftMultiTenant) {
+		if cfg.Issuer == "" && (cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyOkta || cfg.Strategy == StrategyWAAD && !cfg.MicrosoftMultiTenant) {
 			rev, err := PinIssuer(ctx, s.Store, conn.TenantID, conn.ID, conn.FederationRevision, meta.Issuer)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %w", ErrAttemptStale, err)
@@ -201,8 +201,12 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		return nil, err
 	}
 	sum := sha256.Sum256([]byte(verifier))
+	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
+	if endpoints.PKCEMethod == "plain" {
+		challenge = verifier
+	}
 	u, err := s.Providers.For(cfg).AuthorizationURL(StartInput{Config: cfg, Endpoints: endpoints, CallbackURL: callback,
-		State: state, Nonce: nonce, CodeChallenge: base64.RawURLEncoding.EncodeToString(sum[:])})
+		State: state, Nonce: nonce, CodeChallenge: challenge})
 	if err != nil {
 		return nil, err
 	}
@@ -320,9 +324,14 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	if err != nil {
 		return nil, ErrConnectionUnusable
 	}
-	creds, err := OpenCredentials(s.Wrapper, conn.TenantID, conn.ID, conn.FederationSecretsSealed)
-	if err != nil {
-		return nil, fmt.Errorf("%w: credentials", ErrConnectionUnusable)
+	var creds Credentials
+	if len(conn.FederationSecretsSealed) > 0 {
+		creds, err = OpenCredentials(s.Wrapper, conn.TenantID, conn.ID, conn.FederationSecretsSealed)
+		if err != nil {
+			return nil, fmt.Errorf("%w: credentials", ErrConnectionUnusable)
+		}
+	} else if cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+		return nil, ErrConnectionUnusable
 	}
 	pr, err := s.openProof(a.TenantID, a.StateHash, a.SealedProof)
 	if err != nil {
@@ -493,10 +502,14 @@ func (s *FlowService) eligible(ctx context.Context, st store.Store, a *store.Fed
 func SocialChoices(client *store.Client, conns []*store.Connection, includeHidden bool) []*store.Connection {
 	var out []*store.Connection
 	for _, c := range conns {
-		if !IsFederated(c.Strategy) || !access.ConnectionUsable(client, c) || len(c.FederationSecretsSealed) == 0 {
+		if !IsFederated(c.Strategy) || !access.ConnectionUsable(client, c) {
 			continue
 		}
 		spec := connrules.FromConnection(c)
+		cfg, err := ParseConfig(*spec)
+		if err != nil || len(c.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
+			continue
+		}
 		if active, ok := spec.Authentication["active"].(bool); ok && !active {
 			continue
 		}

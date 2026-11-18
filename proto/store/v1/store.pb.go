@@ -3297,6 +3297,9 @@ type FederationEndpoints struct {
 	UserinfoUrl      string                 `protobuf:"bytes,4,opt,name=userinfo_url,json=userinfoUrl,proto3" json:"userinfo_url,omitempty"`
 	TokenAuthMethod  string                 `protobuf:"bytes,5,opt,name=token_auth_method,json=tokenAuthMethod,proto3" json:"token_auth_method,omitempty"`
 	PkceS256         bool                   `protobuf:"varint,6,opt,name=pkce_s256,json=pkceS256,proto3" json:"pkce_s256,omitempty"`
+	PkceMethod       string                 `protobuf:"bytes,7,opt,name=pkce_method,json=pkceMethod,proto3" json:"pkce_method,omitempty"`
+	ResponseType     string                 `protobuf:"bytes,8,opt,name=response_type,json=responseType,proto3" json:"response_type,omitempty"`
+	ParEndpoint      string                 `protobuf:"bytes,9,opt,name=par_endpoint,json=parEndpoint,proto3" json:"par_endpoint,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -3371,6 +3374,27 @@ func (x *FederationEndpoints) GetPkceS256() bool {
 		return x.PkceS256
 	}
 	return false
+}
+
+func (x *FederationEndpoints) GetPkceMethod() string {
+	if x != nil {
+		return x.PkceMethod
+	}
+	return ""
+}
+
+func (x *FederationEndpoints) GetResponseType() string {
+	if x != nil {
+		return x.ResponseType
+	}
+	return ""
+}
+
+func (x *FederationEndpoints) GetParEndpoint() string {
+	if x != nil {
+		return x.ParEndpoint
+	}
+	return ""
 }
 
 type FederationAttempt struct {
@@ -29034,14 +29058,18 @@ const file_store_proto_rawDesc = "" +
 	"\x16HostedLoginConfigWrite\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12;\n" +
 	"\x05value\x18\x02 \x01(\v2%.zeroauthy.store.v1.HostedLoginConfigR\x05value\x12+\n" +
-	"\x11expected_revision\x18\x03 \x01(\x03R\x10expectedRevision\"\xe6\x01\n" +
+	"\x11expected_revision\x18\x03 \x01(\x03R\x10expectedRevision\"\xcf\x02\n" +
 	"\x13FederationEndpoints\x12+\n" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x1b\n" +
 	"\ttoken_url\x18\x02 \x01(\tR\btokenUrl\x12\x19\n" +
 	"\bjwks_url\x18\x03 \x01(\tR\ajwksUrl\x12!\n" +
 	"\fuserinfo_url\x18\x04 \x01(\tR\vuserinfoUrl\x12*\n" +
 	"\x11token_auth_method\x18\x05 \x01(\tR\x0ftokenAuthMethod\x12\x1b\n" +
-	"\tpkce_s256\x18\x06 \x01(\bR\bpkceS256\"\x80\x05\n" +
+	"\tpkce_s256\x18\x06 \x01(\bR\bpkceS256\x12\x1f\n" +
+	"\vpkce_method\x18\a \x01(\tR\n" +
+	"pkceMethod\x12#\n" +
+	"\rresponse_type\x18\b \x01(\tR\fresponseType\x12!\n" +
+	"\fpar_endpoint\x18\t \x01(\tR\vparEndpoint\"\x80\x05\n" +
 	"\x11FederationAttempt\x12\x1d\n" +
 	"\n" +
 	"state_hash\x18\x01 \x01(\tR\tstateHash\x12\x1b\n" +

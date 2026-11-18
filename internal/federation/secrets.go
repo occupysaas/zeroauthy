@@ -140,7 +140,7 @@ func PinIssuer(ctx context.Context, st store.Store, tenantID, connectionID strin
 		if err != nil {
 			return err
 		}
-		if c.Strategy != StrategyOIDC {
+		if c.Strategy != StrategyOIDC && c.Strategy != StrategyOkta {
 			cfg, err := ParseConfig(*connrules.FromConnection(c))
 			tid, concrete := microsoftIssuerTenant(issuer)
 			if err != nil || cfg.Strategy != StrategyWAAD || cfg.MicrosoftMultiTenant || !concrete || tid == microsoftConsumerTenant {

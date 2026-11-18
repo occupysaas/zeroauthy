@@ -41,3 +41,7 @@ func TestAppleProviderDataRoundTrip(t *testing.T) {
 	}
 	roundTrip(t, "Apple snapshot", &store.FederationAttempt{Endpoints: store.FederationEndpoints{PKCES256: true}}, attemptToPB, attemptFromPB)
 }
+
+func TestEnterpriseEndpointSnapshot(t *testing.T) {
+	roundTrip(t, "enterprise endpoints", &store.FederationAttempt{Endpoints: store.FederationEndpoints{PKCEMethod: "plain", ResponseType: "id_token", PAREndpoint: "https://provider.example/par"}}, attemptToPB, attemptFromPB)
+}
