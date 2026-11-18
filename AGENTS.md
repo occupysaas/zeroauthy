@@ -83,8 +83,8 @@ Don't rely on it:
   environments or Actions permissions. Write the `gh api` command and
   leave it to the maintainer to run.
 - Sign off every commit (`git commit -s`). Don't loosen
-  `scripts/check-dco.sh`. Dependabot pull requests fail it until the
-  maintainer decides whether to exempt `dependabot[bot]`.
+  `scripts/check-dco.sh` further: the only exemption is Dependabot's own
+  commits in pull requests Dependabot opened.
 
 Pull requests from forks:
 
