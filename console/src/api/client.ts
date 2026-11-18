@@ -42,6 +42,7 @@ export type ClientGrantPage = components['schemas']['ClientGrantPage']
 export type Operator = components['schemas']['Operator']
 export type OperatorInvite = components['schemas']['OperatorInvite']
 export type Connection = components['schemas']['Connection']
+export type ConnectionKey = components['schemas']['ConnectionKey']
 export type ConnectionCreate = components['schemas']['ConnectionCreate']
 export type ConnectionUpdate = components['schemas']['ConnectionUpdate']
 export type ConnectionPage = components['schemas']['ConnectionPage']
@@ -767,6 +768,16 @@ export class Api {
 
   getConnection(t: SystemTenant, id: string): Promise<Connection> {
     return this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id))
+  }
+
+  getConnectionKeys(t: SystemTenant, id: string): Promise<ConnectionKey[]> {
+    return this.tenantRequest(t, 'GET', '/api/v2/connections/' + encodeURIComponent(id) + '/keys')
+  }
+  createConnectionKeys(t: SystemTenant, id: string, body: Record<string, unknown>): Promise<ConnectionKey[]> {
+    return this.tenantRequest(t, 'POST', '/api/v2/connections/' + encodeURIComponent(id) + '/keys', { body })
+  }
+  rotateConnectionKeys(t: SystemTenant, id: string, body: Record<string, unknown>): Promise<ConnectionKey> {
+    return this.tenantRequest(t, 'POST', '/api/v2/connections/' + encodeURIComponent(id) + '/keys/rotate', { body })
   }
 
   createConnection(t: SystemTenant, body: ConnectionCreate): Promise<Connection> {
