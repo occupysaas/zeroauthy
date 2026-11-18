@@ -24,7 +24,7 @@ per item; items without rulings can start as soon as their track allows.
 |---|---|---|---|
 | F1 | 36 enterprise OIDC | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
 | P2 | 48 refresh tokens II | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
-| P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | front-channel logout not built; compat switch defaults; certification timing |
+| P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
 | P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
 | P5 | 41c CIBA (email channel) | [spec](2026-11-16-zeroauthy-ciba-design.md) | none |
 | P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
