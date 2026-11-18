@@ -395,3 +395,41 @@ func TestClientAuthContracts(t *testing.T) {
 		}
 	}
 }
+
+// Enterprise SDKs rely on these public key and connection operations; private
+// key material has no place in a response schema.
+func TestEnterpriseOIDCContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, methods := range map[string][]string{
+		"/api/v2/connections/{id}/keys":        {"GET", "POST"},
+		"/api/v2/connections/{id}/keys/rotate": {"POST"},
+		"/api/v2/connections/{id}/status":      {"GET"},
+		"/api/v2/connections/{id}/users":       {"DELETE"},
+	} {
+		item := doc.Paths.Value(path)
+		if item == nil {
+			t.Errorf("missing %s", path)
+			continue
+		}
+		for _, method := range methods {
+			if item.GetOperation(method) == nil {
+				t.Errorf("missing %s %s", method, path)
+			}
+		}
+	}
+	for _, name := range []string{"ConnectionOptionsOIDC", "ConnectionOptionsOkta", "ConnectionKey"} {
+		if doc.Components.Schemas[name] == nil {
+			t.Errorf("missing schema %s", name)
+		}
+	}
+	if ref := doc.Components.Schemas["ConnectionKey"]; ref != nil {
+		for _, field := range []string{"private_key", "private_sealed", "client_secret"} {
+			if ref.Value.Properties[field] != nil {
+				t.Errorf("keys expose %s", field)
+			}
+		}
+	}
+}
