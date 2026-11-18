@@ -44,7 +44,9 @@ test('domain console: keyboard, narrow/wide, one-time secret, lost reply and sta
  let release;const gate=new Promise(r=>release=r);let captured;let delivered;const fulfilled=new Promise(r=>delivered=r);
  const seen=new Promise(r=>captured=r);
  await page.route('**/api/v2/custom-domains',async route=>{
-  if(route.request().method()==='GET' && new URL(route.request().url()).hostname==='sdk.e2e.test'){
+  const url=new URL(route.request().url());
+  // Custom-host tenants reach Management through the system host's console proxy.
+  if(route.request().method()==='GET' && (url.hostname==='sdk.e2e.test' || url.pathname.startsWith('/api/console/tenants/domains/'))){
    const response=await route.fetch();captured();await gate;await route.fulfill({response});delivered();
   } else await route.continue();
  });

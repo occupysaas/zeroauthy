@@ -413,7 +413,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 				e = orglogin.CheckMemberClient(ctx, tx, a.TenantID, oc.Org.ID, txn.ClientID)
 			}
 			if e == nil && txn.Params[orglogin.InvitationIDParam] == "" {
-				e = orglogin.EnsureMembership(ctx, tx, oc, user.UserID, conn.ID)
+				e = orglogin.CheckMembership(ctx, tx, oc, user.UserID, conn.ID)
 			}
 			if e != nil && !errors.Is(e, orglogin.ErrNotMember) {
 				return e

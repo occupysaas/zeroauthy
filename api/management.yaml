@@ -4853,7 +4853,7 @@ paths:
         `sort` is `field:1` or `field:-1` (`400 invalid_query_string`
         otherwise); unknown and metadata fields are ignored. Without `sort`,
         users are ordered by `last_login` descending, those who never logged
-        in last. `connection` keeps users with an identity on that connection.
+        in last. To filter by connection, use `q=identities.connection:"connection_name"`.
 
         Offset paging (`page`, `per_page` 1 to 100, 50 by default). Only the
         first 1000 results can be reached: `(page + 1) × per_page` above 1000
@@ -4872,7 +4872,9 @@ paths:
           schema: {type: string}
         - name: connection
           in: query
-          description: Only users with an identity on this connection.
+          description: |
+            This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+            valid UTF-8 without NUL characters. Use `q` to filter by connection.
           schema: {type: string}
         - name: fields
           in: query
@@ -4986,6 +4988,13 @@ paths:
         and nothing changes. Neither a password change nor `blocked: true`
         revokes sessions or refresh tokens.
 
+        Send null for `email`, `phone_number`, `given_name`, `family_name`,
+        `name`, `nickname`, `picture`, or `username` to remove its value.
+        Required identifiers and the last active login identifier cannot
+        be removed. `verify_phone_number: true` sends a text verification
+        code to the resulting phone number without setting `phone_verified`.
+        Delivery is attempted after the profile update commits.
+
         On a custom database connection that is not in import mode, an email
         change runs `change_email` and a password change `change_password`
         before anything is stored.
@@ -5007,7 +5016,21 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
-        "503": {$ref: "#/components/responses/ScriptRuntimeUnavailable"}
+        "429":
+          description: The phone verification send limit was reached.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "501":
+          description: The storage plugin does not support phone messaging (`phone_unavailable`).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "503":
+          description: A custom database script could not run or phone verification delivery is unavailable.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
     delete:
       operationId: deleteUser
       tags: [users]
@@ -5437,10 +5460,13 @@ paths:
         the page redirects there, appending `success`, `message`, `code`,
         `supportSignUp`, `supportForgotPassword` and, with
         `includeEmailInRedirect`, `email` to its query.
+        With `organization_id`, the user must be a member of the organization
+        and the result page uses that organization's branding.
 
         A missing `user_id`, a negative `ttl_sec`, `result_url` together with
-        `client_id` and an unknown property are `400 invalid_body`; an unknown
-        user is `404 inexistent_user`.
+        `client_id` or `organization_id`, invalid organization membership and
+        an unknown property are `400 invalid_body`. An unknown user is
+        `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/tickets/post-email-verification
       requestBody:
@@ -5819,12 +5845,12 @@ paths:
         and answers `201` with the job, `status: pending`, whether or not the
         user is already verified. Without an email provider the job still
         completes. `identity` names one of the user's identities and
-        `client_id` the application the email is for.
+        `client_id` the application the email is for. `organization_id` adds
+        the organization and its branding to the email and the result page.
 
-        A missing or empty `user_id`, a wrong type and an unknown property
-        (`organization_id` too: zeroauthy has no organizations) are
-        `400 invalid_body`; as on Auth0 every other error is a `400` too: an
-        unknown user is `inexistent_user`; an identity the user does not have
+        A missing or empty `user_id`, a wrong type, an unknown property and
+        invalid organization membership are `400 invalid_body`. An unknown
+        user is `inexistent_user`; an identity the user does not have
         is `inexistent_identity`; an unknown `client_id` is
         `inexistent_client`; a user without an email address, or an identity
         that is not in a database connection, is `operation_not_supported`.
@@ -6564,6 +6590,77 @@ paths:
         "404": {$ref: "#/components/responses/NotFound"}
         "429": {$ref: "#/components/responses/TooManyRequests"}
         "502": {description: The provider did not accept the message.}
+  /api/system/tenants/{tenant}/connections/{id}/passwordless/try:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+      - name: id
+        in: path
+        required: true
+        description: The saved passwordless connection ID.
+        schema: {type: string, pattern: '^con_[A-Za-z0-9]{1,64}$'}
+    post:
+      x-source:
+        - https://auth0.com/docs/api/authentication/passwordless/get-code-or-link
+      operationId: tryConnectionPasswordless
+      tags: [system]
+      summary: Send a test code or magic link through a saved passwordless connection.
+      description: |
+        A zeroauthy extension on the system host (D-0270). Requires signed
+        and current operator grants for the target tenant. The application
+        must be enabled for the connection and have the passwordless OTP
+        grant. The operator authorizes this call without a client credential.
+        The send uses the saved delivery configuration and the same policies,
+        budgets and outstanding-credential replacement as a regular start.
+        Magic links use the target tenant's canonical origin and saved
+        authorization parameters.
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PasswordlessTryRequest"}
+      responses:
+        "204": {description: Delivery accepted. The response has no body.}
+        "400":
+          description: Invalid request or SMS delivery was refused.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "401":
+          description: Operator authentication failed or the application does not exist in the tenant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "403":
+          description: Tenant, application, connection or user policy refused the attempt.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429":
+          description: A passwordless start budget was exhausted.
+          headers:
+            Retry-After:
+              description: Seconds until another send is allowed.
+              schema: {type: integer}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "500":
+          description: Email delivery failed or an internal error occurred.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "501":
+          description: The storage plugin lacks the Phone capability.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
   /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try:
     parameters:
       - name: tenant
@@ -6813,11 +6910,18 @@ paths:
     get:
       operationId: GetEmailProvider
       tags: [emails]
-      summary: Get the tenant email provider without credentials.
+      summary: Get the tenant email provider and its public credentials.
       x-source: [https://auth0.com/docs/api/management/v2/emails/get-provider]
       security: [{managementToken: []}, {operatorToken: []}]
+      parameters:
+        - name: fields
+          in: query
+          description: Comma-separated public fields to select. An empty list returns all public fields.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
       responses:
         "200": {description: Redacted provider configuration., content: {application/json: {schema: {$ref: "#/components/schemas/EmailProvider"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
@@ -8574,9 +8678,8 @@ paths:
       operationId: ListOrganizationMembers
       summary: List an organization's members, ordered by user ID
       description: |
-        Needs `read:organization_members` or `read:organization_member_roles`;
-        `fields` naming `roles` (included) also needs
-        `read:organization_member_roles`.
+        Requires `read:organization_members`. Including `roles` via `fields`
+        also requires `read:organization_member_roles`.
       tags:
       - organizations
       x-source:
@@ -8584,8 +8687,6 @@ paths:
       security:
       - managementToken:
         - read:organization_members
-      - managementToken:
-        - read:organization_member_roles
       - operatorToken: []
       parameters:
       - $ref: '#/components/parameters/organizationId'
@@ -8933,8 +9034,6 @@ paths:
       x-source:
       - https://auth0.com/docs/api/management/v2/users/get-user-organizations
       security:
-      - managementToken:
-        - read:users
       - managementToken:
         - read:organizations
       - operatorToken: []
@@ -20002,11 +20101,19 @@ components:
       - users
     EmailProvider:
       type: object
-      required: [name, enabled]
       properties:
         name: {type: string}
         enabled: {type: boolean}
         default_from_address: {type: string}
+        credentials:
+          type: object
+          additionalProperties: false
+          properties:
+            api_user: {type: string}
+            region: {type: string}
+            smtp_host: {type: string}
+            smtp_port: {type: integer, minimum: 1, maximum: 65535}
+            smtp_user: {type: string}
         settings: {type: object, additionalProperties: true}
     EmailProviderWrite:
       type: object
@@ -20058,6 +20165,15 @@ components:
             subject: {type: string}
             from: {type: string}
             variables: {type: object, additionalProperties: true}
+    PasswordlessTryRequest:
+      type: object
+      additionalProperties: false
+      required: [client_id]
+      properties:
+        client_id: {type: string, minLength: 1}
+        email: {type: string, format: email, description: Required for an email connection.}
+        phone_number: {type: string, description: E.164 number required for an SMS connection.}
+        send: {type: string, enum: [code, link], description: Defaults to code for SMS and link for email.}
     EmailTestRequest:
       type: object
       additionalProperties: false
@@ -22794,7 +22910,7 @@ components:
         domains: {type: array, items: {type: string}, description: Custom domains the tenant answers on.}
         host:
           type: string
-          description: The tenant's canonical host, where the console calls its Management API.
+          description: The tenant's canonical host. It serves the tenant's public Management API.
         management_api_identifier:
           type: string
           description: The audience of the tenant's machine-to-machine Management API tokens.
@@ -23134,6 +23250,7 @@ components:
       properties:
         user_id: {type: string, description: The user to send the email to.}
         client_id: {type: string, description: The application the email is for.}
+        organization_id: {type: string, description: The organization whose branding the verification uses. The user must be a member.}
         identity:
           type: object
           description: One of the user's database identities; the user's primary one when absent.
@@ -23220,8 +23337,9 @@ components:
       description: Unknown properties are `400 invalid_body`.
       properties:
         user_id: {type: string}
-        result_url: {type: string, description: "Where the page redirects after opening. Not with `client_id`."}
+        result_url: {type: string, description: "Where the page redirects after opening. Not with `client_id` or `organization_id`."}
         client_id: {type: string}
+        organization_id: {type: string, description: The organization whose branding the result page uses. The user must be a member.}
         ttl_sec: {type: integer, minimum: 0, description: "Seconds the ticket is valid; 0 or absent is 432000 (5 days)."}
         includeEmailInRedirect: {type: boolean}
         identity: {$ref: "#/components/schemas/TicketIdentity"}
@@ -23289,12 +23407,26 @@ components:
             user_id: {type: string, maxLength: 255, description: "Prefixed with `auth0|`."}
     UserUpdate:
       description: Fields to change; unknown properties are `400 invalid_body`.
-      allOf:
-        - $ref: "#/components/schemas/UserProfileSettings"
-        - type: object
-          properties:
-            connection: {type: string}
-            client_id: {type: string, description: The application the verification email is for.}
+      type: object
+      properties:
+        email: {type: [string, 'null']}
+        email_verified: {type: boolean}
+        verify_email: {type: boolean, description: Send the verification email.}
+        username: {type: [string, 'null']}
+        password: {type: string, writeOnly: true}
+        phone_number: {type: [string, 'null']}
+        phone_verified: {type: boolean}
+        verify_phone_number: {type: boolean, description: Send a text verification code to the resulting phone number when true.}
+        name: {type: [string, 'null']}
+        given_name: {type: [string, 'null']}
+        family_name: {type: [string, 'null']}
+        nickname: {type: [string, 'null']}
+        picture: {type: [string, 'null']}
+        blocked: {type: boolean}
+        user_metadata: {type: object, additionalProperties: true}
+        app_metadata: {type: object, additionalProperties: true}
+        connection: {type: string}
+        client_id: {type: string, description: The application the verification email is for.}
     UserPage:
       type: object
       description: A page of users with `include_totals=true`.

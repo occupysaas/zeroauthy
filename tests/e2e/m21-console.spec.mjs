@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const ADMIN = 'https://system.localhost:8443/admin/';
 const PASSWORD = 'Operator-Password-2026';
+const verifyTemplate = tenant => `https://system.localhost:8443/api/console/tenants/${tenant}/api/v2/email-templates/verify_email`;
 const decodeQP = (s) => s.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
 
 async function mailFor(to, since) {
@@ -101,7 +102,7 @@ test('email delivery stays tenant-local and console edits keep safe uncertainty 
   await page.goto('https://system.localhost:8443/admin/t/e2e/emails'); await page.getByRole('tab', { name: 'Templates' }).click();
   let releaseOld; const held = new Promise(resolve => { releaseOld = resolve; });
   let signalOld; const oldStarted = new Promise(resolve => { signalOld = resolve; });
-  await page.route('https://localhost:8443/api/v2/email-templates/verify_email', async route => {
+  await page.route(verifyTemplate('e2e'), async route => {
     const response = await route.fetch(); signalOld(); await held; await route.fulfill({ response });
   });
   await page.selectOption('#email-template-select', 'verify_email_by_code');
@@ -113,11 +114,11 @@ test('email delivery stays tenant-local and console edits keep safe uncertainty 
   await expect(page.locator('#email-template-subject')).toHaveValue('Secondary verify');
   releaseOld();
   await expect(page.locator('#email-template-subject')).toHaveValue('Secondary verify');
-  await page.unroute('https://localhost:8443/api/v2/email-templates/verify_email');
+  await page.unroute(verifyTemplate('e2e'));
 
   // A forbidden write preserves edits; an aborted test-send is attempted once and is never retried.
   let writes = 0;
-  await page.route('https://secondary.localhost:8443/api/v2/email-templates/verify_email', async route => {
+  await page.route(verifyTemplate('secondary'), async route => {
     if (route.request().method() === 'PUT') { writes++; await route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ errorCode: 'insufficient_scope', message: 'Forbidden' }) }); }
     else await route.continue();
   });
@@ -125,7 +126,7 @@ test('email delivery stays tenant-local and console edits keep safe uncertainty 
   await page.getByRole('button', { name: 'Save template', exact: true }).click();
   await expect(page.locator('#email-template-subject')).toHaveValue('Keep this forbidden draft');
   expect(writes).toBe(1);
-  await page.unroute('https://secondary.localhost:8443/api/v2/email-templates/verify_email');
+  await page.unroute(verifyTemplate('secondary'));
 
   await page.getByRole('tab', { name: 'Preview' }).click();
   let sends = 0;

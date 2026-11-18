@@ -322,6 +322,8 @@ func validPublicEmailConfig(p *store.EmailProvider) bool {
 		}
 		return true
 	}
+	// A legacy API username is a public string, never a nested object.
+	_, allowed["api_user"] = p.PublicConfig["api_user"].(string)
 	for k, v := range p.PublicConfig {
 		if !allowed[k] || !safe(v, 0) {
 			return false

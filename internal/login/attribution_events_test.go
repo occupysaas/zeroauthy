@@ -2,14 +2,12 @@ package login
 
 import (
 	"context"
-	"net/http/httptest"
+	"net/http"
+	"net/url"
 	"testing"
-	"time"
 
-	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
-	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // The post-login picker resolves client/connection before inserting membership.
@@ -25,30 +23,30 @@ func TestOrganizationPickerMembershipEventAttribution(t *testing.T) {
 	if err := e.st.Clients().Update(ctx, client); err != nil {
 		t.Fatal(err)
 	}
-	sess := &store.LoginSession{TenantID: org.TenantID, ID: "picker-session", UserID: user.UserID, Connection: conn.Name, ExpiresAt: fixedNow().Add(time.Hour)}
-	if err := e.st.Sessions().Create(ctx, sess); err != nil {
-		t.Fatal(err)
-	}
-	txn := &store.AuthTransaction{TenantID: org.TenantID, ID: "picker-txn", ClientID: "spa", ExpiresAt: fixedNow().Add(time.Hour), Params: map[string]string{store.TxnParamOrgMode: string(authz.OrgPickAfter), "za_org_session": sess.ID}}
-	if err := e.st.AuthTransactions().Create(ctx, txn); err != nil {
-		t.Fatal(err)
-	}
 	capture := &eventRecorder{}
-	ctx = logs.WithRecorder(ctx, capture)
-	r := httptest.NewRequest("POST", "https://acme.example.test/u/login", nil).WithContext(ctx)
-	f := &flow{res: tenant.Resolved{Tenant: mustTenant(t, e, "acme")}, txn: txn}
-	if err := e.h.bindOrg(r, f, org); err != nil {
-		t.Fatal(err)
+	e.h.Recorder = capture
+	old := e.srv
+	e.srv = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		old.ServeHTTP(w, r.WithContext(logs.WithRecorder(r.Context(), capture)))
+	})
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {user.Email}, "password": {"alice password 1"}})
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	if loc.Query().Get("code") == "" {
+		t.Fatal("completion", loc, rec.Body)
 	}
 	member, err := e.st.Organizations().IsMember(ctx, org.TenantID, org.ID, user.UserID)
-	if err != nil || !member || f.txn.Params[store.TxnParamOrgID] != org.ID || f.txn.Params[store.TxnParamOrgMode] != string(authz.OrgFixed) {
-		t.Fatalf("binding=%+v membership=%v err=%v", f.txn, member, err)
+	if err != nil || !member {
+		t.Fatal(member, err)
 	}
-	if len(capture.events) != 1 {
-		t.Fatalf("events=%+v", capture.events)
+	var got *logs.Event
+	for i := range capture.events {
+		if capture.events[i].Type == "organization_member_added" {
+			got = &capture.events[i]
+		}
 	}
-	got := capture.events[0]
-	if got.Type != "organization_member_added" || got.TenantID != org.TenantID || got.ClientID != "spa" || got.ClientName != "Picker app" || got.UserID != user.UserID || got.ConnectionID != conn.ID || got.Connection != "Username-Password-Authentication" || got.Strategy != "auth0" || got.StrategyType != "database" || got.OrganizationID != org.ID || got.OrganizationName != "acme-org" {
-		t.Fatalf("event=%+v", got)
+	if got == nil || got.ClientID != "spa" || got.ClientName != "Picker app" || got.UserID != user.UserID || got.ConnectionID != conn.ID || got.Connection != conn.Name || got.OrganizationID != org.ID || got.Strategy != "auth0" {
+		t.Fatalf("membership attribution: %+v; all=%+v", got, capture.events)
 	}
 }

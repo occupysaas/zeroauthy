@@ -405,6 +405,8 @@ func New(d Deps) http.Handler {
 		Recorder:       d.Recorder,
 		Store:          d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify, EmailService: d.EmailService,
+		Passwordless:           pwl,
+		PhoneDispatcher:        d.Phone,
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
 		Protection:             sharedProtection,
@@ -453,7 +455,7 @@ func New(d Deps) http.Handler {
 	}
 	r.Group(func(ar chi.Router) {
 		ar.Use(d.Resolver.Middleware)
-		a := admin{files: files, store: d.Store, baseDomain: d.BaseDomain}
+		a := admin{files: files, baseDomain: tenant.NormalizeHost(d.BaseDomain), systemHost: tenant.NormalizeHost(d.SystemHost)}
 		ar.Method(http.MethodGet, "/admin", a)
 		ar.Method(http.MethodGet, "/admin/*", a)
 		ar.Method(http.MethodHead, "/admin/*", a)

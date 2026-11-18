@@ -158,10 +158,12 @@ func assertStaleFallback(t *testing.T, f *mfaFixture, r *httptest.ResponseRecord
 	if confirmed != 1 {
 		t.Fatalf("confirmed %s methods = %d, want only the victim's: %+v", typ, confirmed, aa)
 	}
-	req := httptest.NewRequest("GET", "https://"+f.b.host+"/", nil)
-	req.AddCookie(f.b.cookies[session.CookieName])
-	if sess, _ := f.h.Sessions.Lookup(context.Background(), req, f.tn); sess == nil || !sess.MFAAt.IsZero() {
-		t.Fatalf("session marked MFA by a stale enrollment: %+v", sess)
+	if c := f.b.cookies[session.CookieName]; c != nil {
+		t.Fatal("stale enrollment created an SSO session")
+	}
+	rows, err := f.st.Sessions().ListByUser(context.Background(), f.tn.ID, f.uid)
+	if err != nil || len(rows) != 0 {
+		t.Fatal("stale enrollment persisted a session", rows, err)
 	}
 	// The same transaction now challenges the factor the user has.
 	next := f.b.do(t, "GET", r.Header().Get("Location"), nil)

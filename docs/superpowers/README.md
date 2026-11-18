@@ -21,9 +21,10 @@ S1 / Plan 39a (web and native Apple login) is implemented and merged into
 `main` (2026-11-17, plan-branch CI green at `74752598`); see
 [its record](2026-11-16-plan-39a-implementation-record.md).
 
-O3 / Plan 45b is in progress on `plan-45b-flow-api-fixes`: Tasks 1–5 are done
-(Tasks 1 and 3 merged into `main`), Tasks 6–14, verification and CI are
-pending ([record](2026-11-16-plan-45b-implementation-record.md)).
+O3 / Plan 45b (flow and API fixes) is implemented: all 14 tasks, the
+whole-branch review and local verification are complete; see
+[its record](2026-11-16-plan-45b-implementation-record.md). Review follow-ups
+R1–R7 are in [plan-1-followups.md](plan-1-followups.md).
 
 Start at the roadmap's **"Designed 2026-11-16"** table
 ([roadmap §0](specs/2026-10-19-zeroauthy-management-roadmap-design.md)).

@@ -66,17 +66,19 @@ Counts: 0 critical, 0 high, 3 medium, 5 low. **3 fix-before-1.0** (F1, F2, F3).
 - Recommendation: defer-to-Plan-45
 - Suggested fix: use `SignupOTPLifetimeSeconds` for `kind=="signup"`. Add `ConnectionID` and the kind to the protection key.
 
-### F7 [low] [parity-gap] Side effects run before MFA: invitation acceptance, auto-membership and `last_login`/`logins_count`
+### F7 [low] [parity-gap] [fixed Plan 45b Task 2] Side effects run before MFA: invitation acceptance, auto-membership and `last_login`/`logins_count`
 - Where: internal/authz/handlers.go:370-388 (`Resume` → `acceptInvitation`/`claimInvitationCompletion` before `finish`/`approve`); internal/login/login.go:441-462 (`EnsureMembership` in the password commit); login.go:817 (`RecordLogin` in `complete`)
 - What: with only the first factor, someone who knows the password can consume an organization invitation and create membership, and the login counters move, even if MFA is then abandoned. Tokens are still correctly withheld. This is the same family as the known M1 (consent before MFA) but these are separate side effects.
 - Verdict: CONFIRMED (ordering); Auth0 ordering is PLAUSIBLE, not observed
+- Fixed 2026-11-17 (Plan 45b Task 2): first-factor evidence stays on the browser-bound transaction. Invitation, membership, consent grant, session and counters commit with code/device approval after MFA and consent. `TestNoSideEffectsBeforeMFA` covers password/passwordless/social/passkey with invitation and auto-membership; `TestSideEffectsOneTransaction` and its consent variant cover rollback. Focused login/authz/oauth/orglogin suites pass; whole-plan E2E/SQL/CI remains due at Task 14.
 - Recommendation: defer-to-Plan-45 (or fix together with M1)
 - Suggested fix: move invitation acceptance and membership commit after `requireMFA` passes (in `approve`, just before code issue).
 
-### F8 [low] [defect] A pre-MFA session is a full SSO session record
+### F8 [low] [defect] [fixed Plan 45b Task 2] A pre-MFA session is a full SSO session record
 - Where: internal/login/login.go:809-821 (`complete` → `Sessions.Start` before `Resume`); internal/passwordless/redirect.go:303
 - What: the session cookie and row are created before MFA, and MFA state lives only in `MFAAt`. Every code-issuing path re-checks MFA, so I found no token bypass. But the session shows up as an active session (Management sessions list, `logins_count`), and it replaces any MFA-completed session already in that browser. Auth0 establishes the session after MFA.
 - Verdict: CONFIRMED (behaviour); no bypass found
+- Fixed 2026-11-17 (Plan 45b Task 2): pending login evidence is not a session row or SSO cookie. `TestPendingLoginCannotBecomeSSO` and `TestPendingMFAKeepsExistingSSO` pass, including origin, expiry, blocked/revoked identity and existing-session preservation.
 - Recommendation: defer-to-Plan-45
 - Suggested fix: mark sessions "pending MFA" and exclude them from session listings and from replacing a completed session, or create the session only after `requireMFA` passes.
 

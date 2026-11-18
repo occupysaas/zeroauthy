@@ -484,3 +484,44 @@ func (f *pwlFixture) addGrant(t *testing.T, client string, grants ...string) {
 		t.Fatal(err)
 	}
 }
+
+func TestNoSideEffectsBeforeMFANativePasswordless(t *testing.T) {
+	f := newPasswordlessFixture(t)
+	ctx := context.Background()
+	g, err := f.st.MFA().GetGuardian(ctx, f.tid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.Factors = map[string]bool{"otp": true, "recovery-code": true}
+	g.Policies = []string{"all-applications"}
+	if err = f.st.MFA().PutGuardian(ctx, g, g.Version); err != nil {
+		t.Fatal(err)
+	}
+	f.h.MFA = mfa.NewService(f.st, f.wrapper, &mfaMail{}, nil, f.h.Log, fixedNow)
+	f.addGrant(t, "pwl", otpGrant)
+	code := f.emailCode(t, "pwl", "pwl-secret", "ada@acme.test")
+	rec, b := f.call(t, false, tokenCall{host: acmeHost, form: otpForm("pwl", "pwl-secret", "email", "ada@acme.test", code, "scope", "openid")})
+	if rec.Code != 403 || b["error"] != "mfa_required" {
+		t.Fatal(rec.Code, b)
+	}
+	u, err := f.st.Users().FindByLogin(ctx, f.tid, "email", "ada@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.LoginsCount != 0 || u.LastLogin != nil {
+		t.Errorf("pending passwordless counted: %d %v", u.LoginsCount, u.LastLogin)
+	}
+	tok := b["mfa_token"].(string)
+	secret, _ := f.associateOTP(t, tok)
+	form := mfaForm(otpGrant, tok, "otp", otpAt(secret, f.h.now()))
+	form.Set("client_id", "pwl")
+	form.Set("client_secret", "pwl-secret")
+	rec, b = f.call(t, false, tokenCall{host: acmeHost, form: form})
+	if rec.Code != 200 {
+		t.Fatal(rec.Code, b)
+	}
+	after, err := f.st.Users().Get(ctx, f.tid, u.UserID)
+	if err != nil || after.LoginsCount != 1 {
+		t.Fatal("completed passwordless count", after, err)
+	}
+}

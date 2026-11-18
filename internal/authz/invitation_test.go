@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -110,7 +111,7 @@ func TestInvitationBoundResumePAR(t *testing.T) {
 		t.Fatal(txn.Params)
 	}
 }
-func TestInvitationActionsDenialAfterAcceptance(t *testing.T) {
+func TestInvitationActionsProspectiveViewBeforeDenial(t *testing.T) {
 	a := newActionsEnv(t)
 	e, o, inv := prepareInvitationEnv(t, a.env)
 	ctx := context.Background()
@@ -155,20 +156,18 @@ func TestInvitationActionsDenialAfterAcceptance(t *testing.T) {
 		t.Fatal(out.Header())
 	}
 	member, err := e.st.Organizations().IsMember(ctx, e.tenant.ID, o.ID, sess.UserID)
-	if err != nil || !member {
-		t.Fatal(member, err)
+	if err != nil || member {
+		t.Fatal("denied invitation granted membership", member, err)
 	}
-	receipt, err := e.st.OrganizationsII().GetInvitationReceipt(ctx, e.tenant.ID, txn.ID)
-	if err != nil || receipt.InvitationID != inv.ID {
-		t.Fatal(receipt, err)
+	if _, err = e.st.OrganizationsII().GetInvitationReceipt(ctx, e.tenant.ID, txn.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("denied invitation has receipt", err)
 	}
-	roles, err := e.st.Organizations().MemberRoles(ctx, e.tenant.ID, o.ID, sess.UserID, store.OrgPage{PerPage: 100})
-	if err != nil || len(roles.Items) != 1 || roles.Items[0] != "invited-role" {
-		t.Fatal(roles, err)
+	if saved, err := e.st.OrganizationsII().GetInvitation(ctx, e.tenant.ID, o.ID, inv.ID); err != nil || saved == nil {
+		t.Fatal("denied invitation consumed", err)
 	}
-	snapshot, err := store.OrganizationAuthorizationSnapshot(ctx, e.st, e.tenant.ID, sess.UserID, o.ID, "https://api.acme.test")
-	if err != nil || len(snapshot.Permissions) != 1 || snapshot.Permissions[0] != "read:things" {
-		t.Fatal(snapshot, err)
+	after, err := e.st.Users().Get(ctx, e.tenant.ID, sess.UserID)
+	if err != nil || after.AppMetadata["invited"] != nil {
+		t.Fatal("prospective metadata persisted", after, err)
 	}
 	if a.runs(t) != 1 {
 		t.Fatal("Action not run")
@@ -238,16 +237,22 @@ func TestInvitationCompletionClaimConcurrent(t *testing.T) {
 	if err = e.st.Users().Update(ctx, u); err != nil {
 		t.Fatal(err)
 	}
-	if err = e.h.acceptInvitation(ctx, txn, sess); err != nil {
-		t.Fatal(err)
-	}
-	done := make(chan error, 2)
+	// Competing final completions must consume the transaction and issue once.
+	done := make(chan bool, 2)
 	for i := 0; i < 2; i++ {
-		go func() { done <- e.h.claimInvitationCompletion(ctx, txn, sess) }()
+		go func() {
+			request := httptest.NewRequest("POST", "https://acme.example.test/u/login", nil)
+			out := httptest.NewRecorder()
+			identity := *sess
+			transaction := *txn
+			e.h.Resume(out, request, e.res(), &transaction, &identity)
+			redirect, _ := url.Parse(out.Header().Get("Location"))
+			done <- redirect != nil && redirect.Query().Get("code") != ""
+		}()
 	}
 	success := 0
 	for i := 0; i < 2; i++ {
-		if <-done == nil {
+		if <-done {
 			success++
 		}
 	}

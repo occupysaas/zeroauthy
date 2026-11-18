@@ -120,9 +120,14 @@ type ProtectionAdmission struct {
 	// DeniedKinds identifies only budgets that actually refused this admission.
 	// Optional for older plugins; an absent value never changes the decision.
 	DeniedKinds []string
-	Allowed     bool
-	Receipt     ProtectionReceipt
-	RetryAt     time.Time
+	// FirstBruteForceDenial is true when this admission claims the first refusal
+	// of a brute-force bucket at its settled failure threshold. The claim is
+	// atomic with the admission and persists until the bucket is unblocked.
+	// Older plugins omit the claim while continuing to enforce the decision.
+	FirstBruteForceDenial bool
+	Allowed               bool
+	Receipt               ProtectionReceipt
+	RetryAt               time.Time
 }
 type ProtectionBlock struct {
 	Key          ProtectionKey

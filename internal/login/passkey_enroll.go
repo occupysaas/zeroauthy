@@ -30,7 +30,7 @@ func (h *Handlers) enrollmentFlow(w http.ResponseWriter, r *http.Request, post b
 		h.fail(w, r, errTxn, f)
 		return nil, nil, "", false
 	}
-	sess, err := h.Authz.ActiveSession(r.Context(), r, f.res)
+	sess, err := h.Authz.FlowSession(r.Context(), r, f.res)
 	if err != nil || sess == nil {
 		h.fail(w, r, errTxn, f)
 		return nil, nil, "", false

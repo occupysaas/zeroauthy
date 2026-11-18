@@ -88,7 +88,9 @@ Trademark use is descriptive throughout. NOTICE has a nominative-use disclaimer,
 - Recommendation: fix-before-1.0 for the bootstrap and operator-scope lines (they mislead a first-run user); the screen inventory can follow, under Plan 46 docs.
 - Suggested fix: Replace the bootstrap paragraph with README's setup-file wording. Describe scoped operators. Regenerate the sidebar list from `sections.ts` and link each feature guide.
 
-### F7 [medium] [defect] Passwordless "send test" in the console calls `/passwordless/start` cross-origin and is blocked by CORS
+### F7 [medium] [defect] [fixed Plan 45b Task 5] Passwordless "send test" in the console calls `/passwordless/start` cross-origin and is blocked by CORS
+
+- Plan 45b Task 5 fixed this on 2026-11-17. The console submits to `POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try` on the system host. The server checks both operator grants against the target tenant and sends through the saved connection. `TestPasswordlessTryRoute` exercises the real start service and a provider transport fixture. The console test submits both forms and verifies the operator bearer is sent only to the system Try route.
 - Where: console/src/pages/connections/PasswordlessSettings.vue:192-212; internal/server/cors.go:23,35-40,59-71; internal/server/server.go:241
 - What:
   - The test send POSTs JSON with `Authorization: Bearer <operator token>` from the system origin to `https://<tenant host>/passwordless/start`. That route uses the Authentication API `cors()`, which allows only origins listed in the tenant's clients' `allowed_origins` or `web_origins`, not `mgmtCORS`.
@@ -105,9 +107,8 @@ Trademark use is descriptive throughout. NOTICE has a nominative-use disclaimer,
 - Where: internal/server/admin.go:68-80
 - What: `csp()` adds `https://<d>` for every domain of every tenant to `connect-src`. It does this on every response, before any sign-in, and for every operator whatever their tenant scope. Anyone who can reach the system host can list all tenants' hosts. In multi-customer setups with per-tenant operators (the Plans 29, 30 and 47 vision), customers learn about each other.
 - Evidence: admin_test.go:41 asserts the tenant domains appear in the header.
-- Verdict: CONFIRMED
-- Recommendation: defer-to-Plan-45 (or Plan 47 before hosting)
-- Suggested fix: Rely on `https://*.<base_domain>`. For explicit domains, accept `https:` in `connect-src`, or serve the console on the system host only and proxy tenant Management calls through it.
+- Verdict: CONFIRMED. Fixed by Plan 45b Task 6 (D-0270). The console CSP now derives its connection sources from server configuration. Custom-host Management requests use the system host and require both signed and current operator grants for the named tenant.
+- Regression coverage: `TestAdminCSPNoTenantDomains` checks anonymous responses and zero `Tenants.List` calls as custom domains change and listings fail. `TestConsoleManagementProxy` and the console Management routing tests cover requests to the selected tenant through the system host.
 
 ### F9 [low] [docs-drift] Console links point at `main`, not the shipped version's docs
 - Where: console/src/links.ts:7-18 (`tree/main/docs`, `blob/main/...`)

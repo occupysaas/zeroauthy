@@ -28,6 +28,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -81,6 +82,9 @@ type Handlers struct {
 	// sends nothing.
 	Verification VerificationSender
 	EmailService *email.Service
+	Passwordless *passwordless.Service
+	// PhoneDispatcher sends identifier verification texts for user updates.
+	PhoneDispatcher *phone.Dispatcher
 	// PhoneHTTP is the HTTP client of the phone provider try routes; nil uses
 	// phone.NewHTTPClient (SSRF-guarded).
 	PhoneHTTP *http.Client

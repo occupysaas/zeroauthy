@@ -39,8 +39,10 @@ reset links that grant account access.
 ## Configure a tenant provider
 
 Use the admin console's **Emails → Provider** page or the tenant Management
-API. Provider credentials are write-only: responses, exports and the console
-never return secret values. A same-provider PATCH that omits credentials
+API. GET returns the configured `api_user`, `region`, `smtp_host`, `smtp_port`
+and `smtp_user` in `credentials`. Use `fields=credentials` to retrieve only
+these settings, or `fields=credentials&include_fields=false` to omit them.
+Passwords and API keys stay write-only. A same-provider PATCH that omits credentials
 preserves them; a supplied credential replaces that field. To change provider
 kind, submit the new provider's required credentials in the same create/update
 operation. Deleting a provider returns that tenant to the server fallback.

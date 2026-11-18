@@ -41,6 +41,7 @@ tenants:
       - {client_id: m33-password, app_type: regular_web, client_secret: Plan33-Password-Client-Secret-2026, grant_types: [password, 'http://auth0.com/oauth/grant-type/password-realm', 'http://auth0.com/oauth/grant-type/mfa-otp', 'http://auth0.com/oauth/grant-type/mfa-oob', 'http://auth0.com/oauth/grant-type/mfa-recovery-code']}
       - {client_id: m33-other, app_type: regular_web, client_secret: Plan33-Password-Client-Secret-2026, grant_types: [password, 'http://auth0.com/oauth/grant-type/mfa-otp']}
       - {client_id: m33-spa, name: Plan33 Browser, app_type: spa, grant_types: [authorization_code], callbacks: ['https://callback.e2e.test/'], allowed_logout_urls: ['https://callback.e2e.test/'], web_origins: ['https://callback.e2e.test']}
+      - {client_id: m33-consent, name: Plan45b Partner, app_type: spa, is_first_party: false, third_party_security_mode: permissive, grant_types: [authorization_code], callbacks: ['https://callback.e2e.test/']}
       - {client_id: m33-second, name: Plan33 Second, app_type: spa, grant_types: [authorization_code], callbacks: ['https://callback.e2e.test/'], web_origins: ['https://callback.e2e.test']}
     client_grants:
       - client_id: m33-admin

@@ -236,7 +236,17 @@ func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, r
 		if e != nil {
 			return e
 		}
-		return orglogin.EnsureMembership(logs.WithEvent(ctx, logs.Event{ClientID: c.ClientID, ClientName: c.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)}), tx, oc, sess.UserID, conn.ID)
+		if fr.invitationBinding[orglogin.InvitationIDParam] != "" {
+			link, e := tx.Organizations().GetConnection(ctx, res.Tenant.ID, fr.OrgID, conn.ID)
+			if e != nil {
+				return e
+			}
+			if link.IsEnabledSet && !link.IsEnabled {
+				return orglogin.ErrNotMember
+			}
+			return nil // ownership and consumption are checked at final commit
+		}
+		return orglogin.CheckMembership(logs.WithEvent(ctx, logs.Event{ClientID: c.ClientID, ClientName: c.Name, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy)}), tx, oc, sess.UserID, conn.ID)
 	})
 	if errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, store.ErrNotFound) {
 		if fr.OrgMode == OrgPickAfter {

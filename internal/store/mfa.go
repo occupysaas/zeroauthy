@@ -32,6 +32,18 @@ type Authenticator struct {
 	SignCount                        uint32
 	CreatedAt, LastAuthAt            time.Time
 }
+
+// GuardianEnrollment reports whether the authenticator contributes "guardian" to a user's multifactor view.
+func (a Authenticator) GuardianEnrollment() bool {
+	return a.Confirmed && a.Type != "recovery-code" && a.Type != "passkey"
+}
+
+// PendingAuthenticatorRetention exceeds both hosted transactions and MFA token lifetimes.
+const PendingAuthenticatorRetention = 24 * time.Hour
+
+// GuardianUsersLimit bounds the user identifiers in one management page or storage request.
+const GuardianUsersLimit = 100
+
 type MFAToken struct {
 	TenantID, Hash, ClientID, UserID, Connection string
 	Request                                      json.RawMessage // audience, scope, effects
@@ -85,6 +97,8 @@ type MFA interface {
 
 	CreateAuthenticator(ctx context.Context, a *Authenticator) error // ErrConflict on duplicate WebAuthn credential ID in tenant or another recovery-code authenticator for the user
 	GetAuthenticator(ctx context.Context, tid, uid, id string) (*Authenticator, error)
+	// GuardianUsers returns the distinct requested user IDs with a confirmed Guardian factor in this tenant.
+	GuardianUsers(ctx context.Context, tid string, userIDs []string) ([]string, error)
 	ListAuthenticators(ctx context.Context, tid, uid string) ([]Authenticator, error)
 	// GetAuthenticatorByEnrollmentID finds the tenant's method whose ID is
 	// "<type>|<enrollmentID>" for any AuthenticatorTypes entry, by indexed
@@ -127,7 +141,7 @@ type MFA interface {
 	GetBrowser(ctx context.Context, tid, hash string, now time.Time) (*MFABrowser, error)
 	BumpRememberEpoch(ctx context.Context, tid, uid string) error // also on store.User.RememberBrowserEpoch
 
-	PurgeMFA(ctx context.Context, before time.Time, limit int) (int, error) // expired tokens, challenges, tickets, browsers
+	PurgeMFA(ctx context.Context, before time.Time, limit int) (int, error) // expired tokens, challenges, tickets, browsers and abandoned pending authenticators
 	DeleteUserMFA(ctx context.Context, tid, uid string) error
 	DeleteTenantMFA(ctx context.Context, tid string) error
 }
@@ -147,6 +161,9 @@ func (UnimplementedMFA) GetAuthenticator(ctx context.Context, tid, uid, id strin
 	return nil, ErrMFAUnavailable
 }
 func (UnimplementedMFA) GetAuthenticatorByEnrollmentID(ctx context.Context, tid, enrollmentID string) (*Authenticator, error) {
+	return nil, ErrMFAUnavailable
+}
+func (UnimplementedMFA) GuardianUsers(context.Context, string, []string) ([]string, error) {
 	return nil, ErrMFAUnavailable
 }
 func (UnimplementedMFA) ListAuthenticators(ctx context.Context, tid, uid string) ([]Authenticator, error) {

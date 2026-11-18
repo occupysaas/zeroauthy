@@ -24,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
+	"github.com/zeroauthy/zeroauthy/internal/emailrules"
 	"github.com/zeroauthy/zeroauthy/internal/events"
 	"github.com/zeroauthy/zeroauthy/internal/eventstream"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
@@ -272,6 +273,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 	for _, tn := range tenants {
+		if err := emailrules.BackfillProvider(ctx, st.EmailProviders(), wrapper, tn.ID); err != nil {
+			return nil, fmt.Errorf("app: upgrade email provider for tenant %q: %w", tn.Name, err)
+		}
 		if err := tenantsetup.UpgradeManagementAPIName(ctx, st, tn, cfg.Server.BaseDomain); err != nil {
 			return nil, fmt.Errorf("app: upgrade Management API for tenant %q: %w", tn.Name, err)
 		}

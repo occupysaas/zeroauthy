@@ -169,10 +169,15 @@ func (f *actionsFixture) sessionCookie(t *testing.T) *http.Cookie {
 // authorize runs /authorize for alice with a session and returns the code.
 func (f *actionsFixture) authorize(t *testing.T, clientID, redirectURI, scope string) string {
 	t.Helper()
+	return f.authorizeWithCookie(t, clientID, redirectURI, scope, f.sessionCookie(t))
+}
+
+func (f *actionsFixture) authorizeWithCookie(t *testing.T, clientID, redirectURI, scope string, cookie *http.Cookie) string {
+	t.Helper()
 	q := url.Values{"client_id": {clientID}, "redirect_uri": {redirectURI}, "response_type": {"code"}, "scope": {scope},
 		"audience": {acmeAPI}, "state": {"st"}, "code_challenge": {pkceChallenge}, "code_challenge_method": {"S256"}}
 	r := httptest.NewRequest("GET", "https://acme.example.test/authorize?"+q.Encode(), nil)
-	r.AddCookie(f.sessionCookie(t))
+	r.AddCookie(cookie)
 	rec := httptest.NewRecorder()
 	tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(f.az.Authorize)).ServeHTTP(rec, r)
 	loc, err := url.Parse(rec.Header().Get("Location"))

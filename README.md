@@ -165,13 +165,13 @@ each with its console screens; the full breakdown is in the
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
 | 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |
-| 39 | Apple web/native implemented on plan branch; remaining social providers (Facebook, GitHub, …) in 39b | short (Apple full) | 24 |
+| 39 | Apple web/native merged in 39a; remaining social providers (Facebook, GitHub, …) in 39b | short (Apple full) | 24 |
 | 40 | Actions III: newer triggers, Early Access members, `/userinfo` claims | short | 28, 22 |
 | 41 | OIDC protocol extras, CIBA, formal OIDF certification | full | 33, 35 |
 | 42 | My Account API and My Organization API | full | 30, 33 |
 | 43 | Token Vault and connected accounts | full | 24, 35 |
 | 44 | ACUL and the remaining Universal Login modes | full | 22, 29, 33 |
-| 45 | Operational hardening sweep | short | — |
+| 45 | Flow and API fixes in [45b](docs/superpowers/2026-11-16-plan-45b-implementation-record.md); security and infrastructure hardening in 45a/45c | short | — |
 | 46 | Release pipeline, packaging, samples | short | 45 |
 | 47 | Hosted zeroauthy (multi-tenant SaaS) | full | 29, 31, 46 |
 | 48 | Refresh tokens II: rotation conversion, strict leeway, grant-revocation cascade, multi-resource and session-bound tokens | short | 17, 3 |

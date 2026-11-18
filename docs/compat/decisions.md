@@ -18,6 +18,12 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Decision:** Implement the eight documented Management operations and nine executable provider names, while keeping `custom` disabled until Actions exists. Keep credentials write-only and envelope-encrypted. Store all fourteen SDK template names; only `reset_email` drives reset-link delivery, with legacy names separate. Treat absent live evidence as unavailable and use the inventory's explicitly labeled local fallbacks.
 - **Rationale:** This follows documented routes and resource shape without claiming that local security and lifecycle choices were observed upstream.
 
+- **Plan 45b amendment (LR45b-3):** The provider read returns configured
+  `api_user`, `region`, `smtp_host`, `smtp_port`, and `smtp_user` in
+  `credentials`. It supports top-level `fields` and `include_fields`. The
+  existing write allowlists still apply. Other credential members remain
+  sealed and excluded from the credential projection.
+
 - **D-0047 implementation addendum (2026-10-25):** The nine named providers
   use local protocol adapters; `custom` remains stored-only. The bounded
   renderer is an original restricted evaluator, so no Liquid dependency or
@@ -744,9 +750,11 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **User shape:** as U1. `name` defaults to the email, `nickname` to its local part; `blocked`, names and metadata are absent until set; login fields appear after the first login. New user IDs are `auth0|` and 24 lowercase hex characters. A supplied `user_id` (`^\S*$`, at most 255) is always prefixed with `auth0|`.
   - **Errors:** duplicate user `409 auth0_idp_error`; weak password `400` without `errorCode` (`PasswordStrengthError: …`); username or phone on a connection without them, and email with password in one `PATCH`, `400 operation_not_supported`; malformed user ID (not `provider|id`) `400 invalid_uri`; unknown user `404 inexistent_user`; unknown session or refresh token `404` without `errorCode`.
   - **Update:** top-level metadata merge, `null` deletes a key, nested objects replaced, `{}` empties; an email change clears `email_verified` unless the body sets it. Neither a password change nor `blocked: true` revokes sessions or refresh tokens; a blocked user's refresh and password grants answer `invalid_grant` "user is blocked".
+  - **Nullable updates (Plan 45b, D-0270 B2/B3):** `null` clears `email`, `phone_number`, `username`, `given_name`, `family_name`, `name`, `nickname` or `picture` on the root profile. Clearing email or phone also clears its verification flag. Required identifiers and the last active login identifier return `400 invalid_body`. `verify_phone_number: true` sends a Plan 34 verification code after the profile commit. `false` does not send. Delivery leaves `phone_verified` unchanged, and a delivery error leaves the committed update in place.
   - **Delete:** `204`, also for an unknown well-formed ID; the cascade of users design §4.
   - **Search:** the U4 semantics, including: case-insensitive exact match on root fields, case-sensitive on metadata; bare terms over `name`, `given_name`, `family_name`, `nickname` and the email's local part and domain; juxtaposition is `OR`; `NOT` on a root string field excludes users without the field, elsewhere absent counts as not matching; leading, trailing and bare wildcards on root fields, none on metadata; ranges on `logins_count` and the dates only; `search_engine` absent, `v2` or `v3` all mean v3, `v1` is `400 operation_not_supported`; search errors `400` without `errorCode` and with Auth0's `invalid query: …` messages; sort pattern `field:1|-1`, unknown sort fields ignored; default order `last_login` descending, never-logged-in last; the 1000-record paging limit (`400 invalid_paging`).
   - **users-by-email:** case-sensitive match on the stored (lowercase) email.
+  - **Connection search (Plan 45b, D-0270):** Auth0's `connection` parameter applies only to v1, which zeroauthy rejects. The default engine, `v2` and `v3` ignore `connection` after validating its text. Use `q=identities.connection:"connection_name"` to match any identity on the named connection.
   - **Linking:** the secondary record is removed and its identity moves to the primary with `profileData` `{email, email_verified}`; logins through it resolve to the primary. **Unlink recreates the secondary from `profileData` only**, with a new `created_at` and no names, picture or metadata, as Auth0 does. Unlinking an identity that is not linked is `200`. `link_with` needs `aud` = the calling client's ID.
   - **Sessions and refresh tokens:** the U8 objects; newest first; checkpoint paging only (`take` 1–100, default 50; `next` on every non-empty page); every delete is `202 {}`; deleting sessions leaves refresh tokens alone.
   - **Grants:** objects with `clientID` (sic) and a sorted `scope` array.
@@ -1416,9 +1424,8 @@ corrected.
 roles; effective roles; role members; enabled connections;
 `GET /users/{id}/organizations`. Scopes follow the public reference:
 
-- the member list accepts either `read:organization_members` or
-  `read:organization_member_roles`, and `fields=roles` needs
-  `read:organization_member_roles`;
+- the member list requires `read:organization_members`. Including roles via
+  `fields` additionally requires `read:organization_member_roles`;
 - effective roles need `read:organization_member_effective_roles`, not
   `read:organization_member_roles`;
 - role members need both `read:organization_members` and `read:roles`
@@ -1427,9 +1434,12 @@ roles; effective roles; role members; enabled connections;
   fine-grained scope since the 2026-11-04 addendum; this all-of rule stands on
   its own because no Auth0 guide names an alternative pair). This operation is Early Access upstream and is
   kept in Plan 29 as the spec chose;
-- user organizations accept either `read:users` or `read:organizations`;
+- user organizations require `read:organizations`;
 - `POST /organizations` also needs `create:organization_connections` when it
   carries `enabled_connections`.
+
+Plan 45b Task 9 aligned the member-list and user-organization scopes with the
+public Management API OpenAPI document (D-0270 LR45b-2).
 
 **Spec §2 items.** Status is from the observer notes. Unavailable or
 unobserved parts keep the spec default as a local decision.
@@ -3405,11 +3415,35 @@ are recorded in the design; none is claimed observed.
 
 **Authority:** [Plan 45b design](../superpowers/specs/2026-11-16-zeroauthy-flow-api-fixes-design.md), the cited pre-1.0 review findings, and their public documentation/OpenAPI evidence. No live Auth0 tenant observation was performed.
 
-- **LR45b-1:** Admin CSP uses the base-domain wildcard and system host. Custom-domain Management calls go through the system host; the unauthenticated admin page must not enumerate tenant domains (Task 6 pending).
-- **LR45b-2:** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members, retaining the extra roles check (Task 9 pending; amends D-0055 when implemented).
-- **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (Task 11 pending; amends D-0047 when implemented).
+- **LR45b-1 (implemented):** The admin CSP derives `connect-src` from `'self'`, the configured HTTPS base-domain wildcard when present, and the canonical system host. It is independent of tenant data. Console Management calls for custom hosts use the internal `/api/console/tenants/{name}/api/v2/*` route on the canonical system host. The route dispatches to the existing Management handlers after checking the operator token and current grant for the named tenant. Direct tenant Management API URLs and M2M token audiences are unchanged.
+- **LR45b-2 (implemented):** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members. Including roles in the member list also requires `read:organization_member_roles` (Task 9, amends D-0055).
+- **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (amends D-0047).
 - **LR45b-4:** Keep post-login Actions in their current position relative to MFA (maintainer ruling, 2026-11-08). Move non-Action invitation, membership, session, login-counter and consent side effects after MFA (Task 2 pending).
 
-**Amendments tracked here:** D-0043 nullable user attributes, verification organization context and v1-only connection filtering await Tasks 7, 8 and 10; D-0047 public provider configuration awaits Task 11; D-0055 organization scope tightening awaits Task 9. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
+**Amendments tracked here:** D-0043 verification organization context is tracked in Task 8. D-0043 records the v1-only connection filter implemented in Task 10. D-0047 records the public provider credentials and field projection implemented in Task 11. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
 
-**Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial (local: once; no `limit_sul` for password brute force); B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.
+**B1 local implementation (Task 4):** Once settled failures reach the brute-force threshold, the store atomically claims the first denied admission for `limit_wc`. Password brute-force uses `limit_wc` exclusively. The SQL migration initializes the claim as unset, so an existing block can report one denial after upgrade. An older store plugin without this claim continues to enforce its admission decision and omits `limit_wc`.
+
+**B2 and B3 local implementation (Task 7):** D-0043 records the supported
+nullable fields. The selected database connection's required identifiers and
+the last active login cannot be cleared. For the delivery trigger, the shared
+Plan 34 service uses the tenant's country policy, send budgets and phone
+provider. The six-digit code is stored as a hash for five minutes in a
+verification-only scope distinct from signup, password reset and passwordless
+login. Task 7 adds delivery through the existing Management PATCH and leaves
+user confirmation outside its scope. Auth0's behavior for required-identifier
+clears and phone delivery remains unobserved.
+
+Task 5 implements the console's passwordless test send at
+`POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try` on
+the system host. Signed and current operator grants must cover the
+non-reserved target tenant. The operator selects an email address or
+phone number and an application enabled on that connection with the
+passwordless OTP grant. Operator authority covers this extension for
+public and confidential applications. The Authentication API keeps its
+client authentication policy. The server uses the saved provider,
+connection options and normal passwordless send budgets. An accepted
+send returns `204` with an empty body. It replaces the outstanding
+credential as in a regular start.
+
+**Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial; B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.

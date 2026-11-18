@@ -388,7 +388,14 @@ metadata are absent until set; `blocked: false` is never shown (D-0043).
   together with `password` in one request, and username or phone on a
   connection without them, are `400 operation_not_supported`. Neither a
   password change nor `blocked: true` ends sessions or refresh tokens (a
-  blocked user's refresh and password grants are refused).
+  blocked user's refresh and password grants are refused). Supply `null` to
+  clear `email`, `phone_number`, `username`, `given_name`, `family_name`,
+  `name`, `nickname`, or `picture`. Clearing a required identifier or the
+  user's last active login identifier returns `400 invalid_body`.
+  `verify_phone_number: true` sends a text verification code to the resulting
+  phone number without setting `phone_verified`. `false` sends nothing.
+  Delivery uses the tenant's phone provider, country restrictions and send
+  budgets. A delivery error leaves the profile update committed.
 - **Delete:** `204`, also for an unknown well-formed ID. It deletes the
   user's sessions, refresh tokens, grants, tickets and password history.
 - **Errors:** an ID that is not `provider|id` is `400 invalid_uri`, an unknown
@@ -576,11 +583,13 @@ tokens must carry the origin serving the request as issuer.
 
 [Organizations](organizations.md) covers CRUD/name lookup, enabled connections,
 members, member-role/effective-role lists, role members and user organizations.
-Scopes follow the inventory, including `read:organization_member_effective_roles`;
-member listing accepts either members-read or member-roles-read, user organizations
-accepts either users-read or organizations-read, and role members requires both
-members-read and roles-read. Organization creation with `enabled_connections`
-also requires connection-create scope, including an empty supplied array.
+The member list requires `read:organization_members` and also requires
+`read:organization_member_roles` when roles are included via `fields`. The
+user-organization list requires `read:organizations`. Effective roles require
+`read:organization_member_effective_roles`. A role's member list requires both
+`read:organization_members` and `read:roles`. Organization creation with
+`enabled_connections` also requires `create:organization_connections`,
+including an empty supplied array.
 
 D-0055 observed corrections govern validation and replacement PATCH behavior.
 The Early Access `connections` alias manages the same links for Deploy CLI;

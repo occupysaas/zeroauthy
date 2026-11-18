@@ -26,18 +26,20 @@ export interface Call {
   method: string
   url: string
   body: unknown
+  authorization?: string
   // form is the multipart body of an upload, as name to text or File.
   form?: Record<string, string | File>
 }
 
 // fakeServices answers API calls with handler, signed in, with no guards.
-export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
+export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>, baseDomain = 'example.test') {
   const calls: Call[] = []
   const fetchFn = async (url: RequestInfo | URL, init?: RequestInit) => {
     const isForm = init?.body instanceof FormData
     const c: Call = {
       method: init?.method ?? 'GET',
       url: String(url),
+      authorization: new Headers(init?.headers).get('Authorization') ?? undefined,
       body: init?.body && !isForm ? JSON.parse(String(init.body)) : undefined,
       form: isForm ? (Object.fromEntries((init!.body as FormData).entries()) as Record<string, string | File>) : undefined,
     }
@@ -45,7 +47,7 @@ export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
     const r = await handler(c)
     return new Response(r.body === undefined ? null : JSON.stringify(r.body), { status: r.status, headers: r.headers })
   }
-  const api = new Api('https://admin.example.test', async () => 'token', fetchFn as typeof fetch)
+  const api = new Api('https://admin.example.test', async () => 'token', fetchFn as typeof fetch, baseDomain)
   const auth = {
     user: reactive({ authenticated: true, email: 'op@example.test', sub: 'auth0|op' }),
     login: async () => undefined,

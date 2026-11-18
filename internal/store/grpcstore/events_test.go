@@ -32,6 +32,9 @@ import (
 // Exercise a real server and transport, selectively making Events methods look
 // like an older or restarting plugin without replacing any earlier feature.
 type eventsFaults struct {
+	mfaBatch           atomic.Int32
+	mfaBatchCalls      atomic.Int32
+	mfaListCalls       atomic.Int32
 	mfaDomainOperation atomic.Bool
 	mfaDomainMark      atomic.Bool
 	mfaMissing         bool
@@ -104,6 +107,15 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 			if code := codes.Code(faults.mfaMark.Swap(0)); code != codes.OK {
 				return nil, status.Error(code, "mark failure")
 			}
+		}
+		if name == "MFAGuardianUsers" {
+			faults.mfaBatchCalls.Add(1)
+			if code := codes.Code(faults.mfaBatch.Load()); code != codes.OK {
+				return nil, status.Error(code, "batch unavailable")
+			}
+		}
+		if name == "MFAListAuthenticators" {
+			faults.mfaListCalls.Add(1)
 		}
 		if name == "MFAGetGuardian" {
 			if faults.mfaDomainOperation.Swap(false) {

@@ -58,6 +58,9 @@ func (s *State) Reserve(ls []store.ProtectionLimit, ids []string, receipt, gener
 		bs[i] = b
 		if retry := b.RetryAt(now); !retry.IsZero() {
 			a.Allowed = false
+			if b.ClaimBruteForceDenial() {
+				a.FirstBruteForceDenial = true
+			}
 			if !slices.Contains(a.DeniedKinds, l.Key.Kind) {
 				a.DeniedKinds = append(a.DeniedKinds, l.Key.Kind)
 			}

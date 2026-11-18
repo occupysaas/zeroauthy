@@ -893,6 +893,7 @@ type AuthCode struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 	AuthTime            time.Time
+	MFAAt               time.Time // Session proof at issue; zero (including legacy codes) omits ID token amr.
 	ExpiresAt           time.Time
 	CreatedAt           time.Time
 	UsedAt              *time.Time
@@ -1100,6 +1101,8 @@ type PasswordResetTicket struct {
 // EmailVerificationTicket is an issued email verification link (Auth0's
 // email verification ticket).
 type EmailVerificationTicket struct {
+	// OrganizationID binds the ticket to an organization for presentation.
+	OrganizationID string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin     string
 	TenantID   string

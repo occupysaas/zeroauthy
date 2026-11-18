@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -123,26 +125,95 @@ func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Re
 	if h.requireMFA(w, r, res, client, fr, sess, eff) {
 		return
 	}
-	if !fr.device() {
-		h.issueCode(w, r, res, client, fr.Request, sess, scopes, eff)
-		return
-	}
-	sealed, err := h.sealFor(res.Tenant.ID, actions.SealDevice, fr.DeviceCodeHash, eff)
+	staged := cookieHeaders{header: make(http.Header)}
+	var code string
+	var policyError *Error
+	err := orglogin.WithMembershipEvents(r.Context(), h.Store, func(ctx context.Context, tx store.Store) error {
+		local := *h
+		local.Store = tx
+		sm := *h.Sessions
+		sm.Store = tx
+		local.Sessions = &sm
+		request := r.WithContext(ctx)
+		if hosted, e := local.organizationSession(&staged, request, res, client, &fr, sess); e != nil {
+			policyError = e
+			return store.ErrPrecondition
+		} else if hosted {
+			policyError = errAccessDenied("an organization must be selected before issuing a code")
+			return store.ErrPrecondition
+		}
+		if e := local.commitLogin(&staged, request, res, fr, sess, eff); e != nil {
+			return e
+		}
+		if fr.invitationBinding[orglogin.InvitationIDParam] != "" && eff != nil && eff.RBAC != nil {
+			snapshot, e := store.OrganizationAuthorizationSnapshot(ctx, tx, res.Tenant.ID, sess.UserID, fr.OrgID, eff.RBAC.Audience)
+			if e != nil {
+				return e
+			}
+			if snapshot == nil {
+				return store.ErrPrecondition
+			}
+			copied := *eff
+			copied.RBAC = &actions.RBACSnapshot{Audience: eff.RBAC.Audience, Permissions: append([]string{}, snapshot.Permissions...)}
+			eff = &copied
+		}
+		if !fr.device() {
+			var e error
+			code, e = local.createCode(ctx, res, client, fr.Request, sess, scopes, eff)
+			return e
+		}
+		sealed, e := local.sealFor(res.Tenant.ID, actions.SealDevice, fr.DeviceCodeHash, eff)
+		if e != nil {
+			return e
+		}
+		_, e = tx.DeviceCodes().Decide(ctx, res.Tenant.ID, fr.DeviceCodeHash, store.DeviceDecision{Status: store.DeviceCodeApproved, UserID: sess.UserID, GrantedScopes: scopes, ActionEffects: sealed})
+		return e
+	})
 	if err != nil {
-		h.log().ErrorContext(r.Context(), "seal Action effects", "tenant", res.Tenant.ID, "err", err)
-		h.flowError(w, r, res, fr, errServer())
+		if policyError != nil {
+			h.refuse(w, r, res, client, fr, policyError)
+			return
+		}
+		if fr.device() && (errors.Is(err, store.ErrAlreadyUsed) || errors.Is(err, store.ErrNotFound)) {
+			h.flowError(w, r, res, fr, errCodeNotPending)
+			return
+		}
+		h.log().ErrorContext(r.Context(), "commit login authorization", "tenant", res.Tenant.ID, "err", err)
+		if errors.Is(err, orglogin.ErrInvitationIdentity) {
+			h.refuse(w, r, res, client, fr, errAccessDenied(orglogin.ErrInvitationIdentity.Error()))
+		} else {
+			h.refuse(w, r, res, client, fr, errServer())
+		}
 		return
 	}
-	// Device tokens are not bound to the session, so it does not record
-	// the client.
-	h.decideDevice(w, r, res, fr, store.DeviceDecision{Status: store.DeviceCodeApproved, UserID: sess.UserID, GrantedScopes: scopes,
-		ActionEffects: sealed}, "/device/success")
+	for _, cookie := range staged.Header().Values("Set-Cookie") {
+		w.Header().Add("Set-Cookie", cookie)
+	}
+	h.loginSucceeded(w, r, res, client, fr, sess)
+	if fr.device() {
+		redirect(w, r, "/device/success")
+		return
+	}
+	params := url.Values{"code": {code}}
+	if fr.State != "" {
+		params.Set("state", fr.State)
+	}
+	writeResponse(w, r, fr.Request, params)
 }
 
 // refuse ends fr with e: an authorization error for /authorize, a denied
 // device code for the device flow. A server error leaves a device code
 // pending.
 func (h *Handlers) refuse(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, e *Error) {
+	if e.Code != "server_error" {
+		if err := h.retirePending(w, r, res); err != nil {
+			e = errServer()
+		}
+	}
+
+	if txn, ok := r.Context().Value(completionTxnKey{}).(*store.AuthTransaction); ok && e.Code != "server_error" {
+		h.EndTxn(w, r, res, txn)
+	}
 	switch {
 	case !fr.device():
 		h.deny(w, r, res, client, fr.Request, e)
@@ -220,3 +291,10 @@ func (h *Handlers) recordKnownDevice(w http.ResponseWriter, r *http.Request, res
 	}
 	return h.Sessions.SetMFABrowser(r.Context(), w, u, "device")
 }
+
+// Only cookie headers are staged until the enclosing store commit succeeds.
+type cookieHeaders struct{ header http.Header }
+
+func (w *cookieHeaders) Header() http.Header         { return w.header }
+func (w *cookieHeaders) Write(p []byte) (int, error) { return len(p), nil }
+func (w *cookieHeaders) WriteHeader(int)             {}

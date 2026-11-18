@@ -1,4 +1,5 @@
-{{t .L "zeroauthy.email-verify-email.heading"}}
+{{if .DisplayName}}{{.DisplayName}}
+{{end}}{{t .L "zeroauthy.email-verify-email.heading"}}
 
 {{t .L "zeroauthy.email-verify-email.body"}}
 

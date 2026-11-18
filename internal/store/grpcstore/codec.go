@@ -999,7 +999,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		TenantId: c.TenantID, CodeHash: c.CodeHash, ClientId: c.ClientID, RedirectUri: c.RedirectURI,
 		UserId: c.UserID, SessionId: c.SessionID, Scopes: stringsToPB(c.Scopes), Audience: c.Audience,
 		Nonce: c.Nonce, CodeChallenge: c.CodeChallenge, CodeChallengeMethod: c.CodeChallengeMethod,
-		AuthTime: tsToPB(c.AuthTime), ExpiresAt: tsToPB(c.ExpiresAt), CreatedAt: tsToPB(c.CreatedAt),
+		MfaAt: tsToPB(c.MFAAt), AuthTime: tsToPB(c.AuthTime), ExpiresAt: tsToPB(c.ExpiresAt), CreatedAt: tsToPB(c.CreatedAt),
 		UsedAt: optTSToPB(c.UsedAt), ReplayedAt: optTSToPB(c.ReplayedAt), ActionEffects: c.ActionEffects,
 		OrganizationId: c.OrganizationID, OrganizationConnectionId: c.OrganizationConnectionID,
 	}, nil
@@ -1009,7 +1009,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 	if pb == nil {
 		return nil, nil
 	}
-	if err := checkTS(pb.AuthTime, pb.ExpiresAt, pb.CreatedAt, pb.UsedAt, pb.ReplayedAt); err != nil {
+	if err := checkTS(pb.AuthTime, pb.ExpiresAt, pb.CreatedAt, pb.UsedAt, pb.ReplayedAt, pb.MfaAt); err != nil {
 		return nil, err
 	}
 	return &store.AuthCode{
@@ -1017,7 +1017,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		TenantID: pb.TenantId, CodeHash: pb.CodeHash, ClientID: pb.ClientId, RedirectURI: pb.RedirectUri,
 		UserID: pb.UserId, SessionID: pb.SessionId, Scopes: stringsFromPB(pb.Scopes), Audience: pb.Audience,
 		Nonce: pb.Nonce, CodeChallenge: pb.CodeChallenge, CodeChallengeMethod: pb.CodeChallengeMethod,
-		AuthTime: tsFromPB(pb.AuthTime), ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
+		MFAAt: tsFromPB(pb.MfaAt), AuthTime: tsFromPB(pb.AuthTime), ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
 		UsedAt: optTSFromPB(pb.UsedAt), ReplayedAt: optTSFromPB(pb.ReplayedAt), ActionEffects: bytesFromPB(pb.ActionEffects),
 		OrganizationID: pb.OrganizationId, OrganizationConnectionID: pb.OrganizationConnectionId,
 	}, nil
@@ -1176,8 +1176,9 @@ func emailVerificationTicketToPB(p *store.EmailVerificationTicket) (*storev1.Ema
 		return nil, nil
 	}
 	return &storev1.EmailVerificationTicket{
-		Origin:   p.Origin,
-		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
+		OrganizationId: p.OrganizationID,
+		Origin:         p.Origin,
+		TenantId:       p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
 		ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect, Email: p.Email,
@@ -1192,8 +1193,9 @@ func emailVerificationTicketFromPB(pb *storev1.EmailVerificationTicket) (*store.
 		return nil, err
 	}
 	return &store.EmailVerificationTicket{
-		Origin:   pb.Origin,
-		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
+		OrganizationID: pb.OrganizationId,
+		Origin:         pb.Origin,
+		TenantID:       pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
 		ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect, Email: pb.Email,

@@ -5520,6 +5520,24 @@ func (e OrganizationEffectiveRoleSources) Valid() bool {
 	}
 }
 
+// Defines values for PasswordlessTryRequestSend.
+const (
+	Code PasswordlessTryRequestSend = "code"
+	Link PasswordlessTryRequestSend = "link"
+)
+
+// Valid indicates whether the value is a known member of the PasswordlessTryRequestSend enum.
+func (e PasswordlessTryRequestSend) Valid() bool {
+	switch e {
+	case Code:
+		return true
+	case Link:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PhoneProviderChannel.
 const (
 	PhoneProviderChannelPhone PhoneProviderChannel = "phone"
@@ -8831,9 +8849,16 @@ type EmailPreviewRequest struct {
 
 // EmailProvider defines model for EmailProvider.
 type EmailProvider struct {
+	Credentials *struct {
+		ApiUser  *string `json:"api_user,omitempty"`
+		Region   *string `json:"region,omitempty"`
+		SmtpHost *string `json:"smtp_host,omitempty"`
+		SmtpPort *int    `json:"smtp_port,omitempty"`
+		SmtpUser *string `json:"smtp_user,omitempty"`
+	} `json:"credentials,omitempty"`
 	DefaultFromAddress *string                 `json:"default_from_address,omitempty"`
-	Enabled            bool                    `json:"enabled"`
-	Name               string                  `json:"name"`
+	Enabled            *bool                   `json:"enabled,omitempty"`
+	Name               *string                 `json:"name,omitempty"`
 	Settings           *map[string]interface{} `json:"settings,omitempty"`
 }
 
@@ -8891,7 +8916,10 @@ type EmailVerificationTicketCreate struct {
 	Identity               *TicketIdentity `json:"identity,omitempty"`
 	IncludeEmailInRedirect *bool           `json:"includeEmailInRedirect,omitempty"`
 
-	// ResultUrl Where the page redirects after opening. Not with `client_id`.
+	// OrganizationId The organization whose branding the result page uses. The user must be a member.
+	OrganizationId *string `json:"organization_id,omitempty"`
+
+	// ResultUrl Where the page redirects after opening. Not with `client_id` or `organization_id`.
 	ResultUrl *string `json:"result_url,omitempty"`
 
 	// TtlSec Seconds the ticket is valid; 0 or absent is 432000 (5 days).
@@ -11704,6 +11732,23 @@ type PasswordChangeTicketCreate struct {
 	UserId *string `json:"user_id,omitempty"`
 }
 
+// PasswordlessTryRequest defines model for PasswordlessTryRequest.
+type PasswordlessTryRequest struct {
+	ClientId string `json:"client_id"`
+
+	// Email Required for an email connection.
+	Email *openapi_types.Email `json:"email,omitempty"`
+
+	// PhoneNumber E.164 number required for an SMS connection.
+	PhoneNumber *string `json:"phone_number,omitempty"`
+
+	// Send Defaults to code for SMS and link for email.
+	Send *PasswordlessTryRequestSend `json:"send,omitempty"`
+}
+
+// PasswordlessTryRequestSend Defaults to code for SMS and link for email.
+type PasswordlessTryRequestSend string
+
 // PhoneDeliveryMethods defines model for PhoneDeliveryMethods.
 type PhoneDeliveryMethods = []string
 
@@ -12338,7 +12383,7 @@ type SystemTenant struct {
 	Domains      []string `json:"domains"`
 	FriendlyName string   `json:"friendly_name"`
 
-	// Host The tenant's canonical host, where the console calls its Management API.
+	// Host The tenant's canonical host. It serves the tenant's public Management API.
 	Host string `json:"host"`
 
 	// ManagementApiIdentifier The audience of the tenant's machine-to-machine Management API tokens.
@@ -13215,6 +13260,9 @@ type UserUpdate struct {
 
 	// VerifyEmail Send the verification email.
 	VerifyEmail *bool `json:"verify_email,omitempty"`
+
+	// VerifyPhoneNumber Send a text verification code to the resulting phone number when true.
+	VerifyPhoneNumber *bool `json:"verify_phone_number,omitempty"`
 }
 
 // UsersExportJobCreate Unknown properties are `400 invalid_body`.
@@ -13265,6 +13313,9 @@ type VerificationEmailJobCreate struct {
 		// UserId The identity's ID, without the provider.
 		UserId *string `json:"user_id,omitempty"`
 	} `json:"identity,omitempty"`
+
+	// OrganizationId The organization whose branding the verification uses. The user must be a member.
+	OrganizationId *string `json:"organization_id,omitempty"`
 
 	// UserId The user to send the email to.
 	UserId string `json:"user_id"`
@@ -13621,6 +13672,15 @@ type GetCustomDomainsParams struct {
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 	Sort          *string        `form:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// GetEmailProviderParams defines parameters for GetEmailProvider.
+type GetEmailProviderParams struct {
+	// Fields Comma-separated public fields to select. An empty list returns all public fields.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
 // ListEventStreamsParams defines parameters for ListEventStreams.
@@ -14135,7 +14195,8 @@ type GetUsersParams struct {
 	// Sort `field:1` (ascending) or `field:-1` (descending).
 	Sort *string `form:"sort,omitempty" json:"sort,omitempty"`
 
-	// Connection Only users with an identity on this connection.
+	// Connection This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+	// valid UTF-8 without NUL characters. Use `q` to filter by connection.
 	Connection *string `form:"connection,omitempty" json:"connection,omitempty"`
 
 	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out.
@@ -14296,6 +14357,9 @@ type UpdateTenantJSONRequestBody = TenantUpdate
 
 // PreviewTenantBrandingJSONRequestBody defines body for PreviewTenantBranding for application/json ContentType.
 type PreviewTenantBrandingJSONRequestBody PreviewTenantBrandingJSONBody
+
+// TryConnectionPasswordlessJSONRequestBody defines body for TryConnectionPasswordless for application/json ContentType.
+type TryConnectionPasswordlessJSONRequestBody = PasswordlessTryRequest
 
 // TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
 type TryConnectionScriptJSONRequestBody = ScriptTry
@@ -21050,6 +21114,9 @@ type ServerInterface interface {
 	// GetTenantPasskeyPrerequisites Read the prerequisites for passkey login
 	// (GET /api/system/tenants/{tenant}/connections/{id}/passkey-prerequisites)
 	GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *http.Request, tenant string, id string)
+	// TryConnectionPasswordless Send a test code or magic link through a saved passwordless connection.
+	// (POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try)
+	TryConnectionPasswordless(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
@@ -21377,9 +21444,9 @@ type ServerInterface interface {
 	// DeleteEmailProvider Delete the tenant email provider.
 	// (DELETE /api/v2/emails/provider)
 	DeleteEmailProvider(w http.ResponseWriter, r *http.Request)
-	// GetEmailProvider Get the tenant email provider without credentials.
+	// GetEmailProvider Get the tenant email provider and its public credentials.
 	// (GET /api/v2/emails/provider)
-	GetEmailProvider(w http.ResponseWriter, r *http.Request)
+	GetEmailProvider(w http.ResponseWriter, r *http.Request, params GetEmailProviderParams)
 	// PatchEmailProvider Partially update the tenant email provider.
 	// (PATCH /api/v2/emails/provider)
 	PatchEmailProvider(w http.ResponseWriter, r *http.Request)
@@ -22055,6 +22122,12 @@ func (_ Unimplemented) GetTenantPasskeyPrerequisites(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// TryConnectionPasswordless Send a test code or magic link through a saved passwordless connection.
+// (POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try)
+func (_ Unimplemented) TryConnectionPasswordless(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // TryConnectionScript Try a custom database script
 // (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 func (_ Unimplemented) TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string) {
@@ -22709,9 +22782,9 @@ func (_ Unimplemented) DeleteEmailProvider(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// GetEmailProvider Get the tenant email provider without credentials.
+// GetEmailProvider Get the tenant email provider and its public credentials.
 // (GET /api/v2/emails/provider)
-func (_ Unimplemented) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) GetEmailProvider(w http.ResponseWriter, r *http.Request, params GetEmailProviderParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -24287,6 +24360,41 @@ func (siw *ServerInterfaceWrapper) GetTenantPasskeyPrerequisites(w http.Response
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTenantPasskeyPrerequisites(w, r, tenant, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TryConnectionPasswordless operation middleware
+func (siw *ServerInterfaceWrapper) TryConnectionPasswordless(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TryConnectionPasswordless(w, r, tenant, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -27636,8 +27744,40 @@ func (siw *ServerInterfaceWrapper) DeleteEmailProvider(w http.ResponseWriter, r 
 // GetEmailProvider operation middleware
 func (siw *ServerInterfaceWrapper) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetEmailProviderParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetEmailProvider(w, r)
+		siw.Handler.GetEmailProvider(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -35024,6 +35164,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/test", wrapper.TestTenantEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/passwordless/try", wrapper.TryConnectionPasswordless)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try", wrapper.TryConnectionScript)

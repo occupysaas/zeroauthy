@@ -375,7 +375,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 		Origin:   "https://login.example",
 		TenantID: "ten", CodeHash: "ch", ClientID: "cid", RedirectURI: "https://cb", UserID: "auth0|u1",
 		SessionID: "sid", Scopes: []string{"openid", "email"}, Audience: "https://api", Nonce: "n",
-		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime,
+		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime, MFAAt: nanoTime,
 		ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
 		UsedAt: ptr(nanoTime.Add(time.Second)), ReplayedAt: ptr(nanoTime.Add(2 * time.Second)),
 		ActionEffects: []byte{0, 0xff, 'x'}, OrganizationID: "org_0123456789abcdef", OrganizationConnectionID: "con_original",
@@ -410,7 +410,7 @@ func TestPasswordResetTicketRoundTrip(t *testing.T) {
 
 func TestEmailVerificationTicketRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.EmailVerificationTicket{
-		Origin:   "https://login.example",
+		OrganizationID: "org_abcdefghijklmnop", Origin: "https://login.example",
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
 		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true, Email: "a@b.test",

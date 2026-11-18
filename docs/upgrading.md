@@ -21,6 +21,13 @@ behind the binary ("run zeroauthy migrate") or ahead of it. Storage plugins
 must be rebuilt against the new `pkg/storeplugin` when the release notes say
 so; see [stability](stability.md).
 
+On the first startup after the Plan 45b email-provider change, zeroauthy
+moves public credential fields into the existing public config column and
+reseals the private credentials. Each provider update is atomic and restart
+resumes the backfill. Stop older replicas before starting the new binary.
+Rolling back after this conversion requires restoring the pre-upgrade backup
+because older releases cannot read the new provider envelope.
+
 With the container image:
 
 ```bash
@@ -106,3 +113,48 @@ CLI exports omit the key and imports require explicit credential reinjection.
 Enable native Apple separately per application and set its iOS bundle ID.
 Facebook and Google switches persist but do not enable their native flows.
 See [social connections](social-connections.md) and D-0170.
+
+## Plan 45b flow and API changes
+
+**Organization read scopes.** Before upgrading, update client grants and
+request fresh Management API tokens for the operations each integration uses.
+
+| Operation | Required scopes |
+|---|---|
+| `GET /api/v2/users/{id}/organizations` | `read:organizations` |
+| `GET /api/v2/organizations/{id}/members` | `read:organization_members` |
+| The member list with roles included | `read:organization_members` and `read:organization_member_roles` |
+
+A token carrying only `read:users` now receives HTTP 403 on the user
+organizations endpoint. A roles-only token receives 403 on the member list.
+For user searches that filter by connection, move the filter into
+`q=identities.connection:"connection_name"`. The legacy `connection` argument
+applies only to the unsupported v1 engine.
+
+**Login and MFA.** Users see consent after MFA. Invitation consumption,
+membership, login statistics and the new session become durable at successful
+authorization. A native passkey MFA exchange already pending at upgrade can
+require a fresh login. Codes issued before the MFA snapshot migration omit MFA
+from the resulting ID token's `amr`. Newly issued signup verification codes
+last 900 seconds. Per-identifier send counters start fresh under their new
+connection- and purpose-specific keys.
+
+**Storage.** Apply migrations 0038–0040. They add the brute-force first-denial
+claim, verification-ticket organization and authorization-code MFA timestamp,
+and index abandoned authenticator cleanup. A block already active at upgrade
+may produce one `limit_wc` on its next refusal. Upgrade storage plugins to
+support the denial claim, organization-bound verification (Organizations II
+version 2), code MFA snapshots and batched factor reads. The email-provider
+backfill and rollback requirements are described at the start of this guide.
+
+**Console Management requests and CSP.**
+
+The `/admin/` CSP allows its own origin, the configured HTTPS base-domain
+wildcard when present, and the canonical system host. For tenants using
+custom hosts, the bundled console sends Management requests to
+`/api/console/tenants/{name}/api/v2/*` on the system host. If a reverse
+proxy uses path allowlists, allow `/api/console/*` on the system host and
+pass the `Authorization` header. The bundled console and server ship together.
+Reload an open console after upgrading to pick up the new client and CSP.
+Existing tenant Management endpoints and M2M credentials continue to work
+on their configured hosts.

@@ -164,8 +164,15 @@ func ProjectProvider(p *store.EmailProvider) map[string]any {
 	if p.DefaultFrom != "" {
 		out["default_from_address"] = p.DefaultFrom
 	}
+	credentials, _ := publicCredentials(p.PublicConfig)
+	if len(credentials) > 0 {
+		out["credentials"] = credentials
+	}
 	settings := map[string]any{}
-	for _, key := range []string{"region", "domain", "configuration_set_name", "headers"} {
+	if region, ok := credentials["region"]; ok {
+		settings["region"] = region
+	}
+	for _, key := range []string{"domain", "configuration_set_name", "headers"} {
 		if v, ok := p.PublicConfig[key]; ok {
 			settings[key] = v
 		}

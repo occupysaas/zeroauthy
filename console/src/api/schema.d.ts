@@ -1449,7 +1449,7 @@ export interface paths {
          *     `sort` is `field:1` or `field:-1` (`400 invalid_query_string`
          *     otherwise); unknown and metadata fields are ignored. Without `sort`,
          *     users are ordered by `last_login` descending, those who never logged
-         *     in last. `connection` keeps users with an identity on that connection.
+         *     in last. To filter by connection, use `q=identities.connection:"connection_name"`.
          *
          *     Offset paging (`page`, `per_page` 1 to 100, 50 by default). Only the
          *     first 1000 results can be reached: `(page + 1) × per_page` above 1000
@@ -1523,6 +1523,13 @@ export interface paths {
          *     username another user of the connection has is `409 auth0_idp_error`,
          *     and nothing changes. Neither a password change nor `blocked: true`
          *     revokes sessions or refresh tokens.
+         *
+         *     Send null for `email`, `phone_number`, `given_name`, `family_name`,
+         *     `name`, `nickname`, `picture`, or `username` to remove its value.
+         *     Required identifiers and the last active login identifier cannot
+         *     be removed. `verify_phone_number: true` sends a text verification
+         *     code to the resulting phone number without setting `phone_verified`.
+         *     Delivery is attempted after the profile update commits.
          *
          *     On a custom database connection that is not in import mode, an email
          *     change runs `change_email` and a password change `change_password`
@@ -1835,10 +1842,13 @@ export interface paths {
          *     the page redirects there, appending `success`, `message`, `code`,
          *     `supportSignUp`, `supportForgotPassword` and, with
          *     `includeEmailInRedirect`, `email` to its query.
+         *     With `organization_id`, the user must be a member of the organization
+         *     and the result page uses that organization's branding.
          *
          *     A missing `user_id`, a negative `ttl_sec`, `result_url` together with
-         *     `client_id` and an unknown property are `400 invalid_body`; an unknown
-         *     user is `404 inexistent_user`.
+         *     `client_id` or `organization_id`, invalid organization membership and
+         *     an unknown property are `400 invalid_body`. An unknown user is
+         *     `404 inexistent_user`.
          */
         post: operations["createEmailVerificationTicket"];
         delete?: never;
@@ -2101,12 +2111,12 @@ export interface paths {
          *     and answers `201` with the job, `status: pending`, whether or not the
          *     user is already verified. Without an email provider the job still
          *     completes. `identity` names one of the user's identities and
-         *     `client_id` the application the email is for.
+         *     `client_id` the application the email is for. `organization_id` adds
+         *     the organization and its branding to the email and the result page.
          *
-         *     A missing or empty `user_id`, a wrong type and an unknown property
-         *     (`organization_id` too: zeroauthy has no organizations) are
-         *     `400 invalid_body`; as on Auth0 every other error is a `400` too: an
-         *     unknown user is `inexistent_user`; an identity the user does not have
+         *     A missing or empty `user_id`, a wrong type, an unknown property and
+         *     invalid organization membership are `400 invalid_body`. An unknown
+         *     user is `inexistent_user`; an identity the user does not have
          *     is `inexistent_identity`; an unknown `client_id` is
          *     `inexistent_client`; a user without an email address, or an identity
          *     that is not in a database connection, is `operation_not_supported`.
@@ -2644,6 +2654,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/connections/{id}/passwordless/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The saved passwordless connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test code or magic link through a saved passwordless connection.
+         * @description A zeroauthy extension on the system host (D-0270). Requires signed
+         *     and current operator grants for the target tenant. The application
+         *     must be enabled for the connection and have the passwordless OTP
+         *     grant. The operator authorizes this call without a client credential.
+         *     The send uses the saved delivery configuration and the same policies,
+         *     budgets and outstanding-credential replacement as a regular start.
+         *     Magic links use the target tenant's canonical origin and saved
+         *     authorization parameters.
+         */
+        post: operations["tryConnectionPasswordless"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try": {
         parameters: {
             query?: never;
@@ -2856,7 +2898,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the tenant email provider without credentials. */
+        /** Get the tenant email provider and its public credentials. */
         get: operations["GetEmailProvider"];
         put?: never;
         /** Create the tenant email provider. */
@@ -3195,9 +3237,8 @@ export interface paths {
         };
         /**
          * List an organization's members, ordered by user ID
-         * @description Needs `read:organization_members` or `read:organization_member_roles`;
-         *     `fields` naming `roles` (included) also needs
-         *     `read:organization_member_roles`.
+         * @description Requires `read:organization_members`. Including `roles` via `fields`
+         *     also requires `read:organization_member_roles`.
          */
         get: operations["ListOrganizationMembers"];
         put?: never;
@@ -6858,9 +6899,16 @@ export interface components {
             next?: string;
         };
         EmailProvider: {
-            name: string;
-            enabled: boolean;
+            name?: string;
+            enabled?: boolean;
             default_from_address?: string;
+            credentials?: {
+                api_user?: string;
+                region?: string;
+                smtp_host?: string;
+                smtp_port?: number;
+                smtp_user?: string;
+            };
             settings?: {
                 [key: string]: unknown;
             };
@@ -6913,6 +6961,21 @@ export interface components {
                     [key: string]: unknown;
                 };
             };
+        };
+        PasswordlessTryRequest: {
+            client_id: string;
+            /**
+             * Format: email
+             * @description Required for an email connection.
+             */
+            email?: string;
+            /** @description E.164 number required for an SMS connection. */
+            phone_number?: string;
+            /**
+             * @description Defaults to code for SMS and link for email.
+             * @enum {string}
+             */
+            send?: "code" | "link";
         };
         EmailTestRequest: {
             template: string;
@@ -8507,7 +8570,7 @@ export interface components {
             friendly_name: string;
             /** @description Custom domains the tenant answers on. */
             domains: string[];
-            /** @description The tenant's canonical host, where the console calls its Management API. */
+            /** @description The tenant's canonical host. It serves the tenant's public Management API. */
             host: string;
             /** @description The audience of the tenant's machine-to-machine Management API tokens. */
             management_api_identifier: string;
@@ -8805,6 +8868,8 @@ export interface components {
             user_id: string;
             /** @description The application the email is for. */
             client_id?: string;
+            /** @description The organization whose branding the verification uses. The user must be a member. */
+            organization_id?: string;
             /** @description One of the user's database identities; the user's primary one when absent. */
             identity?: {
                 /** @description The identity's ID, without the provider. */
@@ -8891,9 +8956,11 @@ export interface components {
         /** @description Unknown properties are `400 invalid_body`. */
         EmailVerificationTicketCreate: {
             user_id: string;
-            /** @description Where the page redirects after opening. Not with `client_id`. */
+            /** @description Where the page redirects after opening. Not with `client_id` or `organization_id`. */
             result_url?: string;
             client_id?: string;
+            /** @description The organization whose branding the result page uses. The user must be a member. */
+            organization_id?: string;
             /** @description Seconds the ticket is valid; 0 or absent is 432000 (5 days). */
             ttl_sec?: number;
             includeEmailInRedirect?: boolean;
@@ -8968,7 +9035,29 @@ export interface components {
             user_id?: string;
         };
         /** @description Fields to change; unknown properties are `400 invalid_body`. */
-        UserUpdate: components["schemas"]["UserProfileSettings"] & {
+        UserUpdate: {
+            email?: string | null;
+            email_verified?: boolean;
+            /** @description Send the verification email. */
+            verify_email?: boolean;
+            username?: string | null;
+            password?: string;
+            phone_number?: string | null;
+            phone_verified?: boolean;
+            /** @description Send a text verification code to the resulting phone number when true. */
+            verify_phone_number?: boolean;
+            name?: string | null;
+            given_name?: string | null;
+            family_name?: string | null;
+            nickname?: string | null;
+            picture?: string | null;
+            blocked?: boolean;
+            user_metadata?: {
+                [key: string]: unknown;
+            };
+            app_metadata?: {
+                [key: string]: unknown;
+            };
             connection?: string;
             /** @description The application the verification email is for. */
             client_id?: string;
@@ -14300,7 +14389,10 @@ export interface operations {
                 include_totals?: components["parameters"]["include_totals"];
                 /** @description `field:1` (ascending) or `field:-1` (descending). */
                 sort?: string;
-                /** @description Only users with an identity on this connection. */
+                /**
+                 * @description This Auth0 v1-only parameter is ignored by zeroauthy. It must be
+                 *     valid UTF-8 without NUL characters. Use `q` to filter by connection.
+                 */
                 connection?: string;
                 /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. */
                 fields?: string;
@@ -14447,7 +14539,33 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
-            503: components["responses"]["ScriptRuntimeUnavailable"];
+            /** @description The phone verification send limit was reached. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The storage plugin does not support phone messaging (`phone_unavailable`). */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description A custom database script could not run or phone verification delivery is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     linkUserIdentity: {
@@ -16027,6 +16145,91 @@ export interface operations {
             };
         };
     };
+    tryConnectionPasswordless: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The saved passwordless connection ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordlessTryRequest"];
+            };
+        };
+        responses: {
+            /** @description Delivery accepted. The response has no body. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request or SMS delivery was refused. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Operator authentication failed or the application does not exist in the tenant. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Tenant, application, connection or user policy refused the attempt. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description A passwordless start budget was exhausted. */
+            429: {
+                headers: {
+                    /** @description Seconds until another send is allowed. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description Email delivery failed or an internal error occurred. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The storage plugin lacks the Phone capability. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     tryConnectionScript: {
         parameters: {
             query?: never;
@@ -16342,7 +16545,12 @@ export interface operations {
     };
     GetEmailProvider: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Comma-separated public fields to select. An empty list returns all public fields. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -16358,6 +16566,7 @@ export interface operations {
                     "application/json": components["schemas"]["EmailProvider"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

@@ -28,6 +28,7 @@ type Bucket struct {
 	NextSequence                       int64
 	UpdatedAt, BlockedUntil, ExpiresAt time.Time
 	Members                            map[string]Member
+	BruteForceDenialClaimed            bool
 }
 
 func ID(k store.ProtectionKey) string {
@@ -134,6 +135,21 @@ func (b *Bucket) RetryAt(now time.Time) time.Time {
 	}
 	return time.Time{}
 }
+
+// ClaimBruteForceDenial marks the first refusal caused by settled failures.
+// In-flight reservations can exhaust capacity without creating a block.
+func (b *Bucket) ClaimBruteForceDenial() bool {
+	if b.Limit.Key.Kind != store.ProtectionBruteForce || b.Limit.Algorithm != "brute-force" || b.BruteForceDenialClaimed {
+		return false
+	}
+	failures, _ := b.Counts()
+	if failures < b.Limit.Capacity {
+		return false
+	}
+	b.BruteForceDenialClaimed = true
+	return true
+}
+
 func (b *Bucket) Reserve(id string, now time.Time) {
 	b.NextSequence++
 	b.Members[id] = Member{Generation: b.Generation, Sequence: b.NextSequence, Outcome: "pending", ReservedAt: now}
@@ -179,6 +195,10 @@ func (b *Bucket) finish(id, outcome string, now time.Time) {
 			if prior.Generation == m.Generation && prior.Sequence <= m.Sequence {
 				delete(b.Members, id)
 			}
+		}
+		if b.BruteForceDenialClaimed {
+			failures, _ := b.Counts()
+			b.BruteForceDenialClaimed = failures >= b.Limit.Capacity
 		}
 	}
 	// Settled refunded work and token-bucket outcomes need no sequence history.

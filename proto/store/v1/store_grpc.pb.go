@@ -25,6 +25,7 @@ const (
 	StoreService_MFACreateAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFACreateAuthenticator"
 	StoreService_MFAGetAuthenticator_FullMethodName                     = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticator"
 	StoreService_MFAGetAuthenticatorByEnrollmentID_FullMethodName       = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticatorByEnrollmentID"
+	StoreService_MFAGuardianUsers_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAGuardianUsers"
 	StoreService_MFAListAuthenticators_FullMethodName                   = "/zeroauthy.store.v1.StoreService/MFAListAuthenticators"
 	StoreService_MFAUpdateAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFAUpdateAuthenticator"
 	StoreService_MFADeleteAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFADeleteAuthenticator"
@@ -488,6 +489,7 @@ type StoreServiceClient interface {
 	MFACreateAuthenticator(ctx context.Context, in *MFACreateAuthenticatorRequest, opts ...grpc.CallOption) (*MFACreateAuthenticatorResponse, error)
 	MFAGetAuthenticator(ctx context.Context, in *MFAGetAuthenticatorRequest, opts ...grpc.CallOption) (*MFAGetAuthenticatorResponse, error)
 	MFAGetAuthenticatorByEnrollmentID(ctx context.Context, in *MFAGetAuthenticatorByEnrollmentIDRequest, opts ...grpc.CallOption) (*MFAGetAuthenticatorByEnrollmentIDResponse, error)
+	MFAGuardianUsers(ctx context.Context, in *MFAGuardianUsersRequest, opts ...grpc.CallOption) (*MFAGuardianUsersResponse, error)
 	MFAListAuthenticators(ctx context.Context, in *MFAListAuthenticatorsRequest, opts ...grpc.CallOption) (*MFAListAuthenticatorsResponse, error)
 	MFAUpdateAuthenticator(ctx context.Context, in *MFAUpdateAuthenticatorRequest, opts ...grpc.CallOption) (*MFAUpdateAuthenticatorResponse, error)
 	MFADeleteAuthenticator(ctx context.Context, in *MFADeleteAuthenticatorRequest, opts ...grpc.CallOption) (*MFADeleteAuthenticatorResponse, error)
@@ -610,6 +612,7 @@ type StoreServiceClient interface {
 	RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	// Version 2 also persists organization IDs on email verification tickets.
 	OrganizationsIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsIICreateInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
 	OrganizationsIIGetInvitation(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
@@ -971,6 +974,16 @@ func (c *storeServiceClient) MFAGetAuthenticatorByEnrollmentID(ctx context.Conte
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MFAGetAuthenticatorByEnrollmentIDResponse)
 	err := c.cc.Invoke(ctx, StoreService_MFAGetAuthenticatorByEnrollmentID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) MFAGuardianUsers(ctx context.Context, in *MFAGuardianUsersRequest, opts ...grpc.CallOption) (*MFAGuardianUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MFAGuardianUsersResponse)
+	err := c.cc.Invoke(ctx, StoreService_MFAGuardianUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4996,6 +5009,7 @@ type StoreServiceServer interface {
 	MFACreateAuthenticator(context.Context, *MFACreateAuthenticatorRequest) (*MFACreateAuthenticatorResponse, error)
 	MFAGetAuthenticator(context.Context, *MFAGetAuthenticatorRequest) (*MFAGetAuthenticatorResponse, error)
 	MFAGetAuthenticatorByEnrollmentID(context.Context, *MFAGetAuthenticatorByEnrollmentIDRequest) (*MFAGetAuthenticatorByEnrollmentIDResponse, error)
+	MFAGuardianUsers(context.Context, *MFAGuardianUsersRequest) (*MFAGuardianUsersResponse, error)
 	MFAListAuthenticators(context.Context, *MFAListAuthenticatorsRequest) (*MFAListAuthenticatorsResponse, error)
 	MFAUpdateAuthenticator(context.Context, *MFAUpdateAuthenticatorRequest) (*MFAUpdateAuthenticatorResponse, error)
 	MFADeleteAuthenticator(context.Context, *MFADeleteAuthenticatorRequest) (*MFADeleteAuthenticatorResponse, error)
@@ -5118,6 +5132,7 @@ type StoreServiceServer interface {
 	RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
 	// Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+	// Version 2 also persists organization IDs on email verification tickets.
 	OrganizationsIICapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsIICreateInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
 	OrganizationsIIGetInvitation(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
@@ -5442,6 +5457,9 @@ func (UnimplementedStoreServiceServer) MFAGetAuthenticator(context.Context, *MFA
 }
 func (UnimplementedStoreServiceServer) MFAGetAuthenticatorByEnrollmentID(context.Context, *MFAGetAuthenticatorByEnrollmentIDRequest) (*MFAGetAuthenticatorByEnrollmentIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAGetAuthenticatorByEnrollmentID not implemented")
+}
+func (UnimplementedStoreServiceServer) MFAGuardianUsers(context.Context, *MFAGuardianUsersRequest) (*MFAGuardianUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MFAGuardianUsers not implemented")
 }
 func (UnimplementedStoreServiceServer) MFAListAuthenticators(context.Context, *MFAListAuthenticatorsRequest) (*MFAListAuthenticatorsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MFAListAuthenticators not implemented")
@@ -6747,6 +6765,24 @@ func _StoreService_MFAGetAuthenticatorByEnrollmentID_Handler(srv interface{}, ct
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).MFAGetAuthenticatorByEnrollmentID(ctx, req.(*MFAGetAuthenticatorByEnrollmentIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_MFAGuardianUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MFAGuardianUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).MFAGuardianUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_MFAGuardianUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).MFAGuardianUsers(ctx, req.(*MFAGuardianUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -13830,6 +13866,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MFAGetAuthenticatorByEnrollmentID",
 			Handler:    _StoreService_MFAGetAuthenticatorByEnrollmentID_Handler,
+		},
+		{
+			MethodName: "MFAGuardianUsers",
+			Handler:    _StoreService_MFAGuardianUsers_Handler,
 		},
 		{
 			MethodName: "MFAListAuthenticators",

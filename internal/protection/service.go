@@ -146,7 +146,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	d, err := s.Store.Protection().Reserve(ctx, limits, now)
 	if err == nil && !d.Allowed {
 		s.Event(ctx, tenant.ID, a.Flow, "denied", conn.ID)
-		s.blockEvents(ctx, tenant.ID, conn, subjectID, ip, limits, d.DeniedKinds)
+		s.blockEvents(ctx, tenant.ID, conn, subjectID, ip, limits, d)
 		if subjectID != "" && a.Flow == "login" && slices.Contains(p.BruteForce.Shields, "block") && slices.Contains(p.BruteForce.Shields, "user_notification") {
 			filter := store.ProtectionFilter{Kind: store.ProtectionBruteForce, ConnectionID: conn.ID, Identifier: identifier}
 			if p.BruteForce.Mode != "count_per_identifier" {
@@ -229,27 +229,26 @@ func (s *Service) IPBlocked(ctx context.Context, tenantID, ip string) (bool, err
 	return false, nil
 }
 
-// blockEvents uses the atomic admission result. Older plugins that omit denial
-// attribution still enforce their decision, without guessing an event code or
-// performing another storage operation merely to log the refusal.
-func (s *Service) blockEvents(ctx context.Context, tid string, conn *store.Connection, userID, ip string, limits []store.ProtectionLimit, deniedKinds []string) {
+// blockEvents uses the atomic admission result. Older plugins may omit the
+// denial kinds or first brute-force denial claim, suppressing the events that
+// depend on them while preserving enforcement.
+func (s *Service) blockEvents(ctx context.Context, tid string, conn *store.Connection, userID, ip string, limits []store.ProtectionLimit, admission store.ProtectionAdmission) {
 	for _, limit := range limits {
-		if !slices.Contains(deniedKinds, limit.Key.Kind) {
+		if !slices.Contains(admission.DeniedKinds, limit.Key.Kind) {
 			continue
 		}
-		codes := []string{"limit_mu"}
+		var code string
 		switch limit.Key.Kind {
 		case store.ProtectionBruteForce:
-			codes = []string{"limit_wc"}
-			if limit.Key.IP != "" {
-				codes = append(codes, "limit_sul")
+			if !admission.FirstBruteForceDenial {
+				continue
 			}
+			code = "limit_wc"
 		case store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration, store.ProtectionSuspiciousIPTokenExchange:
+			code = "limit_mu"
 		default:
 			continue
 		}
-		for _, code := range codes {
-			logs.RecordEvent(ctx, s.Recorder, logs.Event{TenantID: tid, Type: code, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy), UserID: userID, IP: ip})
-		}
+		logs.RecordEvent(ctx, s.Recorder, logs.Event{TenantID: tid, Type: code, Connection: conn.Name, ConnectionID: conn.ID, Strategy: conn.Strategy, StrategyType: logs.StrategyType(conn.Strategy), UserID: userID, IP: ip})
 	}
 }

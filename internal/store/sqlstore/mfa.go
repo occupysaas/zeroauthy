@@ -128,6 +128,33 @@ func (r mfa) ListAuthenticators(ctx context.Context, tid, uid string) ([]store.A
 	}
 	return out, rows.Err()
 }
+func (r mfa) GuardianUsers(ctx context.Context, tid string, ids []string) ([]string, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	if len(ids) > store.GuardianUsersLimit {
+		return nil, store.ErrInvalid
+	}
+	args := []any{tid}
+	for _, id := range ids {
+		args = append(args, id)
+	}
+	marks := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	rows, err := r.s.query(ctx, `SELECT DISTINCT user_id FROM mfa_authenticators WHERE tenant_id=? AND confirmed=TRUE AND type NOT IN ('recovery-code','passkey') AND user_id IN (`+marks+`)`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var uid string
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		out = append(out, uid)
+	}
+	return out, rows.Err()
+}
 func (r mfa) GetAuthenticatorByEnrollmentID(ctx context.Context, tid, enrollmentID string) (*store.Authenticator, error) {
 	ids := store.AuthenticatorIDsForEnrollment(enrollmentID)
 	if ids == nil {
@@ -457,12 +484,21 @@ func (r mfa) PurgeMFA(ctx context.Context, before time.Time, limit int) (int, er
 	n := 0
 	err := r.s.atomicRetry(ctx, r.s.sweep(), func(s *Store) error {
 		n = 0 // a retry starts after the previous transaction was rolled back
-		for _, v := range []struct{ table, key string }{{"mfa_tokens", "hash"}, {"mfa_challenges", "id"}, {"mfa_tickets", "hash"}, {"mfa_browsers", "hash"}} {
+		for _, v := range []struct {
+			table, key, predicate string
+			cutoff                time.Time
+		}{
+			{"mfa_tokens", "hash", "expires_at<?", before},
+			{"mfa_challenges", "id", "expires_at<?", before},
+			{"mfa_tickets", "hash", "expires_at<?", before},
+			{"mfa_browsers", "hash", "expires_at<?", before},
+			{"mfa_authenticators", "id", "confirmed=FALSE AND created_at<?", before.UTC().Add(-store.PendingAuthenticatorRetention)},
+		} {
 			if limit > 0 && n >= limit {
 				break
 			}
-			q := `SELECT tenant_id,` + v.key + ` FROM ` + v.table + ` WHERE expires_at<?`
-			args := []any{micros(before)}
+			q := `SELECT tenant_id,` + v.key + ` FROM ` + v.table + ` WHERE ` + v.predicate
+			args := []any{micros(v.cutoff)}
 			if limit > 0 {
 				q += ` LIMIT ?`
 				args = append(args, limit-n)
@@ -486,7 +522,7 @@ func (r mfa) PurgeMFA(ctx context.Context, before time.Time, limit int) (int, er
 				return err
 			}
 			for _, k := range keys {
-				res, err := s.exec(ctx, `DELETE FROM `+v.table+` WHERE tenant_id=? AND `+v.key+`=? AND expires_at<?`, k[0], k[1], micros(before))
+				res, err := s.exec(ctx, `DELETE FROM `+v.table+` WHERE tenant_id=? AND `+v.key+`=? AND `+v.predicate, k[0], k[1], micros(v.cutoff))
 				if err != nil {
 					return err
 				}

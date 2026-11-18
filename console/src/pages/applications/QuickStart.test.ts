@@ -9,11 +9,11 @@ const body = () => document.body
 const text = () => body().textContent ?? ''
 const orders = resourceServer('r1', { name: 'Orders', identifier: 'https://orders.test' })
 
-function backend(c: Client) {
+function backend(c: Client, prefix = '') {
   return (call: Call) => {
     const u = new URL(call.url)
-    if (u.pathname.startsWith('/api/v2/clients/')) return { status: 200, body: c }
-    if (u.pathname === '/api/v2/client-grants') {
+    if (u.pathname.startsWith(prefix + '/api/v2/clients/')) return { status: 200, body: c }
+    if (u.pathname === prefix + '/api/v2/client-grants') {
       return { status: 200, body: { client_grants: [clientGrant('g1', c.client_id, orders.identifier)], start: 0, limit: 100, total: 1 } }
     }
     return { status: 404 }
@@ -50,11 +50,11 @@ describe('Application quick start', () => {
   })
 
   it.each([
-    ['with a port and no base domain', { host: 'login.acme.test:8443', domains: ['login.acme.test:8443'] }, 'login.acme.test:8443'],
-    ['with a base domain and no port', { host: 'acme.example.test' }, 'acme.example.test'],
-  ])('uses the tenant host as the server writes it, %s', async (_n, extra, host) => {
+    ['with a custom host and port', { host: 'login.acme.test:8443', domains: ['login.acme.test:8443'] }, 'login.acme.test:8443', '/api/console/tenants/acme'],
+    ['with a base domain and no port', { host: 'acme.example.test' }, 'acme.example.test', ''],
+  ])('uses the tenant host as the server writes it, %s', async (_n, extra, host, prefix) => {
     const c = client('m1', { app_type: 'non_interactive' })
-    const { wrapper } = await mountAt(Detail, '/t/acme/applications/m1', backend(c), extra)
+    const { wrapper } = await mountAt(Detail, '/t/acme/applications/m1', backend(c, prefix), extra)
     expect(text()).toContain(`--url 'https://${host}/oauth/token'`)
     wrapper.unmount()
   })

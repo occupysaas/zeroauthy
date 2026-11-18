@@ -13,13 +13,14 @@ import (
 // login.VerificationMailer implements it.
 type VerificationSender interface {
 	// host is the public host of the link.
-	SendVerification(ctx context.Context, tenantID string, u *store.User, clientID, host string) error
+	SendVerificationJob(ctx context.Context, tenantID string, u *store.User, clientID, host, organizationID string) error
 }
 
 // VerifyEmail runs verification_email jobs: it emails the user a
 // verification link. The job's Params hold "user_id" and, optionally,
-// "client_id" (strings). "selected_origin" is the link's host, chosen when
-// the job was created; jobs queued before it existed use the canonical host.
+// "client_id" and "organization_id" (strings). "selected_origin" is the
+// link's host, chosen when the job was created; jobs queued before it
+// existed use the canonical host.
 type VerifyEmail struct {
 	// Sender may be nil: nothing is sent and the job completes.
 	Sender VerificationSender
@@ -31,6 +32,7 @@ type VerifyEmail struct {
 func (p VerifyEmail) Run(ctx context.Context, st store.Store, j *store.Job, _ Lease) (store.JobStatus, string, error) {
 	userID, _ := j.Params["user_id"].(string)
 	clientID, _ := j.Params["client_id"].(string)
+	organizationID, _ := j.Params["organization_id"].(string)
 	u, err := st.Users().Get(ctx, j.TenantID, userID)
 	if errors.Is(err, store.ErrNotFound) {
 		return store.JobFailed, "", nil
@@ -63,7 +65,7 @@ func (p VerifyEmail) Run(ctx context.Context, st store.Store, j *store.Job, _ Le
 		}
 		return store.JobCompleted, "", nil
 	}
-	if err := p.Sender.SendVerification(ctx, j.TenantID, u, clientID, host); err != nil {
+	if err := p.Sender.SendVerificationJob(ctx, j.TenantID, u, clientID, host, organizationID); err != nil {
 		return "", "", err
 	}
 	return store.JobCompleted, "", nil

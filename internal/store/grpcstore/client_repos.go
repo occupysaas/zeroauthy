@@ -1026,6 +1026,15 @@ func (a clientPasswordResetTickets) DeleteExpired(ctx context.Context, before ti
 type clientEmailVerificationTickets struct{ c *Client }
 
 func (a clientEmailVerificationTickets) Create(ctx context.Context, v *store.EmailVerificationTicket) error {
+	if v != nil && v.OrganizationID != "" {
+		version, err := a.c.organizationsIIVersion(ctx)
+		if err != nil {
+			return err
+		}
+		if version < organizationsIIVerificationTicketCapability {
+			return fmt.Errorf("storage plugin needs Organizations II capability 2 to store the verification organization: %w", store.ErrOrganizationsIIUnavailable)
+		}
+	}
 	if v != nil && v.Origin != "" {
 		if err := a.c.requireCustomDomains(ctx); err != nil {
 			return err

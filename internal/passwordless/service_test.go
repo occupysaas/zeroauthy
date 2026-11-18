@@ -300,6 +300,8 @@ func TestStartRequiresEnabledConnection(t *testing.T) {
 	wantError(t, err, 400, "invalid_request")
 	_, err = e.start(StartInput{Connection: "nope", Email: "ada@example.test"})
 	wantError(t, err, 400, "invalid_request")
+	_, err = e.start(StartInput{Connection: "email", ConnectionID: "con_old", Email: "ada@example.test"})
+	wantError(t, err, 400, "invalid_request")
 	// The client must hold the passwordless OTP grant.
 	_, err = e.start(StartInput{ClientID: "nogrant", Connection: "email", Email: "ada@example.test"})
 	wantError(t, err, 403, "unauthorized_client")
