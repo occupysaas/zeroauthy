@@ -125,6 +125,10 @@ Signed-off-by: Your Name <you@example.com>
 Use your real name and an email address you control. Pull requests with
 unsigned commits will not be merged.
 
+Dependabot's own commits are exempt, but only in pull requests Dependabot
+opened, since the bot doesn't sign off. Any other commit pushed to a
+Dependabot pull request still needs a sign-off.
+
 The commands below take `upstream/main`: this repository's `main`, fetched
 with `git fetch upstream` after
 `git remote add upstream https://github.com/occupysaas/zeroauthy.git`. A
