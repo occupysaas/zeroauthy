@@ -2,12 +2,91 @@ package sqlstore
 
 import (
 	"context"
-	"github.com/zeroauthy/zeroauthy/internal/store"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/store/protectionstate"
 )
+
+func TestProtectionMigrationFrom37(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			t.Run("upgrade", func(t *testing.T) {
+				testProtectionUpgradeFrom37(t, mk(t), false)
+			})
+			if name == "mysql" {
+				t.Run("resume after ALTER", func(t *testing.T) {
+					testProtectionUpgradeFrom37(t, mk(t), true)
+				})
+			}
+		})
+	}
+}
+
+func testProtectionUpgradeFrom37(t *testing.T, dsn string, interrupted bool) {
+	t.Helper()
+	ctx := t.Context()
+	s := openAtVersion(t, dsn, 37)
+	seedLegacyTenant(t, s, "t")
+	now := time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC)
+	expires := now.Add(time.Hour)
+	l := store.ProtectionLimit{
+		Key:       store.ProtectionKey{TenantID: "t", Kind: store.ProtectionBruteForce, ConnectionID: "db", Identifier: "alice@example.test"},
+		Algorithm: "brute-force", Capacity: 1, Lockout: time.Hour,
+	}
+	bucketID := protectionstate.ID(l.Key)
+	mustExec(t, s, `INSERT INTO protection_buckets (
+tenant_id,bucket_id,kind,connection_id,identifier,ip,generation,algorithm,capacity,window_us,refill_us,lockout_us,tokens,failures,reserved,next_sequence,updated_at,blocked_until,expires_at
+) VALUES (?,?,?,?,?,?,'old','brute-force',1,0,0,?,1,1,0,1,?,?,?)`, l.Key.TenantID, bucketID, l.Key.Kind, l.Key.ConnectionID, l.Key.Identifier, l.Key.IP, l.Lockout.Microseconds(), now.UnixMicro(), expires.UnixMicro(), expires.UnixMicro())
+	mustExec(t, s, `INSERT INTO protection_receipts (tenant_id,id,reserved_at,completed,outcome,expires_at) VALUES ('t','r',?,TRUE,'failure',?)`, now.UnixMicro(), expires.UnixMicro())
+	mustExec(t, s, `INSERT INTO protection_reservations (tenant_id,receipt_id,bucket_id,generation,admission_sequence,outcome) VALUES ('t','r',?,'old',1,'failure')`, bucketID)
+	if interrupted {
+		// Simulate MySQL committing the ALTER before recording the version.
+		mustExec(t, s, `ALTER TABLE protection_buckets ADD COLUMN brute_force_denial_claimed BOOLEAN NOT NULL DEFAULT FALSE`)
+	}
+	version, err := s.SchemaVersion(ctx)
+	if err != nil || version != 37 {
+		t.Fatalf("before upgrade: version=%d err=%v", version, err)
+	}
+	for range 2 {
+		mustEvent(t, s.Migrate(ctx))
+	}
+	version, err = s.SchemaVersion(ctx)
+	if err != nil || version != s.LatestVersion() {
+		t.Fatalf("after upgrade: version=%d err=%v", version, err)
+	}
+	var failures, pending int
+	var claimed bool
+	mustEvent(t, s.queryRow(ctx, `SELECT failures,reserved,brute_force_denial_claimed FROM protection_buckets WHERE tenant_id=? AND bucket_id=?`, l.Key.TenantID, bucketID).Scan(&failures, &pending, &claimed))
+	if failures != 1 || pending != 0 || claimed {
+		t.Fatalf("migrated bucket: failures=%d pending=%d claimed=%t", failures, pending, claimed)
+	}
+
+	other := mustOpenRaw(t, dsn)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	var claims atomic.Int32
+	for _, st := range []*Store{s, other} {
+		wg.Go(func() {
+			<-start
+			a, err := st.Protection().Reserve(ctx, []store.ProtectionLimit{l}, now)
+			if err != nil || a.Allowed || !a.RetryAt.Equal(expires) {
+				t.Errorf("expected preserved block until %v: admission=%+v err=%v", expires, a, err)
+			}
+			if a.FirstBruteForceDenial {
+				claims.Add(1)
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+	if claims.Load() != 1 {
+		t.Fatalf("first denial claimed %d times across two connections", claims.Load())
+	}
+}
 
 func TestProtectionConcurrentAdmission(t *testing.T) {
 	for name, mk := range dsnsUnderTest(t) {
