@@ -247,5 +247,8 @@ func parseOIDC(o map[string]any, out *Settings) []error {
 			out.AttrMap = am
 		}
 	}
+	if err := ValidateAttrMap(out.AttrMap, out.Strategy, out.Channel); err != nil {
+		errs = append(errs, err)
+	}
 	return errs
 }
