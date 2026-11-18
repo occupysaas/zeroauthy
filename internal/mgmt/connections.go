@@ -244,6 +244,11 @@ func (h *Handlers) connectionView(c *store.Connection, withClients bool) (map[st
 // applyFederated finishes a federated write (sealing, immutable bindings,
 // revision) and maps its validation failures to 400s.
 func (h *Handlers) applyFederated(prev *store.Connection, spec *connrules.Spec, next *store.Connection) error {
+	if spec.Options.Extra["token_endpoint_auth_method"] == "private_key_jwt" || spec.Options.Extra["id_token_encrypted_response_alg"] != nil {
+		if s, ok := h.Store.(store.ConnectionKeysSupporter); ok && !s.ConnectionKeysSupported() {
+			return badBody("The storage plugin does not support connection keys")
+		}
+	}
 	err := federation.ApplyConnection(h.Wrapper, prev, spec, next)
 	if errors.Is(err, federation.ErrImmutable) || errors.Is(err, federation.ErrInvalidConfig) {
 		return badBody("%v", err)

@@ -2,6 +2,7 @@ package federation
 
 import (
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"testing"
 )
 
@@ -58,6 +59,16 @@ func TestOIDCImmutable(t *testing.T) {
 		}
 		if ValidateConfigUpdate(before, after) == nil {
 			t.Errorf("changed %s accepted", field)
+		}
+	}
+}
+
+func TestEnterpriseSecretlessWrite(t *testing.T) {
+	for _, options := range []string{`{"client_id":"client","scope":"openid","discovery_url":"https://provider.example/discovery"}`, `{"type":"back_channel","client_id":"client","scope":"openid","discovery_url":"https://provider.example/discovery","token_endpoint_auth_method":"private_key_jwt"}`} {
+		s := configSpec(t, "oidc", options)
+		next := &store.Connection{TenantID: "t", ID: "c", Name: s.Name, Strategy: s.Strategy, Extra: map[string]any{}}
+		if err := ApplyConnection(nil, nil, &s, next); err != nil {
+			t.Fatal(err)
 		}
 	}
 }
