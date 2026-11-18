@@ -20,6 +20,7 @@ const (
 	StrategyGoogle      = rules.Google
 	StrategyOAuth2      = rules.OAuth2
 	StrategyOIDC        = rules.OIDC
+	StrategyOkta        = rules.Okta
 )
 
 // Store model aliases used throughout the package.

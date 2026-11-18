@@ -3,6 +3,7 @@ package federation
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
@@ -16,6 +17,21 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 // Config is a federated connection's validated runtime configuration. It
 // holds a reference to the sealed credentials, never the plaintext secret.
 type Config struct {
+	Channel                    string
+	Explicit                   *rules.ExplicitEndpoints
+	PKCE                       string
+	SendNonce                  bool
+	TokenAuth                  string
+	AssertionAlg, AssertionAud string
+	IDTokenAlgs                []string
+	EncAlg                     string
+	EncEncs                    []string
+	PAR                        bool
+	PAREndpoint                string
+	AttrMap                    *rules.AttrMap
+	DomainAliases              []string
+	OktaDomain                 string
+
 	AppleTeamID          string
 	AppleKID             string
 	MicrosoftAuthority   string
@@ -52,6 +68,22 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 		return Config{}, errors.Join(errs...)
 	}
 	c := Config{
+		Channel:       settings.Channel,
+		Explicit:      settings.Explicit,
+		PKCE:          settings.PKCE,
+		SendNonce:     settings.SendNonce,
+		TokenAuth:     settings.TokenAuth,
+		AssertionAlg:  settings.AssertionAlg,
+		AssertionAud:  settings.AssertionAud,
+		IDTokenAlgs:   settings.IDTokenAlgs,
+		EncAlg:        settings.EncAlg,
+		EncEncs:       settings.EncEncs,
+		PAR:           settings.PAR,
+		PAREndpoint:   settings.PAREndpoint,
+		AttrMap:       settings.AttrMap,
+		DomainAliases: settings.DomainAliases,
+		OktaDomain:    settings.OktaDomain,
+
 		AppleTeamID:          settings.AppleTeamID,
 		AppleKID:             settings.AppleKID,
 		MicrosoftAuthority:   settings.MicrosoftAuthority,
@@ -74,8 +106,11 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 		c.Issuer = rules.AppleIssuer
 	case StrategyGoogle:
 		c.Issuer = rules.GoogleIssuer
-	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC:
+	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
 		c.Issuer = spec.FederationIssuer
+	}
+	if settings.Explicit != nil && settings.Explicit.Issuer != "" {
+		c.Issuer = settings.Explicit.Issuer
 	}
 	return c, nil
 }
@@ -96,6 +131,7 @@ func ValidateConfigUpdate(prev, next Config) error {
 		{"authorizationURL", prev.AuthorizationURL, next.AuthorizationURL},
 		{"tokenURL", prev.TokenURL, next.TokenURL},
 		{"scripts.fetchUserProfile", prev.Script, next.Script},
+		{"domain", prev.OktaDomain, next.OktaDomain},
 	} {
 		if b.prev != b.next {
 			return fmt.Errorf("%w: %s; create a new connection instead", ErrImmutable, b.name)
@@ -114,7 +150,7 @@ func ValidateConfigUpdate(prev, next Config) error {
 // affects authentication, so the connection's FederationRevision must
 // increase and pending attempts become stale.
 func EffectiveChange(prev, next Config) bool {
-	return prev.AppleTeamID != next.AppleTeamID || prev.AppleKID != next.AppleKID || prev.MicrosoftAuthority != next.MicrosoftAuthority || prev.MicrosoftMultiTenant != next.MicrosoftMultiTenant || prev.Strategy != next.Strategy || prev.ClientID != next.ClientID ||
+	return prev.Channel != next.Channel || !reflect.DeepEqual(prev.Explicit, next.Explicit) || prev.PKCE != next.PKCE || prev.SendNonce != next.SendNonce || prev.TokenAuth != next.TokenAuth || prev.AssertionAlg != next.AssertionAlg || prev.AssertionAud != next.AssertionAud || !slices.Equal(prev.IDTokenAlgs, next.IDTokenAlgs) || prev.EncAlg != next.EncAlg || !slices.Equal(prev.EncEncs, next.EncEncs) || prev.PAR != next.PAR || prev.PAREndpoint != next.PAREndpoint || !reflect.DeepEqual(prev.AttrMap, next.AttrMap) || prev.AppleTeamID != next.AppleTeamID || prev.AppleKID != next.AppleKID || prev.MicrosoftAuthority != next.MicrosoftAuthority || prev.MicrosoftMultiTenant != next.MicrosoftMultiTenant || prev.Strategy != next.Strategy || prev.ClientID != next.ClientID ||
 		!slices.Equal(prev.SecretReference, next.SecretReference) ||
 		prev.AuthorizationURL != next.AuthorizationURL || prev.TokenURL != next.TokenURL ||
 		prev.DiscoveryURL != next.DiscoveryURL || !slices.Equal(prev.Scopes, next.Scopes) ||
