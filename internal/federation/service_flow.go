@@ -244,6 +244,8 @@ func (s *FlowService) openProof(tenantID, stateHash string, sealed []byte) (proo
 // CallbackParams is a parsed provider callback.
 type CallbackParams struct {
 	State, Code, Error string
+	IDToken            string
+	FormPost           bool
 	// User is untrusted, optional Apple first-authorization name JSON.
 	User string
 }
@@ -263,8 +265,14 @@ func ParseCallback(rawQuery string) (CallbackParams, error) {
 			return CallbackParams{}, ErrCallbackRejected
 		}
 	}
-	p := CallbackParams{State: q.Get("state"), Code: q.Get("code"), Error: q.Get("error"), User: q.Get("user")}
-	if p.State == "" || (p.Code == "") == (p.Error == "") {
+	p := CallbackParams{State: q.Get("state"), Code: q.Get("code"), Error: q.Get("error"), User: q.Get("user"), IDToken: q.Get("id_token")}
+	count := 0
+	for _, v := range []string{p.Code, p.Error, p.IDToken} {
+		if v != "" {
+			count++
+		}
+	}
+	if p.State == "" || count != 1 {
 		return CallbackParams{}, ErrCallbackRejected
 	}
 	return p, nil
@@ -305,7 +313,7 @@ type Completion struct {
 // provider identity and commits identity, tokens, attempt and session in one
 // transaction.
 func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completion, error) {
-	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code), in.Params.Code)
+	ctx = logscrub.WithCredentials(logscrub.WithValues(ctx, in.Params.Code, in.Params.IDToken), in.Params.Code, in.Params.IDToken)
 	if in.CookieValue == "" || in.Tenant == nil {
 		return nil, ErrCallbackRejected
 	}
@@ -330,13 +338,21 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 	if in.OnResolved != nil {
 		in.OnResolved(actor)
 	}
-	if in.Params.Error != "" {
-		_ = s.Store.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash)
-		return nil, ErrProviderDenied
-	}
 	cfg, err := ParseConfig(*connrules.FromConnection(conn))
 	if err != nil {
 		return nil, ErrConnectionUnusable
+	}
+	front := cfg.Channel == "front_channel"
+	if front {
+		if !in.Params.FormPost || a.Endpoints.ResponseType != "id_token" || in.Params.Code != "" {
+			return nil, ErrCallbackRejected
+		}
+	} else if in.Params.IDToken != "" || in.Params.FormPost && cfg.Strategy != StrategyApple {
+		return nil, ErrCallbackRejected
+	}
+	if in.Params.Error != "" {
+		_ = s.Store.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash)
+		return nil, ErrProviderDenied
 	}
 	var creds Credentials
 	if len(conn.FederationSecretsSealed) > 0 {
@@ -357,7 +373,7 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		// Eligibility above ties these scopes to this attempt's revision.
 		appleUser, _ = ParseAppleUser(in.Params.User)
 	}
-	res, err := s.Providers.For(cfg).Exchange(ctx, ExchangeInput{
+	exchange := ExchangeInput{
 		DecryptIDToken: func(raw string) (string, error) {
 			list, e := EnsureKeys(ctx, s.Store, s.Wrapper, conn, "encryption", cfg.EncAlg, in.Tenant.CanonicalHost, s.now())
 			if e != nil {
@@ -371,7 +387,22 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		Config: cfg, Cache: CacheKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Revision: a.Revision},
 		Endpoints: a.Endpoints, Issuer: a.Issuer, CallbackURL: a.CallbackURL, Code: in.Params.Code,
 		CodeVerifier: pr.Verifier, Nonce: pr.Nonce, ClientSecret: creds.ClientSecret, Now: s.now(), AppleUser: appleUser,
-	})
+	}
+	var res ProviderResult
+	if front {
+		claims, e := s.Providers.validateIDToken(ctx, exchange, a.Endpoints, TokenSet{IDToken: in.Params.IDToken})
+		if e != nil {
+			return nil, e
+		}
+		sub, _ := claims["sub"].(string)
+		profile, e := profileFromClaims(sub, claims)
+		if e != nil {
+			return nil, e
+		}
+		res = ProviderResult{Profile: profile}
+	} else {
+		res, err = s.Providers.For(cfg).Exchange(ctx, exchange)
+	}
 	if err != nil {
 		return nil, err // the attempt stays claimed: never retried
 	}
@@ -450,6 +481,11 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 			}
 			if e != nil && !errors.Is(e, orglogin.ErrNotMember) {
 				return e
+			}
+			if front {
+				if err := tx.Federation().DeleteTokens(ctx, store.FederatedIdentityKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Subject: res.Profile.Subject}); err != nil {
+					return err
+				}
 			}
 			if err := tx.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash); err != nil {
 				return ErrAttemptStale
@@ -565,4 +601,13 @@ func ButtonLabel(c *store.Connection) string {
 // IsFederated reports whether strategy is federated.
 func IsFederated(strategy string) bool {
 	return rules.IsFederated(strategy)
+}
+
+// CompleteFrontChannel shares state claiming, nonce validation and atomic
+// identity/session commit with the authorization-code callback.
+type FrontChannelInput struct{ State, IDToken, Error, ErrorDescription string }
+
+func (s *FlowService) CompleteFrontChannel(ctx context.Context, in CompleteInput, fc FrontChannelInput) (*Completion, error) {
+	in.Params = CallbackParams{State: fc.State, IDToken: fc.IDToken, Error: fc.Error, FormPost: true}
+	return s.Complete(ctx, in)
 }

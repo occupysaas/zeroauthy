@@ -184,7 +184,7 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 		return
 	}
 	sameSite := http.SameSiteLaxMode
-	if conn.Strategy == federation.StrategyApple {
+	if conn.Strategy == federation.StrategyApple || conn.Strategy == federation.StrategyOIDC && conn.Extra["type"] != "back_channel" {
 		sameSite = http.SameSiteNoneMode
 	}
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
@@ -286,6 +286,7 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params, err := federation.ParseCallback(raw)
+	params.FormPost = r.Method == http.MethodPost
 	if err != nil {
 		h.socialFailure(w, r, nil, err)
 		return
