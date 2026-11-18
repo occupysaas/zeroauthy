@@ -8849,9 +8849,16 @@ type EmailPreviewRequest struct {
 
 // EmailProvider defines model for EmailProvider.
 type EmailProvider struct {
+	Credentials *struct {
+		ApiUser  *string `json:"api_user,omitempty"`
+		Region   *string `json:"region,omitempty"`
+		SmtpHost *string `json:"smtp_host,omitempty"`
+		SmtpPort *int    `json:"smtp_port,omitempty"`
+		SmtpUser *string `json:"smtp_user,omitempty"`
+	} `json:"credentials,omitempty"`
 	DefaultFromAddress *string                 `json:"default_from_address,omitempty"`
-	Enabled            bool                    `json:"enabled"`
-	Name               string                  `json:"name"`
+	Enabled            *bool                   `json:"enabled,omitempty"`
+	Name               *string                 `json:"name,omitempty"`
 	Settings           *map[string]interface{} `json:"settings,omitempty"`
 }
 
@@ -13665,6 +13672,15 @@ type GetCustomDomainsParams struct {
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 	Sort          *string        `form:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// GetEmailProviderParams defines parameters for GetEmailProvider.
+type GetEmailProviderParams struct {
+	// Fields Comma-separated public fields to select. An empty list returns all public fields.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
 // ListEventStreamsParams defines parameters for ListEventStreams.
@@ -21428,9 +21444,9 @@ type ServerInterface interface {
 	// DeleteEmailProvider Delete the tenant email provider.
 	// (DELETE /api/v2/emails/provider)
 	DeleteEmailProvider(w http.ResponseWriter, r *http.Request)
-	// GetEmailProvider Get the tenant email provider without credentials.
+	// GetEmailProvider Get the tenant email provider and its public credentials.
 	// (GET /api/v2/emails/provider)
-	GetEmailProvider(w http.ResponseWriter, r *http.Request)
+	GetEmailProvider(w http.ResponseWriter, r *http.Request, params GetEmailProviderParams)
 	// PatchEmailProvider Partially update the tenant email provider.
 	// (PATCH /api/v2/emails/provider)
 	PatchEmailProvider(w http.ResponseWriter, r *http.Request)
@@ -22766,9 +22782,9 @@ func (_ Unimplemented) DeleteEmailProvider(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// GetEmailProvider Get the tenant email provider without credentials.
+// GetEmailProvider Get the tenant email provider and its public credentials.
 // (GET /api/v2/emails/provider)
-func (_ Unimplemented) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) GetEmailProvider(w http.ResponseWriter, r *http.Request, params GetEmailProviderParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -27728,8 +27744,40 @@ func (siw *ServerInterfaceWrapper) DeleteEmailProvider(w http.ResponseWriter, r 
 // GetEmailProvider operation middleware
 func (siw *ServerInterfaceWrapper) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetEmailProviderParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetEmailProvider(w, r)
+		siw.Handler.GetEmailProvider(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {

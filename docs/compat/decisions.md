@@ -18,6 +18,12 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Decision:** Implement the eight documented Management operations and nine executable provider names, while keeping `custom` disabled until Actions exists. Keep credentials write-only and envelope-encrypted. Store all fourteen SDK template names; only `reset_email` drives reset-link delivery, with legacy names separate. Treat absent live evidence as unavailable and use the inventory's explicitly labeled local fallbacks.
 - **Rationale:** This follows documented routes and resource shape without claiming that local security and lifecycle choices were observed upstream.
 
+- **Plan 45b amendment (LR45b-3):** The provider read returns configured
+  `api_user`, `region`, `smtp_host`, `smtp_port`, and `smtp_user` in
+  `credentials`. It supports top-level `fields` and `include_fields`. The
+  existing write allowlists still apply. Other credential members remain
+  sealed and excluded from the credential projection.
+
 - **D-0047 implementation addendum (2026-10-25):** The nine named providers
   use local protocol adapters; `custom` remains stored-only. The bounded
   renderer is an original restricted evaluator, so no Liquid dependency or
@@ -3411,10 +3417,10 @@ are recorded in the design; none is claimed observed.
 
 - **LR45b-1 (implemented):** The admin CSP derives `connect-src` from `'self'`, the configured HTTPS base-domain wildcard when present, and the canonical system host. It is independent of tenant data. Console Management calls for custom hosts use the internal `/api/console/tenants/{name}/api/v2/*` route on the canonical system host. The route dispatches to the existing Management handlers after checking the operator token and current grant for the named tenant. Direct tenant Management API URLs and M2M token audiences are unchanged.
 - **LR45b-2 (implemented):** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members. Including roles in the member list also requires `read:organization_member_roles` (Task 9, amends D-0055).
-- **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (Task 11 pending; amends D-0047 when implemented).
+- **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (amends D-0047).
 - **LR45b-4:** Keep post-login Actions in their current position relative to MFA (maintainer ruling, 2026-11-08). Move non-Action invitation, membership, session, login-counter and consent side effects after MFA (Task 2 pending).
 
-**Amendments tracked here:** D-0043 verification organization context is tracked in Task 8. D-0043 records the v1-only connection filter implemented in Task 10. D-0047 public provider configuration awaits Task 11. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
+**Amendments tracked here:** D-0043 verification organization context is tracked in Task 8. D-0043 records the v1-only connection filter implemented in Task 10. D-0047 records the public provider credentials and field projection implemented in Task 11. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
 
 **B1 local implementation (Task 4):** Once settled failures reach the brute-force threshold, the store atomically claims the first denied admission for `limit_wc`. Password brute-force uses `limit_wc` exclusively. The SQL migration initializes the claim as unset, so an existing block can report one denial after upgrade. An older store plugin without this claim continues to enforce its admission decision and omits `limit_wc`.
 

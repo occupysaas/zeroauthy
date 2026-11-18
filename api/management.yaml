@@ -6910,11 +6910,18 @@ paths:
     get:
       operationId: GetEmailProvider
       tags: [emails]
-      summary: Get the tenant email provider without credentials.
+      summary: Get the tenant email provider and its public credentials.
       x-source: [https://auth0.com/docs/api/management/v2/emails/get-provider]
       security: [{managementToken: []}, {operatorToken: []}]
+      parameters:
+        - name: fields
+          in: query
+          description: Comma-separated public fields to select. An empty list returns all public fields.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
       responses:
         "200": {description: Redacted provider configuration., content: {application/json: {schema: {$ref: "#/components/schemas/EmailProvider"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
@@ -20094,11 +20101,19 @@ components:
       - users
     EmailProvider:
       type: object
-      required: [name, enabled]
       properties:
         name: {type: string}
         enabled: {type: boolean}
         default_from_address: {type: string}
+        credentials:
+          type: object
+          additionalProperties: false
+          properties:
+            api_user: {type: string}
+            region: {type: string}
+            smtp_host: {type: string}
+            smtp_port: {type: integer, minimum: 1, maximum: 65535}
+            smtp_user: {type: string}
         settings: {type: object, additionalProperties: true}
     EmailProviderWrite:
       type: object

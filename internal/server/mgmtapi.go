@@ -428,7 +428,7 @@ func (a mgmtAPI) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.UpdateTenantSettings, "update:tenant_settings")
 }
 
-func (a mgmtAPI) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+func (a mgmtAPI) GetEmailProvider(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetEmailProviderParams) {
 	scoped(w, r, a.h.GetEmailProvider, "read:email_provider")
 }
 func (a mgmtAPI) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {

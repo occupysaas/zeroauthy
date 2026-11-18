@@ -2898,7 +2898,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the tenant email provider without credentials. */
+        /** Get the tenant email provider and its public credentials. */
         get: operations["GetEmailProvider"];
         put?: never;
         /** Create the tenant email provider. */
@@ -6899,9 +6899,16 @@ export interface components {
             next?: string;
         };
         EmailProvider: {
-            name: string;
-            enabled: boolean;
+            name?: string;
+            enabled?: boolean;
             default_from_address?: string;
+            credentials?: {
+                api_user?: string;
+                region?: string;
+                smtp_host?: string;
+                smtp_port?: number;
+                smtp_user?: string;
+            };
             settings?: {
                 [key: string]: unknown;
             };
@@ -16538,7 +16545,12 @@ export interface operations {
     };
     GetEmailProvider: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Comma-separated public fields to select. An empty list returns all public fields. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -16554,6 +16566,7 @@ export interface operations {
                     "application/json": components["schemas"]["EmailProvider"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

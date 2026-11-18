@@ -21,6 +21,13 @@ behind the binary ("run zeroauthy migrate") or ahead of it. Storage plugins
 must be rebuilt against the new `pkg/storeplugin` when the release notes say
 so; see [stability](stability.md).
 
+On the first startup after the Plan 45b email-provider change, zeroauthy
+moves public credential fields into the existing public config column and
+reseals the private credentials. Each provider update is atomic and restart
+resumes the backfill. Stop older replicas before starting the new binary.
+Rolling back after this conversion requires restoring the pre-upgrade backup
+because older releases cannot read the new provider envelope.
+
 With the container image:
 
 ```bash
