@@ -164,11 +164,23 @@ func fieldError(err error) error {
 
 // GetUsers lists or searches the tenant's users (U4).
 func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetUsersParams) {
+	const consoleConnection = "console_connection"
 	q := r.URL.Query()
 	// connection is a v1-only filter. Validate its text even for v2 and v3.
 	if err := checkQueryText(r, "connection"); err != nil {
 		Fail(w, err)
 		return
+	}
+	if q.Has(consoleConnection) {
+		caller, _ := CallerFrom(r.Context())
+		if caller.Kind != Operator {
+			WriteError(w, http.StatusForbidden, "insufficient_scope", "Only console operators may use console_connection")
+			return
+		}
+		if err := checkQueryText(r, consoleConnection); err != nil {
+			Fail(w, err)
+			return
+		}
 	}
 	switch q.Get("search_engine") {
 	case "", "v2", "v3":
@@ -202,6 +214,15 @@ func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.Ge
 	if err != nil {
 		Fail(w, searchError(err))
 		return
+	}
+	// Apply the console selector separately so it cannot change how q parses.
+	if name := q.Get(consoleConnection); name != "" {
+		term := &store.UserQuery{Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: name}
+		if tree == nil {
+			tree = term
+		} else {
+			tree = &store.UserQuery{Op: store.QueryAnd, Kids: []*store.UserQuery{tree, term}}
+		}
 	}
 	// The parser only builds valid trees; anything the store would still
 	// refuse is the caller's input, never a driver's text.

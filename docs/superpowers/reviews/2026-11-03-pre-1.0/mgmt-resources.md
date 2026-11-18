@@ -56,7 +56,7 @@ Findings: 0 critical, 0 high, 2 medium, 6 low. **1 is fix-before-1.0** (F1: RBAC
 - Verdict: CONFIRMED
 - Recommendation: defer-to-Plan-45
 - Suggested fix: ignore `connection` under v2/v3 (still applying `checkQueryText`), or record the deviation in D-0043 and `docs/user-search.md`.
-- Fixed by Plan 45b Task 10 (D-0043). The supported search engines validate and ignore `connection`. The console selector filters with a v3 query term.
+- Fixed by Plan 45b Task 10 (D-0043). The supported search engines validate and ignore `connection`. The console's operator-only selector applies separately after the server parses `q`.
 
 ### F7 [low] [docs-drift] Scope table in `docs/management-api.md` misstates `read:users_app_metadata`
 - Where: docs/management-api.md:89 ("`app_metadata` is included with `read:users` or `read:users_app_metadata`")

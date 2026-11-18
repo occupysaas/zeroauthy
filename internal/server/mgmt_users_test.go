@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -22,6 +23,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
+	"github.com/zeroauthy/zeroauthy/internal/system"
 )
 
 // usersSeed is mgmtSeed with a database connection, a custom database
@@ -80,6 +82,74 @@ func (a *usersAPI) doAs(token, method, target string, body any) (*httptest.Respo
 func (a *usersAPI) tenantID() string {
 	tn, _ := a.st.Tenants().GetByName(context.Background(), "acme")
 	return tn.ID
+}
+
+func TestConsoleUsersConnectionPreservesSearch(t *testing.T) {
+	a := newUsersAPI(t, nil)
+	op, opID := operatorToken(t, a.st, "users-console@example.test")
+	const selected = `Partners "West" \`
+	for _, tc := range []struct{ id, name, connection string }{
+		{"ada", "Ada", selected + " extra"},
+		{"bom", "\uFEFF", selected},
+		{"grace", "Grace", "Primary"},
+		{"slash", `Ada\`, selected},
+	} {
+		u := &store.User{TenantID: a.tenantID(), UserID: "auth0|" + tc.id, Name: tc.name,
+			Identities: []store.Identity{{Connection: tc.connection, Provider: "auth0", UserID: tc.id}}}
+		if tc.id == "grace" {
+			u.Identities = append(u.Identities, store.Identity{Connection: selected, Provider: "auth0", UserID: "linked-grace", ProfileData: map[string]any{}})
+		}
+		if err := a.st.Users().Create(t.Context(), u); err != nil {
+			t.Fatal(err)
+		}
+	}
+	const proxy = "https://" + mgmtSystemHost + "/api/console/tenants/acme/api/v2/users"
+	const systemUsers = "https://" + mgmtSystemHost + "/api/v2/users"
+	for _, tc := range []struct {
+		name, target, q, connection string
+		ids                         []string
+	}{
+		{"boolean expression", usersBase, "name:Ada OR name:Grace", selected, []string{"auth0|grace"}},
+		{"terminal escape", usersBase, `name:Ada\`, selected, []string{"auth0|slash"}},
+		{"Go whitespace", usersBase, "\u0085", selected, []string{"auth0|bom", "auth0|grace", "auth0|slash"}},
+		{"literal zero-width no-break space", usersBase, "\uFEFF", selected, []string{"auth0|bom"}},
+		{"maximum group depth", usersBase, strings.Repeat("(", 64) + "name:Grace" + strings.Repeat(")", 64), selected, []string{"auth0|grace"}},
+		{"proxy", proxy, "name:Ada OR name:Grace", selected, []string{"auth0|grace"}},
+		{"system tenant", systemUsers, "", system.OperatorsConnection, []string{opID}},
+		{"system connection misses", systemUsers, "", "Missing", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			query := url.Values{"q": {tc.q}, "console_connection": {tc.connection}, "sort": {"user_id:1"}, "include_totals": {"true"}}
+			rec, out := a.doAs(op, http.MethodGet, tc.target+"?"+query.Encode(), nil)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("list = %d %s", rec.Code, rec.Body)
+			}
+			var ids []string
+			for _, entry := range out["users"].([]any) {
+				ids = append(ids, entry.(map[string]any)["user_id"].(string))
+			}
+			if !slices.Equal(ids, tc.ids) || out["total"] != float64(len(tc.ids)) {
+				t.Errorf("ids, total = %v, %v, want %v, %d", ids, out["total"], tc.ids, len(tc.ids))
+			}
+		})
+	}
+	for _, tc := range []struct {
+		name, token, query, code, message string
+		status                            int
+	}{
+		{"malformed expression", op, "console_connection=x&q=" + url.QueryEscape("name:Ada) OR (name:Grace"), "", "invalid query: undefined", http.StatusBadRequest},
+		{"over maximum group depth", op, "console_connection=x&q=" + url.QueryEscape(strings.Repeat("(", 65)+"name:Grace"+strings.Repeat(")", 65)), "", "invalid query: undefined", http.StatusBadRequest},
+		{"NUL", op, "console_connection=x%00y", "invalid_query_string", "", http.StatusBadRequest},
+		{"invalid UTF-8", op, "console_connection=x%FFy", "invalid_query_string", "", http.StatusBadRequest},
+		{"M2M", a.token, "console_connection=x", "insufficient_scope", "", http.StatusForbidden},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec, out := a.doAs(tc.token, http.MethodGet, usersBase+"?"+tc.query, nil)
+			if rec.Code != tc.status || errCode(out) != tc.code || (tc.message != "" && out["message"] != tc.message) {
+				t.Errorf("list = %d %s, want %d %q %q", rec.Code, rec.Body, tc.status, tc.code, tc.message)
+			}
+		})
+	}
 }
 
 // Review Focus 3: a PATCH that changes the email to one another user of the
