@@ -12,7 +12,7 @@ func PhoneIdentifierActive(c *Connection) bool {
 	return active
 }
 
-// IdentifierAttribute returns the flexible identifier's configured signup rule.
+// IdentifierAttribute returns the flexible identifier's configuration.
 func IdentifierAttribute(c *Connection, name string) map[string]any {
 	attrs, _ := c.Extra["attributes"].(map[string]any)
 	v, _ := attrs[name].(map[string]any)
@@ -53,11 +53,16 @@ func IdentifierPrecedence(c *Connection) []string {
 	return out
 }
 
-func PhoneSignupStatus(c *Connection) string {
-	signup, _ := IdentifierAttribute(c, "phone_number")["signup"].(map[string]any)
+// IdentifierSignupStatus returns the configured status, or empty when omitted.
+func IdentifierSignupStatus(c *Connection, name string) string {
+	signup, _ := IdentifierAttribute(c, name)["signup"].(map[string]any)
 	status, _ := signup["status"].(string)
 	return status
 }
+func PhoneSignupStatus(c *Connection) string {
+	return IdentifierSignupStatus(c, "phone_number")
+}
+
 func PhoneSignupVerification(c *Connection) bool {
 	signup, _ := IdentifierAttribute(c, "phone_number")["signup"].(map[string]any)
 	verification, _ := signup["verification"].(map[string]any)

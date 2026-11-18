@@ -1524,6 +1524,13 @@ export interface paths {
          *     and nothing changes. Neither a password change nor `blocked: true`
          *     revokes sessions or refresh tokens.
          *
+         *     Send null for `email`, `phone_number`, `given_name`, `family_name`,
+         *     `name`, `nickname`, `picture`, or `username` to remove its value.
+         *     Required identifiers and the last active login identifier cannot
+         *     be removed. `verify_phone_number: true` sends a text verification
+         *     code to the resulting phone number without setting `phone_verified`.
+         *     Delivery is attempted after the profile update commits.
+         *
          *     On a custom database connection that is not in import mode, an email
          *     change runs `change_email` and a password change `change_password`
          *     before anything is stored.
@@ -9015,7 +9022,29 @@ export interface components {
             user_id?: string;
         };
         /** @description Fields to change; unknown properties are `400 invalid_body`. */
-        UserUpdate: components["schemas"]["UserProfileSettings"] & {
+        UserUpdate: {
+            email?: string | null;
+            email_verified?: boolean;
+            /** @description Send the verification email. */
+            verify_email?: boolean;
+            username?: string | null;
+            password?: string;
+            phone_number?: string | null;
+            phone_verified?: boolean;
+            /** @description Send a text verification code to the resulting phone number when true. */
+            verify_phone_number?: boolean;
+            name?: string | null;
+            given_name?: string | null;
+            family_name?: string | null;
+            nickname?: string | null;
+            picture?: string | null;
+            blocked?: boolean;
+            user_metadata?: {
+                [key: string]: unknown;
+            };
+            app_metadata?: {
+                [key: string]: unknown;
+            };
             connection?: string;
             /** @description The application the verification email is for. */
             client_id?: string;
@@ -14494,7 +14523,33 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
-            503: components["responses"]["ScriptRuntimeUnavailable"];
+            /** @description The phone verification send limit was reached. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The storage plugin does not support phone messaging (`phone_unavailable`). */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description A custom database script could not run or phone verification delivery is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
     linkUserIdentity: {

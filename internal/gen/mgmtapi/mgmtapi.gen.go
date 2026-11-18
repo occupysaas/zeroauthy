@@ -13250,6 +13250,9 @@ type UserUpdate struct {
 
 	// VerifyEmail Send the verification email.
 	VerifyEmail *bool `json:"verify_email,omitempty"`
+
+	// VerifyPhoneNumber Send a text verification code to the resulting phone number when true.
+	VerifyPhoneNumber *bool `json:"verify_phone_number,omitempty"`
 }
 
 // UsersExportJobCreate Unknown properties are `400 invalid_body`.

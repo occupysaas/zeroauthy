@@ -744,6 +744,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **User shape:** as U1. `name` defaults to the email, `nickname` to its local part; `blocked`, names and metadata are absent until set; login fields appear after the first login. New user IDs are `auth0|` and 24 lowercase hex characters. A supplied `user_id` (`^\S*$`, at most 255) is always prefixed with `auth0|`.
   - **Errors:** duplicate user `409 auth0_idp_error`; weak password `400` without `errorCode` (`PasswordStrengthError: …`); username or phone on a connection without them, and email with password in one `PATCH`, `400 operation_not_supported`; malformed user ID (not `provider|id`) `400 invalid_uri`; unknown user `404 inexistent_user`; unknown session or refresh token `404` without `errorCode`.
   - **Update:** top-level metadata merge, `null` deletes a key, nested objects replaced, `{}` empties; an email change clears `email_verified` unless the body sets it. Neither a password change nor `blocked: true` revokes sessions or refresh tokens; a blocked user's refresh and password grants answer `invalid_grant` "user is blocked".
+  - **Nullable updates (Plan 45b, D-0270 B2/B3):** `null` clears `email`, `phone_number`, `username`, `given_name`, `family_name`, `name`, `nickname` or `picture` on the root profile. Clearing email or phone also clears its verification flag. Required identifiers and the last active login identifier return `400 invalid_body`. `verify_phone_number: true` sends a Plan 34 verification code after the profile commit. `false` does not send. Delivery leaves `phone_verified` unchanged, and a delivery error leaves the committed update in place.
   - **Delete:** `204`, also for an unknown well-formed ID; the cascade of users design §4.
   - **Search:** the U4 semantics, including: case-insensitive exact match on root fields, case-sensitive on metadata; bare terms over `name`, `given_name`, `family_name`, `nickname` and the email's local part and domain; juxtaposition is `OR`; `NOT` on a root string field excludes users without the field, elsewhere absent counts as not matching; leading, trailing and bare wildcards on root fields, none on metadata; ranges on `logins_count` and the dates only; `search_engine` absent, `v2` or `v3` all mean v3, `v1` is `400 operation_not_supported`; search errors `400` without `errorCode` and with Auth0's `invalid query: …` messages; sort pattern `field:1|-1`, unknown sort fields ignored; default order `last_login` descending, never-logged-in last; the 1000-record paging limit (`400 invalid_paging`).
   - **users-by-email:** case-sensitive match on the stored (lowercase) email.
@@ -3410,9 +3411,19 @@ are recorded in the design; none is claimed observed.
 - **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (Task 11 pending; amends D-0047 when implemented).
 - **LR45b-4:** Keep post-login Actions in their current position relative to MFA (maintainer ruling, 2026-11-08). Move non-Action invitation, membership, session, login-counter and consent side effects after MFA (Task 2 pending).
 
-**Amendments tracked here:** D-0043 nullable user attributes, verification organization context and v1-only connection filtering await Tasks 7, 8 and 10; D-0047 public provider configuration awaits Task 11; D-0055 organization scope tightening awaits Task 9. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
+**Amendments tracked here:** D-0043 verification organization context and v1-only connection filtering await Tasks 8 and 10; D-0047 public provider configuration awaits Task 11; D-0055 organization scope tightening awaits Task 9. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
 
 **B1 local implementation (Task 4):** Once settled failures reach the brute-force threshold, the store atomically claims the first denied admission for `limit_wc`. Password brute-force uses `limit_wc` exclusively. The SQL migration initializes the claim as unset, so an existing block can report one denial after upgrade. An older store plugin without this claim continues to enforce its admission decision and omits `limit_wc`.
+
+**B2 and B3 local implementation (Task 7):** D-0043 records the supported
+nullable fields. The selected database connection's required identifiers and
+the last active login cannot be cleared. For the delivery trigger, the shared
+Plan 34 service uses the tenant's country policy, send budgets and phone
+provider. The six-digit code is stored as a hash for five minutes in a
+verification-only scope distinct from signup, password reset and passwordless
+login. Task 7 adds delivery through the existing Management PATCH and leaves
+user confirmation outside its scope. Auth0's behavior for required-identifier
+clears and phone delivery remains unobserved.
 
 Task 5 implements the console's passwordless test send at
 `POST /api/system/tenants/{tenant}/connections/{id}/passwordless/try` on

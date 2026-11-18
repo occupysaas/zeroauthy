@@ -21,8 +21,10 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/identifiercode"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -463,8 +465,8 @@ func readCreateBody(body map[string]json.RawMessage) (*userrules.Create, error) 
 	return in, nil
 }
 
-// readPatchBody reads a PATCH body. given_name and family_name accept null,
-// which removes them.
+// readPatchBody reads the fields to change. Nullable strings use null to
+// remove the value. Identifiers distinguish a clear from an empty string.
 func readPatchBody(body map[string]json.RawMessage) (in *userrules.Patch, clientID string, err error) {
 	b := userBody{body}
 	in = &userrules.Patch{}
@@ -474,11 +476,18 @@ func readPatchBody(body map[string]json.RawMessage) (in *userrules.Patch, client
 	}
 	bools := map[string]**bool{
 		"email_verified": &in.EmailVerified, "phone_verified": &in.PhoneVerified, "blocked": &in.Blocked, "verify_email": &in.VerifyEmail,
+		"verify_phone_number": &in.VerifyPhoneNumber,
+	}
+	clears := map[string]*bool{
+		"email": &in.ClearEmail, "username": &in.ClearUsername, "phone_number": &in.ClearPhoneNumber,
 	}
 	for _, k := range slices.Sorted(maps.Keys(body)) {
 		switch {
 		case strs[k] != nil:
-			*strs[k], err = b.strPtr(k, k == "given_name" || k == "family_name")
+			*strs[k], err = b.strPtr(k, k != "password")
+			if flag := clears[k]; flag != nil {
+				*flag = isNull(body[k])
+			}
 		case bools[k] != nil:
 			*bools[k], err = b.boolPtr(k)
 		case k == "connection":
@@ -772,6 +781,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, err)
 		return
 	}
+	sendPhoneCode := deref(in.VerifyPhoneNumber)
 	ctx := r.Context()
 	u, err := h.getUser(r, id)
 	if err != nil {
@@ -823,7 +833,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	next := *u
 	userrules.ApplyPatch(&next, in)
 	emailChanged := next.Email != u.Email
-	if emailChanged {
+	if emailChanged && next.Email != "" {
 		if err := h.loginTaken(r, conn, u.UserID, next.Email); err != nil {
 			Fail(w, err)
 			return
@@ -884,6 +894,10 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		if err := federation.RequireMicrosoftUser(ctx, tx, cur); err != nil {
 			return err
 		}
+		if in.VerifyPhoneNumber != nil && !sendPhoneCode && len(body) == 1 {
+			out = cur
+			return nil
+		}
 		if in.Blocked != nil && *in.Blocked {
 			if last, err := lastOperator(ctx, tx, resolved(r), id); err != nil {
 				return err
@@ -891,12 +905,18 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 				return errLastOperatorBlock
 			}
 		}
+		if err := userrules.CheckIdentifierClears(conn, cur, in); err != nil {
+			return fieldError(err)
+		}
 		// Determine committed changes under the existing row lock, so a
 		// concurrent identical update cannot manufacture another change event.
 		changedPhone = in.PhoneNumber != nil && *in.PhoneNumber != cur.PhoneNumber
 		changedEmail = in.Email != nil && *in.Email != cur.Email
 		changedUsername = in.Username != nil && *in.Username != cur.Username
 		userrules.ApplyPatch(cur, in)
+		if sendPhoneCode && userrules.NormalizePhone(cur.PhoneNumber) == "" {
+			return badBody("A valid phone_number is required to send a verification code")
+		}
 		cur.UpdatedAt = now
 		if in.Password != nil {
 			cur.LastPasswordReset = &now
@@ -909,7 +929,7 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		// Links sent to the old address must not verify the new one: drop
 		// the open verification tickets, and the unused reset tickets
 		// (one with mark_email_as_verified would verify it).
-		if emailChanged {
+		if changedEmail {
 			if _, err := tx.EmailVerificationTickets().DeleteByUser(ctx, u.TenantID, id); err != nil {
 				return err
 			}
@@ -944,8 +964,14 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	}
 	changed = true
 	logDetails(r, "update user", "user_id", id, "fields", strings.Join(slices.Sorted(maps.Keys(body)), ","))
-	if (in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && emailChanged && !out.EmailVerified) {
+	if out.Email != "" && ((in.VerifyEmail != nil && *in.VerifyEmail) || (in.VerifyEmail == nil && changedEmail && !out.EmailVerified)) {
 		h.sendVerification(r, out, clientID)
+	}
+	if sendPhoneCode {
+		if err := h.sendPhoneVerification(r, out, conn); err != nil {
+			Fail(w, err)
+			return
+		}
 	}
 	view, viewErr := h.userView(r, out)
 	if viewErr != nil {
@@ -953,6 +979,40 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		return
 	}
 	writeJSON(w, http.StatusOK, view)
+}
+
+// sendPhoneVerification runs after the profile commit, using the stored
+// destination. Provider diagnostics are kept out of Management responses.
+func (h *Handlers) sendPhoneVerification(r *http.Request, u *store.User, conn *store.Connection) error {
+	unavailable := &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Message: "Phone verification delivery is unavailable"}
+	if h.PhoneDispatcher == nil {
+		return unavailable
+	}
+	event := logs.FromRequest(r)
+	event.IP = httpx.RecordedIP(r, h.TrustProxyHeaders)
+	event.UserID = u.UserID
+	event.Connection, event.ConnectionID = conn.Name, conn.ID
+	ctx := logs.WithEvent(r.Context(), event)
+	svc := identifiercode.Service{Store: h.Store, Phone: h.PhoneDispatcher, Recorder: h.Recorder, Now: h.now}
+	err := svc.Send(ctx, identifiercode.SendInput{
+		TenantID: u.TenantID, ConnectionID: conn.ID, Identifier: u.PhoneNumber, Kind: identifiercode.Verify, UserID: u.UserID,
+	})
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, phone.ErrInvalidPhone):
+		return badBody("A valid phone_number is required to send a verification code")
+	case errors.Is(err, identifiercode.ErrCountryBlocked):
+		return badBody("Phone verification is unavailable in the destination country")
+	case errors.Is(err, identifiercode.ErrSendLimit):
+		return errPhoneThrottled
+	case errors.Is(err, store.ErrPhoneUnavailable):
+		return errPhoneUnavailable
+	case errors.Is(err, identifiercode.ErrDelivery):
+		return unavailable
+	default:
+		return internalError(h, r, "send phone verification code", err)
+	}
 }
 
 // legacyPatch runs change_email or change_password on a legacy connection.

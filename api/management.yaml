@@ -4986,6 +4986,13 @@ paths:
         and nothing changes. Neither a password change nor `blocked: true`
         revokes sessions or refresh tokens.
 
+        Send null for `email`, `phone_number`, `given_name`, `family_name`,
+        `name`, `nickname`, `picture`, or `username` to remove its value.
+        Required identifiers and the last active login identifier cannot
+        be removed. `verify_phone_number: true` sends a text verification
+        code to the resulting phone number without setting `phone_verified`.
+        Delivery is attempted after the profile update commits.
+
         On a custom database connection that is not in import mode, an email
         change runs `change_email` and a password change `change_password`
         before anything is stored.
@@ -5007,7 +5014,21 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
-        "503": {$ref: "#/components/responses/ScriptRuntimeUnavailable"}
+        "429":
+          description: The phone verification send limit was reached.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "501":
+          description: The storage plugin does not support phone messaging (`phone_unavailable`).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "503":
+          description: A custom database script could not run or phone verification delivery is unavailable.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
     delete:
       operationId: deleteUser
       tags: [users]
@@ -23369,12 +23390,26 @@ components:
             user_id: {type: string, maxLength: 255, description: "Prefixed with `auth0|`."}
     UserUpdate:
       description: Fields to change; unknown properties are `400 invalid_body`.
-      allOf:
-        - $ref: "#/components/schemas/UserProfileSettings"
-        - type: object
-          properties:
-            connection: {type: string}
-            client_id: {type: string, description: The application the verification email is for.}
+      type: object
+      properties:
+        email: {type: [string, 'null']}
+        email_verified: {type: boolean}
+        verify_email: {type: boolean, description: Send the verification email.}
+        username: {type: [string, 'null']}
+        password: {type: string, writeOnly: true}
+        phone_number: {type: [string, 'null']}
+        phone_verified: {type: boolean}
+        verify_phone_number: {type: boolean, description: Send a text verification code to the resulting phone number when true.}
+        name: {type: [string, 'null']}
+        given_name: {type: [string, 'null']}
+        family_name: {type: [string, 'null']}
+        nickname: {type: [string, 'null']}
+        picture: {type: [string, 'null']}
+        blocked: {type: boolean}
+        user_metadata: {type: object, additionalProperties: true}
+        app_metadata: {type: object, additionalProperties: true}
+        connection: {type: string}
+        client_id: {type: string, description: The application the verification email is for.}
     UserPage:
       type: object
       description: A page of users with `include_totals=true`.

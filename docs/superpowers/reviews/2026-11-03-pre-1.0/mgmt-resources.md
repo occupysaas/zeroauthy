@@ -30,6 +30,7 @@ Findings: 0 critical, 0 high, 2 medium, 6 low. **1 is fix-before-1.0** (F1: RBAC
 - Verdict: CONFIRMED
 - Recommendation: defer-to-Plan-45 (or a small users follow-up)
 - Suggested fix: allow `null` for `name`/`nickname`/`picture`/`phone_number`/`username` and apply the same clearing rules as `given_name`. Accept `verify_phone_number`, as a no-op or by sending the phone verification.
+- Status: fixed by Plan 45b Task 7 (D-0270). The eight supported attributes clear with `null` subject to the connection's identifier rules. `verify_phone_number: true` sends the Plan 34 verification code and `false` sends nothing. Auth0's runtime behavior for B2 and B3 remains unobserved.
 
 ### F4 [low] [parity-gap] `organization_id` refused on `POST /jobs/verification-email` and `POST /tickets/email-verification`
 - Where: internal/mgmt/jobs.go:214-216 (stale comment "organization_id included: there are no organizations"); internal/mgmt/tickets.go:346 (allowed list without `organization_id`)

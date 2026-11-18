@@ -388,7 +388,14 @@ metadata are absent until set; `blocked: false` is never shown (D-0043).
   together with `password` in one request, and username or phone on a
   connection without them, are `400 operation_not_supported`. Neither a
   password change nor `blocked: true` ends sessions or refresh tokens (a
-  blocked user's refresh and password grants are refused).
+  blocked user's refresh and password grants are refused). Supply `null` to
+  clear `email`, `phone_number`, `username`, `given_name`, `family_name`,
+  `name`, `nickname`, or `picture`. Clearing a required identifier or the
+  user's last active login identifier returns `400 invalid_body`.
+  `verify_phone_number: true` sends a text verification code to the resulting
+  phone number without setting `phone_verified`. `false` sends nothing.
+  Delivery uses the tenant's phone provider, country restrictions and send
+  budgets. A delivery error leaves the profile update committed.
 - **Delete:** `204`, also for an unknown well-formed ID. It deletes the
   user's sessions, refresh tokens, grants, tickets and password history.
 - **Errors:** an ID that is not `provider|id` is `400 invalid_uri`, an unknown

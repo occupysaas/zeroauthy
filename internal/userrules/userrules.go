@@ -101,12 +101,15 @@ func (m *Metadata) UnmarshalJSON(b []byte) error {
 }
 
 // Patch is the body of PATCH /users/{id}. Pointers mean "set"; nil means
-// absent.
+// absent. Nullable identifier fields use an empty string and a Clear flag
+// for explicit null, distinct from an invalid empty string in the body.
 type Patch struct {
 	Connection                                         string
 	Email, Username, Password, PhoneNumber             *string
 	Name, GivenName, FamilyName, Nickname, Picture     *string
 	EmailVerified, PhoneVerified, Blocked, VerifyEmail *bool
+	VerifyPhoneNumber                                  *bool
+	ClearEmail, ClearUsername, ClearPhoneNumber        bool
 	UserMetadata, AppMetadata                          Metadata
 }
 
@@ -234,6 +237,56 @@ func CheckCreate(c *store.Connection, in *Create) []error {
 	return errs
 }
 
+// CheckIdentifierClears also runs under the user row lock so concurrent
+// updates cannot each remove an identifier and leave the user without a login.
+func CheckIdentifierClears(c *store.Connection, u *store.User, in *Patch) error {
+	if !in.ClearEmail && !in.ClearUsername && !in.ClearPhoneNumber {
+		return nil
+	}
+	phoneActive := store.PhoneIdentifierActive(c)
+	emailStatus := store.IdentifierSignupStatus(c, "email")
+	emailRequired := identity.IsLegacy(c) || emailStatus == "required" || (emailStatus == "" && !phoneActive)
+	if in.ClearEmail && emailRequired {
+		return invalid("Cannot clear required identifier: email")
+	}
+	if in.ClearUsername && (c.RequiresUsername || store.IdentifierSignupStatus(c, "username") == "required") {
+		return invalid("Cannot clear required identifier: username")
+	}
+	if in.ClearPhoneNumber && phoneActive && store.PhoneSignupStatus(c) == "required" {
+		return invalid("Cannot clear required identifier: phone_number")
+	}
+	emailActive := store.IdentifierActive(c, "email")
+	usernameActive := store.IdentifierActive(c, "username")
+	identifiers := []struct {
+		active, clear bool
+		current       string
+		update        *string
+	}{
+		{emailActive, in.ClearEmail, u.Email, in.Email},
+		{usernameActive, in.ClearUsername, u.Username, in.Username},
+		{phoneActive, in.ClearPhoneNumber, u.PhoneNumber, in.PhoneNumber},
+	}
+	removed, remains := false, false
+	for _, identifier := range identifiers {
+		if !identifier.active {
+			continue
+		}
+		if identifier.clear {
+			removed = removed || identifier.current != ""
+			continue
+		}
+		value := identifier.current
+		if identifier.update != nil {
+			value = *identifier.update
+		}
+		remains = remains || value != ""
+	}
+	if removed && !remains {
+		return invalid("Cannot clear the user's last login identifier")
+	}
+	return nil
+}
+
 // CheckPatch normalizes in (lowercase email and username) and returns every
 // problem found. u is the user as stored. Password history is not checked
 // here; the caller owns it.
@@ -242,14 +295,16 @@ func CheckPatch(c *store.Connection, u *store.User, in *Patch) []error {
 	if in.Email != nil {
 		e := loginid.Normalize(*in.Email)
 		in.Email = &e
-		if err := checkEmail(e); err != nil {
-			errs = append(errs, err)
+		if !in.ClearEmail {
+			if err := checkEmail(e); err != nil {
+				errs = append(errs, err)
+			}
 		}
 		if in.Password != nil {
 			errs = append(errs, &FieldError{Code: CodeOperationNotSupported, Message: "Cannot update password and email simultaneously"})
 		}
 	}
-	if in.Username != nil {
+	if in.Username != nil && !in.ClearUsername {
 		n := loginid.Normalize(*in.Username)
 		in.Username = &n
 		if !c.RequiresUsername {
@@ -258,13 +313,25 @@ func CheckPatch(c *store.Connection, u *store.User, in *Patch) []error {
 			errs = append(errs, profileError(err))
 		}
 	}
-	if in.PhoneNumber != nil {
+	if in.PhoneNumber != nil && !in.ClearPhoneNumber {
 		if !store.PhoneIdentifierActive(c) {
 			errs = append(errs, invalid(`"phone_number" is not allowed`))
 		} else if n, e := phone.NormalizeE164(*in.PhoneNumber, ""); e != nil {
 			errs = append(errs, invalid("Invalid phone number"))
 		} else {
 			in.PhoneNumber = &n
+		}
+	}
+	if err := CheckIdentifierClears(c, u, in); err != nil {
+		errs = append(errs, err)
+	}
+	if in.VerifyPhoneNumber != nil && *in.VerifyPhoneNumber {
+		number := u.PhoneNumber
+		if in.PhoneNumber != nil {
+			number = *in.PhoneNumber
+		}
+		if _, err := phone.NormalizeE164(number, ""); err != nil {
+			errs = append(errs, invalid("A valid phone_number is required to send a verification code"))
 		}
 	}
 	str := func(p *string, def string) string {
@@ -314,7 +381,9 @@ func ApplyPatch(u *store.User, in *Patch) {
 		u.Email = *in.Email
 		u.EmailVerified = false
 	}
-	if in.EmailVerified != nil {
+	if in.ClearEmail {
+		u.EmailVerified = false
+	} else if in.EmailVerified != nil {
 		u.EmailVerified = *in.EmailVerified
 	}
 	setStr := func(dst *string, v *string) {
@@ -335,7 +404,9 @@ func ApplyPatch(u *store.User, in *Patch) {
 	setStr(&u.FamilyName, in.FamilyName)
 	setStr(&u.Nickname, in.Nickname)
 	setStr(&u.Picture, in.Picture)
-	if in.PhoneVerified != nil {
+	if in.ClearPhoneNumber {
+		u.PhoneVerified = false
+	} else if in.PhoneVerified != nil {
 		u.PhoneVerified = *in.PhoneVerified
 	}
 	if in.Blocked != nil {

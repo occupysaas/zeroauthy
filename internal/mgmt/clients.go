@@ -83,6 +83,8 @@ type Handlers struct {
 	Verification VerificationSender
 	EmailService *email.Service
 	Passwordless *passwordless.Service
+	// PhoneDispatcher sends identifier verification texts for user updates.
+	PhoneDispatcher *phone.Dispatcher
 	// PhoneHTTP is the HTTP client of the phone provider try routes; nil uses
 	// phone.NewHTTPClient (SSRF-guarded).
 	PhoneHTTP *http.Client
