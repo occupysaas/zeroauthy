@@ -334,6 +334,11 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error {
 			bound := *h.Authz
 			bound.Store = tx
+			if bound.Sessions != nil {
+				sm := *bound.Sessions
+				sm.Store = tx
+				bound.Sessions = &sm
+			}
 			var err error
 			sess, err = bound.BeginLogin(w, r, res, txn, user, conn.Name, store.AuthMethod{Name: "federated"})
 			return err

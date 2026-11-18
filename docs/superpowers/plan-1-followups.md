@@ -710,3 +710,26 @@ Observation remains optional, and these points have not been observed:
 - **B2:** Clearing a connection's required identifier with `null` (local: `400`).
 - **B3:** The delivery triggered by `verify_phone_number` (local: Plan 34 phone verification code).
 - **B4:** `stats.logins_count` as seen by post-login Actions (locally, hosted Actions see the prospective increment and native Actions see their original preincrement count).
+
+Final whole-branch review (2026-11-17) found no Critical or Important issues.
+Its Minors are deferred, not 1.0 blockers unless noted:
+
+- **R1 (before 1.0):** `PATCH /users` runs a custom-database `change_email`/`change_password`
+  script inside the user-row transaction. On SQLite (one connection) this stalls the
+  server for the script's run time. Validate and capture the version under the lock,
+  run the script outside it, then recheck before writing.
+- **R2 (before 1.0):** `verify_phone_number` sends a `phone-verify` code that no flow
+  redeems yet; Auth0 documents the flag only alongside a `phone_number` change.
+- **R3:** Verification redirects omit Auth0's `organization_id`/`organization_name`
+  query parameters when the ticket names an organization.
+- **R4:** A policy refusal at final commit (user blocked, connection disabled, remember
+  epoch bumped during MFA/consent) surfaces as `server_error`; it should be
+  `access_denied`, and an epoch mismatch should only skip the remember cookie.
+- **R5:** A second first factor on a transaction with pending evidence, or a ninth
+  concurrent pending login per browser, ends in a generic error instead of replacing it.
+- **R6:** Delayed completion records the first-factor time and IP as `last_login`, which
+  can move it backward; use completion time or a forward-only guard.
+- **R7:** `PasswordlessTryRequest` schema looseness, the `operatorTarget` pre-auth
+  tenant-name probe (fix for all such routes together), and `consoleApi.updateUser`'s old
+  profile type (blocks typed null/verify from the console).
+
