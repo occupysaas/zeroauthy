@@ -70,8 +70,10 @@ test('strict third-party: consent, decline page, and a token express-jwt accepts
   await expect(page).toHaveURL(/localhost:8443\/u\/consent/);
   await expect(page.locator('main')).toBeVisible();
 
-  // Accept.
+  // Accept. Declining abandoned the fresh login, so no session was created
+  // and the user authenticates again (Plan 45b: effects commit at authorization).
   await page.goto(authorize());
+  await login(page);
   await page.waitForURL(/\/u\/consent/);
   await page.click('button[value=accept]');
   await page.waitForURL(/localhost:3443\/strict\/\?code=/);
