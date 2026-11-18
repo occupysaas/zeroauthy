@@ -2,6 +2,7 @@ package federation
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -357,6 +358,13 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		appleUser, _ = ParseAppleUser(in.Params.User)
 	}
 	res, err := s.Providers.For(cfg).Exchange(ctx, ExchangeInput{
+		DecryptIDToken: func(raw string) (string, error) {
+			list, e := EnsureKeys(ctx, s.Store, s.Wrapper, conn, "encryption", cfg.EncAlg, in.Tenant.CanonicalHost, s.now())
+			if e != nil {
+				return "", e
+			}
+			return decryptIDToken(raw, list, func(k *store.ConnectionKey) (crypto.Signer, error) { return OpenConnectionKey(s.Wrapper, k) }, cfg.EncAlg, cfg.EncEncs)
+		},
 		ClientAssertion: func(aud string) (string, error) {
 			return ClientAssertion(ctx, s.Store, s.Wrapper, conn, cfg, aud, s.now())
 		},

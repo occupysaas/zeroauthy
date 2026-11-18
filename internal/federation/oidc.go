@@ -256,6 +256,16 @@ func issuerMatches(cfg Config, expected, got string) bool {
 // JWKS (never one named by the token), issuer, audience/azp, time with
 // skew, nonce, subject and at_hash.
 func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e Endpoints, tokens TokenSet) (map[string]any, error) {
+	if in.Config.EncAlg != "" {
+		if in.DecryptIDToken == nil {
+			return nil, idTokenError("decryption unavailable")
+		}
+		raw, err := in.DecryptIDToken(tokens.IDToken)
+		if err != nil {
+			return nil, err
+		}
+		tokens.IDToken = raw
+	}
 	allowed := in.Config.IDTokenAlgs
 	if in.Config.Strategy == StrategyGoogle {
 		allowed = []string{"RS256"}
