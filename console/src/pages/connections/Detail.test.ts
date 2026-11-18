@@ -4,6 +4,7 @@ import type { Connection } from '../../api/client'
 import { apiError, mountAt } from '../../test/mount'
 import { client, connection, type Call, type Reply } from '../../test/services'
 import Detail from './Detail.vue'
+import { appStorageKeys } from '../../test/storage'
 
 const path = '/t/acme/connections/con_1'
 const body = () => document.body
@@ -442,7 +443,7 @@ describe('connection detail', () => {
         expect(out.textContent).toContain('12 ms')
         expect(out.textContent).toContain('replaced with ■■■■■■■■')
         expect(setItem).not.toHaveBeenCalled()
-        expect(sessionStorage.length).toBe(0)
+        expect(appStorageKeys()).toEqual([])
         wrapper.unmount()
         expect(body().textContent).not.toContain('u1')
       })
