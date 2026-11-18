@@ -225,6 +225,7 @@ providers are described in [phone providers](phone-providers.md).
 | `mfa_token` | 10 minutes; first successful grant consumes it |
 | Email code | Six digits, five minutes, at most five proof attempts |
 | Enrollment ticket | Seven days, single use |
+| Unconfirmed authenticator | Eligible for batched cleanup 24 hours after creation |
 | Remember browser | 30 days |
 | Confidence-score device signal | 30 days |
 | Incorrect codes | 10 per user and factor per 15 minutes |
@@ -300,6 +301,12 @@ With an older gRPC plugin lacking the separately negotiated MFA v1
 capability, MFA routes return 501 `mfa_unavailable`, policy reads return
 `[]`, and unrelated plugin operations continue to work. Upgrade the plugin
 before provisioning or enforcing MFA.
+
+Current storage plugins return Guardian enrollment for a Management API user
+page in one batch. Older MFA v1 plugins use a separate authenticator lookup
+for each user and retain their previous cleanup behavior. An authorization
+code carries the session’s MFA evidence at issue. Codes from older stores or
+plugins without that evidence omit the ID token’s `amr` claim.
 
 ## Compatibility and provenance
 

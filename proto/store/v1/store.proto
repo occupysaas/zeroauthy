@@ -66,6 +66,7 @@ service StoreService {
   rpc MFACreateAuthenticator(MFACreateAuthenticatorRequest) returns (MFACreateAuthenticatorResponse);
   rpc MFAGetAuthenticator(MFAGetAuthenticatorRequest) returns (MFAGetAuthenticatorResponse);
   rpc MFAGetAuthenticatorByEnrollmentID(MFAGetAuthenticatorByEnrollmentIDRequest) returns (MFAGetAuthenticatorByEnrollmentIDResponse);
+  rpc MFAGuardianUsers(MFAGuardianUsersRequest) returns (MFAGuardianUsersResponse);
   rpc MFAListAuthenticators(MFAListAuthenticatorsRequest) returns (MFAListAuthenticatorsResponse);
   rpc MFAUpdateAuthenticator(MFAUpdateAuthenticatorRequest) returns (MFAUpdateAuthenticatorResponse);
   rpc MFADeleteAuthenticator(MFADeleteAuthenticatorRequest) returns (MFADeleteAuthenticatorResponse);
@@ -895,6 +896,7 @@ message AuthCode {
   bytes action_effects = 18; // sealed post-login effects; empty = none
   string organization_id = 19; // Plan 29; empty = no organization
   string organization_connection_id = 20; // Original authenticated connection
+  google.protobuf.Timestamp mfa_at = 21; // MFA at authorization; absent on legacy codes
 }
 message PushedAuthRequest {
   string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
@@ -1725,3 +1727,6 @@ message TokenExchangeProfileResult { Error error = 1; TokenExchangeProfileMsg va
 message TokenExchangeProfileListRequest { string tx_id = 1; string tid = 2; string from = 3; int64 take = 4; }
 // next is the last id when more follow, else empty.
 message TokenExchangeProfileListResult { Error error = 1; repeated TokenExchangeProfileMsg values = 2; string next = 3; }
+
+message MFAGuardianUsersRequest { string tx_id = 1; string tid = 2; repeated string user_ids = 3; }
+message MFAGuardianUsersResponse { Error error = 1; repeated string user_ids = 2; }

@@ -282,3 +282,29 @@ type noCredentialsStore struct{ store.Store }
 func (noCredentialsStore) ClientCredentials() store.ClientCredentials {
 	return store.UnimplementedClientCredentials{}
 }
+
+func TestPurgeAbandonedPending(t *testing.T) {
+	ctx := t.Context()
+	now := time.Now().UTC()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Users().Create(ctx, &store.User{TenantID: "t", UserID: "u"}); err != nil {
+		t.Fatal(err)
+	}
+	for i := range mfaPurgeBatch + 1 {
+		a := &store.Authenticator{TenantID: "t", UserID: "u", ID: fmt.Sprintf("pending-%d", i), Type: "totp", CreatedAt: now.Add(-25 * time.Hour)}
+		if err := st.MFA().CreateAuthenticator(ctx, a); err != nil {
+			t.Fatal(err)
+		}
+	}
+	n, err := sweep(ctx, st, now)
+	if err != nil || n != mfaPurgeBatch+1 {
+		t.Fatalf("sweep removed %d pending authenticators: %v", n, err)
+	}
+	methods, err := st.MFA().ListAuthenticators(ctx, "t", "u")
+	if err != nil || len(methods) != 0 {
+		t.Fatalf("%d pending authenticators remain: %v", len(methods), err)
+	}
+}

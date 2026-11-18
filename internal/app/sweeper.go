@@ -27,7 +27,7 @@ const deviceCodeRetention = 24 * time.Hour
 // drains over several sweeps without one long-running delete.
 const mfaPurgeBatch, mfaPurgeBatches = 500, 20
 
-// purgeMFA deletes expired MFA tokens, challenges, tickets and browser rows.
+// purgeMFA deletes expired MFA tokens, challenges, tickets, browser rows and abandoned pending authenticators.
 func purgeMFA(ctx context.Context, st store.Store, before time.Time) (int, error) {
 	total := 0
 	for range mfaPurgeBatches {

@@ -113,7 +113,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	scopes := userScopes(ac.Scopes, rs, offlineAllowed(c, rs))
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
-		nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, effects: eff,
+		nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, mfaAt: ac.MFAAt, effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr

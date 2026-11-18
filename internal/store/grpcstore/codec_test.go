@@ -375,7 +375,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 		Origin:   "https://login.example",
 		TenantID: "ten", CodeHash: "ch", ClientID: "cid", RedirectURI: "https://cb", UserID: "auth0|u1",
 		SessionID: "sid", Scopes: []string{"openid", "email"}, Audience: "https://api", Nonce: "n",
-		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime,
+		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime, MFAAt: nanoTime,
 		ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
 		UsedAt: ptr(nanoTime.Add(time.Second)), ReplayedAt: ptr(nanoTime.Add(2 * time.Second)),
 		ActionEffects: []byte{0, 0xff, 'x'}, OrganizationID: "org_0123456789abcdef", OrganizationConnectionID: "con_original",

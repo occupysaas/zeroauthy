@@ -35,7 +35,7 @@ func TestEventsMigrationFrom30(t *testing.T) {
 			ctx := context.Background()
 			seedLegacyTenant(t, s, "legacy")
 			mustEvent(t, s.Migrate(ctx))
-			if s.LatestVersion() != 38 {
+			if s.LatestVersion() != 40 {
 				t.Fatalf("latest version=%d", s.LatestVersion())
 			}
 			_, err := s.Tenants().Get(ctx, "legacy")

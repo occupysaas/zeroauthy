@@ -15,7 +15,7 @@ func newAuthCode(tenantID, hash string) *store.AuthCode {
 		TenantID: tenantID, CodeHash: hash, ClientID: "spa", RedirectURI: "https://app.test/cb",
 		UserID: "auth0|u1", SessionID: "s1", Scopes: []string{"openid", "email"},
 		Audience: "https://api.test", Nonce: "n", CodeChallenge: "ch", CodeChallengeMethod: "S256",
-		AuthTime: ts(0), ExpiresAt: ts(time.Minute), CreatedAt: ts(0),
+		AuthTime: ts(0), MFAAt: ts(-time.Minute), ExpiresAt: ts(time.Minute), CreatedAt: ts(0),
 		ActionEffects: sealedEffects(),
 	}
 }

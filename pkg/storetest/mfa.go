@@ -402,6 +402,50 @@ func MFA(t *testing.T, factory Factory) {
 		}
 		mustErrIs(t, s.MFA().BumpRememberEpoch(ctx, "b", u.UserID), store.ErrNotFound)
 	})
+	t.Run("GuardianUsers", func(t *testing.T) {
+		s := setup(t)
+		for _, a := range []store.Authenticator{
+			{TenantID: "a", UserID: "auth0|u1", ID: "email", Type: "email", Confirmed: true},
+			{TenantID: "a", UserID: "auth0|u1", ID: "totp", Type: "totp", Confirmed: true},
+			{TenantID: "a", UserID: "u", ID: "pending", Type: "totp"},
+			{TenantID: "a", UserID: "u", ID: "passkey", Type: "passkey", Confirmed: true},
+			{TenantID: "a", UserID: "u", ID: "recovery", Type: "recovery-code", Confirmed: true},
+			{TenantID: "b", UserID: "u", ID: "email", Type: "email", Confirmed: true},
+		} {
+			mustNoErr(t, s.MFA().CreateAuthenticator(ctx, &a))
+		}
+		ids, err := s.MFA().GuardianUsers(ctx, "a", []string{"auth0|u1", "u", "auth0|u1"})
+		mustNoErr(t, err)
+		mustEqual(t, ids, []string{"auth0|u1"})
+		ids, err = s.MFA().GuardianUsers(ctx, "a", []string{"u"})
+		mustNoErr(t, err)
+		mustEqual(t, len(ids), 0)
+		_, err = s.MFA().GuardianUsers(ctx, "a", make([]string, 101))
+		mustErrIs(t, err, store.ErrInvalid)
+	})
+	t.Run("TestPurgeAbandonedPending", func(t *testing.T) {
+		s := setup(t)
+		cutoff := now.Add(-24 * time.Hour)
+		for _, row := range []struct {
+			id        string
+			confirmed bool
+			created   time.Time
+		}{
+			{"old1", false, cutoff.Add(-time.Second)}, {"old2", false, cutoff.Add(-time.Microsecond)},
+			{"boundary", false, cutoff}, {"new", false, now}, {"active", true, cutoff.Add(-time.Hour)},
+		} {
+			mustNoErr(t, s.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: "a", UserID: "u", ID: row.id, Type: "totp", Confirmed: row.confirmed, CreatedAt: row.created}))
+		}
+		for _, want := range []int{1, 1, 0} {
+			n, err := s.MFA().PurgeMFA(ctx, now, 1)
+			mustNoErr(t, err)
+			mustEqual(t, n, want)
+		}
+		for _, id := range []string{"boundary", "new", "active"} {
+			_, err := s.MFA().GetAuthenticator(ctx, "a", "u", id)
+			mustNoErr(t, err)
+		}
+	})
 	t.Run("MFAPurge", func(t *testing.T) {
 		s := setup(t)
 		mustNoErr(t, s.MFA().PutBrowser(ctx, &store.MFABrowser{TenantID: "a", Hash: "h", UserID: "u", ExpiresAt: now.Add(-time.Second)}))

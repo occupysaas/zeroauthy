@@ -893,6 +893,7 @@ type AuthCode struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 	AuthTime            time.Time
+	MFAAt               time.Time // Session proof at issue; zero (including legacy codes) omits ID token amr.
 	ExpiresAt           time.Time
 	CreatedAt           time.Time
 	UsedAt              *time.Time

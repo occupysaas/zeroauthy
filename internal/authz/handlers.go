@@ -465,6 +465,7 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 		CodeChallenge:       req.CodeChallenge,
 		CodeChallengeMethod: req.CodeChallengeMethod,
 		AuthTime:            sess.AuthenticatedAt,
+		MFAAt:               sess.MFAAt,
 		ExpiresAt:           now.Add(CodeLifetime),
 		CreatedAt:           now,
 	}

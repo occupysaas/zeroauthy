@@ -8,6 +8,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/pkg/storetest"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
 	"google.golang.org/grpc/codes"
+	"slices"
 	"sort"
 	"testing"
 	"time"
@@ -318,5 +319,46 @@ func TestMFAConversionRejectsUnmatchedFields(t *testing.T) {
 	var s source
 	if err := copyMFA(&s, destination{TenantID: "t"}); !errors.Is(err, store.ErrInvalid) {
 		t.Fatalf("unmatched destination: %v", err)
+	}
+}
+
+func TestGuardianUsersPluginCompatibility(t *testing.T) {
+	for _, tc := range []struct {
+		name                   string
+		code                   codes.Code
+		missing                bool
+		wantBatches, wantLists int32
+		wantErr                bool
+	}{
+		{"current", codes.OK, false, 1, 0, false},
+		{"legacy", codes.Unimplemented, false, 1, 2, false},
+		{"pre-MFA", codes.Unimplemented, true, 0, 0, true},
+		{"transport", codes.Unavailable, false, 1, 0, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			st := memory.New()
+			faults := &eventsFaults{mfaMissing: tc.missing}
+			faults.mfaBatch.Store(int32(tc.code))
+			c := serveEventsFaults(t, st, faults)
+			if err := st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "tenant"}); err != nil {
+				t.Fatal(err)
+			}
+			for _, id := range []string{"one", "two"} {
+				if err := st.Users().Create(ctx, &store.User{TenantID: "t", UserID: id}); err != nil {
+					t.Fatal(err)
+				}
+				if err := st.MFA().CreateAuthenticator(ctx, &store.Authenticator{TenantID: "t", UserID: id, ID: id, Type: "totp", Confirmed: id == "one"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			users, err := c.MFA().GuardianUsers(ctx, "t", []string{"one", "two"})
+			if (err != nil) != tc.wantErr || errors.Is(err, store.ErrMFAUnavailable) != tc.missing || (!tc.wantErr && !slices.Equal(users, []string{"one"})) {
+				t.Fatalf("users=%v err=%v", users, err)
+			}
+			if faults.mfaBatchCalls.Load() != tc.wantBatches || faults.mfaListCalls.Load() != tc.wantLists {
+				t.Fatalf("batch RPCs=%d list RPCs=%d", faults.mfaBatchCalls.Load(), faults.mfaListCalls.Load())
+			}
+		})
 	}
 }

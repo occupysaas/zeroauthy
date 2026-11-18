@@ -142,13 +142,30 @@ func UserJSON(u *store.User) map[string]any { return resourceview.User(u) }
 func userTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }
 
 func (h *Handlers) userViews(r *http.Request, us []*store.User, fields []string, include bool) ([]map[string]any, error) {
-	out := make([]map[string]any, len(us))
-	for i, u := range us {
-		view, err := h.userView(r, u)
-		if err != nil {
-			return nil, err
+	out := make([]map[string]any, 0, len(us))
+	// GetUsers returns at most one page. GetUsersByEmail can return more.
+	for page := range slices.Chunk(us, store.GuardianUsersLimit) {
+		ids := make([]string, len(page))
+		for i, u := range page {
+			ids[i] = u.UserID
 		}
-		out[i] = ProjectKeeping(view, fields, include, nil)
+		enrolled, err := h.Store.MFA().GuardianUsers(r.Context(), resolved(r).ID, ids)
+		if err != nil && !errors.Is(err, store.ErrMFAUnavailable) {
+			return nil, internalError(h, r, "load users multifactor", err)
+		}
+		guardians := make(map[string]bool, len(enrolled))
+		for _, uid := range enrolled {
+			guardians[uid] = true
+		}
+		for _, u := range page {
+			view := resourceview.User(u)
+			methods := []string{}
+			if guardians[u.UserID] {
+				methods = []string{"guardian"}
+			}
+			view["multifactor"] = methods
+			out = append(out, ProjectKeeping(view, fields, include, nil))
+		}
 	}
 	return out, nil
 }

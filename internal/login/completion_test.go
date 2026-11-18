@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -145,6 +146,11 @@ func TestConsentAfterMFA(t *testing.T) {
 	if loc.Query().Get("code") == "" {
 		t.Fatalf("consent finish: %s %s", loc, rec.Body)
 	}
+	code, err := f.st.AuthCodes().Get(t.Context(), u.TenantID, secrets.HashToken(loc.Query().Get("code")))
+	if err != nil || !code.MFAAt.Equal(*f.clock) {
+		t.Fatalf("committed code missing MFA evidence: %v", err)
+	}
+
 	got, _ := f.st.Users().Get(context.Background(), u.TenantID, u.UserID)
 	if got.LoginsCount != u.LoginsCount+1 {
 		t.Fatal("login not committed once", got.LoginsCount)

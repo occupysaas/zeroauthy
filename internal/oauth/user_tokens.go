@@ -135,15 +135,16 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
-	organization *store.Organization
-	user         *store.User
-	rs           *store.ResourceServer // nil: the token is for /userinfo only
-	lifetime     time.Duration
-	scopes       []string
-	nonce        string
-	sessionID    string
-	authTime     time.Time
-	mfaAt        time.Time
+	organization      *store.Organization
+	user              *store.User
+	rs                *store.ResourceServer // nil: the token is for /userinfo only
+	lifetime          time.Duration
+	scopes            []string
+	nonce             string
+	sessionID         string
+	authTime          time.Time
+	mfaAt             time.Time
+	refreshSessionMFA bool // Refresh grants retain their existing live session lookup.
 	// grantType becomes the access token's gty claim; empty omits it.
 	grantType string
 	// omitAtHash leaves at_hash out of the ID token.
@@ -265,7 +266,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			atHashSource = ""
 		}
 		mfaAt := ut.mfaAt
-		if ut.sessionID != "" {
+		if ut.refreshSessionMFA && ut.sessionID != "" {
 			sess, err := h.Store.Sessions().Get(ctx, tenantID, ut.sessionID)
 			if err != nil && !errors.Is(err, store.ErrNotFound) {
 				return nil, false, serverError()
