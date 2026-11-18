@@ -210,6 +210,19 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	if err != nil {
 		return nil, err
 	}
+	if cfg.PAR {
+		var creds Credentials
+		if len(conn.FederationSecretsSealed) > 0 {
+			creds, err = OpenCredentials(s.Wrapper, conn.TenantID, conn.ID, conn.FederationSecretsSealed)
+			if err != nil {
+				return nil, ErrConnectionUnusable
+			}
+		}
+		u, err = s.Providers.PushAuthorization(ctx, u, ExchangeInput{Config: cfg, Endpoints: endpoints, Issuer: issuer, ClientSecret: creds.ClientSecret, ClientAssertion: func(aud string) (string, error) { return ClientAssertion(ctx, s.Store, s.Wrapper, conn, cfg, aud, now) }})
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &Begun{URL: u, CookieName: AttemptCookiePrefix + stateHash[:16], CookieValue: cookie, ExpiresAt: expires}, nil
 }
 
@@ -344,6 +357,9 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 		appleUser, _ = ParseAppleUser(in.Params.User)
 	}
 	res, err := s.Providers.For(cfg).Exchange(ctx, ExchangeInput{
+		ClientAssertion: func(aud string) (string, error) {
+			return ClientAssertion(ctx, s.Store, s.Wrapper, conn, cfg, aud, s.now())
+		},
 		Config: cfg, Cache: CacheKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Revision: a.Revision},
 		Endpoints: a.Endpoints, Issuer: a.Issuer, CallbackURL: a.CallbackURL, Code: in.Params.Code,
 		CodeVerifier: pr.Verifier, Nonce: pr.Nonce, ClientSecret: creds.ClientSecret, Now: s.now(), AppleUser: appleUser,

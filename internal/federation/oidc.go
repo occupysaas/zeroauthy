@@ -84,6 +84,21 @@ func (ps *Providers) exchangeCode(ctx context.Context, tokenURL, method string, 
 	if method == authPost {
 		form.Set("client_id", in.Config.ClientID)
 		form.Set("client_secret", in.ClientSecret)
+	} else if method == "private_key_jwt" {
+		if in.ClientAssertion == nil {
+			return TokenSet{}, fmt.Errorf("%w: client assertion unavailable", ErrInvalidConfig)
+		}
+		aud := in.Issuer
+		if in.Config.AssertionAud == "token_endpoint" {
+			aud = tokenURL
+		}
+		assertion, e := in.ClientAssertion(aud)
+		if e != nil {
+			return TokenSet{}, e
+		}
+		form.Set("client_id", in.Config.ClientID)
+		form.Set("client_assertion_type", assertionType)
+		form.Set("client_assertion", assertion)
 	} else if method != authBasic {
 		return TokenSet{}, fmt.Errorf("%w: unsupported client authentication", ErrInvalidConfig)
 	}

@@ -53,8 +53,9 @@ type StartInput struct {
 // ExchangeInput is what an adapter needs to redeem a code. ClientSecret is
 // the opened credential, held only for the duration of the exchange.
 type ExchangeInput struct {
-	IDTokenAlg string // validated JWS algorithm for OIDC hash claims
-	Config     Config
+	ClientAssertion func(audience string) (string, error) // signs without exposing private key material
+	IDTokenAlg      string                                // validated JWS algorithm for OIDC hash claims
+	Config          Config
 	// Cache scopes cached keys to the connection configuration.
 	Cache        CacheKey
 	Endpoints    Endpoints
