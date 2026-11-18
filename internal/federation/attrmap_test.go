@@ -8,12 +8,12 @@ import (
 )
 
 func TestAttrMapTemplates(t *testing.T) {
-	c, err := CompileAttrMap(&rules.AttrMap{Mode: "use_map", Attributes: map[string]string{"name": "Jane", "email": "${context.tokenset.email}", "nickname": "user|${context.tokenset.sub}", "connection_ref": "${context.connection.id}", "roles": "${context.tokenset.https://example.com/roles}"}}, "oidc", "back_channel")
+	c, err := CompileAttrMap(&rules.AttrMap{Mode: "use_map", Attributes: map[string]string{"name": "Jane", "email": "${context.tokenset.email}", "nickname": "user|${context.tokenset.sub}", "connection_ref": "${context.connection.id}", "federated_roles": "${context.tokenset.https://example.com/roles}"}}, "oidc", "back_channel")
 	if err != nil {
 		t.Fatal(err)
 	}
 	root, extra := c.Apply(MapContext{TokenSet: map[string]any{"email": "jane@example.com", "sub": "123", "https://example.com/roles": []any{"admin"}}, ConnectionID: "con_1"})
-	if root["email"] != "jane@example.com" || root["nickname"] != "user|123" || root["name"] != "Jane" || extra["connection_ref"] != "con_1" || !reflect.DeepEqual(extra["roles"], []any{"admin"}) {
+	if root["email"] != "jane@example.com" || root["nickname"] != "user|123" || root["name"] != "Jane" || extra["connection_ref"] != "con_1" || !reflect.DeepEqual(extra["federated_roles"], []any{"admin"}) {
 		t.Fatal(root, extra)
 	}
 }
