@@ -3,8 +3,8 @@
 Branch: `plan-36-enterprise-oidc`. Base: `7a87b2fb`.
 Workspace: native managed worktree `/home/thomas/.codex/worktrees/ac19/zeroauthy`.
 
-Status: All 16 implementation tasks committed, including acceptance. Final
-review and full Go verification in progress. No push, CI result or merge claimed yet.
+Status: All 16 tasks implemented, locally verified and reviewed, including the
+single review fix pass. Full CI is pending; no merge authorized.
 
 Security-sensitive areas changed: federation, login, Management authentication
 and API adapters, server, storage and gRPC plugin contract, log scrubbing,
@@ -157,3 +157,16 @@ Fix-pass verification completed before the final full tier:
   schema assertion; sole monitor retains `fast-tier-2.log` and snapshot.
 
 No second reviewer was dispatched; regression tests verify the single fix pass.
+
+## Final local gate
+
+`TMPDIR=/dev/shm/za36 GOTMPDIR=/dev/shm/za36 go test -p 4 ./...`
+passed, actual exit 0. Launch identity is HEAD `6c207b63` plus the exact
+tracked diff/status in `fast-tier-2-snapshot.txt`; the source became commit
+`c7133a76` during the run, with no further source edits. The monitor retained
+`fast-tier-2.log` and `fast-tier-2-exit-status.txt`. No explicit failure or
+skip markers occurred in the nonverbose output; cached/no-test packages
+are present. PostgreSQL/MySQL service coverage belongs to CI.
+
+All local gates now pass. Required whole-branch review and its single fix
+pass are complete. Plan-branch CI is the next gate; main remains untouched.

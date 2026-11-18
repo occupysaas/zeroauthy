@@ -17,7 +17,8 @@ This folder holds how zeroauthy is designed and built:
 Every remaining roadmap item except X1 (hosted zeroauthy, maintainer-only)
 has a spec and a plan, written 2026-11-16. Implementation and verification states are recorded per item.
 
-F1 / Plan 36 enterprise OIDC is being implemented on `plan-36-enterprise-oidc`;
+F1 / Plan 36 enterprise OIDC is implemented, locally verified and reviewed on
+`plan-36-enterprise-oidc`; full CI and maintainer approval remain before merge.
 see [the record](2026-11-16-plan-36-implementation-record.md) for verification state.
 
 S1 / Plan 39a (web and native Apple login) is implemented and merged into

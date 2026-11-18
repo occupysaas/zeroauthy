@@ -410,6 +410,10 @@ Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm 
 
 **Designed 2026-11-16 (paths item F1):** [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-36-enterprise-oidc.md) (16 tasks, D-0120, one migration numbered at merge, store capability `connection_keys.v1`). Adds front channel, explicit endpoints, claim mapping, PKCE modes, `private_key_jwt` and encrypted ID tokens towards the provider, upstream PAR, `okta`, home realm discovery (also `waad`), connection keys, delete-users-by-email and status. `/status` is AD/LDAP only on Auth0 (F5); Okta Universal Logout moves to P3; Entra Graph groups to F4.
 
+**Implemented and locally verified/reviewed (2026-11-18):** all 16 tasks on
+`plan-36-enterprise-oidc`; full CI and maintainer approval remain before merge.
+See the [implementation record](../2026-11-16-plan-36-implementation-record.md).
+
 ### Plan 37 — SAML, WS-Federation, SCIM, self-service SSO (full design; sub-project 4)
 
 SAML as identity provider (`samlp` addon on clients) and as service provider (`samlp` connections), WS-Federation (`wsfed` addon, `adfs` connection), `/samlp/{client_id}` metadata, SAML logout; `/api/v2/connections/{id}/scim-configuration` (and tokens) with an inbound SCIM 2.0 server; `/api/v2/self-service-profiles` and SSO tickets with the self-service setup flow. Directory groups from SCIM and enterprise connections (Plan 26 left groups out) land here if Auth0 documents a groups resource at build time. Likely two or three plans after its design.
