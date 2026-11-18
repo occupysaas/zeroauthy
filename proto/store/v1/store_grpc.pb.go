@@ -77,6 +77,10 @@ const (
 	StoreService_WebAuthnGetSnooze_FullMethodName                       = "/zeroauthy.store.v1.StoreService/WebAuthnGetSnooze"
 	StoreService_WebAuthnHostTenantsUnder_FullMethodName                = "/zeroauthy.store.v1.StoreService/WebAuthnHostTenantsUnder"
 	StoreService_WebAuthnPurge_FullMethodName                           = "/zeroauthy.store.v1.StoreService/WebAuthnPurge"
+	StoreService_ConnectionKeysCapabilities_FullMethodName              = "/zeroauthy.store.v1.StoreService/ConnectionKeysCapabilities"
+	StoreService_ListConnectionKeys_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ListConnectionKeys"
+	StoreService_CreateConnectionKeys_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CreateConnectionKeys"
+	StoreService_RotateConnectionKeys_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RotateConnectionKeys"
 	StoreService_ClientCredentialsCapabilities_FullMethodName           = "/zeroauthy.store.v1.StoreService/ClientCredentialsCapabilities"
 	StoreService_ClientCredentialsCreate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreate"
 	StoreService_ClientCredentialsGet_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ClientCredentialsGet"
@@ -541,6 +545,11 @@ type StoreServiceClient interface {
 	WebAuthnGetSnooze(ctx context.Context, in *WebAuthnGetSnoozeRequest, opts ...grpc.CallOption) (*WebAuthnSnoozeResponse, error)
 	WebAuthnHostTenantsUnder(ctx context.Context, in *WebAuthnHostTenantsRequest, opts ...grpc.CallOption) (*WebAuthnHostTenantsResponse, error)
 	WebAuthnPurge(ctx context.Context, in *WebAuthnPurgeRequest, opts ...grpc.CallOption) (*WebAuthnCountResponse, error)
+	// connection_keys.v1: public certificates and master-key sealed private keys.
+	ConnectionKeysCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	ListConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*ConnectionKeysResult, error)
+	CreateConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*Result, error)
+	RotateConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*ConnectionKeysResult, error)
 	ClientCredentialsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	ClientCredentialsCreate(ctx context.Context, in *ClientCredentialsCreateRequest, opts ...grpc.CallOption) (*Result, error)
 	ClientCredentialsGet(ctx context.Context, in *ClientCredentialKeyRequest, opts ...grpc.CallOption) (*ClientCredentialResult, error)
@@ -1494,6 +1503,46 @@ func (c *storeServiceClient) WebAuthnPurge(ctx context.Context, in *WebAuthnPurg
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WebAuthnCountResponse)
 	err := c.cc.Invoke(ctx, StoreService_WebAuthnPurge_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ConnectionKeysCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_ConnectionKeysCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ListConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*ConnectionKeysResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConnectionKeysResult)
+	err := c.cc.Invoke(ctx, StoreService_ListConnectionKeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CreateConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_CreateConnectionKeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RotateConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*ConnectionKeysResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConnectionKeysResult)
+	err := c.cc.Invoke(ctx, StoreService_RotateConnectionKeys_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5061,6 +5110,11 @@ type StoreServiceServer interface {
 	WebAuthnGetSnooze(context.Context, *WebAuthnGetSnoozeRequest) (*WebAuthnSnoozeResponse, error)
 	WebAuthnHostTenantsUnder(context.Context, *WebAuthnHostTenantsRequest) (*WebAuthnHostTenantsResponse, error)
 	WebAuthnPurge(context.Context, *WebAuthnPurgeRequest) (*WebAuthnCountResponse, error)
+	// connection_keys.v1: public certificates and master-key sealed private keys.
+	ConnectionKeysCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	ListConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error)
+	CreateConnectionKeys(context.Context, *ConnectionKeysRequest) (*Result, error)
+	RotateConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error)
 	ClientCredentialsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	ClientCredentialsCreate(context.Context, *ClientCredentialsCreateRequest) (*Result, error)
 	ClientCredentialsGet(context.Context, *ClientCredentialKeyRequest) (*ClientCredentialResult, error)
@@ -5613,6 +5667,18 @@ func (UnimplementedStoreServiceServer) WebAuthnHostTenantsUnder(context.Context,
 }
 func (UnimplementedStoreServiceServer) WebAuthnPurge(context.Context, *WebAuthnPurgeRequest) (*WebAuthnCountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WebAuthnPurge not implemented")
+}
+func (UnimplementedStoreServiceServer) ConnectionKeysCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConnectionKeysCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) ListConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListConnectionKeys not implemented")
+}
+func (UnimplementedStoreServiceServer) CreateConnectionKeys(context.Context, *ConnectionKeysRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateConnectionKeys not implemented")
+}
+func (UnimplementedStoreServiceServer) RotateConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RotateConnectionKeys not implemented")
 }
 func (UnimplementedStoreServiceServer) ClientCredentialsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsCapabilities not implemented")
@@ -7701,6 +7767,78 @@ func _StoreService_WebAuthnPurge_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).WebAuthnPurge(ctx, req.(*WebAuthnPurgeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ConnectionKeysCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ConnectionKeysCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ConnectionKeysCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ConnectionKeysCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ListConnectionKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectionKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ListConnectionKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ListConnectionKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ListConnectionKeys(ctx, req.(*ConnectionKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CreateConnectionKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectionKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CreateConnectionKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CreateConnectionKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CreateConnectionKeys(ctx, req.(*ConnectionKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RotateConnectionKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectionKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RotateConnectionKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RotateConnectionKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RotateConnectionKeys(ctx, req.(*ConnectionKeysRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -14074,6 +14212,22 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WebAuthnPurge",
 			Handler:    _StoreService_WebAuthnPurge_Handler,
+		},
+		{
+			MethodName: "ConnectionKeysCapabilities",
+			Handler:    _StoreService_ConnectionKeysCapabilities_Handler,
+		},
+		{
+			MethodName: "ListConnectionKeys",
+			Handler:    _StoreService_ListConnectionKeys_Handler,
+		},
+		{
+			MethodName: "CreateConnectionKeys",
+			Handler:    _StoreService_CreateConnectionKeys_Handler,
+		},
+		{
+			MethodName: "RotateConnectionKeys",
+			Handler:    _StoreService_RotateConnectionKeys_Handler,
 		},
 		{
 			MethodName: "ClientCredentialsCapabilities",
