@@ -4,10 +4,8 @@ Started 2026-11-16 from `7691b15d92bcfef3a2d48908b29de112bb74f08b`.
 Worktree: `/mnt/nvme2/code/zeroauthy-plan39a`.
 Branch: `plan-39a-apple`.
 
-**Current status:** Tasks 1–7 implemented and reviewed on `plan-39a-apple`.
-Apple web/native runtime is active; Task 8 acceptance and final plan gates
-are recorded below. Full Go tier, whole-branch review and CI have not yet
-completed. No merge authorization is implied.
+**Current status:** Plan 39a completed review and CI and reached `main` through
+`74752598`. The dated entries below record intermediate verification results.
 
 Initial scope: Task 3, the internal ES256 client-secret signer and cache,
 while the independent Plan 45b branch is in CI. This task consumes existing
@@ -191,5 +189,4 @@ and all four actual Deploy CLI cells. An earlier local Apple attempt failed
 because it overlapped the general runner's `npm ci` against shared
 `node_modules`; that orchestration failure and its exact exits/artifacts are
 retained in the report. No production fix was required. Test-only integration
-changes do not require another broad Go run. This fix still requires review
-and a new green plan-branch CI run before merge approval.
+changes do not require another broad Go run. Review and green plan-branch CI subsequently completed before integration into `main`.

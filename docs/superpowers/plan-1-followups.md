@@ -451,13 +451,13 @@ behaviour only where Auth0 is shown to differ.
 - **Plan 33 review M1 (fixed Plan 45b Task 2, 2026-11-17):** consent
   follows MFA, and its grant commits atomically with login completion.
   `TestConsentAfterMFA` and `TestSideEffectsOneTransactionAfterConsent` pass
-  in the focused login suite. Whole-plan E2E/SQL/CI remains due at Task 14.
+  in the focused login suite. See the [verification record](2026-11-16-plan-45b-implementation-record.md).
 
-- **Plan 33 review Minors (deferred, not 1.0 blockers):** M3 abandoned
-  pending authenticators are never purged and are each unsealed on OTP
-  challenge; M6 `multifactor: []` is emitted on every user and costs one
-  authenticator list per user in `GET /users`; M7 ID-token `amr` reads the
-  session's `MFAAt` at code exchange rather than at code issue; M8 the
+- **Plan 33 review M3, M6 and M7 (fixed by Plan 45b Task 13).** The bounded
+  sweep removes unconfirmed authenticators over 24 hours old. Current stores
+  load factor presence once per user page. Codes retain the MFA evidence
+  present when issued. See the [implementation record](2026-11-16-plan-45b-implementation-record.md).
+- **Plan 33 review M8 (deferred).** The
   `totp_secret` write-only scrub for array bodies relies on key-name
   scrubbing without a pinning test. See the Plan 33 implementation record,
   Task 14c.
@@ -673,13 +673,11 @@ database connections only); C22 the description of a rejected subject token
   DPoP, `api.transaction.setMetadata` for custom token exchange.
 
 
-### Plan 39a — Sign in with Apple (started 2026-11-16)
+### Plan 39a — Sign in with Apple
 
 D-0170 and [the implementation record](2026-11-16-plan-39a-implementation-record.md)
-track the signer/cache foundation and Task 1's API/inventory contract freeze.
-Option rules, provider, callbacks, native flow, console, seed and E2E remain
-pending; Apple login is not operational yet. These are optional observations,
-not blockers or claims of observed parity. Local contracts apply meanwhile:
+describe the implemented web and native flows merged to `main` through
+`74752598`. A1–A7 remain optional upstream observations. Local contracts apply:
 
 - **A1 (open):** Whether Auth0 consumes Apple server notifications. No
   notification endpoint is built (LR39a-2).
@@ -690,27 +688,25 @@ not blockers or claims of observed parity. Local contracts apply meanwhile:
   `http://auth0.com/oauth/token-type/apple-authz-code`; it is reserved for
   native dispatch and cannot invoke a custom exchange Action. This value
   has not been tenant-observed.
-- **A4 (open):** PKCE support advertised by Apple metadata. Planned web
+- **A4 (open):** PKCE support advertised by Apple metadata. The web
   flow sends S256 only when advertised, following Plan 36's `auto` rule.
-- **A5 (open):** Native-exchange error wording. Planned local error codes
+- **A5 (open):** Native-exchange error wording. The local error codes
   are `invalid_request` for missing prerequisites and `invalid_grant` for
   refused/expired Apple codes; descriptions are local wording.
 - **A6 (open):** Actions `event.transaction.protocol` for native exchanges.
-  Planned local value is `oauth2-token-exchange`, strategy `apple`.
-- **A7 (open):** Log types for native social exchanges. Implementation must
-  select types from the public logs schema and otherwise reuse the existing
-  token-exchange success/failure pair; no new log type is invented.
+  The local value is `oauth2-token-exchange`, strategy `apple`.
+- **A7 (open):** Log types for native social exchanges. See D-0170 for the locally selected log types.
 
 Sources: Auth0's [native Apple guide](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native)
 and [native exchange reference](https://auth0.com/docs/api/authentication/token-exchange-for-native-social/token-exchange-native-social).
 
 ### Plan 45b — flow and API fixes (started 2026-11-16)
 
-Contracts and intended amendments are in D-0270; completion is tracked in
+Implemented contracts and amendments are in D-0270; completion is tracked in
 [the implementation record](2026-11-16-plan-45b-implementation-record.md).
 Observation remains optional, and these points have not been observed:
 
 - **B1:** Whether Auth0 emits `limit_wc` once per brute-force block or per denied attempt. Locally, Task 4 claims the first denied admission after settled failures reach the threshold.
 - **B2:** Clearing a connection's required identifier with `null` (local: `400`).
 - **B3:** The delivery triggered by `verify_phone_number` (local: Plan 34 phone verification code).
-- **B4:** `stats.logins_count` as seen by post-login Actions (local: keep current Action ordering).
+- **B4:** `stats.logins_count` as seen by post-login Actions (locally, hosted Actions see the prospective increment and native Actions see their original preincrement count).

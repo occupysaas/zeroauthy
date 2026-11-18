@@ -1,6 +1,6 @@
 # Plan 45b — Flow and API correctness fixes (pre-1.0 review deferrals)
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** Tasks 1–13 implemented on the plan branch. See the [verification and integration record](../2026-11-16-plan-45b-implementation-record.md).
 
 **Roadmap entry:** [management roadmap, Plan 45](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("Pre-1.0 review … Deferred here"); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)

@@ -16,6 +16,26 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Changed
 
+- Hosted login now completes MFA before showing consent. Accepting an invitation,
+  assigning membership, creating a session and recording the login commit with
+  authorization. Abandoning a fresh login at either prompt leaves those changes
+  unapplied. Post-login Actions retain their position.
+- Management clients listing a user's organizations need `read:organizations`.
+  Listing organization members requires `read:organization_members`, plus
+  `read:organization_member_roles` when including roles. User search on v2/v3
+  ignores the legacy `connection` parameter. See [upgrading](docs/upgrading.md).
+- Console Management calls for custom-host tenants and passwordless test sends
+  use the system host. The admin CSP derives its connection sources from server
+  configuration.
+- User updates can clear eight nullable profile attributes and request phone
+  verification. Verification jobs and tickets accept an organization for a
+  member. Email-provider reads expose configured public credential members and
+  support field projection.
+- New signup codes last 900 seconds. Send limits distinguish connection and
+  purpose. Brute-force protection records the first refused attempt in each
+  settled block. PostgreSQL and MySQL lock the affected counters in key order.
+- The MFA sweep removes stale unconfirmed authenticators. User lists batch MFA
+  lookups and authorization codes capture MFA evidence at issue time.
 - The tenant JWKS (`/.well-known/jwks.json`) no longer includes `alg` on the
   signing keys, for every tenant and for keys created earlier. One key signs
   both RS256 and PS256 tokens, and jose-based verifiers such as

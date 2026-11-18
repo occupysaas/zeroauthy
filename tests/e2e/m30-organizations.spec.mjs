@@ -75,3 +75,19 @@ test('organization password reset preserves organization in actual custom email 
  await expect.poll(async()=>(await sink()).filter(x=>x.notification?.message_type==='reset_email'&&x.notification.to==='reset-context30@e2e.local').length,{timeout:30000}).toBe(1);
  const mail=(await sink()).find(x=>x.notification?.message_type==='reset_email'&&x.notification.to==='reset-context30@e2e.local');expect(mail.organization.id).toBe(f.org);expect(mail.organization.name).toBe('plan30-invitations');expect(/\/u\/reset-password\?ticket=/.test(mail.notification.html)).toBe(true);
 });
+
+test('a verification job delivers organization context for a member', async () => {
+  const m = await management();
+  const { org } = await state();
+  const email = 'verify-member30@e2e.local';
+  const user = await m.users.create({
+    connection: 'Username-Password-Authentication', email, password, verify_email: false,
+  });
+  await m.organizations.members.create(org, { members: [user.user_id] });
+  const job = await api('jobs/verification-email', 'POST', { user_id: user.user_id, organization_id: org });
+  expect(job.status).toBe(201);
+  const message = async () => (await sink()).find(
+    item => item.notification?.message_type === 'verify_email' && item.notification.to === email,
+  );
+  await expect.poll(async () => (await message())?.organization?.id, { timeout: 30000 }).toBe(org);
+});

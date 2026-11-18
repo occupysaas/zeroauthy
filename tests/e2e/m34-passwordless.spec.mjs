@@ -477,6 +477,22 @@ test("operator phone console responses and Action execution logs contain no clea
       "https://system.e2e.test/admin/t/passwordless/phone-providers",
     );
     await page.waitForLoadState("networkidle");
+    const { emailConnection } = await state();
+    const recipient = "operator-try34@e2e.local";
+    const before = await mailCheckpoint();
+    await page.goto("https://system.e2e.test/admin/t/passwordless/passwordless/email");
+    await page.fill("#passwordless-client", "m34-spa");
+    await page.fill("#passwordless-to", recipient);
+    const response = page.waitForResponse(
+      "https://system.e2e.test/api/system/tenants/passwordless/connections/" +
+        emailConnection + "/passwordless/try",
+    );
+    await page.click("#try-passwordless");
+    const accepted = await response;
+    expect(accepted.status()).toBe(204);
+    expect(await accepted.text()).toBe("");
+    expect(await mailbox(recipient, before)).toMatch(/^\d{6}$/);
+
     // Capture the actual console execution endpoint (all Action console logs).
     const executionResponse = page.waitForResponse(
       (r) =>
