@@ -451,7 +451,9 @@ func leafTerm(name string, v val) (*store.UserQuery, error) {
 			switch {
 			case v.plain == "true" || v.plain == "false":
 				q.Kind = store.KindBool
-			case numberRe.MatchString(v.plain):
+			case numberRe.MatchString(v.plain) && fitsNumber(v.plain):
+				// Number-shaped text outside float64's range (1e400) stays
+				// a string: the store refuses it as a number.
 				q.Kind = store.KindNumber
 			}
 		}
@@ -471,4 +473,10 @@ func leafTerm(name string, v val) (*store.UserQuery, error) {
 		return nil, err
 	}
 	return &store.UserQuery{Op: store.QueryTerm, Field: name, Kind: f.Kind, Value: val}, nil
+}
+
+// fitsNumber reports whether the store accepts v as a number value.
+func fitsNumber(v string) bool {
+	_, err := store.ParseQueryNumber(v)
+	return err == nil
 }

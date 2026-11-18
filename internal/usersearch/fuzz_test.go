@@ -21,6 +21,7 @@ func FuzzParse(f *testing.F) {
 		`app_metadata:x`, `app_metadata.:x`, `app_metadata..a:x`, `app_metadata.a:[1 TO 2]`, `user_metadata.a:b*`,
 		"name:\x00", "name:\xff\xfe", "éè", "name:é*", "a\tb\nc", `name:(a OR (b AND c))`, `name:(`,
 		`user_id:auth0\|x`, `user_id:"auth0|x"`, `bogus:1`, `a:b:c`,
+		`app_metadata.7777077:00001735.7777000000001733E7637`, `app_metadata.n:1e400`,
 	} {
 		f.Add(s)
 	}
