@@ -8669,9 +8669,8 @@ paths:
       operationId: ListOrganizationMembers
       summary: List an organization's members, ordered by user ID
       description: |
-        Needs `read:organization_members` or `read:organization_member_roles`;
-        `fields` naming `roles` (included) also needs
-        `read:organization_member_roles`.
+        Requires `read:organization_members`. Including `roles` via `fields`
+        also requires `read:organization_member_roles`.
       tags:
       - organizations
       x-source:
@@ -8679,8 +8678,6 @@ paths:
       security:
       - managementToken:
         - read:organization_members
-      - managementToken:
-        - read:organization_member_roles
       - operatorToken: []
       parameters:
       - $ref: '#/components/parameters/organizationId'
@@ -9028,8 +9025,6 @@ paths:
       x-source:
       - https://auth0.com/docs/api/management/v2/users/get-user-organizations
       security:
-      - managementToken:
-        - read:users
       - managementToken:
         - read:organizations
       - operatorToken: []

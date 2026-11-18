@@ -251,8 +251,43 @@ func TestOrganizationMembersRoutes(t *testing.T) {
 	}
 }
 
-// TestOrganizationMembersScopes is the 401/403 matrix of the member routes,
-// with the any-of and all-of rules of the inventory (D-0055).
+func TestOrganizationReadScopes(t *testing.T) {
+	a := newOrgManagement(t)
+	org, user, _ := a.memberFixture("read-scopes")
+	members := "/organizations/" + org + "/members"
+	userOrgs := "/users/" + url.PathEscape(user) + "/organizations"
+	for _, c := range []struct {
+		name, path string
+		scopes     []string
+		want       int
+	}{
+		{"anonymous user organizations", userOrgs, nil, http.StatusUnauthorized},
+		{"users scope alone", userOrgs, []string{"read:users"}, http.StatusForbidden},
+		{"organizations scope alone", userOrgs, []string{"read:organizations"}, http.StatusOK},
+		{"anonymous members", members, nil, http.StatusUnauthorized},
+		{"member roles scope alone", members, []string{"read:organization_member_roles"}, http.StatusForbidden},
+		{"members scope alone", members, []string{"read:organization_members"}, http.StatusOK},
+		{"roles projection with roles scope only", members + "?fields=roles", []string{"read:organization_member_roles"}, http.StatusForbidden},
+		{"roles projection with members scope only", members + "?fields=roles", []string{"read:organization_members"}, http.StatusForbidden},
+		{"roles projection with both scopes", members + "?fields=roles", []string{"read:organization_members", "read:organization_member_roles"}, http.StatusOK},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var token string
+			if c.scopes != nil {
+				token = a.token(c.scopes)
+			}
+			code, out, raw := a.call("GET", c.path, token, nil)
+			if code != c.want {
+				t.Fatalf("GET %s with scopes %v = %d, want %d: %s", c.path, c.scopes, code, c.want, raw)
+			}
+			if c.want == http.StatusForbidden && out["errorCode"] != "insufficient_scope" {
+				t.Fatalf("GET %s with scopes %v = %s, want insufficient_scope", c.path, c.scopes, raw)
+			}
+		})
+	}
+}
+
+// TestOrganizationMembersScopes covers member writes and role routes.
 func TestOrganizationMembersScopes(t *testing.T) {
 	a := newOrgManagement(t)
 	org, user, role := a.memberFixture("scopes")
@@ -269,49 +304,34 @@ func TestOrganizationMembersScopes(t *testing.T) {
 	}
 	for _, c := range []struct {
 		method, path string
-		any          []string // each one alone suffices
-		all          []string // all are needed
+		scopes       []string
 	}{
-		{method: "GET", path: o + "/members", any: []string{"read:organization_members", "read:organization_member_roles"}},
-		{method: "POST", path: o + "/members", all: []string{"create:organization_members"}},
-		{method: "DELETE", path: o + "/members", all: []string{"delete:organization_members"}},
-		{method: "GET", path: o + "/members/" + u + "/roles", all: []string{"read:organization_member_roles"}},
-		{method: "POST", path: o + "/members/" + u + "/roles", all: []string{"create:organization_member_roles"}},
-		{method: "DELETE", path: o + "/members/" + u + "/roles", all: []string{"delete:organization_member_roles"}},
-		{method: "GET", path: o + "/members/" + u + "/effective-roles", all: []string{"read:organization_member_effective_roles"}},
-		{method: "GET", path: o + "/roles/" + role + "/members", all: []string{"read:organization_members", "read:roles"}},
-		{method: "GET", path: "/users/" + u + "/organizations", any: []string{"read:users", "read:organizations"}},
+		{method: "POST", path: o + "/members", scopes: []string{"create:organization_members"}},
+		{method: "DELETE", path: o + "/members", scopes: []string{"delete:organization_members"}},
+		{method: "GET", path: o + "/members/" + u + "/roles", scopes: []string{"read:organization_member_roles"}},
+		{method: "POST", path: o + "/members/" + u + "/roles", scopes: []string{"create:organization_member_roles"}},
+		{method: "DELETE", path: o + "/members/" + u + "/roles", scopes: []string{"delete:organization_member_roles"}},
+		{method: "GET", path: o + "/members/" + u + "/effective-roles", scopes: []string{"read:organization_member_effective_roles"}},
+		{method: "GET", path: o + "/roles/" + role + "/members", scopes: []string{"read:organization_members", "read:roles"}},
 	} {
 		t.Run(c.method+c.path, func(t *testing.T) {
 			if code, _, raw := a.call(c.method, c.path, "", body); code != 401 {
 				t.Fatalf("no token=%d %s", code, raw)
 			}
-			needed := append(slices.Clone(c.any), c.all...)
-			if code, out, raw := a.call(c.method, c.path, a.token(without(needed...)), body); code != 403 || out["errorCode"] != "insufficient_scope" {
-				t.Fatalf("without %v=%d %s", needed, code, raw)
+			if code, out, raw := a.call(c.method, c.path, a.token(without(c.scopes...)), body); code != 403 || out["errorCode"] != "insufficient_scope" {
+				t.Fatalf("without %v=%d %s", c.scopes, code, raw)
 			}
-			for _, s := range c.any {
-				if code, _, raw := a.call(c.method, c.path, a.token([]string{s}), body); code == 401 || code == 403 {
-					t.Fatalf("with only %s=%d %s", s, code, raw)
-				}
-			}
-			for _, s := range c.all {
-				if len(c.all) > 1 {
+			if len(c.scopes) > 1 {
+				for _, s := range c.scopes {
 					if code, _, raw := a.call(c.method, c.path, a.token(without(s)), body); code != 403 {
 						t.Fatalf("without %s=%d %s", s, code, raw)
 					}
 				}
 			}
-			if len(c.all) > 0 {
-				if code, _, raw := a.call(c.method, c.path, a.token(c.all), body); code == 401 || code == 403 {
-					t.Fatalf("with only %v=%d %s", c.all, code, raw)
-				}
+			if code, _, raw := a.call(c.method, c.path, a.token(c.scopes), body); code == 401 || code == 403 {
+				t.Fatalf("with only %v=%d %s", c.scopes, code, raw)
 			}
 		})
-	}
-	// fields=roles also needs read:organization_member_roles.
-	if code, out, raw := a.call("GET", o+"/members?fields=roles", a.token([]string{"read:organization_members"}), nil); code != 403 || out["errorCode"] != "insufficient_scope" {
-		t.Fatalf("fields=roles=%d %s", code, raw)
 	}
 }
 

@@ -1842,10 +1842,13 @@ export interface paths {
          *     the page redirects there, appending `success`, `message`, `code`,
          *     `supportSignUp`, `supportForgotPassword` and, with
          *     `includeEmailInRedirect`, `email` to its query.
+         *     With `organization_id`, the user must be a member of the organization
+         *     and the result page uses that organization's branding.
          *
          *     A missing `user_id`, a negative `ttl_sec`, `result_url` together with
-         *     `client_id` and an unknown property are `400 invalid_body`; an unknown
-         *     user is `404 inexistent_user`.
+         *     `client_id` or `organization_id`, invalid organization membership and
+         *     an unknown property are `400 invalid_body`. An unknown user is
+         *     `404 inexistent_user`.
          */
         post: operations["createEmailVerificationTicket"];
         delete?: never;
@@ -2108,12 +2111,12 @@ export interface paths {
          *     and answers `201` with the job, `status: pending`, whether or not the
          *     user is already verified. Without an email provider the job still
          *     completes. `identity` names one of the user's identities and
-         *     `client_id` the application the email is for.
+         *     `client_id` the application the email is for. `organization_id` adds
+         *     the organization and its branding to the email and the result page.
          *
-         *     A missing or empty `user_id`, a wrong type and an unknown property
-         *     (`organization_id` too: zeroauthy has no organizations) are
-         *     `400 invalid_body`; as on Auth0 every other error is a `400` too: an
-         *     unknown user is `inexistent_user`; an identity the user does not have
+         *     A missing or empty `user_id`, a wrong type, an unknown property and
+         *     invalid organization membership are `400 invalid_body`. An unknown
+         *     user is `inexistent_user`; an identity the user does not have
          *     is `inexistent_identity`; an unknown `client_id` is
          *     `inexistent_client`; a user without an email address, or an identity
          *     that is not in a database connection, is `operation_not_supported`.
@@ -3234,9 +3237,8 @@ export interface paths {
         };
         /**
          * List an organization's members, ordered by user ID
-         * @description Needs `read:organization_members` or `read:organization_member_roles`;
-         *     `fields` naming `roles` (included) also needs
-         *     `read:organization_member_roles`.
+         * @description Requires `read:organization_members`. Including `roles` via `fields`
+         *     also requires `read:organization_member_roles`.
          */
         get: operations["ListOrganizationMembers"];
         put?: never;
@@ -8859,6 +8861,8 @@ export interface components {
             user_id: string;
             /** @description The application the email is for. */
             client_id?: string;
+            /** @description The organization whose branding the verification uses. The user must be a member. */
+            organization_id?: string;
             /** @description One of the user's database identities; the user's primary one when absent. */
             identity?: {
                 /** @description The identity's ID, without the provider. */
@@ -8945,9 +8949,11 @@ export interface components {
         /** @description Unknown properties are `400 invalid_body`. */
         EmailVerificationTicketCreate: {
             user_id: string;
-            /** @description Where the page redirects after opening. Not with `client_id`. */
+            /** @description Where the page redirects after opening. Not with `client_id` or `organization_id`. */
             result_url?: string;
             client_id?: string;
+            /** @description The organization whose branding the result page uses. The user must be a member. */
+            organization_id?: string;
             /** @description Seconds the ticket is valid; 0 or absent is 432000 (5 days). */
             ttl_sec?: number;
             includeEmailInRedirect?: boolean;

@@ -47,6 +47,7 @@ Findings: 0 critical, 0 high, 2 medium, 6 low. **1 is fix-before-1.0** (F1: RBAC
 - Verdict: CONFIRMED (against the current OAS); PLAUSIBLE that an older docs page listed both
 - Recommendation: defer-to-Plan-45
 - Suggested fix: require `read:organizations` and `read:organization_members` respectively (keeping the `fields=roles` check), or cite the source for the broader set in D-0055.
+- Fixed by Plan 45b Task 9 (D-0270 LR45b-2). The routes and published contract now require the documented scopes, with the additional roles scope for the member projection.
 
 ### F6 [low] [parity-gap] `GET /users?connection=` filters under search engine v2/v3
 - Where: internal/mgmt/users.go:203-210

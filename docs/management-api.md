@@ -583,11 +583,13 @@ tokens must carry the origin serving the request as issuer.
 
 [Organizations](organizations.md) covers CRUD/name lookup, enabled connections,
 members, member-role/effective-role lists, role members and user organizations.
-Scopes follow the inventory, including `read:organization_member_effective_roles`;
-member listing accepts either members-read or member-roles-read, user organizations
-accepts either users-read or organizations-read, and role members requires both
-members-read and roles-read. Organization creation with `enabled_connections`
-also requires connection-create scope, including an empty supplied array.
+The member list requires `read:organization_members` and also requires
+`read:organization_member_roles` when roles are included via `fields`. The
+user-organization list requires `read:organizations`. Effective roles require
+`read:organization_member_effective_roles`. A role's member list requires both
+`read:organization_members` and `read:roles`. Organization creation with
+`enabled_connections` also requires `create:organization_connections`,
+including an empty supplied array.
 
 D-0055 observed corrections govern validation and replacement PATCH behavior.
 The Early Access `connections` alias manages the same links for Deploy CLI;

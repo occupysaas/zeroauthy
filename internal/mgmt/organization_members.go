@@ -153,7 +153,7 @@ func (h *Handlers) ListOrganizationMembers(w http.ResponseWriter, r *http.Reques
 		Fail(w, err)
 		return
 	}
-	// The listing takes either member scope; the roles need theirs.
+	// Including roles requires their read scope in addition to the list scope.
 	if roles && !callerHas(r, "read:organization_member_roles") {
 		Fail(w, insufficientScope("read:organization_member_roles"))
 		return

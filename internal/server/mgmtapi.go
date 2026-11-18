@@ -828,12 +828,10 @@ func (a mgmtAPI) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Req
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationClientGrants(w, r, id) }, "read:organization_client_grants")
 }
 
-// Organization members and roles (Plan 29, D-0055). The member list and the
-// user organizations accept any of their scopes; role members need both.
-// fields=roles on the member list also needs read:organization_member_roles;
-// the handler checks it.
+// Organization members and roles (D-0055). The handler checks the additional
+// read:organization_member_roles scope when the member list includes roles.
 func (a mgmtAPI) ListOrganizationMembers(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationMembersParams) {
-	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMembers(w, r, id) }, "read:organization_members", "read:organization_member_roles")
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMembers(w, r, id) }, "read:organization_members")
 }
 func (a mgmtAPI) AddOrganizationMembers(w http.ResponseWriter, r *http.Request, id string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AddOrganizationMembers(w, r, id) }, "create:organization_members")
@@ -859,7 +857,7 @@ func (a mgmtAPI) ListOrganizationRoleMembers(w http.ResponseWriter, r *http.Requ
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationRoleMembers(w, r, id, roleID) }, "read:organization_members", "read:roles")
 }
 func (a mgmtAPI) ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListUserOrganizationsParams) {
-	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:users", "read:organizations")
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:organizations")
 }
 
 func (a mgmtAPI) CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.CreateOrganizationInvitationParams) {

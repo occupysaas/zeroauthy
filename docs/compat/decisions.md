@@ -1417,9 +1417,8 @@ corrected.
 roles; effective roles; role members; enabled connections;
 `GET /users/{id}/organizations`. Scopes follow the public reference:
 
-- the member list accepts either `read:organization_members` or
-  `read:organization_member_roles`, and `fields=roles` needs
-  `read:organization_member_roles`;
+- the member list requires `read:organization_members`. Including roles via
+  `fields` additionally requires `read:organization_member_roles`;
 - effective roles need `read:organization_member_effective_roles`, not
   `read:organization_member_roles`;
 - role members need both `read:organization_members` and `read:roles`
@@ -1428,9 +1427,12 @@ roles; effective roles; role members; enabled connections;
   fine-grained scope since the 2026-11-04 addendum; this all-of rule stands on
   its own because no Auth0 guide names an alternative pair). This operation is Early Access upstream and is
   kept in Plan 29 as the spec chose;
-- user organizations accept either `read:users` or `read:organizations`;
+- user organizations require `read:organizations`;
 - `POST /organizations` also needs `create:organization_connections` when it
   carries `enabled_connections`.
+
+Plan 45b Task 9 aligned the member-list and user-organization scopes with the
+public Management API OpenAPI document (D-0270 LR45b-2).
 
 **Spec §2 items.** Status is from the observer notes. Unavailable or
 unobserved parts keep the spec default as a local decision.
@@ -3407,11 +3409,11 @@ are recorded in the design; none is claimed observed.
 **Authority:** [Plan 45b design](../superpowers/specs/2026-11-16-zeroauthy-flow-api-fixes-design.md), the cited pre-1.0 review findings, and their public documentation/OpenAPI evidence. No live Auth0 tenant observation was performed.
 
 - **LR45b-1 (implemented):** The admin CSP derives `connect-src` from `'self'`, the configured HTTPS base-domain wildcard when present, and the canonical system host. It is independent of tenant data. Console Management calls for custom hosts use the internal `/api/console/tenants/{name}/api/v2/*` route on the canonical system host. The route dispatches to the existing Management handlers after checking the operator token and current grant for the named tenant. Direct tenant Management API URLs and M2M token audiences are unchanged.
-- **LR45b-2:** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members, retaining the extra roles check (Task 9 pending; amends D-0055 when implemented).
+- **LR45b-2 (implemented):** Organization reads require `read:organizations` for a user's organizations and `read:organization_members` for organization members. Including roles in the member list also requires `read:organization_member_roles` (Task 9, amends D-0055).
 - **LR45b-3:** Email provider `api_user`, `region`, `smtp_host`, `smtp_port` and `smtp_user` are public configuration. Secret credentials remain sealed. Field projection applies to reads (Task 11 pending; amends D-0047 when implemented).
 - **LR45b-4:** Keep post-login Actions in their current position relative to MFA (maintainer ruling, 2026-11-08). Move non-Action invitation, membership, session, login-counter and consent side effects after MFA (Task 2 pending).
 
-**Amendments tracked here:** D-0043 verification organization context and v1-only connection filtering await Tasks 8 and 10; D-0047 public provider configuration awaits Task 11; D-0055 organization scope tightening awaits Task 9. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
+**Amendments tracked here:** D-0043 verification organization context and v1-only connection filtering await Tasks 8 and 10; D-0047 public provider configuration awaits Task 11. D-0060 signup-code enforcement is Task 3: use the frozen 900-second lifetime for signup and scope send admission by tenant, normalized identifier, connection and purpose. Other identifier-code lifetimes and the shared per-IP budget retain their existing behavior.
 
 **B1 local implementation (Task 4):** Once settled failures reach the brute-force threshold, the store atomically claims the first denied admission for `limit_wc`. Password brute-force uses `limit_wc` exclusively. The SQL migration initializes the claim as unset, so an existing block can report one denial after upgrade. An older store plugin without this claim continues to enforce its admission decision and omits `limit_wc`.
 
