@@ -26,6 +26,9 @@ func (m *Manager) VerificationKeys(ctx context.Context, tenantID string) (jose.J
 			if err := json.Unmarshal(k.PublicJWK, &jwk); err != nil {
 				return jose.JSONWebKeySet{}, fmt.Errorf("keys: stored JWK %s: %w", k.KID, err)
 			}
+			// Keys stored before C19 was resolved carry alg RS256; publish
+			// them without it, as new keys are (see generateAt).
+			jwk.Algorithm = ""
 			set.Keys = append(set.Keys, jwk)
 		}
 	}

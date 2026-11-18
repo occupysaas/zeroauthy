@@ -6,6 +6,22 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Sign in with Apple web login and native iOS authorization-code exchange,
+  operator-owned signing keys, private-relay profiles and first-login names.
+  Console, seed and Deploy CLI support include stored native-social switches;
+  Google and Facebook native exchanges remain deferred to Plan 39b. Migration
+  0037 adds native-social client persistence. See [the guide](docs/social-connections.md).
+
+### Changed
+
+- The tenant JWKS (`/.well-known/jwks.json`) no longer includes `alg` on the
+  signing keys, for every tenant and for keys created earlier. One key signs
+  both RS256 and PS256 tokens, and jose-based verifiers such as
+  `express-oauth2-jwt-bearer` refused PS256 tokens against a key marked
+  `RS256`. Verifiers that select keys by `kid` are unaffected (D-0063, C19).
+
 ## [1.0.0-rc.1]
 
 The first public release: an **early preview** for people to try. It covers

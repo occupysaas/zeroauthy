@@ -15,6 +15,10 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
+// FlowCustomTokenExchange is the custom token exchange grant: it reserves
+// the suspicious-IP pre-custom-token-exchange budget only, with no connection.
+const FlowCustomTokenExchange = "custom-token-exchange"
+
 type Attempt struct {
 	// RegistrationAdmitted follows a server-owned, single-use signup
 	// admission, including a bound native registration. Other flows ignore it.
@@ -56,7 +60,8 @@ func (s *Service) now() time.Time {
 // blocking budgets atomically, before any password hashing or external call.
 func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	discovery := a.Flow == "organization-discovery"
-	if a.Tenant == nil || (a.Connection == nil && !discovery) {
+	exchange := a.Flow == FlowCustomTokenExchange
+	if a.Tenant == nil || (a.Connection == nil && !discovery && !exchange) {
 		return Decision{}, store.ErrInvalid
 	}
 	tenant, err := s.Store.Tenants().Get(ctx, a.Tenant.ID)
@@ -64,7 +69,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 		return Decision{}, err
 	}
 	conn := &store.Connection{}
-	if !discovery {
+	if !discovery && !exchange {
 		conn, err = s.Store.Connections().Get(ctx, tenant.ID, a.Connection.ID)
 		if err != nil {
 			return Decision{}, err
@@ -120,9 +125,17 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 			s.Event(ctx, tenant.ID, "suspicious-ip", "monitor", conn.ID)
 		}
 	}
+	if exchange && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
+		if slices.Contains(p.SuspiciousIP.Shields, "block") {
+			rate := p.SuspiciousIP.Stage.PreCustomTokenExchange
+			limits = append(limits, store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tenant.ID, Kind: store.ProtectionSuspiciousIPTokenExchange, IP: ip}, Algorithm: "token-bucket", Capacity: rate.MaxAttempts, Refill: time.Duration(rate.Rate) * time.Millisecond})
+		} else {
+			s.Event(ctx, tenant.ID, "suspicious-ip", "monitor", conn.ID)
+		}
+	}
 	if a.Flow == "reset-send" {
 		limits = append(limits, store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tenant.ID, Kind: store.ProtectionResetMail, ConnectionID: conn.ID, Identifier: identifier}, Algorithm: "fixed-window", Capacity: 3, Window: time.Hour})
-	} else if a.Flow != "login" && a.Flow != "signup" && !social && !discovery {
+	} else if a.Flow != "login" && a.Flow != "signup" && !social && !discovery && !exchange {
 		return Decision{}, store.ErrInvalid
 	}
 	now := s.now()
@@ -231,7 +244,7 @@ func (s *Service) blockEvents(ctx context.Context, tid string, conn *store.Conne
 			if limit.Key.IP != "" {
 				codes = append(codes, "limit_sul")
 			}
-		case store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration:
+		case store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration, store.ProtectionSuspiciousIPTokenExchange:
 		default:
 			continue
 		}

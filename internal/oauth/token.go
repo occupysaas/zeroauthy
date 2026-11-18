@@ -32,6 +32,7 @@ var grantHandlers = map[string]grantHandler{
 	clientrules.GrantMFAOOB:          (*Handlers).mfaOOBGrant,
 	clientrules.GrantMFARecoveryCode: (*Handlers).mfaRecoveryGrant,
 	clientrules.GrantPasswordlessOTP: (*Handlers).passwordlessOTPGrant,
+	GrantTokenExchange:               (*Handlers).tokenExchange,
 }
 
 // orgLessGrants never carry an organization: they ignore the organization
@@ -56,7 +57,7 @@ func (h *Handlers) OauthToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Resolved) (*authapi.TokenResponse, *Error) {
-	form, oerr := parseTokenRequest(w, r)
+	form, oerr := parseTokenRequest(w, r, "user_profile")
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -66,6 +67,11 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 		return nil, invalidRequest("grant_type is required")
 	}
 	grant, ok := grantHandlers[grantType]
+	// Custom exchange requires client_credentials.v1 profiles. Reserved native
+	// types use the shared federation capability and their own client settings.
+	if grantType == GrantTokenExchange && form.Get("subject_token_type") != nativeAppleSubjectType && !store.ClientCredentialsAvailable(r.Context(), h.Store) {
+		ok = false
+	}
 	if !ok {
 		return nil, unsupportedGrantType(fmt.Sprintf("grant type %q is not supported", grantType))
 	}
@@ -73,7 +79,9 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	if oerr != nil {
 		return nil, oerr
 	}
-	if !slices.Contains(client.GrantTypes, grantType) {
+	// Exchange is allowed by the client's token_exchange or native_social_login
+	// setting, which the selected path checks, rather than grant_types.
+	if grantType != GrantTokenExchange && !slices.Contains(client.GrantTypes, grantType) {
 		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for this client", grantType))
 	}
 	// A require client cannot hold these grants (D-0055); this guards
@@ -83,7 +91,7 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 		switch grantType {
 		case clientrules.GrantMFAOTP, clientrules.GrantMFAOOB, clientrules.GrantMFARecoveryCode:
 			t, p, err := h.pendingMFAToken(r.Context(), res, form.Get("mfa_token"), client.ClientID)
-			if err == nil && p.Passkey && p.OrganizationID != "" && p.ConnectionID == t.Connection {
+			if err == nil && (p.Passkey || p.Native != nil) && p.OrganizationID != "" && p.ConnectionID == t.Connection {
 				pending = &pendingMFARequest{token: t, request: p}
 			}
 		}

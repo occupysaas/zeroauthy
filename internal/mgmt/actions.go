@@ -447,6 +447,13 @@ func (h *Handlers) DeleteAction(w http.ResponseWriter, r *http.Request, id strin
 	if err == nil {
 		force, err = boolParam(r, "force", false)
 	}
+	if err == nil && h.supportsClientCredentials(r.Context()) {
+		// C9: an Action a token exchange profile runs cannot be deleted, forced or not.
+		var n int
+		if n, err = h.Store.ClientCredentials().ProfilesForAction(r.Context(), resolved(r).ID, id); err == nil && n > 0 {
+			err = badBody("action is used by a token exchange profile")
+		}
+	}
 	if err == nil {
 		err = h.Store.Actions().DeleteAction(r.Context(), resolved(r).ID, id, force)
 	}

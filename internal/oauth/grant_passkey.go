@@ -10,6 +10,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -29,6 +30,7 @@ import (
 // firstFactorTokens preserves the initial factor and organization through a
 // sealed MFA continuation and the normal user-token/refresh issuance path.
 type firstFactorTokens struct {
+	Native *federation.NativeBinding
 	// RPID scopes enrolled MFA keys independently of native factor availability.
 	RPID         string
 	Passkey      bool

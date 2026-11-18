@@ -163,6 +163,7 @@ func newEnvWithStore(t *testing.T, st store.Store) *env {
 	mux.HandleFunc("POST /u/login/identifier", h.LoginIdentifierResetPost)
 	mux.HandleFunc("POST /u/login/social", h.SocialStart)
 	mux.HandleFunc("GET /login/callback", h.SocialCallback)
+	mux.HandleFunc("POST /login/callback", h.SocialCallback)
 	mux.HandleFunc("GET /u/consent", h.ConsentPage)
 	mux.HandleFunc("POST /u/consent", h.ConsentSubmit)
 	mux.HandleFunc("GET /u/signup", h.SignupPage)

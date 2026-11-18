@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [e2e, e2e-domains, e2e-deploy, e2e-signing, e2e-branding, e2e-email, e2e-social, e2e-email-accounts, e2e-rbac, e2e-actions, e2e-actions-ii, e2e-organizations, e2e-organizations-ii, e2e-logs, e2e-events, e2e-mfa, e2e-passkeys, e2e-passwordless]
+        suite: [e2e, e2e-domains, e2e-deploy, e2e-signing, e2e-branding, e2e-email, e2e-social, e2e-apple, e2e-email-accounts, e2e-rbac, e2e-actions, e2e-actions-ii, e2e-organizations, e2e-organizations-ii, e2e-logs, e2e-events, e2e-mfa, e2e-passkeys, e2e-passwordless, e2e-client-auth]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:

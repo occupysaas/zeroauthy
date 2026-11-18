@@ -160,7 +160,7 @@ const inventory = `{
               },
               "rate": {
                 "type": "integer",
-                "default": 8640000,
+                "default": 600000,
                 "minimum": 34560,
                 "maximum": 86400000
               }

@@ -303,10 +303,11 @@ func New(d Deps) http.Handler {
 		authapi.HandlerWithOptions(authAPI{
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
-				MFA:      d.MFA,
-				Passkeys: d.Passkeys,
-				Recorder: d.Recorder,
-				Store:    d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
+				Federation: d.Federation,
+				MFA:        d.MFA,
+				Passkeys:   d.Passkeys,
+				Recorder:   d.Recorder,
+				Store:      d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
 				LegacySecretSlots:       d.LegacySecretSlots,
 				Auth0RefreshErrorStatus: d.Auth0RefreshErrorStatus,
 				BaseDomain:              d.BaseDomain,
@@ -358,6 +359,7 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/passkey-enrollment-local", lg.PasskeyEnrollmentPost)
 		tr.Post("/u/login/social", lg.SocialStart)
 		tr.Get("/login/callback", lg.SocialCallback)
+		tr.Post("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
 		tr.Get("/u/signup", lg.SignupPage)

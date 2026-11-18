@@ -57,3 +57,52 @@ versions.
 
 PostgreSQL and SQLite run each migration in a transaction; a failed migration
 rolls back and can be retried.
+
+## Plan 35: client authentication, signed requests and token exchange
+
+This release adds `private_key_jwt`, signed authorization requests (JAR),
+HS256 and PS256 API tokens and custom token exchange. When you upgrade:
+
+- **Migration 0036** adds the client credential, token exchange profile and
+  assertion-replay tables; the nullable `clients` columns
+  `client_authentication_methods`, `signed_request_object` and
+  `token_exchange`; `resource_servers.signing_secret_sealed`; and
+  `pushed_auth_requests.signed`. It is forward only; back up first as above.
+- **Published signing keys lose `alg`.** The tenant's JWKS now lists each
+  signing key without an `alg` member (RFC 7517 makes it optional), so a
+  verifier accepts both RS256 and PS256 tokens signed with that key. `kty`,
+  `use`, `kid`, `n` and `e` are unchanged. A verifier that required `alg` in
+  the JWK needs a configured algorithm.
+- **Discovery changes** when the store supports client credentials: it lists
+  `private_key_jwt` in `token_endpoint_auth_methods_supported`, the accepted
+  assertion and request-object signing algorithms, and
+  `request_parameter_supported: true`.
+- **Request object errors.** A malformed, unverifiable or unconfigured signed
+  `request` now answers `invalid_request_object`; it used to answer
+  `request_not_supported`. An unsigned (`alg` none) object is still
+  `request_not_supported`.
+- **Throttle rate for custom token exchange.** Tenants initialised before this
+  release keep the `pre-custom-token-exchange` rate they were created with,
+  8640000 ms. The documented default is 600000 ms: set it with the
+  attack-protection API (see [attack protection](attack-protection.md)) to
+  get it.
+- **Storage plugins** need the `client_credentials.v1` capability for the new
+  features. Without it, the new Management API writes answer `501`, and
+  `private_key_jwt`, signed requests and token exchange are unavailable; the
+  other features keep working. See [stability](stability.md).
+
+## Plan 39a: Sign in with Apple
+
+Migration **0037** adds the native-social client JSON column in SQLite,
+PostgreSQL and MySQL. Apply migrations before starting the new server, or use
+`storage.auto_migrate`; gRPC store plugins must also be rebuilt for the
+additive client and identity fields. Existing mobile settings are preserved.
+Old clients default to native social login disabled. Check migration numbers
+against main before merging concurrent plans.
+
+Apple connections require the operator's Services ID, Team ID, Key ID and
+PKCS#8 P-256 `.p8` key. Seed keys use `file://` or `env://` references; Deploy
+CLI exports omit the key and imports require explicit credential reinjection.
+Enable native Apple separately per application and set its iOS bundle ID.
+Facebook and Google switches persist but do not enable their native flows.
+See [social connections](social-connections.md) and D-0170.

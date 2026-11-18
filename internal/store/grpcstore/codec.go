@@ -125,6 +125,8 @@ func errToPB(err error) *storev1.Error {
 		return nil
 	case errors.Is(err, store.ErrPhoneUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_PHONE_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrClientCredentialsUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_CLIENT_CREDENTIALS_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrWebAuthnUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_WEBAUTHN_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrMFAUnavailable):
@@ -173,6 +175,8 @@ func errFromPB(e *storev1.Error) error {
 	switch e.Kind {
 	case storev1.Error_KIND_PHONE_UNAVAILABLE:
 		return store.ErrPhoneUnavailable
+	case storev1.Error_KIND_CLIENT_CREDENTIALS_UNAVAILABLE:
+		return store.ErrClientCredentialsUnavailable
 	case storev1.Error_KIND_WEBAUTHN_UNAVAILABLE:
 		return store.ErrWebAuthnUnavailable
 	case storev1.Error_KIND_MFA_UNAVAILABLE:
@@ -367,7 +371,13 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		}
 	}
 	var err error
+	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
+		return nil, err
+	}
 	if pb.Mobile, err = optJSON(c.Mobile, c.Mobile == nil); err != nil {
+		return nil, err
+	}
+	if err = clientCredentialFieldsToPB(c, pb); err != nil {
 		return nil, err
 	}
 	return pb, nil
@@ -419,7 +429,13 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 				Hash: s.GetHash(), Sealed: optBytes(s.GetSealed()), CreatedAt: tsFromPB(s.GetCreatedAt()), ExpiresAt: optTSFromPB(s.GetExpiresAt())})
 		}
 	}
+	if err := fromOptJSON(pb.NativeSocialLogin, &c.NativeSocialLogin); err != nil {
+		return nil, err
+	}
 	if err := fromOptJSON(pb.Mobile, &c.Mobile); err != nil {
+		return nil, err
+	}
+	if err := clientCredentialFieldsFromPB(pb, c); err != nil {
 		return nil, err
 	}
 	return c, nil
@@ -438,6 +454,7 @@ func resourceServerToPB(r *store.ResourceServer) (*storev1.ResourceServer, error
 		SkipConsentForVerifiableFirstPartyClients: proto.Bool(r.SkipConsentForVerifiableFirstPartyClients),
 		UserPolicy: r.SubjectTypeAuthorization.User, ClientPolicy: r.SubjectTypeAuthorization.Client,
 		IsSystem: r.IsSystem, Origin: r.Origin, TokenLifetimeForWeb: int64(r.TokenLifetimeForWeb),
+		SigningSecretSealed: cloneBytes(r.SigningSecretSealed),
 	}
 	if r.Scopes != nil {
 		pb.Scopes = &storev1.ScopeList{Values: make([]*storev1.Scope, 0, len(r.Scopes))}
@@ -464,6 +481,7 @@ func resourceServerFromPB(pb *storev1.ResourceServer) (*store.ResourceServer, er
 		IsSystem:                                  pb.IsSystem,
 		Origin:                                    pb.Origin,
 		TokenLifetimeForWeb:                       int(pb.TokenLifetimeForWeb),
+		SigningSecretSealed:                       optBytes(pb.SigningSecretSealed),
 	}
 	if pb.Scopes != nil {
 		r.Scopes = make([]store.Scope, 0, len(pb.Scopes.Values))
@@ -820,6 +838,13 @@ func userToPB(u *store.User) (*storev1.User, error) {
 				}
 				pid.ProfileDataJson = b
 			}
+			if id.ProviderData != nil {
+				b, err := json.Marshal(id.ProviderData)
+				if err != nil {
+					return nil, fmt.Errorf("grpcstore: encode identity provider data: %w", err)
+				}
+				pid.ProviderDataJson = b
+			}
 			pb.Identities.Values = append(pb.Identities.Values, pid)
 		}
 	}
@@ -862,6 +887,11 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 			if id.ProfileDataJson != nil {
 				if err := json.Unmarshal(id.ProfileDataJson, &sid.ProfileData); err != nil {
 					return nil, fmt.Errorf("grpcstore: decode identity profile data: %w", err)
+				}
+			}
+			if id.ProviderDataJson != nil {
+				if err := json.Unmarshal(id.ProviderDataJson, &sid.ProviderData); err != nil {
+					return nil, fmt.Errorf("grpcstore: decode identity provider data: %w", err)
 				}
 			}
 			u.Identities = append(u.Identities, sid)
@@ -1003,6 +1033,7 @@ func pushedAuthRequestToPB(p *store.PushedAuthRequest) (*storev1.PushedAuthReque
 		Origin:   p.Origin,
 		TenantId: p.TenantID, IdHash: p.IDHash, ClientId: p.ClientID, Params: stringMapToPB(p.Params),
 		ExpiresAt: tsToPB(p.ExpiresAt), CreatedAt: tsToPB(p.CreatedAt), UsedAt: optTSToPB(p.UsedAt),
+		Signed: p.Signed,
 	}, nil
 }
 
@@ -1017,6 +1048,7 @@ func pushedAuthRequestFromPB(pb *storev1.PushedAuthRequest) (*store.PushedAuthRe
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, IDHash: pb.IdHash, ClientID: pb.ClientId, Params: stringMapFromPB(pb.Params),
 		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt), UsedAt: optTSFromPB(pb.UsedAt),
+		Signed: pb.Signed,
 	}, nil
 }
 

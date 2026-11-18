@@ -11,7 +11,9 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
@@ -24,6 +26,7 @@ import (
 // The entire request is sealed: Action custom claims and their values may
 // contain credentials. No raw token or unsealed Action material is persisted.
 type mfaRequest struct {
+	Native                       *federation.NativeBinding
 	Passkey                      bool
 	OrganizationID, ConnectionID string
 	Audience, Origin             string
@@ -102,7 +105,7 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 	}
 	raw := secrets.RandomString(48)
 	t := &store.MFAToken{TenantID: res.Tenant.ID, Hash: secrets.HashToken(raw), ClientID: c.ClientID, UserID: u.UserID, Connection: conn.ID, ExpiresAt: now.Add(mfaTokenLifetime)}
-	p, err := json.Marshal(mfaRequest{Passkey: flow.Passkey, OrganizationID: orgID, ConnectionID: flow.ConnectionID, Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
+	p, err := json.Marshal(mfaRequest{Native: flow.Native, Passkey: flow.Passkey, OrganizationID: orgID, ConnectionID: flow.ConnectionID, Audience: aud, Origin: res.Origin(), Scopes: scopes, Ceiling: ceiling, Effects: eff, Requirement: req, AuthTime: now, UserVersion: u.Version})
 	if err != nil {
 		return serverError()
 	}
@@ -114,7 +117,36 @@ func (h *Handlers) passwordMFA(ctx context.Context, res tenant.Resolved, c *stor
 	if err != nil {
 		return serverError()
 	}
-	if err = h.Store.MFA().CreateMFAToken(ctx, t); err != nil {
+	create := func(tx store.Store) error {
+		if flow.Native != nil {
+			if h.Federation == nil {
+				return errUserChanged
+			}
+			if _, err := h.Federation.CheckNative(ctx, tx, flow.Native); err != nil {
+				return err
+			}
+			if err := checkTokenOrganization(ctx, tx, res.Tenant.ID, u.UserID, orgID, flow.ConnectionID, c.ClientID); err != nil {
+				return err
+			}
+			current, err := tx.Users().GetForUpdate(ctx, res.Tenant.ID, u.UserID)
+			if err != nil {
+				return err
+			}
+			if current.Blocked || current.Version != u.Version {
+				return errUserChanged
+			}
+		}
+		return tx.MFA().CreateMFAToken(ctx, t)
+	}
+	if flow.Native != nil {
+		err = h.Store.WithTx(ctx, create)
+		if errors.Is(err, federation.ErrAttemptStale) || errors.Is(err, federation.ErrConnectionUnusable) || errors.Is(err, errOrganizationGrant) {
+			return invalidGrant("the native login is no longer eligible")
+		}
+	} else {
+		err = create(h.Store)
+	}
+	if err != nil {
 		return mfaError(err)
 	}
 	logs.AddCredentials(ctx, raw)
@@ -239,11 +271,19 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 	if e != nil {
 		return nil, e
 	}
-	resp, write, e := h.preparePasswordTokens(ctx, res, c, u, rs, lifetime, p.Audience, d.Scopes, p.Ceiling, p.Effects, p.AuthTime, h.now(), firstFactorTokens{Passkey: p.Passkey, Organization: org, ConnectionID: p.ConnectionID})
+	resp, write, e := h.preparePasswordTokens(ctx, res, c, u, rs, lifetime, p.Audience, d.Scopes, p.Ceiling, p.Effects, p.AuthTime, h.now(), firstFactorTokens{Native: p.Native, Passkey: p.Passkey, Organization: org, ConnectionID: p.ConnectionID})
 	if e != nil {
 		return nil, e
 	}
 	svc := h.MFA.WithProofCommit(func(tx store.Store) error {
+		if p.Native != nil {
+			if h.Federation == nil {
+				return errUserChanged
+			}
+			if _, err := h.Federation.CheckNative(ctx, tx, p.Native); err != nil {
+				return errUserChanged
+			}
+		}
 		if err := checkTokenOrganization(ctx, tx, t.TenantID, uid, p.OrganizationID, p.ConnectionID, c.ClientID); err != nil {
 			return err
 		}
@@ -310,6 +350,11 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 	}
 	if err != nil {
 		return nil, mfaError(err)
+	}
+	if p.Native != nil {
+		if err := h.Store.Users().RecordLogin(ctx, t.TenantID, uid, h.now().UTC(), httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
+			h.log().WarnContext(ctx, "record native login", "err", err)
+		}
 	}
 	if next != "" {
 		resp.RecoveryCode = &next

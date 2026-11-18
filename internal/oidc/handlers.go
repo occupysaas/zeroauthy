@@ -45,21 +45,28 @@ type Configuration struct {
 	// RequestURIParameterSupported is always false (D-0030): request_uri is
 	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
 	RequestURIParameterSupported bool `json:"request_uri_parameter_supported"`
-	// RequestParameterSupported is always false: request objects are
-	// refused with request_not_supported. Auth0 advertises true (JAR).
-	RequestParameterSupported         bool     `json:"request_parameter_supported"`
-	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
-	JWKSURI                           string   `json:"jwks_uri"`
-	EndSessionEndpoint                string   `json:"end_session_endpoint"`
-	ResponseTypesSupported            []string `json:"response_types_supported"`
-	ResponseModesSupported            []string `json:"response_modes_supported"`
-	SubjectTypesSupported             []string `json:"subject_types_supported"`
-	IDTokenSigningAlgValuesSupported  []string `json:"id_token_signing_alg_values_supported"`
-	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
-	GrantTypesSupported               []string `json:"grant_types_supported"`
-	CodeChallengeMethodsSupported     []string `json:"code_challenge_methods_supported"`
-	ScopesSupported                   []string `json:"scopes_supported"`
-	ClaimsSupported                   []string `json:"claims_supported"`
+	// RequestParameterSupported is true when signed request objects (JAR)
+	// are processed, which needs client_credentials.v1 (D-0035, D-0063).
+	RequestParameterSupported bool `json:"request_parameter_supported"`
+	// RequestObjectSigningAlgValuesSupported are the JAR algorithms
+	// (clientcred.Verify), present only with request object support.
+	RequestObjectSigningAlgValuesSupported []string `json:"request_object_signing_alg_values_supported,omitempty"`
+	UserinfoEndpoint                       string   `json:"userinfo_endpoint"`
+	JWKSURI                                string   `json:"jwks_uri"`
+	EndSessionEndpoint                     string   `json:"end_session_endpoint"`
+	ResponseTypesSupported                 []string `json:"response_types_supported"`
+	ResponseModesSupported                 []string `json:"response_modes_supported"`
+	SubjectTypesSupported                  []string `json:"subject_types_supported"`
+	IDTokenSigningAlgValuesSupported       []string `json:"id_token_signing_alg_values_supported"`
+	TokenEndpointAuthMethodsSupported      []string `json:"token_endpoint_auth_methods_supported"`
+	// TokenEndpointAuthSigningAlgValuesSupported are the private_key_jwt
+	// assertion algorithms (clientcred.Verify), present only with
+	// private_key_jwt.
+	TokenEndpointAuthSigningAlgValuesSupported []string `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
+	GrantTypesSupported                        []string `json:"grant_types_supported"`
+	CodeChallengeMethodsSupported              []string `json:"code_challenge_methods_supported"`
+	ScopesSupported                            []string `json:"scopes_supported"`
+	ClaimsSupported                            []string `json:"claims_supported"`
 }
 
 func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +96,14 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		ScopesSupported:                   []string{"openid", "profile", "email", "offline_access"},
 		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",
 			"name", "given_name", "family_name", "nickname", "picture", "updated_at", "email", "email_verified"},
+	}
+	// Without client_credentials.v1 private_key_jwt and JAR are unavailable
+	// (spec §7).
+	if h.Store != nil && store.ClientCredentialsAvailable(r.Context(), h.Store) {
+		cfg.TokenEndpointAuthMethodsSupported = []string{"client_secret_basic", "client_secret_post", "private_key_jwt", "none"}
+		cfg.TokenEndpointAuthSigningAlgValuesSupported = []string{"RS256", "RS384", "PS256"}
+		cfg.RequestParameterSupported = true
+		cfg.RequestObjectSigningAlgValuesSupported = []string{"RS256", "RS384", "PS256"}
 	}
 	if res.Tenant.PushedAuthorizationRequestsSupported {
 		cfg.PushedAuthorizationRequestEndpoint = base + "/oauth/par" // P8

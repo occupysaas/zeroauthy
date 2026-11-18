@@ -29,7 +29,7 @@ func setup(t *testing.T) (http.Handler, *keys.Manager) {
 	if err := km.Ensure(ctx, "ten_acme"); err != nil {
 		t.Fatal(err)
 	}
-	h := &Handlers{Keys: km}
+	h := &Handlers{Keys: km, Store: st}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /.well-known/openid-configuration", h.Discovery)
 	mux.HandleFunc("GET /.well-known/jwks.json", h.Jwks)
@@ -70,12 +70,11 @@ func TestDiscovery(t *testing.T) {
 		}
 	}
 	wantLists := map[string][]string{
-		"grant_types_supported":                 {"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
-		"response_types_supported":              {"code"},
-		"response_modes_supported":              {"query", "fragment", "form_post", "web_message"},
-		"code_challenge_methods_supported":      {"S256"},
-		"scopes_supported":                      {"openid", "profile", "email", "offline_access"},
-		"token_endpoint_auth_methods_supported": {"client_secret_basic", "client_secret_post", "none"},
+		"grant_types_supported":            {"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
+		"response_types_supported":         {"code"},
+		"response_modes_supported":         {"query", "fragment", "form_post", "web_message"},
+		"code_challenge_methods_supported": {"S256"},
+		"scopes_supported":                 {"openid", "profile", "email", "offline_access"},
 	}
 	for k, want := range wantLists {
 		var got []string
@@ -92,9 +91,9 @@ func TestDiscovery(t *testing.T) {
 	if len(doc["claims_supported"].([]any)) == 0 {
 		t.Error("claims_supported is empty")
 	}
-	// OIDF oidcc-unsigned-request-object…: request objects are refused (Discovery §3).
-	if v, ok := doc["request_parameter_supported"]; !ok || v != false {
-		t.Errorf("request_parameter_supported = %v (present %v), want false", v, ok)
+	// Signed request objects (JAR) are processed (D-0035 as amended, D-0063).
+	if v, ok := doc["request_parameter_supported"]; !ok || v != true {
+		t.Errorf("request_parameter_supported = %v (present %v), want true", v, ok)
 	}
 	// OIDF oidcc-scope-profile: given_name and family_name are emitted for profile.
 	for _, c := range []string{"given_name", "family_name"} {
@@ -104,6 +103,61 @@ func TestDiscovery(t *testing.T) {
 	}
 	if cc := rec.Header().Get("Cache-Control"); cc != "public, max-age=300" {
 		t.Errorf("Cache-Control = %q", cc)
+	}
+}
+
+type noClientCredentialsStore struct{ store.Store }
+
+func (noClientCredentialsStore) ClientCredentials() store.ClientCredentials {
+	return store.UnimplementedClientCredentials{}
+}
+
+// TestDiscoveryAuthMethods: private_key_jwt with its three signing
+// algorithms (Plan 35, D-0063), advertised only when the store has the
+// client_credentials.v1 capability (spec §7).
+func TestDiscoveryAuthMethods(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_acme", Name: "acme", CanonicalHost: "acme.example.test", Domains: []string{"acme.example.test"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name    string
+		store   store.Store
+		methods []string
+		algs    []string
+	}{
+		{"available", st, []string{"client_secret_basic", "client_secret_post", "private_key_jwt", "none"}, []string{"RS256", "RS384", "PS256"}},
+		{"unavailable", noClientCredentialsStore{st}, []string{"client_secret_basic", "client_secret_post", "none"}, nil},
+		{"no store", nil, []string{"client_secret_basic", "client_secret_post", "none"}, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &Handlers{}
+			if tc.store != nil {
+				h.Store = tc.store
+			}
+			mux := http.NewServeMux()
+			mux.HandleFunc("GET /.well-known/openid-configuration", h.Discovery)
+			rec := get(contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)), "https://acme.example.test/.well-known/openid-configuration")
+			var doc map[string]json.RawMessage
+			if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+				t.Fatal(err)
+			}
+			var methods, algs []string
+			_ = json.Unmarshal(doc["token_endpoint_auth_methods_supported"], &methods)
+			if raw, ok := doc["token_endpoint_auth_signing_alg_values_supported"]; ok {
+				if tc.algs == nil {
+					t.Errorf("token_endpoint_auth_signing_alg_values_supported present: %s", raw)
+				}
+				_ = json.Unmarshal(raw, &algs)
+			}
+			if !slices.Equal(methods, tc.methods) {
+				t.Errorf("token_endpoint_auth_methods_supported = %v, want %v", methods, tc.methods)
+			}
+			if !slices.Equal(algs, tc.algs) {
+				t.Errorf("token_endpoint_auth_signing_alg_values_supported = %v, want %v", algs, tc.algs)
+			}
+		})
 	}
 }
 
@@ -173,5 +227,53 @@ func TestDiscoveryAdvertisesPAROnlyWhenEnabled(t *testing.T) {
 	}
 	if on["pushed_authorization_request_endpoint"] != "https://par.example.test/oauth/par" {
 		t.Fatalf("pushed_authorization_request_endpoint = %v", on["pushed_authorization_request_endpoint"])
+	}
+}
+
+// TestDiscoveryRequestObject: JAR support and its algorithms, advertised only
+// when the store has client_credentials.v1 (spec §4, §7).
+func TestDiscoveryRequestObject(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_acme", Name: "acme", CanonicalHost: "acme.example.test", Domains: []string{"acme.example.test"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name      string
+		store     store.Store
+		supported bool
+		algs      []string
+	}{
+		{"available", st, true, []string{"RS256", "RS384", "PS256"}},
+		{"unavailable", noClientCredentialsStore{st}, false, nil},
+		{"no store", nil, false, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &Handlers{}
+			if tc.store != nil {
+				h.Store = tc.store
+			}
+			mux := http.NewServeMux()
+			mux.HandleFunc("GET /.well-known/openid-configuration", h.Discovery)
+			rec := get(contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)), "https://acme.example.test/.well-known/openid-configuration")
+			var doc map[string]json.RawMessage
+			if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+				t.Fatal(err)
+			}
+			var supported bool
+			if err := json.Unmarshal(doc["request_parameter_supported"], &supported); err != nil || supported != tc.supported {
+				t.Errorf("request_parameter_supported = %s, want %v", doc["request_parameter_supported"], tc.supported)
+			}
+			var algs []string
+			if raw, ok := doc["request_object_signing_alg_values_supported"]; ok {
+				if tc.algs == nil {
+					t.Errorf("request_object_signing_alg_values_supported present: %s", raw)
+				}
+				_ = json.Unmarshal(raw, &algs)
+			}
+			if !slices.Equal(algs, tc.algs) {
+				t.Errorf("request_object_signing_alg_values_supported = %v, want %v", algs, tc.algs)
+			}
+		})
 	}
 }

@@ -1,6 +1,6 @@
 # Pushed authorization requests (PAR)
 
-zeroauthy supports pushed authorization requests (RFC 9126) the way Auth0 does. Instead of putting every authorization parameter in the browser URL, a confidential application sends them to `POST /oauth/par` over a direct connection, authenticated with its client secret, and receives a short-lived `request_uri`. The browser is then sent to `/authorize` with only `client_id` and that `request_uri`. The design decisions are D-0028 (the endpoint), D-0029 (`request_uri` at `/authorize` and required PAR) and D-0030 (settings and discovery) in [compat/decisions.md](compat/decisions.md); the observed values are in [compat/observations/par.md](compat/observations/par.md). The design is in `docs/superpowers/specs/2026-10-16-zeroauthy-par-design.md`.
+zeroauthy supports pushed authorization requests (RFC 9126) the way Auth0 does. Instead of putting every authorization parameter in the browser URL, a confidential application sends them to `POST /oauth/par` over a direct connection, authenticated with its client secret or a `private_key_jwt` assertion, and receives a short-lived `request_uri`. The browser is then sent to `/authorize` with only `client_id` and that `request_uri`. The design decisions are D-0028 (the endpoint), D-0029 (`request_uri` at `/authorize` and required PAR) and D-0030 (settings and discovery) in [compat/decisions.md](compat/decisions.md); the observed values are in [compat/observations/par.md](compat/observations/par.md). The design is in `docs/superpowers/specs/2026-10-16-zeroauthy-par-design.md`.
 
 ## When to use it
 
@@ -71,7 +71,7 @@ The rest of the flow (login, consent, code exchange) is unchanged.
 
 At `/oauth/par`:
 
-- The client must be a first-party confidential client authenticating with `client_secret_basic` or `client_secret_post`. A wrong secret is `401 invalid_client`. A public client or any third-party client (strict or permissive) gets `400 invalid_request`.
+- The client must be a first-party confidential client authenticating with `client_secret_basic`, `client_secret_post` or `private_key_jwt` (a local ruling, LR35-1; see [client authentication](client-authentication.md)). A wrong secret or a bad assertion is `401 invalid_client`. The request may carry a signed `request` object (JAR); a bad one is `400 invalid_request_object`. A public client or any third-party client (strict or permissive) gets `400 invalid_request`.
 - The body must be form-encoded; JSON is `400 invalid_request`. It may be at most 10 KB (`413 payload_too_large`), may not repeat a parameter and may not contain `request_uri`.
 - At most 10 parameters starting with `ext-` are kept; an 11th is `400 invalid_request`. Other unknown parameters are dropped.
 - The request is validated like an `/authorize` request. Errors keep the `/authorize` error code, returned as JSON with the status for that code: `invalid_request` 400, `unauthorized_client` 403, `access_denied` 403, `unsupported_response_type` 501. Nothing is redirected.
@@ -95,4 +95,4 @@ Plugins built before this version cannot store pushed requests. Their expiry swe
 - `response_type=token` at PAR is `501 unsupported_response_type`. Auth0 answers `403 unauthorized_client` for a client without the implicit grant; zeroauthy has no implicit grant for any client (D-0028).
 - zeroauthy checks `response_mode` and `prompt` when the request is pushed. Auth0 accepts unknown values there and checks them at `/authorize` (D-0028).
 - Strict third-party clients keep refusing `request_uri` at `/authorize` (D-0025, D-0029).
-- Not yet supported: `private_key_jwt` and mTLS client authentication, signed request objects (JAR), `authorization_details` (RAR), the RFC 9207 `iss` response parameter, and Actions access to `ext-` parameters. See "Plan 10 follow-ups" in `docs/superpowers/plan-1-followups.md`.
+- Not supported: mTLS client authentication, `authorization_details` (RAR) and unsigned request objects (`alg` none), the RFC 9207 `iss` response parameter, and Actions access to `ext-` parameters. (`private_key_jwt` and signed request objects are supported since Plan 35.) See "Plan 10 follow-ups" in `docs/superpowers/plan-1-followups.md`.

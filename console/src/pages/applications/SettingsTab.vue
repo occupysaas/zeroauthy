@@ -18,7 +18,7 @@ const emit = defineEmits<{ saved: [Client] }>()
 const { api } = useServices()
 
 const form = reactive({ name: '', callbacks: '', logout: '', webOrigins: '', allowedOrigins: '',
-  passkeyGrant: false, iosEnabled: false, androidEnabled: false, iosTeam: '', iosBundle: '', androidPackage: '', fingerprints: '',
+  nativeApple: false, passkeyGrant: false, iosEnabled: false, androidEnabled: false, iosTeam: '', iosBundle: '', androidPackage: '', fingerprints: '',
   organizationUsage: 'deny' as 'deny' | 'allow' | 'require',
   organizationBehavior: 'no_prompt' as 'no_prompt' | 'pre_login_prompt' | 'post_login_prompt',
   discovery: [] as ('email' | 'organization_name')[],
@@ -32,6 +32,7 @@ let initialMobile = ''
 watch(key, () => { busy.value = false; general.value = ''; status.value = ''; reset(props.client); for (const k of Object.keys(errors)) delete errors[k] }, { flush: 'sync' })
 
 function reset(c: Client) {
+  form.nativeApple = c.native_social_login?.apple?.enabled === true
   form.passkeyGrant = c.grant_types.includes('urn:okta:params:oauth:grant-type:webauthn')
   form.iosEnabled = !!c.mobile?.ios; form.androidEnabled = !!c.mobile?.android
   form.iosTeam = c.mobile?.ios?.team_id ?? ''; form.iosBundle = c.mobile?.ios?.app_bundle_identifier ?? ''
@@ -89,6 +90,7 @@ async function save() {
   }
   const grant = 'urn:okta:params:oauth:grant-type:webauthn'
   if (form.passkeyGrant !== props.client.grant_types.includes(grant)) body.grant_types = form.passkeyGrant ? [...props.client.grant_types, grant] : props.client.grant_types.filter(item => item !== grant)
+  if (form.nativeApple !== (props.client.native_social_login?.apple?.enabled === true)) body.native_social_login = { ...props.client.native_social_login, apple: {enabled: form.nativeApple} }
   const mobile = mobileSettings()
   if (JSON.stringify(mobile) !== initialMobile) body.mobile = mobile
   try {
@@ -159,6 +161,7 @@ function describedBy(id: string, hint: boolean): string {
       </fieldset>
       <label><input id="app-passkey-grant" v-model="form.passkeyGrant" type="checkbox" /> {{ t('passkeys.grant') }}</label>
       <fieldset class="stack"><legend>{{ t('passkeys.devices') }}</legend>
+        <label><input id="app-native-apple" v-model="form.nativeApple" type="checkbox" /> {{ t('social.nativeApple') }}</label>
         <label><input id="app-ios-enabled" v-model="form.iosEnabled" type="checkbox" @change="!form.iosEnabled && (form.iosTeam = '', form.iosBundle = '')" /> {{ t('passkeys.iosEnabled') }}</label>
         <Field id="app-ios-team" :label="t('passkeys.iosTeam')"><input id="app-ios-team" v-model="form.iosTeam" /></Field>
         <Field id="app-ios-bundle" :label="t('passkeys.iosBundle')"><input id="app-ios-bundle" v-model="form.iosBundle" /></Field>

@@ -98,7 +98,7 @@ func validateIDTokenClaims(in ExchangeInput, tokens TokenSet, c map[string]any, 
 	if !okExp || !okIat || !now.Before(exp.Add(clockSkew)) || iat.After(now.Add(clockSkew)) {
 		return idTokenError("is expired or not yet valid")
 	}
-	if nonce, _ := c["nonce"].(string); in.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonce), []byte(in.Nonce)) != 1 {
+	if nonce, _ := c["nonce"].(string); !(in.Config.Strategy == StrategyApple && in.AppleNative) && (in.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonce), []byte(in.Nonce)) != 1) {
 		return idTokenError("nonce mismatch")
 	}
 	if sub, _ := c["sub"].(string); ValidateSubject(sub) != nil {

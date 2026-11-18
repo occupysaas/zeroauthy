@@ -61,6 +61,10 @@ tags:
     description: Automatic login and suspicious-IP blocks.
   - name: clients
     description: Applications (Auth0's `/api/v2/clients`).
+  - name: client-credentials
+    description: Public keys of an application (Auth0's `/api/v2/clients/{id}/credentials`).
+  - name: token-exchange-profiles
+    description: Custom token exchange profiles (Auth0's `/api/v2/token-exchange-profiles`).
   - name: resource-servers
     description: APIs (Auth0's `/api/v2/resource-servers`).
   - name: client-grants
@@ -4010,6 +4014,270 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/clients/{id}/credentials:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The application's client ID.
+        schema: {type: string}
+    get:
+      operationId: getClientCredentials
+      tags: [client-credentials]
+      summary: List an application's credentials
+      description: |
+        The application's credentials in creation order (`created_at`, then
+        ID). Requires `read:client_credentials`. The PEM is never returned
+        (D-0063, C1). An unknown application is `404 inexistent_client`.
+        A storage plugin without the `client_credentials.v1` capability
+        answers `501`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/get-credentials
+      responses:
+        "200":
+          description: The credentials.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/ClientCredential"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+    post:
+      operationId: postClientCredentials
+      tags: [client-credentials]
+      summary: Add a credential to an application
+      description: |
+        Requires `create:client_credentials`. Registers an RSA public key (a
+        PEM public key or X.509 certificate, 2048 to 4096 bits) for the
+        application. At most two credentials per application (`400`, C2).
+        `credential_type` `cert_subject_dn` is refused with `400`.
+        `parse_expiry_from_cert` needs a certificate and excludes
+        `expires_at`; without either the credential never expires (LR35-2).
+        Unknown fields are refused (`invalid_body`).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/post-credentials
+        - https://auth0.com/docs/get-started/applications/configure-private-key-jwt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClientCredentialCreate"}
+      responses:
+        "201":
+          description: The new credential.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ClientCredential"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+  /api/v2/clients/{id}/credentials/{credential_id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The application's client ID.
+        schema: {type: string}
+      - name: credential_id
+        in: path
+        required: true
+        description: The credential's ID, `cred_` followed by 22 letters and digits.
+        schema: {type: string}
+    get:
+      operationId: getClientCredential
+      tags: [client-credentials]
+      summary: Get a credential
+      description: Requires `read:client_credentials`. An unknown credential is `404`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/get-credentials-by-credential-id
+      responses:
+        "200":
+          description: The credential.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ClientCredential"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+    patch:
+      operationId: patchClientCredential
+      tags: [client-credentials]
+      summary: Change a credential's expiry
+      description: |
+        Requires `update:credentials` (`update:client_credentials` also
+        works, as the OpenAPI lists it). Only `expires_at` can change (null
+        removes the expiry); any other field is `400 invalid_body`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/patch-credentials-by-credential-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClientCredentialUpdate"}
+      responses:
+        "200":
+          description: The updated credential.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ClientCredential"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+    delete:
+      operationId: deleteClientCredential
+      tags: [client-credentials]
+      summary: Delete a credential
+      description: |
+        Requires `delete:client_credentials`. Removes the credential and
+        detaches it from the application's `private_key_jwt` and
+        `signed_request_object` settings (C3).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/delete-credentials-by-credential-id
+      responses:
+        "204": {description: Deleted.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+  /api/v2/token-exchange-profiles:
+    get:
+      operationId: getTokenExchangeProfiles
+      tags: [token-exchange-profiles]
+      summary: List token exchange profiles
+      description: |
+        The tenant's profiles in ID order. Requires
+        `read:token_exchange_profiles`. Checkpoint paging: `take` is the page
+        size (1 to 100, 50 by default) and `from` the `next` of the previous
+        page; `next` is absent on the last page.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/token-exchange-profiles/get-token-exchange-profiles
+      parameters:
+        - name: from
+          in: query
+          description: Checkpoint paging cursor, the `next` of the previous page.
+          schema: {type: string}
+        - name: take
+          in: query
+          description: Page size, 1 to 100 (50 by default).
+          schema: {type: integer, minimum: 1, maximum: 100}
+      responses:
+        "200":
+          description: A page of profiles.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TokenExchangeProfilePage"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+    post:
+      operationId: postTokenExchangeProfile
+      tags: [token-exchange-profiles]
+      summary: Create a token exchange profile
+      description: |
+        Requires `create:token_exchange_profiles`. Binds a
+        `subject_token_type` to a deployed Action whose trigger is
+        `custom-token-exchange`. A `subject_token_type` already in use is
+        `409`; at most 100 profiles per tenant (`403`, C8). The 400 messages
+        are "Action not found", "Action is not deployed" and "Action must have
+        supported_triggers: custom-token-exchange". Unknown fields are
+        refused.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/token-exchange-profiles/post-token-exchange-profiles
+        - https://auth0.com/docs/authenticate/custom-token-exchange/configure-custom-token-exchange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TokenExchangeProfileCreate"}
+      responses:
+        "201":
+          description: The new profile.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TokenExchangeProfile"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+  /api/v2/token-exchange-profiles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The profile's ID, `tep_` followed by 22 letters and digits.
+        schema: {type: string}
+    get:
+      operationId: getTokenExchangeProfile
+      tags: [token-exchange-profiles]
+      summary: Get a token exchange profile
+      description: Requires `read:token_exchange_profiles`. An unknown ID is `404`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/token-exchange-profiles/get-token-exchange-profiles-by-id
+      responses:
+        "200":
+          description: The profile.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TokenExchangeProfile"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+    patch:
+      operationId: patchTokenExchangeProfile
+      tags: [token-exchange-profiles]
+      summary: Update a token exchange profile
+      description: |
+        Requires `update:token_exchange_profiles`. Changes `name` or
+        `subject_token_type`; `action_id` and `type` cannot change (unknown
+        properties, `400`). A `subject_token_type` already in use is `409`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/token-exchange-profiles/patch-token-exchange-profiles-by-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TokenExchangeProfileUpdate"}
+      responses:
+        "200":
+          description: The updated profile.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TokenExchangeProfile"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
+    delete:
+      operationId: deleteTokenExchangeProfile
+      tags: [token-exchange-profiles]
+      summary: Delete a token exchange profile
+      description: Requires `delete:token_exchange_profiles`. An unknown ID is `404`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/token-exchange-profiles/delete-token-exchange-profiles-by-id
+      responses:
+        "204": {description: Deleted.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/NotImplemented"}
   /api/v2/resource-servers:
     get:
       operationId: getResourceServers
@@ -4399,10 +4667,15 @@ paths:
         unknown keys inside `options` are stored and returned as sent.
         `options.configuration` values are sealed at rest and returned as
         opaque blobs, never as plaintext.
+        Plan 39a implements `apple` options in `ConnectionOptionsApple`:
+        operator credentials are required on create, `client_id` is immutable,
+        and `app_secret` is sealed and never returned. Apple web and native
+        authorization-code login are active (D-0170).
       x-source:
         - https://auth0.com/docs/api/management/v2/connections/post-connections
         - https://auth0.com/docs/oas/management/v2/management-api-oas.json
         - https://auth0.com/docs/authenticate/passwordless
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native
       requestBody:
         required: true
         content:
@@ -13568,6 +13841,56 @@ components:
       properties:
         length: {type: integer, minimum: 4, maximum: 40, default: 6}
         time_step: {type: integer, minimum: 60, default: 180, description: Code and link lifetime in seconds.}
+    ConnectionOptionsApple:
+      type: object
+      description: |
+        Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
+        app_secret; no developer credentials are supplied. The Services ID
+        is immutable. PATCH omitting app_secret preserves the sealed key;
+        empty/null keys are refused. Key parsing and consistency between
+        scope and the name/email flags are checked by the option rules.
+        Rotating team_id, kid or app_secret increments FederationRevision.
+        Local format and scope limits follow LR39a-4 through LR39a-6.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native
+      additionalProperties: true
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 255, description: Apple Services ID; immutable after creation.}
+        team_id: {type: string, pattern: '^[A-Z0-9]{10}$'}
+        kid: {type: string, pattern: '^[A-Z0-9]{10}$'}
+        app_secret:
+          type: string
+          minLength: 1
+          maxLength: 5120
+          writeOnly: true
+          description: PKCS#8 PEM EC P-256 private key; sealed at write and never returned, logged or exported.
+        name: {type: boolean, default: true, description: Request the name on the first authorization.}
+        email: {type: boolean, default: true, description: Request email; the user may choose an Apple relay address.}
+        scope:
+          type: string
+          pattern: '^(name( email)?|email( name)?)?$'
+          description: Space-separated name/email scopes; when sent must agree with the computed flags.
+        freeform_scopes:
+          type: array
+          uniqueItems: true
+          maxItems: 2
+          items: {type: string, enum: [name, email]}
+          description: Only Apple's name and email scopes are accepted (LR39a-6).
+        set_user_root_attributes:
+          type: string
+          enum: [on_each_login, on_first_login, never_on_login]
+          default: on_each_login
+          description: Apple names are preserved after the first login regardless of this setting (LR39a-10).
+        upstream_params:
+          type: object
+          additionalProperties: true
+          description: Stored only; reserved protocol and security overrides are refused (Plan 24 policy).
+        non_persistent_attrs:
+          type: array
+          maxItems: 96
+          items: {type: string, maxLength: 255}
+          description: Stored only.
     ConnectionOptionsEmail:
       type: object
       description: |
@@ -18994,6 +19317,7 @@ components:
           - event-stream
           - custom-phone-provider
           - send-phone-message
+          - custom-token-exchange
         version:
           type: string
         binding_policy:
@@ -19930,7 +20254,7 @@ components:
                   maximum: 2500
                 rate:
                   type: integer
-                  default: 8640000
+                  default: 600000
                   minimum: 34560
                   maximum: 86400000
     SuspiciousIpThrottling:
@@ -20003,7 +20327,7 @@ components:
                   maximum: 2500
                 rate:
                   type: integer
-                  default: 8640000
+                  default: 600000
                   minimum: 34560
                   maximum: 86400000
     BreachedPasswordDetectionUpdate:
@@ -21706,6 +22030,40 @@ components:
       required: [user_verification]
       properties:
         user_verification: {type: string, enum: [discouraged, preferred, required], default: discouraged}
+    NativeSocialLoginApple:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        enabled: {type: boolean, default: false, description: Permission to exchange an Apple authorization code natively (D-0170).}
+    NativeSocialLoginFacebook:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+    NativeSocialLoginGoogle:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        enabled: {type: boolean, default: false, description: Stored by Plan 39a; native enforcement is deferred to Plan 39b.}
+    NativeSocialLogin:
+      type: object
+      additionalProperties: false
+      description: |
+        Stored native social switches; Apple is enforced (Plan 39a, D-0170).
+        Apple exchange additionally requires
+        mobile.ios.app_bundle_identifier and an enabled Apple connection.
+        Facebook and Google enforcement belongs to Plan 39b.
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
+      properties:
+        apple: {$ref: "#/components/schemas/NativeSocialLoginApple"}
+        facebook: {$ref: "#/components/schemas/NativeSocialLoginFacebook"}
+        google: {$ref: "#/components/schemas/NativeSocialLoginGoogle"}
     ClientMobile:
       type: object
       additionalProperties: true
@@ -21717,6 +22075,8 @@ components:
     ClientMobileIOS:
       type: object
       additionalProperties: true
+      description: Stored and returned iOS identity (Plan 33b). Apple native exchanges bind the ID-token audience to app_bundle_identifier (D-0170).
+      x-source: [https://auth0.com/docs/oas/management/v2/management-api-oas.json]
       properties:
         team_id: {type: string, default: ""}
         app_bundle_identifier: {type: string, default: ""}
@@ -21735,7 +22095,17 @@ components:
       properties:
         name: {type: string, minLength: 1, description: The application's name.}
         app_type: {$ref: "#/components/schemas/AppType"}
-        token_endpoint_auth_method: {$ref: "#/components/schemas/TokenEndpointAuthMethod"}
+        token_endpoint_auth_method:
+          description: |
+            How the application authenticates at `/oauth/token`. `null` is
+            accepted only together with `client_authentication_methods`
+            `private_key_jwt` (D-0063, C4).
+          anyOf:
+            - $ref: "#/components/schemas/TokenEndpointAuthMethod"
+            - {type: "null"}
+        client_authentication_methods: {$ref: "#/components/schemas/ClientAuthenticationMethods"}
+        signed_request_object: {$ref: "#/components/schemas/SignedRequestObject"}
+        token_exchange: {$ref: "#/components/schemas/ClientTokenExchange"}
         grant_types:
           type: array
           items: {type: string}
@@ -21781,7 +22151,7 @@ components:
           type: string
           format: uri
           description: HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
-        native_social_login: {description: Accepted and ignored.}
+        native_social_login: {$ref: "#/components/schemas/NativeSocialLogin"}
         mobile: {$ref: "#/components/schemas/ClientMobile"}
         organization_usage:
           type: [string, "null"]
@@ -21847,6 +22217,7 @@ components:
       description: An application.
       required: [tenant, client_id, name, app_type, is_first_party, oidc_conformant, callbacks, allowed_logout_urls, web_origins, allowed_origins, grant_types, token_endpoint_auth_method, jwt_configuration, refresh_token, global, callback_url_template, require_pushed_authorization_requests]
       properties:
+        native_social_login: {$ref: "#/components/schemas/NativeSocialLogin"}
         mobile: {$ref: "#/components/schemas/ClientMobile"}
         initiate_login_uri:
           type: string
@@ -21870,7 +22241,14 @@ components:
         web_origins: {type: array, items: {type: string}}
         allowed_origins: {type: array, items: {type: string}}
         grant_types: {type: array, items: {type: string}}
-        token_endpoint_auth_method: {$ref: "#/components/schemas/TokenEndpointAuthMethod"}
+        token_endpoint_auth_method:
+          description: "`null` when the application authenticates with `client_authentication_methods`."
+          anyOf:
+            - $ref: "#/components/schemas/TokenEndpointAuthMethod"
+            - {type: "null"}
+        client_authentication_methods: {$ref: "#/components/schemas/ClientAuthenticationMethods"}
+        signed_request_object: {$ref: "#/components/schemas/SignedRequestObject"}
+        token_exchange: {$ref: "#/components/schemas/ClientTokenExchange"}
         jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
         refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
         redirection_policy: {type: string, enum: [open_redirect_protection, allow_always]}
@@ -21882,6 +22260,140 @@ components:
         global: {type: boolean, enum: [false]}
         callback_url_template: {type: boolean, enum: [false]}
         created_at: {type: string, format: date-time}
+    ClientCredentialType:
+      type: string
+      enum: [public_key, x509_cert]
+      description: "`cert_subject_dn` is refused with 400 (mTLS is out of scope, D-0063)."
+    ClientCredentialAlg:
+      type: string
+      enum: [RS256, RS384, PS256]
+    ClientCredentialCreate:
+      type: object
+      additionalProperties: false
+      required: [credential_type]
+      description: A public key to register. `parse_expiry_from_cert` needs `x509_cert` and excludes `expires_at`.
+      properties:
+        credential_type: {type: string, enum: [public_key, x509_cert, cert_subject_dn], description: "`cert_subject_dn` is refused with 400."}
+        name: {type: string, maxLength: 128, default: ""}
+        pem: {type: string, description: "An RSA public key (SPKI or PKCS#1) or an X.509 certificate, 2048 to 4096 bits. Never returned."}
+        alg: {$ref: "#/components/schemas/ClientCredentialAlg", default: RS256}
+        parse_expiry_from_cert: {type: boolean}
+        expires_at: {type: string, format: date-time}
+        kid: {type: string, pattern: "^[0-9a-zA-Z-_]{10,64}$", description: "Defaults to the RFC 7638 thumbprint."}
+    ClientCredentialUpdate:
+      type: object
+      additionalProperties: false
+      description: Only `expires_at` changes; null removes the expiry.
+      properties:
+        expires_at: {type: [string, "null"], format: date-time}
+    ClientCredential:
+      type: object
+      description: A registered public key. The PEM is never returned.
+      required: [id, name, kid, alg, credential_type, thumbprint_sha256, created_at, updated_at]
+      properties:
+        id: {type: string, description: "`cred_` followed by 22 letters and digits."}
+        name: {type: string}
+        kid: {type: string}
+        alg: {$ref: "#/components/schemas/ClientCredentialAlg"}
+        credential_type: {$ref: "#/components/schemas/ClientCredentialType"}
+        thumbprint_sha256: {type: string, description: Base64url SHA-256 of the key's RFC 7638 thumbprint input.}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time, description: Absent when the credential never expires.}
+    ClientCredentialRef:
+      type: object
+      additionalProperties: false
+      description: |
+        A credential an application setting uses: an existing one by `id`, or
+        (on create and patch only) an inline new credential with the fields
+        of the credential create body. The credential must belong to the
+        application.
+      properties:
+        id: {type: string}
+        credential_type: {type: string, enum: [public_key, x509_cert, cert_subject_dn]}
+        name: {type: string, maxLength: 128}
+        pem: {type: string, writeOnly: true}
+        alg: {$ref: "#/components/schemas/ClientCredentialAlg"}
+        parse_expiry_from_cert: {type: boolean, writeOnly: true}
+        expires_at: {type: string, format: date-time, writeOnly: true}
+        kid: {type: string, writeOnly: true}
+    ClientAuthenticationMethods:
+      type: [object, "null"]
+      additionalProperties: false
+      description: |
+        `private_key_jwt` makes the application authenticate with a signed
+        JWT; it requires `token_endpoint_auth_method` null. `null` reverts to
+        `token_endpoint_auth_method`. `tls_client_auth` and
+        `self_signed_tls_client_auth` are refused with 400.
+      properties:
+        private_key_jwt:
+          type: object
+          additionalProperties: false
+          properties:
+            credentials:
+              type: array
+              maxItems: 2
+              items: {$ref: "#/components/schemas/ClientCredentialRef"}
+    SignedRequestObject:
+      type: object
+      additionalProperties: false
+      description: JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
+      properties:
+        required: {type: boolean, description: Refuse authorize and PAR requests without a valid signed `request`.}
+        credentials:
+          type: array
+          maxItems: 2
+          items: {$ref: "#/components/schemas/ClientCredentialRef"}
+    ClientTokenExchange:
+      type: [object, "null"]
+      additionalProperties: false
+      description: Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
+      properties:
+        allow_any_profile_of_type:
+          type: array
+          items: {type: string, enum: [custom_authentication]}
+    TokenExchangeProfileCreate:
+      type: object
+      additionalProperties: false
+      required: [name, subject_token_type, action_id, type]
+      properties:
+        name: {type: string, minLength: 3, maxLength: 50}
+        subject_token_type:
+          type: string
+          minLength: 8
+          maxLength: 100
+          pattern: "^(https://|urn:)"
+          description: |
+            Unique per tenant. These prefixes are reserved and refused:
+            `http://auth0.com`, `https://auth0.com`, `http://okta.com`,
+            `https://okta.com`, `urn:ietf`, `urn:auth0`, `urn:okta`.
+        action_id: {type: string, description: A deployed Action with trigger `custom-token-exchange`. Cannot change later.}
+        type: {type: string, enum: [custom_authentication]}
+    TokenExchangeProfileUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string, minLength: 3, maxLength: 50}
+        subject_token_type: {type: string, minLength: 8, maxLength: 100, pattern: "^(https://|urn:)"}
+    TokenExchangeProfile:
+      type: object
+      required: [id, name, subject_token_type, action_id, type, created_at, updated_at]
+      properties:
+        id: {type: string, description: "`tep_` followed by 22 letters and digits."}
+        name: {type: string}
+        subject_token_type: {type: string}
+        action_id: {type: string}
+        type: {type: string, enum: [custom_authentication]}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    TokenExchangeProfilePage:
+      type: object
+      required: [token_exchange_profiles]
+      properties:
+        token_exchange_profiles:
+          type: array
+          items: {$ref: "#/components/schemas/TokenExchangeProfile"}
+        next: {type: string, description: Pass as `from` for the next page; absent on the last page.}
     ResourceServerScope:
       type: object
       additionalProperties: false
@@ -21915,8 +22427,19 @@ components:
           description: The API's permissions. Values are unique.
         signing_alg:
           type: string
-          enum: [RS256]
-          description: The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+          enum: [RS256, HS256, PS256]
+          description: |
+            The access token signing algorithm. `RS256` and `PS256` sign with
+            the tenant's RSA key; `HS256` signs with `signing_secret`. A patch
+            may change it (LR35-8, C17). Supersedes D-0041's RS256-only rule
+            (D-0063).
+        signing_secret:
+          type: string
+          minLength: 16
+          description: |
+            HS256 only: at least 16 characters (C15). Generated (32 random
+            bytes, base64url) when an HS256 API is created without one; sent
+            with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
         token_lifetime: {type: integer, minimum: 1, maximum: 2592000, description: "Access token lifetime in seconds; 86400 by default."}
         token_lifetime_for_web:
           type: integer
@@ -21980,7 +22503,8 @@ components:
           type: array
           items: {$ref: "#/components/schemas/ResourceServerScope"}
           description: Absent when the API defines none.
-        signing_alg: {type: string, enum: [RS256]}
+        signing_alg: {type: string, enum: [RS256, HS256, PS256]}
+        signing_secret: {type: string, description: "HS256 only; returned on read (C16)."}
         token_lifetime: {type: integer}
         token_lifetime_for_web: {type: integer}
         allow_offline_access: {type: boolean}
@@ -22139,7 +22663,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170)."}
             enabled_clients:
               type: array
               items: {type: string}
@@ -22478,7 +23002,9 @@ components:
           description: |
             On a linked (secondary) identity: `email`, `email_verified` and,
             when it has one, `username`. The link and unlink responses also
-            give it for the primary's own identity.
+            give it for the primary's own identity. Apple identities also include
+            provider-owned `is_private_email` and `real_user_status` when supplied,
+            including on the primary identity.
     UserIdentityLink:
       type: object
       description: |
@@ -23088,6 +23614,11 @@ components:
           schema: {type: object}
     NotFound:
       description: The resource does not exist.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    NotImplemented:
+      description: The storage plugin lacks the `client_credentials.v1` capability, or the operation is not built yet.
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}

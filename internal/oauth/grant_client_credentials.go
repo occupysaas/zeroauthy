@@ -156,17 +156,24 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	signingAlg, signingSecret, err := h.apiSigning(rs)
+	if err != nil {
+		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
 	token, err := h.Minter.AccessToken(ctx, AccessTokenParams{
-		TenantID:     tenantID,
-		Issuer:       res.Issuer(),
-		Subject:      c.ClientID + "@clients",
-		Audience:     []string{rs.Identifier},
-		ClientID:     c.ClientID,
-		Scopes:       scopes,
-		GrantType:    "client-credentials",
-		Lifetime:     lifetime,
-		TokenDialect: rs.TokenDialect,
-		CustomClaims: claims,
+		SigningAlg:    signingAlg,
+		SigningSecret: signingSecret,
+		TenantID:      tenantID,
+		Issuer:        res.Issuer(),
+		Subject:       c.ClientID + "@clients",
+		Audience:      []string{rs.Identifier},
+		ClientID:      c.ClientID,
+		Scopes:        scopes,
+		GrantType:     "client-credentials",
+		Lifetime:      lifetime,
+		TokenDialect:  rs.TokenDialect,
+		CustomClaims:  claims,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)

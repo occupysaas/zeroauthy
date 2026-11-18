@@ -43,7 +43,7 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 	}
 	// Type is a protected JOSE header: inspect it, then authenticate the entire
 	// token below before using claims. Reject unrelated JWT formats explicitly.
-	parsed, parseErr := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256})
+	parsed, parseErr := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256, jose.PS256})
 	if parseErr != nil || len(parsed.Headers) != 1 {
 		invalidToken(w)
 		return

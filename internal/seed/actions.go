@@ -193,6 +193,15 @@ func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() t
 				return err
 			}
 		}
+		if len(in.TokenExchangeProfiles) > 0 {
+			// Profiles name Actions, so they follow the Actions and bindings.
+			// Like those, this phase is retryable.
+			if err := st.WithTx(ctx, func(tx store.Store) error {
+				return applyTokenExchangeProfiles(ctx, tx, tn.ID, in.TokenExchangeProfiles, now().UTC(), f.Mode == ModeCreateOnly)
+			}); err != nil {
+				return fmt.Errorf("seed: tenant %q: %w", in.Name, err)
+			}
+		}
 		for trigger, t := range in.Triggers {
 			err := st.WithTx(ctx, func(tx store.Store) error {
 				initialized, err := tx.Actions().BindingsInitialized(ctx, tn.ID, trigger)

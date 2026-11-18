@@ -4,6 +4,9 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
   testMatch: /m\d+[a-z]?-.*\.spec\.mjs/,
+  // Apple needs its own cross-site upstream and native-code fixture. Keep it
+  // out of general discovery; run-m39a-apple.sh enables its complete lane.
+  testIgnore: process.env.E2E_M39A === '1' ? [] : ['m39a-apple.spec.mjs'],
   timeout: 60_000,
   workers: 1,
   reporter: [['list']],

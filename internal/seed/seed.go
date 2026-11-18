@@ -10,6 +10,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
@@ -48,15 +49,19 @@ type File struct {
 }
 
 type Tenant struct {
-	PhoneProvider    *SeedPhoneProvider        `yaml:"phone_provider"`
-	PhoneTemplates   []SeedPhoneTemplate       `yaml:"phone_templates"`
-	Guardian         *Guardian                 `yaml:"guardian"`
-	EventStreams     []map[string]any          `yaml:"event_streams"`
-	LogStreams       []map[string]any          `yaml:"log_streams"`
-	Modules          []ActionModule            `yaml:"modules"`
-	Actions          []Action                  `yaml:"actions"`
-	Triggers         map[string]Trigger        `yaml:"triggers"`
-	AttackProtection map[string]map[string]any `yaml:"attack_protection"`
+	PhoneProvider  *SeedPhoneProvider  `yaml:"phone_provider"`
+	PhoneTemplates []SeedPhoneTemplate `yaml:"phone_templates"`
+	Guardian       *Guardian           `yaml:"guardian"`
+	EventStreams   []map[string]any    `yaml:"event_streams"`
+	LogStreams     []map[string]any    `yaml:"log_streams"`
+	Modules        []ActionModule      `yaml:"modules"`
+	Actions        []Action            `yaml:"actions"`
+	// TokenExchangeProfiles bind a subject_token_type to a custom token
+	// exchange Action by name. They are applied after the Actions, so they
+	// need ApplyWithActions.
+	TokenExchangeProfiles []TokenExchangeProfile    `yaml:"token_exchange_profiles"`
+	Triggers              map[string]Trigger        `yaml:"triggers"`
+	AttackProtection      map[string]map[string]any `yaml:"attack_protection"`
 	// Settings uses the public tenant settings inventory; legacy top-level durations remain seconds.
 	Settings map[string]any `yaml:"settings"`
 	supplied map[string]any
@@ -134,13 +139,18 @@ type RolePermission struct {
 }
 
 type ResourceServer struct {
-	EnforcePolicies    bool    `yaml:"enforce_policies"`
-	TokenDialect       string  `yaml:"token_dialect"`
-	Identifier         string  `yaml:"identifier"`
-	Name               string  `yaml:"name"`
-	Scopes             []Scope `yaml:"scopes"`
-	TokenLifetime      int     `yaml:"token_lifetime"`
-	AllowOfflineAccess bool    `yaml:"allow_offline_access"`
+	EnforcePolicies bool    `yaml:"enforce_policies"`
+	TokenDialect    string  `yaml:"token_dialect"`
+	Identifier      string  `yaml:"identifier"`
+	Name            string  `yaml:"name"`
+	Scopes          []Scope `yaml:"scopes"`
+	// SigningAlg is RS256 (the default), HS256 or PS256. HS256 signs with
+	// SigningSecret, plaintext in the seed and sealed when applied; an HS256
+	// API without one keeps its stored secret, or gets a generated one.
+	SigningAlg         string `yaml:"signing_alg"`
+	SigningSecret      string `yaml:"signing_secret"`
+	TokenLifetime      int    `yaml:"token_lifetime"`
+	AllowOfflineAccess bool   `yaml:"allow_offline_access"`
 
 	SkipConsentForVerifiableFirstPartyClients *bool                    `yaml:"skip_consent_for_verifiable_first_party_clients"`
 	SubjectTypeAuthorization                  SubjectTypeAuthorization `yaml:"subject_type_authorization"`
@@ -156,7 +166,7 @@ func (rs *ResourceServer) spec() apirules.Spec {
 		scopes[i] = store.Scope{Value: s.Value, Description: s.Description}
 	}
 	return apirules.Spec{
-		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes,
+		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes, SigningAlg: rs.SigningAlg,
 		TokenLifetime: rs.TokenLifetime, AllowOfflineAccess: rs.AllowOfflineAccess,
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: rs.TokenDialect,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
@@ -209,6 +219,11 @@ type Client struct {
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool  `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	RequirePushedAuthorizationRequests             bool   `yaml:"require_pushed_authorization_requests"`
 
+	// NativeSocialLogin stores the public apple/facebook/google enabled objects.
+	// Shared rules validate its shape; omitted providers remain disabled.
+	NativeSocialLogin any `yaml:"native_social_login"`
+	nativeSocialLogin map[string]bool
+
 	// Mobile is Auth0's client mobile object (ios.team_id,
 	// ios.app_bundle_identifier, android.app_package_name,
 	// android.sha256_cert_fingerprints), used for native passkeys and the
@@ -216,14 +231,29 @@ type Client struct {
 	Mobile map[string]any `yaml:"mobile"`
 	mobile *store.ClientMobile
 
+	// Credentials are the public keys of the client (at most two). The
+	// three settings below name them by name; they need a store with
+	// client_credentials.v1. private_key_jwt implies an omitted
+	// token_endpoint_auth_method.
+	Credentials                 []ClientCredential           `yaml:"credentials"`
+	ClientAuthenticationMethods *ClientAuthenticationMethods `yaml:"client_authentication_methods"`
+	SignedRequestObject         *SignedRequestObject         `yaml:"signed_request_object"`
+	TokenExchange               *ClientTokenExchange         `yaml:"token_exchange"`
+	parsedCredentials           []parsedCredential
+
 	// normalized is the client after clientrules.Normalize, set by validate.
 	normalized *clientrules.Spec
 }
 
 // spec returns the client's settings for clientrules.
 func (c *Client) spec() clientrules.Spec {
+	method := c.TokenEndpointAuthMethod
+	if c.usesPrivateKeyJWT() {
+		// Normalize needs a confidential method; the stored one stays empty.
+		method = store.AuthMethodClientSecretPost
+	}
 	return clientrules.Spec{
-		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
+		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
 		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
 		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,
@@ -237,6 +267,7 @@ func (c *Client) spec() clientrules.Spec {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
 		Mobile:                                         c.mobile.Clone(),
+		NativeSocialLogin:                              maps.Clone(c.nativeSocialLogin),
 	}
 }
 
@@ -266,7 +297,7 @@ func Load(path string) (*File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("seed: %w", err)
 	}
-	f, err := Parse(data)
+	f, err := parse(data, filepath.Dir(path))
 	if err != nil {
 		return nil, fmt.Errorf("seed %s: %w", path, err)
 	}
@@ -274,7 +305,9 @@ func Load(path string) (*File, error) {
 }
 
 // Parse decodes seed YAML, rejecting unknown fields, and validates it.
-func Parse(data []byte) (*File, error) {
+func Parse(data []byte) (*File, error) { return parse(data, "") }
+
+func parse(data []byte, baseDir string) (*File, error) {
 	normalized, domainRPIDs, err := decodeDomainAliases(data)
 	if err != nil {
 		return nil, fmt.Errorf("seed: %w", err)
@@ -299,6 +332,9 @@ func Parse(data []byte) (*File, error) {
 		if i < len(domainRPIDs) {
 			f.Tenants[i].DomainRPIDs = domainRPIDs[i]
 		}
+	}
+	if err := resolveAppleSecrets(&f, baseDir); err != nil {
+		return nil, err
 	}
 	if err := f.validate(); err != nil {
 		return nil, err
@@ -343,7 +379,8 @@ type Connection struct {
 	IsDomainConnection bool `yaml:"is_domain_connection"`
 
 	// Options are the options of a database, passwordless or federated strategy (google-oauth2,
-	// oauth2, oidc, windowslive, waad) in Auth0's names. options.client_secret is plaintext in
+	// oauth2, oidc, windowslive, waad, apple) in Auth0's names. Apple app_secret
+	// requires a file:// or env:// reference. Other options.client_secret is plaintext in
 	// the seed file and sealed when applied; it is required.
 	Options      map[string]any `yaml:"options"`
 	DisplayName  string         `yaml:"display_name"`

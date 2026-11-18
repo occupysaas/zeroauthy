@@ -18,7 +18,7 @@ import (
 type publicAnswer struct{}
 
 func (publicAnswer) LookupNetIP(_ context.Context, _, host string) ([]netip.Addr, error) {
-	if !strings.HasSuffix(host, ".e2e.test") {
+	if !strings.HasSuffix(host, ".e2e.test") && host != "apple.idp.test" {
 		return nil, fmt.Errorf("unexpected fixture lookup")
 	}
 	return []netip.Addr{netip.MustParseAddr("8.8.8.8")}, nil

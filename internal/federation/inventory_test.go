@@ -80,11 +80,12 @@ func TestFederationInventory(t *testing.T) {
 			t.Error("aliases to rejected assurance parameters must also be rejected")
 		}
 	})
-	if len(inv.Strategies) != 3 {
-		t.Fatalf("need exactly three strategies, got %d", len(inv.Strategies))
+	if len(inv.Strategies) != 4 {
+		t.Fatalf("need exactly four strategies, got %d", len(inv.Strategies))
 	}
 	for strategy, want := range map[string]string{
 		"google-oauth2": "google-oauth2|<sub>", "oauth2": "oauth2|<connection-name>|<subject>", "oidc": "oidc|<connection-name>|<sub>",
+		"apple": "apple|<sub>",
 	} {
 		row, ok := inv.Strategies[strategy]
 		if !ok || row.IDFormat != want || row.IsSocial != (strategy != "oidc") {
@@ -98,14 +99,30 @@ func TestFederationInventory(t *testing.T) {
 				t.Errorf("unclassified runtime %s.%s", strategy, field)
 			}
 		}
-		for _, field := range []string{"client_id", "client_secret", "set_user_root_attributes"} {
+		credential := "client_secret"
+		if strategy == "apple" {
+			credential = "app_secret"
+		}
+		for _, field := range []string{"client_id", credential, "set_user_root_attributes"} {
 			if _, ok := row.Options[field]; !ok {
 				t.Errorf("%s missing %s", strategy, field)
 			}
 		}
-		if row.Options["client_secret"].Secret != "write-only" {
+		if row.Options[credential].Secret != "write-only" {
 			t.Errorf("%s exposes credentials", strategy)
 		}
+	}
+	apple := inv.Strategies["apple"]
+	if !slices.Equal(apple.DefaultScopes, []string{"name", "email"}) {
+		t.Error("Apple default scopes must request first-login name and email")
+	}
+	for _, field := range []string{"team_id", "kid", "scope", "freeform_scopes", "name", "email", "upstream_params", "non_persistent_attrs"} {
+		if _, ok := apple.Options[field]; !ok {
+			t.Errorf("Apple missing %s", field)
+		}
+	}
+	if apple.Options["scope"].Type != "string" {
+		t.Error("Apple scope must use the documented space-separated string")
 	}
 	google := inv.Strategies["google-oauth2"]
 	if !slices.Equal(google.DefaultScopes, []string{"openid", "profile", "email"}) {

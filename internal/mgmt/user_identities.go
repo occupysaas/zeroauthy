@@ -62,7 +62,10 @@ func linkIdentitiesJSON(u *store.User) []map[string]any {
 		id := &u.Identities[i]
 		out[i] = identityJSON(id)
 		if !id.Linked() {
-			pd := map[string]any{}
+			pd := maps.Clone(id.ProviderData)
+			if pd == nil {
+				pd = map[string]any{}
+			}
 			if u.Email != "" {
 				pd["email"], pd["email_verified"] = u.Email, u.EmailVerified
 			}
@@ -291,7 +294,7 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 			}
 		}
 		moved := store.Identity{Connection: own.Connection, Provider: own.Provider, UserID: own.UserID, PasswordHash: own.PasswordHash, ImportedHash: own.ImportedHash,
-			ProfileData: map[string]any{"email": sec.Email, "email_verified": sec.EmailVerified}}
+			ProfileData: map[string]any{"email": sec.Email, "email_verified": sec.EmailVerified}, ProviderData: maps.Clone(own.ProviderData)}
 		if sec.Username != "" {
 			moved.ProfileData["username"] = sec.Username
 		}
@@ -392,7 +395,7 @@ func (h *Handlers) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id
 		name, nickname := identity.DefaultNames("", "", email, username)
 		nu := &store.User{
 			TenantID: tn.ID, UserID: secondary, Email: email, EmailVerified: verified, Username: username, Name: name, Nickname: nickname,
-			Identities: []store.Identity{{Connection: moved.Connection, Provider: moved.Provider, UserID: moved.UserID, PasswordHash: moved.PasswordHash, ImportedHash: moved.ImportedHash}},
+			Identities: []store.Identity{{Connection: moved.Connection, Provider: moved.Provider, UserID: moved.UserID, PasswordHash: moved.PasswordHash, ImportedHash: moved.ImportedHash, ProviderData: maps.Clone(moved.ProviderData)}},
 			CreatedAt:  now, UpdatedAt: now,
 		}
 		if err := tx.Users().Create(ctx, nu); errors.Is(err, store.ErrConflict) {

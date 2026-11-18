@@ -18,6 +18,27 @@ CI, review or the required checks.
 - Report suspected vulnerabilities privately at <https://github.com/occupysaas/zeroauthy/security/advisories/new>, never in a public issue, pull request or commit message.
 - Security tests: `go test ./...` runs the fuzz targets' seed inputs; fuzz one target with `go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=60s ./internal/usersearch`. Run `govulncheck ./...` for known vulnerabilities and `uvx zizmor .` after changing workflows.
 
+## Where the work is
+
+Specs and implementation plans for every remaining roadmap item are indexed
+in `docs/superpowers/README.md` (written 2026-11-16, not yet implemented).
+Before implementing an item, read its spec and plan and check the roadmap's
+"Designed 2026-11-16" table for open maintainer rulings.
+
+## Finish the active plan before starting another
+
+Once implementation of a designed or brainstormed plan starts, finish every
+implementation task in that plan before starting tasks from another plan.
+An initial slice is not a finished plan, even when its tests or CI pass.
+Complete the plan's documentation, E2E coverage, required local verification
+and final review before treating the plan as implemented.
+
+Keep running the focused tests required for each task. Do not push partial
+plan work just to start CI: wait until all implementation tasks and required
+local checks are complete. Once the finished plan branch is pushed for CI,
+work on the next plan may begin while CI runs; return to fix any CI failures
+on the original plan branch.
+
 ## Long-running test suites
 
 For full suites and other test commands expected to take more than a few minutes:
@@ -37,7 +58,8 @@ Full verification of a plan runs in GitHub Actions, not as a local sequential ru
 
 - During a task, run that task's focused tests.
 - At the end of a plan, run a fast local tier: `go test ./...` (no `-race`) with `TMPDIR`/`GOTMPDIR` on a short tmpfs path such as `/dev/shm/<name>` (Unix socket paths must stay under 108 bytes), plus the plan's own E2E suite.
-- Then push the plan branch (`plan-*`; never `main`). `.github/workflows/plan-branch.yml` runs race tests, the SQL databases, the console build, every E2E suite in parallel and conformance. Pushing plan branches needs no further approval.
+- Only after all implementation tasks, required local checks and final
+  review are complete, push the plan branch (`plan-*`; never `main`). `.github/workflows/plan-branch.yml` runs race tests, the SQL databases, the console build, every E2E suite in parallel and conformance. Pushing plan branches needs no further approval.
 - Continue with the next plan while CI runs. Fix CI failures on the plan's branch and push again.
 - Merging to `main` still needs green CI and maintainer approval.
 

@@ -47,18 +47,9 @@ func (h *Handlers) nativeSetup(ctx context.Context, res tenant.Resolved, c *stor
 	}
 	// Capability first: without webauthn.v1 every host answers 404, the
 	// canonical host included.
-	if cap, ok := h.Store.(store.WebAuthnSupporter); ok {
-		if err := cap.CheckWebAuthnSupport(ctx); errors.Is(err, store.ErrWebAuthnUnavailable) {
-			return nil, rpid.Result{}, nil, passkeyNotFound()
-		} else if err != nil {
-			return nil, rpid.Result{}, nil, serverError()
-		}
-		if !cap.WebAuthnSupported() {
-			return nil, rpid.Result{}, nil, passkeyNotFound()
-		}
-	}
-	switch h.Store.WebAuthn().(type) {
-	case store.UnimplementedWebAuthn, *store.UnimplementedWebAuthn:
+	if available, err := store.WebAuthnAvailable(ctx, h.Store); err != nil {
+		return nil, rpid.Result{}, nil, serverError()
+	} else if !available {
 		return nil, rpid.Result{}, nil, passkeyNotFound()
 	}
 	policy := h.Passkeys.RPID
@@ -297,7 +288,7 @@ func (h *Handlers) nativePasskey(w http.ResponseWriter, r *http.Request, registe
 			options, err = o.JSON()
 		}
 	} else {
-		options, err = json.Marshal(map[string]any{"challenge": base64.RawURLEncoding.EncodeToString(i.Challenge), "timeout": 60000, "rpId": rp.RPID, "userVerification": "preferred"})
+		options, err = json.Marshal(map[string]any{"challenge": base64.RawURLEncoding.EncodeToString(i.Challenge), "timeout": webauthnrules.Limits.NativeTimeout.Milliseconds(), "rpId": rp.RPID, "userVerification": "preferred"})
 	}
 	if err != nil {
 		fail(serverError())

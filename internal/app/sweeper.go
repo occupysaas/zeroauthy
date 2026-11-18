@@ -59,6 +59,22 @@ func purgeWebAuthn(ctx context.Context, st store.Store, before time.Time) (int, 
 	return total, nil
 }
 
+// purgeJTIs deletes expired client assertion and request object jtis.
+func purgeJTIs(ctx context.Context, st store.Store, before time.Time) (int, error) {
+	total := 0
+	for range mfaPurgeBatches {
+		n, err := st.ClientCredentials().PurgeJTIs(ctx, before, mfaPurgeBatch)
+		if errors.Is(err, store.ErrClientCredentialsUnavailable) {
+			return total, nil // storage without client_credentials.v1 holds no jtis
+		}
+		total += n
+		if err != nil || n < mfaPurgeBatch {
+			return total, err
+		}
+	}
+	return total, nil
+}
+
 // purgePhone deletes expired passwordless codes and links.
 func purgePhone(ctx context.Context, st store.Store, before time.Time) (int, error) {
 	total := 0
@@ -103,6 +119,7 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeMFA(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgePhone(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeWebAuthn(ctx, st, before) }, now},
+		{func(ctx context.Context, before time.Time) (int, error) { return purgeJTIs(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {

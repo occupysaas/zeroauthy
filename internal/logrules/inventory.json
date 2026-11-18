@@ -761,13 +761,19 @@
       "type": "fecte",
       "description": "A custom token grant could not issue tokens.",
       "category": "auth.token_exchange.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 35,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-fail/fecte",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 35 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_token_exchange.go",
+          "function": "tokenExchange",
+          "when": "Final grant outcome when the exchange fails, including throttling, an Action failure and user resolution."
+        }
+      ]
     },
     {
       "type": "fede",
@@ -2479,13 +2485,19 @@
       "type": "secte",
       "description": "A custom token grant issued tokens.",
       "category": "auth.token_exchange.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 35,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-token-exchange-success/secte",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
-      "triggers": []
+      "note": "Plan 35 implementation target.",
+      "triggers": [
+        {
+          "file": "internal/oauth/grant_token_exchange.go",
+          "function": "tokenExchange",
+          "when": "Final grant outcome when tokens are issued; details carry the actor when one was set."
+        }
+      ]
     },
     {
       "type": "sede",

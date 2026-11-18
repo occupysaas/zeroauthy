@@ -125,7 +125,9 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	// can record already-resolved names that happen to contain their values.
 	values := []string{req.Invitation}
 	for name, fields := range q {
-		if logscrub.SensitiveKey(name) || name == "request_uri" {
+		// The request object is masked by value: the key name request also
+		// names unrelated log fields.
+		if logscrub.SensitiveKey(name) || name == "request_uri" || name == "request" {
 			values = append(values, fields...)
 		}
 	}
@@ -134,6 +136,13 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx = logscrub.WithCredentials(ctx, values...)
 	*r = *r.WithContext(ctx)
+	// Its failure is delivered by ValidateRequest.
+	if ApplyRequestObject(ctx, h.Store, res.Tenant, res.Issuer(), h.now(), h.log(), &req) == nil && req.Signed && req.Invitation != "" {
+		// An invitation ticket carried only inside the signed object was not
+		// known when the masks above were built.
+		ctx = logscrub.WithCredentials(ctx, req.Invitation)
+		*r = *r.WithContext(ctx)
+	}
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {

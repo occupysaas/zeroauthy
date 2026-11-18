@@ -18,6 +18,8 @@ func (s *State) Policy(old, next store.ProtectionSettings) {
 			clear = old.SuspiciousIP.Stage.PreLogin != next.SuspiciousIP.Stage.PreLogin || old.LegacyIPMaxAttempts != next.LegacyIPMaxAttempts || old.LegacyLockoutSeconds != next.LegacyLockoutSeconds
 		case store.ProtectionSuspiciousIPRegistration:
 			clear = old.SuspiciousIP.Stage.PreUserRegistration != next.SuspiciousIP.Stage.PreUserRegistration
+		case store.ProtectionSuspiciousIPTokenExchange:
+			clear = old.SuspiciousIP.Stage.PreCustomTokenExchange != next.SuspiciousIP.Stage.PreCustomTokenExchange
 		}
 		if clear {
 			delete(s.Buckets, id)

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "reviewed": "2026-10-26",
-  "status": "frozen implementation contract; runtime not implemented by Task 1",
+  "reviewed": "2026-11-16",
+  "status": "implemented federation contract; Apple web/native active (Plan 39a)",
   "strategies": {
     "google-oauth2": {
       "is_social": true,
@@ -281,6 +281,105 @@
           "secret": "public",
           "runtime": "active",
           "source": "local:docs/superpowers/specs/2026-10-26-zeroauthy-social-connections-design.md"
+        }
+      }
+    },
+    "apple": {
+      "status": "active; local fixture verification, no live Apple observation",
+      "is_social": true,
+      "id_format": "apple|<sub>",
+      "default_scopes": [
+        "name",
+        "email"
+      ],
+      "options": {
+        "client_id": {
+          "type": "string",
+          "default": null,
+          "validation": "required 1-255 characters; Services ID; immutable after creation (LR39a-4)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "team_id": {
+          "type": "string",
+          "default": null,
+          "validation": "required exactly 10 uppercase alphanumerics (LR39a-5); change increments FederationRevision",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "kid": {
+          "type": "string",
+          "default": null,
+          "validation": "required exactly 10 uppercase alphanumerics (LR39a-5); change increments FederationRevision",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "app_secret": {
+          "type": "string",
+          "default": null,
+          "validation": "required PKCS#8 PEM EC P-256 key on create; omitted PATCH preserves; empty/null rejected; seal before persistence; replacement increments FederationRevision",
+          "secret": "write-only",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "name": {
+          "type": "boolean",
+          "default": true,
+          "validation": "true requests name on first authorization; false omits name",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "email": {
+          "type": "boolean",
+          "default": true,
+          "validation": "true requests email; private relay permitted; never identity key",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "scope": {
+          "type": "string",
+          "default": null,
+          "validation": "space-separated name/email only; explicit scope must agree with computed name/email flags (LR39a-6)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "freeform_scopes": {
+          "type": "array<string>",
+          "default": [],
+          "validation": "only name/email; all other scopes rejected (LR39a-6)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "set_user_root_attributes": {
+          "type": "string",
+          "default": "on_each_login",
+          "validation": "on_each_login, on_first_login, never_on_login; first-login Apple name preserved on later logins regardless of setting (LR39a-10)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "upstream_params": {
+          "type": "object",
+          "default": {},
+          "validation": "Plan 24 inert bounded values; protocol/security override keys and aliases rejected",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/authenticate/identity-providers/pass-parameters-to-idps"
+        },
+        "non_persistent_attrs": {
+          "type": "array<string>",
+          "default": [],
+          "validation": "stored-only; no runtime effect",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         }
       }
     }
@@ -720,6 +819,22 @@
     "oidc": {
       "client_auth": "client_secret_basic when advertised; else client_secret_post when advertised; omission means basic; reject all other methods",
       "pkce": "S256 only; auto treated as require S256"
+    },
+    "apple": {
+      "status": "active; web/native provider and short-lived client-secret signing/cache",
+      "authorization_endpoint": "https://appleid.apple.com/auth/authorize",
+      "token_endpoint": "https://appleid.apple.com/auth/token",
+      "jwks_uri": "https://appleid.apple.com/auth/keys",
+      "issuer": "https://appleid.apple.com",
+      "client_auth": "client_secret_post; ES256 JWT with kid, iss=team_id, aud=https://appleid.apple.com, sub=Services ID (web) or bundle ID (native)",
+      "client_secret_seconds": 300,
+      "cache_seconds": 240,
+      "response_mode": "form_post whenever name/email requested; query otherwise",
+      "callback": "POST /login/callback shared with Plan 36; cross-site attempt cookie SameSite=None; Secure",
+      "pkce": "web S256 when provider metadata advertises S256; omitted otherwise (Plan 36 auto rule, A4)",
+      "nonce": "web required; native omitted",
+      "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native",
+      "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-apple-design.md"
     }
   },
   "limits": {
@@ -833,5 +948,86 @@
     ],
     "new_local_conflict": "public-ID/index ownership collision returns conflict without merging; wire identifier to be implemented consistently with existing conflict envelope",
     "upstream": "exact strategy-specific errorCode identifiers unavailable without separate observer"
+  },
+  "apple_native_exchange": {
+    "status": "active",
+    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+    "subject_token_type": "http://auth0.com/oauth/token-type/apple-authz-code",
+    "subject_token": "Apple authorization code; never logged",
+    "required": [
+      "grant_type",
+      "subject_token_type",
+      "subject_token",
+      "client_id"
+    ],
+    "optional": [
+      "user_profile",
+      "audience",
+      "scope",
+      "organization"
+    ],
+    "preconditions": [
+      "native_social_login.apple.enabled=true",
+      "mobile.ios.app_bundle_identifier nonempty",
+      "first usable apple connection in LOWER(name), id store order (LR39a-9)"
+    ],
+    "client_auth": "none for public native clients; registered authentication for confidential clients",
+    "custom_profiles": "reserved type; never invokes custom-token-exchange Action",
+    "audience_binding": "Apple token request client_id and client-secret sub and ID-token aud all equal mobile.ios.app_bundle_identifier",
+    "user_profile": {
+      "type": "object",
+      "encoding": "JSON object in application/json; JSON-encoded form field in application/x-www-form-urlencoded",
+      "max_bytes": 1024,
+      "fields": [
+        "name.firstName",
+        "name.lastName"
+      ],
+      "name_max_characters": 150,
+      "trust": "name only after ID token validation; never override token claims; first login only"
+    },
+    "issuance": "normal user-token pipeline; post-login Actions strategy apple and protocol oauth2-token-exchange (A6); MFA and organization policy",
+    "errors": {
+      "preconditions": "invalid_request",
+      "upstream_code": "invalid_grant",
+      "wording": "unobserved; local wording until A5"
+    },
+    "logs": "use documented logs-schema type; fallback to existing token-exchange success/failure pair; never invent types (A7)",
+    "source": "https://auth0.com/docs/api/authentication/token-exchange-for-native-social/token-exchange-native-social"
+  },
+  "apple_profile": {
+    "status": "active",
+    "identity": "apple|<sub>; isSocial=true; never auto-link by email",
+    "email": "verified ID-token claim; relay addresses accepted",
+    "email_verified": "boolean true or string true only; all other values false",
+    "name": "first authorization user.name / native user_profile.name only after validated ID token; firstName and lastName bounded at 150 characters; preserve on later login (LR39a-10)",
+    "profile_data": [
+      "is_private_email",
+      "real_user_status"
+    ],
+    "upstream_tokens": "access_token and refresh_token sealed; GetUser only with read:users and read:user_idp_tokens",
+    "automatic_revocation": false,
+    "server_notifications": false,
+    "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native",
+    "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-apple-design.md"
+  },
+  "native_social_client_fields": {
+    "status": "stored and returned; Apple enforced; Facebook/Google stored-only until Plan 39b",
+    "native_social_login": {
+      "apple": {
+        "enabled": false
+      },
+      "facebook": {
+        "enabled": false
+      },
+      "google": {
+        "enabled": false
+      }
+    },
+    "mobile_ios_fields": [
+      "team_id",
+      "app_bundle_identifier"
+    ],
+    "facebook_google": "stored and returned in Plan 39a; enforcement deferred to Plan 39b",
+    "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
   }
 }

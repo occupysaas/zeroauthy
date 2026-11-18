@@ -88,13 +88,10 @@ func (h *Handlers) PasswordlessStart(w http.ResponseWriter, r *http.Request) {
 		writeError(w, invalidRequest("client_id is required"))
 		return
 	}
-	if fields["client_assertion"] != "" {
-		// Private key JWT is not served by this token endpoint either.
-		writeError(w, invalidClient(authFailed, false))
-		return
-	}
+	_, hasAssertion := fields["client_assertion"]
+	_, hasAssertionType := fields["client_assertion_type"]
 	var client *store.Client
-	authenticated := hasBasic || fields["client_secret"] != ""
+	authenticated := hasBasic || fields["client_secret"] != "" || hasAssertion || hasAssertionType
 	if authenticated {
 		form := url.Values{}
 		if clientID != "" {
@@ -102,6 +99,12 @@ func (h *Handlers) PasswordlessStart(w http.ResponseWriter, r *http.Request) {
 		}
 		if s := fields["client_secret"]; s != "" {
 			form.Set("client_secret", s)
+		}
+		// Present but empty still selects private_key_jwt, which then fails.
+		for _, k := range []string{"client_assertion", "client_assertion_type"} {
+			if v, ok := fields[k]; ok {
+				form.Set(k, v)
+			}
 		}
 		client, oerr = h.authenticateClient(ctx, r, form, res.Tenant.ID)
 		if oerr != nil {

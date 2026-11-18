@@ -1,12 +1,19 @@
 package authz
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/clientcred"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -41,10 +48,16 @@ type Request struct {
 	Ext map[string]string
 	// Pushed is true for a request that came from /oauth/par.
 	Pushed bool
-	// RequestObject is the raw request parameter. Request objects are not
-	// supported; it is read only to deliver request_not_supported. Not part
-	// of Params().
+	// Signed is true when the parameters came from a verified signed request
+	// object, at /authorize or in the pushed request (JAR, spec §4). It is
+	// stored under signedKey; ParseRequest never sets it.
+	Signed bool
+	// RequestObject is the raw request parameter, until ApplyRequestObject
+	// merges a verified object. Never part of Params() or a log.
 	RequestObject string
+	// objectErr is ApplyRequestObject's failure. ValidateRequest delivers it
+	// only to the query's registered redirect_uri, never one from the object.
+	objectErr *Error
 	// Present lists which strictUnsupported parameters the request carried.
 	// It is not part of Params(): a request that carries any of these never
 	// reaches a transaction for a strict client.
@@ -128,11 +141,161 @@ func ParseRequest(q url.Values) Request {
 	return r
 }
 
-// requestObjectDelivery reads state and response_mode from an unverified
-// request object, for delivering request_not_supported only (OpenID
-// Connect Core §6.1: its values take precedence over the query). It
-// returns empty strings for anything that is not a readable JWS.
-func requestObjectDelivery(raw string) (state, responseMode string) {
+// maxRequestObjectBytes bounds a request parameter before it is parsed.
+const maxRequestObjectBytes = 16 << 10
+
+// signedKey marks a request whose parameters came from a verified signed
+// request object in stored Params. Like pushedKey it is not a request
+// parameter: ParseRequest never reads it.
+const signedKey = "za_signed"
+
+// ApplyRequestObject processes the request parameter of an authorization
+// request (JAR, RFC 9101; spec §4) before ValidateRequest. A signed object
+// from req.ClientID's signed_request_object credentials is verified, its
+// parameters replace the query's, and req.Signed is set; ValidateRequest then
+// checks the merged request, redirect_uri registration included.
+//
+// Nothing changes, and ValidateRequest keeps D-0035's request_not_supported
+// (or D-0025 for strict clients), when the store lacks client_credentials.v1,
+// the object is unsigned (alg none, LR35-4), or the client is unknown or
+// strict. A failed verification returns invalid_request_object (or
+// server_error) and records it on req, so that /authorize delivers it only to
+// the query's registered redirect_uri. Log lines carry the reason, never the
+// object.
+func ApplyRequestObject(ctx context.Context, st store.Store, t *store.Tenant, issuer string, now time.Time, log *slog.Logger, req *Request) *Error {
+	if !slices.Contains(req.Present, "request") || req.ClientID == "" || !store.ClientCredentialsAvailable(ctx, st) {
+		return nil
+	}
+	fail := func(e *Error) *Error {
+		req.objectErr = e
+		return e
+	}
+	client, err := st.Clients().Get(ctx, t.ID, req.ClientID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		log.ErrorContext(ctx, "load client", "tenant", t.ID, "client_id", req.ClientID, "err", err)
+		return fail(errServer())
+	}
+	if access.Strict(client) {
+		return nil
+	}
+	raw := req.RequestObject
+	if len(raw) > maxRequestObjectBytes {
+		log.InfoContext(ctx, "request object refused: too long", "tenant", t.ID, "client_id", client.ClientID)
+		return fail(errInvalidRequestObject())
+	}
+	if unsignedObject(raw) {
+		return nil
+	}
+	var creds []*store.ClientCredential
+	if sro := client.SignedRequestObject; sro != nil && len(sro.Credentials) > 0 {
+		all, err := st.ClientCredentials().List(ctx, t.ID, client.ClientID)
+		if err != nil {
+			log.ErrorContext(ctx, "load client credentials", "tenant", t.ID, "client_id", client.ClientID, "err", err)
+			return fail(errServer())
+		}
+		// Only the signed_request_object credentials: never one enabled
+		// only for private_key_jwt.
+		for _, c := range all {
+			if c.ClientID == client.ClientID && slices.Contains(sro.Credentials, c.ID) {
+				creds = append(creds, c)
+			}
+		}
+	}
+	inner, err := verifyRequestObject(raw, client, creds, issuer, now, func(jti string, exp time.Time) error {
+		return st.ClientCredentials().UseJTI(ctx, t.ID, client.ClientID, jti, exp)
+	})
+	if err != nil {
+		log.InfoContext(ctx, "request object refused", "tenant", t.ID, "client_id", client.ClientID, "reason", err.Error())
+		return fail(errInvalidRequestObject())
+	}
+	// Parameters inside the object take precedence over the query.
+	for _, name := range paramNames {
+		if name != "client_id" && inner.Has(name) {
+			*req.field(name) = inner.Get(name)
+		}
+	}
+	for k := range inner {
+		if strings.HasPrefix(k, ExtPrefix) {
+			if req.Ext == nil {
+				req.Ext = map[string]string{}
+			}
+			req.Ext[k] = inner.Get(k)
+		}
+	}
+	req.Signed, req.RequestObject = true, ""
+	req.Present = slices.DeleteFunc(slices.Clone(req.Present), func(n string) bool { return n == "request" })
+	return nil
+}
+
+// requestObjectClaims are JWT claims, not authorization parameters.
+var requestObjectClaims = []string{"iss", "sub", "aud", "exp", "iat", "nbf", "jti", "client_id"}
+
+// verifyRequestObject verifies raw with creds (clientcred.Verify, Purpose
+// RequestObject: iss, aud = issuer, exp, nbf, iat, the 60 minute lifetime
+// and a single-use jti) and checks that its client_id is c's. It returns the
+// object's authorization parameters; objects and arrays are dropped. The
+// error names the reason and never contains raw.
+func verifyRequestObject(raw string, c *store.Client, creds []*store.ClientCredential, issuer string, now time.Time, useJTI func(string, time.Time) error) (url.Values, error) {
+	claims, err := clientcred.Verify(clientcred.VerifyInput{
+		Raw: raw, ClientID: c.ClientID, Audiences: []string{issuer}, Purpose: clientcred.RequestObject,
+		Credentials: creds, Now: now, UseJTI: useJTI,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if id, _ := claims["client_id"].(string); id != c.ClientID {
+		return nil, errors.New("client_id does not match the client")
+	}
+	// RFC 9101 §4: an object never nests another.
+	if _, ok := claims["request"]; ok {
+		return nil, errors.New("request inside the request object")
+	}
+	if _, ok := claims["request_uri"]; ok {
+		return nil, errors.New("request_uri inside the request object")
+	}
+	out := url.Values{}
+	for k, v := range claims {
+		if slices.Contains(requestObjectClaims, k) {
+			continue
+		}
+		switch v := v.(type) {
+		case string:
+			out.Set(k, v)
+		case float64:
+			out.Set(k, strconv.FormatFloat(v, 'f', -1, 64))
+		case bool:
+			out.Set(k, strconv.FormatBool(v))
+		}
+	}
+	return out, nil
+}
+
+// unsignedObject reports whether raw is a compact JWT whose header alg is
+// none (LR35-4).
+func unsignedObject(raw string) bool {
+	head, _, ok := strings.Cut(raw, ".")
+	if !ok {
+		return false
+	}
+	b, err := base64.RawURLEncoding.DecodeString(head)
+	if err != nil {
+		return false
+	}
+	var h struct {
+		Alg string `json:"alg"`
+	}
+	return json.Unmarshal(b, &h) == nil && strings.EqualFold(h.Alg, "none")
+}
+
+// unsignedObjectDelivery reads state and response_mode from a request
+// object that is not processed (unsigned, or JAR unavailable), for
+// delivering request_not_supported only (D-0035; OpenID Connect Core §6.1:
+// its values take precedence over the query). It returns empty strings for
+// anything that is not a readable JWS.
+func unsignedObjectDelivery(raw string) (state, responseMode string) {
 	parts := strings.Split(raw, ".")
 	if len(parts) != 3 {
 		return "", ""
@@ -163,6 +326,9 @@ func (r Request) Params() map[string]string {
 	}
 	if r.Pushed {
 		out[pushedKey] = "1"
+	}
+	if r.Signed {
+		out[signedKey] = "1"
 	}
 	if r.OrgID != "" {
 		out[store.TxnParamOrgID] = r.OrgID
@@ -204,6 +370,7 @@ func RequestFromParams(p map[string]string) Request {
 		}
 	}
 	r.Pushed = p[pushedKey] == "1"
+	r.Signed = p[signedKey] == "1"
 	r.OrgID, r.OrgMode = p[store.TxnParamOrgID], OrgMode(p[store.TxnParamOrgMode])
 	return r
 }

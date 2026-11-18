@@ -222,3 +222,40 @@ func TestServiceSuspiciousIPEditExitsLegacyWindow(t *testing.T) {
 		})
 	}
 }
+
+// Custom token exchange has its own suspicious-IP budget, with no
+// connection: failures spend it, refunds do not, and the login budget is untouched.
+func TestServiceCustomTokenExchangeBudget(t *testing.T) {
+	s, tenant, conn := serviceFixture(t)
+	ctx := context.Background()
+	tenant.ProtectionSettings.SuspiciousIP.Stage.PreCustomTokenExchange = store.ProtectionRate{MaxAttempts: 2, Rate: 3600000}
+	tenant.ProtectionSettings.SuspiciousIP.Stage.PreLogin = store.ProtectionRate{MaxAttempts: 1, Rate: 3600000}
+	if err := s.Store.Tenants().Update(ctx, tenant); err != nil {
+		t.Fatal(err)
+	}
+	a := protection.Attempt{Tenant: tenant, IP: "192.0.2.9", Flow: protection.FlowCustomTokenExchange}
+	for i, outcome := range []string{"refund", "success", "failure", "failure"} {
+		d, err := s.Begin(ctx, a)
+		if err != nil || !d.Allowed {
+			t.Fatalf("attempt %d: %+v %v", i, d, err)
+		}
+		if err := s.Finish(ctx, d.Receipt, outcome); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if d, err := s.Begin(ctx, a); err != nil || d.Allowed {
+		t.Fatalf("exhausted budget admitted: %+v %v", d, err)
+	}
+	login := protection.Attempt{Tenant: tenant, Connection: conn, Identifier: "a", IP: "192.0.2.9", Flow: "login"}
+	if d, err := s.Begin(ctx, login); err != nil || !d.Allowed {
+		t.Fatalf("token exchange spent the login budget: %+v %v", d, err)
+	}
+	// A policy change of the stage clears its buckets.
+	tenant.ProtectionSettings.SuspiciousIP.Stage.PreCustomTokenExchange.MaxAttempts = 3
+	if err := s.Store.Tenants().Update(ctx, tenant); err != nil {
+		t.Fatal(err)
+	}
+	if d, err := s.Begin(ctx, a); err != nil || !d.Allowed {
+		t.Fatalf("policy change kept the old bucket: %+v %v", d, err)
+	}
+}

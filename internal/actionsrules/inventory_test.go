@@ -88,7 +88,7 @@ func TestActionsInventory(t *testing.T) {
 		t.Fatalf("missing operations %v", want)
 	}
 
-	if len(inv.Triggers) != 10 {
+	if len(inv.Triggers) != 11 {
 		t.Fatalf("triggers=%d", len(inv.Triggers))
 	}
 	members := map[string][]string{
@@ -117,6 +117,12 @@ func TestActionsInventory(t *testing.T) {
 			"authentication.enrollWithAny", "authentication.recordMethod", "authentication.setPrimaryUser",
 			"multifactor.enable", "prompt.render", "samlResponse.setAttribute",
 		},
+		"custom-token-exchange": {
+			"access.deny", "access.rejectInvalidSubjectToken", "authentication.setUserById",
+			"authentication.setUserByConnection", "authentication.setOrganization", "authentication.setActor",
+			"user.setAppMetadata", "user.setUserMetadata", "cache.get", "cache.set", "cache.delete",
+			"transaction.setMetadata",
+		},
 		"credentials-exchange": {
 			"access.deny", "accessToken.setCustomClaim", "transaction.addTargetScope",
 			"transaction.removeTargetScope", "transaction.setTargetScopes", "transaction.clearTargetScopes",
@@ -137,6 +143,7 @@ func TestActionsInventory(t *testing.T) {
 		"custom-phone-provider":         {"onExecuteCustomPhoneProvider", "", false},
 		"send-phone-message":            {"onExecuteSendPhoneMessage", "", true},
 		"event-stream":                  {"onExecuteEventStream", "", false},
+		"custom-token-exchange":         {"onExecuteCustomTokenExchange", "", true},
 	}
 	events := map[string][]string{
 		"event-stream":                  {"message", "secrets"},
@@ -147,6 +154,12 @@ func TestActionsInventory(t *testing.T) {
 		"custom-email-provider":         {"notification.from", "notification.to", "notification.subject", "notification.html", "notification.text", "notification.locale", "notification.message_type", "user", "client", "tenant", "request", "connection", "secrets"},
 		"custom-phone-provider":         phoneProviderEvent,
 		"send-phone-message":            sendPhoneMessageEvent,
+		"custom-token-exchange": {
+			"client", "organization", "request", "resource_server.identifier", "tenant.id", "secrets",
+			"transaction.subject_token", "transaction.subject_token_type", "transaction.actor_token",
+			"transaction.actor_token_type", "transaction.actor_token_user", "transaction.requested_scopes",
+			"transaction.requested_token_type",
+		},
 	}
 	for _, tr := range inv.Triggers {
 		need, ok := members[tr.ID]
@@ -155,7 +168,7 @@ func TestActionsInventory(t *testing.T) {
 		}
 		delete(members, tr.ID)
 		// Empty versions retain the existing HTTP discovery defaults.
-		versions := map[string]string{"post-login": "", "credentials-exchange": "", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "", "custom-email-provider": "", "event-stream": "v1", "custom-phone-provider": "v1", "send-phone-message": "v2"}
+		versions := map[string]string{"post-login": "", "credentials-exchange": "", "pre-user-registration": "v2", "post-user-registration": "v2", "post-change-password": "v2", "password-reset-post-challenge": "", "custom-email-provider": "", "event-stream": "v1", "custom-phone-provider": "v1", "send-phone-message": "v2", "custom-token-exchange": "v1"}
 		if tr.Version != versions[tr.ID] {
 			t.Errorf("%s version=%q want %q", tr.ID, tr.Version, versions[tr.ID])
 		}
@@ -211,7 +224,6 @@ func TestActionsInventory(t *testing.T) {
 		t.Errorf("missing triggers %v", members)
 	}
 	deferred := map[string]string{
-		"custom-token-exchange":   "35",
 		"password-hash-migration": "deferred", "login-post-identifier": "deferred", "signup-post-identifier": "deferred", "post-credential-validation": "deferred",
 	}
 	for _, tr := range inv.DeferredTriggers {
@@ -260,6 +272,14 @@ func TestActionsInventory(t *testing.T) {
 }
 
 func wantSupport(trigger, name string) string {
+	if trigger == "custom-token-exchange" {
+		// Plan 35: every documented member is supported; the Early Access
+		// transaction metadata is refused as an unknown member (D-0063).
+		if name == "transaction.setMetadata" {
+			return "unsupported"
+		}
+		return "supported"
+	}
 	switch name {
 	case "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny", "multifactor.enable":
 		return "supported"

@@ -24,3 +24,7 @@ func TestOrganizationsII(t *testing.T) {
 func TestLogs(t *testing.T) {
 	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "Logs")
 }
+
+func TestClientCredentials(t *testing.T) {
+	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "ClientCredentials")
+}

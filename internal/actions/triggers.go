@@ -16,6 +16,7 @@ const (
 	TriggerPostChangePassword   = "post-change-password"
 	TriggerResetPostChallenge   = "password-reset-post-challenge"
 	TriggerCustomEmailProvider  = "custom-email-provider"
+	TriggerCustomTokenExchange  = "custom-token-exchange"
 	TriggerCustomPhoneProvider  = "custom-phone-provider"
 	TriggerSendPhoneMessage     = "send-phone-message"
 )
