@@ -1,7 +1,8 @@
 name: dco
 # Every commit in a pull request must carry a Signed-off-by line for its
 # author, certifying the Developer Certificate of Origin 1.1 (CONTRIBUTING.md).
-# Merge commits are skipped. Runs on the pull_request event, so fork PRs get
+# Merge commits are skipped, and so are Dependabot's commits in pull requests
+# Dependabot opened (scripts/check-dco.sh). Runs on the pull_request event, so fork PRs get
 # a read-only token and no secrets.
 on:
   pull_request:
@@ -13,12 +14,14 @@ jobs:
   sign-off:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Check Signed-off-by on every commit
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: ./scripts/check-dco.sh "$BASE" "$HEAD"

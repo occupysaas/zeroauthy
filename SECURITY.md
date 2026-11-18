@@ -49,6 +49,9 @@ Never include real users' data, live tokens or the master key.
 This is a volunteer-maintained preview, so these are targets, not contractual
 guarantees.
 
+Maintainers handle reports and other security incidents with the
+[incident response plan](INCIDENT_RESPONSE.md).
+
 ## Scope
 
 In scope:
@@ -77,3 +80,6 @@ Out of scope:
 
 Behaviour that differs from Auth0's documentation but is not a security
 problem is a normal bug: please open a public issue.
+
+The [threat model](THREAT_MODEL.md) describes what zeroauthy protects, its
+trust boundaries and the operator's responsibilities behind this scope.

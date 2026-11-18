@@ -17,14 +17,14 @@ the plans below, marked "(pre-1.0 review)".
 ### Designed 2026-11-16 (spec and plan merged; implementation status below)
 
 Every remaining parallel-paths item except X1 (maintainer-only) has a spec and
-an implementation plan. Plan 39a reached `main` through `74752598`. O3 / Plan 45b completed Tasks 1–13 on its branch. Its [implementation record](../2026-11-16-plan-45b-implementation-record.md) tracks verification and integration. Rulings the maintainer still has to give are listed
+an implementation plan. S1 / Plan 39a (Apple) is implemented and merged into `main` (2026-11-17, plan-branch CI green at `74752598`). O3 / Plan 45b is [implemented](../2026-11-16-plan-45b-implementation-record.md) (all 14 tasks). Rulings the maintainer still has to give are listed
 per item; items without rulings can start as soon as their track allows.
 
 | Item | Plan | Spec | Rulings needed before (parts of) implementation |
 |---|---|---|---|
 | F1 | 36 enterprise OIDC | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
 | P2 | 48 refresh tokens II | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
-| P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | front-channel logout not built; compat switch defaults; certification timing |
+| P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
 | P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
 | P5 | 41c CIBA (email channel) | [spec](2026-11-16-zeroauthy-ciba-design.md) | none |
 | P6 | 43 Token Vault | [spec](2026-11-16-zeroauthy-token-vault-design.md) | which clients may exchange; upstream revocation; vault vs identities |
@@ -32,7 +32,7 @@ per item; items without rulings can start as soon as their track allows.
 | F3 | 37b WS-Fed and ADFS | [spec](2026-11-16-zeroauthy-ws-federation-design.md) | none (inherits F2's) |
 | F4 | 37c SCIM, groups, self-service | [spec](2026-11-16-zeroauthy-scim-self-service-design.md) | phase order; directory-sync testing |
 | F5 | 38a AD/LDAP | [spec](2026-11-16-zeroauthy-ad-ldap-design.md) | connector protocol vs LDAP bind; connector E2E pin; replica forwarding |
-| S1 | 39a Apple | [spec](2026-11-16-zeroauthy-apple-design.md) | none |
+| S1 | 39a Apple | [spec](2026-11-16-zeroauthy-apple-design.md) | **done** (merged 2026-11-17, [record](../2026-11-16-plan-39a-implementation-record.md)) |
 | S2 | 39b social providers | [spec](2026-11-16-zeroauthy-social-providers-design.md) | provider order; Tier 2 timing; live checks |
 | A1 | 40 Actions III | [spec](2026-11-16-zeroauthy-actions-iii-design.md) | none |
 | A2 | 38b Forms and Flows | [spec](2026-11-16-zeroauthy-forms-flows-design.md) | console builder scope; vendor order |
@@ -42,7 +42,7 @@ per item; items without rulings can start as soon as their track allows.
 | M1 | 38d Management gaps | [spec](2026-11-16-zeroauthy-management-gaps-design.md) | verifiable-credential templates; `/keys/encryption` owner |
 | O1 | 38c network ACLs | [spec](2026-11-16-zeroauthy-network-acls-design.md) | geo/ASN signals; system-tenant exemption |
 | O2 | 45a security hardening | [spec](2026-11-16-zeroauthy-security-hardening-design.md) | key hierarchy; sandbox failure policy; DB TLS default; external KMS |
-| O3 | 45b flow and API fixes | [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md) | none |
+| O3 | 45b flow and API fixes | [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md) | none (in progress: Tasks 1–5 done, 6–14 pending) |
 | O4 | 45c infrastructure | [spec](2026-11-16-zeroauthy-infrastructure-hardening-design.md) | DNS providers; backoff values; axe-core pin |
 | O5 | 46 leftovers | [spec](2026-11-16-zeroauthy-release-leftovers-design.md) | next languages; French reviewer; TV sample CI |
 
@@ -74,6 +74,8 @@ carry provisional numbers (0037 onward) and are renumbered at merge.
 | 33 | MFA I: OTP, email, recovery codes, policies, remember browser, hosted prompts, MFA grants and APIs (WebAuthn moved to Plan 33b) |
 | 33b | Passkeys and WebAuthn MFA: passkeys on database connections, security keys and device biometrics, native passkey APIs and grant, per-host relying party IDs |
 | 34 | Passwordless and phone: email/SMS connections, magic links, OTP grant, Twilio/SNS/custom providers, SMS and voice MFA, phone identifiers and reset |
+| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles (merged 2026-11-15, PR #17) |
+| 39a | Sign in with Apple: web and native login, ES256 client secrets, console, seed and Deploy CLI (merged 2026-11-17) |
 
 ### Management API coverage by resource
 
@@ -135,11 +137,11 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full (done; WebAuthn → 33b) | 21, 27 |
 | 33b | Passkeys and WebAuthn MFA: connection passkey options, client `mobile`, native passkey APIs, security-key settings | full | 33, 23 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full (done) | 33 |
-| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short (implemented; merge pending CI and maintainer approval) | 27 |
+| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short (done) | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
 | 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |
-| 39 | Additional social providers (Apple, Facebook, GitHub, …) | short (Apple full) | 24 |
+| 39 | Additional social providers (Apple, Facebook, GitHub, …) | short (Apple full; 39a Apple done) | 24 |
 | 40 | Actions III: newer triggers, Early Access members, `/userinfo` claims | short | 28, 22 |
 | 41 | OIDC protocol extras, CIBA, formal OIDF certification | full | 33, 35 |
 | 42 | My Account API and My Organization API | full | 30, 33 |
@@ -488,7 +490,7 @@ verification jobs and tickets; narrowing `GET /users/{id}/organizations`
 scopes; the v1-only `connection` filter; non-secret email-provider fields
 (`api_user`, `region`, `smtp_*`) on `GET /emails/provider`.
 
-**Split by the parallel paths:** O2 = 45a security hardening, O3 = 45b flow and API fixes, O4 = 45c infrastructure. **45a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-security-hardening-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45a-security-hardening.md) (12 tasks, D-0260): envelope v2 with per-tenant master keys, root-key rotation, Auth0's `/keys/encryption*` customer-managed keys (moved from Plan 38d), a Landlock/seccomp runner sandbox with one shared prelude, retirement on spent budgets, HSTS, database TLS checks and plugin stderr scrubbing. Four maintainer rulings gate parts of it (spec §9). **45b implementation on the plan branch (O3):** [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45b-flow-api-fixes.md) (14 tasks, D-0270): the eleven flow and API findings above plus Plan 33 minors M3/M6/M7; Actions keep their position relative to MFA (2026-11-08 ruling). **45c designed 2026-11-16 (O4):** [spec](2026-11-16-zeroauthy-infrastructure-hardening-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45c-infrastructure-hardening.md) (11 tasks, D-0280): durable certificate retries, Cloudflare/Route 53/RFC 2136 DNS-01 with CNAME delegation (maintainer to confirm), custom JWKS publication, a CORS origin index, the orphaned-token sweep, Try limiting, enforced phone backoff, the Plan 27 MySQL freshness closure and an axe accessibility audit.
+**Split by the parallel paths:** O2 = 45a security hardening, O3 = 45b flow and API fixes, O4 = 45c infrastructure. **45a designed 2026-11-16:** [spec](2026-11-16-zeroauthy-security-hardening-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45a-security-hardening.md) (12 tasks, D-0260): envelope v2 with per-tenant master keys, root-key rotation, Auth0's `/keys/encryption*` customer-managed keys (moved from Plan 38d), a Landlock/seccomp runner sandbox with one shared prelude, retirement on spent budgets, HSTS, database TLS checks and plugin stderr scrubbing. Four maintainer rulings gate parts of it (spec §9). **45b implemented (O3):** [spec](2026-11-16-zeroauthy-flow-api-fixes-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45b-flow-api-fixes.md) (14 tasks, D-0270): the eleven flow and API findings above plus Plan 33 minors M3/M6/M7; Actions keep their position relative to MFA (2026-11-08 ruling). **45c designed 2026-11-16 (O4):** [spec](2026-11-16-zeroauthy-infrastructure-hardening-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-45c-infrastructure-hardening.md) (11 tasks, D-0280): durable certificate retries, Cloudflare/Route 53/RFC 2136 DNS-01 with CNAME delegation (maintainer to confirm), custom JWKS publication, a CORS origin index, the orphaned-token sweep, Try limiting, enforced phone backoff, the Plan 27 MySQL freshness closure and an axe accessibility audit.
 
 ### Plan 46 — Release pipeline, packaging and samples
 

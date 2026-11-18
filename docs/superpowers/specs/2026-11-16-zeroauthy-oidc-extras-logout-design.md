@@ -435,13 +435,17 @@ Observe later (`docs/superpowers/plan-1-followups.md`):
 - **L13** Global token revocation JWT `typ`, `aud` and body formats.
 - **L14** Global token revocation log types.
 
-## 11. Decisions needed from the maintainer
+## 11. Maintainer decisions (ruled 2026-11-17)
 
-1. Front-Channel Logout: confirm "not built" (LR41a-1).
-2. The `optional redirect_uri` switch (LR41a-10) and the logout-token `typ`
-   switch (§7.3): confirm spec-compliant defaults.
-3. Certification run timing (needs the droplet and the maintainer's
-   signature).
+1. Front-Channel Logout: **not built** (LR41a-1 confirmed).
+2. Spec-compliant defaults confirmed: `redirect_uri` is **required** by
+   default, with `ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI=1` for
+   Auth0's fallback (LR41a-10); logout tokens carry **`typ: logout+jwt`** by
+   default, with `ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT=1` for
+   `JWT` (§7.3).
+3. Certification: run the Back-Channel Logout OP and RP-Initiated Logout OP
+   submission **right after Plan 41a merges** (one droplet run, maintainer
+   signs). Dynamic OP is a separate submission after Plan 41b.
 
 ## 12. Left to the builder
 

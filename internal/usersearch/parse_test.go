@@ -111,6 +111,10 @@ func TestParseTrees(t *testing.T) {
 		{"meta nested", `app_metadata.obj.k:v`, term("app_metadata.obj.k", "v")},
 		{"meta quoted star literal", `user_metadata.c:"a*"`, term("user_metadata.c", "a*")},
 		{"meta nan is string", `user_metadata.c:NaN`, term("user_metadata.c", "NaN")},
+		// Found by ClusterFuzzLite: number-shaped but outside float64, so the
+		// store would refuse it as a number.
+		{"meta overflowing number is string", `app_metadata.n:1e400`, term("app_metadata.n", "1e400")},
+		{"meta overflowing negative is string", `app_metadata.n:-1.5e999`, term("app_metadata.n", "-1.5e999")},
 		// Ranges.
 		{"incl range", `logins_count:[1 TO 5]`, rng("logins_count", num, str("1"), str("5"), true, true)},
 		{"excl range", `logins_count:{1 TO 5}`, rng("logins_count", num, str("1"), str("5"), false, false)},

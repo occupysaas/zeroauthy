@@ -17,12 +17,14 @@ This folder holds how zeroauthy is designed and built:
 Every remaining roadmap item except X1 (hosted zeroauthy, maintainer-only)
 has a spec and a plan, written 2026-11-16. Implementation and verification states are recorded per item.
 
-S1 / Plan 39a shipped web and native Apple login on `main` through `74752598`.
-See [the Apple implementation record](2026-11-16-plan-39a-implementation-record.md).
+S1 / Plan 39a (web and native Apple login) is implemented and merged into
+`main` (2026-11-17, plan-branch CI green at `74752598`); see
+[its record](2026-11-16-plan-39a-implementation-record.md).
 
-O3 / Plan 45b completed Tasks 1–13 on the plan branch. Decisions and the
-signup-code change previously landed on `main`. The [implementation record](2026-11-16-plan-45b-implementation-record.md)
-tracks final verification, whole-branch review and CI.
+O3 / Plan 45b (flow and API fixes) is implemented: all 14 tasks, the
+whole-branch review and local verification are complete; see
+[its record](2026-11-16-plan-45b-implementation-record.md). Review follow-ups
+R1–R7 are in [plan-1-followups.md](plan-1-followups.md).
 
 Start at the roadmap's **"Designed 2026-11-16"** table
 ([roadmap §0](specs/2026-10-19-zeroauthy-management-roadmap-design.md)).
@@ -56,7 +58,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | O5 | 46 Release leftovers | [spec](specs/2026-11-16-zeroauthy-release-leftovers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-46-release-leftovers.md) |
 | P2 | 48 Refresh tokens II | [spec](specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-48-refresh-tokens-ii.md) |
 
-P1 (Plan 35) is already implemented and merged.
+P1 (Plan 35) and S1 (Plan 39a) are implemented and merged.
 
 ## Before implementing an item
 
