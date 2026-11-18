@@ -4,10 +4,10 @@ Started 2026-11-16 from `7691b15d92bcfef3a2d48908b29de112bb74f08b`.
 Worktree: `/mnt/nvme2/code/zeroauthy-plan39a`.
 Branch: `plan-39a-apple`.
 
-**Current status:** Tasks 1–7 implemented and reviewed on `plan-39a-apple`.
-Apple web/native runtime is active; Task 8 acceptance and final plan gates
-are recorded below. Full Go tier, whole-branch review and CI have not yet
-completed. No merge authorization is implied.
+**Current status (2026-11-17):** done. All tasks implemented and reviewed;
+plan-branch CI green at `74752598`
+(https://github.com/occupysaas/zeroauthy/actions/runs/44000869030); merged
+into `main`. The sections below record how it got there.
 
 Initial scope: Task 3, the internal ES256 client-secret signer and cache,
 while the independent Plan 45b branch is in CI. This task consumes existing
