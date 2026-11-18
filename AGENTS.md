@@ -65,6 +65,45 @@ Full verification of a plan runs in GitHub Actions, not as a local sequential ru
 
 Report CI results as for local runs: the run URL, each failed job and its actual failure.
 
+## Landing changes on `main`
+
+The "Protect Main" ruleset requires the `sign-off` check, and only the
+maintainer can sign off a merge. Agents usually run with the maintainer's
+GitHub credentials, so the ruleset's maintainer bypass also applies to them.
+Don't rely on it:
+
+- Never push to `main`, not even a docs-only commit. Every change lands
+  through a pull request from a branch: `plan-*` for plan work (full CI),
+  any other name (for example `docs-*` or `fix-*`) for small changes.
+- Merge only when the maintainer has approved that pull request in the
+  current conversation and every check on it is green. A red check that isn't
+  required is still red: report it and ask. Never use `gh pr merge --admin`,
+  ruleset bypasses, `--force` pushes to shared branches, or `--no-verify`.
+- Don't change repository settings, rulesets, branch protection, secrets,
+  environments or Actions permissions. Write the `gh api` command and
+  leave it to the maintainer to run.
+- Sign off every commit (`git commit -s`). Don't loosen
+  `scripts/check-dco.sh`. Dependabot pull requests fail it until the
+  maintainer decides whether to exempt `dependabot[bot]`.
+
+Pull requests from forks:
+
+- Don't push to a contributor's fork. If the pull request conflicts with
+  `main`, merge `main` into a copy of its branch in this repository, keep the
+  contributor's commits unchanged, and open a pull request from that branch
+  that says `Closes #<n>`.
+- Their workflow runs wait for the maintainer to approve them
+  (`action_required`). Never approve them yourself.
+- Check every changed `uses:` SHA against the upstream tag named in its
+  comment, and read every changed workflow, script and Dockerfile before
+  pushing the branch, because pushing runs that code with this repository's
+  token.
+
+A failed job may be rerun once, and only after its log has been read and
+the failure doesn't involve the change (for example, a privacy scan
+matching a random code). Record the first failure and the rerun in the pull
+request.
+
 ## Plan 19 database-test hold
 
 While implementing Plan 19 (`docs/superpowers/plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md`), do not run **any database-backed test until all implementation tasks (Tasks 1–11) are done**. This includes SQLite, PostgreSQL, MySQL, SQL-backed gRPC or plugin tests, database-backed integration and browser tests, `./scripts/test-sql.sh`, and broad test commands that would select any of them.
