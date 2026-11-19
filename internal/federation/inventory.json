@@ -837,6 +837,224 @@
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         }
       }
+    },
+    "github": {
+      "status": "planned (Plan 39c); public GitHub documentation only, no live GitHub or Auth0 observation",
+      "is_social": true,
+      "id_format": "github|<id>",
+      "default_scopes": [
+        "user:email"
+      ],
+      "options": {
+        "client_id": {
+          "type": "string",
+          "default": null,
+          "validation": "required nonempty; immutable after creation",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github"
+        },
+        "client_secret": {
+          "type": "string",
+          "default": null,
+          "validation": "required nonempty on create; omitted PATCH preserves; empty/null rejected; seal before persistence",
+          "secret": "write-only",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github"
+        },
+        "set_user_root_attributes": {
+          "type": "string",
+          "default": "on_each_login",
+          "validation": "on_each_login, on_first_login, never_on_login; local never_on_login provisions on first login but does not sync later",
+          "secret": "public",
+          "runtime": "active",
+          "source": "local:docs/superpowers/specs/2026-10-26-zeroauthy-social-connections-design.md"
+        },
+        "upstream_params": {
+          "type": "object",
+          "default": {},
+          "validation": "inert values retained and diagnosed; reject reserved protocol overrides or security policy/authentication requirements",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/authenticate/identity-providers/pass-parameters-to-idps"
+        },
+        "email": {
+          "type": "boolean",
+          "default": true,
+          "validation": "true adds user:email and requires a verified primary email at login; false makes no /user/emails call and creates users without email",
+          "secret": "public",
+          "runtime": "active",
+          "source": "local:docs/superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md"
+        },
+        "profile": {
+          "type": "boolean",
+          "default": true,
+          "validation": "stored and round-tripped only; adds no scope; /user is always read (local difference)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "local:docs/superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md"
+        },
+        "freeform_scopes": {
+          "type": "array<string>",
+          "default": null,
+          "validation": "absent or empty only; non-empty rejected",
+          "secret": "public",
+          "runtime": "active",
+          "source": "local:docs/superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md"
+        },
+        "scope": {
+          "type": "array<string>",
+          "default": null,
+          "validation": "optional; accepted only when equal as a set to the effective scope computed from the flags; returned as the effective scope",
+          "secret": "public",
+          "runtime": "active",
+          "source": "local:docs/superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md"
+        },
+        "admin_org": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope admin:org (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "admin_public_key": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope admin:public_key (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "admin_repo_hook": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope admin:repo_hook (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "delete_repo": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope delete_repo (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "follow": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope user:follow (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "gist": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope gist (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "notifications": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope notifications (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "public_repo": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope public_repo (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "read_org": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope read:org (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "read_public_key": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope read:public_key (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "read_repo_hook": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope read:repo_hook (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "read_user": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope read:user (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "repo": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope repo (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "repo_deployment": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope repo_deployment (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "repo_status": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope repo:status (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "write_org": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope write:org (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "write_public_key": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope write:public_key (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        },
+        "write_repo_hook": {
+          "type": "boolean",
+          "default": false,
+          "validation": "true adds GitHub scope write:repo_hook (OAuth apps only)",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+        }
+      }
     }
   },
   "operations": [
@@ -1290,6 +1508,69 @@
       "nonce": "web required; native omitted",
       "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native",
       "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-apple-design.md"
+    },
+    "github": {
+      "status": "planned; public GitHub documentation read 2026-11-18",
+      "authorization_endpoint": "https://github.com/login/oauth/authorize",
+      "token_endpoint": "https://github.com/login/oauth/access_token",
+      "user_endpoint": "https://api.github.com/user",
+      "emails_endpoint": "https://api.github.com/user/emails?per_page=100",
+      "client_auth": "client_secret_post",
+      "pkce": "S256 only; plain refused; code_verifier required at token endpoint when a challenge was sent",
+      "nonce": "none; no ID token",
+      "token_response": "JSON with Accept: application/json (access_token, scope, token_type, optional expires_in, refresh_token, refresh_token_expires_in); a body with error is a failure regardless of HTTP status (docs do not state the status)",
+      "scope_flags": {
+        "admin_org": "admin:org",
+        "admin_public_key": "admin:public_key",
+        "admin_repo_hook": "admin:repo_hook",
+        "delete_repo": "delete_repo",
+        "follow": "user:follow",
+        "gist": "gist",
+        "notifications": "notifications",
+        "public_repo": "public_repo",
+        "read_org": "read:org",
+        "read_public_key": "read:public_key",
+        "read_repo_hook": "read:repo_hook",
+        "read_user": "read:user",
+        "repo": "repo",
+        "repo_deployment": "repo_deployment",
+        "repo_status": "repo:status",
+        "write_org": "write:org",
+        "write_public_key": "write:public_key",
+        "write_repo_hook": "write:repo_hook",
+        "email": "user:email",
+        "profile": ""
+      },
+      "api_version": "2026-03-10",
+      "api_version_reason": "newest version GitHub lists as supported on 2026-11-18; 2022-11-28 remains supported until 2028-03-10 and is the default without the header",
+      "accept": "application/vnd.github+json",
+      "user_agent": "zeroauthy",
+      "emails_page": "one page, per_page=100, never paginated",
+      "emails_scope": "user:email for OAuth app tokens; GitHub App user tokens need the Email addresses user permission (read)",
+      "rate_limit_signals": [
+        {
+          "status": "403",
+          "header": "x-ratelimit-remaining",
+          "value": "0"
+        },
+        {
+          "status": "429",
+          "header": "x-ratelimit-remaining",
+          "value": "0"
+        },
+        {
+          "status": "403",
+          "header": "retry-after",
+          "value": "present"
+        },
+        {
+          "status": "429",
+          "header": "retry-after",
+          "value": "present"
+        }
+      ],
+      "source": "https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api",
+      "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md"
     }
   },
   "limits": {
@@ -1484,5 +1765,32 @@
     ],
     "facebook_google": "stored and returned in Plan 39a; enforcement deferred to Plan 39b",
     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+  },
+  "github_profile": {
+    "status": "planned",
+    "identity": "github|<numeric id>; isSocial=true; never auto-link by email",
+    "email": "verified primary address from /user/emails only; public /user email never used; login refused without one when email is on",
+    "email_verified": "true whenever an email is set",
+    "provider_data": [
+      "login",
+      "html_url",
+      "blog",
+      "company",
+      "location",
+      "bio",
+      "public_repos",
+      "followers",
+      "following",
+      "created_at",
+      "updated_at"
+    ],
+    "auth0_unavailable": [
+      "email handling",
+      "email_verified for GitHub",
+      "scope versus flag semantics",
+      "github user_id format"
+    ],
+    "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github",
+    "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md"
   }
 }
