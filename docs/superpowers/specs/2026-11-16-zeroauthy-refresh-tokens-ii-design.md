@@ -314,15 +314,20 @@ this state back with transactions; SQL and gRPC share the same contract.
 The capability is included in `refresh_tokens_ii.v1`; absent capability
 refuses DPoP instead of bypassing replay prevention.
 
-For public clients sending DPoP, issue a `400 use_dpop_nonce` challenge
-before grant mutation when nonce is absent/expired. A nonce contains issue
-time and 24 random bytes, sealed by the existing `keys.Wrapper` with a
-versioned purpose, tenant, issuer and thumbprint as AAD, encoded base64url.
-It is reusable for 60s, bounded to 1 KiB, and usable across replicas sharing
-the configured wrapper. UserInfo accepts this same nonce domain; nonce
-refresh is independent of jti replay. Challenges and successful proof
-responses expose `DPoP-Nonce` through CORS; allow request `DPoP`. Wrapper
-or replay-store errors fail closed with `server_error`, never Bearer fallback.
+For public clients sending DPoP to the token endpoint, issue a
+`400 use_dpop_nonce` response with `DPoP-Nonce` before grant mutation when
+the nonce is missing, expired or invalid. UserInfo challenges a request
+with a missing, expired or invalid nonce using HTTP `401`,
+`WWW-Authenticate: DPoP error="use_dpop_nonce"`, and `DPoP-Nonce`.
+Authorization-server and UserInfo nonces have distinct authenticated
+domains. A nonce contains issue time and 24 random bytes, sealed by the
+existing `keys.Wrapper` with a versioned purpose specific to the domain,
+tenant, issuer and thumbprint as AAD, then encoded as base64url. A nonce
+is valid only in its issuing domain (RFC 9449 §9). It is reusable for 60s,
+bounded to 1 KiB, and usable across replicas sharing the configured wrapper.
+Nonce refresh is independent of jti replay. CORS allows request `DPoP` and
+exposes response `DPoP-Nonce` for challenges and successful proof responses.
+Wrapper or replay-store errors fail closed with `server_error`.
 
 Configuration follows the published sender-constraining table:
 `client.require_proof_of_possession` (default false) and API
@@ -345,9 +350,14 @@ token is bound. Existing Action claim restrictions protect `cnf`. Bind the
 refresh token's new `DPoPJKT` field at issuance and preserve it across
 rotation, conversion and MRRT. Wrong/missing proof cannot revoke, convert
 or otherwise mutate a legitimate family. Support `dpop_jkt` on authorize,
-PAR and signed requests, persist through auth transactions/codes and
-require the matching proof at code redemption (RFC 9449 §10). Do not
-reinterpret upstream enterprise DPoP configuration.
+PAR and signed requests. PAR also accepts a `DPoP` header. Validate its
+proof for the PAR endpoint under RFC 9449 §4.3 and derive the binding from
+the verified public key. When both the effective `dpop_jkt` parameter and
+the header are present, reject a thumbprint mismatch before storing the
+pushed request. Preserve the selected thumbprint through PAR, the
+authorization transaction and the code, and require the matching proof
+at code redemption (RFC 9449 §10.1). Upstream enterprise DPoP configuration
+is separate from this verifier.
 
 UserInfo accepts DPoP authorization with a proof and verifies key, nonce,
 method, public URI, access-token hash and replay. Bound tokens presented

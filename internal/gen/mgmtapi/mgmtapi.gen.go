@@ -12011,6 +12011,9 @@ type Organization struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess string `json:"third_party_client_access"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationBranding defines model for OrganizationBranding.
@@ -12104,6 +12107,9 @@ type OrganizationCreate struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationCreated The create response, which alone echoes the enabled connections.
@@ -12122,6 +12128,9 @@ type OrganizationCreated struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess string `json:"third_party_client_access"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationDiscoveryDomain defines model for OrganizationDiscoveryDomain.
@@ -12294,6 +12303,9 @@ type OrganizationUpdate struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationsCheckpoint A checkpoint page; `next` is present while more remain.

@@ -268,13 +268,15 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 
 **Files:**
 - Create: `internal/dpop/proof.go`, `nonce.go`, `context.go`, and focused tests.
-- Modify: `internal/server/server.go` (one shared DPoP service injected into OAuth and OIDC handlers), `internal/oauth/handlers.go`, `internal/oidc/handlers.go`, `internal/oauth/token.go`, `minter.go`, `grant_authorization_code.go`, `grant_refresh_token.go`, `refresh.go`, all shared refresh issuance helpers, `internal/authz` authorize/PAR/JAR parsing and transaction/code creation, `internal/oidc/handlers.go`, `userinfo.go`, `internal/httpx` CORS, `internal/logscrub`.
+- Modify: `internal/server/server.go` (one shared DPoP service injected into OAuth and OIDC handlers), `internal/oauth/handlers.go`, `internal/oidc/handlers.go`, `internal/oauth/token.go`, `par.go`, `minter.go`, `grant_authorization_code.go`, `grant_refresh_token.go`, `refresh.go`, all shared refresh issuance helpers, `internal/authz` authorize/PAR/JAR parsing and transaction/code creation, `internal/oidc/handlers.go`, `userinfo.go`, `internal/httpx` CORS, `internal/logscrub`.
 - Modify: `internal/clientrules`, `internal/apirules`, `internal/mgmt` client/API codecs, seed rules, `internal/tenantrules` strict binding default, `api/*.yaml`, generated code via `make generate`.
 
 **Interfaces:** Consume Task 2/3 `Store.DPoP` and DPoPJKT fields. Produce
 `dpop.Service{Store store.Store, Wrapper keys.Wrapper, Now func() time.Time}`
 with `Verify(ctx context.Context, r *http.Request, res tenant.Resolved,
-requireNonce bool, accessToken, expectedJKT string) (*dpop.Proof, *dpop.Error)`;
+nonceDomain dpop.NonceDomain, requireNonce bool, accessToken, expectedJKT string) (*dpop.Proof, *dpop.Error)`;
+`NonceDomain` selects distinct authenticated purposes for the authorization
+server and UserInfo. Token and PAR proofs use the authorization-server domain.
 `Proof{JKT string}`; `Error{Code string, Nonce string, Internal bool}`.
 OAuth and OIDC handlers gain `DPoP *dpop.Service`; server wiring supplies the
 same store/wrapper/clock configuration. Shared context helpers carry authenticated proof to minter and issuance;
@@ -284,9 +286,34 @@ access-token binding, independently of refresh binding.
 
 - [ ] **Step 1:** RED tests for spec §5.1 validation: ES256/RS256 success; wrong typ, none/HS256, private/remote JWK, weak/oversized RSA, wrong curve, malformed/duplicate JSON members, critical headers, oversized/repeated/comma headers, missing/wrong-type/expired/future claims, endpoint method/origin mismatch, query/default-port URI equivalence. Run `go test ./internal/dpop/` and observe expected failures.
 - [ ] **Step 2:** Implement bounded verifier using existing jose and standard library. `go test ./internal/dpop/` → PASS.
-- [ ] **Step 3:** RED nonce/replay tests with injected clock, two service instances sharing store/wrapper, exactly one replay winner, wrong tenant/origin/key and expired nonce, infrastructure failure closes access. Implement challenge handling and durable replay via Task 2/3 repo; focused suite → PASS.
-- [ ] **Step 4:** RED configuration/policy tests: published client/API matrix including public-only required; strict binding per tenant; `dpop_jkt` on authorize/PAR/JAR and mismatch at redemption; valid proof binds refresh independently of API policy; no silent upgrade; all rotation/conversion/MRRT preserve key; missing/wrong proof changes no family/code/session/quota state; bound tokens cannot become Bearer or lose cnf via Actions. Implement at authenticated token boundary before grant side effects. Run `go test ./internal/oauth/ ./internal/authz/ ./internal/clientrules/ ./internal/apirules/` → PASS.
-- [ ] **Step 5:** RED UserInfo tests: DPoP scheme with ath/key/nonce/method/URI/replay validation succeeds; Bearer/form downgrade, stolen token with another key, token substitution, other tenant/host and replay fail; unbound Bearer still works. Management/operator paths reject bound tokens without a verifier and do not mint them. Implement, then `go test ./internal/oidc/ ./internal/mgmt/ ./internal/server/ -run 'DPoP|Dpop|Userinfo|UserInfo|ProofOfPossession'` → PASS.
+- [ ] **Step 3:** RED nonce/replay tests with injected clock and two service
+  instances sharing store/wrapper. Assert exactly one replay winner,
+  rejection for wrong tenant, origin, key, nonce domain or expired nonce,
+  and fail-closed infrastructure errors. Token-endpoint nonce challenges
+  return `400 use_dpop_nonce` with `DPoP-Nonce`. Implement challenge
+  handling and durable replay via Task 2/3 repo. Focused suite → PASS.
+- [ ] **Step 4:** RED configuration and binding tests. Cover the published
+  client/API matrix including public-only required, per-tenant strict
+  binding, `dpop_jkt` on authorize/PAR/JAR, and mismatched keys at redemption.
+  Exercise PAR with the parameter only, a verified `DPoP` header only,
+  and both with a matching thumbprint. An invalid header or mismatched
+  thumbprints must fail before a pushed request is saved. The selected
+  thumbprint survives PAR consumption and binds the code at redemption.
+  Cover refresh binding independently of API policy, unbound refresh
+  remaining unbound, and binding preservation through rotation, conversion
+  and MRRT. Missing or wrong proof leaves family, code, session and quota
+  state intact. Actions cannot strip `cnf` and bound tokens require DPoP.
+  Implement verification before PAR persistence and grant side effects.
+  Run `go test ./internal/oauth/ ./internal/authz/ ./internal/clientrules/ ./internal/apirules/` → PASS.
+- [ ] **Step 5:** RED UserInfo tests. Validate the DPoP scheme, `ath`, key,
+  nonce, method, URI and replay. Assert `401`,
+  `WWW-Authenticate: DPoP error="use_dpop_nonce"`, and `DPoP-Nonce` for
+  a missing nonce or an authorization-server nonce used at UserInfo. An
+  authorization-server request also rejects a UserInfo nonce. Cover Bearer
+  and form downgrade, wrong key, token substitution, wrong tenant or host,
+  replay, and valid unbound Bearer tokens. Management and operator paths
+  refuse bound tokens and their issuers prevent minting them. Implement,
+  then `go test ./internal/oidc/ ./internal/mgmt/ ./internal/server/ -run 'DPoP|Dpop|Userinfo|UserInfo|ProofOfPossession'` → PASS.
 - [ ] **Step 6:** RED discovery, CORS allow/expose headers and log scrub tests; implement, regenerate; `go test ./internal/dpop/ ./internal/oauth/ ./internal/authz/ ./internal/oidc/ ./internal/httpx/ ./internal/logscrub/ ./api/` → PASS. Commit signed `feat(oauth): downstream DPoP proofs and token binding`.
 
 ### Task 7: Online refresh tokens

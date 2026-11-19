@@ -19300,6 +19300,8 @@ components:
           $ref: '#/components/schemas/OrganizationBranding'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadata'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19335,6 +19337,8 @@ components:
           $ref: '#/components/schemas/OrganizationBranding'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadata'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19413,6 +19417,8 @@ components:
           $ref: '#/components/schemas/OrganizationBrandingWrite'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadataWrite'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19447,6 +19453,8 @@ components:
           $ref: '#/components/schemas/OrganizationBrandingWrite'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadataWrite'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'

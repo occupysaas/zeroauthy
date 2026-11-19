@@ -651,3 +651,58 @@ func TestOnlineRefreshTokenResourceServerFlags(t *testing.T) {
 		})
 	}
 }
+
+func TestOrganizationTokenQuotaContracts(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	create := doc.Paths.Find("/api/v2/organizations").Post
+	item := doc.Paths.Find("/api/v2/organizations/{id}")
+	request := func(op *openapi3.Operation) *openapi3.Schema {
+		return op.RequestBody.Value.Content.Get("application/json").Schema.Value
+	}
+	response := func(op *openapi3.Operation, status int) *openapi3.Schema {
+		return op.Responses.Status(status).Value.Content.Get("application/json").Schema.Value
+	}
+	organization := func() map[string]any {
+		return map[string]any{
+			"id": "org_0123456789abcdef", "name": "acme", "display_name": "Acme",
+			"third_party_client_access": "block", "is_app_entitlement_active": false,
+		}
+	}
+	for _, route := range []struct {
+		name   string
+		schema *openapi3.Schema
+		body   map[string]any
+	}{
+		{"create request", request(create), map[string]any{"name": "acme"}},
+		{"update request", request(item.Patch), map[string]any{}},
+		{"create response", response(create, 201), organization()},
+		{"read response", response(item.Get, 200), organization()},
+		{"update response", response(item.Patch, 200), organization()},
+	} {
+		t.Run(route.name, func(t *testing.T) {
+			for _, quota := range []struct {
+				name  string
+				value any
+				valid bool
+			}{
+				{"bounded quota", map[string]any{"client_credentials": map[string]any{"per_hour": 1, "per_day": 2147483647, "enforce": false}}, true},
+				{"clear with null", nil, true},
+				{"missing grant", map[string]any{}, false},
+				{"empty grant quota", map[string]any{"client_credentials": map[string]any{}}, false},
+				{"zero hourly quota", map[string]any{"client_credentials": map[string]any{"per_hour": 0}}, false},
+				{"overflow daily quota", map[string]any{"client_credentials": map[string]any{"per_day": float64(2147483648)}}, false},
+				{"non-boolean enforcement", map[string]any{"client_credentials": map[string]any{"enforce": "true"}}, false},
+			} {
+				t.Run(quota.name, func(t *testing.T) {
+					route.body["token_quota"] = quota.value
+					if err := route.schema.VisitJSON(route.body); (err == nil) != quota.valid {
+						t.Errorf("valid=%v, error=%v", quota.valid, err)
+					}
+				})
+			}
+		})
+	}
+}
