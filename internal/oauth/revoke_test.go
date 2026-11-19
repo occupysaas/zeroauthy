@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -308,5 +309,54 @@ func TestRevokeGrantRechecksPresentedToken(t *testing.T) {
 	}
 	if _, err := f.st.UserGrants().Find(t.Context(), rt.TenantID, rt.ClientID, rt.UserID, rt.Audience); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRevokeGrantParentExpiresBeforeLock(t *testing.T) {
+	f := newFixture(t)
+	ctx := t.Context()
+	f.rotationPolicy(t, true, 30)
+	raw, parent := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, acmeAPI)
+	deadline := fixedNow().Add(2 * time.Second)
+	if err := f.st.RefreshTokens().Touch(ctx, parent.TenantID, parent.ID, deadline); err != nil {
+		t.Fatal(err)
+	}
+	successor := f.exchangeSuccessor(t, raw)
+	if refreshExpired(f.storedRT(t, successor), deadline) {
+		t.Fatal("successor must still be live at the parent's idle deadline")
+	}
+	sibling, _ := f.issueRefresh(t, parent.ClientID, parent.Scopes, parent.Audience)
+	f.revokeGrantFlag(t, parent.TenantID, true)
+	g, err := f.st.UserGrants().Upsert(ctx, &store.UserGrant{ID: "g", TenantID: parent.TenantID, ClientID: parent.ClientID, UserID: parent.UserID, Audience: parent.Audience})
+	if err != nil {
+		t.Fatal(err)
+	}
+	user, err := f.st.Users().Get(ctx, parent.TenantID, parent.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := deadline.Add(-time.Second)
+	f.h.Now = func() time.Time { return now }
+	f.h.Store = nativeBeforeTxStore{f.st, func() { now = deadline }}
+	if code, body := f.revoke(t, url.Values{"client_id": {parent.ClientID}, "token": {raw}}); code != 200 || body != nil {
+		t.Fatalf("revoke = %d %v", code, body)
+	}
+	for name, token := range map[string]string{"parent": raw, "successor": successor} {
+		if rt := f.storedRT(t, token); rt.RevokedAt == nil || !rt.RevokedAt.Equal(deadline) {
+			t.Errorf("%s family member revoked at %v, want %v", name, rt.RevokedAt, deadline)
+		}
+	}
+	if f.storedRT(t, sibling).RevokedAt != nil {
+		t.Error("expired parent revoked an independent family")
+	}
+	if got, err := f.st.UserGrants().Find(ctx, g.TenantID, g.ClientID, g.UserID, g.Audience); err != nil || got.ID != g.ID {
+		t.Errorf("consent after revoke = %v, %v", got, err)
+	}
+	after, err := f.st.Users().Get(ctx, parent.TenantID, parent.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Version != user.Version {
+		t.Errorf("user version = %d, want %d", after.Version, user.Version)
 	}
 }

@@ -108,8 +108,14 @@ func (h *Handlers) revokeGrant(ctx context.Context, res tenant.Resolved, rt *sto
 		}
 		at := h.now().UTC()
 		if current.ID != rt.ID || current.UserID != rt.UserID || current.ClientID != rt.ClientID ||
-			res.CheckOrigin(current.Origin) != nil || current.RevokedAt != nil || refreshExpired(current, at) {
+			res.CheckOrigin(current.Origin) != nil {
 			return nil
+		}
+		if current.RevokedAt != nil || refreshExpired(current, at) {
+			// The presentation became stale while waiting for the user lock.
+			// Its verified family can still contain a live successor.
+			revoked = current.RevokedAt == nil
+			return tx.RefreshTokens().RevokeFamily(ctx, tid, current.FamilyID, at)
 		}
 		if current.RotatedAt != nil {
 			c, err := tx.Clients().Get(ctx, tid, current.ClientID)
