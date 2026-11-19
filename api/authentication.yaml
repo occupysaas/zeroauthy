@@ -95,6 +95,11 @@ paths:
         If the browser has a valid session, the authorization code is returned
         immediately. Otherwise the user is sent to the hosted login page.
 
+        Use `online_access` to request a refresh token bound to the login
+        session for an API that enables online access. A request for both
+        `online_access` and `offline_access` returns `invalid_request` before
+        a login transaction is created (D-0070).
+
         Responses are delivered according to `response_mode`: `query`
         (default), `fragment`, `form_post` (an auto-submitting form), or
         `web_message` (a page that posts the response to the application's
@@ -117,6 +122,7 @@ paths:
         - https://openid.net/specs/oauth-v2-form-post-response-mode-1_0.html
         - https://datatracker.ietf.org/doc/html/draft-sakimura-oauth-wmrm-00
         - https://auth0.com/docs/api/authentication
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       parameters:
         - {name: client_id, in: query, schema: {type: string}, description: The application's client ID.}
         - {name: redirect_uri, in: query, schema: {type: string}, description: A callback URL registered for the application.}
@@ -176,6 +182,7 @@ paths:
         repeated parameter is a JSON `invalid_request`, as for GET.
       x-source:
         - https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       requestBody:
         required: true
         content:
@@ -273,6 +280,12 @@ paths:
         secret, and only when it is an IP address; otherwise the request's
         own address is used.
 
+        **Online refresh tokens (D-0070).** Public clients must present a
+        valid DPoP proof when redeeming the authorization code for an online
+        refresh token and on each refresh exchange. Each exchange reuses
+        the token and resets the session idle timeout up to its absolute
+        expiry.
+
         **Client-credentials quotas (D-0070).** A successful exchange or
         quota refusal includes headers for the quotas that apply to the
         authenticated client and its organization. Exceeding an enforced
@@ -309,6 +322,8 @@ paths:
         - https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation
         - https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-rotation
         - https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
+        - https://www.rfc-editor.org/rfc/rfc9449
         - https://auth0.com/docs/fine-grained-m2m-token-quotas
         - https://www.rfc-editor.org/rfc/rfc6749#section-4.3
         - https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token
@@ -390,6 +405,8 @@ paths:
         from the same login (its rotation family). If the tenant enables
         `flags.revoke_refresh_token_grant`, it also deletes the associated
         user grant and revokes the refresh tokens issued under that grant.
+        Revoking an online refresh token ends its login session and
+        invalidates every online refresh token associated with it.
         The client authenticates as at `/oauth/token`. Unknown tokens get
         the same success response (RFC 7009). The self-contained JWT access
         tokens remain valid until they expire.
@@ -397,6 +414,7 @@ paths:
         - https://www.rfc-editor.org/rfc/rfc7009
         - https://auth0.com/docs/api/authentication
         - https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       security:
         - clientSecretBasic: []
         - {}

@@ -532,6 +532,7 @@
         "session",
         "session.metadata",
         "refresh_token",
+        "refresh_token.access",
         "refresh_token.metadata",
         "user.enrolledFactors",
         "authentication.methods"
@@ -717,7 +718,7 @@
           "name": "refreshToken.revoke",
           "support": "unsupported",
           "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "note": "Plan 48 ends the login session and invalidates every online refresh token in it when this method revokes an online refresh token. Calls fail closed until the Plan 48 handler is implemented."
         },
         {
           "name": "refreshToken.setExpiresAt",

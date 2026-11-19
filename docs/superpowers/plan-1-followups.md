@@ -757,17 +757,18 @@ Its Minors are deferred, not 1.0 blockers unless noted:
 ## Plan 48 observation points
 
 [D-0070](../compat/decisions.md#d-0070--refresh-tokens-ii-and-client-credentials-quotas-plan-48)
-records the local policies. Upstream observation remains open for the
-following points.
+records the local policies and the state of each observation.
 
 - **R1** Which sibling stays valid after a successful overlap exchange.
   Locally the former family head stays valid until rotated or revoked.
 - **R2** Whether deleting a user grant without an audience revokes refresh
   tokens for all the user's audiences on that client. Locally it does.
 - **R3** Online refresh tokens with ephemeral sessions when the API's
-  ephemeral-session flag is false. Pending the ORT scope decision.
-- **R4** Requests for both `online_access` and `offline_access`. Pending
-  the ORT scope decision.
+  ephemeral-session flag is false. Locally the response omits the online
+  refresh token and `online_access` scope.
+- **R4** Resolved on 2026-11-18. Requests for both `online_access` and
+  `offline_access` return `invalid_request` before a login transaction is
+  created. [Online refresh token scope conflicts](https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens#scope-conflicts).
 - **R5** Whether the device ASN properties are returned and how they are
   populated. Locally both are empty strings.
 - **R6** Upstream behavior of Actions metadata setters for sessions and

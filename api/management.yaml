@@ -76,7 +76,7 @@ tags:
   - name: sessions
     description: Login sessions (Auth0's `/api/v2/sessions`).
   - name: refresh-tokens
-    description: Refresh tokens (Auth0's `/api/v2/refresh-tokens`).
+    description: Offline refresh tokens. Online refresh tokens are managed through their login sessions.
   - name: grants
     description: Users' consents (Auth0's `/api/v2/grants`).
   - name: tickets
@@ -4328,6 +4328,7 @@ paths:
         described in `ResourceServerCreate`.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/post-resource-servers
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
       requestBody:
         required: true
         content:
@@ -4357,6 +4358,7 @@ paths:
       description: Requires `read:resource_servers`.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/get-resource-servers-by-id
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       parameters:
         - name: fields
           in: query
@@ -4387,6 +4389,7 @@ paths:
         current value is accepted.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       requestBody:
         required: true
         content:
@@ -5294,11 +5297,13 @@ paths:
       summary: Delete a user's sessions
       description: |
         Requires `delete:sessions`. Deletes every session of the user, which
-        ends their single sign-on, and bumps the user's version. Refresh
-        tokens are not revoked. Answers `202 {}`, also when there were none;
-        an unknown user is `404 inexistent_user`.
+        ends their single sign-on, invalidates online refresh tokens bound
+        to those sessions, and bumps the user's version. Offline refresh
+        tokens remain valid. Answers `202 {}`, also when there were none.
+        An unknown user is `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/delete-sessions-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "400": {$ref: "#/components/responses/BadRequest"}
@@ -5317,12 +5322,13 @@ paths:
       tags: [users]
       summary: List a user's refresh tokens
       description: |
-        Requires `read:refresh_tokens`. The user's live refresh tokens (not
-        revoked, rotated or expired), newest first, by checkpoint paging only
+        Requires `read:refresh_tokens`. The user's live offline refresh
+        tokens, newest first, by checkpoint paging only
         as for sessions: `take`, `from`, and `next` on every non-empty page.
         An unknown user is `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/get-refresh-tokens-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       parameters:
         - name: take
           in: query
@@ -5347,12 +5353,13 @@ paths:
       tags: [users]
       summary: Delete a user's refresh tokens
       description: |
-        Requires `delete:refresh_tokens`. Revokes every refresh token of the
-        user; a refresh grant with one answers `invalid_grant`. Answers
-        `202 {}`, also when there were none; an unknown user is
+        Requires `delete:refresh_tokens`. Revokes the user's offline refresh
+        tokens. A refresh grant with a revoked token answers `invalid_grant`.
+        Answers `202 {}`, also when there were none. An unknown user is
         `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/delete-refresh-tokens-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "400": {$ref: "#/components/responses/BadRequest"}
@@ -5390,10 +5397,12 @@ paths:
       summary: Delete a session
       description: |
         Requires `delete:sessions`. Ends the session, so the next
-        `/authorize?prompt=none` answers `login_required`. Answers `202 {}`,
+        `/authorize?prompt=none` answers `login_required`, and invalidates its
+        online refresh tokens. Offline refresh tokens remain valid. Answers `202 {}`,
         also when there was no such session.
       x-source:
         - https://auth0.com/docs/api/management/v2/sessions/delete-session
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "401": {$ref: "#/components/responses/Unauthorized"}
@@ -5450,12 +5459,13 @@ paths:
       tags: [refresh-tokens]
       summary: List refresh tokens by user
       description: |
-        Requires `read:refresh_tokens`. Lists the user's live tokens in
+        Requires `read:refresh_tokens`. Lists the user's live offline tokens in
         ascending ID order. Pass `client_id` to filter by application. An
         unknown user is `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-tokens
         - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       parameters:
         - name: user_id
           in: query
@@ -5496,12 +5506,13 @@ paths:
       tags: [refresh-tokens]
       summary: Revoke refresh tokens in bulk
       description: |
-        Requires `delete:refresh_tokens`. Select tokens by up to 100 IDs or
+        Requires `delete:refresh_tokens`. Select offline tokens by up to 100 IDs or
         by user, optionally narrowed by client and then by audience. Revocation
         completes before the server returns `202` (D-0070 LR48-9).
       x-source:
         - https://auth0.com/docs/api/management/v2/refresh-tokens/revoke-refresh-tokens
         - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       requestBody:
         required: true
         content:
@@ -5518,7 +5529,7 @@ paths:
       - name: id
         in: path
         required: true
-        description: The refresh token's ID (not the token).
+        description: The Management API identifier of an offline refresh token.
         schema: {type: string}
     get:
       operationId: getRefreshToken
@@ -22763,6 +22774,14 @@ components:
             hybrid flow, so nothing uses it. When sent, it must not exceed
             `token_lifetime`.
         allow_offline_access: {type: boolean, description: Whether clients may get refresh tokens for the API.}
+        allow_online_access:
+          type: boolean
+          default: false
+          description: Allow clients to obtain session-bound refresh tokens for this API.
+        allow_online_access_with_ephemeral_sessions:
+          type: boolean
+          default: false
+          description: Allow online refresh token issuance for ephemeral sessions when online access is enabled.
         skip_consent_for_verifiable_first_party_clients: {type: boolean}
         subject_type_authorization: {$ref: "#/components/schemas/SubjectTypeAuthorization"}
         enforce_policies:
@@ -22821,6 +22840,8 @@ components:
         token_lifetime: {type: integer}
         token_lifetime_for_web: {type: integer}
         allow_offline_access: {type: boolean}
+        allow_online_access: {type: boolean}
+        allow_online_access_with_ephemeral_sessions: {type: boolean}
         skip_consent_for_verifiable_first_party_clients: {type: boolean}
         subject_type_authorization:
           type: object

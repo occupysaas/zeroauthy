@@ -619,3 +619,35 @@ func TestRefreshTokensIIConfigurationBounds(t *testing.T) {
 		})
 	}
 }
+
+func TestOnlineRefreshTokenResourceServerFlags(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, flag := range []string{"allow_online_access", "allow_online_access_with_ephemeral_sessions"} {
+		t.Run(flag, func(t *testing.T) {
+			for _, route := range []struct {
+				op   *openapi3.Operation
+				body map[string]any
+			}{
+				{doc.Paths.Find("/api/v2/resource-servers").Post, map[string]any{"identifier": "https://api.example.test", flag: true}},
+				{doc.Paths.Find("/api/v2/resource-servers/{id}").Patch, map[string]any{flag: false}},
+			} {
+				schema := route.op.RequestBody.Value.Content.Get("application/json").Schema.Value
+				if err := schema.VisitJSON(route.body); err != nil {
+					t.Errorf("%s rejected boolean %s: %v", route.op.OperationID, flag, err)
+				}
+				route.body[flag] = "true"
+				if err := schema.VisitJSON(route.body); err == nil {
+					t.Errorf("%s accepted string %s", route.op.OperationID, flag)
+				}
+			}
+			response := doc.Paths.Find("/api/v2/resource-servers/{id}").Get.Responses.Status(200).Value
+			prop := response.Content.Get("application/json").Schema.Value.Properties[flag]
+			if prop == nil || !prop.Value.Type.Is("boolean") {
+				t.Errorf("response must expose %s as a boolean", flag)
+			}
+		})
+	}
+}

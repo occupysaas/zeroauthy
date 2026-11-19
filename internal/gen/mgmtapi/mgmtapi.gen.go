@@ -12663,8 +12663,10 @@ type RefreshTokenSettingsRotationType string
 
 // ResourceServer An API.
 type ResourceServer struct {
-	AllowOfflineAccess bool `json:"allow_offline_access"`
-	EnforcePolicies    bool `json:"enforce_policies"`
+	AllowOfflineAccess                     bool  `json:"allow_offline_access"`
+	AllowOnlineAccess                      *bool `json:"allow_online_access,omitempty"`
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
+	EnforcePolicies                        bool  `json:"enforce_policies"`
 
 	// Id The API's ID: 24 hexadecimal characters for APIs created through the API.
 	Id         string `json:"id"`
@@ -12719,6 +12721,12 @@ type ResourceServerTokenDialect string
 type ResourceServerCreate struct {
 	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
 	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
+
+	// AllowOnlineAccess Allow clients to obtain session-bound refresh tokens for this API.
+	AllowOnlineAccess *bool `json:"allow_online_access,omitempty"`
+
+	// AllowOnlineAccessWithEphemeralSessions Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
 
 	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
 	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`
@@ -12807,6 +12815,12 @@ type ResourceServerScope struct {
 type ResourceServerSettings struct {
 	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
 	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
+
+	// AllowOnlineAccess Allow clients to obtain session-bound refresh tokens for this API.
+	AllowOnlineAccess *bool `json:"allow_online_access,omitempty"`
+
+	// AllowOnlineAccessWithEphemeralSessions Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
 
 	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
 	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`

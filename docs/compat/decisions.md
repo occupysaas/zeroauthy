@@ -139,11 +139,13 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Context:** Public docs describe refresh token rotation, reuse detection and expiration settings. They do not pin down every condition for issuing a token or every default.
 - **Sources:** RFC 6749 §6; OAuth 2.0 Security BCP (RFC 9700) §4.14 (refresh token protection) and §4.5 (code replay); https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation; https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-expiration.
 - **Decision:**
-  - **Issuance:** a refresh token is issued only when all of these hold:
+  - **Offline issuance:** an offline refresh token is issued only when all of these hold:
     - `offline_access` is requested;
     - the client's `grant_types` include `refresh_token`;
     - either no API is the audience, or the API allows offline access.
     The response's `scope` then includes `offline_access`.
+  - **Online issuance:** D-0070 defines the session-bound token requested by
+    `online_access`.
   - **Policy:**
     - `rotation_type` defaults to `rotating` for SPAs and `non-rotating` otherwise.
     - Rotating tokens must expire.
@@ -762,8 +764,10 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Sessions and refresh tokens:** the U8 objects. The user routes list newest
     first using checkpoint paging (`take` 1–100, default 50, with `next` on every
     non-empty page). Deletes return `202 {}`. Session deletion preserves offline
-    refresh tokens. Explicit session revocation revokes all refresh tokens
-    issued in the session (D-0070).
+    refresh tokens and invalidates online refresh tokens bound to the session.
+    Explicit session revocation invalidates both kinds issued in the session.
+    Refresh-token Management routes expose offline tokens and administrators
+    manage online tokens through their sessions (D-0070).
   - **Grants:** objects with `clientID` (sic) and a sorted `scope` array.
   - **Tickets:** `/u/reset-verify?ticket=…#` and `/u/email-verification?ticket=…#`; `result_url` with `client_id` is `400 invalid_body`; default TTL 432000 s. Verification consumes on open and redirects with the U6 parameters (`success`, `code`, `message`, `email` only with `includeEmailInRedirect`, `supportSignUp`, `supportForgotPassword`). The password-change success page does not redirect to `result_url` (as observed on Auth0's current hosted pages); the value is stored.
   - **Ticket choices not observed:** an expired verification ticket shows the error page (no redirect); `result_url` with `client_id` is refused on both ticket kinds; an unknown `client_id` is `404 inexistent_client` and an unknown `connection_id` `400 inexistent_connection`; `ttl_sec` above 2^31−1 is clamped; `organization_id` is an unknown property (zeroauthy has no organizations). On a custom database connection not in import mode a missing or failing `verify` script leaves `email_verified` false. A verification ticket is bound to the email it was issued for: once the user's email changes (Management API, custom database profile sync), opening it shows the error page and verifies nothing. Changing a user's email through the Management API also deletes their open verification and unused password reset tickets. Signup sends the verification email whenever the new user has an unverified email (zeroauthy has no email template switches yet).
@@ -3507,9 +3511,8 @@ Observe later (copied into `docs/superpowers/plan-1-followups.md`):
 ## D-0070 — Refresh tokens II and client-credentials quotas (Plan 48)
 
 The [Plan 48 design](../superpowers/specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md)
-records the complete scope and evidence. The contracts below guide
-implementation. Online refresh token scope is pending maintainer review of
-the current Auth0 requirements.
+records the scope and evidence, including the DPoP extension authorized on
+2026-11-18.
 
 - Rotation converts the token on its next eligible exchange after an application
   changes its configuration. Inside the overlap period only the immediately
@@ -3525,12 +3528,23 @@ the current Auth0 requirements.
   original family audience and scope ceiling and filter the issued scopes
   against the target API and applicable authorization rules. The original
   audience is used if omitted. [Configure MRRT](https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token).
+- The `online_access` scope requests a refresh token tied to the
+  authorization-code flow's login session for an API with online access
+  enabled. Public clients must prove possession of the same DPoP key when
+  redeeming the code and on every exchange. A successful exchange reuses
+  the token and resets session idleness within the absolute lifetime.
+  Revoking the token through `/oauth/revoke` or `api.refreshToken.revoke()`
+  ends the session. Post-login Actions receive `event.refresh_token.access`
+  and can read `event.session` during online exchanges.
+  [Online Refresh Tokens](https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens)
+  [Configure and use online refresh tokens](https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens).
 - The Management API lists `refresh_tokens` in ID order on
   `GET /refresh-tokens`. The existing user route retains its `tokens`
   field and newest-first order. Metadata patches replace the map, with
   `null` and `{}` clearing it. Post-login Actions can read session and
-  refresh token metadata. Refresh token objects contain IDs and public
-  attributes. Raw tokens and hashes stay private.
+  refresh token metadata. Refresh-token routes expose offline tokens.
+  Online tokens are managed through their sessions. Refresh token objects
+  contain IDs and public attributes. Raw tokens and hashes stay private.
   [Management API OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json).
 - Client and organization quotas override the corresponding tenant defaults.
   Applying quotas count issued client-credentials tokens in UTC hour and day
@@ -3548,19 +3562,20 @@ the current Auth0 requirements.
 | LR48-4 | An offline refresh against an API that no longer allows offline access returns `invalid_grant` with local wording. |
 | LR48-5 | The documented cap is 10 MRRT policies per client. The Auth0 configuration guide checked on 2026-11-18 provides this limit. |
 | LR48-6 | An audience unavailable under the client's refresh token policies returns `invalid_request`. |
-| LR48-7 | Pending maintainer review of combined offline and online scopes. |
-| LR48-8 | Pending maintainer review of online token grant and sender-constraining requirements. |
+| LR48-7 | Authorization rejects combined `online_access` and `offline_access` as `invalid_request` before creating a login transaction. |
+| LR48-8 | Online refresh tokens come from the authorization-code flow. Public clients must use DPoP. Management of these tokens goes through the session. |
 | LR48-9 | Bulk revocation completes synchronously and returns `202`. |
 | LR48-10 | `last_exchanged_at` records the last successful exchange. |
 | LR48-11 | A refused request consumes no quota. |
 | LR48-12 | Storage plugins without `refresh_tokens_ii.v1` retain Plan 17 rotation semantics and refuse writes for unsupported Plan 48 features. |
+| LR48-13 | Plan 48 design §5.1 defines the DPoP algorithm, proof, nonce and replay policy. See [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449). |
 
 | Observation | Local policy or open point |
 |---|---|
 | R1 | The former family head stays valid as a sibling after a successful overlap exchange until it is rotated or revoked. |
 | R2 | A user grant without a recorded audience revokes the user's tokens for the client across audiences. |
-| R3 | Handling of online refresh tokens with ephemeral sessions is pending the scope decision. |
-| R4 | Handling of requests for both offline and online scopes is pending the scope decision. |
+| R3 | If an ephemeral session is used and the API's ephemeral-session flag is disabled, the response omits the online token and the `online_access` scope. |
+| R4 | Resolved on 2026-11-18 from the public documentation. Requesting both offline and online access returns `invalid_request`. |
 | R5 | Refresh token ASN fields are empty because zeroauthy has no ASN database. |
 | R6 | Plan 48 exposes metadata for reading in Actions. Metadata writes use the Management API. |
 | R7 | The local organization quota refusal description is `Organization quota exceeded`. |
