@@ -138,7 +138,7 @@ func (s *Store) snapshot() *state {
 		deviceCodes:            cloneMap(s.deviceCodes, cloneDeviceCode),
 		refreshOrder:           maps.Clone(s.refreshOrder),
 		refreshSequence:        s.refreshSequence,
-		dpopProofs:             maps.Clone(s.dpopProofs),
+		dpopProofs:             s.dpopProofs.clone(),
 		quotaCounters:          maps.Clone(s.quotaCounters),
 		refreshTokens:          cloneMap(s.refreshTokens, cloneRefreshToken),
 		resetTickets:           cloneMap(s.resetTickets, cloneResetTicket),

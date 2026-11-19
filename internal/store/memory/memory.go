@@ -88,7 +88,7 @@ type state struct {
 	mu                     sync.RWMutex
 	refreshOrder           map[key]uint64
 	refreshSequence        uint64
-	dpopProofs             map[dpopKey]time.Time
+	dpopProofs             replayIndex
 	quotaCounters          map[quotaKey]quotaCounter
 	tenants                map[string]*store.Tenant               // by ID
 	clients                map[key]*store.Client                  // by (tenant, client ID)
@@ -175,7 +175,7 @@ func New() *Store {
 		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},
 		deviceCodes:            map[key]*store.DeviceCode{},
 		refreshOrder:           map[key]uint64{},
-		dpopProofs:             map[dpopKey]time.Time{},
+		dpopProofs:             replayIndex{positions: map[dpopKey]int{}},
 		quotaCounters:          map[quotaKey]quotaCounter{},
 		refreshTokens:          map[key]*store.RefreshToken{},
 		resetTickets:           map[key]*store.PasswordResetTicket{},

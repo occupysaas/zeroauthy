@@ -238,14 +238,12 @@ func (r refreshTokens) convert(tid, id string, next *store.RefreshToken, rotatin
 	if !validSuccessor(old, next) || next.Rotating == rotating || r.taken(next) {
 		return store.ErrConflict
 	}
-	if next.Rotating {
-		if next.FamilyID == "" {
-			return store.ErrInvalid
-		}
-		for k, t := range r.s.refreshTokens {
-			if k.tenant == tid && t.FamilyID == next.FamilyID {
-				return store.ErrConflict
-			}
+	if next.FamilyID == "" {
+		return store.ErrInvalid
+	}
+	for k, t := range r.s.refreshTokens {
+		if k.tenant == tid && t.FamilyID == next.FamilyID {
+			return store.ErrConflict
 		}
 	}
 	if rotating {

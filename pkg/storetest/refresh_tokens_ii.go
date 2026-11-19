@@ -300,19 +300,44 @@ func testRefreshTokensII(t *testing.T, newStore Factory) {
 // sibling of an independently issued token by reusing its family identifier.
 func testConversionFreshFamily(t *testing.T, newStore Factory) {
 	ctx := context.Background()
-	repo := open(t, newStore).RefreshTokens()
-	old := familyToken("old", "old-family", false)
-	old.Access = ""
-	mustNoErr(t, repo.Create(ctx, old))
-	other := familyToken("other", "taken-family", true)
-	mustNoErr(t, repo.Create(ctx, other))
-	got, err := repo.Get(ctx, "ten_a", "old")
-	mustNoErr(t, err)
-	mustEqual(t, got.Access, "offline")
-	for _, family := range []string{"old-family", "taken-family"} {
-		next := familyToken("next", family, true)
-		mustErrIs(t, repo.ConvertNonRotating(ctx, "ten_a", "old", next), store.ErrConflict)
-		_, err := repo.Get(ctx, "ten_a", "old")
-		mustNoErr(t, err)
+	for _, rotating := range []bool{false, true} {
+		name := "ConvertNonRotating"
+		if rotating {
+			name = "ConvertRotating"
+		}
+		for _, tc := range []struct {
+			name, family string
+			want         error
+		}{
+			{"empty", "", store.ErrInvalid},
+			{"presented", "old-family", store.ErrConflict},
+			{"other_owner", "taken-family", store.ErrConflict},
+		} {
+			t.Run(name+"/"+tc.name, func(t *testing.T) {
+				repo := open(t, newStore).RefreshTokens()
+				old := familyToken("old", "old-family", rotating)
+				old.Access = ""
+				mustNoErr(t, repo.Create(ctx, old))
+				other := familyToken("other", "taken-family", !rotating)
+				other.UserID = "auth0|other"
+				mustNoErr(t, repo.Create(ctx, other))
+				next := familyToken("next", tc.family, !rotating)
+				var err error
+				if rotating {
+					err = repo.ConvertRotating(ctx, "ten_a", "old", next, ts(time.Minute), 0)
+				} else {
+					err = repo.ConvertNonRotating(ctx, "ten_a", "old", next)
+				}
+				mustErrIs(t, err, tc.want)
+				old.Access = "offline"
+				for _, want := range []*store.RefreshToken{old, other} {
+					got, err := repo.Get(ctx, "ten_a", want.ID)
+					mustNoErr(t, err)
+					mustEqual(t, got, want)
+				}
+				_, err = repo.Get(ctx, "ten_a", next.ID)
+				mustErrIs(t, err, store.ErrNotFound)
+			})
+		}
 	}
 }
