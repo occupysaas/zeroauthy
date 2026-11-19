@@ -42,8 +42,8 @@ No nonce or proof runtime implementation was present in that review.
 | 2 Memory store and contracts | Complete; reviewed | `e7f81cbd`, fix `d59f1c22`; memory conformance passed, no skips |
 | 3 SQL, gRPC and migration | Complete; reviewed | `4df0e8cc`, fix `7bab65d2`; SQLite/gRPC and memory/plugin tests passed; PostgreSQL/MySQL pending CI |
 | 4 Conversion and strict overlap | Complete; reviewed | `8f8d6015`, fix `31b64bac`; full OAuth and focused store/plugin tests passed |
-| 5 Grant cascade | Starting | No task verification result yet |
-| 6 MRRT | Pending | Not run |
+| 5 Grant cascade | Complete; reviewed | `5f3bf19f`, fix `3b5afed3`; focused Management/OAuth/store tests passed |
+| 6 MRRT | Starting | No task verification result yet |
 | 6a DPoP | Pending | Not run |
 | 7 ORT | Pending | Not run |
 | 8 Management runtime | Pending | Not run |
@@ -181,3 +181,23 @@ Three Minor findings remain for final review: explicit support-lost
 precedence for joined probe errors; HTTP test file placement; capture the
 snapshot identity once before parallel commands. No full-plan verification
 or CI push has occurred.
+
+## Task 5 verification
+
+`5f3bf19f` adds atomic grant deletion, matching refresh-token revocation and
+user-version invalidation. Flag-enabled OAuth revocation rechecks consent
+eligibility under the user lock; stale presentations cannot revoke new
+consent or sibling families. UserInfo audiences map to the exact issuing
+origin. Initially legacy plugins retain their prior behavior; loss and
+transport errors fail closed.
+
+Focused Management, OAuth, memory, SQLite and gRPC tests passed with no
+skips. A mistyped conformance subtest filter was corrected and the intended
+`ListByUserPageAndRevocation` test then ran and passed; the task report
+records both selections.
+
+Review found one Important deadline race while awaiting the user lock.
+`3b5afed3` fixes it; the deterministic regression failed first and then
+passed, along with focused Management and OAuth checks (2.553s and 4.439s,
+zero skips). Scoped re-review approved. A Minor test cleanup remains for
+final review: assert conformance counts after checking the transaction error.
