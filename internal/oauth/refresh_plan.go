@@ -32,6 +32,51 @@ func planRefresh(rt *store.RefreshToken, policy store.RefreshTokenPolicy, capabl
 	return touchRefresh
 }
 
+// checkRefreshRotation validates a rotating presentation without a successor.
+// Legacy stores enforce only the time window on an already-rotated token.
+func checkRefreshRotation(ctx context.Context, repo store.RefreshTokens, rt *store.RefreshToken, policy store.RefreshTokenPolicy, now time.Time, capable bool) error {
+	leeway := time.Duration(policy.Leeway) * time.Second
+	if capable {
+		return repo.CheckRotation(ctx, rt.TenantID, rt.ID, now, leeway)
+	}
+	if rt.RotatedAt == nil || (leeway > 0 && now.Before(rt.RotatedAt.Add(leeway))) {
+		return nil
+	}
+	if err := repo.RevokeFamily(ctx, rt.TenantID, rt.FamilyID, now); err != nil {
+		return err
+	}
+	return store.ErrAlreadyUsed
+}
+
+// finishRefresh runs after the final transaction has locked policy and user
+// state. Re-read the token because revocation, conversion or an idle deadline
+// change may have landed while signing or executing Actions.
+func finishRefresh(ctx context.Context, repo store.RefreshTokens, presented *store.RefreshToken, client *store.Client, origin string, now time.Time, keep, capable bool) (string, error) {
+	current, err := repo.GetByTokenHash(ctx, presented.TenantID, presented.TokenHash)
+	if err != nil {
+		return "", err
+	}
+	if current.ID != presented.ID || current.RevokedAt != nil {
+		return "", store.ErrNotFound
+	}
+	expired := refreshExpired(current, now)
+	if expired || !keep {
+		// No successor write will check reuse. A stale parent still revokes
+		// its family, including when the presentation has expired.
+		if current.Rotating {
+			if err := checkRefreshRotation(ctx, repo, current, client.RefreshToken, now, capable); err != nil {
+				return "", err
+			}
+		}
+		if expired {
+			return "", store.ErrNotFound
+		}
+		return "", nil
+	}
+	plan := planRefresh(current, client.RefreshToken, capable)
+	return plan.exchange(ctx, repo, current, client, origin, now)
+}
+
 // exchange runs inside the final mint transaction, after organization and user
 // eligibility have been checked. The store rechecks reuse under the write lock.
 func (plan refreshPlan) exchange(ctx context.Context, repo store.RefreshTokens, old *store.RefreshToken, c *store.Client, origin string, now time.Time) (string, error) {

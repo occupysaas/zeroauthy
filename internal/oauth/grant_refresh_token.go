@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
@@ -79,16 +78,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	capable := probe == nil
 	// Detect reuse before audience, scope, expiry and Actions can mask it.
 	if rt.Rotating && rt.RotatedAt != nil {
-		leeway := time.Duration(c.RefreshToken.Leeway) * time.Second
-		if capable {
-			err = h.Store.RefreshTokens().CheckRotation(ctx, tenantID, rt.ID, now, leeway)
-		} else if leeway <= 0 || !now.Before(rt.RotatedAt.Add(leeway)) {
-			// Legacy stores only enforce elapsed time on a rotated presentation.
-			err = h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, now)
-			if err == nil {
-				err = store.ErrAlreadyUsed
-			}
-		}
+		err = checkRefreshRotation(ctx, h.Store.RefreshTokens(), rt, c.RefreshToken, now, capable)
 		switch {
 		case errors.Is(err, store.ErrAlreadyUsed):
 			h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
@@ -202,12 +192,8 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		}
 		return nil
 	}, func(tx store.Store) error {
-		if !keep {
-			return nil
-		}
 		var writeErr error
-		plan := planRefresh(rt, currentClient.RefreshToken, capable)
-		nextRaw, writeErr = plan.exchange(ctx, tx.RefreshTokens(), rt, currentClient, res.Origin(), now)
+		nextRaw, writeErr = finishRefresh(ctx, tx.RefreshTokens(), rt, currentClient, res.Origin(), h.now().UTC(), keep, capable)
 		if errors.Is(writeErr, store.ErrAlreadyUsed) {
 			reused = true
 			return nil

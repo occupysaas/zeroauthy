@@ -354,3 +354,112 @@ func TestRefreshSuccessorBinding(t *testing.T) {
 		})
 	}
 }
+
+func TestRefreshSuppressedReuseAtMint(t *testing.T) {
+	f := newActionsFixture(t)
+	f.rotationPolicy(t, true, 30)
+	raw, old := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, acmeAPI)
+	head := f.storedRT(t, f.exchangeSuccessor(t, raw))
+	f.actions.PostLogin(t, f.tid, "drop", `exports.onExecutePostLogin = async (event, api) => {
+		api.accessToken.removeScope("offline_access");
+	};`)
+	succ := *head
+	succ.ID = "rt_" + secrets.RandomString(24)
+	succ.TokenHash = secrets.HashToken(secrets.RandomString(48))
+	f.h.Store = nativeBeforeTxStore{f.st, func() {
+		if err := f.st.RefreshTokens().Rotate(t.Context(), old.TenantID, head.ID, &succ, fixedNow(), 30*time.Second); err != nil {
+			t.Fatal(err)
+		}
+	}}
+	f.requireInvalidRefresh(t, raw)
+	got, err := f.st.RefreshTokens().Get(t.Context(), old.TenantID, succ.ID)
+	if err != nil || got.RevokedAt == nil {
+		t.Fatal("suppressed refresh did not commit family revocation")
+	}
+}
+
+func TestRefreshNonExpiringSourceAtMint(t *testing.T) {
+	for _, change := range []string{"revoke", "delete"} {
+		t.Run(change, func(t *testing.T) {
+			f := newFixture(t)
+			tid := f.tenantID(t, "acme")
+			c, err := f.st.Clients().Get(t.Context(), tid, "rt-spa")
+			if err != nil {
+				t.Fatal(err)
+			}
+			c.RefreshToken = store.RefreshTokenPolicy{}
+			if err := f.st.Clients().Update(t.Context(), c); err != nil {
+				t.Fatal(err)
+			}
+			raw, old := f.issueRefresh(t, "rt-spa", []string{"offline_access"}, acmeAPI)
+			f.h.Store = nativeBeforeTxStore{f.st, func() {
+				repo := f.st.RefreshTokens()
+				if change == "revoke" {
+					if err := repo.Revoke(t.Context(), tid, old.ID, fixedNow()); err != nil {
+						t.Fatal(err)
+					}
+					return
+				}
+				next := *old
+				next.Rotating = true
+				next.ID = "rt_" + secrets.RandomString(24)
+				next.TokenHash = secrets.HashToken(secrets.RandomString(48))
+				next.FamilyID = "rtf_" + secrets.RandomString(32)
+				if err := repo.ConvertNonRotating(t.Context(), tid, old.ID, &next); err != nil {
+					t.Fatal(err)
+				}
+			}}
+			f.requireInvalidRefresh(t, raw)
+		})
+	}
+}
+
+func TestRefreshClockAtMint(t *testing.T) {
+	t.Run("conversion lifetime", func(t *testing.T) {
+		f := newFixture(t)
+		f.rotationPolicy(t, false, 0)
+		raw, _ := f.issueRefresh(t, "rt-spa", []string{"offline_access"}, acmeAPI)
+		f.rotationPolicy(t, true, 0)
+		later := fixedNow().Add(2 * time.Minute)
+		f.h.Store = nativeBeforeTxStore{f.st, func() { f.h.Now = func() time.Time { return later } }}
+		next := f.storedRT(t, f.exchangeSuccessor(t, raw))
+		if !next.CreatedAt.Equal(later) || !next.ExpiresAt.Equal(later.Add(DefaultRefreshTokenLifetime)) || !next.IdleExpiresAt.Equal(later.Add(DefaultRefreshTokenIdleLifetime)) {
+			t.Fatal("successor lifetimes did not start at conversion")
+		}
+	})
+	t.Run("retry at leeway deadline", func(t *testing.T) {
+		f := newFixture(t)
+		f.rotationPolicy(t, true, 30)
+		raw, _ := f.issueRefresh(t, "rt-spa", []string{"offline_access"}, acmeAPI)
+		head := f.exchangeSuccessor(t, raw)
+		deadline := fixedNow().Add(30 * time.Second)
+		f.h.Store = nativeBeforeTxStore{f.st, func() { f.h.Now = func() time.Time { return deadline } }}
+		f.requireInvalidRefresh(t, raw)
+		if got := f.storedRT(t, head); got.RevokedAt == nil || !got.RevokedAt.Equal(deadline) {
+			t.Fatal("leeway deadline passed before mint without a family revocation")
+		}
+	})
+	for _, expiry := range []string{"absolute", "idle"} {
+		t.Run(expiry, func(t *testing.T) {
+			f := newFixture(t)
+			tid := f.tenantID(t, "acme")
+			c, err := f.st.Clients().Get(t.Context(), tid, "rt-spa")
+			if err != nil {
+				t.Fatal(err)
+			}
+			c.RefreshToken.TokenLifetime, c.RefreshToken.IdleTokenLifetime = 10, 60
+			if expiry == "idle" {
+				c.RefreshToken.TokenLifetime, c.RefreshToken.IdleTokenLifetime = 60, 10
+			}
+			if err := f.st.Clients().Update(t.Context(), c); err != nil {
+				t.Fatal(err)
+			}
+			raw, _ := f.issueRefresh(t, "rt-spa", []string{"offline_access"}, acmeAPI)
+			f.h.Store = nativeBeforeTxStore{f.st, func() { f.h.Now = func() time.Time { return fixedNow().Add(10 * time.Second) } }}
+			f.requireInvalidRefresh(t, raw)
+			if got := f.storedRT(t, raw); got.RotatedAt != nil || got.RevokedAt != nil {
+				t.Fatal("expired source was consumed")
+			}
+		})
+	}
+}
