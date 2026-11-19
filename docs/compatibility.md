@@ -19,7 +19,7 @@ Auth0 or Okta.
 | MFA | WebAuthn (security keys, device biometrics) and passkeys | Plan 33b |
 | MFA | Push notifications (Guardian app) and Duo: settings are stored, not enforced | not planned yet |
 | Enterprise login | SAML and WS-Federation, SCIM, self-service SSO | Plan 37 |
-| Enterprise login | Okta and generic front-channel OIDC connections, Entra ID extras, connection keys | Plan 36 |
+| Enterprise login | OIDC/Okta front/back channel, mapping, PAR, JWE, connection keys and domain routing implemented; Entra Graph extras remain deferred | [Guide](enterprise-connections.md) |
 | Enterprise login | Active Directory / LDAP connector | Plan 38 |
 | Social login | Providers beyond Apple, Google, Microsoft and generic OAuth 2 / OIDC (GitHub, Facebook, ...) | Plan 39b |
 | Native social login | Google and Facebook exchanges (switches are stored only); Apple is implemented | Plan 39b |

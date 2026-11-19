@@ -244,6 +244,11 @@ func (h *Handlers) connectionView(c *store.Connection, withClients bool) (map[st
 // applyFederated finishes a federated write (sealing, immutable bindings,
 // revision) and maps its validation failures to 400s.
 func (h *Handlers) applyFederated(prev *store.Connection, spec *connrules.Spec, next *store.Connection) error {
+	if spec.Options.Extra["token_endpoint_auth_method"] == "private_key_jwt" || spec.Options.Extra["id_token_encrypted_response_alg"] != nil {
+		if s, ok := h.Store.(store.ConnectionKeysSupporter); ok && !s.ConnectionKeysSupported() {
+			return badBody("The storage plugin does not support connection keys")
+		}
+	}
 	err := federation.ApplyConnection(h.Wrapper, prev, spec, next)
 	if errors.Is(err, federation.ErrImmutable) || errors.Is(err, federation.ErrInvalidConfig) {
 		return badBody("%v", err)
@@ -744,6 +749,70 @@ func (h *Handlers) UpdateConnectionClients(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	logDetails(r, "update connection clients", "id", id, "entries", len(entries))
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetConnectionStatus becomes an online probe when AD/LDAP arrives. Every
+// current strategy is offline for this documented AD-only operation.
+func (h *Handlers) GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string) {
+	if !connectionID.MatchString(id) {
+		Fail(w, errBadConnectionID)
+		return
+	}
+	_, err := h.Store.Connections().Get(r.Context(), resolved(r).ID, id)
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		Fail(w, err)
+		return
+	}
+	Fail(w, errConnectionNotFound)
+}
+func (h *Handlers) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.DeleteConnectionUsersByEmailParams) {
+	if !connectionID.MatchString(id) {
+		Fail(w, errBadConnectionID)
+		return
+	}
+	email := strings.ToLower(strings.TrimSpace(p.Email))
+	if email == "" || len(email) > 254 {
+		Fail(w, badBody("email is required and must be at most 254 bytes"))
+		return
+	}
+	ctx := r.Context()
+	tid := resolved(r).ID
+	conn, e := h.Store.Connections().Get(ctx, tid, id)
+	if errors.Is(e, store.ErrNotFound) {
+		Fail(w, errConnectionNotFound)
+		return
+	}
+	if e != nil {
+		Fail(w, e)
+		return
+	}
+	if conn.Strategy != store.StrategyDatabase {
+		Fail(w, badBody("connection must be a database connection"))
+		return
+	}
+	q := &store.UserQuery{Op: store.QueryAnd, Kids: []*store.UserQuery{{Op: store.QueryTerm, Field: "email", Kind: store.KindString, Value: email}, {Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: conn.Name}}}
+	for {
+		if e := ctx.Err(); e != nil {
+			Fail(w, e)
+			return
+		}
+		users, _, e := h.Store.Users().List(ctx, tid, q, store.UserSort{Field: "user_id"}, store.Page{Limit: 100})
+		if e != nil {
+			Fail(w, e)
+			return
+		}
+		if len(users) == 0 {
+			break
+		}
+		for _, u := range users {
+			if e := h.deleteUser(r, u.UserID); e != nil {
+				h.failTx(w, r, "delete connection user", e)
+				return
+			}
+		}
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -30,6 +30,7 @@ type Store struct {
 // and rollback never undoes a write that is not its own. Ordinary readers share
 // txMu's read lock and mu's read lock, so independent reads can run together.
 type state struct {
+	connectionKeys         map[key]*store.ConnectionKey
 	guardian               map[string]*store.GuardianSettings
 	authenticators         map[key]*store.Authenticator
 	mfaTokens              map[key]*store.MFAToken
@@ -158,6 +159,7 @@ func New() *Store {
 		signingKeys:            map[key]*store.SigningKey{},
 		customSigningKeys:      map[string]*store.CustomSigningKeySet{},
 		connections:            map[key]*store.Connection{},
+		connectionKeys:         map[key]*store.ConnectionKey{},
 		passwordHistories:      map[key][][]byte{},
 		users:                  map[key]*store.User{},
 		sessions:               map[key]*store.LoginSession{},

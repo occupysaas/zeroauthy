@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
+	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -153,6 +154,9 @@ func (h *Handlers) rerenderLogin(w http.ResponseWriter, r *http.Request, f *flow
 // startSocial applies the social-login protection budget and redirects to
 // the provider.
 func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, conn *store.Connection) {
+	h.startSocialHint(w, r, f, conn, "")
+}
+func (h *Handlers) startSocialHint(w http.ResponseWriter, r *http.Request, f *flow, conn *store.Connection, hint string) {
 	ctx := r.Context()
 	svc := h.protectionService()
 	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: f.res.Tenant, Connection: conn, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "social-login"})
@@ -178,13 +182,13 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 	if origin == "" {
 		origin = tenant.CanonicalOrigin(f.res.Tenant)
 	}
-	begun, err := h.Federation.Begin(ctx, federation.BeginInput{Tenant: f.res.Tenant, Origin: origin, Txn: f.txn, Client: client, Connection: conn})
+	begun, err := h.Federation.Begin(ctx, federation.BeginInput{Tenant: f.res.Tenant, Origin: origin, Txn: f.txn, Client: client, Connection: conn, LoginHint: hint})
 	if err != nil {
 		h.socialFailure(w, r, f, err)
 		return
 	}
 	sameSite := http.SameSiteLaxMode
-	if conn.Strategy == federation.StrategyApple {
+	if conn.Strategy == federation.StrategyApple || conn.Strategy == federation.StrategyOIDC && conn.Extra["type"] != "back_channel" {
 		sameSite = http.SameSiteNoneMode
 	}
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
@@ -286,6 +290,7 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params, err := federation.ParseCallback(raw)
+	params.FormPost = r.Method == http.MethodPost
 	if err != nil {
 		h.socialFailure(w, r, nil, err)
 		return
@@ -305,6 +310,9 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: federation.CallbackPath, MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 	var sess *store.LoginSession
 	done, err := h.Federation.Complete(ctx, federation.CompleteInput{
+		OnSensitiveValues: func(values ...string) {
+			*r = *r.WithContext(logscrub.WithCredentials(logscrub.WithValues(r.Context(), values...), values...))
+		},
 		OnResolved: func(event logs.Event) { *r = *r.WithContext(logs.WithEvent(r.Context(), event)) },
 		Tenant:     res.Tenant, Origin: res.Origin(), Params: params, CookieValue: c.Value,
 		BeforeProvision: func(ctx context.Context) error {

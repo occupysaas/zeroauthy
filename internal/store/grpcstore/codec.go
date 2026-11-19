@@ -125,6 +125,8 @@ func errToPB(err error) *storev1.Error {
 		return nil
 	case errors.Is(err, store.ErrPhoneUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_PHONE_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrConnectionKeysUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_CONNECTION_KEYS_UNAVAILABLE}
 	case errors.Is(err, store.ErrClientCredentialsUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_CLIENT_CREDENTIALS_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrWebAuthnUnavailable):
@@ -175,6 +177,8 @@ func errFromPB(e *storev1.Error) error {
 	switch e.Kind {
 	case storev1.Error_KIND_PHONE_UNAVAILABLE:
 		return store.ErrPhoneUnavailable
+	case storev1.Error_KIND_CONNECTION_KEYS_UNAVAILABLE:
+		return store.ErrConnectionKeysUnavailable
 	case storev1.Error_KIND_CLIENT_CREDENTIALS_UNAVAILABLE:
 		return store.ErrClientCredentialsUnavailable
 	case storev1.Error_KIND_WEBAUTHN_UNAVAILABLE:

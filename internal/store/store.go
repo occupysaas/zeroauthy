@@ -36,6 +36,7 @@ var (
 
 // Store aggregates the repositories of one storage backend.
 type Store interface {
+	ConnectionKeys() ConnectionKeys
 	MFA() MFA
 	Phone() Phone
 	WebAuthn() WebAuthn

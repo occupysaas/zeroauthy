@@ -15,6 +15,7 @@ type Factory func(t *testing.T) store.Store
 // Suites maps each conformance suite name to its test function. SQL drivers
 // use RunSuites to bring suites up one at a time.
 var Suites = map[string]func(t *testing.T, newStore Factory){
+	"ConnectionKeys":              testConnectionKeys,
 	"MFA":                         MFA,
 	"Phone":                       Phone,
 	"Logs":                        testLogs,

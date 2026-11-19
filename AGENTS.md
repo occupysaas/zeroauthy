@@ -65,6 +65,15 @@ Full verification of a plan runs in GitHub Actions, not as a local sequential ru
 
 Report CI results as for local runs: the run URL, each failed job and its actual failure.
 
+## Console build
+
+`console/dist` is committed and embedded in the binary, and CI fails when a
+clean `make console` produces different output. After changing console
+dependencies (`console/package.json` or its lockfile), run `make console`
+twice and commit the second build only if it matches the first: the first
+build after a dependency change has come out different from CI's twice
+(2026-11-18). A Dependabot console update needs this rebuild too.
+
 ## Landing changes on `main`
 
 The "Protect Main" ruleset requires the `sign-off` check, and only the

@@ -118,6 +118,11 @@ service StoreService {
   rpc WebAuthnGetSnooze(WebAuthnGetSnoozeRequest) returns (WebAuthnSnoozeResponse);
   rpc WebAuthnHostTenantsUnder(WebAuthnHostTenantsRequest) returns (WebAuthnHostTenantsResponse);
   rpc WebAuthnPurge(WebAuthnPurgeRequest) returns (WebAuthnCountResponse);
+  // connection_keys.v1: public certificates and master-key sealed private keys.
+  rpc ConnectionKeysCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc ListConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
+  rpc CreateConnectionKeys(ConnectionKeysRequest) returns (Result);
+  rpc RotateConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
   rpc ClientCredentialsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc ClientCredentialsCreate(ClientCredentialsCreateRequest) returns (Result);
   rpc ClientCredentialsGet(ClientCredentialKeyRequest) returns (ClientCredentialResult);
@@ -535,6 +540,7 @@ message Error {
     KIND_MFA_UNAVAILABLE = 16;
     KIND_PHONE_UNAVAILABLE = 17; // store.ErrPhoneUnavailable
     KIND_WEBAUTHN_UNAVAILABLE = 18; // store.ErrWebAuthnUnavailable
+    KIND_CONNECTION_KEYS_UNAVAILABLE = 20; // store.ErrConnectionKeysUnavailable
     KIND_CLIENT_CREDENTIALS_UNAVAILABLE = 19; // store.ErrClientCredentialsUnavailable
     KIND_EVENTS_UNAVAILABLE = 15; // store.ErrEventsUnavailable
     KIND_LOGS_UNAVAILABLE = 14; // store.ErrLogsUnavailable
@@ -751,7 +757,7 @@ message HostedLoginConfigWrite { string tx_id = 1; HostedLoginConfig value = 2; 
 // or credential field exists in any message.
 message FederationEndpoints {
   string authorization_url = 1; string token_url = 2; string jwks_url = 3;
-  string userinfo_url = 4; string token_auth_method = 5; bool pkce_s256 = 6;
+  string userinfo_url = 4; string token_auth_method = 5; bool pkce_s256 = 6; string pkce_method=7; string response_type=8; string par_endpoint=9;
 }
 message FederationAttempt {
   string state_hash = 1; string tenant_id = 2; string transaction_id = 3; string connection_id = 4;
@@ -1730,3 +1736,15 @@ message TokenExchangeProfileListResult { Error error = 1; repeated TokenExchange
 
 message MFAGuardianUsersRequest { string tx_id = 1; string tid = 2; repeated string user_ids = 3; }
 message MFAGuardianUsersResponse { Error error = 1; repeated string user_ids = 2; }
+
+// Connection key material is sealed by the server; plugins never see plaintext.
+message ConnectionKeyMsg {
+ string tenant_id=1; string connection_id=2; string kid=3; string key_use=4;
+ string alg=5; string state=6; bytes cert_der=7; bytes private_sealed=8;
+ google.protobuf.Timestamp current_since=9; google.protobuf.Timestamp created_at=10;
+}
+message ConnectionKeysRequest {
+ string tx_id=1; string tid=2; string connection_id=3; string key_use=4;
+ ConnectionKeyMsg current=5; ConnectionKeyMsg next=6; google.protobuf.Timestamp now=7;
+}
+message ConnectionKeysResult { Error error=1; repeated ConnectionKeyMsg values=2; }

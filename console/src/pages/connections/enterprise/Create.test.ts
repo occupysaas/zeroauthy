@@ -17,8 +17,8 @@ async function credentials(wrapper: Awaited<ReturnType<typeof open>>['wrapper'])
 describe('Enterprise setup', () => {
   it('offers generic OIDC and Microsoft work/school without duplicating Google', async () => {
     const { wrapper } = await open()
-    expect(wrapper.findAll('input[name="strategy"]').map(i => (i.element as HTMLInputElement).value)).toEqual(['oidc', 'waad'])
-    expect(wrapper.find('[data-testid="oidc-subset"]').text()).toContain('supported subset')
+    expect(wrapper.findAll('input[name="strategy"]').map(i => (i.element as HTMLInputElement).value)).toEqual(['oidc', 'okta', 'waad'])
+    expect(wrapper.find('[data-testid="oidc-subset"]').text()).toContain('Enterprise OIDC')
     expect(wrapper.find('#social-discovery').exists()).toBe(true)
     wrapper.unmount()
   })
@@ -61,4 +61,29 @@ describe('Enterprise setup', () => {
     expect(calls.filter(c => c.method === 'POST')).toHaveLength(0)
     wrapper.unmount()
   })
+})
+
+it('creates front-channel OIDC without storing an unused secret', async () => {
+ const {wrapper,calls}=await open()
+ await wrapper.find('#social-name').setValue('front')
+ await wrapper.find('#social-client-id').setValue('client')
+ await wrapper.find('#social-discovery').setValue('https://idp.example/discovery')
+ await wrapper.find('#oidc-channel').setValue('front_channel')
+ expect(wrapper.find('#social-client-secret').exists()).toBe(false)
+ await wrapper.find('form').trigger('submit');await flushPromises()
+ const body=calls.find(c=>c.method==='POST')?.body as {options:Record<string,unknown>}
+ expect(body.options.type).toBe('front_channel');expect(body.options).not.toHaveProperty('client_secret')
+ wrapper.unmount()
+})
+it('creates an Okta connection from its domain',async()=>{
+ const {wrapper,calls}=await open()
+ await wrapper.find('input[value="okta"]').setValue(true)
+ await wrapper.find('#social-name').setValue('workforce')
+ await wrapper.find('#social-client-id').setValue('client')
+ await wrapper.find('#social-client-secret').setValue('fixture')
+ await wrapper.find('#okta-domain').setValue('DEV-1.OKTA.COM')
+ await wrapper.find('form').trigger('submit');await flushPromises()
+ const body=calls.find(c=>c.method==='POST')?.body as {strategy:string;options:Record<string,unknown>}
+ expect(body.strategy).toBe('okta');expect(body.options.domain).toBe('dev-1.okta.com');expect(body.options.type).toBe('back_channel')
+ expect(body.options).not.toHaveProperty('discovery_url');wrapper.unmount()
 })

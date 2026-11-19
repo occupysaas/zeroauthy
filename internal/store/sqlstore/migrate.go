@@ -213,7 +213,7 @@ func (s *Store) migrateTo(ctx context.Context, version int64) error {
 func (s *Store) applyMigration(ctx context.Context, m migration) error {
 	if s.d.name == "mysql" {
 		switch m.version {
-		case 20, 21, 29, 30, 31, 32, 33, 34, 35, 38, 39, 40:
+		case 20, 21, 29, 30, 31, 32, 33, 34, 35, 38, 39, 40, 41:
 			return s.applyResumableMySQL(ctx, m)
 		}
 	}
@@ -241,6 +241,8 @@ func (s *Store) applyMigration(ctx context.Context, m migration) error {
 // backfill runs the data step of a migration inside its transaction.
 func (s *Store) backfill(ctx context.Context, version int64) error {
 	switch version {
+	case 41:
+		return s.backfillOIDCChannel(ctx)
 	case 20:
 		return s.migrateLegacyHostClaims(ctx)
 	case 21:

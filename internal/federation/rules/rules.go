@@ -59,7 +59,7 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == OAuth2 || strategy == OIDC
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == OAuth2 || strategy == OIDC || strategy == Okta
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
@@ -134,6 +134,21 @@ type Input struct {
 // Settings are the validated runtime settings. They never contain the
 // plaintext client secret.
 type Settings struct {
+	Channel                    string
+	Explicit                   *ExplicitEndpoints
+	PKCE                       string
+	SendNonce                  bool
+	TokenAuth                  string
+	AssertionAlg, AssertionAud string
+	IDTokenAlgs                []string
+	EncAlg                     string
+	EncEncs                    []string
+	PAR                        bool
+	PAREndpoint                string
+	AttrMap                    *AttrMap
+	DomainAliases              []string
+	OktaDomain                 string
+
 	AppleTeamID          string
 	AppleKID             string
 	MicrosoftAuthority   string
@@ -197,7 +212,7 @@ func Parse(in Input) (Settings, []error) {
 		default:
 			out.HasPlainSecret = true
 		}
-	} else if !in.HasSealedSecret {
+	} else if !in.HasSealedSecret && !((in.Strategy == OIDC && o["type"] != "back_channel") || ((in.Strategy == OIDC || in.Strategy == Okta) && o["token_endpoint_auth_method"] == "private_key_jwt")) {
 		fail("options.client_secret is required")
 	}
 
@@ -226,7 +241,7 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(rejectedOptions)) {
-		if _, ok := o[k]; ok && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain")) && !(in.Strategy == Apple && k == "freeform_scopes") {
+		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !(in.Strategy == Apple && k == "freeform_scopes") {
 			fail("options.%s: %s", k, rejectedOptions[k])
 		}
 	}
@@ -265,8 +280,15 @@ func Parse(in Input) (Settings, []error) {
 		errs = append(errs, parseGoogle(o, &out)...)
 	case OAuth2:
 		errs = append(errs, parseOAuth2(o, &out)...)
-	case OIDC:
+	case OIDC, Okta:
 		errs = append(errs, parseOIDC(o, &out)...)
+	}
+	if v, ok := o["domain_aliases"]; ok && IsEnterprise(in.Strategy) {
+		var err error
+		out.DomainAliases, err = ParseDomainAliases(v)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 	return out, errs
 }
@@ -355,41 +377,6 @@ func parseOAuth2(o map[string]any, out *Settings) []error {
 	for _, k := range slices.Sorted(maps.Keys(scripts)) {
 		if _, isStr := scripts[k].(string); !isStr {
 			fail("options.scripts.%s must be a string", k)
-		}
-	}
-	return errs
-}
-
-func parseOIDC(o map[string]any, out *Settings) []error {
-	var errs []error
-	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
-	if v, ok := o["type"]; ok && v != "back_channel" {
-		fail("options.type must be back_channel; front-channel OIDC is not supported")
-	}
-	if _, ok := o["scope"]; ok {
-		fail("options.scope is not accepted for oidc; use options.scopes")
-	}
-	out.DiscoveryURL = endpoint(o, "discovery_url", false, fail)
-	switch v := o["scopes"].(type) {
-	case string:
-		out.Scopes = scopeList(v, "options.scopes", fail)
-		if !slices.Contains(out.Scopes, "openid") {
-			fail("options.scopes must contain openid")
-		}
-	case nil:
-		fail("options.scopes is required")
-	default:
-		fail("options.scopes must be a space-delimited string")
-	}
-	if v, ok := o["send_back_channel_nonce"]; ok && v != true {
-		fail("options.send_back_channel_nonce must be true")
-	}
-	if v, ok := o["connection_settings"]; ok {
-		cs, isObj := v.(map[string]any)
-		if !isObj {
-			fail("options.connection_settings must be an object")
-		} else if p, named := cs["pkce"]; named && p != "s256" && p != "auto" {
-			fail("options.connection_settings.pkce must be s256 or auto")
 		}
 	}
 	return errs

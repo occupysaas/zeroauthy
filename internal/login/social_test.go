@@ -51,6 +51,7 @@ type fakeIDP struct {
 	microsoftTenant string
 	badMetadata     bool
 	badToken        bool
+	accessToken     string
 }
 
 type idpCode struct {
@@ -108,7 +109,11 @@ func (p *fakeIDP) serve(w http.ResponseWriter, r *http.Request) {
 		signer, _ := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: p.key}, (&jose.SignerOptions{}).WithHeader("kid", "k"))
 		obj, _ := signer.Sign(claims)
 		tok, _ := obj.CompactSerialize()
-		_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "upstream-at", "token_type": "Bearer", "id_token": tok, "expires_in": 3600})
+		accessToken := p.accessToken
+		if accessToken == "" {
+			accessToken = "upstream-at"
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"access_token": accessToken, "token_type": "Bearer", "id_token": tok, "expires_in": 3600})
 	}
 }
 

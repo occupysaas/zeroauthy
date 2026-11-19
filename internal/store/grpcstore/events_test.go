@@ -40,6 +40,8 @@ type eventsFaults struct {
 	mfaMissing         bool
 	phoneMissing       bool
 	webauthnMissing    bool
+	ckMissing          bool
+	ckProbes           atomic.Int32
 	ccMissing          bool
 	ccProbes           atomic.Int32 // ClientCredentialsCapabilities calls seen
 	ccFieldsSent       atomic.Bool  // a client, API or PAR write carried a Plan 35 field
@@ -76,6 +78,12 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 		}
 		if name == "WebAuthnCapabilities" && faults.webauthnMissing {
 			return nil, status.Error(codes.Unimplemented, "WebAuthn capability missing")
+		}
+		if name == "ConnectionKeysCapabilities" {
+			faults.ckProbes.Add(1)
+			if faults.ckMissing {
+				return nil, status.Error(codes.Unimplemented, "pre-connection_keys.v1 plugin")
+			}
 		}
 		if name == "ClientCredentialsCapabilities" {
 			faults.ccProbes.Add(1)

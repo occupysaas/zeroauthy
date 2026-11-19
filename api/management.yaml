@@ -4776,6 +4776,112 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/connections/{id}/keys:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getConnectionKeys
+      tags: [connections]
+      summary: getConnectionKeys
+      description: List public signing and encryption certificates. Requires read:connections_keys.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema: {"type":"array","items":{"$ref":"#/components/schemas/ConnectionKey"}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+    post:
+      operationId: postConnectionKeys
+      tags: [connections]
+      summary: postConnectionKeys
+      description: Create current and next keys. Requires create:connections_keys. Existing keys of the same use return 409.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PostConnectionKeysRequestContent"}
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema: {"type":"array","items":{"$ref":"#/components/schemas/ConnectionKey"}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/connections/{id}/keys/rotate:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    post:
+      operationId: postConnectionKeysRotate
+      tags: [connections]
+      summary: postConnectionKeysRotate
+      description: Promote the next key and retain the previous key. Requires create:connections_keys and update:connections_keys.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PostConnectionKeysRequestContent"}
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema: {"$ref":"#/components/schemas/ConnectionKey"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/connections/{id}/status:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getConnectionStatus
+      tags: [connections]
+      summary: getConnectionStatus
+      description: Check AD connector availability. Other strategies return 404. Requires read:connections.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      responses:
+        "200":
+          description: Success.
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/connections/{id}/users:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    delete:
+      operationId: deleteConnectionUsersByEmail
+      tags: [connections]
+      summary: deleteConnectionUsersByEmail
+      description: Delete database users of this connection with the specified email, including their sessions and grants. Requires delete:users. An unknown email returns 204.
+      x-source:
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      parameters:
+        - {name: email, in: query, required: true, schema: {type: string}}
+      responses:
+        "204":
+          description: Success.
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
   /api/v2/connections/{id}/clients:
     parameters:
       - name: id
@@ -13940,6 +14046,10 @@ components:
       properties:
         length: {type: integer, minimum: 4, maximum: 40, default: 6}
         time_step: {type: integer, minimum: 60, default: 180, description: Code and link lifetime in seconds.}
+    ConnectionKey: {"type": "object", "properties": {"kid": {"type": "string"}, "cert": {"type": "string"}, "pkcs": {"type": "string"}, "fingerprint": {"type": "string"}, "thumbprint": {"type": "string"}, "algorithm": {"type": "string"}, "subject_dn": {"type": "string"}, "key_use": {"type": "string", "enum": ["signing", "encryption"]}, "current": {"type": "boolean"}, "next": {"type": "boolean"}, "previous": {"type": "boolean"}, "current_since": {"type": "string", "format": "date-time"}}, "required": ["kid", "cert", "fingerprint", "thumbprint"]}
+    PostConnectionKeysRequestContent: {"type": "object", "properties": {"key_use": {"type": "string", "enum": ["signing", "encryption"], "default": "signing"}, "signing_alg": {"type": "string", "enum": ["RS256", "RS384", "RS512", "PS256", "PS384", "ES256", "ES384"], "default": "RS256"}, "encryption_alg": {"type": "string", "enum": ["RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512", "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]}}, "additionalProperties": false}
+    ConnectionOptionsOIDC: {"type": "object", "properties": {"client_id": {"type": "string"}, "client_secret": {"type": "string", "writeOnly": true}, "discovery_url": {"type": "string"}, "issuer": {"type": "string"}, "authorization_endpoint": {"type": "string"}, "token_endpoint": {"type": "string"}, "jwks_uri": {"type": "string"}, "userinfo_endpoint": {"type": "string"}, "scope": {"type": "string"}, "scopes": {"type": "string"}, "tenant_domain": {"type": "string"}, "icon_url": {"type": "string"}, "pushed_authorization_request_endpoint": {"type": "string"}, "type": {"type": "string", "enum": ["back_channel", "front_channel"], "default": "front_channel"}, "oidc_metadata": {"type": "object", "additionalProperties": true}, "connection_settings": {"type": "object", "properties": {"pkce": {"type": "string", "enum": ["auto", "S256", "s256", "plain", "disabled"], "default": "auto"}}}, "send_back_channel_nonce": {"type": "boolean", "default": true}, "token_endpoint_auth_method": {"type": "string", "enum": ["client_secret_post", "private_key_jwt"], "nullable": true}, "token_endpoint_auth_signing_alg": {"type": "string", "enum": ["RS256", "RS384", "RS512", "PS256", "PS384", "ES256", "ES384"]}, "token_endpoint_jwtca_aud_format": {"type": "string", "enum": ["issuer", "token_endpoint"]}, "id_token_signed_response_algs": {"type": "array", "items": {"type": "string"}}, "id_token_encrypted_response_alg": {"type": "string", "enum": ["RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512", "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]}, "id_token_encrypted_response_encs": {"type": "array", "items": {"type": "string"}}, "domain_aliases": {"type": "array", "items": {"type": "string"}, "maxItems": 1000}, "non_persistent_attrs": {"type": "array", "items": {"type": "string"}}, "enable_pushed_authorization_requests": {"type": "boolean"}, "id_token_session_expiry_supported": {"type": "boolean"}, "useOauthSpecScope": {"type": "boolean"}, "set_user_root_attributes": {"type": "string"}, "dpop_signing_alg": {"type": "string", "nullable": true}, "attribute_map": {"type": "object", "properties": {"mapping_mode": {"type": "string", "enum": ["bind_all", "use_map"]}, "attributes": {"type": "object", "maxProperties": 100, "additionalProperties": {"type": "string", "maxLength": 1024}}, "userinfo_scope": {"type": "string"}}}}, "required": ["client_id"]}
+    ConnectionOptionsOkta: {"type": "object", "properties": {"client_id": {"type": "string"}, "client_secret": {"type": "string", "writeOnly": true}, "issuer": {"type": "string"}, "authorization_endpoint": {"type": "string"}, "token_endpoint": {"type": "string"}, "jwks_uri": {"type": "string"}, "userinfo_endpoint": {"type": "string"}, "scope": {"type": "string"}, "scopes": {"type": "string"}, "tenant_domain": {"type": "string"}, "icon_url": {"type": "string"}, "pushed_authorization_request_endpoint": {"type": "string"}, "type": {"type": "string", "enum": ["back_channel"]}, "oidc_metadata": {"type": "object", "additionalProperties": true}, "connection_settings": {"type": "object", "properties": {"pkce": {"type": "string", "enum": ["auto", "S256", "s256", "plain", "disabled"], "default": "auto"}}}, "send_back_channel_nonce": {"type": "boolean", "default": true}, "token_endpoint_auth_method": {"type": "string", "enum": ["client_secret_post", "private_key_jwt"], "nullable": true}, "token_endpoint_auth_signing_alg": {"type": "string", "enum": ["RS256", "RS384", "RS512", "PS256", "PS384", "ES256", "ES384"]}, "token_endpoint_jwtca_aud_format": {"type": "string", "enum": ["issuer", "token_endpoint"]}, "id_token_signed_response_algs": {"type": "array", "items": {"type": "string"}}, "id_token_encrypted_response_alg": {"type": "string", "enum": ["RSA-OAEP-256", "RSA-OAEP-384", "RSA-OAEP-512", "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]}, "id_token_encrypted_response_encs": {"type": "array", "items": {"type": "string"}}, "domain_aliases": {"type": "array", "items": {"type": "string"}, "maxItems": 1000}, "non_persistent_attrs": {"type": "array", "items": {"type": "string"}}, "enable_pushed_authorization_requests": {"type": "boolean"}, "id_token_session_expiry_supported": {"type": "boolean"}, "useOauthSpecScope": {"type": "boolean"}, "set_user_root_attributes": {"type": "string"}, "dpop_signing_alg": {"type": "string", "nullable": true}, "attribute_map": {"type": "object", "properties": {"mapping_mode": {"type": "string", "enum": ["basic_profile", "use_map"]}, "attributes": {"type": "object", "maxProperties": 100, "additionalProperties": {"type": "string", "maxLength": 1024}}, "userinfo_scope": {"type": "string"}}}, "domain": {"type": "string", "maxLength": 253}}, "required": ["client_id", "domain"]}
     ConnectionOptionsApple:
       type: object
       description: |
@@ -22779,7 +22889,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, okta], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170)."}
             enabled_clients:
               type: array
               items: {type: string}

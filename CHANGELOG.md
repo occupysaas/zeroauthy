@@ -8,6 +8,12 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- Enterprise OIDC and Okta login: front-channel form post, explicit endpoints,
+  PKCE modes, claim mapping and userinfo, signed client assertions, encrypted
+  ID tokens, upstream PAR, public connection keys and home realm discovery.
+  Migration 0041 preserves existing back-channel connections and stores sealed
+  connection keys. See [enterprise connections](docs/enterprise-connections.md).
+
 - Sign in with Apple web login and native iOS authorization-code exchange,
   operator-owned signing keys, private-relay profiles and first-login names.
   Console, seed and Deploy CLI support include stored native-social switches;

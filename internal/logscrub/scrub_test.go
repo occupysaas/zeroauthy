@@ -16,7 +16,7 @@ import (
 )
 
 func TestScrubKeys(t *testing.T) {
-	keys := []string{"password", "Password", "new_password", "client_secret", "x-api-key", "httpAuthorization", "id_token", "otp_code", "private_key", "passwd", "pwd", "credentials", "recovery.code", "prefixSECRETpostfix", "client_assertion", "clientAssertion"}
+	keys := []string{"userinfo", "password", "Password", "new_password", "client_secret", "x-api-key", "httpAuthorization", "id_token", "otp_code", "private_key", "passwd", "pwd", "credentials", "recovery.code", "prefixSECRETpostfix", "client_assertion", "clientAssertion"}
 	for _, key := range keys {
 		for _, value := range []any{"hunter2!!", true, nil, 42, map[string]any{"visible": "hidden"}, []any{1, 2}} {
 			input := map[string]any{key: value, "sibling": "public"}

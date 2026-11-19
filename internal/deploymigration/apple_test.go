@@ -59,3 +59,28 @@ func TestAppleBootstrapPreservesNativeClientFields(t *testing.T) {
 		t.Fatal("bootstrap lost native settings")
 	}
 }
+
+func TestEnterpriseFederationImportSecretPolicy(t *testing.T) {
+	for _, tc := range []struct {
+		strategy, options string
+		secret            bool
+	}{{"oidc", `{"type":"front_channel","client_id":"client"}`, false}, {"oidc", `{"type":"back_channel","token_endpoint_auth_method":"private_key_jwt","client_id":"client"}`, false}, {"okta", `{"domain":"dev-1.okta.com","client_id":"client"}`, true}} {
+		raw := json.RawMessage(`[{"name":"enterprise","strategy":"` + tc.strategy + `","options":` + tc.options + `}]`)
+		credentials := map[string]string{}
+		if tc.secret {
+			credentials["enterprise"] = "fixture-secret"
+		}
+		prepared, e := FederationImport(Export{Resources: map[string]json.RawMessage{"connections": raw}}, credentials)
+		if e != nil {
+			t.Fatal(e)
+		}
+		var rows []map[string]any
+		if e := json.Unmarshal(prepared, &rows); e != nil {
+			t.Fatal(e)
+		}
+		_, has := rows[0]["options"].(map[string]any)["client_secret"]
+		if has != tc.secret {
+			t.Fatal("incorrect secret injection")
+		}
+	}
+}
