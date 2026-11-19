@@ -981,7 +981,11 @@ type TokenFormRequest struct {
 	// ActorTokenType Required with `actor_token`.
 	ActorTokenType *string `json:"actor_token_type,omitempty"`
 
-	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	// Audience Identifier of the API the token is for. On the refresh grant it
+	// defaults to the refresh token's original audience. A different
+	// audience must be allowed by the client's refresh token policies
+	// (D-0070). Other grants use the tenant's default audience when
+	// applicable.
 	Audience      *string                         `json:"audience,omitempty"`
 	AuthSession   *string                         `json:"auth_session,omitempty"`
 	AuthnResponse *TokenFormRequest_AuthnResponse `json:"authn_response,omitempty"`
@@ -1024,7 +1028,10 @@ type TokenFormRequest struct {
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
-	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	// Scope Space-separated scopes to request. On the refresh grant the
+	// original scopes and any applicable refresh token policy determine
+	// the scopes that can be issued. On the client-credentials grant the
+	// default is all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
 	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
@@ -1062,7 +1069,11 @@ type TokenRequest struct {
 	// ActorTokenType Required with `actor_token`.
 	ActorTokenType *string `json:"actor_token_type,omitempty"`
 
-	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	// Audience Identifier of the API the token is for. On the refresh grant it
+	// defaults to the refresh token's original audience. A different
+	// audience must be allowed by the client's refresh token policies
+	// (D-0070). Other grants use the tenant's default audience when
+	// applicable.
 	Audience      *string                     `json:"audience,omitempty"`
 	AuthSession   *string                     `json:"auth_session,omitempty"`
 	AuthnResponse *TokenRequest_AuthnResponse `json:"authn_response,omitempty"`
@@ -1105,7 +1116,10 @@ type TokenRequest struct {
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
-	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	// Scope Space-separated scopes to request. On the refresh grant the
+	// original scopes and any applicable refresh token policy determine
+	// the scopes that can be issued. On the client-credentials grant the
+	// default is all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
 	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
@@ -1146,7 +1160,11 @@ type TokenRequestFields struct {
 	// ActorTokenType Required with `actor_token`.
 	ActorTokenType *string `json:"actor_token_type,omitempty"`
 
-	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	// Audience Identifier of the API the token is for. On the refresh grant it
+	// defaults to the refresh token's original audience. A different
+	// audience must be allowed by the client's refresh token policies
+	// (D-0070). Other grants use the tenant's default audience when
+	// applicable.
 	Audience      *string                           `json:"audience,omitempty"`
 	AuthSession   *string                           `json:"auth_session,omitempty"`
 	AuthnResponse *TokenRequestFields_AuthnResponse `json:"authn_response,omitempty"`
@@ -1189,7 +1207,10 @@ type TokenRequestFields struct {
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
-	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	// Scope Space-separated scopes to request. On the refresh grant the
+	// original scopes and any applicable refresh token policy determine
+	// the scopes that can be issued. On the client-credentials grant the
+	// default is all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
 	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.

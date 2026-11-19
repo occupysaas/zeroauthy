@@ -753,3 +753,25 @@ Its Minors are deferred, not 1.0 blockers unless noted:
   email (local: all are deleted) and the answer for an unknown email
   (local: `204`).
 
+
+## Plan 48 observation points
+
+[D-0070](../compat/decisions.md#d-0070--refresh-tokens-ii-and-client-credentials-quotas-plan-48)
+records the local policies. Upstream observation remains open for the
+following points.
+
+- **R1** Which sibling stays valid after a successful overlap exchange.
+  Locally the former family head stays valid until rotated or revoked.
+- **R2** Whether deleting a user grant without an audience revokes refresh
+  tokens for all the user's audiences on that client. Locally it does.
+- **R3** Online refresh tokens with ephemeral sessions when the API's
+  ephemeral-session flag is false. Pending the ORT scope decision.
+- **R4** Requests for both `online_access` and `offline_access`. Pending
+  the ORT scope decision.
+- **R5** Whether the device ASN properties are returned and how they are
+  populated. Locally both are empty strings.
+- **R6** Upstream behavior of Actions metadata setters for sessions and
+  refresh tokens. Plan 48's Actions metadata fields are read-only.
+- **R7** Organization quota error description. Locally it is
+  `Organization quota exceeded`.
+- **R8** Quota warning log description. Locally it uses local wording.

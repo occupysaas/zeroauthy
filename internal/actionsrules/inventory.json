@@ -520,6 +520,7 @@
       "event": [
         "authorization.roles",
         "client",
+        "client.refresh_token.policies",
         "connection",
         "request",
         "resource_server",
@@ -529,7 +530,9 @@
         "transaction",
         "user",
         "session",
+        "session.metadata",
         "refresh_token",
+        "refresh_token.metadata",
         "user.enrolledFactors",
         "authentication.methods"
       ],

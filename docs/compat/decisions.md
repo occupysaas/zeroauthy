@@ -151,7 +151,10 @@ them. Each entry: context, sources consulted, decision, rationale.
     - Expiring tokens default to an absolute lifetime of 31557600 s (the documented maximum, since no default is documented) and an idle lifetime of 2592000 s (the documented default).
   - **Rotation:**
     - Each exchange returns a new token in the same family. It inherits the absolute expiry and starts a new idle period.
-    - Presenting a rotated token again after the `leeway` (default 0 s) revokes the whole family and returns `invalid_grant`.
+    - Within the `leeway` (default 0 s), only the parent of the family's
+      newest live token may be exchanged again. Reusing an older rotated
+      token or reusing one after its leeway revokes the whole family and
+      returns `invalid_grant` (D-0070).
   - **Code replay:** a replayed authorization code revokes the family started from it.
 - **Rationale:** These follow the documented settings and the security BCP. Rotation and reuse detection are a single atomic store operation, so concurrent requests cannot fork a family.
 
@@ -756,14 +759,22 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **users-by-email:** case-sensitive match on the stored (lowercase) email.
   - **Connection search (Plan 45b, D-0270):** Auth0's `connection` parameter applies only to v1, which zeroauthy rejects. The default engine, `v2` and `v3` ignore `connection` after validating its text. Use `q=identities.connection:"connection_name"` to match any identity on the named connection.
   - **Linking:** the secondary record is removed and its identity moves to the primary with `profileData` `{email, email_verified}`; logins through it resolve to the primary. **Unlink recreates the secondary from `profileData` only**, with a new `created_at` and no names, picture or metadata, as Auth0 does. Unlinking an identity that is not linked is `200`. `link_with` needs `aud` = the calling client's ID.
-  - **Sessions and refresh tokens:** the U8 objects; newest first; checkpoint paging only (`take` 1–100, default 50; `next` on every non-empty page); every delete is `202 {}`; deleting sessions leaves refresh tokens alone.
+  - **Sessions and refresh tokens:** the U8 objects. The user routes list newest
+    first using checkpoint paging (`take` 1–100, default 50, with `next` on every
+    non-empty page). Deletes return `202 {}`. Session deletion preserves offline
+    refresh tokens. Explicit session revocation revokes all refresh tokens
+    issued in the session (D-0070).
   - **Grants:** objects with `clientID` (sic) and a sorted `scope` array.
   - **Tickets:** `/u/reset-verify?ticket=…#` and `/u/email-verification?ticket=…#`; `result_url` with `client_id` is `400 invalid_body`; default TTL 432000 s. Verification consumes on open and redirects with the U6 parameters (`success`, `code`, `message`, `email` only with `includeEmailInRedirect`, `supportSignUp`, `supportForgotPassword`). The password-change success page does not redirect to `result_url` (as observed on Auth0's current hosted pages); the value is stored.
   - **Ticket choices not observed:** an expired verification ticket shows the error page (no redirect); `result_url` with `client_id` is refused on both ticket kinds; an unknown `client_id` is `404 inexistent_client` and an unknown `connection_id` `400 inexistent_connection`; `ttl_sec` above 2^31−1 is clamped; `organization_id` is an unknown property (zeroauthy has no organizations). On a custom database connection not in import mode a missing or failing `verify` script leaves `email_verified` false. A verification ticket is bound to the email it was issued for: once the user's email changes (Management API, custom database profile sync), opening it shows the error page and verifies nothing. Changing a user's email through the Management API also deletes their open verification and unused password reset tickets. Signup sends the verification email whenever the new user has an unverified email (zeroauthy has no email template switches yet).
   - **Search choices not observed:** `identities.*` matching is case-insensitive; a `YYYY-MM-DD` date term means the whole UTC day; metadata paths do not step through arrays. `_exists_` on a root boolean, number or date field (`blocked`, `email_verified`, `logins_count`, `created_at`, …) is always true. A bare term containing an unescaped `*` is a wildcard in all six bare-term alternatives. A dangling `AND` anywhere gives "'AND' requires at least one operand on each side", other dangling operators "undefined"; a range on a root field that has none gives "operator 'greater or equal' is not supported". Guide: `docs/user-search.md`.
   - **Create and update choices not observed:** `POST /users` with an unknown connection is `400 inexistent_connection`; `create:users_app_metadata` is accepted on create. Custom database script failures are `400 auth0_idp_error`, `409 user_exists` and `503 script_runtime_unavailable`. A legacy (custom database) create ignores a caller-supplied `user_id`. Password reset by a linked secondary's email finds no user.
   - **Linking choices not observed:** `profileData` also keeps `username` (restored on unlink). The wordings for a missing `provider`, `link_with` mixed with `provider`/`user_id`/`connection_id`, and linking a user that already has linked accounts were not observed; a bad signature, `iss` or `exp` on `link_with` reuses "Invalid token (link_with).". Deleting a connection that holds only a linked identity of a user removes that identity (the user's `Version` is bumped) and keeps the user.
-  - **Refresh tokens:** zeroauthy's own ID formats (no `dcr_` prefix; 24-character session IDs); deleting one refresh token revokes its rotation family; a token with only the userinfo audience lists `resource_servers` `[{audience: https://{host}/userinfo}]`; `device` comes from the token's session and is omitted for password-grant tokens; the messages for `take` below 1 or not a number are zeroauthy's.
+  - **Refresh tokens:** zeroauthy uses its own identifiers and revokes the
+    entire rotation family when one token is deleted. A token with only the
+    userinfo audience lists `resource_servers` `[{audience: https://{host}/userinfo}]`.
+    D-0070 records device details from issuance and exchange. The messages for
+    `take` below 1 or outside the numeric format use local wording.
   - **Races:** the user version closes only the window between loading the user and minting; the authorization-code and device-code grants check only that the user exists and is not blocked, and the hosted login does not check the version (plan-1-followups). A password grant that loses that race to a block answers `invalid_grant` "user is blocked"; one that loses it to a reset, a session revocation or a deletion answers `invalid_grant` "the user is not allowed to sign in", as the refresh grant does. A legacy (custom database) reset link is spent when `change_password` fails (the D-0023 reversal, recorded there).
   - **Last operator (zeroauthy only):** on the reserved `system` tenant the Users API reaches operators too, so `DELETE /users/{id}`, `PATCH` with `blocked: true` and linking the user as a secondary account are `409 last_operator` when the user is the last operator, as the system API's operator removal is.
   - **Unstorable input:** a query parameter that is not valid UTF-8 or contains NUL (`connection`, `email`, the grants filters) is `400 invalid_query_string`; such a session, refresh token or grant ID is unknown (`404` without `errorCode` on read, the endpoint's success on delete). A password-change ticket never targets a linked identity: a user whose only database identity is linked is `400 operation_not_supported`, as a user without one. Sessions' IPs and a user's `last_ip` are stored only when the client IP is an IP address (canonical form, no zone), and are empty otherwise.
@@ -773,7 +784,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Default picture:** the same Gravatar URL shape (`s=480&r=pg`), but `d=mp` (Gravatar's built-in placeholder) instead of an initials image on Auth0's CDN, so no zeroauthy page depends on Auth0's hosts.
   - **`blocked: false`:** never returned, because the store cannot tell "set to false" from "never set"; Auth0 shows `blocked: false` once it was set.
   - **PostgreSQL locale:** Unicode case folding in user search needs a UTF-8 `LC_CTYPE`; with another one zeroauthy folds ASCII letters only and logs a warning at startup.
-  - **`device.*_asn`:** not returned (zeroauthy has no ASN database); IPs and user agents are.
+  - **Session ASNs:** session device objects contain IPs and user agents. Refresh token device objects use empty ASN strings (D-0070).
   - **`app_metadata` scope split:** not observed (the observer could not narrow its token); zeroauthy follows the reference: writing `app_metadata` needs `update:users_app_metadata` and reading it needs `read:users` or `read:users_app_metadata`.
     *Correction 2026-11-04:* the user reads require `read:users` and always include `app_metadata`; `read:users_app_metadata` is not used (the OAS lists it on no user read).
 - **Rationale:** observed values are matched; the differences avoid depending on Auth0's infrastructure or data zeroauthy does not have.
@@ -3492,3 +3503,65 @@ Observe later (copied into `docs/superpowers/plan-1-followups.md`):
   email (local: all are deleted) and the answer for an unknown email
   (local: `204`).
 
+
+## D-0070 — Refresh tokens II and client-credentials quotas (Plan 48)
+
+The [Plan 48 design](../superpowers/specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md)
+records the complete scope and evidence. The contracts below guide
+implementation. Online refresh token scope is pending maintainer review of
+the current Auth0 requirements.
+
+- Rotation converts the token on its next eligible exchange after an application
+  changes its configuration. Inside the overlap period only the immediately
+  previous token can be reused. Reuse beyond that point revokes the family.
+  [Configure Refresh Token Rotation](https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-rotation).
+- Grant deletion revokes the refresh tokens the grant authorized. Setting
+  `flags.revoke_refresh_token_grant` extends `/oauth/revoke` to the
+  associated grant and its tokens. The flag defaults to false. Unlinking an
+  individual device keeps the grant. [Revoke Refresh Tokens](https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens).
+- First-party clients can configure up to 10 MRRT policies. Each policy names
+  one API and its scopes. The Management API is excluded and target APIs must
+  allow skipping consent for eligible first-party clients. Exchanges keep the
+  original family audience and scope ceiling and filter the issued scopes
+  against the target API and applicable authorization rules. The original
+  audience is used if omitted. [Configure MRRT](https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token).
+- The Management API lists `refresh_tokens` in ID order on
+  `GET /refresh-tokens`. The existing user route retains its `tokens`
+  field and newest-first order. Metadata patches replace the map, with
+  `null` and `{}` clearing it. Post-login Actions can read session and
+  refresh token metadata. Refresh token objects contain IDs and public
+  attributes. Raw tokens and hashes stay private.
+  [Management API OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json).
+- Client and organization quotas override the corresponding tenant defaults.
+  Applying quotas count issued client-credentials tokens in UTC hour and day
+  windows. Quota headers describe only an authenticated client's applicable
+  limits. With enforcement enabled (the default), a refusal returns
+  `429 too_many_requests` and reset headers. Threshold warnings appear at
+  60%, 80%, and 100% once per bucket window.
+  [Fine-Grained M2M Token Quotas](https://auth0.com/docs/fine-grained-m2m-token-quotas).
+
+| ID | Ruling |
+|---|---|
+| LR48-1 | Session revoke is in Plan 48. Device credentials and user-wide revoke access remain in Plan 38d. |
+| LR48-2 | The absolute lifetime of a new rotating family starts when the token is converted. |
+| LR48-3 | Conversion to a non-rotating token revokes all rotating families matching its tenant, client, user and audience. |
+| LR48-4 | An offline refresh against an API that no longer allows offline access returns `invalid_grant` with local wording. |
+| LR48-5 | The documented cap is 10 MRRT policies per client. The Auth0 configuration guide checked on 2026-11-18 provides this limit. |
+| LR48-6 | An audience unavailable under the client's refresh token policies returns `invalid_request`. |
+| LR48-7 | Pending maintainer review of combined offline and online scopes. |
+| LR48-8 | Pending maintainer review of online token grant and sender-constraining requirements. |
+| LR48-9 | Bulk revocation completes synchronously and returns `202`. |
+| LR48-10 | `last_exchanged_at` records the last successful exchange. |
+| LR48-11 | A refused request consumes no quota. |
+| LR48-12 | Storage plugins without `refresh_tokens_ii.v1` retain Plan 17 rotation semantics and refuse writes for unsupported Plan 48 features. |
+
+| Observation | Local policy or open point |
+|---|---|
+| R1 | The former family head stays valid as a sibling after a successful overlap exchange until it is rotated or revoked. |
+| R2 | A user grant without a recorded audience revokes the user's tokens for the client across audiences. |
+| R3 | Handling of online refresh tokens with ephemeral sessions is pending the scope decision. |
+| R4 | Handling of requests for both offline and online scopes is pending the scope decision. |
+| R5 | Refresh token ASN fields are empty because zeroauthy has no ASN database. |
+| R6 | Plan 48 exposes metadata for reading in Actions. Metadata writes use the Management API. |
+| R7 | The local organization quota refusal description is `Organization quota exceeded`. |
+| R8 | Quota warning descriptions use local wording. |

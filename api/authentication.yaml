@@ -236,7 +236,7 @@ paths:
         |---|---|
         | `authorization_code` | Exchange a code from `/authorize` (with `code_verifier` when PKCE was used) for an access token and, with scope `openid`, an ID token |
         | `client_credentials` | Machine-to-machine access token for `audience` |
-        | `refresh_token` | Exchange a refresh token (from a request with scope `offline_access`) for new tokens. Rotating refresh tokens return a new `refresh_token`; reusing a rotated token revokes all tokens derived from the same login. `scope` may narrow the original scopes. |
+        | `refresh_token` | Exchange a refresh token for new tokens. Rotation returns a new `refresh_token`. Only the immediately previous rotating token may be reused within the configured overlap period. An eligible first-party client can request an API and scopes allowed by its refresh token policies. |
         | `password` | Resource owner password: exchange `username` and `password` for tokens. When `realm` is given, the user is looked up in that database connection (which must be enabled for the client), as with the password-realm grant. Otherwise the tenant's default directory (`default_directory`) is used, and a tenant without one rejects the request with `invalid_request`. |
         | `http://auth0.com/oauth/grant-type/password-realm` | As `password`, but `realm` names the database connection to use. The connection must be enabled for the client. |
         | `http://auth0.com/oauth/grant-type/passwordless/otp` | Exchange a passwordless code: `realm` (`email` or `sms`), `username` (the email or E.164 number) and `otp`. The client must have the grant enabled. Same MFA decision as password grants. `redirect_uri` is validated when sent (D-0060 P11). |
@@ -273,6 +273,11 @@ paths:
         secret, and only when it is an IP address; otherwise the request's
         own address is used.
 
+        **Client-credentials quotas (D-0070).** A successful exchange or
+        quota refusal includes headers for the quotas that apply to the
+        authenticated client and its organization. Exceeding an enforced
+        limit returns `429` with `too_many_requests` and the reset time.
+
         **Client authentication.** Confidential clients authenticate with
         the method they are registered with: `client_secret_post`
         (`client_id` and `client_secret` in the body) or
@@ -302,6 +307,9 @@ paths:
         - https://www.rfc-editor.org/rfc/rfc6749#section-6
         - https://auth0.com/docs/secure/tokens/refresh-tokens/use-refresh-tokens
         - https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-rotation
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token
+        - https://auth0.com/docs/fine-grained-m2m-token-quotas
         - https://www.rfc-editor.org/rfc/rfc6749#section-4.3
         - https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token
         - https://auth0.com/docs/api/authentication/passwordless/authenticate-user
@@ -323,6 +331,10 @@ paths:
           headers:
             Cache-Control:
               schema: {type: string, const: no-store}
+            Auth0-Client-Quota-Limit:
+              $ref: "#/components/headers/ClientQuotaLimit"
+            Auth0-Organization-Quota-Limit:
+              $ref: "#/components/headers/OrganizationQuotaLimit"
           content:
             application/json:
               schema:
@@ -342,7 +354,30 @@ paths:
         "404":
           $ref: "#/components/responses/UnknownTenant"
         "429":
-          $ref: "#/components/responses/OAuthErrorResponse"
+          description: |
+            A request rate limit or enforced client-credentials quota was
+            exceeded. A quota refusal uses `too_many_requests` and describes
+            which subject exceeded its quota.
+          headers:
+            Auth0-Client-Quota-Limit:
+              $ref: "#/components/headers/ClientQuotaLimit"
+            Auth0-Organization-Quota-Limit:
+              $ref: "#/components/headers/OrganizationQuotaLimit"
+            X-RateLimit-Limit:
+              description: The exhausted bucket's configured limit.
+              schema: {type: integer}
+            X-RateLimit-Remaining:
+              description: Remaining capacity in the exhausted bucket, zero on quota refusal.
+              schema: {type: integer}
+            X-RateLimit-Reset:
+              description: The earliest exhausted bucket's reset as Unix time in seconds.
+              schema: {type: integer, format: int64}
+            Retry-After:
+              description: Seconds until the exhausted quota resets.
+              schema: {type: integer}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OAuthError"}
         default:
           $ref: "#/components/responses/ServerError"
   /oauth/revoke:
@@ -352,10 +387,12 @@ paths:
       summary: Revoke a refresh token
       description: |
         Revokes a refresh token together with every refresh token derived
-        from the same login (its rotation family). The client authenticates
-        as at `/oauth/token`. An unknown token is not an error (RFC 7009),
-        so the response does not reveal whether a token existed. Access
-        tokens are self-contained JWTs and cannot be revoked; they expire.
+        from the same login (its rotation family). If the tenant enables
+        `flags.revoke_refresh_token_grant`, it also deletes the associated
+        user grant and revokes the refresh tokens issued under that grant.
+        The client authenticates as at `/oauth/token`. Unknown tokens get
+        the same success response (RFC 7009). The self-contained JWT access
+        tokens remain valid until they expire.
       x-source:
         - https://www.rfc-editor.org/rfc/rfc7009
         - https://auth0.com/docs/api/authentication
@@ -1282,6 +1319,18 @@ paths:
         is not planned.
 
 components:
+  headers:
+    ClientQuotaLimit:
+      description: |
+        Applying client quota buckets for the client-credentials grant.
+        Each entry gives the bucket (b), quota (q), remaining tokens (r)
+        and seconds until reset (t). Hourly entries precede daily entries.
+      schema: {type: string}
+    OrganizationQuotaLimit:
+      description: |
+        Applying organization quota buckets for the client-credentials grant,
+        in the same format as the client quota header.
+      schema: {type: string}
   securitySchemes:
     clientSecretBasic:
       type: http
@@ -1826,10 +1875,19 @@ components:
           description: Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
         audience:
           type: string
-          description: Identifier of the API the token is for. Defaults to the tenant's default audience.
+          description: |
+            Identifier of the API the token is for. On the refresh grant it
+            defaults to the refresh token's original audience. A different
+            audience must be allowed by the client's refresh token policies
+            (D-0070). Other grants use the tenant's default audience when
+            applicable.
         scope:
           type: string
-          description: Space-separated scopes to request. Defaults to all scopes granted to the client.
+          description: |
+            Space-separated scopes to request. On the refresh grant the
+            original scopes and any applicable refresh token policy determine
+            the scopes that can be issued. On the client-credentials grant the
+            default is all scopes granted to the client.
         code:
           type: string
           description: Authorization code (grant_type=authorization_code).

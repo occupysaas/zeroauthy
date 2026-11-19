@@ -1,6 +1,6 @@
 # Plan 48 — Refresh tokens II (rotation conversion, strict leeway, grant cascade, MRRT, online refresh tokens, token quotas)
 
-**Date:** 2026-11-16. **Status:** design; not implemented.
+**Date:** 2026-11-16. **Status:** design. The online refresh token scope (§5) is pending maintainer review against the current Auth0 documentation.
 
 **Roadmap entry:** [management roadmap, Plan 48](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("short", proposed by the pre-1.0 review); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
@@ -141,7 +141,7 @@ Read 2026-11-16:
   `X-RateLimit-*` and `Retry-After` on 429; logs
   `token_quota_consumption_warning` at 60/80/100 % and `feccft`).
 - Management OpenAPI: `ClientRefreshTokenConfiguration` (`policies`,
-  1..n items of `{audience ≤ 600, scope[] each ≤ 280}`),
+  1..10 items of `{audience ≤ 600, scope[] each ≤ 280}`),
   `ResourceServer.allow_online_access`,
   `allow_online_access_with_ephemeral_sessions`,
   `TenantSettingsFlags.revoke_refresh_token_grant`, operations
@@ -205,7 +205,7 @@ offline access", LR48-4 wording) when the token's API now has
 
 ### 4.1 Configuration
 
-- `refresh_token.policies`: `null` or 1..100 entries (LR48-5 cap) of
+- `refresh_token.policies`: `null` or 1..10 entries (LR48-5) of
   `{audience, scope[]}`; `audience` 1–600 characters, each scope 1–280.
 - Write-time validation: duplicate audiences refused (`400`); the Management
   API audience (`https://<tenant>/api/v2/`) refused (documented exclusion);
@@ -402,7 +402,7 @@ Store contract changes (`store.RefreshTokens`):
 | LR48-2 | A converted rotating token's absolute lifetime starts at the conversion. |
 | LR48-3 | "Rotating family issued for the same client, resource server, user and tenant" means every rotating family matching those four. |
 | LR48-4 | Offline re-check failure is `invalid_grant` with local wording. |
-| LR48-5 | At most 100 MRRT policies per client. |
+| LR48-5 | At most 10 MRRT policies per client, per the Auth0 configuration guide checked on 2026-11-18. |
 | LR48-6 | A non-policy audience at the refresh grant is `invalid_request`. |
 | LR48-7 | `offline_access` and `online_access` together: offline wins. |
 | LR48-8 | ORTs only from the authorization-code grant. |

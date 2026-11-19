@@ -38,7 +38,7 @@ approval).
 - **Parity.** LR48-1…12 and R1–R8 go in **D-0070**; R points also in
   `docs/superpowers/plan-1-followups.md`. Amend D-0012 (strict leeway) and
   D-0043 (U8 still holds for offline tokens; ORTs end with the session).
-- **Limits.** MRRT ≤ 100 policies, audience ≤ 600, scope ≤ 280; metadata ≤ 25
+- **Limits.** MRRT ≤ 10 policies, audience ≤ 600, scope ≤ 280; metadata ≤ 25
   string properties ≤ 255 characters (keys ≤ 255, R6 note); bulk revoke ≤ 100
   ids; quota values 1–2147483647.
 - **Quota windows.** UTC hour and UTC day, injected clock only.
@@ -236,7 +236,7 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 - Test: `internal/clientrules/*_test.go`.
 
 - [ ] **Step 1: Write the failing tests**
-  - `TestMRRTPolicyRules`: 101 policies, duplicate audience, Management API audience, third-party client → `400`; unknown audience stored.
+  - `TestMRRTPolicyRules`: 11 policies, duplicate audience, Management API audience, third-party client → `400`; unknown audience stored.
   - `TestMRRTNoAudience`: requested scopes ∪ policy scopes for the token's own audience.
   - `TestMRRTOtherAudience`: policy audience → access token `aud` = B, scopes ⊆ policy ∩ requested ∩ API definitions ∩ RBAC; unauthorized requested scopes dropped silently.
   - `TestMRRTRefusals`: non-policy audience → `invalid_request`; API without skip-consent → `invalid_request`; API deleted → `invalid_request`.
