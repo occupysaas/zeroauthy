@@ -43,8 +43,8 @@ No nonce or proof runtime implementation was present in that review.
 | 3 SQL, gRPC and migration | Complete; reviewed | `4df0e8cc`, fix `7bab65d2`; SQLite/gRPC and memory/plugin tests passed; PostgreSQL/MySQL pending CI |
 | 4 Conversion and strict overlap | Complete; reviewed | `8f8d6015`, fix `31b64bac`; full OAuth and focused store/plugin tests passed |
 | 5 Grant cascade | Complete; reviewed | `5f3bf19f`, fix `3b5afed3`; focused Management/OAuth/store tests passed |
-| 6 MRRT | Starting | No task verification result yet |
-| 6a DPoP | Pending | Not run |
+| 6 MRRT | Complete; reviewed | `261ab36d`, fix `969f3c1f`; focused and full OAuth tests passed |
+| 6a DPoP | Starting | Runtime proof verification not yet implemented |
 | 7 ORT | Pending | Not run |
 | 8 Management runtime | Pending | Not run |
 | 9 Quotas | Pending | Not run |
@@ -201,3 +201,18 @@ Review found one Important deadline race while awaiting the user lock.
 passed, along with focused Management and OAuth checks (2.553s and 4.439s,
 zero skips). Scoped re-review approved. A Minor test cleanup remains for
 final review: assert conformance counts after checking the transaction error.
+
+## Task 6 verification
+
+`261ab36d` implements MRRT target resolution, shared Management/seed policy
+validation, Action event fields, target signing and authorization, and
+family-ceiling preservation. MRRT seed mapping moved forward from Task 11
+to exercise both write paths. All 81 focused and 330 full OAuth tests passed
+with zero skips.
+
+Review found two Important cases: first-policy activation during a plain
+refresh, and target deletion before signing returning the wrong error.
+`969f3c1f` fixes both; deterministic regressions failed first and then passed.
+All 15 selected tests and 332 full OAuth tests passed (146.411s), zero skips.
+Scoped re-review approved. A Minor additional `at_hash` value assertion is
+retained for final review. DPoP runtime is next; no full-plan checks or push.
