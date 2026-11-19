@@ -1,6 +1,6 @@
 # zeroauthy — Plan 39c GitHub social connection
 
-- **Status:** Approved for implementation (maintainer, 2026-11-18). Revised 2026-11-18 with the maintainer's answers, a review against GitHub's current documentation and the PR #66 rulings (§11). [Implementation plan](../plans/2026-11-18-zeroauthy-plan-39c-github.md).
+- **Status:** Approved for implementation (maintainer, 2026-11-18); implemented on branch `plan-39-github-social` (see the [implementation record](../2026-11-18-plan-39c-implementation-record.md)). Revised 2026-11-18 with the maintainer's answers, a review against GitHub's current documentation and the PR #66 rulings (§11). [Implementation plan](../plans/2026-11-18-zeroauthy-plan-39c-github.md).
 - **Date:** 2026-11-16 (revised 2026-11-18).
 - **Roadmap:** Plan 39c, the GitHub part of Plan 39 (additional social providers); listed as a 1.0 stretch item in the [v1 release scope](2026-11-02-zeroauthy-v1-release-scope.md). The [parallel paths design](2026-11-13-zeroauthy-parallel-paths-design.md) puts GitHub in track S2 (Plan 39b) after S1 (Apple). The maintainer approved splitting it out of S2 ahead of Apple, because the release scope wants GitHub before 1.0 and Apple after (2026-11-18). Apple (Plan 39a) has since merged, so in practice GitHub is split out ahead of the rest of Plan 39b, which no longer covers `github`.
 - **Branch:** `plan-39-github-social` (maintainer, 2026-11-18). Compatibility decisions: D-0181 (from the S2 block D-0180–0189).
@@ -81,7 +81,7 @@ GitHub documentation read on 2026-11-18 (public docs, no live calls). Task 1 rec
 | GitHub App user tokens: `scope` accepts only `offline_access` and does not set permissions. `expires_in` (28800) and `refresh_token`/`refresh_token_expires_in` are present only when the token expires. | "Generating a user access token for a GitHub App" |
 | `GET /user/emails` needs `user:email` for OAuth app tokens. It is paginated: `per_page` default 30, maximum 100. Documented statuses: 200, 304, 401, 403, 404. | REST "Emails" |
 
-Still unverified, for Task 1: the error-in-HTTP-200 token response, the pinned `X-GitHub-Api-Version` value, the GitHub App permission that `/user/emails` needs, the rate-limit response shape (`403` or `429`, `x-ratelimit-remaining`, `retry-after`), and the Auth0 option semantics above.
+Task 1 resolved most of this in the [observation note](../../compat/observations/github-connection.md): the pinned `X-GitHub-Api-Version` is `2026-03-10`; primary and secondary rate limits answer `403` or `429` with `x-ratelimit-remaining: 0` or a `retry-after` header; a GitHub App user token needs the "Email addresses" read permission for `/user/emails`. Still undocumented, so recorded as unavailable and handled defensively: an error body inside an HTTP 200 token response, and the `X-OAuth-Scopes` header. The Auth0 option semantics are likewise undocumented (D-0181).
 
 No live GitHub or Auth0 observation was made. Any live Auth0 observation follows `CLEAN_ROOM.md`'s observer/implementer separation: the implementer of this plan does not observe Auth0 for the same area. Task 1 freezes a `github` section in `internal/federation/inventory.json`, adds an observation note in `docs/compat/observations/`, and records gaps as unavailable, never as passed. If a source contradicts this design, update the spec and the plan together before implementing.
 

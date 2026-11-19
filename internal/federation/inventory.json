@@ -839,7 +839,7 @@
       }
     },
     "github": {
-      "status": "planned (Plan 39c); public GitHub documentation only, no live GitHub or Auth0 observation",
+      "status": "active; local fixture verification, no live GitHub or Auth0 observation",
       "is_social": true,
       "id_format": "github|<id>",
       "default_scopes": [
@@ -1510,7 +1510,7 @@
       "local_rulings": "local:docs/superpowers/specs/2026-11-16-zeroauthy-apple-design.md"
     },
     "github": {
-      "status": "planned; public GitHub documentation read 2026-11-18",
+      "status": "active; public GitHub documentation read 2026-11-18, local fixture verification",
       "authorization_endpoint": "https://github.com/login/oauth/authorize",
       "token_endpoint": "https://github.com/login/oauth/access_token",
       "user_endpoint": "https://api.github.com/user",
@@ -1767,7 +1767,7 @@
     "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
   },
   "github_profile": {
-    "status": "planned",
+    "status": "active; local fixture verification",
     "identity": "github|<numeric id>; isSocial=true; never auto-link by email",
     "email": "verified primary address from /user/emails only; public /user email never used; login refused without one when email is on",
     "email_verified": "true whenever an email is set",
