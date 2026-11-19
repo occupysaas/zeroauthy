@@ -54,6 +54,15 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 		} else if e != nil && !errors.Is(e, store.ErrNotFound) {
 			return serverError()
 		}
+	case GrantDeviceCode:
+		// Device exchange uses its stored approval, never an exchange-supplied
+		// audience. Check that API before Poll can consume an approved code.
+		dc, e := h.Store.DeviceCodes().Get(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("device_code")))
+		if e == nil && dc.ClientID == c.ClientID && res.CheckOrigin(dc.Origin) == nil {
+			aud = dc.Audience
+		} else if e != nil && !errors.Is(e, store.ErrNotFound) {
+			return serverError()
+		}
 	case "refresh_token":
 		rt, e := h.Store.RefreshTokens().GetByTokenHash(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("refresh_token")))
 		if e == nil && rt.ClientID == c.ClientID && res.CheckOrigin(rt.Origin) == nil {

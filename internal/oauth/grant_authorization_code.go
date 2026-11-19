@@ -35,8 +35,8 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	}
 	tenantID := res.Tenant.ID
 	now := h.now()
-	// A code is redeemed only on the origin that issued it; another alias
-	// must not consume it (or trigger replay revocation).
+	// Only the owning client on the issuing origin may consume a code or
+	// trigger replay revocation of its refresh-token family.
 	pre, err := h.Store.AuthCodes().Get(ctx, tenantID, secrets.HashToken(code))
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, invalidGrant("invalid authorization code")
@@ -45,12 +45,12 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "load authorization code origin", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
-	if res.CheckOrigin(pre.Origin) != nil {
+	if res.CheckOrigin(pre.Origin) != nil || pre.ClientID != c.ClientID {
 		return nil, invalidGrant("invalid authorization code")
 	}
 	ac, err := h.Store.AuthCodes().Consume(ctx, tenantID, secrets.HashToken(code), now)
 	// Also defend token issuance and replay revocation against a stale store read.
-	if ac != nil && res.CheckOrigin(ac.Origin) != nil {
+	if ac != nil && (res.CheckOrigin(ac.Origin) != nil || ac.ClientID != c.ClientID) {
 		return nil, invalidGrant("invalid authorization code")
 	}
 	switch {
@@ -66,9 +66,6 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	case err != nil:
 		h.log().ErrorContext(ctx, "consume authorization code", "tenant", tenantID, "err", err)
 		return nil, serverError()
-	}
-	if ac.ClientID != c.ClientID {
-		return nil, invalidGrant("invalid authorization code")
 	}
 	if !now.Before(ac.ExpiresAt) {
 		return nil, invalidGrant("authorization code expired")

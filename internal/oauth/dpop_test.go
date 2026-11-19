@@ -358,3 +358,98 @@ func TestDPoPDefaultAudienceBeforeGrant(t *testing.T) {
 		t.Fatalf("required proof did not precede password grant: %d %v", rec.Code, body["error"])
 	}
 }
+
+func TestDPoPDeviceStoredAudienceBeforePoll(t *testing.T) {
+	for i, tc := range []struct{ defaultAudience, requestAudience string }{
+		{"", ""}, {"", "https://different-api.example.test"},
+		{"https://different-api.example.test", ""}, {"https://different-api.example.test", "https://different-api.example.test"},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			f := newFixture(t)
+			tid := f.tenantID(t, "acme")
+			tn, _ := f.st.Tenants().Get(t.Context(), tid)
+			tn.DefaultAudience = tc.defaultAudience
+			if err := f.st.Tenants().Update(t.Context(), tn); err != nil {
+				t.Fatal(err)
+			}
+			rs, _ := f.st.ResourceServers().GetByIdentifier(t.Context(), tid, acmeAPI)
+			rs.ProofOfPossession = &store.ProofOfPossession{Mechanism: "dpop", Required: true}
+			if err := f.st.ResourceServers().Update(t.Context(), rs); err != nil {
+				t.Fatal(err)
+			}
+			raw, hash := f.newDeviceCode(t, "dev", store.DeviceCodeApproved, f.aliceID(t), []string{"openid", "offline_access"})
+			form := deviceForm("dev", raw)
+			// An exchange-supplied audience cannot replace the stored approval.
+			if tc.requestAudience != "" {
+				form.Set("audience", tc.requestAudience)
+			}
+			for _, proof := range []string{"", "invalid"} {
+				var header map[string]string
+				if proof != "" {
+					header = map[string]string{"DPoP": proof}
+				}
+				rec, body := f.call(t, false, tokenCall{host: acmeHost, form: form, header: header})
+				if rec.Code != 400 || body["error"] != "invalid_dpop_proof" {
+					t.Fatalf("refusal %d %v", rec.Code, body["error"])
+				}
+				dc, err := f.st.DeviceCodes().Get(t.Context(), tid, hash)
+				if err != nil || dc.Status != store.DeviceCodeApproved || dc.LastPolledAt != nil {
+					t.Fatal("proof refusal changed approved device code")
+				}
+			}
+			key := dpopKey(t)
+			rec, _ := f.call(t, false, tokenCall{host: acmeHost, form: form, header: map[string]string{"DPoP": dpopJWT(t, key, "/oauth/token", "")}})
+			nonce := rec.Header().Get("DPoP-Nonce")
+			if nonce == "" {
+				t.Fatal("missing nonce challenge")
+			}
+			rec, body := f.call(t, false, tokenCall{host: acmeHost, form: form, header: map[string]string{"DPoP": dpopJWT(t, key, "/oauth/token", nonce)}})
+			if rec.Code != 200 || body["token_type"] != "DPoP" {
+				t.Fatalf("later valid exchange %d %v", rec.Code, body["error"])
+			}
+		})
+	}
+}
+
+func TestDPoPWrongClientCodeBeforeMutation(t *testing.T) {
+	for _, redeemed := range []bool{false, true} {
+		t.Run(strconv.FormatBool(redeemed), func(t *testing.T) {
+			f := newFixture(t)
+			key := dpopKey(t)
+			jwk := jose.JSONWebKey{Key: &key.PublicKey}
+			thumb, _ := jwk.Thumbprint(crypto.SHA256)
+			original := f.issueCode(t, "rt-spa", "https://app.acme.test/cb", acmeAPI, []string{"openid", "offline_access"}, pkceChallenge)
+			ac, _ := f.st.AuthCodes().Get(t.Context(), f.tenantID(t, "acme"), secrets.HashToken(original))
+			raw := secrets.RandomString(24)
+			ac.CodeHash, ac.DPoPJKT = secrets.HashToken(raw), base64.RawURLEncoding.EncodeToString(thumb)
+			if err := f.st.AuthCodes().Create(t.Context(), ac); err != nil {
+				t.Fatal(err)
+			}
+			var refresh string
+			if redeemed {
+				form := codeForm(raw, "rt-spa", "https://app.acme.test/cb", pkceVerifier)
+				rec, _ := f.call(t, false, tokenCall{host: acmeHost, form: form, header: map[string]string{"DPoP": dpopJWT(t, key, "/oauth/token", "")}})
+				rec, body := f.call(t, false, tokenCall{host: acmeHost, form: form, header: map[string]string{"DPoP": dpopJWT(t, key, "/oauth/token", rec.Header().Get("DPoP-Nonce"))}})
+				if rec.Code != 200 {
+					t.Fatalf("legitimate exchange %d %v", rec.Code, body["error"])
+				}
+				refresh = body["refresh_token"].(string)
+			}
+			before, _ := f.st.AuthCodes().Get(t.Context(), ac.TenantID, ac.CodeHash)
+			rec, body := f.call(t, false, tokenCall{host: acmeHost, form: codeForm(raw, "code-spa", "https://app.acme.test/cb", pkceVerifier)})
+			if rec.Code != 400 || body["error"] != "invalid_grant" {
+				t.Fatalf("wrong client %d %v", rec.Code, body["error"])
+			}
+			after, _ := f.st.AuthCodes().Get(t.Context(), ac.TenantID, ac.CodeHash)
+			if (before.UsedAt == nil) != (after.UsedAt == nil) || after.ReplayedAt != nil {
+				t.Fatal("wrong client changed code use/replay markers")
+			}
+			if before.UsedAt != nil && !before.UsedAt.Equal(*after.UsedAt) {
+				t.Fatal("wrong client changed use time")
+			}
+			if refresh != "" && f.storedRT(t, refresh).RevokedAt != nil {
+				t.Fatal("wrong client revoked legitimate family")
+			}
+		})
+	}
+}
