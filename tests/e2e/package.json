@@ -19,7 +19,7 @@
     "express-oauth2-jwt-bearer": "1.11.0",
     "express-openid-connect": "3.4.0",
     "jwks-rsa": "4.1.0",
-    "next": "15.5.27",
+    "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   }
