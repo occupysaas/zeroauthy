@@ -46,6 +46,11 @@ func (r sessions) Get(_ context.Context, tenantID, id string) (*store.LoginSessi
 	return cloneSession(s), nil
 }
 
+// WithTx holds the memory store's write lock for its entire callback.
+func (r sessions) GetForUpdate(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
+	return r.Get(ctx, tenantID, id)
+}
+
 func (r sessions) ListByUser(_ context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
 	r.s.readLock()
 	defer r.s.readUnlock()

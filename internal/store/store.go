@@ -365,6 +365,10 @@ type Sessions interface {
 	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*LoginSession, error)
 	// Get returns ErrNotFound if the session is absent.
 	Get(ctx context.Context, tenantID, id string) (*LoginSession, error)
+	// GetForUpdate returns the current session and, inside WithTx, locks it
+	// until the transaction ends. Concurrent Touch, Delete and metadata writes
+	// wait for that lock. Outside WithTx it is equivalent to Get.
+	GetForUpdate(ctx context.Context, tenantID, id string) (*LoginSession, error)
 	// ListByUser returns the user's sessions, newest first (CreatedAt
 	// descending, then ID descending, byte order).
 	ListByUser(ctx context.Context, tenantID, userID string) ([]*LoginSession, error)

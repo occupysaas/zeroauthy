@@ -468,6 +468,7 @@ const (
 	StoreService_JobsReadFile_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/JobsReadFile"
 	StoreService_JobsDeleteExpired_FullMethodName                             = "/zeroauthy.store.v1.StoreService/JobsDeleteExpired"
 	StoreService_RefreshIIUserGrantsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshIIUserGrantsGet"
+	StoreService_RefreshIISessionsGetForUpdate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/RefreshIISessionsGetForUpdate"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -1014,6 +1015,8 @@ type StoreServiceClient interface {
 	JobsReadFile(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (grpc.ServerStreamingClient[JobFileChunk], error)
 	JobsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
 	RefreshIIUserGrantsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantResult, error)
+	// Plan 48 session row lock; no legacy fallback.
+	RefreshIISessionsGetForUpdate(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error)
 }
 
 type storeServiceClient struct {
@@ -5535,6 +5538,16 @@ func (c *storeServiceClient) RefreshIIUserGrantsGet(ctx context.Context, in *Sco
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshIISessionsGetForUpdate(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIISessionsGetForUpdate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -6079,6 +6092,8 @@ type StoreServiceServer interface {
 	JobsReadFile(*ScopedKey, grpc.ServerStreamingServer[JobFileChunk]) error
 	JobsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
 	RefreshIIUserGrantsGet(context.Context, *ScopedKey) (*UserGrantResult, error)
+	// Plan 48 session row lock; no legacy fallback.
+	RefreshIISessionsGetForUpdate(context.Context, *ScopedKey) (*SessionResult, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -7435,6 +7450,9 @@ func (UnimplementedStoreServiceServer) JobsDeleteExpired(context.Context, *Delet
 }
 func (UnimplementedStoreServiceServer) RefreshIIUserGrantsGet(context.Context, *ScopedKey) (*UserGrantResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshIIUserGrantsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIISessionsGetForUpdate(context.Context, *ScopedKey) (*SessionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIISessionsGetForUpdate not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -15514,6 +15532,24 @@ func _StoreService_RefreshIIUserGrantsGet_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshIISessionsGetForUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIISessionsGetForUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIISessionsGetForUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIISessionsGetForUpdate(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -17304,6 +17340,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshIIUserGrantsGet",
 			Handler:    _StoreService_RefreshIIUserGrantsGet_Handler,
+		},
+		{
+			MethodName: "RefreshIISessionsGetForUpdate",
+			Handler:    _StoreService_RefreshIISessionsGetForUpdate_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

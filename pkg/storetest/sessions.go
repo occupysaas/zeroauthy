@@ -26,6 +26,84 @@ func newSession(tenantID, id, tokenHash string) *store.LoginSession {
 func testSessions(t *testing.T, newStore Factory) {
 	ctx := context.Background()
 
+	t.Run("GetForUpdate", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newSession("ten_a", "locked", "locked-hash")
+		mustNoErr(t, s.Sessions().Create(ctx, want))
+		lock := func(st store.Store, tenantID string) (*store.LoginSession, error) {
+			return st.Sessions().GetForUpdate(ctx, tenantID, want.ID)
+		}
+		got, err := lock(s, "ten_a")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		_, err = lock(s, "ten_b")
+		mustErrIs(t, err, store.ErrNotFound)
+		mustNoErr(t, s.WithTx(ctx, func(tx store.Store) error {
+			current, err := lock(tx, "ten_a")
+			if err != nil {
+				return err
+			}
+			mustEqual(t, current, want)
+			return tx.Sessions().Touch(ctx, "ten_a", want.ID, ts(time.Hour), ts(2*time.Hour), "198.51.100.8", "current browser")
+		}))
+		want.LastInteractedAt, want.UpdatedAt = ts(time.Hour), ts(time.Hour)
+		want.IdleExpiresAt, want.LastIP, want.LastUserAgent = ts(2*time.Hour), "198.51.100.8", "current browser"
+		got, err = lock(s, "ten_a")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		mustErrIs(t, s.WithTx(ctx, func(tx store.Store) error {
+			if _, err := lock(tx, "ten_a"); err != nil {
+				return err
+			}
+			if err := tx.Sessions().Delete(ctx, "ten_a", want.ID); err != nil {
+				return err
+			}
+			return store.ErrConflict
+		}), store.ErrConflict)
+		got, err = lock(s, "ten_a")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+	})
+
+	t.Run("GetForUpdateSerializesInteraction", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newSession("ten_a", "locked", "locked-hash")
+		mustNoErr(t, s.Sessions().Create(ctx, want))
+		started, finished := make(chan struct{}), make(chan error, 1)
+		var premature bool
+		mustNoErr(t, s.WithTx(ctx, func(tx store.Store) error {
+			if _, err := tx.Sessions().GetForUpdate(ctx, "ten_a", want.ID); err != nil {
+				return err
+			}
+			go func() {
+				close(started)
+				finished <- s.Sessions().Touch(ctx, "ten_a", want.ID, ts(time.Hour), ts(2*time.Hour), "198.51.100.8", "later browser")
+			}()
+			<-started
+			select {
+			case err := <-finished:
+				premature = true
+				finished <- err
+			case <-time.After(200 * time.Millisecond):
+			}
+			return nil
+		}))
+		mustNoErr(t, <-finished)
+		if premature {
+			t.Fatal("browser interaction bypassed locked session")
+		}
+		mustNoErr(t, s.WithTx(ctx, func(tx store.Store) error {
+			got, err := tx.Sessions().GetForUpdate(ctx, "ten_a", want.ID)
+			if err != nil {
+				return err
+			}
+			if !got.LastInteractedAt.Equal(ts(time.Hour)) || got.LastUserAgent != "later browser" {
+				return fmt.Errorf("session lock returned stale interaction")
+			}
+			return nil
+		}))
+	})
+
 	t.Run("CRUD", func(t *testing.T) {
 		s := open(t, newStore)
 		want := newSession("ten_a", "s1", "hash1")

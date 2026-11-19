@@ -165,3 +165,27 @@ func (s *Server) RefreshIIRefreshTokensGetByTokenHash(ctx context.Context, q *pb
 func (s *Server) RefreshIIRefreshTokensListByUser(ctx context.Context, q *pb.ScopedKey) (*pb.RefreshTokenList, error) {
 	return withRefreshII(s, ctx, q, (*Server).RefreshTokensListByUser)
 }
+
+// Session locking has no legacy fallback: a peer must implement the versioned
+// operation and the receiving transaction must still support Refresh Tokens II.
+func (a clientSessions) GetForUpdate(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
+	if err := a.c.requireRefreshII(ctx); err != nil {
+		return nil, err
+	}
+	r, err := a.c.rpc.RefreshIISessionsGetForUpdate(ctx, &pb.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	if err = a.c.refreshResult("RefreshIISessionsGetForUpdate", r, err); err != nil {
+		return nil, err
+	}
+	return sessionFromPB(r.GetValue())
+}
+
+func (s *Server) RefreshIISessionsGetForUpdate(ctx context.Context, q *pb.ScopedKey) (*pb.SessionResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).sessionsGetForUpdate)
+}
+
+func (s *Server) sessionsGetForUpdate(ctx context.Context, q *pb.ScopedKey) (*pb.SessionResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.LoginSession, error) {
+		return st.Sessions().GetForUpdate(ctx, q.TenantId, q.Key)
+	}, sessionToPB)
+	return &pb.SessionResult{Value: v, Error: e}, err
+}

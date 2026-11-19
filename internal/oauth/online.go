@@ -30,6 +30,27 @@ func onlineSession(ctx context.Context, st store.Store, res tenant.Resolved, use
 	}
 	return s, nil
 }
+
+// Lock before sampling time: a browser interaction or logout can commit while
+// the transaction waits for this row. Issuance only observes the locked state.
+func (h *Handlers) lockedOnlineSession(ctx context.Context, st store.Store, res tenant.Resolved, userID, sid string) (*store.LoginSession, time.Time, error) {
+	if sid == "" {
+		return nil, time.Time{}, errOnlineSession
+	}
+	s, err := st.Sessions().GetForUpdate(ctx, res.Tenant.ID, sid)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, time.Time{}, errOnlineSession
+	}
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	now := h.now().UTC()
+	if s.UserID != userID || res.CheckOrigin(s.Origin) != nil || !now.Before(s.ExpiresAt) || !now.Before(s.IdleExpiresAt) {
+		return nil, now, errOnlineSession
+	}
+	return s, now, nil
+}
+
 func onlineEligible(c *store.Client, rs *store.ResourceServer, s *store.LoginSession) bool {
 	return rs != nil && rs.AllowOnlineAccess && s != nil && slices.Contains(c.GrantTypes, "refresh_token") && (s.CookieMode != "non-persistent" || rs.AllowOnlineAccessWithEphemeralSessions)
 }
@@ -40,7 +61,6 @@ func onlineProof(ctx context.Context, c *store.Client) *Error {
 	return nil
 }
 func (h *Handlers) finishOnline(ctx context.Context, tx store.Store, res tenant.Resolved, c *store.Client, presented *store.RefreshToken) error {
-	now := h.now().UTC()
 	rt, e := tx.RefreshTokens().GetByTokenHash(ctx, presented.TenantID, presented.TokenHash)
 	if e != nil {
 		return e
@@ -48,7 +68,7 @@ func (h *Handlers) finishOnline(ctx context.Context, tx store.Store, res tenant.
 	if rt.ID != presented.ID || rt.RevokedAt != nil || rt.Access != "online" || rt.UserID != presented.UserID || rt.ClientID != c.ClientID || res.CheckOrigin(rt.Origin) != nil {
 		return errOnlineSession
 	}
-	s, e := onlineSession(ctx, tx, res, rt.UserID, rt.SessionID, now)
+	s, now, e := h.lockedOnlineSession(ctx, tx, res, rt.UserID, rt.SessionID)
 	if e != nil {
 		return e
 	}
@@ -62,7 +82,7 @@ func (h *Handlers) finishOnline(ctx context.Context, tx store.Store, res tenant.
 	if failure := onlineProof(ctx, c); failure != nil {
 		return failure
 	}
-	// Touch obtains the session row's write lock and fails if logout removed it.
+	// The session remains locked from validation through this interaction update.
 	ri := requestInfoFrom(ctx)
 	currentTenant, e := tx.Tenants().Get(ctx, res.Tenant.ID)
 	if e != nil {
@@ -95,7 +115,7 @@ func (h *Handlers) endOnlineSession(ctx context.Context, res tenant.Resolved, rt
 		if e != nil {
 			return e
 		}
-		if current.ID != rt.ID || current.ClientID != rt.ClientID || current.UserID != rt.UserID || current.Access != "online" || res.CheckOrigin(current.Origin) != nil {
+		if current.RevokedAt != nil || !h.now().UTC().Before(current.ExpiresAt) || current.ID != rt.ID || current.ClientID != rt.ClientID || current.UserID != rt.UserID || current.Access != "online" || res.CheckOrigin(current.Origin) != nil {
 			return nil
 		}
 		s, e := tx.Sessions().Get(ctx, rt.TenantID, current.SessionID)

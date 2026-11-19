@@ -178,7 +178,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			if e != nil {
 				return e
 			}
-			currentSess, e := onlineSession(ctx, tx, res, user.UserID, ac.SessionID, h.now().UTC())
+			currentSess, _, e := h.lockedOnlineSession(ctx, tx, res, user.UserID, ac.SessionID)
 			if e != nil {
 				return e
 			}
@@ -189,9 +189,6 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 				return failure
 			}
 			rt.ExpiresAt = currentSess.ExpiresAt
-			if e := tx.Sessions().Touch(ctx, tenantID, currentSess.ID, currentSess.LastInteractedAt, currentSess.IdleExpiresAt, currentSess.LastIP, currentSess.LastUserAgent); e != nil {
-				return e
-			}
 		}
 		return tx.RefreshTokens().Create(ctx, rt)
 	})

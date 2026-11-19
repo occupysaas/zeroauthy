@@ -569,6 +569,9 @@ service StoreService {
   rpc JobsReadFile(ScopedKey) returns (stream JobFileChunk);  // key = job id
   rpc JobsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
   rpc RefreshIIUserGrantsGet(ScopedKey) returns (UserGrantResult);
+
+  // Plan 48 session row lock; no legacy fallback.
+  rpc RefreshIISessionsGetForUpdate(ScopedKey) returns (SessionResult);
 }
 
 // ---- errors and generic results ----

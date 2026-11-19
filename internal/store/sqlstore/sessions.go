@@ -75,6 +75,18 @@ func (r sessions) Get(ctx context.Context, tenantID, id string) (*store.LoginSes
 	return s, err
 }
 
+func (r sessions) GetForUpdate(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
+	suffix := ""
+	if r.s.tx != nil {
+		suffix = r.s.d.forUpdate
+	}
+	s, err := scanSession(r.s.queryRow(ctx, `SELECT `+sessionCols+` FROM sessions WHERE tenant_id = ? AND id = ?`+suffix, tenantID, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return s, err
+}
+
 func (r sessions) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
 	rows, err := r.s.query(ctx, `SELECT `+sessionCols+` FROM sessions WHERE tenant_id = ? AND user_id = ? ORDER BY created_at DESC, id`+r.s.d.byteOrder+` DESC`, tenantID, userID)
 	if err != nil {

@@ -410,3 +410,225 @@ func TestORTSessionReadFailure(t *testing.T) {
 		t.Fatalf("session infrastructure failure status %d error %v", status, b["error"])
 	}
 }
+
+type ortSessionRaceStore struct {
+	store.Store
+	hook func(store.Sessions)
+}
+
+func (s ortSessionRaceStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(ortSessionRaceTx{Store: tx, hook: s.hook}) })
+}
+
+type ortSessionRaceTx struct {
+	store.Store
+	hook func(store.Sessions)
+}
+
+func (s ortSessionRaceTx) Sessions() store.Sessions {
+	return ortSessionRaceSessions{Sessions: s.Store.Sessions(), hook: s.hook}
+}
+
+type ortSessionRaceSessions struct {
+	store.Sessions
+	hook func(store.Sessions)
+}
+
+func (s ortSessionRaceSessions) Get(ctx context.Context, tid, id string) (*store.LoginSession, error) {
+	v, e := s.Sessions.Get(ctx, tid, id)
+	if e == nil {
+		s.hook(s.Sessions)
+	}
+	return v, e
+}
+func (s ortSessionRaceSessions) GetForUpdate(ctx context.Context, tid, id string) (*store.LoginSession, error) {
+	s.hook(s.Sessions)
+	return s.Sessions.GetForUpdate(ctx, tid, id)
+}
+
+func TestORTSessionInteractionAtLock(t *testing.T) {
+	for _, operation := range []string{"issuance", "exchange"} {
+		t.Run(operation, func(t *testing.T) {
+			f, s := onlineFixture(t, true, "persistent", false)
+			raw := ""
+			if operation == "exchange" {
+				_, b := issueOnline(t, f)
+				raw, _ = b["refresh_token"].(string)
+				if raw == "" {
+					t.Fatal("missing online token")
+				}
+			}
+			currentTime := fixedNow()
+			f.h.Now = func() time.Time { return currentTime }
+			newer := fixedNow().Add(10 * time.Minute)
+			newIdle := newer.Add(2 * time.Hour)
+			called := false
+			f.h.Store = ortSessionRaceStore{Store: f.st, hook: func(repo store.Sessions) {
+				if called {
+					return
+				}
+				called = true
+				if e := repo.Touch(t.Context(), s.TenantID, s.ID, newer, newIdle, "198.51.100.20", "newer browser"); e != nil {
+					t.Fatal(e)
+				}
+				if _, e := repo.UpdateMetadata(t.Context(), s.TenantID, s.ID, map[string]string{"latest": "interaction"}); e != nil {
+					t.Fatal(e)
+				}
+				currentTime = newer.Add(time.Minute)
+			}}
+			var status int
+			var body map[string]any
+			if operation == "issuance" {
+				status, body = issueOnline(t, f)
+			} else {
+				status, body = refreshOnline(t, f, raw)
+			}
+			if status != 200 {
+				t.Fatalf("status %d error %v", status, body["error"])
+			}
+			if !called {
+				t.Fatal("session lock hook was not exercised")
+			}
+			got, e := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if got.Metadata["latest"] != "interaction" || !got.ExpiresAt.Equal(s.ExpiresAt) {
+				t.Fatal("concurrent metadata/absolute deadline lost")
+			}
+			if operation == "issuance" {
+				if !got.LastInteractedAt.Equal(newer) || !got.IdleExpiresAt.Equal(newIdle) || got.LastIP != "198.51.100.20" || got.LastUserAgent != "newer browser" {
+					t.Fatal("issuance rewound a later browser interaction")
+				}
+			} else if !got.LastInteractedAt.Equal(currentTime) || !got.IdleExpiresAt.Equal(s.ExpiresAt) {
+				t.Fatal("online exchange did not sample time after acquiring session lock")
+			}
+		})
+	}
+}
+func TestORTSessionExpiresWhileLocking(t *testing.T) {
+	for _, operation := range []string{"issuance", "exchange"} {
+		t.Run(operation, func(t *testing.T) {
+			f, s := onlineFixture(t, true, "persistent", false)
+			raw := ""
+			if operation == "exchange" {
+				_, b := issueOnline(t, f)
+				raw, _ = b["refresh_token"].(string)
+			}
+			now := fixedNow()
+			f.h.Now = func() time.Time { return now }
+			called := false
+			f.h.Store = ortSessionRaceStore{Store: f.st, hook: func(store.Sessions) {
+				if !called {
+					called = true
+					now = s.IdleExpiresAt
+				}
+			}}
+			var status int
+			var b map[string]any
+			if operation == "issuance" {
+				status, b = issueOnline(t, f)
+			} else {
+				status, b = refreshOnline(t, f, raw)
+			}
+			if status != 400 || b["error"] != "invalid_grant" {
+				t.Fatalf("expired session accepted %d error %v", status, b["error"])
+			}
+		})
+	}
+}
+func TestORTRevokedPresentationCannotEndSession(t *testing.T) {
+	f, s := onlineFixture(t, true, "persistent", false)
+	_, b := issueOnline(t, f)
+	oldRaw, _ := b["refresh_token"].(string)
+	old := f.storedRT(t, oldRaw)
+	if e := f.st.RefreshTokens().RevokeFamily(t.Context(), s.TenantID, old.FamilyID, fixedNow()); e != nil {
+		t.Fatal(e)
+	}
+	_, b = issueOnline(t, f)
+	fresh, _ := b["refresh_token"].(string)
+	if fresh == "" {
+		t.Fatal("fresh consent grant not issued")
+	}
+	status, b := f.revoke(t, url.Values{"client_id": {"rt-web"}, "client_secret": {"rt-web-secret"}, "token": {oldRaw}})
+	if status != 200 {
+		t.Fatalf("stale revoke %d error %v", status, b["error"])
+	}
+	if _, e := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID); e != nil {
+		t.Fatal("revoked ORT ended the live session")
+	}
+	status, b = refreshOnline(t, f, fresh)
+	if status != 200 {
+		t.Fatalf("revoked ORT invalidated fresh family %d error %v", status, b["error"])
+	}
+	status, _ = f.revoke(t, url.Values{"client_id": {"rt-web"}, "client_secret": {"rt-web-secret"}, "token": {fresh}})
+	if status != 200 {
+		t.Fatal("live revoke refused")
+	}
+	if _, e := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID); e == nil {
+		t.Fatal("live ORT failed to end session")
+	}
+}
+
+func TestORTExpiredPresentationCannotEndSession(t *testing.T) {
+	f, s := onlineFixture(t, true, "persistent", false)
+	_, b := issueOnline(t, f)
+	fresh, _ := b["refresh_token"].(string)
+	old := *f.storedRT(t, fresh)
+	old.ID, old.FamilyID = "expired-ort", "expired-family"
+	oldRaw := "throwaway-expired-ort"
+	old.TokenHash = secrets.HashToken(oldRaw)
+	old.ExpiresAt = fixedNow().Add(-time.Second)
+	if e := f.st.RefreshTokens().Create(t.Context(), &old); e != nil {
+		t.Fatal(e)
+	}
+	status, b := f.revoke(t, url.Values{"client_id": {"rt-web"}, "client_secret": {"rt-web-secret"}, "token": {oldRaw}})
+	if status != 200 {
+		t.Fatalf("expired revoke %d error %v", status, b["error"])
+	}
+	if _, e := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID); e != nil {
+		t.Fatal("expired ORT ended live session")
+	}
+	if status, b := refreshOnline(t, f, fresh); status != 200 {
+		t.Fatalf("expired ORT invalidated fresh grant %d error %v", status, b["error"])
+	}
+}
+
+func TestORTSessionDeletedWhileLocking(t *testing.T) {
+	for _, op := range []string{"issuance", "exchange"} {
+		t.Run(op, func(t *testing.T) {
+			f, s := onlineFixture(t, true, "persistent", false)
+			raw := ""
+			if op == "exchange" {
+				_, b := issueOnline(t, f)
+				raw, _ = b["refresh_token"].(string)
+			}
+			called := false
+			f.h.Store = ortSessionRaceStore{Store: f.st, hook: func(repo store.Sessions) {
+				if called {
+					return
+				}
+				called = true
+				if err := repo.Delete(t.Context(), s.TenantID, s.ID); err != nil {
+					t.Fatal(err)
+				}
+			}}
+			var status int
+			var b map[string]any
+			if op == "issuance" {
+				status, b = issueOnline(t, f)
+			} else {
+				status, b = refreshOnline(t, f, raw)
+			}
+			if status != 400 || b["error"] != "invalid_grant" {
+				t.Fatalf("deleted session accepted %d error %v", status, b["error"])
+			}
+			// The injected deletion belongs to the rejected transaction and is
+			// rolled back with it; the rejected refresh must leave no touch.
+			got, err := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID)
+			if err != nil || !got.LastInteractedAt.Equal(s.LastInteractedAt) || !got.IdleExpiresAt.Equal(s.IdleExpiresAt) {
+				t.Fatalf("rejected exchange changed the session: %v", err)
+			}
+		})
+	}
+}

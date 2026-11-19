@@ -41,6 +41,9 @@ func TestRefreshIIOldPlugin(t *testing.T) {
 	c := serveWith(t, srv)
 	defer c.Close()
 	now := time.Now()
+	if _, err := c.Sessions().GetForUpdate(ctx, "t", "session"); !errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+		t.Fatalf("legacy session lock=%v", err)
+	}
 	if err := c.RefreshTokens().Rotate(ctx, "t", "first", &store.RefreshToken{}, now, time.Second); err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +185,7 @@ func (p *retainedLegacyPlugin) Commit(ctx context.Context, q *pb.EndTxRequest) (
 func TestRefreshIIRetainedDataAfterReplacement(t *testing.T) {
 	ctx := t.Context()
 	now := time.Now().UTC()
-	for _, operation := range []string{"consume", "token", "client", "api", "auth-transaction", "transaction"} {
+	for _, operation := range []string{"consume", "token", "client", "api", "auth-transaction", "session-lock", "transaction"} {
 		t.Run(operation, func(t *testing.T) {
 			backing := memory.New()
 			srv := NewServer(backing)
@@ -208,6 +211,8 @@ func TestRefreshIIRetainedDataAfterReplacement(t *testing.T) {
 			c.rpc = serveWith(t, old).rpc
 			var err error
 			switch operation {
+			case "session-lock":
+				_, err = c.Sessions().GetForUpdate(ctx, "t", "session")
 			case "consume":
 				_, err = c.AuthCodes().Consume(ctx, "t", "hash", now)
 			case "token":
@@ -261,7 +266,7 @@ func (s changingRefreshBackend) WithTx(ctx context.Context, fn func(store.Store)
 }
 func TestRefreshIIReceivingStore(t *testing.T) {
 	ctx := t.Context()
-	for _, op := range []string{"code", "rotate", "check-rotation", "tx-check-rotation", "tx-code", "tx-only", "transient"} {
+	for _, op := range []string{"code", "rotate", "check-rotation", "tx-check-rotation", "tx-code", "tx-only", "session-lock", "tx-session-lock", "transient"} {
 		t.Run(op, func(t *testing.T) {
 			backing := memory.New()
 			var declined atomic.Bool
@@ -275,7 +280,7 @@ func TestRefreshIIReceivingStore(t *testing.T) {
 				return store.ErrRefreshTokensIIUnavailable
 			}
 			srvBase := changingRefreshBackend{backing, refusal, refusal}
-			if op == "tx-only" || op == "tx-check-rotation" {
+			if op == "tx-only" || op == "tx-check-rotation" || op == "tx-session-lock" {
 				srvBase.probe = func() error { return nil }
 			}
 			if op == "tx-code" {
@@ -296,6 +301,13 @@ func TestRefreshIIReceivingStore(t *testing.T) {
 			}
 			var err error
 			switch op {
+			case "session-lock":
+				_, err = c.Sessions().GetForUpdate(ctx, "t", "session")
+			case "tx-session-lock":
+				err = c.WithTx(ctx, func(tx store.Store) error {
+					_, e := tx.Sessions().GetForUpdate(ctx, "t", "session")
+					return e
+				})
 			case "check-rotation":
 				err = c.RefreshTokens().CheckRotation(ctx, "t", "old", time.Now(), time.Second)
 			case "tx-check-rotation":
