@@ -22,7 +22,7 @@ session Management API, and client-credentials token quotas.
 - **`internal/mgmt`** completes `/refresh-tokens`, `/sessions/{id}` PATCH and
   revoke, grant cascade.
 
-**Tech Stack:** Go 1.26.10 (no new module), Vue/TypeScript console,
+**Tech Stack:** Go 1.26.11 (no new module), Vue/TypeScript console,
 SQLite/PostgreSQL/MySQL, protobuf/gRPC, Playwright 1.64.0, pinned
 `@auth0/auth0-auth-js` 1.16.1, node-auth0 7.4.0, auth0-cli 1.37.0,
 auth0-deploy-cli 9.1.0 (`@auth0/auth0-spa-js` only if already pinned in
@@ -31,9 +31,13 @@ approval).
 
 **Spec:** [Plan 48 design](../specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md). § refers to it.
 
+**2026-11-18 amendment:** Maintainer authorized downstream DPoP for online
+refresh tokens. Spec §5.1 is binding. Task 6a precedes Task 7; Tasks 2/3
+include its persistence contracts. This remains one active plan.
+
 ## Global Constraints
 
-- **Toolchain/dependencies.** Go `1.26.10`; keep every pin; no new module.
+- **Toolchain/dependencies.** Go `1.26.11`; keep every pin; no new module.
 - **Clean room.** Own words everywhere (`CLEAN_ROOM.md`).
 - **Parity.** LR48-1…12 and R1–R8 go in **D-0070**; R points also in
   `docs/superpowers/plan-1-followups.md`. Amend D-0012 (strict leeway) and
@@ -51,6 +55,7 @@ approval).
 - **Plugins.** `refresh_tokens_ii.v1` negotiated and latched; behaviour
   without it per LR48-12.
 - **Tests.** Injected clocks; concurrency tests assert exact winner counts.
+- **DPoP.** Spec §5.1 limits, nonce policy and authenticated binding are mandatory; never log proof/nonce/token material. DPoP capability gates fail closed.
 - **Verification** per `AGENTS.md`: focused tests per task; final fast tier
   `TMPDIR=/dev/shm/za48 GOTMPDIR=/dev/shm/za48 go test -p 4 ./...` plus
   `make e2e-refresh-tokens`; push `plan-48-refresh-tokens-ii`; report CI.
@@ -81,12 +86,17 @@ approval).
 
 ```go
 // internal/store/types.go — RefreshToken gains
+DPoPJKT         string
 ParentID        string
 Access          string            // "offline" (default) | "online"
 Metadata        map[string]string
 Device          *RefreshTokenDevice
 LastExchangedAt *time.Time
 type RefreshTokenDevice struct{ InitialIP, InitialASN, InitialUserAgent, LastIP, LastASN, LastUserAgent string }
+// AuthTransaction and AuthCode gain DPoPJKT string.
+// Client gains RequireProofOfPossession bool.
+// ResourceServer gains ProofOfPossession *ProofOfPossession.
+// type ProofOfPossession struct { Mechanism string; Required bool; RequiredFor string }
 // LoginSession gains Metadata map[string]string
 // RefreshTokenPolicy gains Policies []MRRTPolicy (nil = null)
 type MRRTPolicy struct{ Audience string; Scope []string }
@@ -114,7 +124,11 @@ type TokenQuotas interface {
     Peek(ctx context.Context, tid string, subjects []QuotaSubject, now time.Time) ([]QuotaState, error)
     PurgeBefore(ctx context.Context, before time.Time, limit int) (int, error)
 }
-// Store gains TokenQuotas() TokenQuotas
+// Store gains TokenQuotas() TokenQuotas and DPoP() DPoP
+// type DPoP interface {
+//   UseProof(ctx context.Context, tid, origin, jkt, jti string, now, expiresAt time.Time) error
+//   PurgeBefore(ctx context.Context, before time.Time, limit int) (int, error)
+// }
 
 // internal/oauth
 func (h *Handlers) mrrtTarget(ctx context.Context, tid string, c *store.Client, rt *store.RefreshToken, audience string, requested []string) (rs *store.ResourceServer, scopes []string, err *Error)
@@ -131,7 +145,7 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
   `PATCH /sessions/{id}`, `POST /sessions/{id}/revoke`; schema additions
   (`refresh_token.policies`, `token_quota`, `default_token_quota`,
   resource-server online flags, metadata, device); `x-source` per spec §2.
-- Modify: `api/authentication.yaml`: `/oauth/token` refresh grant
+- Modify: `api/authentication.yaml`: online_access scope (conflict rejected, DPoP required for public ORT), resource-server online flags in Management spec, and `/oauth/token` refresh grant
   `audience` description (MRRT); 429 quota response and headers on the
   client-credentials grant; `online_access` scope note.
 - Modify: `internal/tenantrules/inventory.go`: `flags.revoke_refresh_token_grant`
@@ -157,7 +171,7 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 - Modify: `internal/store/types.go`, `internal/store/store.go`,
   `internal/store/memory/refresh_tokens.go` (or the file holding them),
   `internal/store/memory/sessions.go`.
-- Create: `internal/store/token_quotas.go`, `internal/store/memory/token_quotas.go`,
+- Create: `internal/store/dpop.go`, `internal/store/memory/dpop.go` (shared replay contract from spec §5.1), `internal/store/token_quotas.go`, `internal/store/memory/token_quotas.go`,
   `pkg/storetest/refresh_tokens_ii.go`, `pkg/storetest/token_quotas.go`.
 
 - [ ] **Step 1: Write the storetest cases**
@@ -169,6 +183,9 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
   - `ListByUserPage`: ID ascending; `client_id` filter; checkpoint `next`.
   - `UpdateMetadata` replace/clear; `RecordExchange` sets last device and time, keeps initial.
   - `SessionMetadata` round trip.
+  - DPoP fields/config round trips and deep-copy isolation; auth transaction/code binding round trip.
+  - `DPoPReplay`: same tenant/origin/key/jti accepted once, second ErrConflict; independent tenants/origins/keys do not conflict; expired entry can be claimed again; purge limit honored; transaction rollback restores proof state; 8 simultaneous uses exactly one winner.
+  - Add shared DPoP storetest suite and register it; temporary unavailable adapters in SQL/gRPC may preserve compilation until Task 3, but are never passing implementation evidence.
   - `QuotaConsume`: hour/day buckets; enforced bucket at limit → `Exceeded`, nothing incremented in any subject; non-enforced over limit → incremented, `Exceeded=false`, remaining 0; window rollover with injected clock.
   - `QuotaConcurrent`: 50 goroutines at limit 10 → exactly 10 successes.
 - [ ] **Step 2:** Run `go test ./internal/store/memory/` → FAIL; implement memory; → PASS.
@@ -186,7 +203,8 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
   tenant settings codec; create `token_quotas.go`.
 - Modify: `proto/store/v1/store.proto` (fields, RPCs, capability
   `refresh_tokens_ii.v1`), `internal/store/grpcstore/*`; `make generate`.
-- Modify: `internal/app/sweeper.go` (quota counter purge).
+- Modify: `internal/app/sweeper.go` (quota counter and DPoP replay purge).
+- Include spec §5.1 DPoP replay table, auth transaction/code and refresh-token DPoPJKT fields, client PoP flag and API PoP configuration in the same migration and all SQL/gRPC codecs. Use `refresh_tokens_ii.v1` capability for replay support. Test DPoP storetest in SQLite and gRPC, and old-plugin fail-closed behavior.
 - Test: sqlstore/grpcstore storetest runs; `migrate_test.go` oldest-schema upgrade.
 
 - [ ] **Step 1:** Migration + drivers. Strict-leeway Rotate and Convert* use row locks (`FOR UPDATE` / `BEGIN IMMEDIATE`) on the presented token row; quota Consume uses `INSERT ... ON CONFLICT DO UPDATE` (PostgreSQL/SQLite) / `ON DUPLICATE KEY UPDATE` (MySQL) inside one transaction with a pre-check read under lock.
@@ -246,6 +264,30 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 - [ ] **Step 2–4:** FAIL → implement → PASS.
 - [ ] **Step 5:** Commit `feat(oauth): multi-resource refresh tokens`.
 
+### Task 6a: Downstream DPoP
+
+**Files:**
+- Create: `internal/dpop/proof.go`, `nonce.go`, `context.go`, and focused tests.
+- Modify: `internal/oauth/token.go`, `minter.go`, `grant_authorization_code.go`, `grant_refresh_token.go`, `refresh.go`, all shared refresh issuance helpers, `internal/authz` authorize/PAR/JAR parsing and transaction/code creation, `internal/oidc/handlers.go`, `userinfo.go`, `internal/httpx` CORS, `internal/logscrub`.
+- Modify: `internal/clientrules`, `internal/apirules`, `internal/mgmt` client/API codecs, seed rules, `internal/tenantrules` strict binding default, `api/*.yaml`, generated code via `make generate`.
+
+**Interfaces:** Consume Task 2/3 `Store.DPoP` and DPoPJKT fields. Produce
+`dpop.Service{Store store.Store, Wrapper keys.Wrapper, Now func() time.Time}`
+with `Verify(ctx context.Context, r *http.Request, res tenant.Resolved,
+requireNonce bool, accessToken, expectedJKT string) (*dpop.Proof, *dpop.Error)`;
+`Proof{JKT string}`; `Error{Code string, Nonce string, Internal bool}`.
+Shared context helpers carry authenticated proof to minter and issuance;
+no raw proof enters request-info/Action/log context. Bind access claims via
+an explicit `AccessTokenParams.DPoPJKT`; setting token_type follows actual
+access-token binding, independently of refresh binding.
+
+- [ ] **Step 1:** RED tests for spec §5.1 validation: ES256/RS256 success; wrong typ, none/HS256, private/remote JWK, weak/oversized RSA, wrong curve, malformed/duplicate JSON members, critical headers, oversized/repeated/comma headers, missing/wrong-type/expired/future claims, endpoint method/origin mismatch, query/default-port URI equivalence. Run `go test ./internal/dpop/` and observe expected failures.
+- [ ] **Step 2:** Implement bounded verifier using existing jose and standard library. `go test ./internal/dpop/` → PASS.
+- [ ] **Step 3:** RED nonce/replay tests with injected clock, two service instances sharing store/wrapper, exactly one replay winner, wrong tenant/origin/key and expired nonce, infrastructure failure closes access. Implement challenge handling and durable replay via Task 2/3 repo; focused suite → PASS.
+- [ ] **Step 4:** RED configuration/policy tests: published client/API matrix including public-only required; strict binding per tenant; `dpop_jkt` on authorize/PAR/JAR and mismatch at redemption; valid proof binds refresh independently of API policy; no silent upgrade; all rotation/conversion/MRRT preserve key; missing/wrong proof changes no family/code/session/quota state; bound tokens cannot become Bearer or lose cnf via Actions. Implement at authenticated token boundary before grant side effects. Run `go test ./internal/oauth/ ./internal/authz/ ./internal/clientrules/ ./internal/apirules/` → PASS.
+- [ ] **Step 5:** RED UserInfo tests: DPoP scheme with ath/key/nonce/method/URI/replay validation succeeds; Bearer/form downgrade, stolen token with another key, token substitution, other tenant/host and replay fail; unbound Bearer still works. Management/operator paths reject bound tokens without a verifier and do not mint them. Implement, then `go test ./internal/oidc/ ./internal/mgmt/ ./internal/server/ -run 'DPoP|Dpop|Userinfo|UserInfo|ProofOfPossession'` → PASS.
+- [ ] **Step 6:** RED discovery, CORS allow/expose headers and log scrub tests; implement, regenerate; `go test ./internal/dpop/ ./internal/oauth/ ./internal/authz/ ./internal/oidc/ ./internal/httpx/ ./internal/logscrub/ ./api/` → PASS. Commit signed `feat(oauth): downstream DPoP proofs and token binding`.
+
 ### Task 7: Online refresh tokens
 
 **Files:**
@@ -259,7 +301,9 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 
 - [ ] **Step 1: Write the failing tests**
   - `TestORTIssue`: `online_access` + API flag → refresh token with `access=online`, session ID; flag off → no refresh token, `online_access` dropped; ephemeral session without the ephemeral flag → none (R3).
-  - `TestORTWithOffline`: both scopes → offline token (LR48-7).
+  - `TestORTWithOffline`: both scopes → invalid_request at authorization entry, no transaction or token (LR48-7).
+  - `TestORTRequiresDPoP`: public issuance and exchange require valid nonce/proof and same key; confidential ORT authenticates normally and preserves supplied binding; invalid proof cannot consume code or extend session.
+  - `TestORTHiddenFromManagement`: no list/get/patch/delete refresh-token route reveals or individually mutates ORTs; session revoke ends them.
   - `TestORTReuse`: exchange returns no new refresh token; same token works again; session idle reset, absolute unchanged.
   - `TestORTSessionLifecycle` (Review Focus 4): logout, `DELETE /sessions/{id}`, session expiry and `POST /sessions/{id}/revoke` each invalidate it.
   - `TestORTRevokeEndsSession`: `/oauth/revoke` on an ORT → session gone, SSO to another client prompts login.
@@ -315,13 +359,13 @@ MRRT editor, quota), `apis/` (online access switches), `settings/`
 (revoke-deletes-grant flag, default quota), `organizations/` (quota),
 `users/` (sessions revoke, metadata, device); Vitest tests; `console/dist`.
 
-- [ ] **Step 1:** Tests first: MRRT editor hidden for third-party apps; audience picker excludes the Management API; quota fields send `null` on clear; session revoke confirmation names that refresh tokens are revoked.
+- [ ] **Step 1:** DPoP client/API configuration controls and public-client help text follow spec §5.1. Tests first: MRRT editor hidden for third-party apps; audience picker excludes the Management API; quota fields send `null` on clear; session revoke confirmation names that refresh tokens are revoked.
 - [ ] **Step 2:** Implement; `npm --prefix console test && npm --prefix console run build`.
 - [ ] **Step 3:** Commit `feat(console): refresh tokens II, online access and token quotas`.
 
 ### Task 11: Seed and Deploy CLI
 
-- [ ] **Step 1:** Seed parsing for policies, quotas, online flags through the shared rules packages; tests.
+- [ ] **Step 1:** Seed parsing for policies, quotas, online flags and DPoP client/API configuration through the shared rules packages; tests.
 - [ ] **Step 2:** Deploy CLI four-cell round trip with policies, quotas and online flags where the 9.1.0 handlers carry them; record unsupported fields.
 - [ ] **Step 3:** Commit `feat(seed): refresh token policies, quotas and online access`.
 
@@ -339,8 +383,8 @@ MRRT editor, quota), `apis/` (online access switches), `settings/`
   roadmap status.
 - Create: `docs/superpowers/2026-11-16-plan-48-implementation-record.md`.
 
-- [ ] **Step 1:** E2E per spec §8.4.
+- [ ] **Step 1:** E2E per spec §8.4, with real generated proof keys and nonce retry: public ORT issuance/refresh/UserInfo and logout; wrong-key, proof replay, missing proof, Bearer downgrade, combined scopes and Management invisibility. Include external API cnf verification fixture; no new npm package. Cover DPoP client/API seed and Deploy round trip where tools support fields.
 - [ ] **Step 2:** Docs.
 - [ ] **Step 3:** Fast tier + `make e2e-refresh-tokens`; record exit codes.
-- [ ] **Step 4:** Rename the migration to main's latest + 1; push `plan-48-refresh-tokens-ii`; record CI URL, failed jobs and failures.
-- [ ] **Step 5:** Whole-branch review, fix wave, green CI, maintainer approval to merge.
+- [ ] **Step 4:** Complete whole-branch review and local checks; rename the migration to main's latest + 1; push `plan-48-refresh-tokens-ii`; record CI URL, failed jobs and failures.
+- [ ] **Step 5:** Obtain exact CI run URL once, hand monitoring to maintainer and wait for continue. Green CI and maintainer approval are required to merge.

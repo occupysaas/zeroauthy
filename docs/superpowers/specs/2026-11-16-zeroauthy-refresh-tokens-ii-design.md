@@ -1,6 +1,6 @@
 # Plan 48 — Refresh tokens II (rotation conversion, strict leeway, grant cascade, MRRT, online refresh tokens, token quotas)
 
-**Date:** 2026-11-16. **Status:** design. The online refresh token scope (§5) is pending maintainer review against the current Auth0 documentation.
+**Date:** 2026-11-16; amended 2026-11-18. **Status:** implementation started. Maintainer authorized DPoP support for online refresh tokens on 2026-11-18.
 
 **Roadmap entry:** [management roadmap, Plan 48](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("short", proposed by the pre-1.0 review); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
@@ -47,8 +47,8 @@ OpenAPI (§2), an RFC, or a numbered local ruling (**LR48-n**, §9) recorded in
 answer now and an observation entry (**R1–Rn**, §9).
 
 **Size:** "short" in the roadmap; with MRRT, ORT and quotas it is medium.
-All of it is inside `internal/oauth`, the refresh-token/session store and
-`internal/mgmt`; no new subsystem.
+This also adds a shared `internal/dpop` verifier used by OAuth and UserInfo.
+The DPoP expansion is part of this active plan, not a separate roadmap item.
 
 ### In scope
 
@@ -72,7 +72,7 @@ All of it is inside `internal/oauth`, the refresh-token/session store and
 
 ### Not in scope
 
-- DPoP-bound and mTLS-bound refresh tokens (roadmap §5).
+- mTLS-bound tokens and upstream federation DPoP. Downstream DPoP is included by the 2026-11-18 maintainer ruling (§5.1).
 - `/api/v2/device-credentials` beyond what exists today: moves to M1
   (Plan 38d) with the other legacy resources (LR48-1).
 - `POST /api/v2/users/{id}/revoke-access` (the pre-1.0 review's OAS gap
@@ -244,8 +244,11 @@ At `grant_type=refresh_token`:
   the login session is persistent (or the API has
   `allow_online_access_with_ephemeral_sessions: true`, R3). The token is
   stored with `Access = "online"` and the login session ID. If the request
-  contains both `offline_access` and `online_access`, the offline token wins
-  and `online_access` is dropped (LR48-7, R4).
+  contains both `offline_access` and `online_access`, reject it with
+  `invalid_request` at authorization entry, before creating a transaction
+  (LR48-7). Public clients must present a valid DPoP proof at issuance and
+  every exchange. Confidential clients authenticate normally; a supplied
+  DPoP proof binds their refresh token too.
 - **No rotation:** the same ORT is reused on every exchange (documented),
   whatever the client's rotation setting.
 - **Lifetime:** valid while the session is live; no own `ExpiresAt` or
@@ -264,8 +267,97 @@ At `grant_type=refresh_token`:
   LR48-8).
 - **Actions:** `event.refresh_token.access` is `online` or `offline`;
   `event.session` is set on ORT exchanges.
-- Management API: ORTs appear in `/users/{id}/refresh-tokens`,
-  `/refresh-tokens` and `/refresh-tokens/{id}` with their `session_id`.
+- Management API: ORTs are not listed, returned, patched or individually
+  revoked through refresh-token Management routes. They are managed through
+  their session. Internal storage may retain hashed ORT records to preserve
+  existing transaction and revocation guarantees; this does not expose them
+  as independent Management resources.
+
+### 5.1 DPoP extension authorized 2026-11-18
+
+Public evidence checked 2026-11-18:
+
+- [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449.html), especially §§4–10.
+- [Auth0 DPoP](https://auth0.com/docs/secure/sender-constraining/demonstrating-proof-of-possession-dpop).
+- [Sender-constraining configuration](https://auth0.com/docs/secure/sender-constraining/configure-sender-constraining).
+- [Current ORT behavior](https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens).
+
+The shared verifier authenticates the proof before a grant consumes a code,
+rotates a token, changes a session or consumes quota. It uses existing
+`go-jose/v4` and the standard library, with no dependency additions.
+
+Local validation policy (LR48-13): accept ES256 and RS256 only; RSA modulus
+2048–4096 bits and EC P-256 only. Proofs are compact JWS, at most 16 KiB,
+with exactly one protected signature, `typ=dpop+jwt`, an embedded public
+`jwk`, and no private/symmetric material or remote key references. Reject
+unsupported critical headers and duplicate JSON members in protected header,
+JWK and claims. Bound parsing before crypto. Require string `jti` 1–200,
+`htm`, `htu`, and integral numeric `iat`; timestamps are accepted from
+now−60s through now+5s. Proof/header/key errors are `400 invalid_dpop_proof`
+at the token endpoint, with generic original wording and no proof logging.
+
+Match the effective public endpoint from tenant resolution and trusted
+proxy routing, not arbitrary forwarded headers. Compare URI without query
+or fragment, with RFC 3986 case/default-port/unreserved-path normalization;
+never treat another origin as equivalent. Reject URL credentials and fragments in
+proof URI. Multiple DPoP header values or a comma-joined header are invalid.
+JWK thumbprints use RFC 7638 SHA-256. Resource proofs additionally validate
+`ath` against the exact access-token bytes and its authenticated `cnf.jkt`.
+
+Replay prevention is store-backed and atomic: `Store.DPoP().UseProof(ctx,
+tid, origin, jkt, jti, now, expiresAt)` returns `ErrConflict` on reuse.
+Store only a digest of jti in a dedicated table keyed by tenant, origin,
+thumbprint and digest. Retain through `iat+65s` (the last admissible replay,
+including allowed future skew); expired entries may be replaced atomically.
+`PurgeBefore(ctx, before, limit)` bounds sweep work. The memory store rolls
+this state back with transactions; SQL and gRPC share the same contract.
+The capability is included in `refresh_tokens_ii.v1`; absent capability
+refuses DPoP instead of bypassing replay prevention.
+
+For public clients sending DPoP, issue a `400 use_dpop_nonce` challenge
+before grant mutation when nonce is absent/expired. A nonce contains issue
+time and 24 random bytes, sealed by the existing `keys.Wrapper` with a
+versioned purpose, tenant, issuer and thumbprint as AAD, encoded base64url.
+It is reusable for 60s, bounded to 1 KiB, and usable across replicas sharing
+the configured wrapper. UserInfo accepts this same nonce domain; nonce
+refresh is independent of jti replay. Challenges and successful proof
+responses expose `DPoP-Nonce` through CORS; allow request `DPoP`. Wrapper
+or replay-store errors fail closed with `server_error`, never Bearer fallback.
+
+Configuration follows the published sender-constraining table:
+`client.require_proof_of_possession` (default false) and API
+`proof_of_possession={mechanism: none|dpop, required: boolean,
+required_for: all_clients|public_clients}` (default all_clients). `null`
+clears API configuration; mTLS stays refused. `required=true` with
+mechanism none is invalid. UserInfo-only tokens bind when a valid proof is
+supplied. API access tokens bind only when the API enables DPoP; a client
+requiring PoP cannot receive an unbound API token. Refresh tokens bind to
+any valid supplied proof independently of API access-token policy. For
+legacy tenants with explicit `dpop_strict_refresh_token_binding=false`,
+retain the documented per-audience binding; online public tokens always
+bind. New tenants default to strict binding. An existing bound token never
+loses its key when settings change. An unbound token is never silently
+upgraded by presenting a proof on refresh (RFC 9449 §5).
+
+Bound access tokens carry authenticated `cnf:{jkt:...}` and responses use
+`token_type=DPoP`; unbound access tokens use Bearer even when the refresh
+token is bound. Existing Action claim restrictions protect `cnf`. Bind the
+refresh token's new `DPoPJKT` field at issuance and preserve it across
+rotation, conversion and MRRT. Wrong/missing proof cannot revoke, convert
+or otherwise mutate a legitimate family. Support `dpop_jkt` on authorize,
+PAR and signed requests, persist through auth transactions/codes and
+require the matching proof at code redemption (RFC 9449 §10). Do not
+reinterpret upstream enterprise DPoP configuration.
+
+UserInfo accepts DPoP authorization with a proof and verifies key, nonce,
+method, public URI, access-token hash and replay. Bound tokens presented
+as Bearer or in a form parameter are refused. Other server resource
+boundaries (Management and console operator authentication) must refuse
+bound tokens unless they validate DPoP; this plan keeps those Bearer-only
+and does not mint unusable bound Management/operator tokens. Discovery
+advertises `dpop_signing_alg_values_supported=[ES256,RS256]` only when its
+storage capability is available. Update log scrubbing for DPoP/proof/nonce
+fields, docs for external API `cnf.jkt` validation, and the threat model.
 
 ## 6. Management API completion
 
@@ -323,9 +415,12 @@ whether the Actions `api` can set them — local: read-only).
 
 One migration (numbered at merge; next free after Plan 36's is 0038):
 
-- `refresh_tokens`: `parent_id`, `access` (`offline`|`online`, default
+- `refresh_tokens`: `dpop_jkt`, `parent_id`, `access` (`offline`|`online`, default
   `offline`), `metadata` (JSON), `device` (JSON), `last_exchanged_at`.
 - `login_sessions`: `metadata` (JSON).
+- Auth transactions and authorization codes: `dpop_jkt`.
+- Clients: `require_proof_of_possession`; resource servers: `proof_of_possession` JSON.
+- `dpop_proofs(tenant_id, origin, jkt, jti_hash, expires_at)` replay table with composite primary key and expiry index.
 - `token_quota_counters(tenant_id, subject_kind, subject_id, bucket,
   window_start, count)` with PK on all but `count`; swept after the window.
 - `clients.refresh_token` JSON gains `policies` (no column change if the
@@ -404,19 +499,20 @@ Store contract changes (`store.RefreshTokens`):
 | LR48-4 | Offline re-check failure is `invalid_grant` with local wording. |
 | LR48-5 | At most 10 MRRT policies per client, per the Auth0 configuration guide checked on 2026-11-18. |
 | LR48-6 | A non-policy audience at the refresh grant is `invalid_request`. |
-| LR48-7 | `offline_access` and `online_access` together: offline wins. |
-| LR48-8 | ORTs only from the authorization-code grant. |
+| LR48-7 | Combined online/offline scopes return `invalid_request` (documented; supersedes original local choice). |
+| LR48-8 | ORTs only from authorization code; public clients require DPoP; ORTs are absent from refresh-token Management routes. |
 | LR48-9 | Bulk revoke runs synchronously and answers `202`. |
 | LR48-10 | `last_exchanged_at` is the last exchange, not the first rotation. |
 | LR48-11 | A refused client-credentials request consumes no quota. |
 | LR48-12 | Older plugins keep Plan 17 refresh semantics; new features refused on write. |
+| LR48-13 | DPoP limits, freshness, nonce and replay policy are specified in §5.1; maintainer authorized scope expansion 2026-11-18. |
 
 Observe later (copied into `docs/superpowers/plan-1-followups.md`):
 
 - **R1** The sibling left valid after a leeway reuse.
 - **R2** Whether a user grant without an audience revokes every audience's tokens.
 - **R3** ORT with ephemeral sessions when the flag is false (local: no ORT, `online_access` dropped).
-- **R4** Both `online_access` and `offline_access` requested.
+- **R4** Resolved 2026-11-18: combined scopes return `invalid_request`.
 - **R5** `initial_asn`/`last_asn` (local: empty; no ASN database).
 - **R6** Whether Actions can set refresh-token or session metadata.
 - **R7** Organization quota error description.
