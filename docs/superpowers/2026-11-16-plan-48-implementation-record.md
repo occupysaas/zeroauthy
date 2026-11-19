@@ -40,8 +40,8 @@ No nonce or proof runtime implementation was present in that review.
 |---|---|---|
 | 1 Contracts, decisions, inventory | Complete; reviewed | `af75a3de`, `3b8074af`, fix `1be49d7a`; design amendments `c3affc3b`, `3c038cfa` |
 | 2 Memory store and contracts | Complete; reviewed | `e7f81cbd`, fix `d59f1c22`; memory conformance passed, no skips |
-| 3 SQL, gRPC and migration | Implemented; review pending | `4df0e8cc`; SQLite/gRPC and memory/plugin tests passed; PostgreSQL/MySQL pending CI |
-| 4 Conversion and strict overlap | Pending | Not run |
+| 3 SQL, gRPC and migration | Complete; reviewed | `4df0e8cc`, fix `7bab65d2`; SQLite/gRPC and memory/plugin tests passed; PostgreSQL/MySQL pending CI |
+| 4 Conversion and strict overlap | Starting | No runtime verification result yet |
 | 5 Grant cascade | Pending | Not run |
 | 6 MRRT | Pending | Not run |
 | 6a DPoP | Pending | Not run |
@@ -146,3 +146,19 @@ parallelism. Later performance changes must preserve those atomic outcomes.
 `store.CheckRefreshTokensIISupport(ctx, st)` distinguishes support, definitive
 older-plugin refusal, and transport failure. Versioned RPC writes protect
 new fields from silent downgrade.
+
+Task 3 review found two Important gRPC downgrade gaps. `7bab65d2` adds
+versioned binding-sensitive reads and code consumption, a lost-capability
+latch, and receiving checks against the base and transaction backing stores.
+Regressions failed before the fix and passed after it. The final focused
+gRPC/plugin verification exited 0 (gRPC 25.650s, plugin/SDK 35.390s) with
+one existing `ConformanceThroughPluginProcess/Organizations/Limits` skip.
+Scoped re-review approved both fixes.
+
+Task 3 Minor findings retained for final review: protected-write exact
+sentinel identity; sub-microsecond replay deadlines; tenant-wide refresh
+lock contention; cancellation while waiting for another initial probe.
+The caller contract permits legacy fallback only on an initial capability
+probe returning `ErrRefreshTokensIIUnavailable`. A previously capable
+connection returns distinct `ErrRefreshTokensIISupportLost` and fails closed;
+protected-operation errors never license a legacy retry.
