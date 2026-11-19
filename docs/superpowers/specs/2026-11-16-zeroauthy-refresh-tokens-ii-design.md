@@ -423,7 +423,7 @@ whether the Actions `api` can set them — local: read-only).
 
 ### 8.1 Storage
 
-One migration (numbered at merge; next free after Plan 36's is 0038):
+One migration (numbered at merge; next free after merged Plan 36 is 0042):
 
 - `refresh_tokens`: `dpop_jkt`, `parent_id`, `access` (`offline`|`online`, default
   `offline`), `metadata` (JSON), `device` (JSON), `last_exchanged_at`.

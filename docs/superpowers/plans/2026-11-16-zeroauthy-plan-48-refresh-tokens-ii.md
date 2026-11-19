@@ -51,7 +51,7 @@ include its persistence contracts. This remains one active plan.
 - **Generated code.** `x-source` on API changes; `make generate`; never
   hand-edit generated files; commit `console/dist`.
 - **Migration.** One forward-only migration in three dialects, written as
-  `0038_refresh_tokens_ii.sql`; renamed to main's latest + 1 at merge.
+  `0042_refresh_tokens_ii.sql`; renamed to main's latest + 1 at merge.
 - **Plugins.** `refresh_tokens_ii.v1` negotiated and latched; behaviour
   without it per LR48-12.
 - **Tests.** Injected clocks; concurrency tests assert exact winner counts.
@@ -194,7 +194,7 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 ### Task 3: SQL and gRPC drivers, migration
 
 **Files:**
-- Create: `internal/store/sqlstore/migrations/{sqlite,postgres,mysql}/0038_refresh_tokens_ii.sql`
+- Create: `internal/store/sqlstore/migrations/{sqlite,postgres,mysql}/0042_refresh_tokens_ii.sql`
   (columns and table per spec §8.1; backfill `access='offline'`; index
   `(tenant_id, user_id, client_id, audience)` and `(tenant_id, session_id)`,
   `(tenant_id, family_id, created_at)`).

@@ -39,8 +39,8 @@ No nonce or proof runtime implementation was present in that review.
 | Task | State | Evidence |
 |---|---|---|
 | 1 Contracts, decisions, inventory | Complete; reviewed | `af75a3de`, `3b8074af`, fix `1be49d7a`; design amendments `c3affc3b`, `3c038cfa` |
-| 2 Memory store and contracts | Implemented; review pending | `e7f81cbd`; memory conformance passed, no skips |
-| 3 SQL, gRPC and migration | Pending | Not run |
+| 2 Memory store and contracts | Complete; reviewed | `e7f81cbd`, fix `d59f1c22`; memory conformance passed, no skips |
+| 3 SQL, gRPC and migration | Starting | Database verification not run yet |
 | 4 Conversion and strict overlap | Pending | Not run |
 | 5 Grant cascade | Pending | Not run |
 | 6 MRRT | Pending | Not run |
@@ -99,3 +99,13 @@ can atomically authorize conversion using the immediately previous token.
 A stale token revokes only its family and creates no successor. The memory
 implementation tracks insertion order independently of tied clock values.
 Quota results carry atomically claimed warning thresholds for later logging.
+
+Task 2 review found two important issues: conversion could reuse an unrelated
+family ID, and replay purge traversal was unbounded. `d59f1c22` fixes both;
+regressions failed first, then passed. Full memory conformance exited 0 in
+6.564s with no skips. Scoped re-review approved both fixes. One Minor
+comment remains for final review: document all ownership/binding preconditions
+already enforced by memory Rotate. Durable drivers must follow those checks.
+
+The next migration is provisionally 0042 after merged Plan 36's 0041,
+replacing the design's stale 0038. Recheck main before the eventual push.
