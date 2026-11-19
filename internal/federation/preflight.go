@@ -112,6 +112,15 @@ func RequireMicrosoftConnection(ctx context.Context, st store.Store, c *store.Co
 	return nil
 }
 
+// RequireGitHubConnection checks the store capability for a GitHub
+// connection before any attempt is created.
+func RequireGitHubConnection(ctx context.Context, st store.Store, c *store.Connection) error {
+	if c != nil && c.Strategy == rules.GitHub {
+		return RequireGitHubFederation(ctx, st)
+	}
+	return nil
+}
+
 // RequireMicrosoftUser checks every identity, including linked Microsoft accounts.
 func RequireMicrosoftUser(ctx context.Context, st store.Store, u *store.User) error {
 	if u != nil {

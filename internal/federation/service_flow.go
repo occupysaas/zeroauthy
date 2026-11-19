@@ -120,6 +120,9 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	if err := RequireMicrosoftConnection(ctx, s.Store, conn); err != nil {
 		return nil, err
 	}
+	if err := RequireGitHubConnection(ctx, s.Store, conn); err != nil {
+		return nil, err
+	}
 	if in.Txn == nil {
 		return nil, ErrConnectionUnusable
 	}
@@ -154,6 +157,8 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 			return nil, err
 		}
 		issuer, endpoints = meta.Issuer, meta.Endpoints()
+	case StrategyGitHub:
+		endpoints, _ = s.Providers.github() // no issuer: GitHub has no ID token
 	case StrategyOAuth2:
 		endpoints = Endpoints{AuthorizationURL: cfg.AuthorizationURL, TokenURL: cfg.TokenURL, TokenAuthMethod: authPost}
 	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC, StrategyOkta:
@@ -610,6 +615,8 @@ func ButtonLabel(c *store.Connection) string {
 		return "Microsoft work or school account"
 	case StrategyGoogle:
 		return "Google"
+	case StrategyGitHub:
+		return "GitHub"
 	}
 	return c.Name
 }
