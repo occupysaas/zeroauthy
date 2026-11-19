@@ -58,6 +58,16 @@ func TestGitHubScopeFlags(t *testing.T) {
 	}
 }
 
+// The adapter infers the email option from the effective scope containing
+// user:email, so no flag may map to it.
+func TestGitHubScopeFlagsExcludeUserEmail(t *testing.T) {
+	for _, f := range GitHubScopeFlags {
+		if f.Scope == "user:email" {
+			t.Fatalf("flag %q maps to user:email", f.Option)
+		}
+	}
+}
+
 func TestGitHubScopeFlagsMatchInventory(t *testing.T) {
 	raw, err := os.ReadFile("../inventory.json")
 	if err != nil {

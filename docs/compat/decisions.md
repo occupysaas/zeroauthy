@@ -3495,7 +3495,10 @@ Observe later (copied into `docs/superpowers/plan-1-followups.md`):
 
 ## D-0181 — Plan 39c GitHub social connection (2026-11-18)
 
-**Status:** designed; evidence and inventory frozen in Plan 39c Task 1. Runtime is not implemented yet.
+**Status:** implemented on `plan-39-github-social`; final review done, plan-branch CI pending.
+The GitHub connection strategy and web login flow are implemented.
+Plan-wide verification and CI status are tracked separately in the
+[implementation record](../superpowers/2026-11-18-plan-39c-implementation-record.md).
 
 **Authority:** [Plan 39c design](../superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md),
 Auth0's [GitHub connection page](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github),

@@ -5,8 +5,8 @@ after PR #70).
 Worktree: `/mnt/nvme2/code/zeroauthy-wt-github`.
 Branch: `plan-39-github-social`.
 
-**Current status (2026-11-18):** all nine implementation tasks are done except
-the controller-owned final review and push. Plan-branch CI has not run. The
+**Current status (2026-11-18):** all nine implementation tasks and the final
+review are done. Status: awaiting plan-branch CI. The
 optional real-GitHub manual check was **not done**. Nothing here claims a live
 GitHub or Auth0 observation.
 
@@ -109,4 +109,15 @@ Snapshot: `af92afab` plus the uncommitted documentation edits of this task.
 
 ## Final review
 
-pending (controller)
+Final whole-branch review on `8eb2dd45..59c6ebf3` found no Critical or
+Important issues. Two documentation fixes (D-0181 status, the upstream-tokens
+refresh sentence) and two test additions (`/user` timeout, no scope flag maps
+to `user:email`) were made in the final-review fix commit.
+
+Follow-ups recorded:
+
+- `pkg/storetest` has no GitHub conformance case (spec G5 narrowed to
+  sqlstore tests).
+- Host-like option keys other than the explicit reject list (for example
+  `base_url`, `enterprise_url`) are stored inert rather than rejected.
+- With `email` off and no flags, an empty `scope=` parameter is sent.

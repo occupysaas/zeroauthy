@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -441,6 +442,27 @@ func TestGitHubEmailsRateLimited(t *testing.T) {
 				t.Fatalf("want ErrProviderResponse, got %v", err)
 			}
 		})
+	}
+}
+
+func TestGitHubUserTimeout(t *testing.T) {
+	f := newGHFixture(t)
+	f.user = func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-time.After(2 * time.Second):
+		}
+	}
+	pol := f.policy()
+	pol.RequestTimeout = 200 * time.Millisecond
+	ps := NewProviders(pol, func() time.Time { return fixedTime }).WithGitHubFixture(f.override())
+	res, err := f.exchange(t, ps, ghConfig(t, ""))
+	noSecretsIn(t, err)
+	if !errors.Is(err, ErrProviderResponse) {
+		t.Fatalf("want ErrProviderResponse, got %v", err)
+	}
+	if !reflect.DeepEqual(res, ProviderResult{}) {
+		t.Fatalf("records returned after /user timeout: %+v", res)
 	}
 }
 

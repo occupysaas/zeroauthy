@@ -112,7 +112,7 @@ is held by two users; correct those users and run it again.
 ## Upstream tokens
 
 The latest access token, refresh token (an omitted refresh token keeps the
-previous one), token type, scope and expiry are stored encrypted per identity
+previous one; GitHub clears it instead, see GitHub below), token type, scope and expiry are stored encrypted per identity
 (master-key envelope, AAD bound to tenant/connection/subject). They are returned
 only by `GET /api/v2/users/{id}` to a client granted both `read:users` and
 `read:user_idp_tokens`, as `identities[].access_token`/`refresh_token`, with
