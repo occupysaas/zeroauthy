@@ -41,8 +41,8 @@ No nonce or proof runtime implementation was present in that review.
 | 1 Contracts, decisions, inventory | Complete; reviewed | `af75a3de`, `3b8074af`, fix `1be49d7a`; design amendments `c3affc3b`, `3c038cfa` |
 | 2 Memory store and contracts | Complete; reviewed | `e7f81cbd`, fix `d59f1c22`; memory conformance passed, no skips |
 | 3 SQL, gRPC and migration | Complete; reviewed | `4df0e8cc`, fix `7bab65d2`; SQLite/gRPC and memory/plugin tests passed; PostgreSQL/MySQL pending CI |
-| 4 Conversion and strict overlap | Starting | No runtime verification result yet |
-| 5 Grant cascade | Pending | Not run |
+| 4 Conversion and strict overlap | Complete; reviewed | `8f8d6015`, fix `31b64bac`; full OAuth and focused store/plugin tests passed |
+| 5 Grant cascade | Starting | No task verification result yet |
 | 6 MRRT | Pending | Not run |
 | 6a DPoP | Pending | Not run |
 | 7 ORT | Pending | Not run |
@@ -162,3 +162,22 @@ The caller contract permits legacy fallback only on an initial capability
 probe returning `ErrRefreshTokensIIUnavailable`. A previously capable
 connection returns distinct `ErrRefreshTokensIISupportLost` and fails closed;
 protected-operation errors never license a legacy retry.
+
+## Task 4 verification
+
+`8f8d6015` implements refresh conversion, strict overlap and offline API
+rechecks. It adds store `CheckRotation` to detect reuse before audience,
+scope or Actions can mask it; final mutations recheck under the store lock.
+Full OAuth passed in 168.500s and affected memory/SQLite/gRPC/plugin tests
+passed with no skips. The test report accounts for the ancillary snapshot
+index-lock diagnostic with identical tree checks before/after the runs.
+
+Review found two Important races: no-successor exchanges skipped final
+source validation, and checks used the request-entry clock. `31b64bac`
+fixes both; seven regression cases failed first, then passed. Full OAuth
+passed in 148.195s with no skips, and scoped re-review approved the fixes.
+
+Three Minor findings remain for final review: explicit support-lost
+precedence for joined probe errors; HTTP test file placement; capture the
+snapshot identity once before parallel commands. No full-plan verification
+or CI push has occurred.
