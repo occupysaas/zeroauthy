@@ -14,6 +14,11 @@ func cloneTenant(t *store.Tenant) *store.Tenant { return t.Clone() }
 
 func cloneClient(c *store.Client) *store.Client {
 	out := *c
+	out.TokenQuota = cloneValue(c.TokenQuota)
+	out.RefreshToken.Policies = slices.Clone(c.RefreshToken.Policies)
+	for i := range out.RefreshToken.Policies {
+		out.RefreshToken.Policies[i].Scope = slices.Clone(c.RefreshToken.Policies[i].Scope)
+	}
 	out.Secrets = make([]store.ClientSecret, len(c.Secrets))
 	for i, sec := range c.Secrets {
 		out.Secrets[i] = sec
@@ -50,6 +55,7 @@ func cloneClient(c *store.Client) *store.Client {
 
 func cloneResourceServer(rs *store.ResourceServer) *store.ResourceServer {
 	out := *rs
+	out.ProofOfPossession = cloneValue(rs.ProofOfPossession)
 	out.Scopes = slices.Clone(rs.Scopes)
 	out.SigningSecretSealed = bytes.Clone(rs.SigningSecretSealed)
 	return &out
@@ -127,6 +133,7 @@ func cloneUser(u *store.User) *store.User {
 
 func cloneSession(s *store.LoginSession) *store.LoginSession {
 	out := *s
+	out.Metadata = maps.Clone(s.Metadata)
 	out.ClientIDs = slices.Clone(s.ClientIDs)
 	out.AuthMethods = slices.Clone(s.AuthMethods)
 	return &out
@@ -183,6 +190,9 @@ func cloneDeviceCode(d *store.DeviceCode) *store.DeviceCode {
 func cloneRefreshToken(t *store.RefreshToken) *store.RefreshToken {
 	out := *t
 	out.Scopes = slices.Clone(t.Scopes)
+	out.Metadata = maps.Clone(t.Metadata)
+	out.Device = cloneValue(t.Device)
+	out.LastExchangedAt = cloneTime(t.LastExchangedAt)
 	if t.RotatedAt != nil {
 		v := *t.RotatedAt
 		out.RotatedAt = &v
@@ -243,7 +253,13 @@ func cloneJSONValue(v any) any {
 	}
 }
 
-func cloneValue[T any](v *T) *T { c := *v; return &c }
+func cloneValue[T any](v *T) *T {
+	if v == nil {
+		return nil
+	}
+	c := *v
+	return &c
+}
 func cloneOrgInvitation(in *store.OrganizationInvitation) *store.OrganizationInvitation {
 	out := *in
 	out.Roles = slices.Clone(in.Roles)

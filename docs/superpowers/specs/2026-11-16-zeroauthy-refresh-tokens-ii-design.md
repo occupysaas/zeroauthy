@@ -432,7 +432,9 @@ One migration (numbered at merge; next free after Plan 36's is 0038):
 - Clients: `require_proof_of_possession`; resource servers: `proof_of_possession` JSON.
 - `dpop_proofs(tenant_id, origin, jkt, jti_hash, expires_at)` replay table with composite primary key and expiry index.
 - `token_quota_counters(tenant_id, subject_kind, subject_id, bucket,
-  window_start, count)` with PK on all but `count`; swept after the window.
+  window_start, count, warned)` keyed by tenant, subject, bucket and window.
+  The warning mask claims each of 60/80/100 once, including when a quota
+  changes mid-window. Counters are swept after their window.
 - `clients.refresh_token` JSON gains `policies` (no column change if the
   policy is stored as JSON today; check `sqlstore/clients.go`); clients,
   organizations and tenant settings gain `token_quota` JSON.
@@ -442,10 +444,14 @@ One migration (numbered at merge; next free after Plan 36's is 0038):
 Store contract changes (`store.RefreshTokens`):
 
 - `Rotate` takes the strict-leeway rule: inside the leeway it succeeds only
-  when `oldID` is the parent of the family's newest live token.
-- `ConvertNonRotating(ctx, tid, clientID, audience, userID, next)` and
-  `ConvertRotating(ctx, tid, clientID, audience, userID, next, at)` —
-  atomic, as §3.1.
+  when `oldID` is the parent of the family's newest live token. Record insertion
+  order at each successful write and find the live sibling with the greatest
+  order under the same lock. Timestamp ties never change the result.
+- `ConvertNonRotating(ctx, tid, presentedID, next)` and
+  `ConvertRotating(ctx, tid, presentedID, next, at, leeway)` atomically
+  claim the presented token and derive the conversion tuple from it. A
+  previously rotated presentation must satisfy the same immediate-parent
+  and leeway checks as rotation. Reuse revokes only the presented family.
 - `RevokeByUserClient(ctx, tid, userID, clientID, audience string, at)`
   (audience empty = all) for grants and bulk revoke.
 - `RevokeBySession(ctx, tid, sessionID, at)`.
@@ -453,7 +459,8 @@ Store contract changes (`store.RefreshTokens`):
 - `UpdateMetadata`, `RecordExchange(ctx, tid, id, device, at)`.
 - `TokenQuotas` repository: `Consume(ctx, tid, subjects []QuotaSubject, now) ([]QuotaState, error)`
   — checks and increments every applying bucket in one transaction and
-  returns remaining values; `Peek` for headers on refusal.
+  returns remaining values and newly claimed warning percentages in each
+  bucket’s `CrossedThresholds`. `Peek` returns counts without warning claims.
 - gRPC: capability `refresh_tokens_ii.v1`. Without it: strict leeway and
   conversion fall back to the Plan 17 semantics with a startup warning;
   MRRT policies, ORT, metadata, bulk revoke and quotas are refused on write

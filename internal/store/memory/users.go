@@ -235,6 +235,7 @@ func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 	for k, v := range s.refreshTokens {
 		if k.tenant == tenantID && gone[v.UserID] {
 			delete(s.refreshTokens, k)
+			delete(s.refreshOrder, k)
 		}
 	}
 	for k, v := range s.userGrants {

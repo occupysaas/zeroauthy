@@ -3,6 +3,7 @@ package memory
 import (
 	"cmp"
 	"context"
+	"maps"
 	"slices"
 	"time"
 
@@ -153,4 +154,15 @@ func (r sessions) AddMethod(_ context.Context, tid, id string, method store.Auth
 	}
 	s.AuthMethods = append(s.AuthMethods, method)
 	return nil
+}
+
+func (r sessions) UpdateMetadata(_ context.Context, tid, id string, md map[string]string) (*store.LoginSession, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	s := r.s.sessions[key{tid, id}]
+	if s == nil {
+		return nil, store.ErrNotFound
+	}
+	s.Metadata = maps.Clone(md)
+	return cloneSession(s), nil
 }

@@ -107,7 +107,7 @@ type DefaultTokenQuota struct{ Clients, Organizations *TokenQuota }
 
 // store.RefreshTokens gains
 ConvertNonRotating(ctx context.Context, tid, presentedID string, next *RefreshToken) error // deletes all non-rotating (tid, client, audience, user); ErrNotFound if presented already gone
-ConvertRotating(ctx context.Context, tid, presentedID string, next *RefreshToken, at time.Time) error // revokes rotating tokens of (tid, client, audience, user)
+ConvertRotating(ctx context.Context, tid, presentedID string, next *RefreshToken, at time.Time, leeway time.Duration) error // applies strict reuse check before revoking rotating tokens of (tid, client, audience, user)
 RevokeByUserClient(ctx context.Context, tid, userID, clientID, audience string, at time.Time) (int, error)
 RevokeBySession(ctx context.Context, tid, sessionID string, at time.Time) (int, error)
 ListByUserPage(ctx context.Context, tid, userID, clientID, from string, take int) ([]*RefreshToken, string, error)
@@ -117,7 +117,7 @@ RecordExchange(ctx context.Context, tid, id string, ip, ua string, at time.Time)
 
 // internal/store/token_quotas.go
 type QuotaSubject struct{ Kind string /* "client"|"organization" */; ID string; Quota TokenQuota }
-type QuotaBucket struct{ Name string /* "per_hour"|"per_day" */; Limit, Remaining int; Reset time.Time }
+type QuotaBucket struct{ Name string /* "per_hour"|"per_day" */; Limit, Remaining int; Reset time.Time; CrossedThresholds []int }
 type QuotaState struct{ Subject QuotaSubject; Buckets []QuotaBucket; Exceeded bool }
 type TokenQuotas interface {
     Consume(ctx context.Context, tid string, subjects []QuotaSubject, now time.Time) ([]QuotaState, error) // increments only if no enforced bucket would exceed

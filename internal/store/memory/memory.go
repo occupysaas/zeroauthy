@@ -86,6 +86,10 @@ type state struct {
 	proofs                 map[string]time.Time
 	txMu                   sync.RWMutex
 	mu                     sync.RWMutex
+	refreshOrder           map[key]uint64
+	refreshSequence        uint64
+	dpopProofs             map[dpopKey]time.Time
+	quotaCounters          map[quotaKey]quotaCounter
 	tenants                map[string]*store.Tenant               // by ID
 	clients                map[key]*store.Client                  // by (tenant, client ID)
 	resourceServers        map[key]*store.ResourceServer          // by (tenant, ID)
@@ -170,6 +174,9 @@ func New() *Store {
 		assertionJTIs:          map[key]time.Time{},
 		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},
 		deviceCodes:            map[key]*store.DeviceCode{},
+		refreshOrder:           map[key]uint64{},
+		dpopProofs:             map[dpopKey]time.Time{},
+		quotaCounters:          map[quotaKey]quotaCounter{},
 		refreshTokens:          map[key]*store.RefreshToken{},
 		resetTickets:           map[key]*store.PasswordResetTicket{},
 		verifyTickets:          map[key]*store.EmailVerificationTicket{},

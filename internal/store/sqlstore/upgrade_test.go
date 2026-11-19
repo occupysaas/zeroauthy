@@ -134,7 +134,7 @@ func TestUpgradeFromOldestSchema(t *testing.T) {
 				c.Secrets[0].CreatedAt.UnixMicro() != created || c.Secrets[0].ExpiresAt != nil || c.TokenEndpointAuthMethod != "client_secret_post" ||
 				!reflect.DeepEqual(c.GrantTypes, []string{"authorization_code", "refresh_token"}) ||
 				!reflect.DeepEqual(c.Callbacks, []string{"https://acme.test/callback"}) || c.IDTokenLifetime != 3600 ||
-				c.RefreshToken != (store.RefreshTokenPolicy{Rotating: true, Leeway: 30, Expiring: true, TokenLifetime: 2592000, IdleTokenLifetime: 1296000}) ||
+				!reflect.DeepEqual(c.RefreshToken, store.RefreshTokenPolicy{Rotating: true, Leeway: 30, Expiring: true, TokenLifetime: 2592000, IdleTokenLifetime: 1296000}) ||
 				!c.IsFirstParty {
 				t.Fatalf("client: %+v", c)
 			}

@@ -3,6 +3,7 @@ package memory
 import (
 	"cmp"
 	"context"
+	"maps"
 	"slices"
 	"time"
 
@@ -18,6 +19,20 @@ func (r refreshTokens) taken(t *store.RefreshToken) bool {
 	}
 	_, ok := r.findByHash(t.TenantID, t.TokenHash)
 	return ok
+}
+
+// insert copies its input. Sequence order, independent of clocks or random IDs,
+// makes the newest live sibling deterministic even after another sibling is revoked.
+func (r refreshTokens) insert(t *store.RefreshToken, parentID string) {
+	k := key{t.TenantID, t.ID}
+	row := cloneRefreshToken(t)
+	if row.Access == "" {
+		row.Access = "offline"
+	}
+	row.ParentID = parentID
+	r.s.refreshTokens[k] = row
+	r.s.refreshSequence++
+	r.s.refreshOrder[k] = r.s.refreshSequence
 }
 
 // findByHash is called with the lock held.
@@ -36,7 +51,7 @@ func (r refreshTokens) Create(_ context.Context, t *store.RefreshToken) error {
 	if r.taken(t) {
 		return store.ErrConflict
 	}
-	r.s.refreshTokens[key{t.TenantID, t.ID}] = cloneRefreshToken(t)
+	r.insert(t, t.ParentID)
 	return nil
 }
 
@@ -65,7 +80,7 @@ func (r refreshTokens) ListByUser(_ context.Context, tenantID, userID string) ([
 	defer r.s.readUnlock()
 	var out []*store.RefreshToken
 	for k, t := range r.s.refreshTokens {
-		if k.tenant == tenantID && t.UserID == userID && t.RevokedAt == nil && t.RotatedAt == nil {
+		if k.tenant == tenantID && t.UserID == userID && t.RevokedAt == nil && t.RotatedAt == nil && t.Access != "online" {
 			out = append(out, cloneRefreshToken(t))
 		}
 	}
@@ -100,19 +115,16 @@ func (r refreshTokens) Rotate(_ context.Context, tenantID, oldID string, next *s
 		// A rotated token of a revoked family: reuse, whatever the leeway.
 		return store.ErrAlreadyUsed
 	}
-	if next.TenantID != tenantID || next.FamilyID != old.FamilyID || r.taken(next) {
+	if !validSuccessor(old, next) || next.FamilyID != old.FamilyID || r.taken(next) {
 		return store.ErrConflict
 	}
-	if old.RotatedAt != nil {
-		if leeway <= 0 || !at.Before(old.RotatedAt.Add(leeway)) {
-			r.revokeFamily(tenantID, old.FamilyID, at)
-			return store.ErrAlreadyUsed
-		}
-	} else {
-		t := at
-		old.RotatedAt = &t
+	if err := r.checkRotation(old, at, leeway); err != nil {
+		return err
 	}
-	r.s.refreshTokens[key{next.TenantID, next.ID}] = cloneRefreshToken(next)
+	if old.RotatedAt == nil {
+		old.RotatedAt = &at
+	}
+	r.insert(next, oldID)
 	return nil
 }
 
@@ -137,25 +149,12 @@ func (r refreshTokens) RevokeFamily(_ context.Context, tenantID, familyID string
 func (r refreshTokens) RevokeByUser(_ context.Context, tenantID, userID string, at time.Time) (int, error) {
 	r.s.lock()
 	defer r.s.unlock()
-	n := 0
-	for k, t := range r.s.refreshTokens {
-		if k.tenant == tenantID && t.UserID == userID && t.RevokedAt == nil {
-			v := at
-			t.RevokedAt = &v
-			n++
-		}
-	}
-	return n, nil
+	return r.revokeMatching(tenantID, at, func(t *store.RefreshToken) bool { return t.UserID == userID }), nil
 }
 
 // revokeFamily is called with the lock held.
 func (r refreshTokens) revokeFamily(tenantID, familyID string, at time.Time) {
-	for k, t := range r.s.refreshTokens {
-		if k.tenant == tenantID && t.FamilyID == familyID && t.RevokedAt == nil {
-			v := at
-			t.RevokedAt = &v
-		}
-	}
+	r.revokeMatching(tenantID, at, func(t *store.RefreshToken) bool { return t.FamilyID == familyID })
 }
 
 func (r refreshTokens) DeleteExpired(_ context.Context, before time.Time) (int, error) {
@@ -163,11 +162,183 @@ func (r refreshTokens) DeleteExpired(_ context.Context, before time.Time) (int, 
 	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.refreshTokens {
-		if (!t.ExpiresAt.IsZero() && !t.ExpiresAt.After(before)) ||
-			(!t.IdleExpiresAt.IsZero() && !t.IdleExpiresAt.After(before)) {
+		if expiredToken(t, before) {
 			delete(r.s.refreshTokens, k)
+			delete(r.s.refreshOrder, k)
 			n++
 		}
 	}
 	return n, nil
+}
+
+// validSuccessor binds the stored owner and proof key. Legacy empty origins
+// can acquire their canonical origin after the OAuth handler verifies it.
+func validSuccessor(old, next *store.RefreshToken) bool {
+	return next != nil && old.TenantID == next.TenantID && old.ClientID == next.ClientID &&
+		old.UserID == next.UserID && old.Audience == next.Audience && old.SessionID == next.SessionID &&
+		old.OrganizationID == next.OrganizationID && old.OrganizationConnectionID == next.OrganizationConnectionID &&
+		(old.Origin == "" || old.Origin == next.Origin) && old.DPoPJKT == next.DPoPJKT &&
+		(next.Access == old.Access || old.Access == "offline" && next.Access == "")
+}
+
+func expiredToken(t *store.RefreshToken, at time.Time) bool {
+	return (!t.ExpiresAt.IsZero() && !at.Before(t.ExpiresAt)) ||
+		(!t.IdleExpiresAt.IsZero() && !at.Before(t.IdleExpiresAt))
+}
+
+// checkRotation is called with the lock held. A failed reuse check commits
+// the family revocation even though the successor is refused.
+func (r refreshTokens) checkRotation(old *store.RefreshToken, at time.Time, leeway time.Duration) error {
+	if old.RotatedAt == nil {
+		return nil
+	}
+	if leeway > 0 && at.Before(old.RotatedAt.Add(leeway)) {
+		var newest *store.RefreshToken
+		var sequence uint64
+		for k, t := range r.s.refreshTokens {
+			if k.tenant != old.TenantID || t.FamilyID != old.FamilyID || t.RevokedAt != nil || t.RotatedAt != nil || expiredToken(t, at) {
+				continue
+			}
+			if n := r.s.refreshOrder[k]; n > sequence {
+				newest, sequence = t, n
+			}
+		}
+		if newest != nil && newest.ParentID == old.ID {
+			return nil
+		}
+	}
+	r.revokeFamily(old.TenantID, old.FamilyID, at)
+	return store.ErrAlreadyUsed
+}
+
+func (r refreshTokens) ConvertNonRotating(_ context.Context, tid, presentedID string, next *store.RefreshToken) error {
+	if next == nil {
+		return store.ErrInvalid
+	}
+	return r.convert(tid, presentedID, next, false, next.CreatedAt, 0)
+}
+
+func (r refreshTokens) ConvertRotating(_ context.Context, tid, presentedID string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {
+	return r.convert(tid, presentedID, next, true, at, leeway)
+}
+
+func (r refreshTokens) convert(tid, id string, next *store.RefreshToken, rotating bool, at time.Time, leeway time.Duration) error {
+	r.s.lock()
+	defer r.s.unlock()
+	old := r.s.refreshTokens[key{tid, id}]
+	if old == nil || old.Rotating != rotating || old.Access == "online" || expiredToken(old, at) {
+		return store.ErrNotFound
+	}
+	if old.RevokedAt != nil {
+		if old.RotatedAt != nil {
+			return store.ErrAlreadyUsed
+		}
+		return store.ErrNotFound
+	}
+	if !validSuccessor(old, next) || next.Rotating == rotating || r.taken(next) {
+		return store.ErrConflict
+	}
+	if next.Rotating {
+		if next.FamilyID == "" {
+			return store.ErrInvalid
+		}
+		for k, t := range r.s.refreshTokens {
+			if k.tenant == tid && t.FamilyID == next.FamilyID {
+				return store.ErrConflict
+			}
+		}
+	}
+	if rotating {
+		if err := r.checkRotation(old, at, leeway); err != nil {
+			return err
+		}
+	}
+	for k, t := range r.s.refreshTokens {
+		if k.tenant != tid || t.ClientID != old.ClientID || t.UserID != old.UserID || t.Audience != old.Audience || t.Rotating != rotating || t.Access == "online" {
+			continue
+		}
+		if !rotating {
+			delete(r.s.refreshTokens, k)
+			delete(r.s.refreshOrder, k)
+		} else if t.RevokedAt == nil {
+			t.RevokedAt = &at
+		}
+	}
+	r.insert(next, "")
+	return nil
+}
+
+func (r refreshTokens) RevokeByUserClient(_ context.Context, tid, userID, clientID, audience string, at time.Time) (int, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	return r.revokeMatching(tid, at, func(t *store.RefreshToken) bool {
+		return t.UserID == userID && t.ClientID == clientID && (audience == "" || t.Audience == audience)
+	}), nil
+}
+func (r refreshTokens) RevokeBySession(_ context.Context, tid, sessionID string, at time.Time) (int, error) {
+	if sessionID == "" {
+		return 0, store.ErrInvalid
+	}
+	r.s.lock()
+	defer r.s.unlock()
+	return r.revokeMatching(tid, at, func(t *store.RefreshToken) bool { return t.SessionID == sessionID }), nil
+}
+func (r refreshTokens) revokeMatching(tid string, at time.Time, matches func(*store.RefreshToken) bool) int {
+	n := 0
+	for k, t := range r.s.refreshTokens {
+		if k.tenant == tid && t.RevokedAt == nil && matches(t) {
+			t.RevokedAt = &at
+			n++
+		}
+	}
+	return n
+}
+
+func (r refreshTokens) ListByUserPage(_ context.Context, tid, userID, clientID, from string, take int) ([]*store.RefreshToken, string, error) {
+	if take < 1 || take > 100 {
+		return nil, "", store.ErrInvalid
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	var ids []string
+	for k, t := range r.s.refreshTokens {
+		if k.tenant == tid && t.UserID == userID && (clientID == "" || t.ClientID == clientID) && t.ID > from && t.RotatedAt == nil && t.RevokedAt == nil && t.Access != "online" {
+			ids = append(ids, t.ID)
+		}
+	}
+	slices.Sort(ids)
+	next := ""
+	if len(ids) > take {
+		ids = ids[:take]
+		next = ids[take-1]
+	}
+	out := make([]*store.RefreshToken, len(ids))
+	for i, id := range ids {
+		out[i] = cloneRefreshToken(r.s.refreshTokens[key{tid, id}])
+	}
+	return out, next, nil
+}
+func (r refreshTokens) UpdateMetadata(_ context.Context, tid, id string, md map[string]string) (*store.RefreshToken, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	t := r.s.refreshTokens[key{tid, id}]
+	if t == nil || t.Access == "online" {
+		return nil, store.ErrNotFound
+	}
+	t.Metadata = maps.Clone(md)
+	return cloneRefreshToken(t), nil
+}
+func (r refreshTokens) RecordExchange(_ context.Context, tid, id, ip, ua string, at time.Time) error {
+	r.s.lock()
+	defer r.s.unlock()
+	t := r.s.refreshTokens[key{tid, id}]
+	if t == nil || t.RevokedAt != nil {
+		return store.ErrNotFound
+	}
+	if t.Device == nil {
+		t.Device = &store.RefreshTokenDevice{}
+	}
+	t.Device.LastIP, t.Device.LastUserAgent = ip, ua
+	t.LastExchangedAt = &at
+	return nil
 }

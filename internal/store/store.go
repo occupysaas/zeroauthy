@@ -32,10 +32,14 @@ var (
 	// ErrInvalid is returned for an argument the store refuses to take, such
 	// as a negative file chunk number or a job status that is not final.
 	ErrInvalid = errors.New("store: invalid argument")
+	// ErrRefreshTokensIIUnavailable means the driver lacks refresh_tokens_ii.v1.
+	ErrRefreshTokensIIUnavailable = errors.New("store: refresh_tokens_ii.v1 unavailable")
 )
 
 // Store aggregates the repositories of one storage backend.
 type Store interface {
+	DPoP() DPoP
+	TokenQuotas() TokenQuotas
 	ConnectionKeys() ConnectionKeys
 	MFA() MFA
 	Phone() Phone
@@ -349,6 +353,8 @@ type Users interface {
 // unique within a tenant. Changes after creation are narrow atomic
 // methods, so concurrent requests cannot overwrite each other's writes.
 type Sessions interface {
+	// UpdateMetadata atomically replaces the session metadata and returns the updated session.
+	UpdateMetadata(ctx context.Context, tid, id string, md map[string]string) (*LoginSession, error)
 	// AddMethod atomically appends a performed method without changing other session fields.
 	AddMethod(ctx context.Context, tenantID, id string, method AuthMethod) error
 	MarkMFA(ctx context.Context, tenantID, id string, at time.Time) error
@@ -455,12 +461,28 @@ type DeviceCodes interface {
 // is unique within a tenant. Rotation and reuse detection happen inside
 // Rotate so that drivers can make them atomic.
 type RefreshTokens interface {
+	// Conversion claims the presented offline token and atomically replaces all
+	// offline tokens of its rotation type matching its tenant/user/client/audience.
+	// Non-rotating tokens are deleted; rotating tokens are revoked. Successors
+	// retain the presented token's ownership, origin, access and key binding.
+	ConvertNonRotating(ctx context.Context, tid, presentedID string, next *RefreshToken) error
+	// Rotated presentations use Rotate's leeway and family reuse semantics.
+	ConvertRotating(ctx context.Context, tid, presentedID string, next *RefreshToken, at time.Time, leeway time.Duration) error
+	// An empty audience revokes every audience of this user and client.
+	RevokeByUserClient(ctx context.Context, tid, userID, clientID, audience string, at time.Time) (int, error)
+	RevokeBySession(ctx context.Context, tid, sessionID string, at time.Time) (int, error)
+	// ListByUserPage lists unrevoked, unrotated offline tokens by ascending
+	// ID, strictly after from. A nonempty next is the last returned ID when
+	// another matching result exists. An empty clientID selects every client.
+	ListByUserPage(ctx context.Context, tid, userID, clientID, from string, take int) ([]*RefreshToken, string, error)
+	UpdateMetadata(ctx context.Context, tid, id string, md map[string]string) (*RefreshToken, error)
+	RecordExchange(ctx context.Context, tid, id, ip, ua string, at time.Time) error
 	// Create returns ErrConflict if the ID or TokenHash exists.
 	Create(ctx context.Context, t *RefreshToken) error
 	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*RefreshToken, error)
 	// Get returns the token whatever its state, or ErrNotFound.
 	Get(ctx context.Context, tenantID, id string) (*RefreshToken, error)
-	// ListByUser returns the user's live tokens (neither revoked nor
+	// ListByUser returns the user's live offline tokens (neither revoked nor
 	// rotated), newest first (CreatedAt descending, then ID descending, byte
 	// order).
 	ListByUser(ctx context.Context, tenantID, userID string) ([]*RefreshToken, error)
@@ -476,7 +498,8 @@ type RefreshTokens interface {
 	//   - next's ID or TokenHash exists: ErrConflict, nothing changes.
 	//   - Not rotated yet: sets RotatedAt = at and stores next.
 	//   - Already rotated and at is before RotatedAt+leeway (leeway > 0):
-	//     stores next and keeps RotatedAt.
+	//     stores next and keeps RotatedAt only if oldID is the parent of the
+	//     newest live family member. Each stored successor names oldID as its parent.
 	//   - Already rotated otherwise: revokes every token of the family at
 	//     `at`, stores nothing, and returns ErrAlreadyUsed.
 	Rotate(ctx context.Context, tenantID, oldID string, next *RefreshToken, at time.Time, leeway time.Duration) error

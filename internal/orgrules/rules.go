@@ -97,6 +97,10 @@ func ValidID(id string) bool {
 // ThirdPartyClientAccess becomes "block". The copy shares nothing with in.
 func NormalizeOrganization(in store.Organization) (store.Organization, error) {
 	out := in
+	if in.TokenQuota != nil {
+		quota := *in.TokenQuota
+		out.TokenQuota = &quota
+	}
 	out.ClientAssociation = nil
 	out.ClientAssociationLoaded = false
 	if out.DisplayName == "" {

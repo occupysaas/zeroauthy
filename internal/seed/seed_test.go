@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -393,7 +394,7 @@ tenants:
 		if err != nil {
 			t.Fatal(err)
 		}
-		if c.RefreshToken != w {
+		if !reflect.DeepEqual(c.RefreshToken, w) {
 			t.Errorf("%s refresh_token = %+v, want %+v", id, c.RefreshToken, w)
 		}
 	}
