@@ -10,7 +10,7 @@ framework this plan reuses). Read the [clean-room policy](../../../CLEAN_ROOM.md
 `AGENTS.md`, the [Plan 24 spec](2026-10-26-zeroauthy-social-connections-design.md)
 and the [Plan 39a spec](2026-11-16-zeroauthy-apple-design.md).
 
-**GitHub moved out (maintainer, 2026-11-18):** `github` is built by the [GitHub connection design](2026-11-16-zeroauthy-github-connection-design.md) on branch `plan-39-github-social`, as a dedicated Go adapter. Leave it out of this plan's descriptors and Tier 1 group.
+**GitHub moved out (maintainer, 2026-11-18):** `github` is built by Plan 39c ([design](2026-11-16-zeroauthy-github-connection-design.md), [plan](../plans/2026-11-18-zeroauthy-plan-39c-github.md)) as a dedicated Go adapter. Leave it out of this plan's descriptors and Tier 1 group. Once the descriptor framework exists, decide whether to port `github` to a descriptor plus hook; Plan 39c's adapter tests are that port's acceptance tests, and public IDs and stored identities must not change (39c spec §3).
 
 ## 1. Outcome and scope
 

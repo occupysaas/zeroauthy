@@ -1,9 +1,9 @@
-# zeroauthy — GitHub social connection
+# zeroauthy — Plan 39c GitHub social connection
 
-- **Status:** Draft for maintainer review. Revised 2026-11-18 with the maintainer's answers and a review against GitHub's current documentation (§11). Not implemented; no implementation plan yet.
+- **Status:** Approved for implementation (maintainer, 2026-11-18). Revised 2026-11-18 with the maintainer's answers, a review against GitHub's current documentation and the PR #66 rulings (§11). [Implementation plan](../plans/2026-11-18-zeroauthy-plan-39c-github.md).
 - **Date:** 2026-11-16 (revised 2026-11-18).
-- **Roadmap:** Plan 39 (additional social providers), the GitHub part only; listed as a 1.0 stretch item in the [v1 release scope](2026-11-02-zeroauthy-v1-release-scope.md). The [parallel paths design](2026-11-13-zeroauthy-parallel-paths-design.md) puts GitHub in track S2 (Plan 39b) after S1 (Apple). The maintainer approved splitting it out of S2 ahead of Apple, because the release scope wants GitHub before 1.0 and Apple after (2026-11-18). Apple (Plan 39a) has since merged, so in practice GitHub is split out ahead of the rest of Plan 39b, which no longer covers `github`.
-- **Branch:** `plan-39-github-social` (maintainer, 2026-11-18).
+- **Roadmap:** Plan 39c, the GitHub part of Plan 39 (additional social providers); listed as a 1.0 stretch item in the [v1 release scope](2026-11-02-zeroauthy-v1-release-scope.md). The [parallel paths design](2026-11-13-zeroauthy-parallel-paths-design.md) puts GitHub in track S2 (Plan 39b) after S1 (Apple). The maintainer approved splitting it out of S2 ahead of Apple, because the release scope wants GitHub before 1.0 and Apple after (2026-11-18). Apple (Plan 39a) has since merged, so in practice GitHub is split out ahead of the rest of Plan 39b, which no longer covers `github`.
+- **Branch:** `plan-39-github-social` (maintainer, 2026-11-18). Compatibility decisions: D-0181 (from the S2 block D-0180–0189).
 - **Builds on:** [Plan 24 design](2026-10-26-zeroauthy-social-connections-design.md), [Plan 24 record](../2026-10-26-plan-24-implementation-record.md), [Plan 25 design](2026-10-26-zeroauthy-email-account-connections-design.md).
 
 ## 1. Intent
@@ -59,6 +59,8 @@ Success: a tenant migrated from Auth0 with a GitHub connection (scope flags incl
 
 Keep A's code split into three parts (token exchange, profile fetch, mapping) so that C can later be extracted by moving code rather than rewriting it.
 
+**Why not a 39b descriptor plus a hook (follow-up, PR #66).** Plan 39b's descriptor design also allows a small Go hook per provider, so GitHub could in principle be a descriptor with an `emails` hook. It is not, for two reasons. First, the descriptor framework does not exist yet: GitHub is a 1.0 stretch item ahead of 39b, and building the framework first would put the whole of 39b's Tasks 1–2 on GitHub's critical path. Second, GitHub's hook would not be small: the second profile call, the email-evidence rule (§6), exact integer subjects, the HTTP-200 token error and refresh-token clearing are most of the adapter. So GitHub ships as approach A now, and Plan 39b, once its framework exists, decides whether to port `github` to a descriptor plus hook. GitHub's adapter tests (G2, G3) become that port's acceptance tests, and the port must keep public IDs and stored identities unchanged.
+
 ## 4. Evidence
 
 Read `CLEAN_ROOM.md`. Public sources used for this draft:
@@ -101,11 +103,7 @@ Extend `internal/federation/rules` (the single validation authority), `connrules
 
 The effective scope is the de-duplicated union of `user:email` (when `email` is on) and the flag scopes (`read_user` → `read:user`). It never includes `offline_access`. It may be empty. It is sent space-separated. Its total length counts against the existing `maxScopeBytes`.
 
-**Imported `scope`.** The flags are the only source of the requested scope, and `scope` is returned on read as the effective scope computed from them. Input handling depends on what Task 1 finds about Auth0's semantics:
-
-- If Auth0 derives `scope` from the flags (expected), an input `scope` is accepted and replaced by the computed value. Every Auth0 export then round-trips with the same effective permissions.
-- If Auth0 treats `scope` as an independent, authoritative list, stop and revise this section with the maintainer before implementing it. Never silently drop requested permissions.
-- In both cases, an input `scope` containing a GitHub scope whose flag is `false` is reported in the Deploy CLI import result as a warning naming the connection and the dropped scopes, so a migration cannot lose permissions unnoticed.
+**Imported `scope` (ruling, 2026-11-18).** Auth0's documentation does not say whether `scope` is derived from the flags, so GitHub follows the existing Google rule: the flags are the only source of the requested scope, and `scope` is returned on read as the effective scope computed from them. An input `scope` is accepted only when it equals that effective scope as a set (order and duplicates ignored). Any other value is rejected with a 400 naming the expected value, so an import can never silently drop or add a permission. The operator fixes the export by setting the matching flags. Recorded in D-0181.
 
 `client_id` is the immutable identity binding. Scopes, sync policy, display and secret rotation stay editable. Every effective change increments `FederationRevision`, as today.
 
@@ -131,10 +129,10 @@ Add a `StrategyGitHub` case to `FlowService.Begin` (fixed `Endpoints`, `client_s
 | Response | Classification | Effect |
 |---|---|---|
 | 200 with an entry `primary: true, verified: true` | **verified** | That address, `email_verified: true` |
-| 200 with the `primary: true` entry present but `verified: false`, or 200 with fewer than 100 entries and no primary entry | **negative** (GitHub vouches for no primary address) | No email for new users; downgrade rule below |
-| 200 with 100 entries and no primary entry | **unknown** (list may be truncated) | No email for new users; stored email unchanged |
-| 403 or 404 without rate-limit signals (scope not granted, GitHub App without email permission) | **unknown** | Same as above |
-| 401; 403 or 429 with rate-limit signals (`x-ratelimit-remaining: 0` or `retry-after`, exact shape frozen by Task 1); 5xx; transport error; timeout; invalid JSON | **failure** | The login fails with the existing provider-error page; nothing is stored |
+| 200 with the `primary: true` entry present but `verified: false`; 200 without a primary entry (including a full page of 100); 403 or 404 without rate-limit signals (scope not granted, GitHub App without email permission) | **no verified email** | The login is refused with the "email required" page (§8); nothing is stored |
+| 401; 403 or 429 with rate-limit signals (`x-ratelimit-remaining: 0` or `retry-after`); 5xx; transport error; timeout; invalid JSON | **failure** | The login fails with the existing provider-error page; nothing is stored |
+
+**Email required (ruling, 2026-11-18).** Auth0's GitHub documentation says only that most applications need the email permission; it does not say what happens to a GitHub user without a verified primary email. Where Auth0 documents nothing, zeroauthy refuses: when the connection's `email` option is on, a login is accepted only with a verified primary email, on first and on every later login. This makes the earlier "downgrade on negative evidence" rule unnecessary: a later login without a verified primary email is refused, so a stored verified email is never kept beside missing evidence. When `email` is off, no `/user/emails` call is made, users are created without an email, and a stored email is left alone. If Auth0 is later found to accept such users, the refusal becomes a recorded deviation. Recorded in D-0181.
 
 Both calls go through the existing bounded transport and count toward the 30-second callback budget, with limits unchanged. No redirects are followed. Response bodies stay within the existing size limits.
 
@@ -145,15 +143,13 @@ Both calls go through the existing bounded transport and count toward the 30-sec
 | Profile | Source |
 |---|---|
 | subject | `id` |
-| `email`, `email_verified` | The verified primary from `/user/emails` (`email_verified: true`); otherwise both absent. The public `/user` `email` field is never used: it is not verification evidence. |
+| `email`, `email_verified` | The verified primary from `/user/emails` (`email_verified: true`); absent only when `email` is off. The public `/user` `email` field is never used: it is not verification evidence. |
 | `nickname` | `login` |
 | `name` | `name` when nonempty, else `login` |
 | `picture` | `avatar_url` when https |
 | ProfileData extras | `login`, `html_url`, `blog`, `company`, `location`, `bio`, `public_repos`, `followers`, `following`, `created_at`, `updated_at`, each bounded by the existing 64 KiB profile limit. Task 1 freezes the list against the inventory. |
 
 Under `on_each_login`, a renamed user's `nickname` updates, while identity stays on `id`.
-
-**When GitHub stops vouching for an email** (designer's call, from the anti-goals on unverified email and missing evidence; maintainer to confirm): only a **negative** classification on a later login keeps the stored address but sets `email_verified: false`. This tightens Plan 24's rule that an absent field changes nothing, for GitHub only. It applies under every sync policy, because it only ever removes verification. An **unknown** classification changes nothing, exactly as Plan 24 treats an absent field. When `email` is off, the stored email is left alone.
 
 ## 7. Identity, migration and storage
 
@@ -169,20 +165,20 @@ Under `on_each_login`, a renamed user's `nickname` updates, while identity stays
 
 - Console **Social**: GitHub in the strategy picker. The form matches the existing social forms: client ID, secret (configured indicator only), `email`, the scope flags as a flat checkbox list, sync policy, and the callback URLs for the canonical and active custom origins. A short note says the scope flags apply to OAuth apps, and a GitHub App gets its permissions from its own registration.
 - **Callback origins.** zeroauthy keeps Plan 24's rule that each login returns to its own origin, and always sends that origin's exact `/login/callback` as `redirect_uri`. Both GitHub OAuth apps (up to 10 callback URLs) and GitHub Apps accept several callback URLs, so one app and one connection serve a tenant that logs in on several origins. Next to the callback URLs, the console tells the operator to register **every** listed URL exactly, without wildcard matching. The setup guide says the same. No runtime change.
-  *Correction, maintainer to confirm:* the 2026-11-16 ruling said an OAuth app accepts one callback host and a multi-origin tenant needs a GitHub App or one OAuth app per origin. GitHub's documentation on 2026-11-18 allows up to 10 callback URLs per OAuth app, so this revision replaces that note. The runtime rule (each login returns to its own origin) is unchanged.
-- Hosted login: a text button ("Continue with GitHub") via the i18n catalog. No GitHub logo asset (Plan 24's no-remote-icons rule).
-- Docs: a GitHub section in `docs/social-connections.md`. It covers OAuth app setup (and GitHub App sign-in only, with its permission model), registering every callback URL, the scopes `/user/emails` needs, token retrieval through `read:user_idp_tokens`, expiring tokens not being refreshed, granted scopes possibly differing from configured ones, scope changes applying from the next login, the `profile` local difference, and the unsupported list (GitHub Enterprise, device flow, refresh). Also update `docs/compat/matrix.md`, `docs/compatibility.md` (GitHub moves out of the Plan 39b row) and the roadmap's Plan 39 entry.
+  *Correction (2026-11-18):* the 2026-11-16 note said an OAuth app accepts one callback host and a multi-origin tenant needs a GitHub App or one OAuth app per origin. GitHub's documentation allows up to 10 callback URLs per OAuth app, so this replaces that note. The runtime rule (each login returns to its own origin) is unchanged.
+- Hosted login: a text button ("Continue with GitHub") via the i18n catalog. No GitHub logo asset (Plan 24's no-remote-icons rule). A refused login without a verified primary email renders a new catalog message, `social.email_required` (HTTP 403): "Your GitHub account needs a verified primary email address to sign in."
+- Docs: a GitHub section in `docs/social-connections.md`. It covers OAuth app setup (and GitHub App sign-in only, with its permission model), registering every callback URL, the scopes `/user/emails` needs, token retrieval through `read:user_idp_tokens`, expiring tokens not being refreshed, granted scopes possibly differing from configured ones, scope changes applying from the next login, the email-required rule, the `profile` local difference, and the unsupported list (GitHub Enterprise, device flow, refresh). Also update `docs/compat/matrix.md`, `docs/compatibility.md` (GitHub moves out of the Plan 39b row) and the roadmap's Plan 39 entry.
 
 ## 9. Acceptance
 
 | ID | Evidence |
 |---|---|
 | G1 | Inventory `github` section and `TestFederationInventory`; observation note with verified/unverified GitHub facts and their URLs; Auth0 `scope`/`profile` semantics resolved (§5) |
-| G2 | Rules tests: every flag→scope, `profile` adds no scope, `offline_access` never sent, `scope` recomputed and the import warning for dropped scopes, freeform rejection, host-override rejection, other rejections, PATCH/secret/revision behavior |
-| G3 | Fixture-provider adapter tests: success; token error with HTTP 200; form-encoded or non-JSON token body; missing token; wrong `token_type`; PKCE verifier sent; `redirect_uri` always sent. `/user`: 401, 5xx, timeout, invalid JSON, non-integer/zero/negative/fractional/exponent/string `id`, an `id` above 2⁵³ decoded exactly. `/user/emails`: verified primary; unverified primary (negative); 100 entries without primary (unknown); 403 and 404 without rate-limit signals (unknown); rate-limited 403 and 429 (failure); 401; 5xx; timeout. Oversize body; redirect refused; refresh-token clearing on a non-expiring response; no user, identity or token record after any failure |
-| G4 | Browser login through actual code exchange in the social E2E lane: first login, repeat login after rename, same-email second account stays separate, imported `github|<id>` user logs in to the same account, the email downgrade on negative evidence and no change on unknown, token readable only with `read:user_idp_tokens` and not by another tenant's client, token no longer returned after unlink or user deletion, two origins each returning to their own callback |
+| G2 | Rules tests: every flag→scope, `profile` adds no scope, `offline_access` never sent, `scope` accepted only when it equals the effective scope, freeform rejection, host-override rejection, other rejections, PATCH/secret/revision behavior |
+| G3 | Fixture-provider adapter tests: success; token error with HTTP 200; form-encoded or non-JSON token body; missing token; wrong `token_type`; PKCE verifier sent; `redirect_uri` always sent. `/user`: 401, 5xx, timeout, invalid JSON, non-integer/zero/negative/fractional/exponent/string `id`, an `id` above 2⁵³ decoded exactly. `/user/emails`: verified primary; unverified primary, no primary, 100 entries without primary, 403 and 404 without rate-limit signals (all email required); rate-limited 403 and 429 (failure); 401; 5xx; timeout. Oversize body; redirect refused; refresh-token clearing on a non-expiring response; no user, identity or token record after any failure |
+| G4 | Browser login through actual code exchange in the social E2E lane: first login, repeat login after rename, same-email second account stays separate, imported `github|<id>` user logs in to the same account, an account without a verified primary email refused on first and on repeat login, token readable only with `read:user_idp_tokens` and not by another tenant's client, token no longer returned after unlink or user deletion, two origins each returning to their own callback |
 | G5 | Storetest on three SQL dialects plus memory/gRPC: GitHub identity indexing through import and link, concurrent first logins produce one user, and old-plugin capability failure |
-| G6 | Deploy CLI social lane: GitHub export/import with scope flags and explicit secret reinjection, then login; an export whose `scope` differs from its flags reports the warning |
+| G6 | Deploy CLI social lane: GitHub export/import with scope flags and explicit secret reinjection, then login; an export whose `scope` differs from its flags is rejected |
 | G7 | Console tests (form, OAuth-app/GitHub-App note, callback-origin note, keyboard, narrow layout), full regression gates |
 
 Real GitHub login (an OAuth app, and sign-in with a GitHub App) is a manual, optional check with maintainer credentials, never part of CI. The implementation record says whether it was done.
@@ -202,13 +198,13 @@ Settled by the maintainer:
 | 2026-11-16 | Approach A (dedicated Go adapter); GitHub serves sign-in and acting on GitHub for the user |
 | 2026-11-18 | Split GitHub out of parallel-paths S2 ahead of Apple, because the release scope wants GitHub before 1.0 and Apple after |
 | 2026-11-18 | GitHub Enterprise Server (and GHE.com) left for later |
-| 2026-11-18 | Plan number 39 (GitHub part), branch `plan-39-github-social` |
+| 2026-11-18 | Branch `plan-39-github-social` (plan number: see 39c below) |
 | 2026-11-18 | OAuth apps are the supported setup; GitHub Apps work for sign-in only, with no new option (§1) |
+| 2026-11-18 | Name the plan 39c, next to 39a and 39b |
+| 2026-11-18 | Email: match Auth0; where Auth0 documents nothing, refuse a login without a verified primary email when `email` is on (§6) |
+| 2026-11-18 | Imported `scope`: Auth0 documents nothing, so follow the Google rule (accepted only when it equals the flags' effective scope) (§5) |
+| 2026-11-18 | Dedicated adapter versus a 39b descriptor: ship approach A; 39b decides on a port once its framework exists (§3) |
 
-For the maintainer to confirm before implementation:
+No open questions remain.
 
-1. The callback-origin correction in §8, which replaces the 2026-11-16 note.
-2. The email evidence classification and downgrade rule in §6.
-3. The `scope` input rule in §5, once Task 1 has evidence of Auth0's semantics.
-
-Changes in the 2026-11-18 revision, from a review against GitHub's documentation: the OAuth app / GitHub App split (§1), the callback correction (§8), the token-expiry and refresh-token rules (§6), the `/user/emails` page bound and failure classification (§6), granted versus requested scopes (§6), exact `id` decoding (§6, §7), the import warning for dropped scopes (§5), the `profile` local difference (§5), the failure ordering (§6), and the extra acceptance cases (§9). The stale "backfill" item in §10 is removed, because §7 needs no backfill.
+Changes in the 2026-11-18 revision, from a review against GitHub's documentation: the OAuth app / GitHub App split (§1), the callback correction (§8), the token-expiry and refresh-token rules (§6), the `/user/emails` page bound and failure classification (§6), granted versus requested scopes (§6), exact `id` decoding (§6, §7), the imported `scope` rule (§5), the `profile` local difference (§5), the failure ordering (§6), and the extra acceptance cases (§9). The stale "backfill" item in §10 is removed, because §7 needs no backfill.

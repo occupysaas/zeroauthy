@@ -7,7 +7,7 @@ social strategy (Tier 1, then Tier 2), the generic `oauth1` strategy,
 Twitter on OAuth 2.0 and 1.0a, and the Google and Facebook native
 exchanges.
 
-**GitHub moved out (maintainer, 2026-11-18):** `github` is built by the [GitHub connection design](../specs/2026-11-16-zeroauthy-github-connection-design.md) on branch `plan-39-github-social`, as a dedicated Go adapter. Leave it out of this plan's descriptors and Tier 1 group.
+**GitHub moved out (maintainer, 2026-11-18):** `github` is built by Plan 39c ([design](../specs/2026-11-16-zeroauthy-github-connection-design.md), [plan](2026-11-18-zeroauthy-plan-39c-github.md)) as a dedicated Go adapter. Leave it out of this plan's descriptors and Tier 1 group. After Task 2 (the descriptor framework), decide with the maintainer whether to port `github` to a descriptor plus hook, keeping Plan 39c's adapter tests green and public IDs unchanged.
 
 **Architecture:** `internal/federation/providers/` (JSON descriptors + Go
 loader + hooks), a generic descriptor-driven `Provider` on the Plan 24
