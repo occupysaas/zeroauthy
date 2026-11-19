@@ -88,6 +88,7 @@ type Providers struct {
 	appleFix      *AppleOverride
 	googleFix     *GoogleOverride
 	microsoftFix  *MicrosoftOverride
+	githubFix     *GitHubOverride
 	appleSecretMu sync.Mutex
 	appleSecrets  *ttlCache[appleSecretEntry]
 }
@@ -143,6 +144,8 @@ func (ps *Providers) For(cfg Config) Provider {
 		return appleProvider{ps}
 	case StrategyOAuth2:
 		return oauth2Provider{ps}
+	case StrategyGitHub:
+		return githubProvider{ps}
 	case StrategyWindowsLive, StrategyWAAD:
 		return microsoftProvider{ps}
 	case StrategyOIDC, StrategyOkta, StrategyGoogle:

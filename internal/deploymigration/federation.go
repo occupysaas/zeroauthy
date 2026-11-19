@@ -38,6 +38,13 @@ func FederationImport(export Export, credentials map[string]string) (json.RawMes
 		if secret != "" {
 			options[rules.SecretOption(strategy)] = secret
 		}
+		if strategy == rules.GitHub {
+			// Fail before the Deploy CLI runs: a scope that disagrees with
+			// the flags is rejected, never silently rewritten.
+			if _, errs := rules.Parse(rules.Input{Strategy: strategy, Name: name, Options: options, HasSealedSecret: true}); len(errs) > 0 {
+				return nil, errors.New("deploymigration: invalid github connection: " + errs[0].Error())
+			}
+		}
 		if strategy == rules.OAuth2 {
 			scripts, ok := options["scripts"].(map[string]any)
 			if !ok {

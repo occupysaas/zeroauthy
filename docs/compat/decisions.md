@@ -3492,3 +3492,33 @@ Observe later (copied into `docs/superpowers/plan-1-followups.md`):
   email (local: all are deleted) and the answer for an unknown email
   (local: `204`).
 
+
+## D-0181 — Plan 39c GitHub social connection (2026-11-18)
+
+**Status:** implemented on `plan-39-github-social`; final review done, plan-branch CI pending.
+The GitHub connection strategy and web login flow are implemented.
+Plan-wide verification and CI status are tracked separately in the
+[implementation record](../superpowers/2026-11-18-plan-39c-implementation-record.md).
+
+**Authority:** [Plan 39c design](../superpowers/specs/2026-11-16-zeroauthy-github-connection-design.md),
+Auth0's [GitHub connection page](https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github),
+and GitHub's public documentation listed in the
+[observation note](observations/github-connection.md). Only public documentation
+was read; no live Auth0 or GitHub call was made. Auth0 documents none of the
+email handling, `email_verified`, `scope` semantics or user ID format for GitHub
+(read 2026-11-18); these are recorded as unavailable, not as confirmed.
+
+| Ruling | Contract |
+|---|---|
+| Email required | Auth0 documents nothing, so when the connection's `email` option is on, a login is accepted only with a verified primary email from `/user/emails`, on first and on every later login. The public `/user` email is never used. With `email` off, no `/user/emails` call is made and users are created without an email. If Auth0 is later found to accept such users, this becomes a recorded deviation. |
+| Imported `scope` | The flags are the only source of the requested scope. `scope` is returned on read as the effective scope, and an input `scope` is accepted only when it equals it as a set; anything else is a 400. Same rule as Google. |
+| `profile: false` | Stored and round-tripped only. It adds no scope and does not stop profile attributes from syncing, because `GET /user` needs none and the subject comes from it. A local difference, listed in `docs/compat/matrix.md`. |
+| No refresh | zeroauthy never requests `offline_access`. Expiring tokens are stored with `ExpiresAt` and are not refreshed (Plan 43). A token response without `refresh_token` clears the stored one. |
+| OAuth app vs GitHub App | OAuth apps are the supported setup, and the scope flags apply to them. A GitHub App works for sign-in only (its `scope` carries no permissions, and `/user/emails` needs the app's Email addresses read permission). No new option. |
+| GitHub Enterprise | Unsupported; endpoint and host overrides are rejected. Left for later. |
+| Adapter, not descriptor | Plan 39c ships a dedicated Go adapter. Plan 39b decides on a port to its descriptor framework once that exists. |
+
+The frozen contract is in `internal/federation/inventory.json`
+(`strategies.github`, `provider_protocol.github`, `github_profile`): the
+flag-to-scope table, the pinned `X-GitHub-Api-Version` (`2026-03-10`), the
+rate-limit signals and the extra profile fields.

@@ -360,7 +360,7 @@ func (t *Tenant) validate() []error {
 		}
 		spec := c.spec()
 		if c.Options != nil && !spec.Federated() && !spec.Passwordless() && spec.Strategy != store.StrategyDatabase {
-			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive, waad and apple strategies", c.Name)
+			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive, waad, apple and github strategies", c.Name)
 		}
 
 		for _, err := range connrules.Normalize(&spec) {

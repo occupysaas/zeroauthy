@@ -59,6 +59,10 @@ func TestVerificationEmailJobCases(t *testing.T) {
 	uid := u["user_id"].(string)
 	bare := strings.TrimPrefix(uid, "auth0|")
 	conID := e.conn.ID
+	// A federated identity needs its connection to be indexed.
+	if err := e.st.Connections().Create(context.Background(), &store.Connection{TenantID: e.tn.ID, ID: "con_github", Name: "github", Strategy: "github", CreatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
 	social := &store.User{TenantID: e.tn.ID, UserID: "github|7", Email: "g@x.test", CreatedAt: now, UpdatedAt: now,
 		Identities: []store.Identity{{Connection: "github", Provider: "github", UserID: "7"}}}
 	if err := e.st.Users().Create(context.Background(), social); err != nil {

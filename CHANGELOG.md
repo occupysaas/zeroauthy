@@ -14,6 +14,11 @@ All notable changes to zeroauthy are recorded here. The format follows
   Migration 0041 preserves existing back-channel connections and stores sealed
   connection keys. See [enterprise connections](docs/enterprise-connections.md).
 
+- GitHub social connection (`github`): OAuth app sign-in with S256 PKCE, the
+  Auth0 scope flags, a numeric `github|<id>` identity and a verified primary
+  email required when `email` is on. GitHub Enterprise, device flow and token
+  refresh are not supported. See [the guide](docs/social-connections.md#github).
+
 - Sign in with Apple web login and native iOS authorization-code exchange,
   operator-owned signing keys, private-relay profiles and first-login names.
   Console, seed and Deploy CLI support include stored native-social switches;

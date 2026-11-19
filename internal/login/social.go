@@ -221,6 +221,8 @@ func (h *Handlers) socialFailure(w http.ResponseWriter, r *http.Request, f *flow
 	switch {
 	case errors.Is(err, federation.ErrProviderDenied):
 		ui.RenderError(w, http.StatusUnauthorized, view, view.L.T(i18n.KeyErrSocialDenied))
+	case errors.Is(err, federation.ErrEmailRequired):
+		ui.RenderError(w, http.StatusForbidden, view, view.L.T(i18n.KeyErrSocialEmailRequired))
 	case errors.Is(err, errSocialTooMany):
 		ui.RenderError(w, http.StatusTooManyRequests, view, view.L.T(i18n.KeyTooManyAttempts))
 	case errors.Is(err, federation.ErrUserBlocked):

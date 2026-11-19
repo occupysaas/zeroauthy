@@ -18,6 +18,7 @@ const (
 	StrategyWindowsLive = rules.WindowsLive
 	StrategyWAAD        = rules.WAAD
 	StrategyGoogle      = rules.Google
+	StrategyGitHub      = rules.GitHub
 	StrategyOAuth2      = rules.OAuth2
 	StrategyOIDC        = rules.OIDC
 	StrategyOkta        = rules.Okta

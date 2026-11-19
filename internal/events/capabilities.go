@@ -77,3 +77,9 @@ func (s *capture) MicrosoftFederationSupported(ctx context.Context) error {
 	}
 	return store.ErrFederationUnavailable
 }
+func (s *capture) GitHubFederationSupported(ctx context.Context) error {
+	if p, ok := s.Store.(store.GitHubFederationSupporter); ok {
+		return p.GitHubFederationSupported(ctx)
+	}
+	return store.ErrFederationUnavailable
+}

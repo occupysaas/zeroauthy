@@ -8,6 +8,7 @@ Plan 24 adds the federation core; Plan 39a adds Apple web and native login:
 | Strategy | Kind | Identity key | Public user ID |
 |---|---|---|---|
 | `apple` | social (`isSocial: true`) | Apple `sub` | `apple|<sub>` |
+| `github` | social (`isSocial: true`) | GitHub numeric user `id` | `github|<id>` |
 | `google-oauth2` | social (`isSocial: true`) | Google `sub` | `google-oauth2|<sub>` |
 | `oauth2` | social (`isSocial: true`) | `user_id` returned by the profile script | `oauth2|<connection>|<subject>` |
 | `oidc` (front or back channel) | enterprise (`isSocial: false`) | ID token `sub` | `oidc|<connection>|<sub>` |
@@ -111,7 +112,7 @@ is held by two users; correct those users and run it again.
 ## Upstream tokens
 
 The latest access token, refresh token (an omitted refresh token keeps the
-previous one), token type, scope and expiry are stored encrypted per identity
+previous one; GitHub clears it instead, see GitHub below), token type, scope and expiry are stored encrypted per identity
 (master-key envelope, AAD bound to tenant/connection/subject). They are returned
 only by `GET /api/v2/users/{id}` to a client granted both `read:users` and
 `read:user_idp_tokens`, as `identities[].access_token`/`refresh_token`, with
@@ -190,7 +191,7 @@ secret reinjection and post-import logins; see
 ## Not included
 
 Microsoft accounts (see [email-account-connections.md](email-account-connections.md)),
-the remaining social providers (Plan 39b), One Tap, Google/Facebook native token exchange, automatic linking,
+the remaining social providers (Plan 39b; GitHub is covered below), One Tap, Google/Facebook native token exchange, automatic linking,
 provider-initiated login, federated logout or revocation, organizations, MFA,
 Actions, Token Vault, development keys, arbitrary upstream parameter
 forwarding, front-channel OIDC and the remaining enterprise OIDC features (Plan
@@ -330,3 +331,82 @@ raw Node native exchange, authentication and failure cases; node-auth0 7.4.0
 connection CRUD; Auth0 CLI 1.37.0 list/show; a scan against actual runtime
 secret values; seed file/environment references; and all four Deploy CLI
 9.1.0 cells. No live Apple account is used.
+
+## GitHub
+
+Strategy `github` signs users in through a GitHub **OAuth app** (the supported
+setup) and, optionally, lets the application act on GitHub for the user. The
+public user ID is `github|<numeric id>`; the login name can change and is never
+the identity key. Email never links accounts.
+
+### Set up the OAuth app
+
+1. In GitHub, create an OAuth app (Settings, Developer settings, OAuth Apps) and
+   register **every** callback URL exactly, without wildcards: the canonical
+   `https://<host>/login/callback` and one for each active custom domain. An
+   OAuth app accepts up to 10. zeroauthy always sends the exact callback of the
+   origin the user logged in on as `redirect_uri`, so one app and one connection
+   serve every origin. The console lists the URLs on the connection.
+2. Create the connection with `strategy: "github"`, your `client_id` and
+   `client_secret` (write-only; an omitted secret on PATCH keeps the stored one).
+   `client_id` cannot change afterward.
+3. Set the flags. `email` (default `true`) requests `user:email`. The scope flags
+   `admin_org`, `admin_public_key`, `admin_repo_hook`, `delete_repo`, `follow`,
+   `gist`, `notifications`, `public_repo`, `read_org`, `read_public_key`,
+   `read_repo_hook`, `read_user`, `repo`, `repo_deployment`, `repo_status`,
+   `write_org`, `write_public_key` and `write_repo_hook` default to `false` and
+   add the matching GitHub scope (for example `repo_status` adds `repo:status`).
+   zeroauthy never requests `offline_access`. `freeform_scopes` must be empty.
+
+A **GitHub App** works for sign-in only: its permissions come from its own
+registration, so the scope flags have no effect, and `/user/emails` needs the
+app's "Email addresses" read permission. Without it the login is refused (see
+below). GitHub Enterprise, the device flow, and endpoint or host overrides are
+not supported and are rejected.
+
+### Email is required
+
+With `email` on, a login is accepted only when GitHub reports a **verified
+primary** email through `/user/emails` (the public profile email is never used),
+on the first and on every later login. A user without one sees "Your GitHub
+account needs a verified primary email address to sign in" (HTTP 403) and nothing
+is stored. A missing `user:email` grant, a truncated list and a rate limit never
+count as proof of a verified email. With `email: false` no email is requested and
+users are created without one. Auth0 documents none of this; the rule is
+zeroauthy's own (D-0181).
+
+### `scope` and `profile`
+
+The flags are the only source of the requested scope. `scope` is returned on read
+as the effective scope and is accepted on input only when it equals the scope the
+flags produce, as a set. `PATCH` replaces `options` whole, so a client that sends
+back a stale `scope` together with changed flags gets "options.scope must match":
+send the flags without `scope`. `profile` is stored and round-tripped only: it
+adds no scope and does not stop profile attributes from syncing (a local
+difference, see the compatibility matrix).
+
+Scope changes apply from a user's **next** login; tokens stored earlier keep
+their old grants. GitHub can also grant more than was requested (a user who
+authorized the app before keeps the scopes they granted then), and zeroauthy
+stores the granted scope verbatim. Check GitHub's `X-OAuth-Scopes` response
+header when you depend on a permission, and treat a 401 from GitHub as a revoked
+token.
+
+### Tokens
+
+The latest GitHub access token (and refresh token, when GitHub sends one) is
+available through `GET /api/v2/users/{id}` to a client granted `read:users` and
+`read:user_idp_tokens`, as described under [Upstream tokens](#upstream-tokens).
+GitHub tokens may expire (when the OAuth app forces expiring tokens); zeroauthy
+stores the expiry, **does not refresh** them, and clears a stored refresh token
+when a login returns none. Users sign in again to get a new token.
+
+### Not supported
+
+GitHub Enterprise Server and GHE.com, the device flow, token refresh and
+revocation, `connected_accounts`, and an application-supplied `redirect_uri`.
+
+`make e2e-github` runs the local acceptance lane against a fixture provider:
+Chromium logins through a real code exchange, the email-required refusals,
+token access rules and the Deploy CLI 9.1.0 YAML and directory round trips. No
+live GitHub account is used.

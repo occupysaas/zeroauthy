@@ -87,16 +87,16 @@ func (r clientFederation) BumpIdentityEpoch(ctx context.Context, tenantID string
 	return do("FederationBumpIdentityEpoch", res, fedErr(err))
 }
 
-// requireMicrosoft is the client-side guard for servers older than the
-// Microsoft capability check. A plugin that cannot even read connections
-// cannot provide federation, so Unimplemented maps to unavailable.
-func (r clientFederation) requireMicrosoft(ctx context.Context, k store.FederatedIdentityKey) error {
-	return fedErr(requireMicrosoftKey(ctx, r.c, k))
+// requireCapability is the client-side guard for servers older than the
+// Microsoft or GitHub capability check. A plugin that cannot even read
+// connections cannot provide federation, so Unimplemented maps to unavailable.
+func (r clientFederation) requireCapability(ctx context.Context, k store.FederatedIdentityKey) error {
+	return fedErr(requireCapabilityKey(ctx, r.c, k))
 }
 
 func (r clientFederation) CreateAttempt(ctx context.Context, a *store.FederationAttempt) error {
 	if a != nil {
-		if err := r.requireMicrosoft(ctx, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
+		if err := r.requireCapability(ctx, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
 			return err
 		}
 	}
@@ -125,7 +125,7 @@ func (r clientFederation) FinishAttempt(ctx context.Context, tenantID, stateHash
 }
 
 func (r clientFederation) PutIdentity(ctx context.Context, k store.FederatedIdentityKey, userID string) error {
-	if err := r.requireMicrosoft(ctx, k); err != nil {
+	if err := r.requireCapability(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationPutIdentity(ctx, &storev1.FederatedIdentityWrite{TxId: r.c.txID, Key: fedKeyToPB(k), UserId: userID})
@@ -133,7 +133,7 @@ func (r clientFederation) PutIdentity(ctx context.Context, k store.FederatedIden
 }
 
 func (r clientFederation) DeleteIdentity(ctx context.Context, k store.FederatedIdentityKey, expectedUserID string) error {
-	if err := r.requireMicrosoft(ctx, k); err != nil {
+	if err := r.requireCapability(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationDeleteIdentity(ctx, &storev1.FederatedIdentityWrite{TxId: r.c.txID, Key: fedKeyToPB(k), UserId: expectedUserID})
@@ -149,7 +149,7 @@ func (r clientFederation) GetTokens(ctx context.Context, k store.FederatedIdenti
 }
 
 func (r clientFederation) PutTokens(ctx context.Context, k store.FederatedIdentityKey, sealed []byte) error {
-	if err := r.requireMicrosoft(ctx, k); err != nil {
+	if err := r.requireCapability(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationPutTokens(ctx, &storev1.FederatedTokensWrite{TxId: r.c.txID, Key: fedKeyToPB(k), Sealed: cloneBytes(sealed)})
@@ -157,7 +157,7 @@ func (r clientFederation) PutTokens(ctx context.Context, k store.FederatedIdenti
 }
 
 func (r clientFederation) DeleteTokens(ctx context.Context, k store.FederatedIdentityKey) error {
-	if err := r.requireMicrosoft(ctx, k); err != nil {
+	if err := r.requireCapability(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationDeleteTokens(ctx, &storev1.FederatedIdentityRequest{TxId: r.c.txID, Key: fedKeyToPB(k)})
@@ -192,7 +192,7 @@ func (s *Server) FederationBumpIdentityEpoch(ctx context.Context, r *storev1.Ten
 
 func (s *Server) FederationCreateAttempt(ctx context.Context, r *storev1.FederationAttemptWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, attemptFromPB, func(st store.Store, a *store.FederationAttempt) error {
-		if err := requireMicrosoftKey(ctx, st, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
+		if err := requireCapabilityKey(ctx, st, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
 			return err
 		}
 		return st.Federation().CreateAttempt(ctx, a)
@@ -222,7 +222,7 @@ func (s *Server) FederationFinishAttempt(ctx context.Context, r *storev1.Federat
 
 func (s *Server) FederationPutIdentity(ctx context.Context, r *storev1.FederatedIdentityWrite) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
-		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+		if err := requireCapabilityKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
 			return err
 		}
 		return st.Federation().PutIdentity(ctx, fedKeyFromPB(r.Key), r.UserId)
@@ -231,7 +231,7 @@ func (s *Server) FederationPutIdentity(ctx context.Context, r *storev1.Federated
 
 func (s *Server) FederationDeleteIdentity(ctx context.Context, r *storev1.FederatedIdentityWrite) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
-		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+		if err := requireCapabilityKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
 			return err
 		}
 		return st.Federation().DeleteIdentity(ctx, fedKeyFromPB(r.Key), r.UserId)
@@ -249,7 +249,7 @@ func (s *Server) FederationGetTokens(ctx context.Context, r *storev1.FederatedId
 
 func (s *Server) FederationPutTokens(ctx context.Context, r *storev1.FederatedTokensWrite) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
-		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+		if err := requireCapabilityKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
 			return err
 		}
 		return st.Federation().PutTokens(ctx, fedKeyFromPB(r.Key), r.Sealed)
@@ -258,7 +258,7 @@ func (s *Server) FederationPutTokens(ctx context.Context, r *storev1.FederatedTo
 
 func (s *Server) FederationDeleteTokens(ctx context.Context, r *storev1.FederatedIdentityRequest) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
-		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+		if err := requireCapabilityKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
 			return err
 		}
 		return st.Federation().DeleteTokens(ctx, fedKeyFromPB(r.Key))
@@ -302,6 +302,60 @@ func (s *Server) MicrosoftFederationSupported(ctx context.Context, r *storev1.Mi
 	return exec(s, r.TxId, func(st store.Store) error { return requireMicrosoftBacking(ctx, st) }), nil
 }
 func microsoftStrategy(strategy string) bool { return strategy == "windowslive" || strategy == "waad" }
+
+// GitHubFederationSupported verifies the plugin and its selected backing
+// transaction view index github identities by canonical numeric subject. A
+// plugin built before this RPC answers Unimplemented: unavailable.
+func (c *Client) GitHubFederationSupported(ctx context.Context) error {
+	r, err := c.rpc.GitHubFederationSupported(ctx, &storev1.GitHubFederationCapabilitiesRequest{TxId: c.txID})
+	return do("GitHubFederationSupported", r, fedErr(err))
+}
+func requireGitHubBacking(ctx context.Context, st store.Store) error {
+	capability, ok := st.(store.GitHubFederationSupporter)
+	if !ok {
+		return store.ErrFederationUnavailable
+	}
+	return capability.GitHubFederationSupported(ctx)
+}
+func (s *Server) GitHubFederationSupported(ctx context.Context, r *storev1.GitHubFederationCapabilitiesRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return requireGitHubBacking(ctx, st) }), nil
+}
+func githubStrategy(strategy string) bool { return strategy == "github" }
+func githubUser(u *store.User) bool {
+	if u != nil {
+		for _, id := range u.Identities {
+			if githubStrategy(id.Provider) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// requireStrategyBacking gates writes of strategies whose identity encoding
+// needs a store capability; other strategies keep predecessor semantics.
+func requireStrategyBacking(ctx context.Context, st store.Store, strategy string) error {
+	switch {
+	case microsoftStrategy(strategy):
+		return requireMicrosoftBacking(ctx, st)
+	case githubStrategy(strategy):
+		return requireGitHubBacking(ctx, st)
+	}
+	return nil
+}
+
+// requireUserBacking gates a user write on every capability its identities need.
+func requireUserBacking(ctx context.Context, st store.Store, u *store.User) error {
+	if microsoftUser(u) {
+		if err := requireMicrosoftBacking(ctx, st); err != nil {
+			return err
+		}
+	}
+	if githubUser(u) {
+		return requireGitHubBacking(ctx, st)
+	}
+	return nil
+}
 func microsoftUser(u *store.User) bool {
 	if u != nil {
 		for _, id := range u.Identities {
@@ -313,7 +367,7 @@ func microsoftUser(u *store.User) bool {
 	return false
 }
 
-func requireMicrosoftKey(ctx context.Context, st store.Store, key store.FederatedIdentityKey) error {
+func requireCapabilityKey(ctx context.Context, st store.Store, key store.FederatedIdentityKey) error {
 	c, err := st.Connections().Get(ctx, key.TenantID, key.ConnectionID)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil
@@ -321,8 +375,5 @@ func requireMicrosoftKey(ctx context.Context, st store.Store, key store.Federate
 	if err != nil {
 		return err
 	}
-	if microsoftStrategy(c.Strategy) {
-		return requireMicrosoftBacking(ctx, st)
-	}
-	return nil
+	return requireStrategyBacking(ctx, st, c.Strategy)
 }

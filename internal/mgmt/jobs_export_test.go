@@ -265,6 +265,10 @@ func TestExportCSV(t *testing.T) {
 	e.exportsConn(t)
 	e.addExportsUser(t, "c")
 	e.addExportsUser(t, "d")
+	// A federated identity needs its connection to be indexed.
+	if err := e.st.Connections().Create(context.Background(), &store.Connection{TenantID: e.tn.ID, ID: "con_github", Name: "github", Strategy: "github", CreatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
 	e.addUser(t, &store.User{UserID: "github|7", Email: "g@x.test", UserMetadata: map[string]any{"k": 1},
 		Identities: []store.Identity{{Connection: "github", Provider: "github", UserID: "7"}}})
 	got, _, _ = e.export(t, map[string]any{"connection_id": exportsConnID, "limit": 1, "fields": []any{

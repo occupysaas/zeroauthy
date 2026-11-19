@@ -177,7 +177,7 @@ func (h *Handlers) nativeAppleExchange(ctx context.Context, res tenant.Resolved,
 		}
 		// Never surface or log provider error text: it may echo a code or token.
 		switch {
-		case errors.Is(err, federation.ErrProviderResponse), errors.Is(err, federation.ErrNetworkPolicy), errors.Is(err, federation.ErrAttemptStale), errors.Is(err, federation.ErrConnectionUnusable), errors.Is(err, federation.ErrUserBlocked), errors.Is(err, federation.ErrIdentityConflict), errors.Is(err, orglogin.ErrNotMember), errors.Is(err, errOrganizationGrant), errors.Is(err, store.ErrNotFound):
+		case errors.Is(err, federation.ErrProviderResponse), errors.Is(err, federation.ErrNetworkPolicy), errors.Is(err, federation.ErrAttemptStale), errors.Is(err, federation.ErrConnectionUnusable), errors.Is(err, federation.ErrUserBlocked), errors.Is(err, federation.ErrEmailRequired), errors.Is(err, federation.ErrIdentityConflict), errors.Is(err, orglogin.ErrNotMember), errors.Is(err, errOrganizationGrant), errors.Is(err, store.ErrNotFound):
 			return nil, invalidGrant("Error from Apple connection")
 		default:
 			h.log().ErrorContext(ctx, "native Apple login could not complete", "tenant", tid)

@@ -22,6 +22,10 @@ var (
 	// that does not own it (another connection of the same provider, say).
 	// Nothing is merged.
 	ErrIdentityConflict = errors.New("federation: identity conflicts with an existing user")
+	// ErrEmailRequired: a GitHub connection with email on received no
+	// verified primary address (scope not granted, no primary, or primary
+	// unverified). The login is refused and nothing is stored (D-0181).
+	ErrEmailRequired = errors.New("federation: provider returned no verified primary email")
 )
 
 // Service coordinates federated login. ResolveIdentity is its transactional
@@ -58,6 +62,11 @@ func (s *Service) resolveIdentity(ctx context.Context, tx store.Store, conn *sto
 			return nil, false, err
 		}
 	}
+	if conn.Strategy == rules.GitHub {
+		if err := RequireGitHubFederation(ctx, tx); err != nil {
+			return nil, false, err
+		}
+	}
 	created := false
 	p := res.Profile
 	if err := ValidateSubject(p.Subject); err != nil {
@@ -86,17 +95,20 @@ func (s *Service) resolveIdentity(ctx context.Context, tx store.Store, conn *sto
 			return nil, false, err
 		}
 	}
-	if err := s.storeTokens(ctx, tx, key, res.Tokens); err != nil {
+	// GitHub omits refresh_token exactly when the access token does not
+	// expire, and a refresh rotates it: never keep a stale one beside a new
+	// access token.
+	if err := s.storeTokens(ctx, tx, key, res.Tokens, conn.Strategy != rules.GitHub); err != nil {
 		return nil, false, err
 	}
 	user, err := tx.Users().Get(ctx, conn.TenantID, u.UserID)
 	return user, created, err
 }
 
-// identityUserID is the identity's user_id: Apple, Google and Microsoft personal
-// use the raw subject; OAuth2, OIDC and Entra use "<connection>|<subject>".
+// identityUserID is the identity's user_id: Apple, GitHub, Google and Microsoft
+// personal use the raw subject; OAuth2, OIDC and Entra use "<connection>|<subject>".
 func identityUserID(conn *store.Connection, sub string) string {
-	if conn.Strategy == rules.Google || conn.Strategy == rules.WindowsLive || conn.Strategy == rules.Apple {
+	if conn.Strategy == rules.Google || conn.Strategy == rules.WindowsLive || conn.Strategy == rules.Apple || conn.Strategy == rules.GitHub {
 		return sub
 	}
 	return conn.Name + "|" + sub
@@ -206,15 +218,16 @@ func (s *Service) synchronize(ctx context.Context, tx store.Store, conn *store.C
 }
 
 // storeTokens replaces the identity's sealed token record; an omitted
-// refresh token keeps the previous one.
-func (s *Service) storeTokens(ctx context.Context, tx store.Store, key store.FederatedIdentityKey, t TokenSet) error {
+// refresh token keeps the previous one when keepRefresh, and clears it
+// otherwise.
+func (s *Service) storeTokens(ctx context.Context, tx store.Store, key store.FederatedIdentityKey, t TokenSet, keepRefresh bool) error {
 	if t.AccessToken == "" {
 		return nil
 	}
 	if s.Wrapper == nil {
 		return errors.New("federation: no master key wrapper to seal upstream tokens")
 	}
-	if t.RefreshToken == "" {
+	if t.RefreshToken == "" && keepRefresh {
 		if prev, err := tx.Federation().GetTokens(ctx, key); err == nil {
 			if old, err := OpenTokens(s.Wrapper, key, prev); err == nil {
 				t.RefreshToken = old.RefreshToken
