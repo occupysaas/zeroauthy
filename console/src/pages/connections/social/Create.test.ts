@@ -4,6 +4,7 @@ import { apiError, mountAt } from '../../../test/mount'
 import { client, connection, type Call } from '../../../test/services'
 import Create from './Create.vue'
 import { appleKey } from '../../../test/apple'
+import { githubScopeFlags } from './social'
 import { appStorageKeys } from '../../../test/storage'
 
 const apps = (c: Call) =>
@@ -16,7 +17,7 @@ async function open(handler: (c: Call) => unknown = () => ({ status: 201, body: 
 describe('Create social connection', () => {
   it('offers social providers once and keeps generic OIDC reachable through Enterprise', async () => {
     const { wrapper } = await open()
-    expect(wrapper.findAll('input[name="strategy"]').map((i) => (i.element as HTMLInputElement).value)).toEqual(['google-oauth2', 'oauth2', 'windowslive', 'apple'])
+    expect(wrapper.findAll('input[name="strategy"]').map((i) => (i.element as HTMLInputElement).value)).toEqual(['google-oauth2', 'oauth2', 'windowslive', 'apple', 'github'])
     expect(wrapper.find('[data-testid="oidc-subset"]').exists()).toBe(false)
     expect(wrapper.find('a[href="/admin/t/acme/enterprise/new"]').exists()).toBe(true)
     await wrapper.find('input[value="oauth2"]').setValue(true)
@@ -157,6 +158,80 @@ describe('Apple setup', () => {
     await wrapper.find('form').trigger('submit'); await flushPromises()
     expect(calls.find(c => c.method === 'POST')?.body).toEqual({ name: 'apple', strategy: 'apple', enabled_clients: [], options: { client_id: 'test.acme.web', team_id: 'ABCDE12345', kid: 'ABCDE67890', app_secret: appleKey, name: false, email: true } })
     expect(wrapper.find<HTMLTextAreaElement>('#apple-key').element.value).toBe('')
+    wrapper.unmount()
+  })
+})
+
+describe('GitHub setup', () => {
+  async function fill(wrapper: Awaited<ReturnType<typeof open>>['wrapper']) {
+    await wrapper.find('input[value="github"]').setValue(true)
+    await wrapper.find('#social-name').setValue('github')
+    await wrapper.find('#social-client-id').setValue('Iv1.testclientid0000')
+    await wrapper.find('#social-client-secret').setValue('fixture-secret')
+  }
+
+  it('sends the flags and email, never scope, and shows the derived scope', async () => {
+    const { wrapper, calls } = await open()
+    await fill(wrapper)
+    expect(wrapper.find<HTMLInputElement>('#github-effective').element.value).toBe('user:email')
+    expect(wrapper.find<HTMLInputElement>('#github-effective').element.readOnly).toBe(true)
+    await wrapper.find('#github-scope-repo').setValue(true)
+    expect(wrapper.find<HTMLInputElement>('#github-effective').element.value).toBe('user:email repo')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect(calls.find(c => c.method === 'POST')?.body).toEqual({ name: 'github', strategy: 'github', enabled_clients: [], options: { client_id: 'Iv1.testclientid0000', client_secret: 'fixture-secret', email: true, repo: true } })
+    expect(wrapper.find<HTMLInputElement>('#social-client-secret').element.value).toBe('')
+    wrapper.unmount()
+  })
+
+  it('requires the secret and allows an empty scope', async () => {
+    const { wrapper, calls } = await open()
+    await wrapper.find('input[value="github"]').setValue(true)
+    await wrapper.find('#social-name').setValue('github')
+    await wrapper.find('#social-client-id').setValue('Iv1.testclientid0000')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect(wrapper.find('#social-client-secret-error').exists()).toBe(true)
+    await wrapper.find('#social-client-secret').setValue('fixture-secret')
+    await wrapper.find('#github-email').setValue(false)
+    expect(wrapper.find<HTMLInputElement>('#github-effective').element.value).toBe('')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    expect((calls.find(c => c.method === 'POST')?.body as { options: unknown }).options).toEqual({ client_id: 'Iv1.testclientid0000', client_secret: 'fixture-secret', email: false })
+    wrapper.unmount()
+  })
+
+  it('lists the eighteen flags in order, as native keyboard-operable checkboxes', async () => {
+    const { wrapper } = await open()
+    await wrapper.find('input[value="github"]').setValue(true)
+    const boxes = wrapper.findAll<HTMLInputElement>('#github-email, [id^="github-scope-"]')
+    expect(boxes).toHaveLength(19)
+    expect(boxes.slice(1).map(b => b.element.id.replace('github-scope-', ''))).toEqual(githubScopeFlags.map(f => f.option))
+    // Native checkboxes in a label toggle with Space and stay in the tab order.
+    for (const b of boxes) {
+      expect(b.element.type).toBe('checkbox')
+      expect(b.attributes('tabindex')).toBeUndefined()
+      expect(b.element.disabled).toBe(false)
+      expect(b.element.closest('label')?.textContent?.trim()).not.toBe('')
+    }
+    wrapper.unmount()
+  })
+
+  it('keeps the form within a narrow viewport', async () => {
+    const { wrapper } = await open(undefined, { domains: ['login.acme.com'] })
+    await wrapper.find('input[value="github"]').setValue(true)
+    // jsdom has no layout: assert the wrapping classes and the absence of fixed widths.
+    const form = wrapper.find('[data-testid="github-options"]')
+    expect(form.find('fieldset').classes()).toContain('min-w-0')
+    expect(form.findAll('fieldset label.check span').every(s => s.classes().includes('break-all'))).toBe(true)
+    expect(wrapper.find('[data-testid="callbacks"]').classes()).toContain('break-all')
+    expect(wrapper.find('form').html()).not.toMatch(/\bw-(?:[1-9]|\[)|min-w-(?:[1-9]|\[)/)
+    wrapper.unmount()
+  })
+
+  it('shows the OAuth app note and the register-every-URL note with one URL per origin', async () => {
+    const { wrapper } = await open(undefined, { domains: ['login.acme.com'] })
+    await wrapper.find('input[value="github"]').setValue(true)
+    expect(wrapper.find('[data-testid="github-options"]').text()).toContain('GitHub App gets its permissions from its own registration')
+    expect(wrapper.find('[data-testid="github-callbacks"]').text()).toContain('Register every listed URL exactly')
+    expect(wrapper.findAll('[data-testid="callbacks"] code').map(c => c.text())).toEqual(['https://acme.example.test/login/callback', 'https://login.acme.com/login/callback'])
     wrapper.unmount()
   })
 })

@@ -97,9 +97,9 @@ describe('Social connection detail', () => {
 
 describe('Social connection list', () => {
   it('lists only federated connections', async () => {
-    const page = { connections: [connection('con_db'), oauth, connection('con_g', { name: 'goog', strategy: 'google-oauth2' })], start: 0, limit: 100, total: 3 }
+    const page = { connections: [connection('con_db'), oauth, connection('con_g', { name: 'goog', strategy: 'google-oauth2' }), connection('con_gh', { name: 'gh', strategy: 'github' })], start: 0, limit: 100, total: 4 }
     const { wrapper } = await mountAt(List, '/t/acme/social', () => ({ status: 200, body: page }))
-    expect(wrapper.findAll('tbody tr').map((r) => r.text())).toEqual(['provCustom OAuth 2', 'googGoogle'])
+    expect(wrapper.findAll('tbody tr').map((r) => r.text())).toEqual(['provCustom OAuth 2', 'googGoogle', 'ghGitHub'])
     wrapper.unmount()
   })
 })
