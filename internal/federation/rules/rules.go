@@ -128,6 +128,9 @@ type Input struct {
 	RootAttributes string
 	// Authentication is the top-level purpose object; nil means not named.
 	Authentication map[string]any
+	// ConnectedAccounts is the top-level connected_accounts object; nil
+	// means not named. Only GitHub validates it (never active).
+	ConnectedAccounts map[string]any
 	// HasSealedSecret reports that a sealed client secret is already stored.
 	HasSealedSecret bool
 }
@@ -280,7 +283,7 @@ func Parse(in Input) (Settings, []error) {
 	case Google:
 		errs = append(errs, parseGoogle(o, &out)...)
 	case GitHub:
-		errs = append(errs, parseGitHub(o, &out)...)
+		errs = append(errs, parseGitHub(o, in.ConnectedAccounts, &out)...)
 	case OAuth2:
 		errs = append(errs, parseOAuth2(o, &out)...)
 	case OIDC, Okta:

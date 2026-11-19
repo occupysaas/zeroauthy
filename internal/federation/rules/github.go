@@ -45,7 +45,7 @@ func GitHubEmailEnabled(o map[string]any) bool {
 	return !ok || b
 }
 
-func parseGitHub(o map[string]any, out *Settings) []error {
+func parseGitHub(o, connectedAccounts map[string]any, out *Settings) []error {
 	var errs []error
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 	flag := func(k string, def bool) bool {
@@ -65,10 +65,8 @@ func parseGitHub(o map[string]any, out *Settings) []error {
 			fail("options.%s is not supported on github connections", k)
 		}
 	}
-	if v, ok := o["connected_accounts"]; ok {
-		if m, isMap := v.(map[string]any); !isMap || m["active"] == true {
-			fail("options.connected_accounts is not supported on github connections")
-		}
+	if v, ok := connectedAccounts["active"]; ok && v != nil && v != false {
+		fail("connected_accounts.active is not supported on github connections")
 	}
 	if v, ok := o["freeform_scopes"]; ok && v != nil {
 		if list, isList := v.([]any); !isList || len(list) > 0 {

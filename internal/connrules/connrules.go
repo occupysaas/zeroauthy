@@ -125,7 +125,8 @@ func (s *Spec) FederationInput() rules.Input {
 	return rules.Input{
 		Strategy: s.Strategy, Name: s.Name, Options: s.Options.Extra,
 		RootAttributes: s.Options.SetUserRootAttributes, Authentication: s.Authentication,
-		HasSealedSecret: len(s.FederationSecretsSealed) > 0,
+		ConnectedAccounts: s.ConnectedAccounts,
+		HasSealedSecret:   len(s.FederationSecretsSealed) > 0,
 	}
 }
 

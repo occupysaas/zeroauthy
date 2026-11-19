@@ -108,7 +108,6 @@ func TestGitHubRejections(t *testing.T) {
 		"api host":    {"api_host": "x.example"},
 		"enterprise":  {"github_enterprise_url": "https://x.example"},
 		"device flow": {"device_flow": true},
-		"connected":   {"connected_accounts": map[string]any{"active": true}},
 	}
 	for name, o := range bad {
 		if _, errs := Parse(githubInput(o)); len(errs) == 0 {
@@ -133,6 +132,19 @@ func TestGitHubRequiredOptions(t *testing.T) {
 	}
 	in.HasSealedSecret = true
 	if _, errs := Parse(in); len(errs) > 0 {
+		t.Fatal(errs)
+	}
+}
+
+func TestGitHubConnectedAccounts(t *testing.T) {
+	for v, ok := range map[any]bool{true: false, "true": false, 1: false, false: true, nil: true} {
+		in := githubInput(nil)
+		in.ConnectedAccounts = map[string]any{"active": v}
+		if _, errs := Parse(in); (len(errs) == 0) != ok {
+			t.Errorf("active=%v: %v", v, errs)
+		}
+	}
+	if _, errs := Parse(githubInput(nil)); len(errs) > 0 {
 		t.Fatal(errs)
 	}
 }

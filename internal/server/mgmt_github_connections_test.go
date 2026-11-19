@@ -34,6 +34,15 @@ func TestMgmtGitHubConnections(t *testing.T) {
 		t.Fatalf("effective scope not returned: %v", out["options"])
 	}
 	id := out["id"].(string)
+	for _, c := range []struct {
+		active any
+		want   int
+	}{{true, 400}, {"true", 400}, {false, 201}} {
+		rec, _ := e.do("POST", connBase, map[string]any{"name": "gh-ca", "strategy": "github", "connected_accounts": map[string]any{"active": c.active}, "options": options(secret, nil)})
+		if rec.Code != c.want {
+			t.Fatalf("connected_accounts.active=%v: %d %s", c.active, rec.Code, rec.Body)
+		}
+	}
 	if e.stored(id).FederationRevision != 1 {
 		t.Fatalf("revision=%d", e.stored(id).FederationRevision)
 	}
