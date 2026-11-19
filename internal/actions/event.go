@@ -301,9 +301,17 @@ func organizationEvent(o *store.Organization) map[string]any {
 // postLoginEvent builds event for the next Action from the input, the roles
 // snapshot and the effects accumulated so far.
 func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string]any {
+	client := clientEvent(in.Client)
+	if in.Client != nil && in.Client.RefreshToken.Policies != nil {
+		policies := make([]map[string]any, 0, len(in.Client.RefreshToken.Policies))
+		for _, p := range in.Client.RefreshToken.Policies {
+			policies = append(policies, map[string]any{"audience": p.Audience, "scope": strs(p.Scope)})
+		}
+		client["refresh_token"] = map[string]any{"policies": policies}
+	}
 	ev := map[string]any{
 		"user":          userEvent(in.User, &a.eff),
-		"client":        clientEvent(in.Client),
+		"client":        client,
 		"request":       requestEvent(in.Request, in.Tenant.Host, true),
 		"tenant":        tenantEvent(in.Tenant),
 		"authorization": map[string]any{"roles": strs(roleNames)},

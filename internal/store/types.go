@@ -1059,6 +1059,15 @@ type MRRTPolicy struct {
 	Scope    []string
 }
 
+// CloneMRRTPolicies preserves the distinction between null and an empty list.
+func CloneMRRTPolicies(policies []MRRTPolicy) []MRRTPolicy {
+	out := slices.Clone(policies)
+	for i := range out {
+		out[i].Scope = slices.Clone(out[i].Scope)
+	}
+	return out
+}
+
 // RefreshTokenPolicy configures the refresh tokens issued to a client.
 // Field meanings follow Auth0's public application settings.
 type RefreshTokenPolicy struct {

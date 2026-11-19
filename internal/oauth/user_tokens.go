@@ -135,6 +135,8 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
+	// mrrt records the policy and scopes used to sign a multi-resource exchange.
+	mrrt              *mrrtExchange
 	organization      *store.Organization
 	user              *store.User
 	rs                *store.ResourceServer // nil: the token is for /userinfo only
@@ -212,6 +214,13 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, false, oerr
 	}
 	final := ut.effects.ApplyScopes(nil, ut.scopes)
+	if ut.mrrt != nil {
+		final = actions.CeilingOf(final, ut.scopes)
+		ut.mrrt.signedAPI, ut.mrrt.issued, ut.mrrt.frozenRBAC = ut.rs, final, frozen != nil
+		if auth.IncludePermissions {
+			ut.mrrt.permissions = auth.Permissions
+		}
+	}
 	var accessClaims, idClaims map[string]any
 	if ut.effects != nil {
 		// Non-namespaced claims never reach the Management API.
@@ -255,12 +264,22 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, false, serverError()
 	}
 	resp = &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(ut.lifetime / time.Second)}
-	if len(final) > 0 || requestedScopes {
+	if len(final) > 0 || requestedScopes || ut.mrrt != nil {
 		s := strings.Join(final, " ")
 		resp.Scope = &s
 	}
 	offline = slices.Contains(ut.scopes, "offline_access") && slices.Contains(final, "offline_access")
-	if openid {
+	idScopes := ut.scopes
+	issueID := openid
+	if ut.mrrt != nil {
+		issueID = slices.Contains(ut.mrrt.family.Scopes, "openid")
+		if ut.mrrt.audience != ut.mrrt.family.Audience {
+			// The second API's permission names do not describe the user's
+			// original identity grant.
+			idScopes = ut.mrrt.family.Scopes
+		}
+	}
+	if issueID {
 		atHashSource := accessToken
 		if ut.omitAtHash {
 			atHashSource = ""
@@ -276,7 +295,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			}
 		}
 		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
-			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: ut.scopes,
+			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: idScopes,
 			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, MFAAt: mfaAt, AccessToken: atHashSource,
 			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second, CustomClaims: idClaims,
 		})

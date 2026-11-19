@@ -258,6 +258,7 @@ func (c *Client) spec() clientrules.Spec {
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
 		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,
 		RefreshToken: clientrules.RefreshToken{
+			Policies:     c.RefreshToken.Policies,
 			RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType,
 			Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime,
 			IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime,
@@ -274,11 +275,12 @@ func (c *Client) spec() clientrules.Spec {
 // RefreshToken is a client's refresh-token policy. Values follow Auth0's
 // public application settings; empty types take defaults in validate.
 type RefreshToken struct {
-	RotationType      string `yaml:"rotation_type"`   // rotating | non-rotating
-	ExpirationType    string `yaml:"expiration_type"` // expiring | non-expiring
-	Leeway            int    `yaml:"leeway"`
-	TokenLifetime     int    `yaml:"token_lifetime"`
-	IdleTokenLifetime int    `yaml:"idle_token_lifetime"`
+	Policies          []store.MRRTPolicy `yaml:"policies"`
+	RotationType      string             `yaml:"rotation_type"`   // rotating | non-rotating
+	ExpirationType    string             `yaml:"expiration_type"` // expiring | non-expiring
+	Leeway            int                `yaml:"leeway"`
+	TokenLifetime     int                `yaml:"token_lifetime"`
+	IdleTokenLifetime int                `yaml:"idle_token_lifetime"`
 }
 
 type ClientGrant struct {

@@ -126,3 +126,44 @@ func TestClientOrganizationFieldsValidation(t *testing.T) {
 		t.Errorf("normalize bad usage: %v", errs)
 	}
 }
+
+func TestMRRTPolicyRules(t *testing.T) {
+	p := store.MRRTPolicy{Audience: "urn:unregistered", Scope: []string{"unknown"}}
+	max := []store.MRRTPolicy{}
+	for i := 0; i < 10; i++ {
+		max = append(max, store.MRRTPolicy{Audience: string(rune('a' + i)), Scope: []string{}})
+	}
+	for _, tc := range []struct {
+		name      string
+		policies  []store.MRRTPolicy
+		third, ok bool
+	}{
+		{"unset", nil, false, true}, {"unknown", []store.MRRTPolicy{p}, false, true}, {"empty", []store.MRRTPolicy{}, false, false},
+		{"ten", max, false, true}, {"eleven", append(max, p), false, false}, {"duplicate", []store.MRRTPolicy{p, p}, false, false},
+		{"third party", []store.MRRTPolicy{p}, true, false}, {"operator", []store.MRRTPolicy{{Audience: "urn:zeroauthy:management", Scope: []string{}}}, false, false},
+		{"missing scope", []store.MRRTPolicy{{Audience: "api"}}, false, false}, {"empty audience", []store.MRRTPolicy{{Scope: []string{"read"}}}, false, false},
+		{"size limits", []store.MRRTPolicy{{Audience: strings.Repeat("é", 600), Scope: []string{strings.Repeat("é", 280)}}}, false, true},
+		{"long audience", []store.MRRTPolicy{{Audience: strings.Repeat("a", 601), Scope: []string{}}}, false, false},
+		{"long scope", []store.MRRTPolicy{{Audience: "a", Scope: []string{strings.Repeat("s", 281)}}}, false, false},
+		{"empty scope", []store.MRRTPolicy{{Audience: "a", Scope: []string{""}}}, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &store.Client{AppType: store.AppTypeRegularWeb, IsFirstParty: !tc.third, RefreshToken: store.RefreshTokenPolicy{Policies: tc.policies}}
+			if tc.third {
+				c.ThirdPartySecurityMode = store.SecurityModePermissive
+			}
+			s := FromClient(c)
+			errs := Normalize(&s, true)
+			if (len(errs) == 0) != tc.ok {
+				t.Fatalf("errors=%v", errs)
+			}
+			if tc.ok {
+				out := new(store.Client)
+				Apply(out, &s)
+				if !reflect.DeepEqual(out.RefreshToken.Policies, tc.policies) {
+					t.Fatal("policies lost on round-trip")
+				}
+			}
+		})
+	}
+}

@@ -162,6 +162,10 @@ func (h *Handlers) openEffects(ctx context.Context, tenantID, purpose, hash stri
 // others are dropped silently, as policy-filtered scopes are. First-party
 // clients that skip consent are not limited.
 func (h *Handlers) consentedAdditions(ctx context.Context, tenantID string, c *store.Client, userID string, rs *store.ResourceServer, before, target []string) ([]string, *Error) {
+	return h.consentedAdditionsWithStore(ctx, h.Store, tenantID, c, userID, rs, before, target)
+}
+
+func (h *Handlers) consentedAdditionsWithStore(ctx context.Context, st store.Store, tenantID string, c *store.Client, userID string, rs *store.ResourceServer, before, target []string) ([]string, *Error) {
 	var added []string
 	for _, s := range target {
 		if !slices.Contains(before, s) {
@@ -179,7 +183,7 @@ func (h *Handlers) consentedAdditions(ctx context.Context, tenantID string, c *s
 		return actions.CeilingOf(target, before), nil
 	}
 	var granted []string
-	g, err := h.Store.UserGrants().Find(ctx, tenantID, c.ClientID, userID, audience)
+	g, err := st.UserGrants().Find(ctx, tenantID, c.ClientID, userID, audience)
 	switch {
 	case err == nil:
 		granted = g.Scopes

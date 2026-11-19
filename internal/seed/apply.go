@@ -247,6 +247,9 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	for _, c := range in.Clients {
+		if err := clientrules.CheckMRRTManagementAudience(c.RefreshToken.Policies, tenant.ManagementAPIIdentifier(tn, f.baseDomain)); err != nil {
+			return fmt.Errorf("client %q: %w", c.ClientID, err)
+		}
 		if err := applyClient(ctx, st, tn.ID, c, now, w, createOnly); err != nil {
 			return fmt.Errorf("client %q: %w", c.ClientID, err)
 		}
@@ -376,6 +379,11 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	}
 	if in.OrganizationUsage != "" && in.OrganizationUsage != store.OrgUsageDeny && !store.OrganizationsSupported(st) {
 		return store.ErrOrganizationsUnavailable
+	}
+	if in.RefreshToken.Policies != nil {
+		if err := store.CheckRefreshTokensIISupport(ctx, st); err != nil {
+			return err
+		}
 	}
 	capable := store.ClientCredentialsAvailable(ctx, st)
 	if err := tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {

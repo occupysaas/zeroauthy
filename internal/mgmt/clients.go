@@ -265,7 +265,7 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		spec.GrantTypes = clientrules.DefaultGrantTypes(method)
 	}
 	tn := resolved(r)
-	if err := normalize(&spec, tn); err != nil {
+	if err := h.normalize(&spec, tn); err != nil {
 		Fail(w, err)
 		return
 	}
@@ -288,6 +288,11 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		c.TokenEndpointAuthMethod = ""
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		if in.policiesSet {
+			if err := checkMRRTSupport(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		if err := tx.Clients().Create(r.Context(), c); err != nil {
 			return err
 		}
@@ -356,6 +361,11 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if err != nil {
 			return err
 		}
+		if in.policiesSet || spec.RefreshToken.Policies != nil {
+			if err := checkMRRTSupport(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		pkj, err := in.cred.authenticationState(&spec, c.PrivateKeyJWTCredentials != nil)
 		if err != nil {
 			return err
@@ -367,7 +377,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if in.securityModeSet && spec.ThirdPartySecurityMode != c.ThirdPartySecurityMode {
 			return badBody("third_party_security_mode cannot change after creation")
 		}
-		if err := normalize(&spec, tn); err != nil {
+		if err := h.normalize(&spec, tn); err != nil {
 			return err
 		}
 		if in.orgUsageSet && !store.OrganizationsSupported(h.Store) {
@@ -507,7 +517,10 @@ func (h *Handlers) setSecret(c *store.Client, secret string, supplied bool, now 
 // normalize applies clientrules.Normalize. Its problems are 400
 // invalid_body, except that a request whose only problems are organization
 // setting conflicts gets the observed 400 without errorCode (D-0055).
-func normalize(s *clientrules.Spec, tn *store.Tenant) error {
+func (h *Handlers) normalize(s *clientrules.Spec, tn *store.Tenant) error {
+	if err := clientrules.CheckMRRTManagementAudience(s.RefreshToken.Policies, tenant.ManagementAPIIdentifier(tn, h.BaseDomain)); err != nil {
+		return badBody("%v", err)
+	}
 	if errs := clientrules.Normalize(s, tn.PushedAuthorizationRequestsSupported); len(errs) > 0 {
 		msgs := make([]string, len(errs))
 		onlyRules := true
@@ -568,6 +581,13 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		},
 		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests,
 		CreatedAt:                          &created,
+	}
+	if c.RefreshToken.Policies != nil {
+		policies := make([]mgmtapi.RefreshTokenPolicy, len(c.RefreshToken.Policies))
+		for i, p := range c.RefreshToken.Policies {
+			policies[i] = mgmtapi.RefreshTokenPolicy(p)
+		}
+		v.RefreshToken.Policies = &policies
 	}
 	if c.ThirdPartySecurityMode != "" {
 		m := mgmtapi.ClientThirdPartySecurityMode(c.ThirdPartySecurityMode)
@@ -692,6 +712,7 @@ var ignoredClientFields = []string{
 
 // clientBody is what readClientBody learned beyond the Spec.
 type clientBody struct {
+	policiesSet     bool
 	secret          string
 	secretSet       bool
 	grantTypesSet   bool
@@ -801,7 +822,7 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 		case "jwt_configuration":
 			err = readJWTConfiguration(raw, s)
 		case "refresh_token":
-			err = readRefreshToken(raw, &s.RefreshToken)
+			out.policiesSet, err = readRefreshToken(raw, &s.RefreshToken)
 		default:
 			if slices.Contains(ignoredClientFields, k) {
 				continue
@@ -835,18 +856,28 @@ func readJWTConfiguration(raw json.RawMessage, s *clientrules.Spec) error {
 
 // readRefreshToken merges the given members into rt. infinite_token_lifetime
 // sets the expiration type when expiration_type is absent.
-func readRefreshToken(raw json.RawMessage, rt *clientrules.RefreshToken) error {
+func readRefreshToken(raw json.RawMessage, rt *clientrules.RefreshToken) (bool, error) {
 	var v struct {
-		RotationType              *string `json:"rotation_type"`
-		ExpirationType            *string `json:"expiration_type"`
-		Leeway                    *int    `json:"leeway"`
-		TokenLifetime             *int    `json:"token_lifetime"`
-		IdleTokenLifetime         *int    `json:"idle_token_lifetime"`
-		InfiniteTokenLifetime     *bool   `json:"infinite_token_lifetime"`
-		InfiniteIdleTokenLifetime *bool   `json:"infinite_idle_token_lifetime"`
+		Policies                  json.RawMessage `json:"policies"`
+		RotationType              *string         `json:"rotation_type"`
+		ExpirationType            *string         `json:"expiration_type"`
+		Leeway                    *int            `json:"leeway"`
+		TokenLifetime             *int            `json:"token_lifetime"`
+		IdleTokenLifetime         *int            `json:"idle_token_lifetime"`
+		InfiniteTokenLifetime     *bool           `json:"infinite_token_lifetime"`
+		InfiniteIdleTokenLifetime *bool           `json:"infinite_idle_token_lifetime"`
 	}
 	if err := decodeStrict(raw, &v); err != nil {
-		return err
+		return false, err
+	}
+	if v.Policies != nil {
+		var policies []store.MRRTPolicy
+		if !isNull(v.Policies) {
+			if err := decodeStrict(v.Policies, &policies); err != nil {
+				return false, err
+			}
+		}
+		rt.Policies = policies
 	}
 	if v.RotationType != nil {
 		rt.RotationType = *v.RotationType
@@ -868,7 +899,7 @@ func readRefreshToken(raw json.RawMessage, rt *clientrules.RefreshToken) error {
 	if v.IdleTokenLifetime != nil {
 		rt.IdleTokenLifetime = *v.IdleTokenLifetime
 	}
-	return nil
+	return v.Policies != nil, nil
 }
 
 func isNull(raw json.RawMessage) bool { return string(bytes.TrimSpace(raw)) == "null" }
@@ -926,4 +957,12 @@ func (h *Handlers) filterMobile(ctx context.Context, body map[string]json.RawMes
 		delete(body, "mobile")
 	}
 	return nil
+}
+
+func checkMRRTSupport(ctx context.Context, st store.Store) error {
+	err := store.CheckRefreshTokensIISupport(ctx, st)
+	if errors.Is(err, store.ErrRefreshTokensIIUnavailable) && !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+		return badBody("refresh token policies require storage support")
+	}
+	return err
 }

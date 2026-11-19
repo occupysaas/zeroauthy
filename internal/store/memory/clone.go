@@ -15,10 +15,7 @@ func cloneTenant(t *store.Tenant) *store.Tenant { return t.Clone() }
 func cloneClient(c *store.Client) *store.Client {
 	out := *c
 	out.TokenQuota = cloneValue(c.TokenQuota)
-	out.RefreshToken.Policies = slices.Clone(c.RefreshToken.Policies)
-	for i := range out.RefreshToken.Policies {
-		out.RefreshToken.Policies[i].Scope = slices.Clone(c.RefreshToken.Policies[i].Scope)
-	}
+	out.RefreshToken.Policies = store.CloneMRRTPolicies(c.RefreshToken.Policies)
 	out.Secrets = make([]store.ClientSecret, len(c.Secrets))
 	for i, sec := range c.Secrets {
 		out.Secrets[i] = sec

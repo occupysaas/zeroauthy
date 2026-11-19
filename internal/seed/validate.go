@@ -108,6 +108,11 @@ func (f *File) CheckManagementAPI(baseDomain string) error {
 				errs = append(errs, fmt.Errorf("seed: tenant %q: resource server: %w", t.Name, err))
 			}
 		}
+		for _, c := range t.Clients {
+			if err := clientrules.CheckMRRTManagementAudience(c.RefreshToken.Policies, id); err != nil {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: client %q: %w", t.Name, c.ClientID, err))
+			}
+		}
 		for _, aud := range t.mgmtAudiences {
 			if aud != id {
 				errs = append(errs, fmt.Errorf("seed: tenant %q: client grant audience %q is not a defined resource server or the tenant's Management API (%q)", t.Name, aud, id))

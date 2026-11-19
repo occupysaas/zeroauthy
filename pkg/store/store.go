@@ -326,6 +326,7 @@ const (
 )
 
 var ErrProtectionUnimplemented = store.ErrProtectionUnimplemented
+var CloneMRRTPolicies = store.CloneMRRTPolicies
 var CloneSettings = store.CloneSettings
 
 // ValidateProtectionSecrets rejects accidental plaintext CAPTCHA persistence.

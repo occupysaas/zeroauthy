@@ -100,6 +100,7 @@ type Spec struct {
 
 // RefreshToken is a client's refresh-token policy in Auth0's terms.
 type RefreshToken struct {
+	Policies          []store.MRRTPolicy
 	RotationType      string // Rotating | NonRotating
 	ExpirationType    string // Expiring | NonExpiring
 	Leeway            int
@@ -267,6 +268,9 @@ func Normalize(s *Spec, parSupported bool) []error {
 	}
 
 	rt := &s.RefreshToken
+	if err := validateMRRT(rt.Policies, firstParty); err != nil {
+		errs = append(errs, err)
+	}
 	if strict && store.AppType(s.AppType) == store.AppTypeNative && rt.RotationType == "" {
 		rt.RotationType = Rotating // strict default for native apps
 	}
@@ -390,6 +394,7 @@ func Apply(c *store.Client, s *Spec) {
 	c.WebOrigins, c.AllowedOrigins = slices.Clone(s.WebOrigins), slices.Clone(s.AllowedOrigins)
 	c.IDTokenLifetime = s.IDTokenLifetime
 	c.RefreshToken = store.RefreshTokenPolicy{
+		Policies:          store.CloneMRRTPolicies(s.RefreshToken.Policies),
 		Rotating:          s.RefreshToken.RotationType == Rotating,
 		Leeway:            s.RefreshToken.Leeway,
 		Expiring:          s.RefreshToken.ExpirationType == Expiring,
@@ -422,6 +427,7 @@ func FromClient(c *store.Client) Spec {
 		WebOrigins: slices.Clone(c.WebOrigins), AllowedOrigins: slices.Clone(c.AllowedOrigins),
 		IDTokenLifetime: c.IDTokenLifetime,
 		RefreshToken: RefreshToken{
+			Policies:     store.CloneMRRTPolicies(c.RefreshToken.Policies),
 			RotationType: NonRotating, ExpirationType: NonExpiring,
 			Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime,
 			IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime,
