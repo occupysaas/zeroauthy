@@ -29,6 +29,14 @@ func scanUserGrant(row scanner) (*store.UserGrant, error) {
 	return &g, nil
 }
 
+func (r userGrants) Get(ctx context.Context, tenantID, id string) (*store.UserGrant, error) {
+	g, err := scanUserGrant(r.s.queryRow(ctx, "SELECT "+userGrantCols+" FROM user_grants WHERE tenant_id = ? AND id = ?", tenantID, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return g, err
+}
+
 func (r userGrants) Find(ctx context.Context, tenantID, clientID, userID, audience string) (*store.UserGrant, error) {
 	g, err := scanUserGrant(r.s.queryRow(ctx, `SELECT `+userGrantCols+` FROM user_grants
  WHERE tenant_id = ? AND client_id = ? AND user_id = ? AND audience = ?`, tenantID, clientID, userID, audience))

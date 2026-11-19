@@ -568,6 +568,7 @@ service StoreService {
   // error is set.
   rpc JobsReadFile(ScopedKey) returns (stream JobFileChunk);  // key = job id
   rpc JobsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+  rpc RefreshIIUserGrantsGet(ScopedKey) returns (UserGrantResult);
 }
 
 // ---- errors and generic results ----

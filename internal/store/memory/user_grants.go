@@ -10,6 +10,16 @@ import (
 
 type userGrants struct{ s *Store }
 
+func (r userGrants) Get(_ context.Context, tenantID, id string) (*store.UserGrant, error) {
+	r.s.readLock()
+	defer r.s.readUnlock()
+	g, ok := r.s.userGrants[key{tenantID, id}]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	return cloneUserGrant(g), nil
+}
+
 // find is called with the lock held.
 func (r userGrants) find(tenantID, clientID, userID, audience string) (*store.UserGrant, bool) {
 	for k, g := range r.s.userGrants {

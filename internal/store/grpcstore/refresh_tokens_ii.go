@@ -418,3 +418,28 @@ func (s *Server) refreshTokensListByUserPage(ctx context.Context, q *pb.RefreshI
 	}, refreshTokenToPB)
 	return &pb.RefreshTokenPage{Error: e, Next: cursor, Values: vs}, err
 }
+
+func (r clientUserGrants) Get(ctx context.Context, tid, id string) (*store.UserGrant, error) {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return nil, err
+	}
+	res, err := r.c.rpc.RefreshIIUserGrantsGet(ctx, &pb.ScopedKey{TxId: r.c.txID, TenantId: tid, Key: id})
+	if err = r.c.refreshResult("RefreshIIUserGrantsGet", res, err); err != nil {
+		return nil, err
+	}
+	if res.GetValue() == nil {
+		return nil, errMissingValue
+	}
+	return userGrantFromPB(res.Value)
+}
+
+func (s *Server) RefreshIIUserGrantsGet(ctx context.Context, q *pb.ScopedKey) (*pb.UserGrantResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshIIUserGrantsGet)
+}
+
+func (s *Server) refreshIIUserGrantsGet(ctx context.Context, q *pb.ScopedKey) (*pb.UserGrantResult, error) {
+	v, e, err := one(s, q.TxId, func(st store.Store) (*store.UserGrant, error) {
+		return st.UserGrants().Get(ctx, q.TenantId, q.Key)
+	}, userGrantToPB)
+	return &pb.UserGrantResult{Value: v, Error: e}, err
+}

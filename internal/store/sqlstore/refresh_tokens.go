@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -350,6 +351,13 @@ func (r refreshTokens) revokeWhere(ctx context.Context, tid string, at time.Time
 func (r refreshTokens) RevokeByUserClient(ctx context.Context, tid, user, client, audience string, at time.Time) (int, error) {
 	if audience == "" {
 		return r.revokeWhere(ctx, tid, at, "user_id=? AND client_id=?", user, client)
+	}
+	if origin, ok := strings.CutSuffix(audience, "/userinfo"); ok && strings.HasPrefix(origin, "https://") && len(origin) > len("https://") {
+		// An originless legacy token belongs to the pinned canonical host.
+		return r.revokeWhere(ctx, tid, at, `user_id=? AND client_id=? AND (audience=? OR
+			(audience='' AND (origin=? OR (origin='' AND EXISTS
+			(SELECT 1 FROM tenants WHERE id=? AND canonical_host=?)))))`,
+			user, client, audience, origin, tid, strings.TrimPrefix(origin, "https://"))
 	}
 	return r.revokeWhere(ctx, tid, at, "user_id=? AND client_id=? AND audience=?", user, client, audience)
 }

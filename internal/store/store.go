@@ -191,6 +191,8 @@ type ClientGrants interface {
 // UserGrants stores consent, keyed by (TenantID, ID). (ClientID, UserID,
 // Audience) is unique within a tenant.
 type UserGrants interface {
+	// Get returns a grant by its tenant-scoped ID, or ErrNotFound.
+	Get(ctx context.Context, tenantID, id string) (*UserGrant, error)
 	// Find returns ErrNotFound when the user has no grant for the client
 	// and audience.
 	Find(ctx context.Context, tenantID, clientID, userID, audience string) (*UserGrant, error)
@@ -473,8 +475,11 @@ type RefreshTokens interface {
 	ConvertNonRotating(ctx context.Context, tid, presentedID string, next *RefreshToken) error
 	// Rotated presentations use Rotate's leeway and family reuse semantics.
 	ConvertRotating(ctx context.Context, tid, presentedID string, next *RefreshToken, at time.Time, leeway time.Duration) error
-	// An empty audience revokes every audience of this user and client.
+	// RevokeByUserClient covers both offline and online tokens. An empty
+	// audience selects every audience. A UserInfo grant also matches tokens
+	// with an empty audience whose issuing origin owns that UserInfo URL.
 	RevokeByUserClient(ctx context.Context, tid, userID, clientID, audience string, at time.Time) (int, error)
+	// RevokeBySession covers both offline and online tokens.
 	RevokeBySession(ctx context.Context, tid, sessionID string, at time.Time) (int, error)
 	// ListByUserPage lists unrevoked, unrotated offline tokens by ascending
 	// ID, strictly after from. A nonempty next is the last returned ID when

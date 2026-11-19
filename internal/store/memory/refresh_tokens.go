@@ -273,7 +273,17 @@ func (r refreshTokens) RevokeByUserClient(_ context.Context, tid, userID, client
 	r.s.lock()
 	defer r.s.unlock()
 	return r.revokeMatching(tid, at, func(t *store.RefreshToken) bool {
-		return t.UserID == userID && t.ClientID == clientID && (audience == "" || t.Audience == audience)
+		if t.UserID != userID || t.ClientID != clientID {
+			return false
+		}
+		if audience == "" || t.Audience == audience {
+			return true
+		}
+		origin := t.Origin
+		if tn := r.s.tenants[tid]; origin == "" && tn != nil && tn.CanonicalHost != "" {
+			origin = "https://" + tn.CanonicalHost
+		}
+		return t.Audience == "" && origin != "" && audience == origin+"/userinfo"
 	}), nil
 }
 func (r refreshTokens) RevokeBySession(_ context.Context, tid, sessionID string, at time.Time) (int, error) {

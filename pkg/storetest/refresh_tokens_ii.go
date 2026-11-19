@@ -17,6 +17,7 @@ func familyToken(id, family string, rotating bool) *store.RefreshToken {
 }
 
 func testRefreshTokensII(t *testing.T, newStore Factory) {
+	t.Run("GrantCascade", func(t *testing.T) { testGrantCascade(t, newStore) })
 	t.Run("CheckRotation", func(t *testing.T) { testCheckRotation(t, newStore) })
 	t.Run("ConversionFreshFamily", func(t *testing.T) { testConversionFreshFamily(t, newStore) })
 	ctx := context.Background()
@@ -386,5 +387,44 @@ func testCheckRotation(t *testing.T, newStore Factory) {
 			_, err = repo.Get(ctx, "ten_a", "rejected")
 			mustErrIs(t, err, store.ErrNotFound)
 		})
+	}
+}
+
+func testGrantCascade(t *testing.T, newStore Factory) {
+	ctx := t.Context()
+	st := open(t, newStore)
+	tn := newTenant("a")
+	tn.CanonicalHost = "a.example.test"
+	mustNoErr(t, st.Tenants().Create(ctx, tn))
+	const audience = "https://a.example.test/userinfo"
+	grant := newUserGrant(tn.ID, "g", "spa", "auth0|u1", audience, "openid")
+	got, err := st.UserGrants().Upsert(ctx, grant)
+	mustNoErr(t, err)
+	found, err := st.UserGrants().Get(ctx, tn.ID, got.ID)
+	mustNoErr(t, err)
+	mustEqual(t, found, got)
+	_, err = st.UserGrants().Get(ctx, "ten_b", got.ID)
+	mustErrIs(t, err, store.ErrNotFound)
+	for _, tc := range []struct{ id, audience, origin string }{
+		{"legacy", "", ""}, {"canonical", "", "https://a.example.test"}, {"alias", "", "https://alias.test"},
+		{"api", "https://api.test", "https://a.example.test"}, {"explicit", audience, "https://a.example.test"},
+	} {
+		rt := familyToken(tc.id, tc.id, false)
+		rt.Audience, rt.Origin = tc.audience, tc.origin
+		mustNoErr(t, st.RefreshTokens().Create(ctx, rt))
+	}
+	mustNoErr(t, st.WithTx(ctx, func(tx store.Store) error {
+		g, err := tx.UserGrants().Get(ctx, tn.ID, got.ID)
+		if err != nil {
+			return err
+		}
+		n, err := tx.RefreshTokens().RevokeByUserClient(ctx, tn.ID, g.UserID, g.ClientID, g.Audience, ts(time.Minute))
+		mustEqual(t, n, 3)
+		return err
+	}))
+	for id, want := range map[string]bool{"legacy": true, "canonical": true, "explicit": true, "alias": false, "api": false} {
+		rt, err := st.RefreshTokens().Get(ctx, tn.ID, id)
+		mustNoErr(t, err)
+		mustEqual(t, rt.RevokedAt != nil, want)
 	}
 }

@@ -467,6 +467,7 @@ const (
 	StoreService_JobsAppendFile_FullMethodName                                = "/zeroauthy.store.v1.StoreService/JobsAppendFile"
 	StoreService_JobsReadFile_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/JobsReadFile"
 	StoreService_JobsDeleteExpired_FullMethodName                             = "/zeroauthy.store.v1.StoreService/JobsDeleteExpired"
+	StoreService_RefreshIIUserGrantsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshIIUserGrantsGet"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -1012,6 +1013,7 @@ type StoreServiceClient interface {
 	// error is set.
 	JobsReadFile(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (grpc.ServerStreamingClient[JobFileChunk], error)
 	JobsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	RefreshIIUserGrantsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantResult, error)
 }
 
 type storeServiceClient struct {
@@ -5523,6 +5525,16 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshIIUserGrantsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserGrantResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIUserGrantsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -6066,6 +6078,7 @@ type StoreServiceServer interface {
 	// error is set.
 	JobsReadFile(*ScopedKey, grpc.ServerStreamingServer[JobFileChunk]) error
 	JobsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	RefreshIIUserGrantsGet(context.Context, *ScopedKey) (*UserGrantResult, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -7419,6 +7432,9 @@ func (UnimplementedStoreServiceServer) JobsReadFile(*ScopedKey, grpc.ServerStrea
 }
 func (UnimplementedStoreServiceServer) JobsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method JobsDeleteExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIUserGrantsGet(context.Context, *ScopedKey) (*UserGrantResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIUserGrantsGet not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -15480,6 +15496,24 @@ func _StoreService_JobsDeleteExpired_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshIIUserGrantsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIUserGrantsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIUserGrantsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIUserGrantsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -17266,6 +17300,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JobsDeleteExpired",
 			Handler:    _StoreService_JobsDeleteExpired_Handler,
+		},
+		{
+			MethodName: "RefreshIIUserGrantsGet",
+			Handler:    _StoreService_RefreshIIUserGrantsGet_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
