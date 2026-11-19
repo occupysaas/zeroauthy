@@ -46,6 +46,7 @@ const (
 	KeyErrLogoutURL                  = "zeroauthy.error.logout-url-not-allowed"
 	KeyErrSocialFailed               = "zeroauthy.error.social-failed"
 	KeyErrSocialDenied               = "zeroauthy.error.social-denied"
+	KeyErrSocialEmailRequired        = "zeroauthy.error.social-email-required"
 	KeySocialButton                  = "zeroauthy.login.social-button"
 	KeySocialSeparator               = "zeroauthy.login.social-separator"
 	KeyEmailResetSubject             = "zeroauthy.email-reset-password.subject"
