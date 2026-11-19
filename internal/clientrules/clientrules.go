@@ -70,7 +70,8 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // Spec is a client's settings. Empty strings and nil pointers mean "the
 // default", which Normalize fills in.
 type Spec struct {
-	NativeSocialLogin map[string]bool
+	RequireProofOfPossession bool
+	NativeSocialLogin        map[string]bool
 	// Mobile configures native app associations.
 	Mobile                  *store.ClientMobile
 	InitiateLoginURI        string
@@ -403,6 +404,7 @@ func Apply(c *store.Client, s *Spec) {
 	}
 	c.IsFirstParty, c.ThirdPartySecurityMode = *s.IsFirstParty, s.ThirdPartySecurityMode
 	c.RedirectionPolicy = s.RedirectionPolicy
+	c.RequireProofOfPossession = s.RequireProofOfPossession
 	c.RequirePushedAuthorizationRequests = s.RequirePushedAuthorizationRequests
 	c.OrganizationUsage, c.OrganizationRequireBehavior = s.OrganizationUsage, s.OrganizationRequireBehavior
 	c.OrganizationDiscoveryMethods = slices.Clone(s.OrganizationDiscoveryMethods)
@@ -434,10 +436,10 @@ func FromClient(c *store.Client) Spec {
 		},
 		IsFirstParty: &firstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
 		RedirectionPolicy:                  c.RedirectionPolicy,
-		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests,
-		OrganizationUsage:                  c.OrganizationUsage,
-		OrganizationRequireBehavior:        c.OrganizationRequireBehavior,
-		OrganizationDiscoveryMethods:       slices.Clone(c.OrganizationDiscoveryMethods),
+		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: c.RequireProofOfPossession,
+		OrganizationUsage:            c.OrganizationUsage,
+		OrganizationRequireBehavior:  c.OrganizationRequireBehavior,
+		OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 	}
 	if c.RefreshToken.Rotating {
 		s.RefreshToken.RotationType = Rotating

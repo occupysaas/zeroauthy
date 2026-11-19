@@ -349,7 +349,13 @@ Bound access tokens carry authenticated `cnf:{jkt:...}` and responses use
 token is bound. Existing Action claim restrictions protect `cnf`. Bind the
 refresh token's new `DPoPJKT` field at issuance and preserve it across
 rotation, conversion and MRRT. Wrong/missing proof cannot revoke, convert
-or otherwise mutate a legitimate family. Support `dpop_jkt` on authorize,
+or otherwise mutate a legitimate family. This includes explicit
+`/oauth/revoke` for a bound refresh token: check the matching proof after
+the existing owner/origin checks and before any family, grant or session
+mutation, including expired presentations. Unknown/cross-origin values keep
+HTTP 200; the pre-existing wrong-client `invalid_grant` response is unchanged.
+A valid owned proof may receive the authorization-server nonce challenge.
+This interpretation was confirmed by the controller on 2026-11-19. Support `dpop_jkt` on authorize,
 PAR and signed requests. PAR also accepts a `DPoP` header. Validate its
 proof for the PAR endpoint under RFC 9449 §4.3 and derive the binding from
 the verified public key. When both the effective `dpop_jkt` parameter and

@@ -21627,9 +21627,8 @@ components:
           nullable: true
         dpop_strict_refresh_token_binding:
           type: boolean
-          default: false
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          default: true
+          description: Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
           nullable: true
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: boolean
@@ -22215,9 +22214,8 @@ components:
           nullable: true
         dpop_strict_refresh_token_binding:
           type: boolean
-          default: false
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          default: true
+          description: Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
           nullable: true
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: boolean
@@ -22305,6 +22303,16 @@ components:
         secret_encoded:
           type: boolean
           description: Accepted and ignored (HS256 is not offered).
+    DPoPPolicy:
+      type: object
+      nullable: true
+      additionalProperties: false
+      required: [mechanism, required]
+      x-source: [https://auth0.com/docs/secure/sender-constraining/configure-sender-constraining]
+      properties:
+        mechanism: {type: string, enum: [none, dpop]}
+        required: {type: boolean}
+        required_for: {type: string, enum: [all_clients, public_clients], default: all_clients}
     RefreshTokenSettings:
       type: object
       description: The refresh tokens the application receives.
@@ -22461,6 +22469,7 @@ components:
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: [boolean, "null"]
           description: Overrides the tenant's setting; null inherits it.
+        require_proof_of_possession: {type: boolean, default: false}
         require_pushed_authorization_requests:
           type: boolean
           description: Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
@@ -22585,6 +22594,7 @@ components:
         token_quota: {$ref: "#/components/schemas/IITokenQuota"}
         redirection_policy: {type: string, enum: [open_redirect_protection, allow_always]}
         skip_non_verifiable_callback_uri_confirmation_prompt: {type: boolean}
+        require_proof_of_possession: {type: boolean, default: false}
         require_pushed_authorization_requests: {type: boolean}
         organization_usage: {type: string, enum: [deny, allow, require], description: Left out when unset (deny).}
         organization_require_behavior: {type: string, enum: [no_prompt, pre_login_prompt, post_login_prompt], description: Left out when unset (no_prompt).}
@@ -22800,7 +22810,7 @@ components:
           enum: [access_token, access_token_authz, rfc9068_profile, rfc9068_profile_authz]
           description: Access-token profile; defaults to access_token.
         consent_policy: {description: "Only null is accepted (transactional authorization is not supported)."}
-        proof_of_possession: {description: "Only null is accepted (mTLS and DPoP are not supported)."}
+        proof_of_possession: {$ref: "#/components/schemas/DPoPPolicy"}
         authorization_details: {description: "Only null or an empty list is accepted (rich authorization requests are not supported)."}
         token_encryption: {description: "Only null is accepted (token encryption is not supported)."}
     ResourceServerCreate:
@@ -22847,6 +22857,7 @@ components:
         signing_secret: {type: string, description: "HS256 only; returned on read (C16)."}
         token_lifetime: {type: integer}
         token_lifetime_for_web: {type: integer}
+        proof_of_possession: {$ref: "#/components/schemas/DPoPPolicy"}
         allow_offline_access: {type: boolean}
         allow_online_access: {type: boolean}
         allow_online_access_with_ephemeral_sessions: {type: boolean}

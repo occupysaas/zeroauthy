@@ -150,6 +150,11 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		if rs.ProofOfPossession != nil {
+			if e := checkMRRTSupport(r.Context(), tx); e != nil {
+				return e
+			}
+		}
 		if _, err := tx.ResourceServers().GetByIdentifier(r.Context(), tn.ID, rs.Identifier); err == nil {
 			return errResourceServerConflict
 		} else if !errors.Is(err, store.ErrNotFound) {
@@ -199,6 +204,11 @@ func (h *Handlers) UpdateResourceServer(w http.ResponseWriter, r *http.Request, 
 		in, err := readResourceServerBody(body, &spec, false)
 		if err != nil {
 			return err
+		}
+		if spec.ProofOfPossession != nil || body["proof_of_possession"] != nil {
+			if e := checkMRRTSupport(r.Context(), tx); e != nil {
+				return e
+			}
 		}
 		if err := normalizeResourceServer(&spec); err != nil {
 			return err
@@ -336,6 +346,9 @@ func removedScopes(before, after []store.Scope) []string {
 //     access (the console refreshes with it), skipped consent and both
 //     policies (machine clients must never get operator tokens).
 func checkSystemUpdate(tn *store.Tenant, rs *store.ResourceServer, spec *apirules.Spec, in resourceServerBody) error {
+	if spec.ProofOfPossession != nil {
+		return badBody("proof_of_possession: system APIs remain Bearer-only")
+	}
 	if spec.EnforcePolicies || spec.TokenDialect != "access_token" {
 		return badBody("RBAC settings cannot change for system APIs")
 	}
@@ -426,6 +439,10 @@ func (h *Handlers) resourceServerView(rs *store.ResourceServer) (mgmtapi.Resourc
 		TokenLifetimeForWeb:                       cmp.Or(rs.TokenLifetimeForWeb, apirules.DefaultTokenLifetimeForWeb),
 		EnforcePolicies:                           rs.EnforcePolicies,
 		TokenDialect:                              mgmtapi.ResourceServerTokenDialect(cmp.Or(rs.TokenDialect, "access_token")),
+	}
+	if rs.ProofOfPossession != nil {
+		forClients := mgmtapi.DPoPPolicyRequiredFor(rs.ProofOfPossession.RequiredFor)
+		v.ProofOfPossession = &mgmtapi.DPoPPolicy{Mechanism: mgmtapi.DPoPPolicyMechanism(rs.ProofOfPossession.Mechanism), Required: rs.ProofOfPossession.Required, RequiredFor: &forClients}
 	}
 	user, client := rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client
 	if user == "" {
@@ -520,7 +537,19 @@ func readResourceServerBody(body map[string]json.RawMessage, s *apirules.Spec, c
 			err = decodeStrict(raw, &s.EnforcePolicies)
 		case "token_dialect":
 			err = decodeString(raw, &s.TokenDialect)
-		case "consent_policy", "proof_of_possession", "token_encryption":
+		case "proof_of_possession":
+			s.ProofOfPossession = nil
+			if !isNull(raw) {
+				var v store.ProofOfPossession
+				var fields map[string]json.RawMessage
+				if json.Unmarshal(raw, &fields) != nil || fields["required"] == nil || isNull(fields["required"]) {
+					err = errors.New("mechanism and required must be present")
+				} else {
+					err = decodeStrict(raw, &v)
+				}
+				s.ProofOfPossession = &v
+			}
+		case "consent_policy", "token_encryption":
 			if !isNull(raw) {
 				err = errors.New("is not supported; only null is accepted")
 			}

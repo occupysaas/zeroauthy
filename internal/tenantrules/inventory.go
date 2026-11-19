@@ -724,7 +724,7 @@ const inventory = `{
         "boolean",
         "null"
       ],
-      "default": false
+      "default": true
     },
     "skip_non_verifiable_callback_uri_confirmation_prompt": {
       "type": [

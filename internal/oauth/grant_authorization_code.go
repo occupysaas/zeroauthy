@@ -128,6 +128,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			expiresAt = now.UTC().Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+			dpopJKT:        refreshProof(ctx, res, rs),
 			organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID,
 			origin:   res.Origin(),
 			familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID,

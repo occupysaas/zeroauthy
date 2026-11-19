@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/zeroauthy/zeroauthy/internal/claims"
+	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -26,7 +27,16 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "server_error", "internal error")
 		return
 	}
+	scheme, headerToken, headerOK := strings.Cut(r.Header.Get("Authorization"), " ")
+	proofScheme := headerOK && strings.EqualFold(scheme, "DPoP")
 	raw, ok, err := accessToken(w, r)
+	if proofScheme {
+		if len(r.Header.Values("Authorization")) != 1 || strings.TrimSpace(headerToken) == "" || r.PostForm.Has("access_token") {
+			invalidToken(w)
+			return
+		}
+		raw, ok = strings.TrimSpace(headerToken), true
+	}
 	if errors.Is(err, errBodyTooLarge) {
 		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "payload_too_large", "the request body exceeds 64 KB")
 		return
@@ -55,6 +65,9 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 	}
 	var std jwt.Claims
 	var extra struct {
+		Confirmation *struct {
+			JKT string `json:"jkt"`
+		} `json:"cnf"`
 		Scope    string `json:"scope"`
 		OrgID    string `json:"org_id"`
 		OrgName  string `json:"org_name"`
@@ -82,6 +95,28 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 	}, 0); err != nil {
 		invalidToken(w)
 		return
+	}
+	if extra.Confirmation != nil || proofScheme {
+		if extra.Confirmation == nil || extra.Confirmation.JKT == "" || !proofScheme || h.DPoP == nil {
+			invalidToken(w)
+			return
+		}
+		proof, failure := h.DPoP.Verify(ctx, r, res, dpop.UserInfo, true, raw, extra.Confirmation.JKT)
+		if failure != nil {
+			if failure.Internal {
+				httpx.WriteError(w, 500, "server_error", "proof verification unavailable")
+				return
+			}
+			w.Header().Set("WWW-Authenticate", `DPoP error="`+failure.Code+`"`)
+			if failure.Nonce != "" {
+				w.Header().Set("DPoP-Nonce", failure.Nonce)
+			}
+			httpx.WriteError(w, 401, failure.Code, "proof could not be accepted")
+			return
+		}
+		if proof.Nonce != "" {
+			w.Header().Set("DPoP-Nonce", proof.Nonce)
+		}
 	}
 	user, err := h.Store.Users().Get(ctx, res.Tenant.ID, std.Subject)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && user.Blocked) {

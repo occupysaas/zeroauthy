@@ -84,6 +84,9 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	if grantType != GrantTokenExchange && !slices.Contains(client.GrantTypes, grantType) {
 		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for this client", grantType))
 	}
+	if e := h.verifyDPoP(w, r, res, client, form); e != nil {
+		return nil, e
+	}
 	// A require client cannot hold these grants (D-0055); this guards
 	// clients stored before that rule.
 	if client.OrganizationUsage == store.OrgUsageRequire && slices.Contains(orgLessGrants, grantType) {

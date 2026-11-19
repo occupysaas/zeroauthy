@@ -237,9 +237,9 @@ type Scope struct {
 
 // ProofOfPossession configures sender constraints for an API.
 type ProofOfPossession struct {
-	Mechanism   string
-	Required    bool
-	RequiredFor string
+	Mechanism   string `json:"mechanism" yaml:"mechanism"`
+	Required    bool   `json:"required" yaml:"required"`
+	RequiredFor string `json:"required_for,omitempty" yaml:"required_for"`
 }
 
 // ResourceServer is an API that access tokens are issued for. Identifier

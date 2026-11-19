@@ -89,6 +89,9 @@ func (h *Handlers) mintCheckedTx(ctx context.Context, tenantID, userID string, v
 				return err
 			}
 		}
+		if e := checkProofMint(ctx, tx, tenantID); e != nil {
+			return e
+		}
 		u, err := tx.Users().GetForUpdate(ctx, tenantID, userID)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserChanged
@@ -247,13 +250,21 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			idClaims[k] = v
 		}
 	}
+	jkt, proofErr := accessProof(ctx, c, ut.rs)
+	if proofErr != nil {
+		return nil, false, proofErr
+	}
+	if len(operator) > 0 && jkt != "" {
+		return nil, false, invalidRequest("sender constraints are unavailable for operator tokens")
+	}
+	recordProofMint(ctx, c, ut.rs, jkt)
 	signingAlg, signingSecret, err := h.apiSigning(ut.rs)
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, false, serverError()
 	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
-		SigningAlg: signingAlg, SigningSecret: signingSecret,
+		SigningAlg: signingAlg, SigningSecret: signingSecret, DPoPJKT: jkt,
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
 		ClientID: c.ClientID, Scopes: final, Lifetime: ut.lifetime, GrantType: ut.grantType,
 		Operator: operator, TokenDialect: dialect, Permissions: auth.Permissions, IncludePermissions: auth.IncludePermissions,
@@ -264,6 +275,9 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, false, serverError()
 	}
 	resp = &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(ut.lifetime / time.Second)}
+	if jkt != "" {
+		resp.TokenType = "DPoP"
+	}
 	if len(final) > 0 || requestedScopes || ut.mrrt != nil {
 		s := strings.Join(final, " ")
 		resp.Scope = &s

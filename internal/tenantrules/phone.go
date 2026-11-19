@@ -95,6 +95,9 @@ func ApplyNewTenantDefaults(t *store.Tenant) {
 	if t.SettingsExtra == nil {
 		t.SettingsExtra = map[string]any{}
 	}
+	if _, ok := t.SettingsExtra["dpop_strict_refresh_token_binding"]; !ok {
+		t.SettingsExtra["dpop_strict_refresh_token_binding"] = true
+	}
 	if _, ok := t.SettingsExtra["phone_consolidated_experience"]; !ok {
 		t.SettingsExtra["phone_consolidated_experience"] = true
 	}

@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
@@ -82,6 +83,20 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 		// in the form, so registerOAuthForm did not mask it.
 		ctx = logscrub.WithCredentials(ctx, req.Invitation)
 		*r = *r.WithContext(ctx)
+	}
+	if len(r.Header.Values("DPoP")) > 0 {
+		service := h.DPoP
+		if service == nil {
+			service = &dpop.Service{Store: h.Store, Wrapper: h.Wrapper, Now: h.Now}
+		}
+		p, e := service.Verify(ctx, r, res, dpop.AuthorizationServer, false, "", req.DPoPJKT)
+		if e != nil {
+			if e.Internal {
+				return nil, serverError()
+			}
+			return nil, &Error{Status: 400, Code: e.Code, Description: "the proof could not be accepted"}
+		}
+		req.DPoPJKT = p.JKT
 	}
 	if len(req.Ext) > authz.MaxExtParams {
 		return nil, invalidRequest(fmt.Sprintf("at most %d ext- parameters are allowed", authz.MaxExtParams)) // P2c

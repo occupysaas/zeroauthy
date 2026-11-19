@@ -2,6 +2,7 @@ package mgmt
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -156,10 +157,11 @@ func invalidToken(message string) *Error {
 
 // tokenClaims are the claims Auth reads beyond the registered ones.
 type tokenClaims struct {
-	Scope     string    `json:"scope"`
-	AZP       string    `json:"azp"`
-	GrantType string    `json:"gty"`
-	Operator  *[]string `json:"https://zeroauthy.dev/operator"`
+	Confirmation json.RawMessage `json:"cnf"`
+	Scope        string          `json:"scope"`
+	AZP          string          `json:"azp"`
+	GrantType    string          `json:"gty"`
+	Operator     *[]string       `json:"https://zeroauthy.dev/operator"`
 }
 
 func (cfg Config) now() time.Time {
@@ -215,6 +217,9 @@ func (cfg Config) verify(ctx context.Context, tenantID, raw, aud string, issuers
 		}
 		cfg.log().ErrorContext(ctx, "management API: load keys", "tenant", tenantID, "err", err)
 		return std, extra, &Error{Status: http.StatusInternalServerError, Code: "internal_error", Message: "Internal error"}
+	}
+	if len(extra.Confirmation) > 0 {
+		return std, extra, invalidToken("Invalid token")
 	}
 	if std.Expiry == nil {
 		return std, extra, invalidToken("Invalid token: no expiry")

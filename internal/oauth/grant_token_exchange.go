@@ -262,6 +262,7 @@ func (h *Handlers) tokenExchange(ctx context.Context, res tenant.Resolved, c *st
 		}
 		var raw string
 		rt, raw = h.newRefreshToken(c, tid, refreshGrant{
+			dpopJKT:        refreshProof(ctx, res, rs),
 			organizationID: orgID, organizationConnectionID: connID, origin: res.Origin(),
 			familyID: "rtf_" + secrets.RandomString(32), userID: user.UserID,
 			audience: aud, scopes: ceiling, authTime: now, expiresAt: expiresAt,

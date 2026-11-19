@@ -288,7 +288,7 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		c.TokenEndpointAuthMethod = ""
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
-		if in.policiesSet {
+		if in.policiesSet || c.RequireProofOfPossession {
 			if err := checkMRRTSupport(r.Context(), tx); err != nil {
 				return err
 			}
@@ -361,7 +361,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if err != nil {
 			return err
 		}
-		if in.policiesSet || spec.RefreshToken.Policies != nil {
+		if in.policiesSet || spec.RefreshToken.Policies != nil || spec.RequireProofOfPossession || body["require_proof_of_possession"] != nil {
 			if err := checkMRRTSupport(r.Context(), tx); err != nil {
 				return err
 			}
@@ -579,8 +579,8 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 			TokenLifetime: &lifetime, IdleTokenLifetime: &idle,
 			InfiniteTokenLifetime: &infinite, InfiniteIdleTokenLifetime: &infinite,
 		},
-		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests,
-		CreatedAt:                          &created,
+		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: &c.RequireProofOfPossession,
+		CreatedAt: &created,
 	}
 	if c.RefreshToken.Policies != nil {
 		policies := make([]mgmtapi.RefreshTokenPolicy, len(c.RefreshToken.Policies))
@@ -781,6 +781,8 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			err, out.securityModeSet = decodeString(raw, &s.ThirdPartySecurityMode), true
 		case "redirection_policy":
 			err = decodeString(raw, &s.RedirectionPolicy)
+		case "require_proof_of_possession":
+			err = decodeStrict(raw, &s.RequireProofOfPossession)
 		case "require_pushed_authorization_requests":
 			err = decodeStrict(raw, &s.RequirePushedAuthorizationRequests)
 		case "skip_non_verifiable_callback_uri_confirmation_prompt":

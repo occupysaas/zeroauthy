@@ -2265,6 +2265,42 @@ func (e CustomDomainVerifiedType) Valid() bool {
 	}
 }
 
+// Defines values for DPoPPolicyMechanism.
+const (
+	DPoPPolicyMechanismDpop DPoPPolicyMechanism = "dpop"
+	DPoPPolicyMechanismNone DPoPPolicyMechanism = "none"
+)
+
+// Valid indicates whether the value is a known member of the DPoPPolicyMechanism enum.
+func (e DPoPPolicyMechanism) Valid() bool {
+	switch e {
+	case DPoPPolicyMechanismDpop:
+		return true
+	case DPoPPolicyMechanismNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DPoPPolicyRequiredFor.
+const (
+	AllClients    DPoPPolicyRequiredFor = "all_clients"
+	PublicClients DPoPPolicyRequiredFor = "public_clients"
+)
+
+// Valid indicates whether the value is a known member of the DPoPPolicyRequiredFor enum.
+func (e DPoPPolicyRequiredFor) Valid() bool {
+	switch e {
+	case AllClients:
+		return true
+	case PublicClients:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EmailTemplateSyntax.
 const (
 	EmailTemplateSyntaxLiquid EmailTemplateSyntax = "liquid"
@@ -8081,6 +8117,7 @@ type Client struct {
 
 	// RefreshToken The refresh tokens the application receives.
 	RefreshToken                       RefreshTokenSettings `json:"refresh_token"`
+	RequireProofOfPossession           *bool                `json:"require_proof_of_possession,omitempty"`
 	RequirePushedAuthorizationRequests bool                 `json:"require_pushed_authorization_requests"`
 
 	// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
@@ -8248,7 +8285,8 @@ type ClientCreate struct {
 	RedirectionPolicy *ClientCreateRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -8623,7 +8661,8 @@ type ClientSettings struct {
 	RedirectionPolicy *ClientSettingsRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -8789,7 +8828,8 @@ type ClientUpdate struct {
 	RedirectionPolicy *ClientUpdateRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -9412,6 +9452,19 @@ type CustomDomainVerifiedType string
 type CustomSigningJWKS struct {
 	Keys []map[string]interface{} `json:"keys"`
 }
+
+// DPoPPolicy defines model for DPoPPolicy.
+type DPoPPolicy struct {
+	Mechanism   DPoPPolicyMechanism    `json:"mechanism"`
+	Required    bool                   `json:"required"`
+	RequiredFor *DPoPPolicyRequiredFor `json:"required_for,omitempty"`
+}
+
+// DPoPPolicyMechanism defines model for DPoPPolicy.Mechanism.
+type DPoPPolicyMechanism string
+
+// DPoPPolicyRequiredFor defines model for DPoPPolicy.RequiredFor.
+type DPoPPolicyRequiredFor string
 
 // DefaultTokenQuota Fallback quotas for clients and organizations that have no override. Null removes the defaults.
 type DefaultTokenQuota struct {
@@ -12688,7 +12741,8 @@ type ResourceServer struct {
 	IsSystem *bool `json:"is_system,omitempty"`
 
 	// Name Absent when the API has no name.
-	Name *string `json:"name,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes Absent when the API defines none.
 	Scopes     *[]ResourceServerScope   `json:"scopes,omitempty"`
@@ -12753,10 +12807,8 @@ type ResourceServerCreate struct {
 	Identifier string `json:"identifier"`
 
 	// Name The API's name. Optional; absent when not given.
-	Name *string `json:"name,omitempty"`
-
-	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
-	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
@@ -12844,10 +12896,8 @@ type ResourceServerSettings struct {
 	EnforcePolicies *bool `json:"enforce_policies,omitempty"`
 
 	// Name The API's name. Optional; absent when not given.
-	Name *string `json:"name,omitempty"`
-
-	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
-	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
@@ -13204,7 +13254,7 @@ type TenantSettings struct {
 		Mask    *string                          `json:"mask,omitempty"`
 	} `json:"device_flow,omitempty"`
 
-	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
 	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13437,7 +13487,7 @@ type TenantSettingsPatch struct {
 		Mask    *string                               `json:"mask,omitempty"`
 	} `json:"device_flow,omitempty"`
 
-	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
 	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.

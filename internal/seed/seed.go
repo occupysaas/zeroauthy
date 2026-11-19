@@ -139,11 +139,12 @@ type RolePermission struct {
 }
 
 type ResourceServer struct {
-	EnforcePolicies bool    `yaml:"enforce_policies"`
-	TokenDialect    string  `yaml:"token_dialect"`
-	Identifier      string  `yaml:"identifier"`
-	Name            string  `yaml:"name"`
-	Scopes          []Scope `yaml:"scopes"`
+	ProofOfPossession *store.ProofOfPossession `yaml:"proof_of_possession"`
+	EnforcePolicies   bool                     `yaml:"enforce_policies"`
+	TokenDialect      string                   `yaml:"token_dialect"`
+	Identifier        string                   `yaml:"identifier"`
+	Name              string                   `yaml:"name"`
+	Scopes            []Scope                  `yaml:"scopes"`
 	// SigningAlg is RS256 (the default), HS256 or PS256. HS256 signs with
 	// SigningSecret, plaintext in the seed and sealed when applied; an HS256
 	// API without one keeps its stored secret, or gets a generated one.
@@ -166,7 +167,7 @@ func (rs *ResourceServer) spec() apirules.Spec {
 		scopes[i] = store.Scope{Value: s.Value, Description: s.Description}
 	}
 	return apirules.Spec{
-		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes, SigningAlg: rs.SigningAlg,
+		ProofOfPossession: rs.ProofOfPossession, Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes, SigningAlg: rs.SigningAlg,
 		TokenLifetime: rs.TokenLifetime, AllowOfflineAccess: rs.AllowOfflineAccess,
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: rs.TokenDialect,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
@@ -192,9 +193,10 @@ type Scope struct {
 }
 
 type Client struct {
-	ClientID string `yaml:"client_id"`
-	Name     string `yaml:"name"`
-	AppType  string `yaml:"app_type"`
+	RequireProofOfPossession bool   `yaml:"require_proof_of_possession"`
+	ClientID                 string `yaml:"client_id"`
+	Name                     string `yaml:"name"`
+	AppType                  string `yaml:"app_type"`
 	// ClientSecret is plaintext in the seed file and sealed under the master
 	// key when applied (D-0038). Protect seed files like any other credential
 	// store. A confidential client may omit it once it exists: its stored
@@ -266,9 +268,9 @@ func (c *Client) spec() clientrules.Spec {
 		IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
 		RedirectionPolicy: c.RedirectionPolicy,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipNonVerifiableCallbackURIConfirmationPrompt,
-		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
-		Mobile:                                         c.mobile.Clone(),
-		NativeSocialLogin:                              maps.Clone(c.nativeSocialLogin),
+		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests, RequireProofOfPossession: c.RequireProofOfPossession,
+		Mobile:            c.mobile.Clone(),
+		NativeSocialLogin: maps.Clone(c.nativeSocialLogin),
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -56,6 +57,18 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, res tenant.Res
 	}
 	if rt.ClientID != c.ClientID {
 		return invalidGrant("the token was not issued to this client")
+	}
+	if rt.DPoPJKT != "" || len(r.Header.Values("DPoP")) > 0 {
+		proofForm := make(url.Values, len(form)+2)
+		for k, v := range form {
+			proofForm[k] = append([]string(nil), v...)
+		}
+		proofForm.Set("grant_type", "refresh_token")
+		proofForm.Set("refresh_token", token)
+		if e := h.verifyDPoP(w, r, res, c, proofForm); e != nil {
+			return e
+		}
+		ctx = r.Context()
 	}
 	revoked := rt.RevokedAt == nil
 	flags, _ := res.Tenant.SettingsExtra["flags"].(map[string]any)

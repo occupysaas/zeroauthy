@@ -140,6 +140,7 @@ paths:
         - {name: login_hint, in: query, schema: {type: string}, description: Prefills the login identifier.}
         - {name: screen_hint, in: query, schema: {type: string}, description: "`signup` opens the signup page."}
         - {name: ui_locales, in: query, schema: {type: string}, description: "Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it."}
+        - {name: dpop_jkt, in: query, schema: {type: string, minLength: 43, maxLength: 43}, description: RFC 9449 authorization-code key thumbprint.}
         - {name: request_uri, in: query, schema: {type: string}, description: "A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match."}
         - {name: request, in: query, schema: {type: string}, description: "A signed request object (JAR, RFC 9101): a JWS signed with RS256, RS384 or PS256 by a credential of the application's `signed_request_object`. Its parameters win over the query; `client_id` in the query must equal its `iss`. A bad signature or claim is `invalid_request_object`; an unsigned object (`alg` none) is refused with `request_not_supported` (LR35-4, D-0063). An application whose `signed_request_object.required` is true must send one (`invalid_request`)."}
         - {name: organization, in: query, schema: {type: string}, description: "An organization ID, or its name while the tenant's `allow_organization_name_in_authentication_api` is on (the ID is matched first). An empty value counts as absent. Refused with `invalid_request` when the application's `organization_usage` is `deny`, when the organization is unknown, or when a name is sent while names are off; a third-party application facing an organization that blocks third-party access gets `access_denied`. An application with `organization_usage` `require` and `no_prompt` must send one. With `request_uri`, only the pushed value counts (D-0055)."}
@@ -236,6 +237,10 @@ paths:
       summary: Get a token
       description: |
         Exchanges a grant for tokens. The body may be form-encoded or JSON.
+        RFC 9449 DPoP proofs use the DPoP header. Public clients receive a
+        use_dpop_nonce challenge with DPoP-Nonce before grant consumption.
+        Bound access tokens report token_type DPoP and cnf.jkt; refresh
+        key binding is enforced independently of the API access policy.
 
         **Supported grant types**
 
@@ -331,6 +336,8 @@ paths:
       security:
         - clientSecretBasic: []
         - {}
+      parameters:
+        - {name: DPoP, in: header, schema: {type: string, maxLength: 16384}, description: RFC 9449 compact proof JWT.}
       requestBody:
         required: true
         content:
@@ -457,6 +464,7 @@ paths:
         push satisfies `signed_request_object.required`.
         Invitation and organization are bound exactly as at authorize; resume or request_uri parameters cannot replace the original ticket binding (D-0056).
       x-source:
+        - https://www.rfc-editor.org/rfc/rfc9449
         - https://www.rfc-editor.org/rfc/rfc9126
         - https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par
         - https://auth0.com/docs/get-started/applications/configure-par
@@ -465,6 +473,8 @@ paths:
       security:
         - clientSecretBasic: []
         - {}
+      parameters:
+        - {name: DPoP, in: header, schema: {type: string, maxLength: 16384}, description: Optional RFC 9449 PAR key binding.}
       requestBody:
         required: true
         content:
@@ -558,11 +568,13 @@ paths:
         nickname and updated_at always); `email` adds email and
         email_verified.
       x-source:
+        - https://www.rfc-editor.org/rfc/rfc9449
         - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
         - https://www.rfc-editor.org/rfc/rfc6750#section-2.1
         - https://auth0.com/docs/api/authentication
       security:
         - bearerAuth: []
+        - dpopAuth: []
       responses:
         "200":
           description: The user's claims.
@@ -596,10 +608,12 @@ paths:
         Sending it both ways, or more than once, is an `invalid_request`
         (400).
       x-source:
+        - https://www.rfc-editor.org/rfc/rfc9449
         - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
         - https://www.rfc-editor.org/rfc/rfc6750#section-2.2
       security:
         - bearerAuth: []
+        - dpopAuth: []
         - {}
       requestBody:
         required: false
@@ -1354,6 +1368,9 @@ components:
       type: http
       scheme: basic
       description: Client ID and secret, each form-urlencoded, as HTTP Basic credentials.
+    dpopAuth:
+      type: http
+      scheme: DPoP
     bearerAuth:
       type: http
       scheme: bearer
@@ -1567,6 +1584,7 @@ components:
         audience: {type: string}
         prompt: {type: string}
         max_age: {type: string}
+        dpop_jkt: {type: string, minLength: 43, maxLength: 43}
         code_challenge: {type: string}
         code_challenge_method: {type: string}
         connection: {type: string}
@@ -1766,7 +1784,7 @@ components:
           type: string
     PushedAuthorizationRequest:
       type: object
-      description: The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
+      description: The `/authorize` parameters (including dpop_jkt), plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
       properties:
         client_id: {type: string}
         client_secret: {type: string}
@@ -1949,7 +1967,7 @@ components:
           type: string
         token_type:
           type: string
-          examples: [Bearer]
+          examples: [Bearer, DPoP]
         expires_in:
           type: integer
           minimum: 0
@@ -1973,6 +1991,7 @@ components:
         - subject_types_supported
         - id_token_signing_alg_values_supported
       properties:
+        dpop_signing_alg_values_supported: {type: array, items: {type: string, enum: [ES256, RS256]}}
         issuer: {type: string, format: uri}
         authorization_endpoint: {type: string, format: uri}
         token_endpoint: {type: string, format: uri}

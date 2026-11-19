@@ -450,6 +450,7 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 		connectionID = conn.ID
 	}
 	ac := &store.AuthCode{
+		DPoPJKT:        req.DPoPJKT,
 		OrganizationID: req.OrgID, OrganizationConnectionID: connectionID,
 		ActionEffects:       sealed,
 		Origin:              res.Origin(),

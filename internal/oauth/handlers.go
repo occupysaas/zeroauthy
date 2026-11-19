@@ -5,6 +5,7 @@
 package oauth
 
 import (
+	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"log/slog"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 )
 
 type Handlers struct {
+	DPoP       *dpop.Service
 	Federation *federation.FlowService
 	// Passkeys supplies hosted and native first-factor ceremonies.
 	Passkeys   *passkey.Service

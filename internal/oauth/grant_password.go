@@ -328,6 +328,7 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 			expiresAt = now.Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+			dpopJKT:        refreshProof(ctx, res, rs),
 			organizationID: orgID, organizationConnectionID: flow.ConnectionID,
 			origin:   res.Origin(),
 			familyID: "rtf_" + secrets.RandomString(32), userID: user.UserID,

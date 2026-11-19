@@ -321,3 +321,11 @@ func TestMFAProtocolCredentialKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestDPoPFields(t *testing.T) {
+	for _, key := range []string{"DPoP", "dpop_proof", "DPoP-Nonce", "jti"} {
+		if !logscrub.SensitiveKey(key) {
+			t.Errorf("proof field %s not hidden", key)
+		}
+	}
+}

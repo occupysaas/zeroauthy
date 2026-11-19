@@ -414,3 +414,16 @@ func TestMgmtAuthHostileTokens(t *testing.T) {
 		e.checkError(t, tc.name, code, body, http.StatusUnauthorized, "invalid_token")
 	}
 }
+
+func TestDPoPBoundManagementRefused(t *testing.T) {
+	e := newEnv(t)
+	claims := map[string]any{"iss": "https://acme." + base + "/", "aud": "https://acme." + base + "/api/v2/", "sub": "cli@clients", "azp": "cli", "gty": "client-credentials", "iat": now.Unix(), "exp": now.Add(time.Hour).Unix(), "scope": "read:clients", "cnf": map[string]string{"jkt": "key"}}
+	raw, err := e.km.Sign(context.Background(), e.ids["acme"], claims)
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, _ := e.do(t, "acme."+base, "/read", "Bearer "+raw)
+	if code != 401 {
+		t.Fatalf("bound management status %d", code)
+	}
+}

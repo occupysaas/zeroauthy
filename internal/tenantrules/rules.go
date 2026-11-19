@@ -107,6 +107,9 @@ func Apply(current *store.Tenant, patch map[string]any) (*store.Tenant, error) {
 		delete(extra, "session_cookie")
 	}
 	out.SettingsExtra = settingsrules.Merge(out.SettingsExtra, extra)
+	if v, ok := patch["dpop_strict_refresh_token_binding"]; ok && v == nil {
+		out.SettingsExtra["dpop_strict_refresh_token_binding"] = true
+	}
 	// Remove any shadowed legacy/foreign Extra fields, even if this patch did not
 	// mention them. Typed runtime settings are the single source of truth.
 	for key := range stringFields {
