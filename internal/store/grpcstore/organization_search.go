@@ -49,7 +49,7 @@ func (o clientOrganizationsII) Search(ctx context.Context, tid string, q store.O
 	if err != nil || orgsearch.Validate(q) != nil {
 		return out, store.ErrInvalid
 	}
-	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, SearchQuery: queryToPB(q), SearchPage: &storev1.OrganizationSearchPageMsg{Take: int64(p.Take), Sort: p.Sort, LastValue: p.LastValue, LastId: p.LastID}}, o.c.rpc.OrganizationsIISearch)
+	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, SearchQuery: queryToPB(q), SearchPage: &storev1.OrganizationSearchPageMsg{Take: int64(p.Take), Sort: p.Sort, LastValue: p.LastValue, LastId: p.LastID}}, refreshRead(o.c, o.c.rpc.OrganizationsIISearch, o.c.rpc.RefreshIIOrganizationsIISearch))
 	if err != nil {
 		return out, err
 	}

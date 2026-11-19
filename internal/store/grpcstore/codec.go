@@ -125,6 +125,8 @@ func errToPB(err error) *storev1.Error {
 		return nil
 	case errors.Is(err, store.ErrPhoneUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_PHONE_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrRefreshTokensIISupportLost):
+		return &storev1.Error{Kind: storev1.Error_KIND_REFRESH_TOKENS_II_SUPPORT_LOST}
 	case errors.Is(err, store.ErrRefreshTokensIIUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_REFRESH_TOKENS_II_UNAVAILABLE}
 	case errors.Is(err, store.ErrConnectionKeysUnavailable):
@@ -179,6 +181,8 @@ func errFromPB(e *storev1.Error) error {
 	switch e.Kind {
 	case storev1.Error_KIND_PHONE_UNAVAILABLE:
 		return store.ErrPhoneUnavailable
+	case storev1.Error_KIND_REFRESH_TOKENS_II_SUPPORT_LOST:
+		return store.ErrRefreshTokensIISupportLost
 	case storev1.Error_KIND_REFRESH_TOKENS_II_UNAVAILABLE:
 		return store.ErrRefreshTokensIIUnavailable
 	case storev1.Error_KIND_CONNECTION_KEYS_UNAVAILABLE:

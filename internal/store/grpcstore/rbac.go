@@ -344,7 +344,7 @@ func (srv *Server) RBACChangeUserPermissions(ctx context.Context, q *storev1.RBA
 	return out, nil
 }
 func (r clientRBAC) Snapshot(ctx context.Context, tid, id, aud string) (*store.AuthorizationSnapshot, error) {
-	v, err := r.c.rpc.RBACSnapshot(ctx, &storev1.RBACRequest{TxId: r.c.txID, TenantId: tid, Id: id, Audience: aud})
+	v, err := refreshRead(r.c, r.c.rpc.RBACSnapshot, r.c.rpc.RefreshIIRBACSnapshot)(ctx, &storev1.RBACRequest{TxId: r.c.txID, TenantId: tid, Id: id, Audience: aud})
 	if err := rbacRPCError(v, err); err != nil {
 		return nil, err
 	}

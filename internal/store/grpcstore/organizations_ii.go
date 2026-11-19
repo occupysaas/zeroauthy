@@ -577,7 +577,7 @@ func (s *Server) OrganizationsIIListClientGrants(ctx context.Context, q *storev1
 }
 
 func (o clientOrganizationsII) GrantOrganizations(ctx context.Context, tid, grantID string, p store.OrgPage) (store.OrgResult[store.Organization], error) {
-	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, GrantId: grantID, Page: orgPageToPB(p)}, o.c.rpc.OrganizationsIIGrantOrganizations)
+	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, GrantId: grantID, Page: orgPageToPB(p)}, refreshRead(o.c, o.c.rpc.OrganizationsIIGrantOrganizations, o.c.rpc.RefreshIIOrganizationsIIGrantOrganizations))
 	if err != nil {
 		return store.OrgResult[store.Organization]{}, err
 	}
@@ -741,7 +741,7 @@ func (s *Server) OrganizationsIIDeleteDiscoveryDomain(ctx context.Context, q *st
 }
 
 func (o clientOrganizationsII) DiscoverOrganizations(ctx context.Context, tid, normalizedDomain string) ([]store.Organization, error) {
-	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, Domain: normalizedDomain}, o.c.rpc.OrganizationsIIDiscoverOrganizations)
+	v, err := orgIICall(o.c, ctx, &storev1.OrganizationsIIRequest{TenantId: tid, Domain: normalizedDomain}, refreshRead(o.c, o.c.rpc.OrganizationsIIDiscoverOrganizations, o.c.rpc.RefreshIIOrganizationsIIDiscoverOrganizations))
 	if err != nil {
 		return nil, err
 	}

@@ -174,15 +174,15 @@ func (a clientTenants) get(ctx context.Context, op string, call func(context.Con
 }
 
 func (a clientTenants) Get(ctx context.Context, id string) (*store.Tenant, error) {
-	return a.get(ctx, "TenantsGet", a.c.rpc.TenantsGet, id)
+	return a.get(ctx, "TenantsGet", refreshRead(a.c, a.c.rpc.TenantsGet, a.c.rpc.RefreshIITenantsGet), id)
 }
 
 func (a clientTenants) GetByName(ctx context.Context, name string) (*store.Tenant, error) {
-	return a.get(ctx, "TenantsGetByName", a.c.rpc.TenantsGetByName, name)
+	return a.get(ctx, "TenantsGetByName", refreshRead(a.c, a.c.rpc.TenantsGetByName, a.c.rpc.RefreshIITenantsGetByName), name)
 }
 
 func (a clientTenants) GetByDomain(ctx context.Context, domain string) (*store.Tenant, error) {
-	return a.get(ctx, "TenantsGetByDomain", a.c.rpc.TenantsGetByDomain, domain)
+	return a.get(ctx, "TenantsGetByDomain", refreshRead(a.c, a.c.rpc.TenantsGetByDomain, a.c.rpc.RefreshIITenantsGetByDomain), domain)
 }
 
 func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
@@ -208,7 +208,7 @@ func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
 }
 
 func (a clientTenants) List(ctx context.Context) ([]*store.Tenant, error) {
-	r, err := a.c.rpc.TenantsList(ctx, &storev1.TenantsListRequest{TxId: a.c.txID})
+	r, err := refreshRead(a.c, a.c.rpc.TenantsList, a.c.rpc.RefreshIITenantsList)(ctx, &storev1.TenantsListRequest{TxId: a.c.txID})
 	return decList("TenantsList", err, r.GetError(), r.GetValues(), tenantFromPB)
 }
 
@@ -234,7 +234,7 @@ func (a clientClients) Create(ctx context.Context, v *store.Client) error {
 }
 
 func (a clientClients) Get(ctx context.Context, tenantID, clientID string) (*store.Client, error) {
-	r, err := a.c.rpc.ClientsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: clientID})
+	r, err := refreshRead(a.c, a.c.rpc.ClientsGet, a.c.rpc.RefreshIIClientsGet)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: clientID})
 	return decOne("ClientsGet", err, r.GetError(), r.GetValue(), clientFromPB)
 }
 
@@ -257,7 +257,7 @@ func (a clientClients) Delete(ctx context.Context, tenantID, clientID string) er
 func (a clientClients) List(ctx context.Context, tenantID string, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
 	if len(f.AppTypes) == 0 && f.IsFirstParty == nil && p == (store.Page{}) {
 		// Everything, as every plugin can serve it.
-		r, err := a.c.rpc.ClientsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+		r, err := refreshRead(a.c, a.c.rpc.ClientsList, a.c.rpc.RefreshIIClientsList)(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
 		out, err := decList("ClientsList", err, r.GetError(), r.GetValues(), clientFromPB)
 		sortClients(out)
 		return out, len(out), err
@@ -267,7 +267,7 @@ func (a clientClients) List(ctx context.Context, tenantID string, f store.Client
 	if f.IsFirstParty != nil {
 		req.HasIsFirstParty, req.IsFirstParty = true, *f.IsFirstParty
 	}
-	r, err := a.c.rpc.ClientsListPage(ctx, req)
+	r, err := refreshRead(a.c, a.c.rpc.ClientsListPage, a.c.rpc.RefreshIIClientsListPage)(ctx, req)
 	if status.Code(err) == codes.Unimplemented {
 		// A plugin without ClientsListPage still serves GET /clients: list
 		// everything and filter, order and page here.
@@ -330,12 +330,12 @@ func (a clientResourceServers) Create(ctx context.Context, v *store.ResourceServ
 }
 
 func (a clientResourceServers) Get(ctx context.Context, tenantID, id string) (*store.ResourceServer, error) {
-	r, err := a.c.rpc.ResourceServersGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	r, err := refreshRead(a.c, a.c.rpc.ResourceServersGet, a.c.rpc.RefreshIIResourceServersGet)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
 	return decOne("ResourceServersGet", err, r.GetError(), r.GetValue(), resourceServerFromPB)
 }
 
 func (a clientResourceServers) GetByIdentifier(ctx context.Context, tenantID, identifier string) (*store.ResourceServer, error) {
-	r, err := a.c.rpc.ResourceServersGetByIdentifier(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: identifier})
+	r, err := refreshRead(a.c, a.c.rpc.ResourceServersGetByIdentifier, a.c.rpc.RefreshIIResourceServersGetByIdentifier)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: identifier})
 	return decOne("ResourceServersGetByIdentifier", err, r.GetError(), r.GetValue(), resourceServerFromPB)
 }
 
@@ -361,7 +361,7 @@ func (a clientResourceServers) Delete(ctx context.Context, tenantID, id string) 
 }
 
 func (a clientResourceServers) List(ctx context.Context, tenantID string) ([]*store.ResourceServer, error) {
-	r, err := a.c.rpc.ResourceServersList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	r, err := refreshRead(a.c, a.c.rpc.ResourceServersList, a.c.rpc.RefreshIIResourceServersList)(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
 	return decList("ResourceServersList", tooOld(err), r.GetError(), r.GetValues(), resourceServerFromPB)
 }
 
@@ -736,17 +736,17 @@ func (a clientSessions) Create(ctx context.Context, v *store.LoginSession) error
 }
 
 func (a clientSessions) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.LoginSession, error) {
-	r, err := a.c.rpc.SessionsGetByTokenHash(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
+	r, err := refreshRead(a.c, a.c.rpc.SessionsGetByTokenHash, a.c.rpc.RefreshIISessionsGetByTokenHash)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
 	return decOne("SessionsGetByTokenHash", err, r.GetError(), r.GetValue(), sessionFromPB)
 }
 
 func (a clientSessions) Get(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
-	r, err := a.c.rpc.SessionsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	r, err := refreshRead(a.c, a.c.rpc.SessionsGet, a.c.rpc.RefreshIISessionsGet)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
 	return decOne("SessionsGet", tooOld(err), r.GetError(), r.GetValue(), sessionFromPB)
 }
 
 func (a clientSessions) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
-	r, err := a.c.rpc.SessionsListByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	r, err := refreshRead(a.c, a.c.rpc.SessionsListByUser, a.c.rpc.RefreshIISessionsListByUser)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
 	return decList("SessionsListByUser", tooOld(err), r.GetError(), r.GetValues(), sessionFromPB)
 }
 
@@ -798,7 +798,7 @@ func (a clientAuthTransactions) Create(ctx context.Context, v *store.AuthTransac
 }
 
 func (a clientAuthTransactions) Get(ctx context.Context, tenantID, id string) (*store.AuthTransaction, error) {
-	r, err := a.c.rpc.AuthTransactionsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	r, err := refreshRead(a.c, a.c.rpc.AuthTransactionsGet, a.c.rpc.RefreshIIAuthTransactionsGet)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
 	return decOne("AuthTransactionsGet", err, r.GetError(), r.GetValue(), authTransactionFromPB)
 }
 
@@ -833,12 +833,12 @@ func (a clientAuthCodes) Create(ctx context.Context, v *store.AuthCode) error {
 
 // Consume returns the code together with ErrAlreadyUsed on a replay.
 func (a clientAuthCodes) Consume(ctx context.Context, tenantID, codeHash string, at time.Time) (*store.AuthCode, error) {
-	r, err := a.c.rpc.AuthCodesConsume(ctx, &storev1.ConsumeRequest{TxId: a.c.txID, TenantId: tenantID, Hash: codeHash, At: tsToPB(at)})
+	r, err := refreshRead(a.c, a.c.rpc.AuthCodesConsume, a.c.rpc.RefreshIIAuthCodesConsume)(ctx, &storev1.ConsumeRequest{TxId: a.c.txID, TenantId: tenantID, Hash: codeHash, At: tsToPB(at)})
 	return decOne("AuthCodesConsume", err, r.GetError(), r.GetValue(), authCodeFromPB)
 }
 
 func (a clientAuthCodes) Get(ctx context.Context, tenantID, codeHash string) (*store.AuthCode, error) {
-	r, err := a.c.rpc.AuthCodesGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: codeHash})
+	r, err := refreshRead(a.c, a.c.rpc.AuthCodesGet, a.c.rpc.RefreshIIAuthCodesGet)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: codeHash})
 	return decOne("AuthCodesGet", err, r.GetError(), r.GetValue(), authCodeFromPB)
 }
 
@@ -969,17 +969,17 @@ func (a clientRefreshTokens) Create(ctx context.Context, v *store.RefreshToken) 
 }
 
 func (a clientRefreshTokens) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.RefreshToken, error) {
-	r, err := a.c.rpc.RefreshTokensGetByTokenHash(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
+	r, err := refreshRead(a.c, a.c.rpc.RefreshTokensGetByTokenHash, a.c.rpc.RefreshIIRefreshTokensGetByTokenHash)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
 	return decOne("RefreshTokensGetByTokenHash", err, r.GetError(), r.GetValue(), refreshTokenFromPB)
 }
 
 func (a clientRefreshTokens) Get(ctx context.Context, tenantID, id string) (*store.RefreshToken, error) {
-	r, err := a.c.rpc.RefreshTokensGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	r, err := refreshRead(a.c, a.c.rpc.RefreshTokensGet, a.c.rpc.RefreshIIRefreshTokensGet)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
 	return decOne("RefreshTokensGet", tooOld(err), r.GetError(), r.GetValue(), refreshTokenFromPB)
 }
 
 func (a clientRefreshTokens) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.RefreshToken, error) {
-	r, err := a.c.rpc.RefreshTokensListByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	r, err := refreshRead(a.c, a.c.rpc.RefreshTokensListByUser, a.c.rpc.RefreshIIRefreshTokensListByUser)(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
 	return decList("RefreshTokensListByUser", tooOld(err), r.GetError(), r.GetValues(), refreshTokenFromPB)
 }
 
@@ -1001,7 +1001,7 @@ func (a clientRefreshTokens) Rotate(ctx context.Context, tenantID, oldID string,
 	q := &storev1.RefreshTokensRotateRequest{TxId: a.c.txID, TenantId: tenantID, OldId: oldID, Next: v, At: tsToPB(at), Leeway: durationpb.New(leeway)}
 	if err := a.c.CheckRefreshTokensIISupport(ctx); err != nil {
 		if !errors.Is(err, store.ErrRefreshTokensIIUnavailable) || needsRefreshII(next) {
-			return err
+			return a.c.refreshOperationError(err)
 		}
 		r, err := a.c.rpc.RefreshTokensRotate(ctx, q)
 		return do("RefreshTokensRotate", r, err)

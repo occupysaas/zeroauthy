@@ -23,7 +23,7 @@ type Client struct {
 	mfaCap      *orgCapState
 	phoneCap    *orgCapState
 	webauthnCap *orgCapState
-	refreshCap  *orgCapState // refresh_tokens_ii.v1, shared with transactional views
+	refreshCap  *refreshCapability // refresh_tokens_ii.v1, shared with transactional views
 	ckCap       *orgCapState
 	ccCap       *orgCapState // client_credentials.v1
 	logsCap     *orgCapState
@@ -35,7 +35,7 @@ var _ store.Store = (*Client)(nil)
 
 // NewClient returns a store over conn. Close calls closer, which may be nil.
 func NewClient(conn grpc.ClientConnInterface, closer func() error) *Client {
-	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer, orgCap: &orgCapState{}, orgIICap: &orgCapState{}, logsCap: &orgCapState{}, eventsCap: &orgCapState{}, mfaCap: &orgCapState{}, phoneCap: &orgCapState{}, webauthnCap: &orgCapState{}, refreshCap: &orgCapState{}, ckCap: &orgCapState{}, ccCap: &orgCapState{}}
+	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer, orgCap: &orgCapState{}, orgIICap: &orgCapState{}, logsCap: &orgCapState{}, eventsCap: &orgCapState{}, mfaCap: &orgCapState{}, phoneCap: &orgCapState{}, webauthnCap: &orgCapState{}, refreshCap: &refreshCapability{}, ckCap: &orgCapState{}, ccCap: &orgCapState{}}
 }
 
 // rpcErr wraps a transport failure so it never matches a store sentinel.

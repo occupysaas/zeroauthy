@@ -3,56 +3,117 @@ package grpcstore
 import (
 	"context"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	pb "github.com/zeroauthy/zeroauthy/proto/store/v1"
 )
 
-func (c *Client) CheckRefreshTokensIISupport(ctx context.Context) error {
-	switch c.refreshCap.v.Load() {
-	case 1:
-		return nil
-	case 2:
-		return store.ErrRefreshTokensIIUnavailable
-	}
-	r, err := c.rpc.RefreshTokensIICapabilities(ctx, &pb.PingRequest{})
-	if err == nil && r.GetError() == nil && r.GetVersion() < 1 {
-		err = store.ErrRefreshTokensIIUnavailable
-	}
-	if err = c.refreshResult("RefreshTokensIICapabilities", r, err); err != nil {
-		return err
-	}
-	c.refreshCap.v.CompareAndSwap(0, 1)
-	if c.refreshCap.v.Load() == 2 {
-		return store.ErrRefreshTokensIIUnavailable
-	}
-	return nil
+const (
+	refreshUnknown int32 = iota
+	refreshLegacy
+	refreshSupported
+	refreshLost
+)
+
+type refreshCapability struct {
+	probe sync.Mutex
+	state atomic.Int32
 }
 
-// Unimplemented or an explicit capability refusal latches off the whole
-// connection. A timeout or an unavailable transport may recover.
+func (c *Client) CheckRefreshTokensIISupport(ctx context.Context) error {
+	cap := c.refreshCap
+	if cap.state.Load() == refreshUnknown {
+		cap.probe.Lock()
+		defer cap.probe.Unlock()
+		if cap.state.Load() == refreshUnknown {
+			r, err := c.rpc.RefreshTokensIICapabilities(ctx, &pb.PingRequest{})
+			if err != nil {
+				err = rpcErr("RefreshTokensIICapabilities", capabilityError(err, store.ErrRefreshTokensIIUnavailable))
+			} else {
+				err = errFromPB(r.GetError())
+				if err == nil && r.GetVersion() < 1 {
+					err = store.ErrRefreshTokensIIUnavailable
+				}
+			}
+			switch {
+			case errors.Is(err, store.ErrRefreshTokensIISupportLost):
+				cap.state.Store(refreshLost)
+			case errors.Is(err, store.ErrRefreshTokensIIUnavailable):
+				cap.state.Store(refreshLegacy)
+			case err != nil:
+				return err
+			default:
+				cap.state.Store(refreshSupported)
+			}
+		}
+	}
+	switch cap.state.Load() {
+	case refreshSupported:
+		return nil
+	case refreshLegacy:
+		return store.ErrRefreshTokensIIUnavailable
+	default:
+		return store.ErrRefreshTokensIISupportLost
+	}
+}
+
+// An operation failing after positive negotiation never reclassifies the
+// connection as initially legacy. Both sentinel classifications remain
+// available on operation errors; only the probe determines fallback policy.
+func (c *Client) refreshOperationError(err error) error {
+	if errors.Is(err, store.ErrRefreshTokensIISupportLost) || errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+		c.refreshCap.state.CompareAndSwap(refreshSupported, refreshLost)
+		if c.refreshCap.state.Load() == refreshLost {
+			return errors.Join(store.ErrRefreshTokensIISupportLost, store.ErrRefreshTokensIIUnavailable)
+		}
+	}
+	return err
+}
+
+func (c *Client) requireRefreshII(ctx context.Context) error {
+	return c.refreshOperationError(c.CheckRefreshTokensIISupport(ctx))
+}
+
 func (c *Client) refreshResult(op string, r result, err error) error {
 	if err != nil {
 		err = rpcErr(op, capabilityError(err, store.ErrRefreshTokensIIUnavailable))
 	} else {
 		err = errFromPB(r.GetError())
 	}
-	if errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
-		c.refreshCap.v.Store(2)
-	}
-	return err
+	return c.refreshOperationError(err)
 }
 
 func (s *Server) RefreshTokensIICapabilities(ctx context.Context, q *pb.PingRequest) (*pb.EventsCapabilitiesResult, error) {
 	err := store.CheckRefreshTokensIISupport(ctx, s.st)
+	if err != nil && !errors.Is(err, store.ErrRefreshTokensIIUnavailable) && !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+		return nil, refreshBackendError(err)
+	}
 	return &pb.EventsCapabilitiesResult{Version: 1, Error: errToPB(err)}, nil
 }
 
+// Keep transport/context faults out of the domain-error protobuf envelope.
+func refreshBackendError(err error) error {
+	if errors.Is(err, store.ErrRefreshTokensIIUnavailable) || errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+		return status.Error(codes.Unimplemented, "refresh_tokens_ii.v1 unavailable")
+	}
+	if st, ok := status.FromError(err); ok {
+		return st.Err()
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return status.FromContextError(err).Err()
+	}
+	return status.Error(codes.Unavailable, "refresh_tokens_ii.v1 backing store probe failed")
+}
+
 func (c *Client) writeRefreshII(ctx context.Context, q *pb.RefreshIIWrite) error {
-	if err := c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := c.requireRefreshII(ctx); err != nil {
 		return err
 	}
 	q.TxId = c.txID
@@ -61,6 +122,10 @@ func (c *Client) writeRefreshII(ctx context.Context, q *pb.RefreshIIWrite) error
 }
 
 func (s *Server) RefreshTokensIIWrite(ctx context.Context, q *pb.RefreshIIWrite) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensIIWrite)
+}
+
+func (s *Server) refreshTokensIIWrite(ctx context.Context, q *pb.RefreshIIWrite) (*pb.Result, error) {
 	switch v := q.Record.(type) {
 	case *pb.RefreshIIWrite_Tenant:
 		req := &pb.TenantWrite{TxId: q.TxId, Value: v.Tenant}
@@ -133,7 +198,7 @@ func (r clientRefreshTokens) ConvertRotating(ctx context.Context, tid, id string
 }
 
 func (r clientRefreshTokens) convert(ctx context.Context, tid, id string, next *store.RefreshToken, at time.Time, leeway time.Duration, rotating bool) error {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return err
 	}
 	v, err := refreshTokenToPB(next)
@@ -150,10 +215,14 @@ func (r clientRefreshTokens) convert(ctx context.Context, tid, id string, next *
 }
 
 func (s *Server) RefreshTokensIIRotate(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
-	return s.RefreshTokensRotate(ctx, q)
+	return withRefreshII(s, ctx, q, (*Server).RefreshTokensRotate)
 }
 
 func (s *Server) RefreshTokensConvertNonRotating(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensConvertNonRotating)
+}
+
+func (s *Server) refreshTokensConvertNonRotating(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
 	if err := checkTS(q.At); err != nil {
 		return &pb.Result{Error: errToPB(err)}, nil
 	}
@@ -167,6 +236,10 @@ func (s *Server) RefreshTokensConvertNonRotating(ctx context.Context, q *pb.Refr
 }
 
 func (s *Server) RefreshTokensConvertRotating(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensConvertRotating)
+}
+
+func (s *Server) refreshTokensConvertRotating(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
 	if err := checkTS(q.At); err != nil {
 		return &pb.Result{Error: errToPB(err)}, nil
 	}
@@ -180,7 +253,7 @@ func (s *Server) RefreshTokensConvertRotating(ctx context.Context, q *pb.Refresh
 }
 
 func (r clientRefreshTokens) RevokeByUserClient(ctx context.Context, tid, user, client, audience string, at time.Time) (int, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return 0, err
 	}
 	res, err := r.c.rpc.RefreshTokensRevokeByUserClient(ctx, &pb.RefreshIIRequest{TxId: r.c.txID, TenantId: tid, UserId: user, ClientId: client, Audience: audience, At: tsToPB(at)})
@@ -191,6 +264,10 @@ func (r clientRefreshTokens) RevokeByUserClient(ctx context.Context, tid, user, 
 }
 
 func (s *Server) RefreshTokensRevokeByUserClient(ctx context.Context, q *pb.RefreshIIRequest) (*pb.CountResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensRevokeByUserClient)
+}
+
+func (s *Server) refreshTokensRevokeByUserClient(ctx context.Context, q *pb.RefreshIIRequest) (*pb.CountResult, error) {
 	if err := checkTS(q.At); err != nil {
 		return &pb.CountResult{Error: errToPB(err)}, nil
 	}
@@ -200,7 +277,7 @@ func (s *Server) RefreshTokensRevokeByUserClient(ctx context.Context, q *pb.Refr
 }
 
 func (r clientRefreshTokens) RevokeBySession(ctx context.Context, tid, id string, at time.Time) (int, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return 0, err
 	}
 	res, err := r.c.rpc.RefreshTokensRevokeBySession(ctx, &pb.RefreshIIRequest{TxId: r.c.txID, TenantId: tid, Id: id, At: tsToPB(at)})
@@ -211,6 +288,10 @@ func (r clientRefreshTokens) RevokeBySession(ctx context.Context, tid, id string
 }
 
 func (s *Server) RefreshTokensRevokeBySession(ctx context.Context, q *pb.RefreshIIRequest) (*pb.CountResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensRevokeBySession)
+}
+
+func (s *Server) refreshTokensRevokeBySession(ctx context.Context, q *pb.RefreshIIRequest) (*pb.CountResult, error) {
 	if err := checkTS(q.At); err != nil {
 		return &pb.CountResult{Error: errToPB(err)}, nil
 	}
@@ -220,7 +301,7 @@ func (s *Server) RefreshTokensRevokeBySession(ctx context.Context, q *pb.Refresh
 }
 
 func (r clientRefreshTokens) RecordExchange(ctx context.Context, tid, id, ip, ua string, at time.Time) error {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.RefreshTokensRecordExchange(ctx, &pb.RefreshIIRequest{TxId: r.c.txID, TenantId: tid, Id: id, Ip: ip, UserAgent: ua, At: tsToPB(at)})
@@ -231,6 +312,10 @@ func (r clientRefreshTokens) RecordExchange(ctx context.Context, tid, id, ip, ua
 }
 
 func (s *Server) RefreshTokensRecordExchange(ctx context.Context, q *pb.RefreshIIRequest) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensRecordExchange)
+}
+
+func (s *Server) refreshTokensRecordExchange(ctx context.Context, q *pb.RefreshIIRequest) (*pb.Result, error) {
 	if err := checkTS(q.At); err != nil {
 		return &pb.Result{Error: errToPB(err)}, nil
 	}
@@ -240,7 +325,7 @@ func (s *Server) RefreshTokensRecordExchange(ctx context.Context, q *pb.RefreshI
 }
 
 func (r clientRefreshTokens) UpdateMetadata(ctx context.Context, tid, id string, md map[string]string) (*store.RefreshToken, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return nil, err
 	}
 	res, err := r.c.rpc.RefreshTokensUpdateMetadata(ctx, &pb.RefreshIIRequest{TxId: r.c.txID, TenantId: tid, Id: id, Metadata: stringMapToPB(md)})
@@ -251,6 +336,10 @@ func (r clientRefreshTokens) UpdateMetadata(ctx context.Context, tid, id string,
 }
 
 func (s *Server) RefreshTokensUpdateMetadata(ctx context.Context, q *pb.RefreshIIRequest) (*pb.RefreshTokenResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensUpdateMetadata)
+}
+
+func (s *Server) refreshTokensUpdateMetadata(ctx context.Context, q *pb.RefreshIIRequest) (*pb.RefreshTokenResult, error) {
 	v, e, err := one(s, q.TxId, func(st store.Store) (*store.RefreshToken, error) {
 		return st.RefreshTokens().UpdateMetadata(ctx, q.TenantId, q.Id, stringMapFromPB(q.Metadata))
 	}, refreshTokenToPB)
@@ -258,7 +347,7 @@ func (s *Server) RefreshTokensUpdateMetadata(ctx context.Context, q *pb.RefreshI
 }
 
 func (r clientSessions) UpdateMetadata(ctx context.Context, tid, id string, md map[string]string) (*store.LoginSession, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return nil, err
 	}
 	res, err := r.c.rpc.SessionsUpdateMetadata(ctx, &pb.RefreshIIRequest{TxId: r.c.txID, TenantId: tid, Id: id, Metadata: stringMapToPB(md)})
@@ -269,6 +358,10 @@ func (r clientSessions) UpdateMetadata(ctx context.Context, tid, id string, md m
 }
 
 func (s *Server) SessionsUpdateMetadata(ctx context.Context, q *pb.RefreshIIRequest) (*pb.SessionResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).sessionsUpdateMetadata)
+}
+
+func (s *Server) sessionsUpdateMetadata(ctx context.Context, q *pb.RefreshIIRequest) (*pb.SessionResult, error) {
 	v, e, err := one(s, q.TxId, func(st store.Store) (*store.LoginSession, error) {
 		return st.Sessions().UpdateMetadata(ctx, q.TenantId, q.Id, stringMapFromPB(q.Metadata))
 	}, sessionToPB)
@@ -276,7 +369,7 @@ func (s *Server) SessionsUpdateMetadata(ctx context.Context, q *pb.RefreshIIRequ
 }
 
 func (r clientRefreshTokens) ListByUserPage(ctx context.Context, tid, user, client, from string, take int) ([]*store.RefreshToken, string, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return nil, "", err
 	}
 	if take < 1 || take > 100 {
@@ -291,6 +384,10 @@ func (r clientRefreshTokens) ListByUserPage(ctx context.Context, tid, user, clie
 }
 
 func (s *Server) RefreshTokensListByUserPage(ctx context.Context, q *pb.RefreshIIRequest) (*pb.RefreshTokenPage, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensListByUserPage)
+}
+
+func (s *Server) refreshTokensListByUserPage(ctx context.Context, q *pb.RefreshIIRequest) (*pb.RefreshTokenPage, error) {
 	var cursor string
 	vs, e, err := many(s, q.TxId, func(st store.Store) ([]*store.RefreshToken, error) {
 		v, next, err := st.RefreshTokens().ListByUserPage(ctx, q.TenantId, q.UserId, q.ClientId, q.From, int(q.Take))

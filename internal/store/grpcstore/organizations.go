@@ -237,7 +237,7 @@ func (srv *Server) OrganizationsCreate(ctx context.Context, q *storev1.Organizat
 }
 
 func (o clientOrganizations) Get(ctx context.Context, tid, id string) (*store.Organization, error) {
-	v, err := orgCall(o.c, "Get", &storev1.OrganizationsRequest{TenantId: tid, OrganizationId: id}, o.c.rpc.OrganizationsGet, ctx)
+	v, err := orgCall(o.c, "Get", &storev1.OrganizationsRequest{TenantId: tid, OrganizationId: id}, refreshRead(o.c, o.c.rpc.OrganizationsGet, o.c.rpc.RefreshIIOrganizationsGet), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (srv *Server) OrganizationsGet(ctx context.Context, q *storev1.Organization
 }
 
 func (o clientOrganizations) GetByName(ctx context.Context, tid, name string) (*store.Organization, error) {
-	v, err := orgCall(o.c, "GetByName", &storev1.OrganizationsRequest{TenantId: tid, Name: name}, o.c.rpc.OrganizationsGetByName, ctx)
+	v, err := orgCall(o.c, "GetByName", &storev1.OrganizationsRequest{TenantId: tid, Name: name}, refreshRead(o.c, o.c.rpc.OrganizationsGetByName, o.c.rpc.RefreshIIOrganizationsGetByName), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +282,7 @@ func (o clientOrganizations) orgList(ctx context.Context, op string, q *storev1.
 	return out, nil
 }
 func (o clientOrganizations) List(ctx context.Context, tid string, p store.OrgPage) (store.OrgResult[store.Organization], error) {
-	return o.orgList(ctx, "List", &storev1.OrganizationsRequest{TenantId: tid, Page: orgPageToPB(p)}, o.c.rpc.OrganizationsList)
+	return o.orgList(ctx, "List", &storev1.OrganizationsRequest{TenantId: tid, Page: orgPageToPB(p)}, refreshRead(o.c, o.c.rpc.OrganizationsList, o.c.rpc.RefreshIIOrganizationsList))
 }
 func orgsToResponse(out *storev1.OrganizationsResponse) func(store.Organization) {
 	return func(x store.Organization) { out.Organizations = append(out.Organizations, orgToPB(&x)) }
@@ -491,7 +491,7 @@ func (srv *Server) OrganizationsIsMember(ctx context.Context, q *storev1.Organiz
 }
 
 func (o clientOrganizations) UserOrganizations(ctx context.Context, tid, userID string, p store.OrgPage) (store.OrgResult[store.Organization], error) {
-	return o.orgList(ctx, "UserOrganizations", &storev1.OrganizationsRequest{TenantId: tid, UserId: userID, Page: orgPageToPB(p)}, o.c.rpc.OrganizationsUserOrganizations)
+	return o.orgList(ctx, "UserOrganizations", &storev1.OrganizationsRequest{TenantId: tid, UserId: userID, Page: orgPageToPB(p)}, refreshRead(o.c, o.c.rpc.OrganizationsUserOrganizations, o.c.rpc.RefreshIIOrganizationsUserOrganizations))
 }
 func (srv *Server) OrganizationsUserOrganizations(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {
 	out := &storev1.OrganizationsResponse{}

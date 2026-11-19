@@ -19,426 +19,453 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StoreService_MFACapabilities_FullMethodName                         = "/zeroauthy.store.v1.StoreService/MFACapabilities"
-	StoreService_MFAGetGuardian_FullMethodName                          = "/zeroauthy.store.v1.StoreService/MFAGetGuardian"
-	StoreService_MFAPutGuardian_FullMethodName                          = "/zeroauthy.store.v1.StoreService/MFAPutGuardian"
-	StoreService_MFACreateAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFACreateAuthenticator"
-	StoreService_MFAGetAuthenticator_FullMethodName                     = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticator"
-	StoreService_MFAGetAuthenticatorByEnrollmentID_FullMethodName       = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticatorByEnrollmentID"
-	StoreService_MFAGuardianUsers_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAGuardianUsers"
-	StoreService_MFAListAuthenticators_FullMethodName                   = "/zeroauthy.store.v1.StoreService/MFAListAuthenticators"
-	StoreService_MFAUpdateAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFAUpdateAuthenticator"
-	StoreService_MFADeleteAuthenticator_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFADeleteAuthenticator"
-	StoreService_MFADeleteUserAuthenticators_FullMethodName             = "/zeroauthy.store.v1.StoreService/MFADeleteUserAuthenticators"
-	StoreService_MFAAcceptTOTPStep_FullMethodName                       = "/zeroauthy.store.v1.StoreService/MFAAcceptTOTPStep"
-	StoreService_MFAReplaceRecoveryCode_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MFAReplaceRecoveryCode"
-	StoreService_MFAAcceptSignCount_FullMethodName                      = "/zeroauthy.store.v1.StoreService/MFAAcceptSignCount"
-	StoreService_MFACreateMFAToken_FullMethodName                       = "/zeroauthy.store.v1.StoreService/MFACreateMFAToken"
-	StoreService_MFAConsumeMFAToken_FullMethodName                      = "/zeroauthy.store.v1.StoreService/MFAConsumeMFAToken"
-	StoreService_MFAPeekMFAToken_FullMethodName                         = "/zeroauthy.store.v1.StoreService/MFAPeekMFAToken"
-	StoreService_MFACreateChallenge_FullMethodName                      = "/zeroauthy.store.v1.StoreService/MFACreateChallenge"
-	StoreService_MFAGetChallenge_FullMethodName                         = "/zeroauthy.store.v1.StoreService/MFAGetChallenge"
-	StoreService_MFAFailChallenge_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAFailChallenge"
-	StoreService_MFAConsumeChallenge_FullMethodName                     = "/zeroauthy.store.v1.StoreService/MFAConsumeChallenge"
-	StoreService_MFACreateTicket_FullMethodName                         = "/zeroauthy.store.v1.StoreService/MFACreateTicket"
-	StoreService_MFAConsumeTicket_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAConsumeTicket"
-	StoreService_MFAPeekTicket_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAPeekTicket"
-	StoreService_MFAPutBrowser_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAPutBrowser"
-	StoreService_MFAGetBrowser_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAGetBrowser"
-	StoreService_MFABumpRememberEpoch_FullMethodName                    = "/zeroauthy.store.v1.StoreService/MFABumpRememberEpoch"
-	StoreService_MFAPurgeMFA_FullMethodName                             = "/zeroauthy.store.v1.StoreService/MFAPurgeMFA"
-	StoreService_MFADeleteUserMFA_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFADeleteUserMFA"
-	StoreService_MFADeleteTenantMFA_FullMethodName                      = "/zeroauthy.store.v1.StoreService/MFADeleteTenantMFA"
-	StoreService_SessionsMarkMFA_FullMethodName                         = "/zeroauthy.store.v1.StoreService/SessionsMarkMFA"
-	StoreService_PhoneCapabilities_FullMethodName                       = "/zeroauthy.store.v1.StoreService/PhoneCapabilities"
-	StoreService_PhoneListProviders_FullMethodName                      = "/zeroauthy.store.v1.StoreService/PhoneListProviders"
-	StoreService_PhoneGetProvider_FullMethodName                        = "/zeroauthy.store.v1.StoreService/PhoneGetProvider"
-	StoreService_PhoneCreateProvider_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneCreateProvider"
-	StoreService_PhoneUpdateProvider_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneUpdateProvider"
-	StoreService_PhoneDeleteProvider_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneDeleteProvider"
-	StoreService_PhoneListTemplates_FullMethodName                      = "/zeroauthy.store.v1.StoreService/PhoneListTemplates"
-	StoreService_PhoneGetTemplate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/PhoneGetTemplate"
-	StoreService_PhonePutTemplate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/PhonePutTemplate"
-	StoreService_PhoneDeleteTemplate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneDeleteTemplate"
-	StoreService_PhonePutPasswordlessCode_FullMethodName                = "/zeroauthy.store.v1.StoreService/PhonePutPasswordlessCode"
-	StoreService_PhoneFailPasswordlessCode_FullMethodName               = "/zeroauthy.store.v1.StoreService/PhoneFailPasswordlessCode"
-	StoreService_PhoneConsumePasswordlessCode_FullMethodName            = "/zeroauthy.store.v1.StoreService/PhoneConsumePasswordlessCode"
-	StoreService_PhonePeekPasswordlessLink_FullMethodName               = "/zeroauthy.store.v1.StoreService/PhonePeekPasswordlessLink"
-	StoreService_PhoneFindUsersByPhone_FullMethodName                   = "/zeroauthy.store.v1.StoreService/PhoneFindUsersByPhone"
-	StoreService_PhonePurge_FullMethodName                              = "/zeroauthy.store.v1.StoreService/PhonePurge"
-	StoreService_PhoneDeleteTenant_FullMethodName                       = "/zeroauthy.store.v1.StoreService/PhoneDeleteTenant"
-	StoreService_WebAuthnCapabilities_FullMethodName                    = "/zeroauthy.store.v1.StoreService/WebAuthnCapabilities"
-	StoreService_WebAuthnGetByCredentialID_FullMethodName               = "/zeroauthy.store.v1.StoreService/WebAuthnGetByCredentialID"
-	StoreService_WebAuthnCreatePasskey_FullMethodName                   = "/zeroauthy.store.v1.StoreService/WebAuthnCreatePasskey"
-	StoreService_WebAuthnCreateUserWithPasskey_FullMethodName           = "/zeroauthy.store.v1.StoreService/WebAuthnCreateUserWithPasskey"
-	StoreService_WebAuthnAcceptAssertion_FullMethodName                 = "/zeroauthy.store.v1.StoreService/WebAuthnAcceptAssertion"
-	StoreService_WebAuthnMovePasskeys_FullMethodName                    = "/zeroauthy.store.v1.StoreService/WebAuthnMovePasskeys"
-	StoreService_WebAuthnPutSnooze_FullMethodName                       = "/zeroauthy.store.v1.StoreService/WebAuthnPutSnooze"
-	StoreService_WebAuthnGetSnooze_FullMethodName                       = "/zeroauthy.store.v1.StoreService/WebAuthnGetSnooze"
-	StoreService_WebAuthnHostTenantsUnder_FullMethodName                = "/zeroauthy.store.v1.StoreService/WebAuthnHostTenantsUnder"
-	StoreService_WebAuthnPurge_FullMethodName                           = "/zeroauthy.store.v1.StoreService/WebAuthnPurge"
-	StoreService_ConnectionKeysCapabilities_FullMethodName              = "/zeroauthy.store.v1.StoreService/ConnectionKeysCapabilities"
-	StoreService_ListConnectionKeys_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ListConnectionKeys"
-	StoreService_CreateConnectionKeys_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CreateConnectionKeys"
-	StoreService_RotateConnectionKeys_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RotateConnectionKeys"
-	StoreService_ClientCredentialsCapabilities_FullMethodName           = "/zeroauthy.store.v1.StoreService/ClientCredentialsCapabilities"
-	StoreService_ClientCredentialsCreate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreate"
-	StoreService_ClientCredentialsGet_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ClientCredentialsGet"
-	StoreService_ClientCredentialsList_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ClientCredentialsList"
-	StoreService_ClientCredentialsUpdateExpiry_FullMethodName           = "/zeroauthy.store.v1.StoreService/ClientCredentialsUpdateExpiry"
-	StoreService_ClientCredentialsDelete_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsDelete"
-	StoreService_ClientCredentialsUseJTI_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsUseJTI"
-	StoreService_ClientCredentialsPurgeJTIs_FullMethodName              = "/zeroauthy.store.v1.StoreService/ClientCredentialsPurgeJTIs"
-	StoreService_ClientCredentialsCreateProfile_FullMethodName          = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreateProfile"
-	StoreService_ClientCredentialsGetProfile_FullMethodName             = "/zeroauthy.store.v1.StoreService/ClientCredentialsGetProfile"
-	StoreService_ClientCredentialsGetProfileByType_FullMethodName       = "/zeroauthy.store.v1.StoreService/ClientCredentialsGetProfileByType"
-	StoreService_ClientCredentialsListProfiles_FullMethodName           = "/zeroauthy.store.v1.StoreService/ClientCredentialsListProfiles"
-	StoreService_ClientCredentialsUpdateProfile_FullMethodName          = "/zeroauthy.store.v1.StoreService/ClientCredentialsUpdateProfile"
-	StoreService_ClientCredentialsDeleteProfile_FullMethodName          = "/zeroauthy.store.v1.StoreService/ClientCredentialsDeleteProfile"
-	StoreService_ClientCredentialsProfilesForAction_FullMethodName      = "/zeroauthy.store.v1.StoreService/ClientCredentialsProfilesForAction"
-	StoreService_EventsCapabilities_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EventsCapabilities"
-	StoreService_AppendEvents_FullMethodName                            = "/zeroauthy.store.v1.StoreService/AppendEvents"
-	StoreService_GetEvent_FullMethodName                                = "/zeroauthy.store.v1.StoreService/GetEvent"
-	StoreService_EventsAfter_FullMethodName                             = "/zeroauthy.store.v1.StoreService/EventsAfter"
-	StoreService_EventsFromTime_FullMethodName                          = "/zeroauthy.store.v1.StoreService/EventsFromTime"
-	StoreService_LatestEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/LatestEventSeq"
-	StoreService_PurgedEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/PurgedEventSeq"
-	StoreService_OldestEventSeq_FullMethodName                          = "/zeroauthy.store.v1.StoreService/OldestEventSeq"
-	StoreService_PurgeEvents_FullMethodName                             = "/zeroauthy.store.v1.StoreService/PurgeEvents"
-	StoreService_DeleteTenantEvents_FullMethodName                      = "/zeroauthy.store.v1.StoreService/DeleteTenantEvents"
-	StoreService_CreateEventStream_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CreateEventStream"
-	StoreService_GetEventStream_FullMethodName                          = "/zeroauthy.store.v1.StoreService/GetEventStream"
-	StoreService_ListEventStreams_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ListEventStreams"
-	StoreService_CountEventStreams_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CountEventStreams"
-	StoreService_UpdateEventStream_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UpdateEventStream"
-	StoreService_DeleteEventStream_FullMethodName                       = "/zeroauthy.store.v1.StoreService/DeleteEventStream"
-	StoreService_LeaseEventStream_FullMethodName                        = "/zeroauthy.store.v1.StoreService/LeaseEventStream"
-	StoreService_RecordEventDelivery_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RecordEventDelivery"
-	StoreService_ListDeliveries_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ListDeliveries"
-	StoreService_GetDelivery_FullMethodName                             = "/zeroauthy.store.v1.StoreService/GetDelivery"
-	StoreService_QueueRedelivery_FullMethodName                         = "/zeroauthy.store.v1.StoreService/QueueRedelivery"
-	StoreService_QueuedDeliveries_FullMethodName                        = "/zeroauthy.store.v1.StoreService/QueuedDeliveries"
-	StoreService_LogsCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/LogsCapabilities"
-	StoreService_AppendLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/AppendLogs"
-	StoreService_GetLog_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/GetLog"
-	StoreService_SearchLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/SearchLogs"
-	StoreService_LogsAfter_FullMethodName                               = "/zeroauthy.store.v1.StoreService/LogsAfter"
-	StoreService_LatestLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/LatestLogs"
-	StoreService_PurgeLogs_FullMethodName                               = "/zeroauthy.store.v1.StoreService/PurgeLogs"
-	StoreService_DeleteTenantLogs_FullMethodName                        = "/zeroauthy.store.v1.StoreService/DeleteTenantLogs"
-	StoreService_CreateLogStream_FullMethodName                         = "/zeroauthy.store.v1.StoreService/CreateLogStream"
-	StoreService_GetLogStream_FullMethodName                            = "/zeroauthy.store.v1.StoreService/GetLogStream"
-	StoreService_ListLogStreams_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ListLogStreams"
-	StoreService_UpdateLogStream_FullMethodName                         = "/zeroauthy.store.v1.StoreService/UpdateLogStream"
-	StoreService_DeleteLogStream_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DeleteLogStream"
-	StoreService_LeaseLogStream_FullMethodName                          = "/zeroauthy.store.v1.StoreService/LeaseLogStream"
-	StoreService_RecordDelivery_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RecordDelivery"
-	StoreService_DailyStats_FullMethodName                              = "/zeroauthy.store.v1.StoreService/DailyStats"
-	StoreService_ActiveUsers_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ActiveUsers"
-	StoreService_RBACCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RBACCapabilities"
-	StoreService_RBACCreateRole_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RBACCreateRole"
-	StoreService_RBACGetRole_FullMethodName                             = "/zeroauthy.store.v1.StoreService/RBACGetRole"
-	StoreService_RBACUpdateRole_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RBACUpdateRole"
-	StoreService_RBACDeleteRole_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RBACDeleteRole"
-	StoreService_RBACListRoles_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACListRoles"
-	StoreService_RBACRolePermissions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACRolePermissions"
-	StoreService_RBACChangeRolePermissions_FullMethodName               = "/zeroauthy.store.v1.StoreService/RBACChangeRolePermissions"
-	StoreService_RBACRoleUsers_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACRoleUsers"
-	StoreService_RBACAssignRoleUsers_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACAssignRoleUsers"
-	StoreService_RBACUserRoles_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACUserRoles"
-	StoreService_RBACChangeUserRoles_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACChangeUserRoles"
-	StoreService_RBACUserPermissions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACUserPermissions"
-	StoreService_RBACChangeUserPermissions_FullMethodName               = "/zeroauthy.store.v1.StoreService/RBACChangeUserPermissions"
-	StoreService_RBACSnapshot_FullMethodName                            = "/zeroauthy.store.v1.StoreService/RBACSnapshot"
-	StoreService_OrganizationsIICapabilities_FullMethodName             = "/zeroauthy.store.v1.StoreService/OrganizationsIICapabilities"
-	StoreService_OrganizationsIICreateInvitation_FullMethodName         = "/zeroauthy.store.v1.StoreService/OrganizationsIICreateInvitation"
-	StoreService_OrganizationsIIGetInvitation_FullMethodName            = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetInvitation"
-	StoreService_OrganizationsIIFindInvitation_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIFindInvitation"
-	StoreService_OrganizationsIIListInvitations_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsIIListInvitations"
-	StoreService_OrganizationsIIDeleteInvitation_FullMethodName         = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteInvitation"
-	StoreService_OrganizationsIIConsumeInvitation_FullMethodName        = "/zeroauthy.store.v1.StoreService/OrganizationsIIConsumeInvitation"
-	StoreService_OrganizationsIIGetInvitationReceipt_FullMethodName     = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetInvitationReceipt"
-	StoreService_OrganizationsIIPutClients_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutClients"
-	StoreService_OrganizationsIIGetClient_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetClient"
-	StoreService_OrganizationsIIListClients_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsIIListClients"
-	StoreService_OrganizationsIIDeleteClients_FullMethodName            = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteClients"
-	StoreService_OrganizationsIIPutClientGrant_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutClientGrant"
-	StoreService_OrganizationsIIDeleteClientGrant_FullMethodName        = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteClientGrant"
-	StoreService_OrganizationsIIListClientGrants_FullMethodName         = "/zeroauthy.store.v1.StoreService/OrganizationsIIListClientGrants"
-	StoreService_OrganizationsIIGrantOrganizations_FullMethodName       = "/zeroauthy.store.v1.StoreService/OrganizationsIIGrantOrganizations"
-	StoreService_OrganizationsIIHasClientGrant_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIHasClientGrant"
-	StoreService_OrganizationsIIPutDiscoveryDomain_FullMethodName       = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutDiscoveryDomain"
-	StoreService_OrganizationsIIGetDiscoveryDomain_FullMethodName       = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetDiscoveryDomain"
-	StoreService_OrganizationsIIGetDiscoveryDomainByName_FullMethodName = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetDiscoveryDomainByName"
-	StoreService_OrganizationsIIListDiscoveryDomains_FullMethodName     = "/zeroauthy.store.v1.StoreService/OrganizationsIIListDiscoveryDomains"
-	StoreService_OrganizationsIIDeleteDiscoveryDomain_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteDiscoveryDomain"
-	StoreService_OrganizationsIIDiscoverOrganizations_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsIIDiscoverOrganizations"
-	StoreService_OrganizationsIISearch_FullMethodName                   = "/zeroauthy.store.v1.StoreService/OrganizationsIISearch"
-	StoreService_OrganizationsCapabilities_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsCapabilities"
-	StoreService_OrganizationsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsCreate"
-	StoreService_OrganizationsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OrganizationsGet"
-	StoreService_OrganizationsGetByName_FullMethodName                  = "/zeroauthy.store.v1.StoreService/OrganizationsGetByName"
-	StoreService_OrganizationsList_FullMethodName                       = "/zeroauthy.store.v1.StoreService/OrganizationsList"
-	StoreService_OrganizationsUpdate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsUpdate"
-	StoreService_OrganizationsDelete_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsDelete"
-	StoreService_OrganizationsConnections_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsConnections"
-	StoreService_OrganizationsGetConnection_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsGetConnection"
-	StoreService_OrganizationsPutConnection_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsPutConnection"
-	StoreService_OrganizationsDeleteConnection_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsDeleteConnection"
-	StoreService_OrganizationsConnectionsByConnection_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsConnectionsByConnection"
-	StoreService_OrganizationsMembers_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OrganizationsMembers"
-	StoreService_OrganizationsAddMembers_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OrganizationsAddMembers"
-	StoreService_OrganizationsRemoveMembers_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsRemoveMembers"
-	StoreService_OrganizationsIsMember_FullMethodName                   = "/zeroauthy.store.v1.StoreService/OrganizationsIsMember"
-	StoreService_OrganizationsUserOrganizations_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsUserOrganizations"
-	StoreService_OrganizationsMemberRoles_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsMemberRoles"
-	StoreService_OrganizationsChangeMemberRoles_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsChangeMemberRoles"
-	StoreService_OrganizationsRoleMembers_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsRoleMembers"
-	StoreService_ActionsCapabilities_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsCapabilities"
-	StoreService_ActionsCreateAction_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsCreateAction"
-	StoreService_ActionsGetAction_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsGetAction"
-	StoreService_ActionsGetActionByName_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsGetActionByName"
-	StoreService_ActionsUpdateAction_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsUpdateAction"
-	StoreService_ActionsDeleteAction_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsDeleteAction"
-	StoreService_ActionsListActions_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ActionsListActions"
-	StoreService_ActionsDeploy_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsDeploy"
-	StoreService_ActionsGetVersion_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ActionsGetVersion"
-	StoreService_ActionsListVersions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsListVersions"
-	StoreService_ActionsPutBuild_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ActionsPutBuild"
-	StoreService_ActionsGetBuild_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ActionsGetBuild"
-	StoreService_ActionsPutArtifact_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ActionsPutArtifact"
-	StoreService_ActionsGetArtifact_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ActionsGetArtifact"
-	StoreService_ActionsBindings_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ActionsBindings"
-	StoreService_ActionsBindingsInitialized_FullMethodName              = "/zeroauthy.store.v1.StoreService/ActionsBindingsInitialized"
-	StoreService_ActionsInitializeBindings_FullMethodName               = "/zeroauthy.store.v1.StoreService/ActionsInitializeBindings"
-	StoreService_ActionsReplaceBindings_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsReplaceBindings"
-	StoreService_ActionsCreateExecution_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsCreateExecution"
-	StoreService_ActionsListExecutions_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsListExecutions"
-	StoreService_ActionsGetExecution_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsGetExecution"
-	StoreService_ActionsPurgeExecutions_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsPurgeExecutions"
-	StoreService_ActionsCreateContinue_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsCreateContinue"
-	StoreService_ActionsConsumeContinue_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsConsumeContinue"
-	StoreService_ActionsPurgeContinue_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsPurgeContinue"
-	StoreService_ActionsCreateModule_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsCreateModule"
-	StoreService_ActionsGetModule_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsGetModule"
-	StoreService_ActionsGetModuleByName_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsGetModuleByName"
-	StoreService_ActionsUpdateModule_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsUpdateModule"
-	StoreService_ActionsDeleteModule_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsDeleteModule"
-	StoreService_ActionsListModules_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ActionsListModules"
-	StoreService_ActionsPublishModule_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsPublishModule"
-	StoreService_ActionsRollbackModule_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsRollbackModule"
-	StoreService_ActionsListModuleVersions_FullMethodName               = "/zeroauthy.store.v1.StoreService/ActionsListModuleVersions"
-	StoreService_ActionsGetModuleVersion_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsGetModuleVersion"
-	StoreService_ActionsModuleUsers_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ActionsModuleUsers"
-	StoreService_ActionsEnqueueJob_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ActionsEnqueueJob"
-	StoreService_ActionsGetJob_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsGetJob"
-	StoreService_ActionsCancelJob_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsCancelJob"
-	StoreService_ActionsClaimJobs_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsClaimJobs"
-	StoreService_ActionsFinishJob_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsFinishJob"
-	StoreService_ActionsPurgeJobs_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsPurgeJobs"
-	StoreService_Ping_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/Ping"
-	StoreService_MicrosoftFederationSupported_FullMethodName            = "/zeroauthy.store.v1.StoreService/MicrosoftFederationSupported"
-	StoreService_CustomDomainsSupported_FullMethodName                  = "/zeroauthy.store.v1.StoreService/CustomDomainsSupported"
-	StoreService_CustomDomainsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/CustomDomainsGet"
-	StoreService_CustomDomainsList_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CustomDomainsList"
-	StoreService_CustomDomainsListDue_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CustomDomainsListDue"
-	StoreService_CustomDomainsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/CustomDomainsCreate"
-	StoreService_CustomDomainsUpdate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/CustomDomainsUpdate"
-	StoreService_CustomDomainsDelete_FullMethodName                     = "/zeroauthy.store.v1.StoreService/CustomDomainsDelete"
-	StoreService_CustomDomainsGetHost_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CustomDomainsGetHost"
-	StoreService_CustomDomainsPutHost_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CustomDomainsPutHost"
-	StoreService_CustomDomainsDeleteHost_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomDomainsDeleteHost"
-	StoreService_CustomDomainsGetDefault_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomDomainsGetDefault"
-	StoreService_CustomDomainsSetDefault_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomDomainsSetDefault"
-	StoreService_CustomDomainsAdmitAttempt_FullMethodName               = "/zeroauthy.store.v1.StoreService/CustomDomainsAdmitAttempt"
-	StoreService_TLSAssetsGet_FullMethodName                            = "/zeroauthy.store.v1.StoreService/TLSAssetsGet"
-	StoreService_TLSAssetsPut_FullMethodName                            = "/zeroauthy.store.v1.StoreService/TLSAssetsPut"
-	StoreService_TLSAssetsDelete_FullMethodName                         = "/zeroauthy.store.v1.StoreService/TLSAssetsDelete"
-	StoreService_TLSAssetsListExpired_FullMethodName                    = "/zeroauthy.store.v1.StoreService/TLSAssetsListExpired"
-	StoreService_TLSAssetsClaimLease_FullMethodName                     = "/zeroauthy.store.v1.StoreService/TLSAssetsClaimLease"
-	StoreService_TLSAssetsRenewLease_FullMethodName                     = "/zeroauthy.store.v1.StoreService/TLSAssetsRenewLease"
-	StoreService_TLSAssetsCheckLease_FullMethodName                     = "/zeroauthy.store.v1.StoreService/TLSAssetsCheckLease"
-	StoreService_TLSAssetsReleaseLease_FullMethodName                   = "/zeroauthy.store.v1.StoreService/TLSAssetsReleaseLease"
-	StoreService_ProtectionReserve_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ProtectionReserve"
-	StoreService_ProtectionComplete_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ProtectionComplete"
-	StoreService_ProtectionBlocks_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ProtectionBlocks"
-	StoreService_ProtectionClear_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ProtectionClear"
-	StoreService_ProtectionUseProof_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ProtectionUseProof"
-	StoreService_ProtectionRecordRisk_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ProtectionRecordRisk"
-	StoreService_ProtectionRiskCount_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ProtectionRiskCount"
-	StoreService_ProtectionSweep_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ProtectionSweep"
-	StoreService_TenantSettingsSupported_FullMethodName                 = "/zeroauthy.store.v1.StoreService/TenantSettingsSupported"
-	StoreService_BeginTx_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/BeginTx"
-	StoreService_Commit_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/Commit"
-	StoreService_Rollback_FullMethodName                                = "/zeroauthy.store.v1.StoreService/Rollback"
-	StoreService_TenantsCreate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TenantsCreate"
-	StoreService_TenantsGet_FullMethodName                              = "/zeroauthy.store.v1.StoreService/TenantsGet"
-	StoreService_TenantsGetByName_FullMethodName                        = "/zeroauthy.store.v1.StoreService/TenantsGetByName"
-	StoreService_TenantsGetByDomain_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TenantsGetByDomain"
-	StoreService_TenantsUpdate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TenantsUpdate"
-	StoreService_TenantsList_FullMethodName                             = "/zeroauthy.store.v1.StoreService/TenantsList"
-	StoreService_TenantsDelete_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TenantsDelete"
-	StoreService_ClientsCreate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ClientsCreate"
-	StoreService_ClientsGet_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ClientsGet"
-	StoreService_ClientsUpdate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ClientsUpdate"
-	StoreService_ClientsDelete_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ClientsDelete"
-	StoreService_ClientsList_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ClientsList"
-	StoreService_ClientsListPage_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ClientsListPage"
-	StoreService_ResourceServersCreate_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ResourceServersCreate"
-	StoreService_ResourceServersGet_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ResourceServersGet"
-	StoreService_ResourceServersGetByIdentifier_FullMethodName          = "/zeroauthy.store.v1.StoreService/ResourceServersGetByIdentifier"
-	StoreService_ResourceServersUpdate_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ResourceServersUpdate"
-	StoreService_ResourceServersDelete_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ResourceServersDelete"
-	StoreService_ResourceServersList_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ResourceServersList"
-	StoreService_ResourceServersRenameSystem_FullMethodName             = "/zeroauthy.store.v1.StoreService/ResourceServersRenameSystem"
-	StoreService_ClientGrantsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientGrantsCreate"
-	StoreService_ClientGrantsFind_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ClientGrantsFind"
-	StoreService_ClientGrantsUpdate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientGrantsUpdate"
-	StoreService_ClientGrantsDelete_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientGrantsDelete"
-	StoreService_ClientGrantsList_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ClientGrantsList"
-	StoreService_UserGrantsFind_FullMethodName                          = "/zeroauthy.store.v1.StoreService/UserGrantsFind"
-	StoreService_UserGrantsUpsert_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UserGrantsUpsert"
-	StoreService_UserGrantsList_FullMethodName                          = "/zeroauthy.store.v1.StoreService/UserGrantsList"
-	StoreService_UserGrantsListByUser_FullMethodName                    = "/zeroauthy.store.v1.StoreService/UserGrantsListByUser"
-	StoreService_UserGrantsListByAudience_FullMethodName                = "/zeroauthy.store.v1.StoreService/UserGrantsListByAudience"
-	StoreService_UserGrantsDelete_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UserGrantsDelete"
-	StoreService_UserGrantsDeleteByUser_FullMethodName                  = "/zeroauthy.store.v1.StoreService/UserGrantsDeleteByUser"
-	StoreService_SigningKeysCreate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/SigningKeysCreate"
-	StoreService_SigningKeysList_FullMethodName                         = "/zeroauthy.store.v1.StoreService/SigningKeysList"
-	StoreService_SigningKeysRotate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/SigningKeysRotate"
-	StoreService_SigningKeysGet_FullMethodName                          = "/zeroauthy.store.v1.StoreService/SigningKeysGet"
-	StoreService_SigningKeysRotateWithResult_FullMethodName             = "/zeroauthy.store.v1.StoreService/SigningKeysRotateWithResult"
-	StoreService_SigningKeysRevoke_FullMethodName                       = "/zeroauthy.store.v1.StoreService/SigningKeysRevoke"
-	StoreService_SigningKeysSetCertificate_FullMethodName               = "/zeroauthy.store.v1.StoreService/SigningKeysSetCertificate"
-	StoreService_CustomSigningKeysGet_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CustomSigningKeysGet"
-	StoreService_CustomSigningKeysReplace_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomSigningKeysReplace"
-	StoreService_CustomSigningKeysDelete_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomSigningKeysDelete"
-	StoreService_HostedLoginsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/HostedLoginsGet"
-	StoreService_HostedLoginsPut_FullMethodName                         = "/zeroauthy.store.v1.StoreService/HostedLoginsPut"
-	StoreService_FederationIdentityEpoch_FullMethodName                 = "/zeroauthy.store.v1.StoreService/FederationIdentityEpoch"
-	StoreService_FederationBumpIdentityEpoch_FullMethodName             = "/zeroauthy.store.v1.StoreService/FederationBumpIdentityEpoch"
-	StoreService_FederationCreateAttempt_FullMethodName                 = "/zeroauthy.store.v1.StoreService/FederationCreateAttempt"
-	StoreService_FederationGetAttempt_FullMethodName                    = "/zeroauthy.store.v1.StoreService/FederationGetAttempt"
-	StoreService_FederationClaimAttempt_FullMethodName                  = "/zeroauthy.store.v1.StoreService/FederationClaimAttempt"
-	StoreService_FederationFinishAttempt_FullMethodName                 = "/zeroauthy.store.v1.StoreService/FederationFinishAttempt"
-	StoreService_FederationPutIdentity_FullMethodName                   = "/zeroauthy.store.v1.StoreService/FederationPutIdentity"
-	StoreService_FederationDeleteIdentity_FullMethodName                = "/zeroauthy.store.v1.StoreService/FederationDeleteIdentity"
-	StoreService_FederationGetTokens_FullMethodName                     = "/zeroauthy.store.v1.StoreService/FederationGetTokens"
-	StoreService_FederationPutTokens_FullMethodName                     = "/zeroauthy.store.v1.StoreService/FederationPutTokens"
-	StoreService_FederationDeleteTokens_FullMethodName                  = "/zeroauthy.store.v1.StoreService/FederationDeleteTokens"
-	StoreService_FederationDeleteExpired_FullMethodName                 = "/zeroauthy.store.v1.StoreService/FederationDeleteExpired"
-	StoreService_UsersFindByIdentity_FullMethodName                     = "/zeroauthy.store.v1.StoreService/UsersFindByIdentity"
-	StoreService_EmailProvidersGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/EmailProvidersGet"
-	StoreService_EmailProvidersPut_FullMethodName                       = "/zeroauthy.store.v1.StoreService/EmailProvidersPut"
-	StoreService_EmailProvidersDelete_FullMethodName                    = "/zeroauthy.store.v1.StoreService/EmailProvidersDelete"
-	StoreService_EmailTemplatesGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/EmailTemplatesGet"
-	StoreService_EmailTemplatesPut_FullMethodName                       = "/zeroauthy.store.v1.StoreService/EmailTemplatesPut"
-	StoreService_EmailNotificationsClaim_FullMethodName                 = "/zeroauthy.store.v1.StoreService/EmailNotificationsClaim"
-	StoreService_EmailNotificationsSweep_FullMethodName                 = "/zeroauthy.store.v1.StoreService/EmailNotificationsSweep"
-	StoreService_ConnectionsCreate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ConnectionsCreate"
-	StoreService_ConnectionsGet_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ConnectionsGet"
-	StoreService_ConnectionsGetByName_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ConnectionsGetByName"
-	StoreService_ConnectionsUpdate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ConnectionsUpdate"
-	StoreService_ConnectionsList_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ConnectionsList"
-	StoreService_ConnectionsListPage_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ConnectionsListPage"
-	StoreService_ConnectionsDelete_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ConnectionsDelete"
-	StoreService_PasswordHistoriesAdd_FullMethodName                    = "/zeroauthy.store.v1.StoreService/PasswordHistoriesAdd"
-	StoreService_PasswordHistoriesList_FullMethodName                   = "/zeroauthy.store.v1.StoreService/PasswordHistoriesList"
-	StoreService_UsersCreate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/UsersCreate"
-	StoreService_UsersGet_FullMethodName                                = "/zeroauthy.store.v1.StoreService/UsersGet"
-	StoreService_UsersFindByLogin_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersFindByLogin"
-	StoreService_UsersUpdate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/UsersUpdate"
-	StoreService_UsersRecordLogin_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersRecordLogin"
-	StoreService_UsersSetPasswordHash_FullMethodName                    = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHash"
-	StoreService_UsersFindByEmail_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersFindByEmail"
-	StoreService_UsersSetPasswordHashIfEmpty_FullMethodName             = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHashIfEmpty"
-	StoreService_UsersUpgradeImportedHash_FullMethodName                = "/zeroauthy.store.v1.StoreService/UsersUpgradeImportedHash"
-	StoreService_UsersBumpVersion_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersBumpVersion"
-	StoreService_UsersGetForUpdate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UsersGetForUpdate"
-	StoreService_UsersDelete_FullMethodName                             = "/zeroauthy.store.v1.StoreService/UsersDelete"
-	StoreService_UsersList_FullMethodName                               = "/zeroauthy.store.v1.StoreService/UsersList"
-	StoreService_SessionsCreate_FullMethodName                          = "/zeroauthy.store.v1.StoreService/SessionsCreate"
-	StoreService_SessionsGetByTokenHash_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SessionsGetByTokenHash"
-	StoreService_SessionsGet_FullMethodName                             = "/zeroauthy.store.v1.StoreService/SessionsGet"
-	StoreService_SessionsListByUser_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SessionsListByUser"
-	StoreService_SessionsTouch_FullMethodName                           = "/zeroauthy.store.v1.StoreService/SessionsTouch"
-	StoreService_SessionsAddClient_FullMethodName                       = "/zeroauthy.store.v1.StoreService/SessionsAddClient"
-	StoreService_SessionsAddMethod_FullMethodName                       = "/zeroauthy.store.v1.StoreService/SessionsAddMethod"
-	StoreService_SessionsDelete_FullMethodName                          = "/zeroauthy.store.v1.StoreService/SessionsDelete"
-	StoreService_SessionsDeleteByUser_FullMethodName                    = "/zeroauthy.store.v1.StoreService/SessionsDeleteByUser"
-	StoreService_SessionsDeleteExpired_FullMethodName                   = "/zeroauthy.store.v1.StoreService/SessionsDeleteExpired"
-	StoreService_AuthTransactionsCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/AuthTransactionsCreate"
-	StoreService_AuthTransactionsGet_FullMethodName                     = "/zeroauthy.store.v1.StoreService/AuthTransactionsGet"
-	StoreService_AuthTransactionsDelete_FullMethodName                  = "/zeroauthy.store.v1.StoreService/AuthTransactionsDelete"
-	StoreService_AuthTransactionsDeleteExpired_FullMethodName           = "/zeroauthy.store.v1.StoreService/AuthTransactionsDeleteExpired"
-	StoreService_AuthTransactionsCompareAndSwapHosted_FullMethodName    = "/zeroauthy.store.v1.StoreService/AuthTransactionsCompareAndSwapHosted"
-	StoreService_AuthCodesCreate_FullMethodName                         = "/zeroauthy.store.v1.StoreService/AuthCodesCreate"
-	StoreService_AuthCodesConsume_FullMethodName                        = "/zeroauthy.store.v1.StoreService/AuthCodesConsume"
-	StoreService_AuthCodesGet_FullMethodName                            = "/zeroauthy.store.v1.StoreService/AuthCodesGet"
-	StoreService_AuthCodesDeleteExpired_FullMethodName                  = "/zeroauthy.store.v1.StoreService/AuthCodesDeleteExpired"
-	StoreService_PushedAuthRequestsCreate_FullMethodName                = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsCreate"
-	StoreService_PushedAuthRequestsConsume_FullMethodName               = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsConsume"
-	StoreService_PushedAuthRequestsGet_FullMethodName                   = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsGet"
-	StoreService_PushedAuthRequestsDeleteExpired_FullMethodName         = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsDeleteExpired"
-	StoreService_DeviceCodesCreate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/DeviceCodesCreate"
-	StoreService_DeviceCodesGet_FullMethodName                          = "/zeroauthy.store.v1.StoreService/DeviceCodesGet"
-	StoreService_DeviceCodesGetByUserCode_FullMethodName                = "/zeroauthy.store.v1.StoreService/DeviceCodesGetByUserCode"
-	StoreService_DeviceCodesDecide_FullMethodName                       = "/zeroauthy.store.v1.StoreService/DeviceCodesDecide"
-	StoreService_DeviceCodesPoll_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DeviceCodesPoll"
-	StoreService_DeviceCodesDeleteExpired_FullMethodName                = "/zeroauthy.store.v1.StoreService/DeviceCodesDeleteExpired"
-	StoreService_RefreshTokensIICapabilities_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensIICapabilities"
-	StoreService_RefreshTokensIIWrite_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RefreshTokensIIWrite"
-	StoreService_RefreshTokensIIRotate_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensIIRotate"
-	StoreService_RefreshTokensConvertNonRotating_FullMethodName         = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertNonRotating"
-	StoreService_RefreshTokensConvertRotating_FullMethodName            = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertRotating"
-	StoreService_RefreshTokensRevokeByUserClient_FullMethodName         = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUserClient"
-	StoreService_RefreshTokensRevokeBySession_FullMethodName            = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeBySession"
-	StoreService_RefreshTokensListByUserPage_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensListByUserPage"
-	StoreService_RefreshTokensUpdateMetadata_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensUpdateMetadata"
-	StoreService_SessionsUpdateMetadata_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SessionsUpdateMetadata"
-	StoreService_RefreshTokensRecordExchange_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensRecordExchange"
-	StoreService_DPoPUseProof_FullMethodName                            = "/zeroauthy.store.v1.StoreService/DPoPUseProof"
-	StoreService_DPoPPurgeBefore_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DPoPPurgeBefore"
-	StoreService_TokenQuotasPurgeBefore_FullMethodName                  = "/zeroauthy.store.v1.StoreService/TokenQuotasPurgeBefore"
-	StoreService_TokenQuotasConsume_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TokenQuotasConsume"
-	StoreService_TokenQuotasPeek_FullMethodName                         = "/zeroauthy.store.v1.StoreService/TokenQuotasPeek"
-	StoreService_RefreshTokensCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshTokensCreate"
-	StoreService_RefreshTokensGetByTokenHash_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensGetByTokenHash"
-	StoreService_RefreshTokensGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshTokensGet"
-	StoreService_RefreshTokensListByUser_FullMethodName                 = "/zeroauthy.store.v1.StoreService/RefreshTokensListByUser"
-	StoreService_RefreshTokensRevoke_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshTokensRevoke"
-	StoreService_RefreshTokensRotate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshTokensRotate"
-	StoreService_RefreshTokensTouch_FullMethodName                      = "/zeroauthy.store.v1.StoreService/RefreshTokensTouch"
-	StoreService_RefreshTokensRevokeFamily_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeFamily"
-	StoreService_RefreshTokensRevokeByUser_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUser"
-	StoreService_RefreshTokensDeleteExpired_FullMethodName              = "/zeroauthy.store.v1.StoreService/RefreshTokensDeleteExpired"
-	StoreService_PasswordResetTicketsMarkChallengePassed_FullMethodName = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsMarkChallengePassed"
-	StoreService_PasswordResetTicketsCreate_FullMethodName              = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsCreate"
-	StoreService_PasswordResetTicketsGetByTokenHash_FullMethodName      = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsGetByTokenHash"
-	StoreService_PasswordResetTicketsConsume_FullMethodName             = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsConsume"
-	StoreService_PasswordResetTicketsDeleteByUser_FullMethodName        = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteByUser"
-	StoreService_PasswordResetTicketsDeleteExpired_FullMethodName       = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteExpired"
-	StoreService_EmailVerificationTicketsCreate_FullMethodName          = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsCreate"
-	StoreService_EmailVerificationTicketsGetByTokenHash_FullMethodName  = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsGetByTokenHash"
-	StoreService_EmailVerificationTicketsConsume_FullMethodName         = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsConsume"
-	StoreService_EmailVerificationTicketsDeleteByUser_FullMethodName    = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsDeleteByUser"
-	StoreService_EmailVerificationTicketsDeleteExpired_FullMethodName   = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsDeleteExpired"
-	StoreService_OperatorsGet_FullMethodName                            = "/zeroauthy.store.v1.StoreService/OperatorsGet"
-	StoreService_OperatorsUpsert_FullMethodName                         = "/zeroauthy.store.v1.StoreService/OperatorsUpsert"
-	StoreService_OperatorsList_FullMethodName                           = "/zeroauthy.store.v1.StoreService/OperatorsList"
-	StoreService_OperatorsDelete_FullMethodName                         = "/zeroauthy.store.v1.StoreService/OperatorsDelete"
-	StoreService_JobsCreate_FullMethodName                              = "/zeroauthy.store.v1.StoreService/JobsCreate"
-	StoreService_JobsGet_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/JobsGet"
-	StoreService_JobsList_FullMethodName                                = "/zeroauthy.store.v1.StoreService/JobsList"
-	StoreService_JobsCountActive_FullMethodName                         = "/zeroauthy.store.v1.StoreService/JobsCountActive"
-	StoreService_JobsClaim_FullMethodName                               = "/zeroauthy.store.v1.StoreService/JobsClaim"
-	StoreService_JobsRenew_FullMethodName                               = "/zeroauthy.store.v1.StoreService/JobsRenew"
-	StoreService_JobsCheckpoint_FullMethodName                          = "/zeroauthy.store.v1.StoreService/JobsCheckpoint"
-	StoreService_JobsFinish_FullMethodName                              = "/zeroauthy.store.v1.StoreService/JobsFinish"
-	StoreService_JobsErrors_FullMethodName                              = "/zeroauthy.store.v1.StoreService/JobsErrors"
-	StoreService_JobsAppendFile_FullMethodName                          = "/zeroauthy.store.v1.StoreService/JobsAppendFile"
-	StoreService_JobsReadFile_FullMethodName                            = "/zeroauthy.store.v1.StoreService/JobsReadFile"
-	StoreService_JobsDeleteExpired_FullMethodName                       = "/zeroauthy.store.v1.StoreService/JobsDeleteExpired"
+	StoreService_MFACapabilities_FullMethodName                               = "/zeroauthy.store.v1.StoreService/MFACapabilities"
+	StoreService_MFAGetGuardian_FullMethodName                                = "/zeroauthy.store.v1.StoreService/MFAGetGuardian"
+	StoreService_MFAPutGuardian_FullMethodName                                = "/zeroauthy.store.v1.StoreService/MFAPutGuardian"
+	StoreService_MFACreateAuthenticator_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFACreateAuthenticator"
+	StoreService_MFAGetAuthenticator_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticator"
+	StoreService_MFAGetAuthenticatorByEnrollmentID_FullMethodName             = "/zeroauthy.store.v1.StoreService/MFAGetAuthenticatorByEnrollmentID"
+	StoreService_MFAGuardianUsers_FullMethodName                              = "/zeroauthy.store.v1.StoreService/MFAGuardianUsers"
+	StoreService_MFAListAuthenticators_FullMethodName                         = "/zeroauthy.store.v1.StoreService/MFAListAuthenticators"
+	StoreService_MFAUpdateAuthenticator_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAUpdateAuthenticator"
+	StoreService_MFADeleteAuthenticator_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFADeleteAuthenticator"
+	StoreService_MFADeleteUserAuthenticators_FullMethodName                   = "/zeroauthy.store.v1.StoreService/MFADeleteUserAuthenticators"
+	StoreService_MFAAcceptTOTPStep_FullMethodName                             = "/zeroauthy.store.v1.StoreService/MFAAcceptTOTPStep"
+	StoreService_MFAReplaceRecoveryCode_FullMethodName                        = "/zeroauthy.store.v1.StoreService/MFAReplaceRecoveryCode"
+	StoreService_MFAAcceptSignCount_FullMethodName                            = "/zeroauthy.store.v1.StoreService/MFAAcceptSignCount"
+	StoreService_MFACreateMFAToken_FullMethodName                             = "/zeroauthy.store.v1.StoreService/MFACreateMFAToken"
+	StoreService_MFAConsumeMFAToken_FullMethodName                            = "/zeroauthy.store.v1.StoreService/MFAConsumeMFAToken"
+	StoreService_MFAPeekMFAToken_FullMethodName                               = "/zeroauthy.store.v1.StoreService/MFAPeekMFAToken"
+	StoreService_MFACreateChallenge_FullMethodName                            = "/zeroauthy.store.v1.StoreService/MFACreateChallenge"
+	StoreService_MFAGetChallenge_FullMethodName                               = "/zeroauthy.store.v1.StoreService/MFAGetChallenge"
+	StoreService_MFAFailChallenge_FullMethodName                              = "/zeroauthy.store.v1.StoreService/MFAFailChallenge"
+	StoreService_MFAConsumeChallenge_FullMethodName                           = "/zeroauthy.store.v1.StoreService/MFAConsumeChallenge"
+	StoreService_MFACreateTicket_FullMethodName                               = "/zeroauthy.store.v1.StoreService/MFACreateTicket"
+	StoreService_MFAConsumeTicket_FullMethodName                              = "/zeroauthy.store.v1.StoreService/MFAConsumeTicket"
+	StoreService_MFAPeekTicket_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/MFAPeekTicket"
+	StoreService_MFAPutBrowser_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/MFAPutBrowser"
+	StoreService_MFAGetBrowser_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/MFAGetBrowser"
+	StoreService_MFABumpRememberEpoch_FullMethodName                          = "/zeroauthy.store.v1.StoreService/MFABumpRememberEpoch"
+	StoreService_MFAPurgeMFA_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/MFAPurgeMFA"
+	StoreService_MFADeleteUserMFA_FullMethodName                              = "/zeroauthy.store.v1.StoreService/MFADeleteUserMFA"
+	StoreService_MFADeleteTenantMFA_FullMethodName                            = "/zeroauthy.store.v1.StoreService/MFADeleteTenantMFA"
+	StoreService_SessionsMarkMFA_FullMethodName                               = "/zeroauthy.store.v1.StoreService/SessionsMarkMFA"
+	StoreService_PhoneCapabilities_FullMethodName                             = "/zeroauthy.store.v1.StoreService/PhoneCapabilities"
+	StoreService_PhoneListProviders_FullMethodName                            = "/zeroauthy.store.v1.StoreService/PhoneListProviders"
+	StoreService_PhoneGetProvider_FullMethodName                              = "/zeroauthy.store.v1.StoreService/PhoneGetProvider"
+	StoreService_PhoneCreateProvider_FullMethodName                           = "/zeroauthy.store.v1.StoreService/PhoneCreateProvider"
+	StoreService_PhoneUpdateProvider_FullMethodName                           = "/zeroauthy.store.v1.StoreService/PhoneUpdateProvider"
+	StoreService_PhoneDeleteProvider_FullMethodName                           = "/zeroauthy.store.v1.StoreService/PhoneDeleteProvider"
+	StoreService_PhoneListTemplates_FullMethodName                            = "/zeroauthy.store.v1.StoreService/PhoneListTemplates"
+	StoreService_PhoneGetTemplate_FullMethodName                              = "/zeroauthy.store.v1.StoreService/PhoneGetTemplate"
+	StoreService_PhonePutTemplate_FullMethodName                              = "/zeroauthy.store.v1.StoreService/PhonePutTemplate"
+	StoreService_PhoneDeleteTemplate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/PhoneDeleteTemplate"
+	StoreService_PhonePutPasswordlessCode_FullMethodName                      = "/zeroauthy.store.v1.StoreService/PhonePutPasswordlessCode"
+	StoreService_PhoneFailPasswordlessCode_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhoneFailPasswordlessCode"
+	StoreService_PhoneConsumePasswordlessCode_FullMethodName                  = "/zeroauthy.store.v1.StoreService/PhoneConsumePasswordlessCode"
+	StoreService_PhonePeekPasswordlessLink_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PhonePeekPasswordlessLink"
+	StoreService_PhoneFindUsersByPhone_FullMethodName                         = "/zeroauthy.store.v1.StoreService/PhoneFindUsersByPhone"
+	StoreService_PhonePurge_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/PhonePurge"
+	StoreService_PhoneDeleteTenant_FullMethodName                             = "/zeroauthy.store.v1.StoreService/PhoneDeleteTenant"
+	StoreService_WebAuthnCapabilities_FullMethodName                          = "/zeroauthy.store.v1.StoreService/WebAuthnCapabilities"
+	StoreService_WebAuthnGetByCredentialID_FullMethodName                     = "/zeroauthy.store.v1.StoreService/WebAuthnGetByCredentialID"
+	StoreService_WebAuthnCreatePasskey_FullMethodName                         = "/zeroauthy.store.v1.StoreService/WebAuthnCreatePasskey"
+	StoreService_WebAuthnCreateUserWithPasskey_FullMethodName                 = "/zeroauthy.store.v1.StoreService/WebAuthnCreateUserWithPasskey"
+	StoreService_WebAuthnAcceptAssertion_FullMethodName                       = "/zeroauthy.store.v1.StoreService/WebAuthnAcceptAssertion"
+	StoreService_WebAuthnMovePasskeys_FullMethodName                          = "/zeroauthy.store.v1.StoreService/WebAuthnMovePasskeys"
+	StoreService_WebAuthnPutSnooze_FullMethodName                             = "/zeroauthy.store.v1.StoreService/WebAuthnPutSnooze"
+	StoreService_WebAuthnGetSnooze_FullMethodName                             = "/zeroauthy.store.v1.StoreService/WebAuthnGetSnooze"
+	StoreService_WebAuthnHostTenantsUnder_FullMethodName                      = "/zeroauthy.store.v1.StoreService/WebAuthnHostTenantsUnder"
+	StoreService_WebAuthnPurge_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/WebAuthnPurge"
+	StoreService_ConnectionKeysCapabilities_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ConnectionKeysCapabilities"
+	StoreService_ListConnectionKeys_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ListConnectionKeys"
+	StoreService_CreateConnectionKeys_FullMethodName                          = "/zeroauthy.store.v1.StoreService/CreateConnectionKeys"
+	StoreService_RotateConnectionKeys_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RotateConnectionKeys"
+	StoreService_ClientCredentialsCapabilities_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsCapabilities"
+	StoreService_ClientCredentialsCreate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreate"
+	StoreService_ClientCredentialsGet_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ClientCredentialsGet"
+	StoreService_ClientCredentialsList_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ClientCredentialsList"
+	StoreService_ClientCredentialsUpdateExpiry_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsUpdateExpiry"
+	StoreService_ClientCredentialsDelete_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ClientCredentialsDelete"
+	StoreService_ClientCredentialsUseJTI_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ClientCredentialsUseJTI"
+	StoreService_ClientCredentialsPurgeJTIs_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ClientCredentialsPurgeJTIs"
+	StoreService_ClientCredentialsCreateProfile_FullMethodName                = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreateProfile"
+	StoreService_ClientCredentialsGetProfile_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ClientCredentialsGetProfile"
+	StoreService_ClientCredentialsGetProfileByType_FullMethodName             = "/zeroauthy.store.v1.StoreService/ClientCredentialsGetProfileByType"
+	StoreService_ClientCredentialsListProfiles_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsListProfiles"
+	StoreService_ClientCredentialsUpdateProfile_FullMethodName                = "/zeroauthy.store.v1.StoreService/ClientCredentialsUpdateProfile"
+	StoreService_ClientCredentialsDeleteProfile_FullMethodName                = "/zeroauthy.store.v1.StoreService/ClientCredentialsDeleteProfile"
+	StoreService_ClientCredentialsProfilesForAction_FullMethodName            = "/zeroauthy.store.v1.StoreService/ClientCredentialsProfilesForAction"
+	StoreService_EventsCapabilities_FullMethodName                            = "/zeroauthy.store.v1.StoreService/EventsCapabilities"
+	StoreService_AppendEvents_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/AppendEvents"
+	StoreService_GetEvent_FullMethodName                                      = "/zeroauthy.store.v1.StoreService/GetEvent"
+	StoreService_EventsAfter_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/EventsAfter"
+	StoreService_EventsFromTime_FullMethodName                                = "/zeroauthy.store.v1.StoreService/EventsFromTime"
+	StoreService_LatestEventSeq_FullMethodName                                = "/zeroauthy.store.v1.StoreService/LatestEventSeq"
+	StoreService_PurgedEventSeq_FullMethodName                                = "/zeroauthy.store.v1.StoreService/PurgedEventSeq"
+	StoreService_OldestEventSeq_FullMethodName                                = "/zeroauthy.store.v1.StoreService/OldestEventSeq"
+	StoreService_PurgeEvents_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/PurgeEvents"
+	StoreService_DeleteTenantEvents_FullMethodName                            = "/zeroauthy.store.v1.StoreService/DeleteTenantEvents"
+	StoreService_CreateEventStream_FullMethodName                             = "/zeroauthy.store.v1.StoreService/CreateEventStream"
+	StoreService_GetEventStream_FullMethodName                                = "/zeroauthy.store.v1.StoreService/GetEventStream"
+	StoreService_ListEventStreams_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ListEventStreams"
+	StoreService_CountEventStreams_FullMethodName                             = "/zeroauthy.store.v1.StoreService/CountEventStreams"
+	StoreService_UpdateEventStream_FullMethodName                             = "/zeroauthy.store.v1.StoreService/UpdateEventStream"
+	StoreService_DeleteEventStream_FullMethodName                             = "/zeroauthy.store.v1.StoreService/DeleteEventStream"
+	StoreService_LeaseEventStream_FullMethodName                              = "/zeroauthy.store.v1.StoreService/LeaseEventStream"
+	StoreService_RecordEventDelivery_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RecordEventDelivery"
+	StoreService_ListDeliveries_FullMethodName                                = "/zeroauthy.store.v1.StoreService/ListDeliveries"
+	StoreService_GetDelivery_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/GetDelivery"
+	StoreService_QueueRedelivery_FullMethodName                               = "/zeroauthy.store.v1.StoreService/QueueRedelivery"
+	StoreService_QueuedDeliveries_FullMethodName                              = "/zeroauthy.store.v1.StoreService/QueuedDeliveries"
+	StoreService_LogsCapabilities_FullMethodName                              = "/zeroauthy.store.v1.StoreService/LogsCapabilities"
+	StoreService_AppendLogs_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/AppendLogs"
+	StoreService_GetLog_FullMethodName                                        = "/zeroauthy.store.v1.StoreService/GetLog"
+	StoreService_SearchLogs_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/SearchLogs"
+	StoreService_LogsAfter_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/LogsAfter"
+	StoreService_LatestLogs_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/LatestLogs"
+	StoreService_PurgeLogs_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/PurgeLogs"
+	StoreService_DeleteTenantLogs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/DeleteTenantLogs"
+	StoreService_CreateLogStream_FullMethodName                               = "/zeroauthy.store.v1.StoreService/CreateLogStream"
+	StoreService_GetLogStream_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/GetLogStream"
+	StoreService_ListLogStreams_FullMethodName                                = "/zeroauthy.store.v1.StoreService/ListLogStreams"
+	StoreService_UpdateLogStream_FullMethodName                               = "/zeroauthy.store.v1.StoreService/UpdateLogStream"
+	StoreService_DeleteLogStream_FullMethodName                               = "/zeroauthy.store.v1.StoreService/DeleteLogStream"
+	StoreService_LeaseLogStream_FullMethodName                                = "/zeroauthy.store.v1.StoreService/LeaseLogStream"
+	StoreService_RecordDelivery_FullMethodName                                = "/zeroauthy.store.v1.StoreService/RecordDelivery"
+	StoreService_DailyStats_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/DailyStats"
+	StoreService_ActiveUsers_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/ActiveUsers"
+	StoreService_RBACCapabilities_FullMethodName                              = "/zeroauthy.store.v1.StoreService/RBACCapabilities"
+	StoreService_RBACCreateRole_FullMethodName                                = "/zeroauthy.store.v1.StoreService/RBACCreateRole"
+	StoreService_RBACGetRole_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/RBACGetRole"
+	StoreService_RBACUpdateRole_FullMethodName                                = "/zeroauthy.store.v1.StoreService/RBACUpdateRole"
+	StoreService_RBACDeleteRole_FullMethodName                                = "/zeroauthy.store.v1.StoreService/RBACDeleteRole"
+	StoreService_RBACListRoles_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/RBACListRoles"
+	StoreService_RBACRolePermissions_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACRolePermissions"
+	StoreService_RBACChangeRolePermissions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACChangeRolePermissions"
+	StoreService_RBACRoleUsers_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/RBACRoleUsers"
+	StoreService_RBACAssignRoleUsers_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACAssignRoleUsers"
+	StoreService_RBACUserRoles_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/RBACUserRoles"
+	StoreService_RBACChangeUserRoles_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACChangeUserRoles"
+	StoreService_RBACUserPermissions_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACUserPermissions"
+	StoreService_RBACChangeUserPermissions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACChangeUserPermissions"
+	StoreService_RBACSnapshot_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/RBACSnapshot"
+	StoreService_OrganizationsIICapabilities_FullMethodName                   = "/zeroauthy.store.v1.StoreService/OrganizationsIICapabilities"
+	StoreService_OrganizationsIICreateInvitation_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsIICreateInvitation"
+	StoreService_OrganizationsIIGetInvitation_FullMethodName                  = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetInvitation"
+	StoreService_OrganizationsIIFindInvitation_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OrganizationsIIFindInvitation"
+	StoreService_OrganizationsIIListInvitations_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsIIListInvitations"
+	StoreService_OrganizationsIIDeleteInvitation_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteInvitation"
+	StoreService_OrganizationsIIConsumeInvitation_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsIIConsumeInvitation"
+	StoreService_OrganizationsIIGetInvitationReceipt_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetInvitationReceipt"
+	StoreService_OrganizationsIIPutClients_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutClients"
+	StoreService_OrganizationsIIGetClient_FullMethodName                      = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetClient"
+	StoreService_OrganizationsIIListClients_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OrganizationsIIListClients"
+	StoreService_OrganizationsIIDeleteClients_FullMethodName                  = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteClients"
+	StoreService_OrganizationsIIPutClientGrant_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutClientGrant"
+	StoreService_OrganizationsIIDeleteClientGrant_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteClientGrant"
+	StoreService_OrganizationsIIListClientGrants_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsIIListClientGrants"
+	StoreService_OrganizationsIIGrantOrganizations_FullMethodName             = "/zeroauthy.store.v1.StoreService/OrganizationsIIGrantOrganizations"
+	StoreService_OrganizationsIIHasClientGrant_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OrganizationsIIHasClientGrant"
+	StoreService_OrganizationsIIPutDiscoveryDomain_FullMethodName             = "/zeroauthy.store.v1.StoreService/OrganizationsIIPutDiscoveryDomain"
+	StoreService_OrganizationsIIGetDiscoveryDomain_FullMethodName             = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetDiscoveryDomain"
+	StoreService_OrganizationsIIGetDiscoveryDomainByName_FullMethodName       = "/zeroauthy.store.v1.StoreService/OrganizationsIIGetDiscoveryDomainByName"
+	StoreService_OrganizationsIIListDiscoveryDomains_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsIIListDiscoveryDomains"
+	StoreService_OrganizationsIIDeleteDiscoveryDomain_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteDiscoveryDomain"
+	StoreService_OrganizationsIIDiscoverOrganizations_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsIIDiscoverOrganizations"
+	StoreService_OrganizationsIISearch_FullMethodName                         = "/zeroauthy.store.v1.StoreService/OrganizationsIISearch"
+	StoreService_OrganizationsCapabilities_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsCapabilities"
+	StoreService_OrganizationsCreate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/OrganizationsCreate"
+	StoreService_OrganizationsGet_FullMethodName                              = "/zeroauthy.store.v1.StoreService/OrganizationsGet"
+	StoreService_OrganizationsGetByName_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OrganizationsGetByName"
+	StoreService_OrganizationsList_FullMethodName                             = "/zeroauthy.store.v1.StoreService/OrganizationsList"
+	StoreService_OrganizationsUpdate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/OrganizationsUpdate"
+	StoreService_OrganizationsDelete_FullMethodName                           = "/zeroauthy.store.v1.StoreService/OrganizationsDelete"
+	StoreService_OrganizationsConnections_FullMethodName                      = "/zeroauthy.store.v1.StoreService/OrganizationsConnections"
+	StoreService_OrganizationsGetConnection_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OrganizationsGetConnection"
+	StoreService_OrganizationsPutConnection_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OrganizationsPutConnection"
+	StoreService_OrganizationsDeleteConnection_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OrganizationsDeleteConnection"
+	StoreService_OrganizationsConnectionsByConnection_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsConnectionsByConnection"
+	StoreService_OrganizationsMembers_FullMethodName                          = "/zeroauthy.store.v1.StoreService/OrganizationsMembers"
+	StoreService_OrganizationsAddMembers_FullMethodName                       = "/zeroauthy.store.v1.StoreService/OrganizationsAddMembers"
+	StoreService_OrganizationsRemoveMembers_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OrganizationsRemoveMembers"
+	StoreService_OrganizationsIsMember_FullMethodName                         = "/zeroauthy.store.v1.StoreService/OrganizationsIsMember"
+	StoreService_OrganizationsUserOrganizations_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsUserOrganizations"
+	StoreService_OrganizationsMemberRoles_FullMethodName                      = "/zeroauthy.store.v1.StoreService/OrganizationsMemberRoles"
+	StoreService_OrganizationsChangeMemberRoles_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsChangeMemberRoles"
+	StoreService_OrganizationsRoleMembers_FullMethodName                      = "/zeroauthy.store.v1.StoreService/OrganizationsRoleMembers"
+	StoreService_ActionsCapabilities_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsCapabilities"
+	StoreService_ActionsCreateAction_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsCreateAction"
+	StoreService_ActionsGetAction_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ActionsGetAction"
+	StoreService_ActionsGetActionByName_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsGetActionByName"
+	StoreService_ActionsUpdateAction_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsUpdateAction"
+	StoreService_ActionsDeleteAction_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsDeleteAction"
+	StoreService_ActionsListActions_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ActionsListActions"
+	StoreService_ActionsDeploy_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/ActionsDeploy"
+	StoreService_ActionsGetVersion_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ActionsGetVersion"
+	StoreService_ActionsListVersions_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsListVersions"
+	StoreService_ActionsPutBuild_FullMethodName                               = "/zeroauthy.store.v1.StoreService/ActionsPutBuild"
+	StoreService_ActionsGetBuild_FullMethodName                               = "/zeroauthy.store.v1.StoreService/ActionsGetBuild"
+	StoreService_ActionsPutArtifact_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ActionsPutArtifact"
+	StoreService_ActionsGetArtifact_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ActionsGetArtifact"
+	StoreService_ActionsBindings_FullMethodName                               = "/zeroauthy.store.v1.StoreService/ActionsBindings"
+	StoreService_ActionsBindingsInitialized_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsBindingsInitialized"
+	StoreService_ActionsInitializeBindings_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsInitializeBindings"
+	StoreService_ActionsReplaceBindings_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsReplaceBindings"
+	StoreService_ActionsCreateExecution_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsCreateExecution"
+	StoreService_ActionsListExecutions_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ActionsListExecutions"
+	StoreService_ActionsGetExecution_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsGetExecution"
+	StoreService_ActionsPurgeExecutions_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsPurgeExecutions"
+	StoreService_ActionsCreateContinue_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ActionsCreateContinue"
+	StoreService_ActionsConsumeContinue_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsConsumeContinue"
+	StoreService_ActionsPurgeContinue_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ActionsPurgeContinue"
+	StoreService_ActionsCreateModule_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsCreateModule"
+	StoreService_ActionsGetModule_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ActionsGetModule"
+	StoreService_ActionsGetModuleByName_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsGetModuleByName"
+	StoreService_ActionsUpdateModule_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsUpdateModule"
+	StoreService_ActionsDeleteModule_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ActionsDeleteModule"
+	StoreService_ActionsListModules_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ActionsListModules"
+	StoreService_ActionsPublishModule_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ActionsPublishModule"
+	StoreService_ActionsRollbackModule_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ActionsRollbackModule"
+	StoreService_ActionsListModuleVersions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsListModuleVersions"
+	StoreService_ActionsGetModuleVersion_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ActionsGetModuleVersion"
+	StoreService_ActionsModuleUsers_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ActionsModuleUsers"
+	StoreService_ActionsEnqueueJob_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ActionsEnqueueJob"
+	StoreService_ActionsGetJob_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/ActionsGetJob"
+	StoreService_ActionsCancelJob_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ActionsCancelJob"
+	StoreService_ActionsClaimJobs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ActionsClaimJobs"
+	StoreService_ActionsFinishJob_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ActionsFinishJob"
+	StoreService_ActionsPurgeJobs_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ActionsPurgeJobs"
+	StoreService_Ping_FullMethodName                                          = "/zeroauthy.store.v1.StoreService/Ping"
+	StoreService_MicrosoftFederationSupported_FullMethodName                  = "/zeroauthy.store.v1.StoreService/MicrosoftFederationSupported"
+	StoreService_CustomDomainsSupported_FullMethodName                        = "/zeroauthy.store.v1.StoreService/CustomDomainsSupported"
+	StoreService_CustomDomainsGet_FullMethodName                              = "/zeroauthy.store.v1.StoreService/CustomDomainsGet"
+	StoreService_CustomDomainsList_FullMethodName                             = "/zeroauthy.store.v1.StoreService/CustomDomainsList"
+	StoreService_CustomDomainsListDue_FullMethodName                          = "/zeroauthy.store.v1.StoreService/CustomDomainsListDue"
+	StoreService_CustomDomainsCreate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/CustomDomainsCreate"
+	StoreService_CustomDomainsUpdate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/CustomDomainsUpdate"
+	StoreService_CustomDomainsDelete_FullMethodName                           = "/zeroauthy.store.v1.StoreService/CustomDomainsDelete"
+	StoreService_CustomDomainsGetHost_FullMethodName                          = "/zeroauthy.store.v1.StoreService/CustomDomainsGetHost"
+	StoreService_CustomDomainsPutHost_FullMethodName                          = "/zeroauthy.store.v1.StoreService/CustomDomainsPutHost"
+	StoreService_CustomDomainsDeleteHost_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CustomDomainsDeleteHost"
+	StoreService_CustomDomainsGetDefault_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CustomDomainsGetDefault"
+	StoreService_CustomDomainsSetDefault_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CustomDomainsSetDefault"
+	StoreService_CustomDomainsAdmitAttempt_FullMethodName                     = "/zeroauthy.store.v1.StoreService/CustomDomainsAdmitAttempt"
+	StoreService_TLSAssetsGet_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/TLSAssetsGet"
+	StoreService_TLSAssetsPut_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/TLSAssetsPut"
+	StoreService_TLSAssetsDelete_FullMethodName                               = "/zeroauthy.store.v1.StoreService/TLSAssetsDelete"
+	StoreService_TLSAssetsListExpired_FullMethodName                          = "/zeroauthy.store.v1.StoreService/TLSAssetsListExpired"
+	StoreService_TLSAssetsClaimLease_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TLSAssetsClaimLease"
+	StoreService_TLSAssetsRenewLease_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TLSAssetsRenewLease"
+	StoreService_TLSAssetsCheckLease_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TLSAssetsCheckLease"
+	StoreService_TLSAssetsReleaseLease_FullMethodName                         = "/zeroauthy.store.v1.StoreService/TLSAssetsReleaseLease"
+	StoreService_ProtectionReserve_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ProtectionReserve"
+	StoreService_ProtectionComplete_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ProtectionComplete"
+	StoreService_ProtectionBlocks_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ProtectionBlocks"
+	StoreService_ProtectionClear_FullMethodName                               = "/zeroauthy.store.v1.StoreService/ProtectionClear"
+	StoreService_ProtectionUseProof_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ProtectionUseProof"
+	StoreService_ProtectionRecordRisk_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ProtectionRecordRisk"
+	StoreService_ProtectionRiskCount_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ProtectionRiskCount"
+	StoreService_ProtectionSweep_FullMethodName                               = "/zeroauthy.store.v1.StoreService/ProtectionSweep"
+	StoreService_TenantSettingsSupported_FullMethodName                       = "/zeroauthy.store.v1.StoreService/TenantSettingsSupported"
+	StoreService_BeginTx_FullMethodName                                       = "/zeroauthy.store.v1.StoreService/BeginTx"
+	StoreService_Commit_FullMethodName                                        = "/zeroauthy.store.v1.StoreService/Commit"
+	StoreService_Rollback_FullMethodName                                      = "/zeroauthy.store.v1.StoreService/Rollback"
+	StoreService_TenantsCreate_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/TenantsCreate"
+	StoreService_TenantsGet_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/TenantsGet"
+	StoreService_TenantsGetByName_FullMethodName                              = "/zeroauthy.store.v1.StoreService/TenantsGetByName"
+	StoreService_TenantsGetByDomain_FullMethodName                            = "/zeroauthy.store.v1.StoreService/TenantsGetByDomain"
+	StoreService_TenantsUpdate_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/TenantsUpdate"
+	StoreService_TenantsList_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/TenantsList"
+	StoreService_TenantsDelete_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/TenantsDelete"
+	StoreService_ClientsCreate_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/ClientsCreate"
+	StoreService_ClientsGet_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/ClientsGet"
+	StoreService_ClientsUpdate_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/ClientsUpdate"
+	StoreService_ClientsDelete_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/ClientsDelete"
+	StoreService_ClientsList_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/ClientsList"
+	StoreService_ClientsListPage_FullMethodName                               = "/zeroauthy.store.v1.StoreService/ClientsListPage"
+	StoreService_ResourceServersCreate_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ResourceServersCreate"
+	StoreService_ResourceServersGet_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ResourceServersGet"
+	StoreService_ResourceServersGetByIdentifier_FullMethodName                = "/zeroauthy.store.v1.StoreService/ResourceServersGetByIdentifier"
+	StoreService_ResourceServersUpdate_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ResourceServersUpdate"
+	StoreService_ResourceServersDelete_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ResourceServersDelete"
+	StoreService_ResourceServersList_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ResourceServersList"
+	StoreService_ResourceServersRenameSystem_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ResourceServersRenameSystem"
+	StoreService_ClientGrantsCreate_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ClientGrantsCreate"
+	StoreService_ClientGrantsFind_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ClientGrantsFind"
+	StoreService_ClientGrantsUpdate_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ClientGrantsUpdate"
+	StoreService_ClientGrantsDelete_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ClientGrantsDelete"
+	StoreService_ClientGrantsList_FullMethodName                              = "/zeroauthy.store.v1.StoreService/ClientGrantsList"
+	StoreService_UserGrantsFind_FullMethodName                                = "/zeroauthy.store.v1.StoreService/UserGrantsFind"
+	StoreService_UserGrantsUpsert_FullMethodName                              = "/zeroauthy.store.v1.StoreService/UserGrantsUpsert"
+	StoreService_UserGrantsList_FullMethodName                                = "/zeroauthy.store.v1.StoreService/UserGrantsList"
+	StoreService_UserGrantsListByUser_FullMethodName                          = "/zeroauthy.store.v1.StoreService/UserGrantsListByUser"
+	StoreService_UserGrantsListByAudience_FullMethodName                      = "/zeroauthy.store.v1.StoreService/UserGrantsListByAudience"
+	StoreService_UserGrantsDelete_FullMethodName                              = "/zeroauthy.store.v1.StoreService/UserGrantsDelete"
+	StoreService_UserGrantsDeleteByUser_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UserGrantsDeleteByUser"
+	StoreService_SigningKeysCreate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/SigningKeysCreate"
+	StoreService_SigningKeysList_FullMethodName                               = "/zeroauthy.store.v1.StoreService/SigningKeysList"
+	StoreService_SigningKeysRotate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/SigningKeysRotate"
+	StoreService_SigningKeysGet_FullMethodName                                = "/zeroauthy.store.v1.StoreService/SigningKeysGet"
+	StoreService_SigningKeysRotateWithResult_FullMethodName                   = "/zeroauthy.store.v1.StoreService/SigningKeysRotateWithResult"
+	StoreService_SigningKeysRevoke_FullMethodName                             = "/zeroauthy.store.v1.StoreService/SigningKeysRevoke"
+	StoreService_SigningKeysSetCertificate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/SigningKeysSetCertificate"
+	StoreService_CustomSigningKeysGet_FullMethodName                          = "/zeroauthy.store.v1.StoreService/CustomSigningKeysGet"
+	StoreService_CustomSigningKeysReplace_FullMethodName                      = "/zeroauthy.store.v1.StoreService/CustomSigningKeysReplace"
+	StoreService_CustomSigningKeysDelete_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CustomSigningKeysDelete"
+	StoreService_HostedLoginsGet_FullMethodName                               = "/zeroauthy.store.v1.StoreService/HostedLoginsGet"
+	StoreService_HostedLoginsPut_FullMethodName                               = "/zeroauthy.store.v1.StoreService/HostedLoginsPut"
+	StoreService_FederationIdentityEpoch_FullMethodName                       = "/zeroauthy.store.v1.StoreService/FederationIdentityEpoch"
+	StoreService_FederationBumpIdentityEpoch_FullMethodName                   = "/zeroauthy.store.v1.StoreService/FederationBumpIdentityEpoch"
+	StoreService_FederationCreateAttempt_FullMethodName                       = "/zeroauthy.store.v1.StoreService/FederationCreateAttempt"
+	StoreService_FederationGetAttempt_FullMethodName                          = "/zeroauthy.store.v1.StoreService/FederationGetAttempt"
+	StoreService_FederationClaimAttempt_FullMethodName                        = "/zeroauthy.store.v1.StoreService/FederationClaimAttempt"
+	StoreService_FederationFinishAttempt_FullMethodName                       = "/zeroauthy.store.v1.StoreService/FederationFinishAttempt"
+	StoreService_FederationPutIdentity_FullMethodName                         = "/zeroauthy.store.v1.StoreService/FederationPutIdentity"
+	StoreService_FederationDeleteIdentity_FullMethodName                      = "/zeroauthy.store.v1.StoreService/FederationDeleteIdentity"
+	StoreService_FederationGetTokens_FullMethodName                           = "/zeroauthy.store.v1.StoreService/FederationGetTokens"
+	StoreService_FederationPutTokens_FullMethodName                           = "/zeroauthy.store.v1.StoreService/FederationPutTokens"
+	StoreService_FederationDeleteTokens_FullMethodName                        = "/zeroauthy.store.v1.StoreService/FederationDeleteTokens"
+	StoreService_FederationDeleteExpired_FullMethodName                       = "/zeroauthy.store.v1.StoreService/FederationDeleteExpired"
+	StoreService_UsersFindByIdentity_FullMethodName                           = "/zeroauthy.store.v1.StoreService/UsersFindByIdentity"
+	StoreService_EmailProvidersGet_FullMethodName                             = "/zeroauthy.store.v1.StoreService/EmailProvidersGet"
+	StoreService_EmailProvidersPut_FullMethodName                             = "/zeroauthy.store.v1.StoreService/EmailProvidersPut"
+	StoreService_EmailProvidersDelete_FullMethodName                          = "/zeroauthy.store.v1.StoreService/EmailProvidersDelete"
+	StoreService_EmailTemplatesGet_FullMethodName                             = "/zeroauthy.store.v1.StoreService/EmailTemplatesGet"
+	StoreService_EmailTemplatesPut_FullMethodName                             = "/zeroauthy.store.v1.StoreService/EmailTemplatesPut"
+	StoreService_EmailNotificationsClaim_FullMethodName                       = "/zeroauthy.store.v1.StoreService/EmailNotificationsClaim"
+	StoreService_EmailNotificationsSweep_FullMethodName                       = "/zeroauthy.store.v1.StoreService/EmailNotificationsSweep"
+	StoreService_ConnectionsCreate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ConnectionsCreate"
+	StoreService_ConnectionsGet_FullMethodName                                = "/zeroauthy.store.v1.StoreService/ConnectionsGet"
+	StoreService_ConnectionsGetByName_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ConnectionsGetByName"
+	StoreService_ConnectionsUpdate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ConnectionsUpdate"
+	StoreService_ConnectionsList_FullMethodName                               = "/zeroauthy.store.v1.StoreService/ConnectionsList"
+	StoreService_ConnectionsListPage_FullMethodName                           = "/zeroauthy.store.v1.StoreService/ConnectionsListPage"
+	StoreService_ConnectionsDelete_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ConnectionsDelete"
+	StoreService_PasswordHistoriesAdd_FullMethodName                          = "/zeroauthy.store.v1.StoreService/PasswordHistoriesAdd"
+	StoreService_PasswordHistoriesList_FullMethodName                         = "/zeroauthy.store.v1.StoreService/PasswordHistoriesList"
+	StoreService_UsersCreate_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/UsersCreate"
+	StoreService_UsersGet_FullMethodName                                      = "/zeroauthy.store.v1.StoreService/UsersGet"
+	StoreService_UsersFindByLogin_FullMethodName                              = "/zeroauthy.store.v1.StoreService/UsersFindByLogin"
+	StoreService_UsersUpdate_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/UsersUpdate"
+	StoreService_UsersRecordLogin_FullMethodName                              = "/zeroauthy.store.v1.StoreService/UsersRecordLogin"
+	StoreService_UsersSetPasswordHash_FullMethodName                          = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHash"
+	StoreService_UsersFindByEmail_FullMethodName                              = "/zeroauthy.store.v1.StoreService/UsersFindByEmail"
+	StoreService_UsersSetPasswordHashIfEmpty_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHashIfEmpty"
+	StoreService_UsersUpgradeImportedHash_FullMethodName                      = "/zeroauthy.store.v1.StoreService/UsersUpgradeImportedHash"
+	StoreService_UsersBumpVersion_FullMethodName                              = "/zeroauthy.store.v1.StoreService/UsersBumpVersion"
+	StoreService_UsersGetForUpdate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/UsersGetForUpdate"
+	StoreService_UsersDelete_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/UsersDelete"
+	StoreService_UsersList_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/UsersList"
+	StoreService_SessionsCreate_FullMethodName                                = "/zeroauthy.store.v1.StoreService/SessionsCreate"
+	StoreService_SessionsGetByTokenHash_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SessionsGetByTokenHash"
+	StoreService_SessionsGet_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/SessionsGet"
+	StoreService_SessionsListByUser_FullMethodName                            = "/zeroauthy.store.v1.StoreService/SessionsListByUser"
+	StoreService_SessionsTouch_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/SessionsTouch"
+	StoreService_SessionsAddClient_FullMethodName                             = "/zeroauthy.store.v1.StoreService/SessionsAddClient"
+	StoreService_SessionsAddMethod_FullMethodName                             = "/zeroauthy.store.v1.StoreService/SessionsAddMethod"
+	StoreService_SessionsDelete_FullMethodName                                = "/zeroauthy.store.v1.StoreService/SessionsDelete"
+	StoreService_SessionsDeleteByUser_FullMethodName                          = "/zeroauthy.store.v1.StoreService/SessionsDeleteByUser"
+	StoreService_SessionsDeleteExpired_FullMethodName                         = "/zeroauthy.store.v1.StoreService/SessionsDeleteExpired"
+	StoreService_AuthTransactionsCreate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/AuthTransactionsCreate"
+	StoreService_AuthTransactionsGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/AuthTransactionsGet"
+	StoreService_AuthTransactionsDelete_FullMethodName                        = "/zeroauthy.store.v1.StoreService/AuthTransactionsDelete"
+	StoreService_AuthTransactionsDeleteExpired_FullMethodName                 = "/zeroauthy.store.v1.StoreService/AuthTransactionsDeleteExpired"
+	StoreService_AuthTransactionsCompareAndSwapHosted_FullMethodName          = "/zeroauthy.store.v1.StoreService/AuthTransactionsCompareAndSwapHosted"
+	StoreService_AuthCodesCreate_FullMethodName                               = "/zeroauthy.store.v1.StoreService/AuthCodesCreate"
+	StoreService_AuthCodesConsume_FullMethodName                              = "/zeroauthy.store.v1.StoreService/AuthCodesConsume"
+	StoreService_AuthCodesGet_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/AuthCodesGet"
+	StoreService_AuthCodesDeleteExpired_FullMethodName                        = "/zeroauthy.store.v1.StoreService/AuthCodesDeleteExpired"
+	StoreService_PushedAuthRequestsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsCreate"
+	StoreService_PushedAuthRequestsConsume_FullMethodName                     = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsConsume"
+	StoreService_PushedAuthRequestsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsGet"
+	StoreService_PushedAuthRequestsDeleteExpired_FullMethodName               = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsDeleteExpired"
+	StoreService_DeviceCodesCreate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/DeviceCodesCreate"
+	StoreService_DeviceCodesGet_FullMethodName                                = "/zeroauthy.store.v1.StoreService/DeviceCodesGet"
+	StoreService_DeviceCodesGetByUserCode_FullMethodName                      = "/zeroauthy.store.v1.StoreService/DeviceCodesGetByUserCode"
+	StoreService_DeviceCodesDecide_FullMethodName                             = "/zeroauthy.store.v1.StoreService/DeviceCodesDecide"
+	StoreService_DeviceCodesPoll_FullMethodName                               = "/zeroauthy.store.v1.StoreService/DeviceCodesPoll"
+	StoreService_DeviceCodesDeleteExpired_FullMethodName                      = "/zeroauthy.store.v1.StoreService/DeviceCodesDeleteExpired"
+	StoreService_RefreshTokensIICapabilities_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensIICapabilities"
+	StoreService_RefreshIITenantsGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RefreshIITenantsGet"
+	StoreService_RefreshIITenantsGetByName_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshIITenantsGetByName"
+	StoreService_RefreshIITenantsGetByDomain_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshIITenantsGetByDomain"
+	StoreService_RefreshIITenantsList_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RefreshIITenantsList"
+	StoreService_RefreshIIClientsGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RefreshIIClientsGet"
+	StoreService_RefreshIIClientsList_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RefreshIIClientsList"
+	StoreService_RefreshIIClientsListPage_FullMethodName                      = "/zeroauthy.store.v1.StoreService/RefreshIIClientsListPage"
+	StoreService_RefreshIIResourceServersGet_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshIIResourceServersGet"
+	StoreService_RefreshIIResourceServersGetByIdentifier_FullMethodName       = "/zeroauthy.store.v1.StoreService/RefreshIIResourceServersGetByIdentifier"
+	StoreService_RefreshIIResourceServersList_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshIIResourceServersList"
+	StoreService_RefreshIIRBACSnapshot_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RefreshIIRBACSnapshot"
+	StoreService_RefreshIIOrganizationsGet_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshIIOrganizationsGet"
+	StoreService_RefreshIIOrganizationsGetByName_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshIIOrganizationsGetByName"
+	StoreService_RefreshIIOrganizationsList_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RefreshIIOrganizationsList"
+	StoreService_RefreshIIOrganizationsUserOrganizations_FullMethodName       = "/zeroauthy.store.v1.StoreService/RefreshIIOrganizationsUserOrganizations"
+	StoreService_RefreshIIOrganizationsIIGrantOrganizations_FullMethodName    = "/zeroauthy.store.v1.StoreService/RefreshIIOrganizationsIIGrantOrganizations"
+	StoreService_RefreshIIOrganizationsIIDiscoverOrganizations_FullMethodName = "/zeroauthy.store.v1.StoreService/RefreshIIOrganizationsIIDiscoverOrganizations"
+	StoreService_RefreshIIOrganizationsIISearch_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshIIOrganizationsIISearch"
+	StoreService_RefreshIISessionsGet_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RefreshIISessionsGet"
+	StoreService_RefreshIISessionsGetByTokenHash_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshIISessionsGetByTokenHash"
+	StoreService_RefreshIISessionsListByUser_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshIISessionsListByUser"
+	StoreService_RefreshIIAuthTransactionsGet_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshIIAuthTransactionsGet"
+	StoreService_RefreshIIAuthCodesGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RefreshIIAuthCodesGet"
+	StoreService_RefreshIIAuthCodesConsume_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshIIAuthCodesConsume"
+	StoreService_RefreshIIRefreshTokensGet_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshIIRefreshTokensGet"
+	StoreService_RefreshIIRefreshTokensGetByTokenHash_FullMethodName          = "/zeroauthy.store.v1.StoreService/RefreshIIRefreshTokensGetByTokenHash"
+	StoreService_RefreshIIRefreshTokensListByUser_FullMethodName              = "/zeroauthy.store.v1.StoreService/RefreshIIRefreshTokensListByUser"
+	StoreService_RefreshTokensIIWrite_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RefreshTokensIIWrite"
+	StoreService_RefreshTokensIIRotate_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RefreshTokensIIRotate"
+	StoreService_RefreshTokensConvertNonRotating_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertNonRotating"
+	StoreService_RefreshTokensConvertRotating_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertRotating"
+	StoreService_RefreshTokensRevokeByUserClient_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUserClient"
+	StoreService_RefreshTokensRevokeBySession_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeBySession"
+	StoreService_RefreshTokensListByUserPage_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensListByUserPage"
+	StoreService_RefreshTokensUpdateMetadata_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensUpdateMetadata"
+	StoreService_SessionsUpdateMetadata_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SessionsUpdateMetadata"
+	StoreService_RefreshTokensRecordExchange_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensRecordExchange"
+	StoreService_DPoPUseProof_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/DPoPUseProof"
+	StoreService_DPoPPurgeBefore_FullMethodName                               = "/zeroauthy.store.v1.StoreService/DPoPPurgeBefore"
+	StoreService_TokenQuotasPurgeBefore_FullMethodName                        = "/zeroauthy.store.v1.StoreService/TokenQuotasPurgeBefore"
+	StoreService_TokenQuotasConsume_FullMethodName                            = "/zeroauthy.store.v1.StoreService/TokenQuotasConsume"
+	StoreService_TokenQuotasPeek_FullMethodName                               = "/zeroauthy.store.v1.StoreService/TokenQuotasPeek"
+	StoreService_RefreshTokensCreate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RefreshTokensCreate"
+	StoreService_RefreshTokensGetByTokenHash_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensGetByTokenHash"
+	StoreService_RefreshTokensGet_FullMethodName                              = "/zeroauthy.store.v1.StoreService/RefreshTokensGet"
+	StoreService_RefreshTokensListByUser_FullMethodName                       = "/zeroauthy.store.v1.StoreService/RefreshTokensListByUser"
+	StoreService_RefreshTokensRevoke_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RefreshTokensRevoke"
+	StoreService_RefreshTokensRotate_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RefreshTokensRotate"
+	StoreService_RefreshTokensTouch_FullMethodName                            = "/zeroauthy.store.v1.StoreService/RefreshTokensTouch"
+	StoreService_RefreshTokensRevokeFamily_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeFamily"
+	StoreService_RefreshTokensRevokeByUser_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUser"
+	StoreService_RefreshTokensDeleteExpired_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RefreshTokensDeleteExpired"
+	StoreService_PasswordResetTicketsMarkChallengePassed_FullMethodName       = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsMarkChallengePassed"
+	StoreService_PasswordResetTicketsCreate_FullMethodName                    = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsCreate"
+	StoreService_PasswordResetTicketsGetByTokenHash_FullMethodName            = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsGetByTokenHash"
+	StoreService_PasswordResetTicketsConsume_FullMethodName                   = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsConsume"
+	StoreService_PasswordResetTicketsDeleteByUser_FullMethodName              = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteByUser"
+	StoreService_PasswordResetTicketsDeleteExpired_FullMethodName             = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteExpired"
+	StoreService_EmailVerificationTicketsCreate_FullMethodName                = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsCreate"
+	StoreService_EmailVerificationTicketsGetByTokenHash_FullMethodName        = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsGetByTokenHash"
+	StoreService_EmailVerificationTicketsConsume_FullMethodName               = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsConsume"
+	StoreService_EmailVerificationTicketsDeleteByUser_FullMethodName          = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsDeleteByUser"
+	StoreService_EmailVerificationTicketsDeleteExpired_FullMethodName         = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsDeleteExpired"
+	StoreService_OperatorsGet_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/OperatorsGet"
+	StoreService_OperatorsUpsert_FullMethodName                               = "/zeroauthy.store.v1.StoreService/OperatorsUpsert"
+	StoreService_OperatorsList_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/OperatorsList"
+	StoreService_OperatorsDelete_FullMethodName                               = "/zeroauthy.store.v1.StoreService/OperatorsDelete"
+	StoreService_JobsCreate_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/JobsCreate"
+	StoreService_JobsGet_FullMethodName                                       = "/zeroauthy.store.v1.StoreService/JobsGet"
+	StoreService_JobsList_FullMethodName                                      = "/zeroauthy.store.v1.StoreService/JobsList"
+	StoreService_JobsCountActive_FullMethodName                               = "/zeroauthy.store.v1.StoreService/JobsCountActive"
+	StoreService_JobsClaim_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/JobsClaim"
+	StoreService_JobsRenew_FullMethodName                                     = "/zeroauthy.store.v1.StoreService/JobsRenew"
+	StoreService_JobsCheckpoint_FullMethodName                                = "/zeroauthy.store.v1.StoreService/JobsCheckpoint"
+	StoreService_JobsFinish_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/JobsFinish"
+	StoreService_JobsErrors_FullMethodName                                    = "/zeroauthy.store.v1.StoreService/JobsErrors"
+	StoreService_JobsAppendFile_FullMethodName                                = "/zeroauthy.store.v1.StoreService/JobsAppendFile"
+	StoreService_JobsReadFile_FullMethodName                                  = "/zeroauthy.store.v1.StoreService/JobsReadFile"
+	StoreService_JobsDeleteExpired_FullMethodName                             = "/zeroauthy.store.v1.StoreService/JobsDeleteExpired"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -892,6 +919,36 @@ type StoreServiceClient interface {
 	// refresh_tokens_ii.v1. Bound records use a versioned write RPC so an older
 	// plugin cannot acknowledge a write while silently dropping proof bindings.
 	RefreshTokensIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	// A capable connection uses these typed methods for all responses carrying
+	// refresh, proof or quota policy. A replacement legacy peer cannot consume
+	// a code or return a record with its security fields silently omitted.
+	RefreshIITenantsGet(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*TenantResult, error)
+	RefreshIITenantsGetByName(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*TenantResult, error)
+	RefreshIITenantsGetByDomain(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*TenantResult, error)
+	RefreshIITenantsList(ctx context.Context, in *TenantsListRequest, opts ...grpc.CallOption) (*TenantList, error)
+	RefreshIIClientsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ClientResult, error)
+	RefreshIIClientsList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*ClientList, error)
+	RefreshIIClientsListPage(ctx context.Context, in *ClientsListPageRequest, opts ...grpc.CallOption) (*ClientPage, error)
+	RefreshIIResourceServersGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ResourceServerResult, error)
+	RefreshIIResourceServersGetByIdentifier(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ResourceServerResult, error)
+	RefreshIIResourceServersList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*ResourceServerList, error)
+	RefreshIIRBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RefreshIIOrganizationsGet(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsGetByName(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsList(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsUserOrganizations(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsIIGrantOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	RefreshIIOrganizationsIIDiscoverOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	RefreshIIOrganizationsIISearch(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	RefreshIISessionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error)
+	RefreshIISessionsGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error)
+	RefreshIISessionsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionList, error)
+	RefreshIIAuthTransactionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*AuthTransactionResult, error)
+	RefreshIIAuthCodesGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*AuthCodeResult, error)
+	RefreshIIAuthCodesConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*AuthCodeResult, error)
+	RefreshIIRefreshTokensGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
+	RefreshIIRefreshTokensGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
+	RefreshIIRefreshTokensListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenList, error)
 	RefreshTokensIIWrite(ctx context.Context, in *RefreshIIWrite, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensIIRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensConvertNonRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
@@ -4655,6 +4712,276 @@ func (c *storeServiceClient) RefreshTokensIICapabilities(ctx context.Context, in
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshIITenantsGet(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*TenantResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TenantResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIITenantsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIITenantsGetByName(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*TenantResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TenantResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIITenantsGetByName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIITenantsGetByDomain(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*TenantResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TenantResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIITenantsGetByDomain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIITenantsList(ctx context.Context, in *TenantsListRequest, opts ...grpc.CallOption) (*TenantList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TenantList)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIITenantsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIClientsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ClientResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClientResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIClientsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIClientsList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*ClientList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClientList)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIClientsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIClientsListPage(ctx context.Context, in *ClientsListPageRequest, opts ...grpc.CallOption) (*ClientPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClientPage)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIClientsListPage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIResourceServersGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ResourceServerResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResourceServerResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIResourceServersGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIResourceServersGetByIdentifier(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ResourceServerResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResourceServerResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIResourceServersGetByIdentifier_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIResourceServersList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*ResourceServerList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResourceServerList)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIResourceServersList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIRBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIRBACSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIOrganizationsGet(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIOrganizationsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIOrganizationsGetByName(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIOrganizationsGetByName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIOrganizationsList(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIOrganizationsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIOrganizationsUserOrganizations(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIOrganizationsUserOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIOrganizationsIIGrantOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIOrganizationsIIGrantOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIOrganizationsIIDiscoverOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIOrganizationsIIDiscoverOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIOrganizationsIISearch(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIOrganizationsIISearch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIISessionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIISessionsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIISessionsGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIISessionsGetByTokenHash_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIISessionsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionList)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIISessionsListByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIAuthTransactionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*AuthTransactionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthTransactionResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIAuthTransactionsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIAuthCodesGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*AuthCodeResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthCodeResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIAuthCodesGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIAuthCodesConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*AuthCodeResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthCodeResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIAuthCodesConsume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIRefreshTokensGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIRefreshTokensGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIRefreshTokensGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIRefreshTokensGetByTokenHash_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshIIRefreshTokensListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenList)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIRefreshTokensListByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensIIWrite(ctx context.Context, in *RefreshIIWrite, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -5635,6 +5962,36 @@ type StoreServiceServer interface {
 	// refresh_tokens_ii.v1. Bound records use a versioned write RPC so an older
 	// plugin cannot acknowledge a write while silently dropping proof bindings.
 	RefreshTokensIICapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	// A capable connection uses these typed methods for all responses carrying
+	// refresh, proof or quota policy. A replacement legacy peer cannot consume
+	// a code or return a record with its security fields silently omitted.
+	RefreshIITenantsGet(context.Context, *TenantsGetRequest) (*TenantResult, error)
+	RefreshIITenantsGetByName(context.Context, *TenantsGetRequest) (*TenantResult, error)
+	RefreshIITenantsGetByDomain(context.Context, *TenantsGetRequest) (*TenantResult, error)
+	RefreshIITenantsList(context.Context, *TenantsListRequest) (*TenantList, error)
+	RefreshIIClientsGet(context.Context, *ScopedKey) (*ClientResult, error)
+	RefreshIIClientsList(context.Context, *TenantScope) (*ClientList, error)
+	RefreshIIClientsListPage(context.Context, *ClientsListPageRequest) (*ClientPage, error)
+	RefreshIIResourceServersGet(context.Context, *ScopedKey) (*ResourceServerResult, error)
+	RefreshIIResourceServersGetByIdentifier(context.Context, *ScopedKey) (*ResourceServerResult, error)
+	RefreshIIResourceServersList(context.Context, *TenantScope) (*ResourceServerList, error)
+	RefreshIIRBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
+	RefreshIIOrganizationsGet(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsGetByName(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsList(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsUserOrganizations(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	RefreshIIOrganizationsIIGrantOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	RefreshIIOrganizationsIIDiscoverOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	RefreshIIOrganizationsIISearch(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	RefreshIISessionsGet(context.Context, *ScopedKey) (*SessionResult, error)
+	RefreshIISessionsGetByTokenHash(context.Context, *ScopedKey) (*SessionResult, error)
+	RefreshIISessionsListByUser(context.Context, *ScopedKey) (*SessionList, error)
+	RefreshIIAuthTransactionsGet(context.Context, *ScopedKey) (*AuthTransactionResult, error)
+	RefreshIIAuthCodesGet(context.Context, *ScopedKey) (*AuthCodeResult, error)
+	RefreshIIAuthCodesConsume(context.Context, *ConsumeRequest) (*AuthCodeResult, error)
+	RefreshIIRefreshTokensGet(context.Context, *ScopedKey) (*RefreshTokenResult, error)
+	RefreshIIRefreshTokensGetByTokenHash(context.Context, *ScopedKey) (*RefreshTokenResult, error)
+	RefreshIIRefreshTokensListByUser(context.Context, *ScopedKey) (*RefreshTokenList, error)
 	RefreshTokensIIWrite(context.Context, *RefreshIIWrite) (*Result, error)
 	RefreshTokensIIRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error)
 	RefreshTokensConvertNonRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error)
@@ -6809,6 +7166,87 @@ func (UnimplementedStoreServiceServer) DeviceCodesDeleteExpired(context.Context,
 }
 func (UnimplementedStoreServiceServer) RefreshTokensIICapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensIICapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIITenantsGet(context.Context, *TenantsGetRequest) (*TenantResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIITenantsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIITenantsGetByName(context.Context, *TenantsGetRequest) (*TenantResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIITenantsGetByName not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIITenantsGetByDomain(context.Context, *TenantsGetRequest) (*TenantResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIITenantsGetByDomain not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIITenantsList(context.Context, *TenantsListRequest) (*TenantList, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIITenantsList not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIClientsGet(context.Context, *ScopedKey) (*ClientResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIClientsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIClientsList(context.Context, *TenantScope) (*ClientList, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIClientsList not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIClientsListPage(context.Context, *ClientsListPageRequest) (*ClientPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIClientsListPage not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIResourceServersGet(context.Context, *ScopedKey) (*ResourceServerResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIResourceServersGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIResourceServersGetByIdentifier(context.Context, *ScopedKey) (*ResourceServerResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIResourceServersGetByIdentifier not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIResourceServersList(context.Context, *TenantScope) (*ResourceServerList, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIResourceServersList not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIRBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIRBACSnapshot not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIOrganizationsGet(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIOrganizationsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIOrganizationsGetByName(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIOrganizationsGetByName not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIOrganizationsList(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIOrganizationsList not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIOrganizationsUserOrganizations(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIOrganizationsUserOrganizations not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIOrganizationsIIGrantOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIOrganizationsIIGrantOrganizations not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIOrganizationsIIDiscoverOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIOrganizationsIIDiscoverOrganizations not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIOrganizationsIISearch(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIOrganizationsIISearch not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIISessionsGet(context.Context, *ScopedKey) (*SessionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIISessionsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIISessionsGetByTokenHash(context.Context, *ScopedKey) (*SessionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIISessionsGetByTokenHash not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIISessionsListByUser(context.Context, *ScopedKey) (*SessionList, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIISessionsListByUser not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIAuthTransactionsGet(context.Context, *ScopedKey) (*AuthTransactionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIAuthTransactionsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIAuthCodesGet(context.Context, *ScopedKey) (*AuthCodeResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIAuthCodesGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIAuthCodesConsume(context.Context, *ConsumeRequest) (*AuthCodeResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIAuthCodesConsume not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIRefreshTokensGet(context.Context, *ScopedKey) (*RefreshTokenResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIRefreshTokensGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIRefreshTokensGetByTokenHash(context.Context, *ScopedKey) (*RefreshTokenResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIRefreshTokensGetByTokenHash not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIRefreshTokensListByUser(context.Context, *ScopedKey) (*RefreshTokenList, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIRefreshTokensListByUser not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshTokensIIWrite(context.Context, *RefreshIIWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensIIWrite not implemented")
@@ -13593,6 +14031,492 @@ func _StoreService_RefreshTokensIICapabilities_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshIITenantsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantsGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIITenantsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIITenantsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIITenantsGet(ctx, req.(*TenantsGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIITenantsGetByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantsGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIITenantsGetByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIITenantsGetByName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIITenantsGetByName(ctx, req.(*TenantsGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIITenantsGetByDomain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantsGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIITenantsGetByDomain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIITenantsGetByDomain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIITenantsGetByDomain(ctx, req.(*TenantsGetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIITenantsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantsListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIITenantsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIITenantsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIITenantsList(ctx, req.(*TenantsListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIClientsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIClientsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIClientsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIClientsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIClientsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIClientsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIClientsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIClientsList(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIClientsListPage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientsListPageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIClientsListPage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIClientsListPage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIClientsListPage(ctx, req.(*ClientsListPageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIResourceServersGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIResourceServersGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIResourceServersGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIResourceServersGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIResourceServersGetByIdentifier_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIResourceServersGetByIdentifier(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIResourceServersGetByIdentifier_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIResourceServersGetByIdentifier(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIResourceServersList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIResourceServersList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIResourceServersList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIResourceServersList(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIRBACSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIRBACSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIRBACSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIRBACSnapshot(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIOrganizationsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIOrganizationsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsGet(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIOrganizationsGetByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsGetByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIOrganizationsGetByName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsGetByName(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIOrganizationsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIOrganizationsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsList(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIOrganizationsUserOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsUserOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIOrganizationsUserOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsUserOrganizations(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIOrganizationsIIGrantOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsIIGrantOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIOrganizationsIIGrantOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsIIGrantOrganizations(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIOrganizationsIIDiscoverOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsIIDiscoverOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIOrganizationsIIDiscoverOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsIIDiscoverOrganizations(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIOrganizationsIISearch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsIISearch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIOrganizationsIISearch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIOrganizationsIISearch(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIISessionsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIISessionsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIISessionsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIISessionsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIISessionsGetByTokenHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIISessionsGetByTokenHash(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIISessionsGetByTokenHash_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIISessionsGetByTokenHash(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIISessionsListByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIISessionsListByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIISessionsListByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIISessionsListByUser(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIAuthTransactionsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIAuthTransactionsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIAuthTransactionsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIAuthTransactionsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIAuthCodesGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIAuthCodesGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIAuthCodesGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIAuthCodesGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIAuthCodesConsume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConsumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIAuthCodesConsume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIAuthCodesConsume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIAuthCodesConsume(ctx, req.(*ConsumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIRefreshTokensGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIRefreshTokensGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIRefreshTokensGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIRefreshTokensGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIRefreshTokensGetByTokenHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIRefreshTokensGetByTokenHash(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIRefreshTokensGetByTokenHash_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIRefreshTokensGetByTokenHash(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshIIRefreshTokensListByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIRefreshTokensListByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIRefreshTokensListByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIRefreshTokensListByUser(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensIIWrite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshIIWrite)
 	if err := dec(in); err != nil {
@@ -15992,6 +16916,114 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshTokensIICapabilities",
 			Handler:    _StoreService_RefreshTokensIICapabilities_Handler,
+		},
+		{
+			MethodName: "RefreshIITenantsGet",
+			Handler:    _StoreService_RefreshIITenantsGet_Handler,
+		},
+		{
+			MethodName: "RefreshIITenantsGetByName",
+			Handler:    _StoreService_RefreshIITenantsGetByName_Handler,
+		},
+		{
+			MethodName: "RefreshIITenantsGetByDomain",
+			Handler:    _StoreService_RefreshIITenantsGetByDomain_Handler,
+		},
+		{
+			MethodName: "RefreshIITenantsList",
+			Handler:    _StoreService_RefreshIITenantsList_Handler,
+		},
+		{
+			MethodName: "RefreshIIClientsGet",
+			Handler:    _StoreService_RefreshIIClientsGet_Handler,
+		},
+		{
+			MethodName: "RefreshIIClientsList",
+			Handler:    _StoreService_RefreshIIClientsList_Handler,
+		},
+		{
+			MethodName: "RefreshIIClientsListPage",
+			Handler:    _StoreService_RefreshIIClientsListPage_Handler,
+		},
+		{
+			MethodName: "RefreshIIResourceServersGet",
+			Handler:    _StoreService_RefreshIIResourceServersGet_Handler,
+		},
+		{
+			MethodName: "RefreshIIResourceServersGetByIdentifier",
+			Handler:    _StoreService_RefreshIIResourceServersGetByIdentifier_Handler,
+		},
+		{
+			MethodName: "RefreshIIResourceServersList",
+			Handler:    _StoreService_RefreshIIResourceServersList_Handler,
+		},
+		{
+			MethodName: "RefreshIIRBACSnapshot",
+			Handler:    _StoreService_RefreshIIRBACSnapshot_Handler,
+		},
+		{
+			MethodName: "RefreshIIOrganizationsGet",
+			Handler:    _StoreService_RefreshIIOrganizationsGet_Handler,
+		},
+		{
+			MethodName: "RefreshIIOrganizationsGetByName",
+			Handler:    _StoreService_RefreshIIOrganizationsGetByName_Handler,
+		},
+		{
+			MethodName: "RefreshIIOrganizationsList",
+			Handler:    _StoreService_RefreshIIOrganizationsList_Handler,
+		},
+		{
+			MethodName: "RefreshIIOrganizationsUserOrganizations",
+			Handler:    _StoreService_RefreshIIOrganizationsUserOrganizations_Handler,
+		},
+		{
+			MethodName: "RefreshIIOrganizationsIIGrantOrganizations",
+			Handler:    _StoreService_RefreshIIOrganizationsIIGrantOrganizations_Handler,
+		},
+		{
+			MethodName: "RefreshIIOrganizationsIIDiscoverOrganizations",
+			Handler:    _StoreService_RefreshIIOrganizationsIIDiscoverOrganizations_Handler,
+		},
+		{
+			MethodName: "RefreshIIOrganizationsIISearch",
+			Handler:    _StoreService_RefreshIIOrganizationsIISearch_Handler,
+		},
+		{
+			MethodName: "RefreshIISessionsGet",
+			Handler:    _StoreService_RefreshIISessionsGet_Handler,
+		},
+		{
+			MethodName: "RefreshIISessionsGetByTokenHash",
+			Handler:    _StoreService_RefreshIISessionsGetByTokenHash_Handler,
+		},
+		{
+			MethodName: "RefreshIISessionsListByUser",
+			Handler:    _StoreService_RefreshIISessionsListByUser_Handler,
+		},
+		{
+			MethodName: "RefreshIIAuthTransactionsGet",
+			Handler:    _StoreService_RefreshIIAuthTransactionsGet_Handler,
+		},
+		{
+			MethodName: "RefreshIIAuthCodesGet",
+			Handler:    _StoreService_RefreshIIAuthCodesGet_Handler,
+		},
+		{
+			MethodName: "RefreshIIAuthCodesConsume",
+			Handler:    _StoreService_RefreshIIAuthCodesConsume_Handler,
+		},
+		{
+			MethodName: "RefreshIIRefreshTokensGet",
+			Handler:    _StoreService_RefreshIIRefreshTokensGet_Handler,
+		},
+		{
+			MethodName: "RefreshIIRefreshTokensGetByTokenHash",
+			Handler:    _StoreService_RefreshIIRefreshTokensGetByTokenHash_Handler,
+		},
+		{
+			MethodName: "RefreshIIRefreshTokensListByUser",
+			Handler:    _StoreService_RefreshIIRefreshTokensListByUser_Handler,
 		},
 		{
 			MethodName: "RefreshTokensIIWrite",

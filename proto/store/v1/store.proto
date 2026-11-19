@@ -471,6 +471,36 @@ service StoreService {
   // refresh_tokens_ii.v1. Bound records use a versioned write RPC so an older
   // plugin cannot acknowledge a write while silently dropping proof bindings.
   rpc RefreshTokensIICapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  // A capable connection uses these typed methods for all responses carrying
+  // refresh, proof or quota policy. A replacement legacy peer cannot consume
+  // a code or return a record with its security fields silently omitted.
+  rpc RefreshIITenantsGet(TenantsGetRequest) returns (TenantResult);
+  rpc RefreshIITenantsGetByName(TenantsGetRequest) returns (TenantResult);
+  rpc RefreshIITenantsGetByDomain(TenantsGetRequest) returns (TenantResult);
+  rpc RefreshIITenantsList(TenantsListRequest) returns (TenantList);
+  rpc RefreshIIClientsGet(ScopedKey) returns (ClientResult);
+  rpc RefreshIIClientsList(TenantScope) returns (ClientList);
+  rpc RefreshIIClientsListPage(ClientsListPageRequest) returns (ClientPage);
+  rpc RefreshIIResourceServersGet(ScopedKey) returns (ResourceServerResult);
+  rpc RefreshIIResourceServersGetByIdentifier(ScopedKey) returns (ResourceServerResult);
+  rpc RefreshIIResourceServersList(TenantScope) returns (ResourceServerList);
+  rpc RefreshIIRBACSnapshot(RBACRequest) returns (RBACResponse);
+  rpc RefreshIIOrganizationsGet(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc RefreshIIOrganizationsGetByName(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc RefreshIIOrganizationsList(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc RefreshIIOrganizationsUserOrganizations(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc RefreshIIOrganizationsIIGrantOrganizations(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc RefreshIIOrganizationsIIDiscoverOrganizations(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc RefreshIIOrganizationsIISearch(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc RefreshIISessionsGet(ScopedKey) returns (SessionResult);
+  rpc RefreshIISessionsGetByTokenHash(ScopedKey) returns (SessionResult);
+  rpc RefreshIISessionsListByUser(ScopedKey) returns (SessionList);
+  rpc RefreshIIAuthTransactionsGet(ScopedKey) returns (AuthTransactionResult);
+  rpc RefreshIIAuthCodesGet(ScopedKey) returns (AuthCodeResult);
+  rpc RefreshIIAuthCodesConsume(ConsumeRequest) returns (AuthCodeResult);
+  rpc RefreshIIRefreshTokensGet(ScopedKey) returns (RefreshTokenResult);
+  rpc RefreshIIRefreshTokensGetByTokenHash(ScopedKey) returns (RefreshTokenResult);
+  rpc RefreshIIRefreshTokensListByUser(ScopedKey) returns (RefreshTokenList);
   rpc RefreshTokensIIWrite(RefreshIIWrite) returns (Result);
   rpc RefreshTokensIIRotate(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensConvertNonRotating(RefreshTokensRotateRequest) returns (Result);
@@ -559,6 +589,7 @@ message Error {
     KIND_MFA_UNAVAILABLE = 16;
     KIND_PHONE_UNAVAILABLE = 17; // store.ErrPhoneUnavailable
     KIND_WEBAUTHN_UNAVAILABLE = 18; // store.ErrWebAuthnUnavailable
+    KIND_REFRESH_TOKENS_II_SUPPORT_LOST = 22;
     KIND_REFRESH_TOKENS_II_UNAVAILABLE = 21; // refresh_tokens_ii.v1
     KIND_CONNECTION_KEYS_UNAVAILABLE = 20; // store.ErrConnectionKeysUnavailable
     KIND_CLIENT_CREDENTIALS_UNAVAILABLE = 19; // store.ErrClientCredentialsUnavailable

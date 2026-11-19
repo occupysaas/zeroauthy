@@ -111,7 +111,246 @@ func TestRefreshIICapabilityDisappears(t *testing.T) {
 	if _, err := backing.AuthCodes().Get(ctx, "t", "h"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("old write route accepted a bound code: %v", err)
 	}
-	if err := c.CheckRefreshTokensIISupport(ctx); !errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+	if err := c.CheckRefreshTokensIISupport(ctx); !errors.Is(err, store.ErrRefreshTokensIISupportLost) || errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
 		t.Fatalf("latched=%v", err)
+	}
+}
+
+// This binary serves the earlier protocol over retained rows. Its legacy
+// methods can read or consume the data, but cannot return binding fields.
+type retainedLegacyPlugin struct {
+	pb.UnimplementedStoreServiceServer
+	legacy *Server
+	calls  atomic.Int32
+}
+
+func (p *retainedLegacyPlugin) AuthCodesConsume(ctx context.Context, q *pb.ConsumeRequest) (*pb.AuthCodeResult, error) {
+	p.calls.Add(1)
+	r, err := p.legacy.AuthCodesConsume(ctx, q)
+	if r.GetValue() != nil {
+		r.Value.DpopJkt = ""
+	}
+	return r, err
+}
+func (p *retainedLegacyPlugin) RefreshTokensGetByTokenHash(ctx context.Context, q *pb.ScopedKey) (*pb.RefreshTokenResult, error) {
+	p.calls.Add(1)
+	r, err := p.legacy.RefreshTokensGetByTokenHash(ctx, q)
+	if r.GetValue() != nil {
+		r.Value.DpopJkt = ""
+		r.Value.Access = ""
+	}
+	return r, err
+}
+func (p *retainedLegacyPlugin) ClientsGet(ctx context.Context, q *pb.ScopedKey) (*pb.ClientResult, error) {
+	p.calls.Add(1)
+	r, err := p.legacy.ClientsGet(ctx, q)
+	if r.GetValue() != nil {
+		r.Value.RequireProofOfPossession = false
+	}
+	return r, err
+}
+func (p *retainedLegacyPlugin) ResourceServersGetByIdentifier(ctx context.Context, q *pb.ScopedKey) (*pb.ResourceServerResult, error) {
+	p.calls.Add(1)
+	r, err := p.legacy.ResourceServersGetByIdentifier(ctx, q)
+	if r.GetValue() != nil {
+		r.Value.ProofOfPossession = nil
+	}
+	return r, err
+}
+func (p *retainedLegacyPlugin) AuthTransactionsGet(ctx context.Context, q *pb.ScopedKey) (*pb.AuthTransactionResult, error) {
+	p.calls.Add(1)
+	r, err := p.legacy.AuthTransactionsGet(ctx, q)
+	if r.GetValue() != nil {
+		r.Value.DpopJkt = ""
+	}
+	return r, err
+}
+func (p *retainedLegacyPlugin) RefreshTokensRotate(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
+	p.calls.Add(1)
+	return p.legacy.RefreshTokensRotate(ctx, q)
+}
+func (p *retainedLegacyPlugin) BeginTx(ctx context.Context, q *pb.BeginTxRequest) (*pb.BeginTxResponse, error) {
+	return p.legacy.BeginTx(ctx, q)
+}
+func (p *retainedLegacyPlugin) Rollback(ctx context.Context, q *pb.EndTxRequest) (*pb.Result, error) {
+	return p.legacy.Rollback(ctx, q)
+}
+func (p *retainedLegacyPlugin) Commit(ctx context.Context, q *pb.EndTxRequest) (*pb.Result, error) {
+	return p.legacy.Commit(ctx, q)
+}
+
+func TestRefreshIIRetainedDataAfterReplacement(t *testing.T) {
+	ctx := t.Context()
+	now := time.Now().UTC()
+	for _, operation := range []string{"consume", "token", "client", "api", "auth-transaction", "transaction"} {
+		t.Run(operation, func(t *testing.T) {
+			backing := memory.New()
+			srv := NewServer(backing)
+			t.Cleanup(srv.Close)
+			c := serveWith(t, srv)
+			if err := c.AuthCodes().Create(ctx, &store.AuthCode{TenantID: "t", CodeHash: "hash", DPoPJKT: "retained"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.RefreshTokens().Create(ctx, &store.RefreshToken{TenantID: "t", ID: "id", FamilyID: "family", TokenHash: "hash", Access: "online", DPoPJKT: "retained"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.Clients().Create(ctx, &store.Client{TenantID: "t", ClientID: "app", RequireProofOfPossession: true}); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.AuthTransactions().Create(ctx, &store.AuthTransaction{TenantID: "t", ID: "flow", DPoPJKT: "retained"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.ResourceServers().Create(ctx, &store.ResourceServer{TenantID: "t", ID: "api", Identifier: "https://api.example.test", ProofOfPossession: &store.ProofOfPossession{Mechanism: "dpop", Required: true}}); err != nil {
+				t.Fatal(err)
+			}
+			old := &retainedLegacyPlugin{legacy: srv}
+			// Switch the RPC destination while retaining the original negotiated client.
+			c.rpc = serveWith(t, old).rpc
+			var err error
+			switch operation {
+			case "consume":
+				_, err = c.AuthCodes().Consume(ctx, "t", "hash", now)
+			case "token":
+				_, err = c.RefreshTokens().GetByTokenHash(ctx, "t", "hash")
+			case "client":
+				_, err = c.Clients().Get(ctx, "t", "app")
+			case "api":
+				_, err = c.ResourceServers().GetByIdentifier(ctx, "t", "https://api.example.test")
+			case "auth-transaction":
+				_, err = c.AuthTransactions().Get(ctx, "t", "flow")
+			case "transaction":
+				err = c.WithTx(ctx, func(tx store.Store) error { _, e := tx.AuthCodes().Consume(ctx, "t", "hash", now); return e })
+			}
+			if !errors.Is(err, store.ErrRefreshTokensIIUnavailable) || !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+				t.Errorf("first retained operation=%v", err)
+			}
+			err = c.RefreshTokens().Rotate(ctx, "t", "id", &store.RefreshToken{TenantID: "t", ID: "next", FamilyID: "family", TokenHash: "next"}, now, 0)
+			if !errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+				t.Errorf("rotation after downgrade=%v", err)
+			}
+			// Restore a capable peer. Loss remains latched on the original
+			// client and on any subsequent transaction view until reconnect.
+			c.rpc = serveWith(t, srv).rpc
+			if e := c.WithTx(ctx, func(tx store.Store) error { return store.CheckRefreshTokensIISupport(ctx, tx) }); !errors.Is(e, store.ErrRefreshTokensIISupportLost) || errors.Is(e, store.ErrRefreshTokensIIUnavailable) {
+				t.Fatalf("downgraded transaction probe=%v", e)
+			}
+			if n := old.calls.Load(); n != 0 {
+				t.Errorf("reached %d legacy operations", n)
+			}
+			code, e := backing.AuthCodes().Get(ctx, "t", "hash")
+			if e != nil || code.UsedAt != nil || code.DPoPJKT != "retained" {
+				t.Fatal("retained code changed")
+			}
+			token, e := backing.RefreshTokens().Get(ctx, "t", "id")
+			if e != nil || token.RotatedAt != nil || token.RevokedAt != nil || token.DPoPJKT != "retained" || token.Access != "online" {
+				t.Fatal("retained family changed")
+			}
+		})
+	}
+}
+
+type changingRefreshBackend struct {
+	store.Store
+	probe   func() error
+	txProbe func() error
+}
+
+func (s changingRefreshBackend) CheckRefreshTokensIISupport(context.Context) error { return s.probe() }
+func (s changingRefreshBackend) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(changingRefreshBackend{tx, s.txProbe, s.txProbe}) })
+}
+func TestRefreshIIReceivingStore(t *testing.T) {
+	ctx := t.Context()
+	for _, op := range []string{"code", "rotate", "tx-code", "tx-only", "transient"} {
+		t.Run(op, func(t *testing.T) {
+			backing := memory.New()
+			var declined atomic.Bool
+			refusal := func() error {
+				if !declined.Load() {
+					return nil
+				}
+				if op == "transient" {
+					return status.Error(codes.Unavailable, "backend unavailable")
+				}
+				return store.ErrRefreshTokensIIUnavailable
+			}
+			srvBase := changingRefreshBackend{backing, refusal, refusal}
+			if op == "tx-only" {
+				srvBase.probe = func() error { return nil }
+			}
+			if op == "tx-code" {
+				srvBase.txProbe = func() error { return nil }
+			}
+			srv := NewServer(srvBase)
+			t.Cleanup(srv.Close)
+			c := serveWith(t, srv)
+			if err := c.CheckRefreshTokensIISupport(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if err := backing.RefreshTokens().Create(ctx, &store.RefreshToken{TenantID: "t", ID: "old", TokenHash: "old", FamilyID: "f", Rotating: true}); err != nil {
+				t.Fatal(err)
+			}
+			declined.Store(true)
+			create := func(st store.Store) error {
+				return st.AuthCodes().Create(ctx, &store.AuthCode{TenantID: "t", CodeHash: "attempt", DPoPJKT: "jkt"})
+			}
+			var err error
+			switch op {
+			case "rotate":
+				err = c.RefreshTokens().Rotate(ctx, "t", "old", &store.RefreshToken{TenantID: "t", ID: "next", TokenHash: "next", FamilyID: "f", Rotating: true}, time.Now(), 0)
+			case "tx-code", "tx-only":
+				err = c.WithTx(ctx, create)
+			default:
+				err = create(c)
+			}
+			if op == "transient" {
+				if status.Code(err) != codes.Unavailable || errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+					t.Errorf("transient=%v", err)
+				}
+			} else if !errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+				t.Errorf("declining backing store returned %v", err)
+			}
+			if _, e := backing.AuthCodes().Get(ctx, "t", "attempt"); !errors.Is(e, store.ErrNotFound) {
+				t.Errorf("backing store wrote bound code: %v", e)
+			}
+			old, e := backing.RefreshTokens().Get(ctx, "t", "old")
+			if e != nil || old.RotatedAt != nil {
+				t.Error("backing store rotated old token")
+			}
+			if op == "transient" {
+				declined.Store(false)
+				if e := create(c); e != nil {
+					t.Fatalf("retry=%v", e)
+				}
+			}
+		})
+	}
+}
+
+func TestRefreshIIInitiallyLegacyReadAndConsume(t *testing.T) {
+	ctx := t.Context()
+	backing := memory.New()
+	if err := backing.AuthCodes().Create(ctx, &store.AuthCode{TenantID: "t", CodeHash: "code"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := backing.Clients().Create(ctx, &store.Client{TenantID: "t", ClientID: "app"}); err != nil {
+		t.Fatal(err)
+	}
+	srv := NewServer(backing)
+	t.Cleanup(srv.Close)
+	old := &retainedLegacyPlugin{legacy: srv}
+	c := serveWith(t, old)
+	if _, err := c.Clients().Get(ctx, "t", "app"); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.WithTx(ctx, func(tx store.Store) error { _, e := tx.AuthCodes().Consume(ctx, "t", "code", time.Now()); return e }); err != nil {
+		t.Fatal(err)
+	}
+	if old.calls.Load() != 2 {
+		t.Fatalf("legacy operations=%d", old.calls.Load())
+	}
+	code, err := backing.AuthCodes().Get(ctx, "t", "code")
+	if err != nil || code.UsedAt == nil {
+		t.Fatal("legacy consumption was lost")
 	}
 }

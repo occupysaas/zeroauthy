@@ -14,7 +14,7 @@ type clientTokenQuotas struct{ c *Client }
 func (c *Client) DPoP() store.DPoP               { return clientDPoP{c} }
 func (c *Client) TokenQuotas() store.TokenQuotas { return clientTokenQuotas{c} }
 func (r clientDPoP) UseProof(ctx context.Context, tid, origin, jkt, jti string, at, expires time.Time) error {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.DPoPUseProof(ctx, &pb.DPoPProofRequest{TxId: r.c.txID, TenantId: tid, Origin: origin, Jkt: jkt, Jti: jti, Now: tsToPB(at), ExpiresAt: tsToPB(expires)})
@@ -22,6 +22,10 @@ func (r clientDPoP) UseProof(ctx context.Context, tid, origin, jkt, jti string, 
 }
 
 func (s *Server) DPoPUseProof(ctx context.Context, q *pb.DPoPProofRequest) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).dPoPUseProof)
+}
+
+func (s *Server) dPoPUseProof(ctx context.Context, q *pb.DPoPProofRequest) (*pb.Result, error) {
 	if err := checkTS(q.Now, q.ExpiresAt); err != nil {
 		return &pb.Result{Error: errToPB(err)}, nil
 	}
@@ -31,7 +35,7 @@ func (s *Server) DPoPUseProof(ctx context.Context, q *pb.DPoPProofRequest) (*pb.
 }
 
 func (r clientDPoP) PurgeBefore(ctx context.Context, before time.Time, limit int) (int, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return 0, err
 	}
 	res, err := r.c.rpc.DPoPPurgeBefore(ctx, &pb.RefreshIIPurgeRequest{TxId: r.c.txID, Before: tsToPB(before), Limit: int64(limit)})
@@ -42,6 +46,10 @@ func (r clientDPoP) PurgeBefore(ctx context.Context, before time.Time, limit int
 }
 
 func (s *Server) DPoPPurgeBefore(ctx context.Context, q *pb.RefreshIIPurgeRequest) (*pb.CountResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).dPoPPurgeBefore)
+}
+
+func (s *Server) dPoPPurgeBefore(ctx context.Context, q *pb.RefreshIIPurgeRequest) (*pb.CountResult, error) {
 	if err := checkTS(q.Before); err != nil {
 		return &pb.CountResult{Error: errToPB(err)}, nil
 	}
@@ -49,7 +57,7 @@ func (s *Server) DPoPPurgeBefore(ctx context.Context, q *pb.RefreshIIPurgeReques
 }
 
 func (r clientTokenQuotas) PurgeBefore(ctx context.Context, before time.Time, limit int) (int, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return 0, err
 	}
 	res, err := r.c.rpc.TokenQuotasPurgeBefore(ctx, &pb.RefreshIIPurgeRequest{TxId: r.c.txID, Before: tsToPB(before), Limit: int64(limit)})
@@ -60,6 +68,10 @@ func (r clientTokenQuotas) PurgeBefore(ctx context.Context, before time.Time, li
 }
 
 func (s *Server) TokenQuotasPurgeBefore(ctx context.Context, q *pb.RefreshIIPurgeRequest) (*pb.CountResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).tokenQuotasPurgeBefore)
+}
+
+func (s *Server) tokenQuotasPurgeBefore(ctx context.Context, q *pb.RefreshIIPurgeRequest) (*pb.CountResult, error) {
 	if err := checkTS(q.Before); err != nil {
 		return &pb.CountResult{Error: errToPB(err)}, nil
 	}
@@ -89,7 +101,7 @@ func (r clientTokenQuotas) Peek(ctx context.Context, tid string, subjects []stor
 }
 
 func (r clientTokenQuotas) query(ctx context.Context, tid string, subjects []store.QuotaSubject, now time.Time, consume bool) ([]store.QuotaState, error) {
-	if err := r.c.CheckRefreshTokensIISupport(ctx); err != nil {
+	if err := r.c.requireRefreshII(ctx); err != nil {
 		return nil, err
 	}
 	q := &pb.QuotaRequest{TxId: r.c.txID, TenantId: tid, Now: tsToPB(now)}
@@ -130,10 +142,18 @@ func (r clientTokenQuotas) query(ctx context.Context, tid string, subjects []sto
 }
 
 func (s *Server) TokenQuotasConsume(ctx context.Context, q *pb.QuotaRequest) (*pb.QuotaResponse, error) {
+	return withRefreshII(s, ctx, q, (*Server).tokenQuotasConsumeRPC)
+}
+
+func (s *Server) tokenQuotasConsumeRPC(ctx context.Context, q *pb.QuotaRequest) (*pb.QuotaResponse, error) {
 	return s.quotaQuery(ctx, q, true)
 }
 
 func (s *Server) TokenQuotasPeek(ctx context.Context, q *pb.QuotaRequest) (*pb.QuotaResponse, error) {
+	return withRefreshII(s, ctx, q, (*Server).tokenQuotasPeekRPC)
+}
+
+func (s *Server) tokenQuotasPeekRPC(ctx context.Context, q *pb.QuotaRequest) (*pb.QuotaResponse, error) {
 	return s.quotaQuery(ctx, q, false)
 }
 

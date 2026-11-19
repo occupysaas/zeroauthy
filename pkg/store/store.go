@@ -425,4 +425,6 @@ type (
 	RefreshTokenDevice       = store.RefreshTokenDevice
 )
 
+var ErrRefreshTokensIISupportLost = store.ErrRefreshTokensIISupportLost
+
 var ErrRefreshTokensIIUnavailable = store.ErrRefreshTokensIIUnavailable
