@@ -4671,8 +4671,11 @@ paths:
         operator credentials are required on create, `client_id` is immutable,
         and `app_secret` is sealed and never returned. Apple web and native
         authorization-code login are active (D-0170).
+        Plan 39c implements `github` options in `ConnectionOptionsGitHub`:
+        `client_secret` is sealed and write-only and `scope` follows the flags.
       x-source:
         - https://auth0.com/docs/api/management/v2/connections/post-connections
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github
         - https://auth0.com/docs/oas/management/v2/management-api-oas.json
         - https://auth0.com/docs/authenticate/passwordless
         - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/apple-native
@@ -14100,6 +14103,76 @@ components:
           maxItems: 96
           items: {type: string, maxLength: 255}
           description: Stored only.
+    ConnectionOptionsGitHub:
+      type: object
+      description: |
+        GitHub connection contract (Plan 39c, D-0181). Create requires client_id and
+        client_secret of a GitHub OAuth App; the secret is sealed and never
+        returned. PATCH omitting client_secret preserves it; empty or null is
+        refused. client_id is immutable. The endpoints are fixed to github.com
+        and api.github.com: GitHub Enterprise hosts, endpoint overrides, the
+        device flow and connected_accounts.active are rejected.
+        The requested scope is computed from the flags: user:email when
+        `email` is on (the default), then each true scope flag. `scope` is
+        returned on read as that effective array. An input `scope` is accepted
+        only when it equals the effective scope as a set; otherwise the request
+        is `400` naming the expected scope. `profile` is stored and returned
+        only: login always reads the GitHub user for the subject.
+        Rotating client_secret or changing the scope increments FederationRevision.
+      x-source:
+        - https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/github
+        - https://github.com/auth0/node-auth0/blob/v7.4.0/src/management/api/types/types.ts
+      additionalProperties: true
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 255, description: GitHub OAuth App client ID; immutable after creation.}
+        client_secret:
+          type: string
+          minLength: 1
+          maxLength: 5120
+          writeOnly: true
+          description: Sealed at write and never returned, logged or exported.
+        profile: {type: boolean, default: true, description: Stored and returned only; login always maps the GitHub user profile.}
+        email: {type: boolean, default: true, description: Requests user:email and reads the verified primary email; false creates users without an email.}
+        admin_org: {type: boolean, default: false, description: "Requests the GitHub `admin:org` scope."}
+        admin_public_key: {type: boolean, default: false, description: "Requests the GitHub `admin:public_key` scope."}
+        admin_repo_hook: {type: boolean, default: false, description: "Requests the GitHub `admin:repo_hook` scope."}
+        delete_repo: {type: boolean, default: false, description: "Requests the GitHub `delete_repo` scope."}
+        follow: {type: boolean, default: false, description: "Requests the GitHub `user:follow` scope."}
+        gist: {type: boolean, default: false, description: "Requests the GitHub `gist` scope."}
+        notifications: {type: boolean, default: false, description: "Requests the GitHub `notifications` scope."}
+        public_repo: {type: boolean, default: false, description: "Requests the GitHub `public_repo` scope."}
+        read_org: {type: boolean, default: false, description: "Requests the GitHub `read:org` scope."}
+        read_public_key: {type: boolean, default: false, description: "Requests the GitHub `read:public_key` scope."}
+        read_repo_hook: {type: boolean, default: false, description: "Requests the GitHub `read:repo_hook` scope."}
+        read_user: {type: boolean, default: false, description: "Requests the GitHub `read:user` scope."}
+        repo: {type: boolean, default: false, description: "Requests the GitHub `repo` scope."}
+        repo_deployment: {type: boolean, default: false, description: "Requests the GitHub `repo_deployment` scope."}
+        repo_status: {type: boolean, default: false, description: "Requests the GitHub `repo:status` scope."}
+        write_org: {type: boolean, default: false, description: "Requests the GitHub `write:org` scope."}
+        write_public_key: {type: boolean, default: false, description: "Requests the GitHub `write:public_key` scope."}
+        write_repo_hook: {type: boolean, default: false, description: "Requests the GitHub `write:repo_hook` scope."}
+        scope:
+          type: array
+          items: {type: string}
+          description: Effective scope computed from the flags. Input must equal it as a set.
+        freeform_scopes:
+          type: array
+          maxItems: 0
+          items: {type: string}
+          description: Only absent or empty is accepted.
+        set_user_root_attributes:
+          type: string
+          enum: [on_each_login, on_first_login, never_on_login]
+          default: on_each_login
+        upstream_params:
+          type: object
+          additionalProperties: true
+          description: Stored only; reserved protocol and security overrides are refused (Plan 24 policy).
+        non_persistent_attrs:
+          type: array
+          maxItems: 96
+          items: {type: string, maxLength: 255}
+          description: Stored only.
     ConnectionOptionsEmail:
       type: object
       description: |
@@ -22889,7 +22962,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, okta], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170)."}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc, windowslive, waad, email, sms, apple, github, okta], description: "`email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c)."}
             enabled_clients:
               type: array
               items: {type: string}
@@ -22906,7 +22979,7 @@ components:
         A connection. `options.configuration` values are opaque blobs, never
         plaintext. `enabled_clients` is returned by create only. `fields`
         can leave out any property but `id` and `is_domain_connection`.
-        For `google-oauth2`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+        For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
         `options.client_secret` is write-only: it is sealed when written and
         never returned.
         Microsoft connections require GUID client IDs and request exactly

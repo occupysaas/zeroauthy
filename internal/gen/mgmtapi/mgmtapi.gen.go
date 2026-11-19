@@ -1445,6 +1445,7 @@ const (
 	ConnectionCreateStrategyApple        ConnectionCreateStrategy = "apple"
 	ConnectionCreateStrategyAuth0        ConnectionCreateStrategy = "auth0"
 	ConnectionCreateStrategyEmail        ConnectionCreateStrategy = "email"
+	ConnectionCreateStrategyGithub       ConnectionCreateStrategy = "github"
 	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
 	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
 	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
@@ -1462,6 +1463,8 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	case ConnectionCreateStrategyAuth0:
 		return true
 	case ConnectionCreateStrategyEmail:
+		return true
+	case ConnectionCreateStrategyGithub:
 		return true
 	case ConnectionCreateStrategyGoogleOauth2:
 		return true
@@ -1520,19 +1523,19 @@ func (e ConnectionOptionsAppleFreeformScopes) Valid() bool {
 
 // Defines values for ConnectionOptionsAppleSetUserRootAttributes.
 const (
-	NeverOnLogin ConnectionOptionsAppleSetUserRootAttributes = "never_on_login"
-	OnEachLogin  ConnectionOptionsAppleSetUserRootAttributes = "on_each_login"
-	OnFirstLogin ConnectionOptionsAppleSetUserRootAttributes = "on_first_login"
+	ConnectionOptionsAppleSetUserRootAttributesNeverOnLogin ConnectionOptionsAppleSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsAppleSetUserRootAttributesOnEachLogin  ConnectionOptionsAppleSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsAppleSetUserRootAttributesOnFirstLogin ConnectionOptionsAppleSetUserRootAttributes = "on_first_login"
 )
 
 // Valid indicates whether the value is a known member of the ConnectionOptionsAppleSetUserRootAttributes enum.
 func (e ConnectionOptionsAppleSetUserRootAttributes) Valid() bool {
 	switch e {
-	case NeverOnLogin:
+	case ConnectionOptionsAppleSetUserRootAttributesNeverOnLogin:
 		return true
-	case OnEachLogin:
+	case ConnectionOptionsAppleSetUserRootAttributesOnEachLogin:
 		return true
-	case OnFirstLogin:
+	case ConnectionOptionsAppleSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -1548,6 +1551,27 @@ const (
 func (e ConnectionOptionsEmailEmailSyntax) Valid() bool {
 	switch e {
 	case ConnectionOptionsEmailEmailSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsGitHubSetUserRootAttributes.
+const (
+	ConnectionOptionsGitHubSetUserRootAttributesNeverOnLogin ConnectionOptionsGitHubSetUserRootAttributes = "never_on_login"
+	ConnectionOptionsGitHubSetUserRootAttributesOnEachLogin  ConnectionOptionsGitHubSetUserRootAttributes = "on_each_login"
+	ConnectionOptionsGitHubSetUserRootAttributesOnFirstLogin ConnectionOptionsGitHubSetUserRootAttributes = "on_first_login"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsGitHubSetUserRootAttributes enum.
+func (e ConnectionOptionsGitHubSetUserRootAttributes) Valid() bool {
+	switch e {
+	case ConnectionOptionsGitHubSetUserRootAttributesNeverOnLogin:
+		return true
+	case ConnectionOptionsGitHubSetUserRootAttributesOnEachLogin:
+		return true
+	case ConnectionOptionsGitHubSetUserRootAttributesOnFirstLogin:
 		return true
 	default:
 		return false
@@ -8835,7 +8859,7 @@ type ClientUpdateThirdPartySecurityMode string
 // Connection A connection. `options.configuration` values are opaque blobs, never
 // plaintext. `enabled_clients` is returned by create only. `fields`
 // can leave out any property but `id` and `is_domain_connection`.
-// For `google-oauth2`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+// For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
 // `options.client_secret` is write-only: it is sealed when written and
 // never returned.
 // Microsoft connections require GUID client IDs and request exactly
@@ -8915,11 +8939,11 @@ type ConnectionCreate struct {
 	Realms       *[]string               `json:"realms,omitempty"`
 	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
 
-	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
+	// Strategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 	Strategy ConnectionCreateStrategy `json:"strategy"`
 }
 
-// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
+// ConnectionCreateStrategy `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
 type ConnectionCreateStrategy string
 
 // ConnectionDeleted defines model for ConnectionDeleted.
@@ -9013,6 +9037,104 @@ type ConnectionOptionsEmail struct {
 
 // ConnectionOptionsEmailEmailSyntax defines model for ConnectionOptionsEmail.Email.Syntax.
 type ConnectionOptionsEmailEmailSyntax string
+
+// ConnectionOptionsGitHub GitHub connection contract (Plan 39c, D-0181). Create requires client_id and
+// client_secret of a GitHub OAuth App; the secret is sealed and never
+// returned. PATCH omitting client_secret preserves it; empty or null is
+// refused. client_id is immutable. The endpoints are fixed to github.com
+// and api.github.com: GitHub Enterprise hosts, endpoint overrides, the
+// device flow and connected_accounts.active are rejected.
+// The requested scope is computed from the flags: user:email when
+// `email` is on (the default), then each true scope flag. `scope` is
+// returned on read as that effective array. An input `scope` is accepted
+// only when it equals the effective scope as a set; otherwise the request
+// is `400` naming the expected scope. `profile` is stored and returned
+// only: login always reads the GitHub user for the subject.
+// Rotating client_secret or changing the scope increments FederationRevision.
+type ConnectionOptionsGitHub struct {
+	// AdminOrg Requests the GitHub `admin:org` scope.
+	AdminOrg *bool `json:"admin_org,omitempty"`
+
+	// AdminPublicKey Requests the GitHub `admin:public_key` scope.
+	AdminPublicKey *bool `json:"admin_public_key,omitempty"`
+
+	// AdminRepoHook Requests the GitHub `admin:repo_hook` scope.
+	AdminRepoHook *bool `json:"admin_repo_hook,omitempty"`
+
+	// ClientId GitHub OAuth App client ID; immutable after creation.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ClientSecret Sealed at write and never returned, logged or exported.
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// DeleteRepo Requests the GitHub `delete_repo` scope.
+	DeleteRepo *bool `json:"delete_repo,omitempty"`
+
+	// Email Requests user:email and reads the verified primary email; false creates users without an email.
+	Email *bool `json:"email,omitempty"`
+
+	// Follow Requests the GitHub `user:follow` scope.
+	Follow *bool `json:"follow,omitempty"`
+
+	// FreeformScopes Only absent or empty is accepted.
+	FreeformScopes *[]string `json:"freeform_scopes,omitempty"`
+
+	// Gist Requests the GitHub `gist` scope.
+	Gist *bool `json:"gist,omitempty"`
+
+	// NonPersistentAttrs Stored only.
+	NonPersistentAttrs *[]string `json:"non_persistent_attrs,omitempty"`
+
+	// Notifications Requests the GitHub `notifications` scope.
+	Notifications *bool `json:"notifications,omitempty"`
+
+	// Profile Stored and returned only; login always maps the GitHub user profile.
+	Profile *bool `json:"profile,omitempty"`
+
+	// PublicRepo Requests the GitHub `public_repo` scope.
+	PublicRepo *bool `json:"public_repo,omitempty"`
+
+	// ReadOrg Requests the GitHub `read:org` scope.
+	ReadOrg *bool `json:"read_org,omitempty"`
+
+	// ReadPublicKey Requests the GitHub `read:public_key` scope.
+	ReadPublicKey *bool `json:"read_public_key,omitempty"`
+
+	// ReadRepoHook Requests the GitHub `read:repo_hook` scope.
+	ReadRepoHook *bool `json:"read_repo_hook,omitempty"`
+
+	// ReadUser Requests the GitHub `read:user` scope.
+	ReadUser *bool `json:"read_user,omitempty"`
+
+	// Repo Requests the GitHub `repo` scope.
+	Repo *bool `json:"repo,omitempty"`
+
+	// RepoDeployment Requests the GitHub `repo_deployment` scope.
+	RepoDeployment *bool `json:"repo_deployment,omitempty"`
+
+	// RepoStatus Requests the GitHub `repo:status` scope.
+	RepoStatus *bool `json:"repo_status,omitempty"`
+
+	// Scope Effective scope computed from the flags. Input must equal it as a set.
+	Scope                 *[]string                                     `json:"scope,omitempty"`
+	SetUserRootAttributes *ConnectionOptionsGitHubSetUserRootAttributes `json:"set_user_root_attributes,omitempty"`
+
+	// UpstreamParams Stored only; reserved protocol and security overrides are refused (Plan 24 policy).
+	UpstreamParams *map[string]interface{} `json:"upstream_params,omitempty"`
+
+	// WriteOrg Requests the GitHub `write:org` scope.
+	WriteOrg *bool `json:"write_org,omitempty"`
+
+	// WritePublicKey Requests the GitHub `write:public_key` scope.
+	WritePublicKey *bool `json:"write_public_key,omitempty"`
+
+	// WriteRepoHook Requests the GitHub `write:repo_hook` scope.
+	WriteRepoHook        *bool                  `json:"write_repo_hook,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ConnectionOptionsGitHubSetUserRootAttributes defines model for ConnectionOptionsGitHub.SetUserRootAttributes.
+type ConnectionOptionsGitHubSetUserRootAttributes string
 
 // ConnectionOptionsOIDC defines model for ConnectionOptionsOIDC.
 type ConnectionOptionsOIDC struct {
@@ -15945,6 +16067,464 @@ func (a ConnectionOptionsEmail) MarshalJSON() ([]byte, error) {
 		object["totp"], err = json.Marshal(a.Totp)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'totp': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ConnectionOptionsGitHub. Returns the specified
+// element and whether it was found
+func (a ConnectionOptionsGitHub) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ConnectionOptionsGitHub
+func (a *ConnectionOptionsGitHub) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ConnectionOptionsGitHub to handle AdditionalProperties
+func (a *ConnectionOptionsGitHub) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["admin_org"]; found {
+		err = json.Unmarshal(raw, &a.AdminOrg)
+		if err != nil {
+			return fmt.Errorf("error reading 'admin_org': %w", err)
+		}
+		delete(object, "admin_org")
+	}
+
+	if raw, found := object["admin_public_key"]; found {
+		err = json.Unmarshal(raw, &a.AdminPublicKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'admin_public_key': %w", err)
+		}
+		delete(object, "admin_public_key")
+	}
+
+	if raw, found := object["admin_repo_hook"]; found {
+		err = json.Unmarshal(raw, &a.AdminRepoHook)
+		if err != nil {
+			return fmt.Errorf("error reading 'admin_repo_hook': %w", err)
+		}
+		delete(object, "admin_repo_hook")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["delete_repo"]; found {
+		err = json.Unmarshal(raw, &a.DeleteRepo)
+		if err != nil {
+			return fmt.Errorf("error reading 'delete_repo': %w", err)
+		}
+		delete(object, "delete_repo")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["follow"]; found {
+		err = json.Unmarshal(raw, &a.Follow)
+		if err != nil {
+			return fmt.Errorf("error reading 'follow': %w", err)
+		}
+		delete(object, "follow")
+	}
+
+	if raw, found := object["freeform_scopes"]; found {
+		err = json.Unmarshal(raw, &a.FreeformScopes)
+		if err != nil {
+			return fmt.Errorf("error reading 'freeform_scopes': %w", err)
+		}
+		delete(object, "freeform_scopes")
+	}
+
+	if raw, found := object["gist"]; found {
+		err = json.Unmarshal(raw, &a.Gist)
+		if err != nil {
+			return fmt.Errorf("error reading 'gist': %w", err)
+		}
+		delete(object, "gist")
+	}
+
+	if raw, found := object["non_persistent_attrs"]; found {
+		err = json.Unmarshal(raw, &a.NonPersistentAttrs)
+		if err != nil {
+			return fmt.Errorf("error reading 'non_persistent_attrs': %w", err)
+		}
+		delete(object, "non_persistent_attrs")
+	}
+
+	if raw, found := object["notifications"]; found {
+		err = json.Unmarshal(raw, &a.Notifications)
+		if err != nil {
+			return fmt.Errorf("error reading 'notifications': %w", err)
+		}
+		delete(object, "notifications")
+	}
+
+	if raw, found := object["profile"]; found {
+		err = json.Unmarshal(raw, &a.Profile)
+		if err != nil {
+			return fmt.Errorf("error reading 'profile': %w", err)
+		}
+		delete(object, "profile")
+	}
+
+	if raw, found := object["public_repo"]; found {
+		err = json.Unmarshal(raw, &a.PublicRepo)
+		if err != nil {
+			return fmt.Errorf("error reading 'public_repo': %w", err)
+		}
+		delete(object, "public_repo")
+	}
+
+	if raw, found := object["read_org"]; found {
+		err = json.Unmarshal(raw, &a.ReadOrg)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_org': %w", err)
+		}
+		delete(object, "read_org")
+	}
+
+	if raw, found := object["read_public_key"]; found {
+		err = json.Unmarshal(raw, &a.ReadPublicKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_public_key': %w", err)
+		}
+		delete(object, "read_public_key")
+	}
+
+	if raw, found := object["read_repo_hook"]; found {
+		err = json.Unmarshal(raw, &a.ReadRepoHook)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_repo_hook': %w", err)
+		}
+		delete(object, "read_repo_hook")
+	}
+
+	if raw, found := object["read_user"]; found {
+		err = json.Unmarshal(raw, &a.ReadUser)
+		if err != nil {
+			return fmt.Errorf("error reading 'read_user': %w", err)
+		}
+		delete(object, "read_user")
+	}
+
+	if raw, found := object["repo"]; found {
+		err = json.Unmarshal(raw, &a.Repo)
+		if err != nil {
+			return fmt.Errorf("error reading 'repo': %w", err)
+		}
+		delete(object, "repo")
+	}
+
+	if raw, found := object["repo_deployment"]; found {
+		err = json.Unmarshal(raw, &a.RepoDeployment)
+		if err != nil {
+			return fmt.Errorf("error reading 'repo_deployment': %w", err)
+		}
+		delete(object, "repo_deployment")
+	}
+
+	if raw, found := object["repo_status"]; found {
+		err = json.Unmarshal(raw, &a.RepoStatus)
+		if err != nil {
+			return fmt.Errorf("error reading 'repo_status': %w", err)
+		}
+		delete(object, "repo_status")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["set_user_root_attributes"]; found {
+		err = json.Unmarshal(raw, &a.SetUserRootAttributes)
+		if err != nil {
+			return fmt.Errorf("error reading 'set_user_root_attributes': %w", err)
+		}
+		delete(object, "set_user_root_attributes")
+	}
+
+	if raw, found := object["upstream_params"]; found {
+		err = json.Unmarshal(raw, &a.UpstreamParams)
+		if err != nil {
+			return fmt.Errorf("error reading 'upstream_params': %w", err)
+		}
+		delete(object, "upstream_params")
+	}
+
+	if raw, found := object["write_org"]; found {
+		err = json.Unmarshal(raw, &a.WriteOrg)
+		if err != nil {
+			return fmt.Errorf("error reading 'write_org': %w", err)
+		}
+		delete(object, "write_org")
+	}
+
+	if raw, found := object["write_public_key"]; found {
+		err = json.Unmarshal(raw, &a.WritePublicKey)
+		if err != nil {
+			return fmt.Errorf("error reading 'write_public_key': %w", err)
+		}
+		delete(object, "write_public_key")
+	}
+
+	if raw, found := object["write_repo_hook"]; found {
+		err = json.Unmarshal(raw, &a.WriteRepoHook)
+		if err != nil {
+			return fmt.Errorf("error reading 'write_repo_hook': %w", err)
+		}
+		delete(object, "write_repo_hook")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ConnectionOptionsGitHub to handle AdditionalProperties
+func (a ConnectionOptionsGitHub) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AdminOrg != nil {
+		object["admin_org"], err = json.Marshal(a.AdminOrg)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'admin_org': %w", err)
+		}
+	}
+
+	if a.AdminPublicKey != nil {
+		object["admin_public_key"], err = json.Marshal(a.AdminPublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'admin_public_key': %w", err)
+		}
+	}
+
+	if a.AdminRepoHook != nil {
+		object["admin_repo_hook"], err = json.Marshal(a.AdminRepoHook)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'admin_repo_hook': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.DeleteRepo != nil {
+		object["delete_repo"], err = json.Marshal(a.DeleteRepo)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'delete_repo': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.Follow != nil {
+		object["follow"], err = json.Marshal(a.Follow)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'follow': %w", err)
+		}
+	}
+
+	if a.FreeformScopes != nil {
+		object["freeform_scopes"], err = json.Marshal(a.FreeformScopes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'freeform_scopes': %w", err)
+		}
+	}
+
+	if a.Gist != nil {
+		object["gist"], err = json.Marshal(a.Gist)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'gist': %w", err)
+		}
+	}
+
+	if a.NonPersistentAttrs != nil {
+		object["non_persistent_attrs"], err = json.Marshal(a.NonPersistentAttrs)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'non_persistent_attrs': %w", err)
+		}
+	}
+
+	if a.Notifications != nil {
+		object["notifications"], err = json.Marshal(a.Notifications)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'notifications': %w", err)
+		}
+	}
+
+	if a.Profile != nil {
+		object["profile"], err = json.Marshal(a.Profile)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'profile': %w", err)
+		}
+	}
+
+	if a.PublicRepo != nil {
+		object["public_repo"], err = json.Marshal(a.PublicRepo)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'public_repo': %w", err)
+		}
+	}
+
+	if a.ReadOrg != nil {
+		object["read_org"], err = json.Marshal(a.ReadOrg)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_org': %w", err)
+		}
+	}
+
+	if a.ReadPublicKey != nil {
+		object["read_public_key"], err = json.Marshal(a.ReadPublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_public_key': %w", err)
+		}
+	}
+
+	if a.ReadRepoHook != nil {
+		object["read_repo_hook"], err = json.Marshal(a.ReadRepoHook)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_repo_hook': %w", err)
+		}
+	}
+
+	if a.ReadUser != nil {
+		object["read_user"], err = json.Marshal(a.ReadUser)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'read_user': %w", err)
+		}
+	}
+
+	if a.Repo != nil {
+		object["repo"], err = json.Marshal(a.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'repo': %w", err)
+		}
+	}
+
+	if a.RepoDeployment != nil {
+		object["repo_deployment"], err = json.Marshal(a.RepoDeployment)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'repo_deployment': %w", err)
+		}
+	}
+
+	if a.RepoStatus != nil {
+		object["repo_status"], err = json.Marshal(a.RepoStatus)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'repo_status': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.SetUserRootAttributes != nil {
+		object["set_user_root_attributes"], err = json.Marshal(a.SetUserRootAttributes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'set_user_root_attributes': %w", err)
+		}
+	}
+
+	if a.UpstreamParams != nil {
+		object["upstream_params"], err = json.Marshal(a.UpstreamParams)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'upstream_params': %w", err)
+		}
+	}
+
+	if a.WriteOrg != nil {
+		object["write_org"], err = json.Marshal(a.WriteOrg)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'write_org': %w", err)
+		}
+	}
+
+	if a.WritePublicKey != nil {
+		object["write_public_key"], err = json.Marshal(a.WritePublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'write_public_key': %w", err)
+		}
+	}
+
+	if a.WriteRepoHook != nil {
+		object["write_repo_hook"], err = json.Marshal(a.WriteRepoHook)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'write_repo_hook': %w", err)
 		}
 	}
 
