@@ -201,6 +201,19 @@ func (r refreshTokens) checkRotation(old *store.RefreshToken, at time.Time, leew
 	return store.ErrAlreadyUsed
 }
 
+func (r refreshTokens) CheckRotation(_ context.Context, tid, id string, at time.Time, leeway time.Duration) error {
+	r.s.lock()
+	defer r.s.unlock()
+	old := r.s.refreshTokens[key{tid, id}]
+	if old == nil || !old.Rotating || (old.RevokedAt != nil && old.RotatedAt == nil) {
+		return store.ErrNotFound
+	}
+	if old.RevokedAt != nil {
+		return store.ErrAlreadyUsed
+	}
+	return r.checkRotation(old, at, leeway)
+}
+
 func (r refreshTokens) ConvertNonRotating(_ context.Context, tid, presentedID string, next *store.RefreshToken) error {
 	if next == nil {
 		return store.ErrInvalid

@@ -261,7 +261,7 @@ func (s changingRefreshBackend) WithTx(ctx context.Context, fn func(store.Store)
 }
 func TestRefreshIIReceivingStore(t *testing.T) {
 	ctx := t.Context()
-	for _, op := range []string{"code", "rotate", "tx-code", "tx-only", "transient"} {
+	for _, op := range []string{"code", "rotate", "check-rotation", "tx-check-rotation", "tx-code", "tx-only", "transient"} {
 		t.Run(op, func(t *testing.T) {
 			backing := memory.New()
 			var declined atomic.Bool
@@ -275,7 +275,7 @@ func TestRefreshIIReceivingStore(t *testing.T) {
 				return store.ErrRefreshTokensIIUnavailable
 			}
 			srvBase := changingRefreshBackend{backing, refusal, refusal}
-			if op == "tx-only" {
+			if op == "tx-only" || op == "tx-check-rotation" {
 				srvBase.probe = func() error { return nil }
 			}
 			if op == "tx-code" {
@@ -296,6 +296,12 @@ func TestRefreshIIReceivingStore(t *testing.T) {
 			}
 			var err error
 			switch op {
+			case "check-rotation":
+				err = c.RefreshTokens().CheckRotation(ctx, "t", "old", time.Now(), time.Second)
+			case "tx-check-rotation":
+				err = c.WithTx(ctx, func(tx store.Store) error {
+					return tx.RefreshTokens().CheckRotation(ctx, "t", "old", time.Now(), time.Second)
+				})
 			case "rotate":
 				err = c.RefreshTokens().Rotate(ctx, "t", "old", &store.RefreshToken{TenantID: "t", ID: "next", TokenHash: "next", FamilyID: "f", Rotating: true}, time.Now(), 0)
 			case "tx-code", "tx-only":

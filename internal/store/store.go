@@ -461,6 +461,11 @@ type DeviceCodes interface {
 // is unique within a tenant. Rotation and reuse detection happen inside
 // Rotate so that drivers can make them atomic.
 type RefreshTokens interface {
+	// CheckRotation checks a rotating presentation before the grant runs Actions.
+	// Reuse revokes its family and returns ErrAlreadyUsed. A valid token is
+	// unchanged. This is not a reservation: Rotate and ConvertRotating repeat
+	// the check atomically with their writes. Absent/non-rotating: ErrNotFound.
+	CheckRotation(ctx context.Context, tid, presentedID string, at time.Time, leeway time.Duration) error
 	// Conversion claims the presented offline token and atomically replaces all
 	// offline tokens of its rotation type matching its tenant/user/client/audience.
 	// Non-rotating tokens are deleted; rotating tokens are revoked. Successors

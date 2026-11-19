@@ -502,6 +502,7 @@ service StoreService {
   rpc RefreshIIRefreshTokensGetByTokenHash(ScopedKey) returns (RefreshTokenResult);
   rpc RefreshIIRefreshTokensListByUser(ScopedKey) returns (RefreshTokenList);
   rpc RefreshTokensIIWrite(RefreshIIWrite) returns (Result);
+  rpc RefreshTokensIICheckRotation(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensIIRotate(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensConvertNonRotating(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensConvertRotating(RefreshTokensRotateRequest) returns (Result);

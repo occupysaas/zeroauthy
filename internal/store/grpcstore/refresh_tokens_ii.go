@@ -189,6 +189,28 @@ func needsRefreshII(t *store.RefreshToken) bool {
 	return t != nil && (t.DPoPJKT != "" || t.ParentID != "" || (t.Access != "" && t.Access != "offline") || t.Device != nil || t.Metadata != nil || t.LastExchangedAt != nil)
 }
 
+func (r clientRefreshTokens) CheckRotation(ctx context.Context, tid, id string, at time.Time, leeway time.Duration) error {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return err
+	}
+	q := &pb.RefreshTokensRotateRequest{TxId: r.c.txID, TenantId: tid, OldId: id, At: tsToPB(at), Leeway: durationpb.New(leeway)}
+	res, err := r.c.rpc.RefreshTokensIICheckRotation(ctx, q)
+	return r.c.refreshResult("RefreshTokensIICheckRotation", res, err)
+}
+
+func (s *Server) RefreshTokensIICheckRotation(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensCheckRotation)
+}
+
+func (s *Server) refreshTokensCheckRotation(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
+	if err := checkTS(q.At); err != nil {
+		return &pb.Result{Error: errToPB(err)}, nil
+	}
+	return exec(s, q.TxId, func(st store.Store) error {
+		return st.RefreshTokens().CheckRotation(ctx, q.TenantId, q.OldId, tsFromPB(q.At), q.Leeway.AsDuration())
+	}), nil
+}
+
 func (r clientRefreshTokens) ConvertNonRotating(ctx context.Context, tid, id string, next *store.RefreshToken) error {
 	return r.convert(ctx, tid, id, next, time.Time{}, 0, false)
 }

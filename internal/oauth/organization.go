@@ -91,18 +91,23 @@ func (h *Handlers) organizationForToken(ctx context.Context, tid, uid, orgID, co
 
 // checkTokenOrganization re-reads client policy inside the final mint transaction.
 func checkTokenOrganization(ctx context.Context, tx store.Store, tid, uid, orgID, connectionID, clientID string) error {
+	_, err := clientForTokenOrganization(ctx, tx, tid, uid, orgID, connectionID, clientID)
+	return err
+}
+
+func clientForTokenOrganization(ctx context.Context, tx store.Store, tid, uid, orgID, connectionID, clientID string) (*store.Client, error) {
 	c, err := tx.Clients().Get(ctx, tid, clientID)
 	if errors.Is(err, store.ErrNotFound) {
-		return errOrganizationGrant
+		return nil, errOrganizationGrant
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	_, err = tokenOrganization(ctx, tx, tid, uid, orgID, connectionID, c)
 	if errors.Is(err, store.ErrNotFound) {
-		return errOrganizationGrant
+		return nil, errOrganizationGrant
 	}
-	return err
+	return c, err
 }
 
 // machineOrganization resolves explicit context without the member-login gate.

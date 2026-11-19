@@ -18,6 +18,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
+var errOfflineAccessDisabled = errors.New("the API no longer allows offline access")
+
 // refreshToken implements RFC 6749 §6 with rotation and reuse detection
 // (RFC 9700 §4.14, D-0012).
 func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (response *authapi.TokenResponse, failure *Error) {
@@ -69,16 +71,33 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if rt.RevokedAt != nil {
 		return nil, invalid
 	}
-	// A rotated token presented outside the leeway is reuse. Detect it before
-	// any other check so those checks cannot mask it or probe the family.
+	probe := store.CheckRefreshTokensIISupport(ctx, h.Store)
+	if probe != nil && !errors.Is(probe, store.ErrRefreshTokensIIUnavailable) {
+		h.log().ErrorContext(ctx, "check refresh token store capability", "tenant", tenantID)
+		return nil, serverError()
+	}
+	capable := probe == nil
+	// Detect reuse before audience, scope, expiry and Actions can mask it.
 	if rt.Rotating && rt.RotatedAt != nil {
 		leeway := time.Duration(c.RefreshToken.Leeway) * time.Second
-		if leeway <= 0 || !now.Before(rt.RotatedAt.Add(leeway)) {
-			h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
-			if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, now); err != nil {
-				h.log().ErrorContext(ctx, "revoke refresh token family", "tenant", tenantID, "family", rt.FamilyID, "err", err)
+		if capable {
+			err = h.Store.RefreshTokens().CheckRotation(ctx, tenantID, rt.ID, now, leeway)
+		} else if leeway <= 0 || !now.Before(rt.RotatedAt.Add(leeway)) {
+			// Legacy stores only enforce elapsed time on a rotated presentation.
+			err = h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, now)
+			if err == nil {
+				err = store.ErrAlreadyUsed
 			}
+		}
+		switch {
+		case errors.Is(err, store.ErrAlreadyUsed):
+			h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
 			return nil, invalid
+		case errors.Is(err, store.ErrNotFound):
+			return nil, invalid
+		case err != nil:
+			h.log().ErrorContext(ctx, "check refresh token reuse", "tenant", tenantID)
+			return nil, serverError()
 		}
 	}
 	if refreshExpired(rt, now) {
@@ -90,6 +109,10 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, rt.Audience)
 	if oerr != nil {
 		return nil, oerr
+	}
+	offlineGrant := rt.Access != "online"
+	if offlineGrant && rs != nil && !rs.AllowOfflineAccess {
+		return nil, invalidGrant(errOfflineAccessDisabled.Error())
 	}
 	// Requested scopes are filtered as issuance filters them, so scopes the
 	// API does not define are ignored; what remains may only narrow. If
@@ -156,38 +179,44 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 
 	// The minted tokens are only sent once the refresh token is consumed,
 	// in a transaction that checks the user is still at the Version loaded
-	// above. The store's own error from Rotate or Touch is kept apart and
-	// the transaction commits, so a family revoked for reuse stays revoked.
+	// above. Preserve the family revocation on ErrAlreadyUsed while rolling
+	// back ordinary write failures.
 	version := user.Version
-	var writeErr error
+	var currentClient *store.Client
+	var reused bool
 	var nextRaw string
 	err = h.mintCheckedTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
-		return checkTokenOrganization(ctx, tx, tenantID, user.UserID, rt.OrganizationID, rt.OrganizationConnectionID, c.ClientID)
+		var err error
+		currentClient, err = clientForTokenOrganization(ctx, tx, tenantID, user.UserID, rt.OrganizationID, rt.OrganizationConnectionID, c.ClientID)
+		if err != nil || !offlineGrant || rs == nil {
+			return err
+		}
+		// API settings may change while Actions or signing are running. Read
+		// the policy under the same tenant lock as the final token write.
+		currentAPI, err := tx.ResourceServers().GetByIdentifier(ctx, tenantID, rt.Audience)
+		if err != nil {
+			return err
+		}
+		if !currentAPI.AllowOfflineAccess {
+			return errOfflineAccessDisabled
+		}
+		return nil
 	}, func(tx store.Store) error {
 		if !keep {
 			return nil
 		}
-		if rt.Rotating {
-			next, raw := h.newRefreshToken(c, tenantID, refreshGrant{
-				organizationID: rt.OrganizationID, organizationConnectionID: rt.OrganizationConnectionID,
-				origin:   res.Origin(),
-				familyID: rt.FamilyID, userID: rt.UserID, sessionID: rt.SessionID, audience: rt.Audience,
-				scopes: rt.Scopes, authTime: rt.AuthTime, expiresAt: rt.ExpiresAt,
-			})
-			next.Rotating = true
-			nextRaw = raw
-			writeErr = tx.RefreshTokens().Rotate(ctx, tenantID, rt.ID, next, now, time.Duration(c.RefreshToken.Leeway)*time.Second)
+		var writeErr error
+		plan := planRefresh(rt, currentClient.RefreshToken, capable)
+		nextRaw, writeErr = plan.exchange(ctx, tx.RefreshTokens(), rt, currentClient, res.Origin(), now)
+		if errors.Is(writeErr, store.ErrAlreadyUsed) {
+			reused = true
 			return nil
 		}
-		if _, idle := refreshLifetimes(c.RefreshToken); idle > 0 {
-			idleAt := now.Add(idle)
-			if !rt.ExpiresAt.IsZero() && idleAt.After(rt.ExpiresAt) {
-				idleAt = rt.ExpiresAt
-			}
-			writeErr = tx.RefreshTokens().Touch(ctx, tenantID, rt.ID, idleAt)
-		}
-		return nil
+		return writeErr
 	})
+	if errors.Is(err, errOfflineAccessDisabled) {
+		return nil, invalidGrant(errOfflineAccessDisabled.Error())
+	}
 	if errors.Is(err, errOrganizationGrant) {
 		return nil, invalidGrant("the organization grant is no longer eligible")
 	}
@@ -197,23 +226,17 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if errors.Is(err, errUserChanged) {
 		return nil, invalidGrant("the user is not allowed to sign in")
 	}
-	if err == nil {
-		err = writeErr
-	}
 	switch {
-	case rt.Rotating && errors.Is(err, store.ErrAlreadyUsed):
+	case err == nil && reused:
 		h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
 		return nil, invalid
 	case errors.Is(err, store.ErrNotFound):
 		return nil, invalid
-	case err != nil && rt.Rotating:
-		h.log().ErrorContext(ctx, "rotate refresh token", "tenant", tenantID, "err", err)
-		return nil, serverError()
 	case err != nil:
-		h.log().ErrorContext(ctx, "extend refresh token", "tenant", tenantID, "err", err)
+		h.log().ErrorContext(ctx, "complete refresh exchange", "tenant", tenantID)
 		return nil, serverError()
 	}
-	if rt.Rotating && keep {
+	if nextRaw != "" {
 		resp.RefreshToken = &nextRaw
 	}
 	if user != nil {

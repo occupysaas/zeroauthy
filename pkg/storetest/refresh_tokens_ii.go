@@ -17,6 +17,7 @@ func familyToken(id, family string, rotating bool) *store.RefreshToken {
 }
 
 func testRefreshTokensII(t *testing.T, newStore Factory) {
+	t.Run("CheckRotation", func(t *testing.T) { testCheckRotation(t, newStore) })
 	t.Run("ConversionFreshFamily", func(t *testing.T) { testConversionFreshFamily(t, newStore) })
 	ctx := context.Background()
 	t.Run("StrictLeeway", func(t *testing.T) {
@@ -339,5 +340,51 @@ func testConversionFreshFamily(t *testing.T, newStore Factory) {
 				mustErrIs(t, err, store.ErrNotFound)
 			})
 		}
+	}
+}
+
+// The same timestamp on each write makes insertion order the deciding factor.
+func testCheckRotation(t *testing.T, newStore Factory) {
+	for _, finish := range []string{"preflight", "rotate", "convert"} {
+		t.Run(finish, func(t *testing.T) {
+			repo := open(t, newStore).RefreshTokens()
+			ctx := t.Context()
+			at := ts(time.Minute)
+			check := func(tid, id string) error { return repo.CheckRotation(ctx, tid, id, at, time.Minute) }
+			rotate := func(from, to string) error {
+				return repo.Rotate(ctx, "ten_a", from, familyToken(to, "f", true), at, time.Minute)
+			}
+			mustNoErr(t, repo.Create(ctx, familyToken("root", "f", true)))
+			mustNoErr(t, rotate("root", "next"))
+			before, err := repo.Get(ctx, "ten_a", "root")
+			mustNoErr(t, err)
+			mustNoErr(t, check("ten_a", "root"))
+			after, err := repo.Get(ctx, "ten_a", "root")
+			mustNoErr(t, err)
+			mustEqual(t, after, before)
+			mustNoErr(t, rotate("next", "head"))
+			mustErrIs(t, check("ten_b", "root"), store.ErrNotFound)
+			mustErrIs(t, check("ten_a", "unknown"), store.ErrNotFound)
+			head, err := repo.Get(ctx, "ten_a", "head")
+			mustNoErr(t, err)
+			mustEqual(t, head.RevokedAt == nil, true)
+			// Model a second exchange advancing the head after the first exchange's check.
+			switch finish {
+			case "preflight":
+				err = check("ten_a", "root")
+			case "rotate":
+				err = rotate("root", "rejected")
+			case "convert":
+				err = repo.ConvertRotating(ctx, "ten_a", "root", familyToken("rejected", "new", false), at, time.Minute)
+			}
+			mustErrIs(t, err, store.ErrAlreadyUsed)
+			for _, id := range []string{"root", "next", "head"} {
+				rt, err := repo.Get(ctx, "ten_a", id)
+				mustNoErr(t, err)
+				mustEqual(t, rt.RevokedAt, &at)
+			}
+			_, err = repo.Get(ctx, "ten_a", "rejected")
+			mustErrIs(t, err, store.ErrNotFound)
+		})
 	}
 }

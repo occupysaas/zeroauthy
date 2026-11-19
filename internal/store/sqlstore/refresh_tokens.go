@@ -116,10 +116,14 @@ type refreshTransition uint8
 
 const (
 	rotateToken refreshTransition = iota
+	checkRotation
 	convertFromNonRotating
 	convertFromRotating
 )
 
+func (r refreshTokens) CheckRotation(ctx context.Context, tid, id string, at time.Time, leeway time.Duration) error {
+	return r.transition(ctx, tid, id, nil, at, leeway, checkRotation)
+}
 func (r refreshTokens) Rotate(ctx context.Context, tid, id string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {
 	return r.transition(ctx, tid, id, next, at, leeway, rotateToken)
 }
@@ -133,7 +137,7 @@ func (r refreshTokens) ConvertRotating(ctx context.Context, tid, id string, next
 	return r.transition(ctx, tid, id, next, at, leeway, convertFromRotating)
 }
 func (r refreshTokens) transition(ctx context.Context, tid, id string, next *store.RefreshToken, at time.Time, leeway time.Duration, mode refreshTransition) error {
-	convert := mode != rotateToken
+	convert := mode == convertFromRotating || mode == convertFromNonRotating
 	wasRotating := mode == convertFromRotating
 	var reused bool
 	err := r.atomic(ctx, tid, func(tx *Store) error {
@@ -148,31 +152,18 @@ func (r refreshTokens) transition(ctx context.Context, tid, id string, next *sto
 		if convert && (old.Rotating != wasRotating || old.Access == "online" || (!old.ExpiresAt.IsZero() && !at.Before(old.ExpiresAt)) || (!old.IdleExpiresAt.IsZero() && !at.Before(old.IdleExpiresAt))) {
 			return store.ErrNotFound
 		}
+		if mode == checkRotation && !old.Rotating {
+			return store.ErrNotFound
+		}
 		if old.RevokedAt != nil {
 			if old.RotatedAt == nil {
 				return store.ErrNotFound
 			}
 			return store.ErrAlreadyUsed
 		}
-		if !old.ValidSuccessor(next) || (!convert && next.FamilyID != old.FamilyID) || (convert && next.Rotating == old.Rotating) {
-			return store.ErrConflict
-		}
-		var taken bool
-		if err := tx.queryRow(ctx, "SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE tenant_id=? AND (id=? OR token_hash=?))", tid, next.ID, next.TokenHash).Scan(&taken); err != nil {
-			return err
-		}
-		if taken {
-			return store.ErrConflict
-		}
-		if convert {
-			if next.FamilyID == "" {
-				return store.ErrInvalid
-			}
-			if err := tx.queryRow(ctx, "SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE tenant_id=? AND family_id=?)", tid, next.FamilyID).Scan(&taken); err != nil {
+		if mode != checkRotation {
+			if err := (refreshTokens{tx}).validateSuccessor(ctx, old, next, convert); err != nil {
 				return err
-			}
-			if taken {
-				return store.ErrConflict
 			}
 		}
 		if old.RotatedAt != nil && mode != convertFromNonRotating {
@@ -185,6 +176,9 @@ func (r refreshTokens) transition(ctx context.Context, tid, id string, next *sto
 				_, err := revokeUntilStable(ctx, tx, "family_id", tid, old.FamilyID, at)
 				return err
 			}
+		}
+		if mode == checkRotation {
+			return nil
 		}
 		if convert {
 			if err := (refreshTokens{tx}).retireConversionSources(ctx, old, at); err != nil {
@@ -203,6 +197,31 @@ func (r refreshTokens) transition(ctx context.Context, tid, id string, next *sto
 		return store.ErrAlreadyUsed
 	}
 	return err
+}
+
+func (r refreshTokens) validateSuccessor(ctx context.Context, old, next *store.RefreshToken, convert bool) error {
+	if !old.ValidSuccessor(next) || (!convert && next.FamilyID != old.FamilyID) || (convert && next.Rotating == old.Rotating) {
+		return store.ErrConflict
+	}
+	var taken bool
+	if err := r.s.queryRow(ctx, "SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE tenant_id=? AND (id=? OR token_hash=?))", old.TenantID, next.ID, next.TokenHash).Scan(&taken); err != nil {
+		return err
+	}
+	if taken {
+		return store.ErrConflict
+	}
+	if convert {
+		if next.FamilyID == "" {
+			return store.ErrInvalid
+		}
+		if err := r.s.queryRow(ctx, "SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE tenant_id=? AND family_id=?)", old.TenantID, next.FamilyID).Scan(&taken); err != nil {
+			return err
+		}
+		if taken {
+			return store.ErrConflict
+		}
+	}
+	return nil
 }
 
 // canReuse reads the latest live family member while the tenant write lock
