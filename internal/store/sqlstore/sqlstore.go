@@ -356,3 +356,18 @@ func (s *Store) retry(ctx context.Context, op func() error) error {
 }
 
 func sortedLeaseKeys(m map[string]store.TLSLease) []string { return slices.Sorted(maps.Keys(m)) }
+
+// insertIgnore inserts a tenant-scoped row unless its key exists. A plain read
+// in a caller's transaction can miss a row that another transaction
+// committed after it (MySQL REPEATABLE READ keeps the first read's view), so
+// the insert itself skips duplicates instead of failing; this keeps adds
+// idempotent under concurrency. into is "table (cols) VALUES (...)".
+func (s *Store) insertIgnore(ctx context.Context, into string, args ...any) error {
+	q := `INSERT INTO ` + into + ` ON CONFLICT DO NOTHING`
+	if s.d.name == "mysql" {
+		// Not INSERT IGNORE, which also hides other errors.
+		q = `INSERT INTO ` + into + ` ON DUPLICATE KEY UPDATE tenant_id=tenant_id`
+	}
+	_, err := s.exec(ctx, q, args...)
+	return err
+}

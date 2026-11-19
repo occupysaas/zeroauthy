@@ -115,7 +115,7 @@ func (r refreshTokens) Rotate(_ context.Context, tenantID, oldID string, next *s
 		// A rotated token of a revoked family: reuse, whatever the leeway.
 		return store.ErrAlreadyUsed
 	}
-	if !validSuccessor(old, next) || next.FamilyID != old.FamilyID || r.taken(next) {
+	if !old.ValidSuccessor(next) || next.FamilyID != old.FamilyID || r.taken(next) {
 		return store.ErrConflict
 	}
 	if err := r.checkRotation(old, at, leeway); err != nil {
@@ -169,16 +169,6 @@ func (r refreshTokens) DeleteExpired(_ context.Context, before time.Time) (int, 
 		}
 	}
 	return n, nil
-}
-
-// validSuccessor binds the stored owner and proof key. Legacy empty origins
-// can acquire their canonical origin after the OAuth handler verifies it.
-func validSuccessor(old, next *store.RefreshToken) bool {
-	return next != nil && old.TenantID == next.TenantID && old.ClientID == next.ClientID &&
-		old.UserID == next.UserID && old.Audience == next.Audience && old.SessionID == next.SessionID &&
-		old.OrganizationID == next.OrganizationID && old.OrganizationConnectionID == next.OrganizationConnectionID &&
-		(old.Origin == "" || old.Origin == next.Origin) && old.DPoPJKT == next.DPoPJKT &&
-		(next.Access == old.Access || old.Access == "offline" && next.Access == "")
 }
 
 func expiredToken(t *store.RefreshToken, at time.Time) bool {
@@ -235,7 +225,7 @@ func (r refreshTokens) convert(tid, id string, next *store.RefreshToken, rotatin
 		}
 		return store.ErrNotFound
 	}
-	if !validSuccessor(old, next) || next.Rotating == rotating || r.taken(next) {
+	if !old.ValidSuccessor(next) || next.Rotating == rotating || r.taken(next) {
 		return store.ErrConflict
 	}
 	if next.FamilyID == "" {

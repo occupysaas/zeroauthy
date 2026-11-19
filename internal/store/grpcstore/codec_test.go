@@ -141,7 +141,8 @@ func mustFrom[PP any, T any](t *testing.T, from func(PP) (*T, error), pb PP) *T 
 func TestTenantRoundTrip(t *testing.T) {
 
 	roundTrip(t, "full", &store.Tenant{
-		SupportEmail: "support@example.com", SupportURL: "https://example.com", PictureURL: "https://example.com/logo",
+		DefaultTokenQuota: &store.DefaultTokenQuota{Clients: &store.TokenQuota{Enforce: true, PerHour: 6, PerDay: 15}, Organizations: &store.TokenQuota{Enforce: true, PerHour: 6, PerDay: 15}},
+		SupportEmail:      "support@example.com", SupportURL: "https://example.com", PictureURL: "https://example.com/logo",
 		SettingsExtra: map[string]any{"flags": map[string]any{"enable_sso": true}}, SettingsPresence: map[string]bool{"device_flow.mask": true},
 		ProtectionSettings: fullProtectionSettings(), ProtectionSettingsInitialized: true,
 		EphemeralSessionLifetime: 7200, IdleEphemeralSessionLifetime: 3600, SessionCookieMode: "non-persistent",
@@ -162,6 +163,7 @@ func TestTenantRoundTrip(t *testing.T) {
 
 func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
+		RequireProofOfPossession: true, TokenQuota: &store.TokenQuota{Enforce: true, PerHour: 6, PerDay: 15},
 		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
 		PrivateKeyJWTCredentials: []string{"cred_1"}, SignedRequestObject: &store.SignedRequestObject{Required: true, Credentials: []string{"cred_1"}}, TokenExchangeTypes: []string{"urn:example:t"},
 		NativeSocialLogin: map[string]bool{"apple": true, "facebook": false, "google": true},
@@ -175,7 +177,7 @@ func TestClientRoundTrip(t *testing.T) {
 		GrantTypes:              []string{"authorization_code"}, Callbacks: []string{"https://cb"},
 		AllowedLogoutURLs: []string{"https://out"}, WebOrigins: []string{"https://web"}, AllowedOrigins: []string{"https://ao"},
 		IDTokenLifetime: 36000,
-		RefreshToken:    store.RefreshTokenPolicy{Rotating: true, Leeway: 5, Expiring: true, TokenLifetime: 100, IdleTokenLifetime: 50},
+		RefreshToken:    store.RefreshTokenPolicy{Policies: []store.MRRTPolicy{{Audience: "api", Scope: []string{"read"}}}, Rotating: true, Leeway: 5, Expiring: true, TokenLifetime: 100, IdleTokenLifetime: 50},
 		CreatedAt:       nanoTime,
 		IsFirstParty:    true, ThirdPartySecurityMode: store.SecurityModeStrict,
 		RedirectionPolicy: store.RedirectionPolicyAllowAlways,
@@ -191,7 +193,8 @@ func TestClientRoundTrip(t *testing.T) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: ptr(false),
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "empty", &store.Client{
-		Secrets: []store.ClientSecret{}, GrantTypes: []string{}, Callbacks: []string{},
+		RefreshToken: store.RefreshTokenPolicy{Policies: []store.MRRTPolicy{}},
+		Secrets:      []store.ClientSecret{}, GrantTypes: []string{}, Callbacks: []string{},
 		AllowedLogoutURLs: []string{}, WebOrigins: []string{}, AllowedOrigins: []string{},
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "zero", &store.Client{}, clientToPB, clientFromPB)
@@ -199,6 +202,7 @@ func TestClientRoundTrip(t *testing.T) {
 
 func TestResourceServerRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.ResourceServer{
+		AllowOnlineAccess: true, AllowOnlineAccessWithEphemeralSessions: true, ProofOfPossession: &store.ProofOfPossession{Mechanism: "dpop", Required: true, RequiredFor: "public_clients"},
 		TenantID: "ten", ID: "rs", Identifier: "https://api", Name: "API",
 		EnforcePolicies: true, TokenDialect: "rfc9068_profile_authz",
 		Scopes:     []store.Scope{{Value: "read", Description: "Read"}, {Value: "write"}},
@@ -347,7 +351,8 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
-		MFAAt: nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
+		Metadata: map[string]string{"purpose": "roundtrip"},
+		MFAAt:    nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
@@ -360,6 +365,7 @@ func TestSessionRoundTrip(t *testing.T) {
 
 func TestAuthTransactionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthTransaction{
+		DPoPJKT:  "key",
 		Origin:   "https://login.example",
 		TenantID: "ten", ID: "st", CookieHash: "ch", CSRFToken: "csrf", ClientID: "cid",
 		Params:      map[string]string{"scope": "openid profile", "state": "xyz", "empty": ""},
@@ -372,6 +378,7 @@ func TestAuthTransactionRoundTrip(t *testing.T) {
 
 func TestAuthCodeRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthCode{
+		DPoPJKT:  "key",
 		Origin:   "https://login.example",
 		TenantID: "ten", CodeHash: "ch", ClientID: "cid", RedirectURI: "https://cb", UserID: "auth0|u1",
 		SessionID: "sid", Scopes: []string{"openid", "email"}, Audience: "https://api", Nonce: "n",
@@ -386,6 +393,8 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 
 func TestRefreshTokenRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.RefreshToken{
+		DPoPJKT: "key", ParentID: "previous", Access: "offline", Metadata: map[string]string{"role": "app"}, LastExchangedAt: ptr(nanoTime),
+		Device:   &store.RefreshTokenDevice{InitialIP: "192.0.2.1", LastIP: "192.0.2.2", InitialASN: "AS64496", LastASN: "AS64497", InitialUserAgent: "one", LastUserAgent: "two"},
 		Origin:   "https://login.example",
 		TenantID: "ten", ID: "rt", TokenHash: "th", FamilyID: "fam", ClientID: "cid", UserID: "auth0|u1",
 		SessionID: "sid", Scopes: []string{"openid", "offline_access"}, Audience: "https://api",

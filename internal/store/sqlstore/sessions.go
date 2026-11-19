@@ -15,7 +15,7 @@ type sessions struct{ s *Store }
 func (s *Store) Sessions() store.Sessions { return sessions{s} }
 
 const sessionCols = `tenant_id, id, token_hash, user_id, connection, authenticated_at, client_ids, expires_at, idle_expires_at, created_at,
- updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin, mfa_at, auth_methods`
+ updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent, cookie_mode, origin, mfa_at, auth_methods, metadata`
 
 func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	clients, err := toJSON(s.ClientIDs)
@@ -26,10 +26,10 @@ func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		s.TenantID, s.ID, s.TokenHash, s.UserID, s.Connection, micros(s.AuthenticatedAt), clients,
 		micros(s.ExpiresAt), micros(s.IdleExpiresAt), micros(s.CreatedAt),
-		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin, optionalMFATime(s.MFAAt), methods)
+		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent, s.CookieMode, s.Origin, optionalMFATime(s.MFAAt), methods, jsonColumn{&s.Metadata})
 	return r.s.conflict(err)
 }
 
@@ -40,7 +40,7 @@ func scanSession(row scanner) (*store.LoginSession, error) {
 	var mfaAt sql.NullInt64
 	var methods sql.NullString
 	if err := row.Scan(&s.TenantID, &s.ID, &s.TokenHash, &s.UserID, &s.Connection, &authAt, &clients, &exp, &idle, &created,
-		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin, &mfaAt, &methods); err != nil {
+		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent, &s.CookieMode, &s.Origin, &mfaAt, &methods, jsonColumn{&s.Metadata}); err != nil {
 		return nil, err
 	}
 	if methods.Valid {
@@ -200,4 +200,20 @@ func (r sessions) AddMethod(ctx context.Context, tid, id string, method store.Au
 		_, err = tx.exec(ctx, `UPDATE sessions SET auth_methods=? WHERE tenant_id=? AND id=?`, enc, tid, id)
 		return err
 	})
+}
+
+func (r sessions) UpdateMetadata(ctx context.Context, tid, id string, md map[string]string) (*store.LoginSession, error) {
+	var session *store.LoginSession
+	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		res, err := tx.exec(ctx, "UPDATE sessions SET metadata=? WHERE tenant_id=? AND id=?", jsonColumn{&md}, tid, id)
+		if err != nil {
+			return err
+		}
+		if err = expectRow(res); err != nil {
+			return err
+		}
+		session, err = (sessions{tx}).Get(ctx, tid, id)
+		return err
+	})
+	return session, err
 }

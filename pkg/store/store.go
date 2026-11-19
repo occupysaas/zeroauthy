@@ -412,16 +412,17 @@ var ErrWebAuthnUnavailable = store.ErrWebAuthnUnavailable
 var ErrConnectionKeysUnavailable = store.ErrConnectionKeysUnavailable
 
 type (
-	DPoP               = store.DPoP
-	TokenQuotas        = store.TokenQuotas
-	TokenQuota         = store.TokenQuota
-	DefaultTokenQuota  = store.DefaultTokenQuota
-	QuotaSubject       = store.QuotaSubject
-	QuotaState         = store.QuotaState
-	QuotaBucket        = store.QuotaBucket
-	MRRTPolicy         = store.MRRTPolicy
-	ProofOfPossession  = store.ProofOfPossession
-	RefreshTokenDevice = store.RefreshTokenDevice
+	RefreshTokensIISupporter = store.RefreshTokensIISupporter
+	DPoP                     = store.DPoP
+	TokenQuotas              = store.TokenQuotas
+	TokenQuota               = store.TokenQuota
+	DefaultTokenQuota        = store.DefaultTokenQuota
+	QuotaSubject             = store.QuotaSubject
+	QuotaState               = store.QuotaState
+	QuotaBucket              = store.QuotaBucket
+	MRRTPolicy               = store.MRRTPolicy
+	ProofOfPossession        = store.ProofOfPossession
+	RefreshTokenDevice       = store.RefreshTokenDevice
 )
 
 var ErrRefreshTokensIIUnavailable = store.ErrRefreshTokensIIUnavailable

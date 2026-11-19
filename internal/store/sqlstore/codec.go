@@ -2,6 +2,7 @@ package sqlstore
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"reflect"
 	"time"
@@ -71,4 +72,20 @@ func fromJSON(s string, v any) error {
 		return nil
 	}
 	return json.Unmarshal([]byte(s), v)
+}
+
+// jsonColumn reads and writes nullable JSON settings. Passing the field's
+// address preserves the distinction between a missing and an empty object.
+type jsonColumn struct{ field any }
+
+func (j jsonColumn) Scan(src any) error {
+	var raw sql.NullString
+	if err := raw.Scan(src); err != nil {
+		return err
+	}
+	return fromJSON(raw.String, j.field)
+}
+
+func (j jsonColumn) Value() (driver.Value, error) {
+	return toJSON(j.field)
 }

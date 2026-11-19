@@ -363,7 +363,7 @@ func (r organizationsII) PutClientGrant(ctx context.Context, tid, org, grant str
 		if g.SubjectType != store.SubjectTypeClient {
 			return store.ErrInvalid
 		}
-		return (organizations{t.s}).insertIgnore(ctx, `organization_client_grants (tenant_id,organization_id,grant_id) VALUES (?,?,?)`, tid, org, grant)
+		return t.s.insertIgnore(ctx, `organization_client_grants (tenant_id,organization_id,grant_id) VALUES (?,?,?)`, tid, org, grant)
 	})
 }
 func (r organizationsII) DeleteClientGrant(ctx context.Context, tid, org, grant string) error {

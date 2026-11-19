@@ -17,8 +17,8 @@ func TestNativeSocialMigrationLeavesClients(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			args = args[:len(args)-1]
-			cols := strings.TrimSuffix(clientCols, ", native_social_login")
+			cols, _, _ := strings.Cut(clientCols, ", native_social_login")
+			args = args[:strings.Count(cols, ",")+1]
 			mustExec(t, s, "INSERT INTO clients ("+cols+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")+")", args...)
 			if err = s.Migrate(ctx); err != nil {
 				t.Fatal(err)

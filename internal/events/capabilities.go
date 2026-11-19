@@ -77,3 +77,7 @@ func (s *capture) MicrosoftFederationSupported(ctx context.Context) error {
 	}
 	return store.ErrFederationUnavailable
 }
+
+func (s *capture) CheckRefreshTokensIISupport(ctx context.Context) error {
+	return store.CheckRefreshTokensIISupport(ctx, s.Store)
+}

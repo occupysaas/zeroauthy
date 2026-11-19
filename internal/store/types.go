@@ -1342,3 +1342,13 @@ func (p ProtectionSettings) Clone() ProtectionSettings {
 	p.CAPTCHA.SimpleCaptcha = CloneSettings(p.CAPTCHA.SimpleCaptcha)
 	return p
 }
+
+// ValidSuccessor binds the stored owner and proof key. Legacy empty origins
+// can acquire their canonical origin after the OAuth handler verifies it.
+func (old *RefreshToken) ValidSuccessor(next *RefreshToken) bool {
+	return next != nil && old.TenantID == next.TenantID && old.ClientID == next.ClientID &&
+		old.UserID == next.UserID && old.Audience == next.Audience && old.SessionID == next.SessionID &&
+		old.OrganizationID == next.OrganizationID && old.OrganizationConnectionID == next.OrganizationConnectionID &&
+		(old.Origin == "" || old.Origin == next.Origin) && old.DPoPJKT == next.DPoPJKT &&
+		(next.Access == old.Access || old.Access == "offline" && next.Access == "")
+}

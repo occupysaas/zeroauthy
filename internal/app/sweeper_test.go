@@ -308,3 +308,19 @@ func TestPurgeAbandonedPending(t *testing.T) {
 		t.Fatalf("%d pending authenticators remain: %v", len(methods), err)
 	}
 }
+
+func TestSweepRefreshII(t *testing.T) {
+	st := memory.New()
+	ctx := context.Background()
+	now := time.Now().UTC()
+	if err := st.DPoP().UseProof(ctx, "t", "origin", "key", "id", now, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.TokenQuotas().Consume(ctx, "t", []store.QuotaSubject{{Kind: "client", ID: "c", Quota: store.TokenQuota{PerHour: 4}}}, now); err != nil {
+		t.Fatal(err)
+	}
+	n, err := sweep(ctx, st, now.Add(2*time.Hour))
+	if n != 2 || err != nil {
+		t.Fatalf("removed %d, error %v", n, err)
+	}
+}

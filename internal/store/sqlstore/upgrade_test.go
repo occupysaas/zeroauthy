@@ -186,7 +186,7 @@ func TestUpgradeFromOldestSchema(t *testing.T) {
 				t.Fatalf("session: %+v %v", ses, err)
 			}
 			rt, err := s.RefreshTokens().GetByTokenHash(ctx, tenantID, "refresh-hash")
-			if err != nil || rt.ID != "rt_1" || rt.FamilyID != "fam_1" || rt.ClientID != "web" || rt.UserID != "auth0|jane" || rt.SessionID != "ses_1" ||
+			if err != nil || rt.Access != "offline" || rt.ParentID != "" || rt.DPoPJKT != "" || rt.Metadata != nil || rt.Device != nil || rt.LastExchangedAt != nil || rt.ID != "rt_1" || rt.FamilyID != "fam_1" || rt.ClientID != "web" || rt.UserID != "auth0|jane" || rt.SessionID != "ses_1" ||
 				!reflect.DeepEqual(rt.Scopes, []string{"openid", "offline_access", "read:items"}) || rt.Audience != "https://api.acme.test" ||
 				!rt.Rotating || rt.ExpiresAt.UnixMicro() != far || rt.IdleExpiresAt.UnixMicro() != far-2 ||
 				rt.RotatedAt == nil || rt.RotatedAt.UnixMicro() != later || rt.RevokedAt != nil || rt.Origin != "" || rt.OrganizationID != "" {

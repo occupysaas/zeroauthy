@@ -386,6 +386,22 @@ const (
 	StoreService_DeviceCodesDecide_FullMethodName                       = "/zeroauthy.store.v1.StoreService/DeviceCodesDecide"
 	StoreService_DeviceCodesPoll_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DeviceCodesPoll"
 	StoreService_DeviceCodesDeleteExpired_FullMethodName                = "/zeroauthy.store.v1.StoreService/DeviceCodesDeleteExpired"
+	StoreService_RefreshTokensIICapabilities_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensIICapabilities"
+	StoreService_RefreshTokensIIWrite_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RefreshTokensIIWrite"
+	StoreService_RefreshTokensIIRotate_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensIIRotate"
+	StoreService_RefreshTokensConvertNonRotating_FullMethodName         = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertNonRotating"
+	StoreService_RefreshTokensConvertRotating_FullMethodName            = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertRotating"
+	StoreService_RefreshTokensRevokeByUserClient_FullMethodName         = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUserClient"
+	StoreService_RefreshTokensRevokeBySession_FullMethodName            = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeBySession"
+	StoreService_RefreshTokensListByUserPage_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensListByUserPage"
+	StoreService_RefreshTokensUpdateMetadata_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensUpdateMetadata"
+	StoreService_SessionsUpdateMetadata_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SessionsUpdateMetadata"
+	StoreService_RefreshTokensRecordExchange_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensRecordExchange"
+	StoreService_DPoPUseProof_FullMethodName                            = "/zeroauthy.store.v1.StoreService/DPoPUseProof"
+	StoreService_DPoPPurgeBefore_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DPoPPurgeBefore"
+	StoreService_TokenQuotasPurgeBefore_FullMethodName                  = "/zeroauthy.store.v1.StoreService/TokenQuotasPurgeBefore"
+	StoreService_TokenQuotasConsume_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TokenQuotasConsume"
+	StoreService_TokenQuotasPeek_FullMethodName                         = "/zeroauthy.store.v1.StoreService/TokenQuotasPeek"
 	StoreService_RefreshTokensCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshTokensCreate"
 	StoreService_RefreshTokensGetByTokenHash_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensGetByTokenHash"
 	StoreService_RefreshTokensGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshTokensGet"
@@ -873,6 +889,24 @@ type StoreServiceClient interface {
 	DeviceCodesDecide(ctx context.Context, in *DeviceDecisionRequest, opts ...grpc.CallOption) (*DeviceCodeResult, error)
 	DeviceCodesPoll(ctx context.Context, in *DevicePollRequest, opts ...grpc.CallOption) (*DevicePollResult, error)
 	DeviceCodesDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	// refresh_tokens_ii.v1. Bound records use a versioned write RPC so an older
+	// plugin cannot acknowledge a write while silently dropping proof bindings.
+	RefreshTokensIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	RefreshTokensIIWrite(ctx context.Context, in *RefreshIIWrite, opts ...grpc.CallOption) (*Result, error)
+	RefreshTokensIIRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
+	RefreshTokensConvertNonRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
+	RefreshTokensConvertRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
+	RefreshTokensRevokeByUserClient(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error)
+	RefreshTokensRevokeBySession(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error)
+	RefreshTokensListByUserPage(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*RefreshTokenPage, error)
+	RefreshTokensUpdateMetadata(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*RefreshTokenResult, error)
+	SessionsUpdateMetadata(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*SessionResult, error)
+	RefreshTokensRecordExchange(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*Result, error)
+	DPoPUseProof(ctx context.Context, in *DPoPProofRequest, opts ...grpc.CallOption) (*Result, error)
+	DPoPPurgeBefore(ctx context.Context, in *RefreshIIPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
+	TokenQuotasPurgeBefore(ctx context.Context, in *RefreshIIPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
+	TokenQuotasConsume(ctx context.Context, in *QuotaRequest, opts ...grpc.CallOption) (*QuotaResponse, error)
+	TokenQuotasPeek(ctx context.Context, in *QuotaRequest, opts ...grpc.CallOption) (*QuotaResponse, error)
 	RefreshTokensCreate(ctx context.Context, in *RefreshTokenWrite, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
 	RefreshTokensGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
@@ -4611,6 +4645,166 @@ func (c *storeServiceClient) DeviceCodesDeleteExpired(ctx context.Context, in *D
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshTokensIICapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensIICapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensIIWrite(ctx context.Context, in *RefreshIIWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensIIWrite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensIIRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensIIRotate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensConvertNonRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensConvertNonRotating_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensConvertRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensConvertRotating_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensRevokeByUserClient(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensRevokeByUserClient_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensRevokeBySession(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensRevokeBySession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensListByUserPage(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*RefreshTokenPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenPage)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensListByUserPage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensUpdateMetadata(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*RefreshTokenResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensUpdateMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SessionsUpdateMetadata(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*SessionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionResult)
+	err := c.cc.Invoke(ctx, StoreService_SessionsUpdateMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensRecordExchange(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensRecordExchange_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DPoPUseProof(ctx context.Context, in *DPoPProofRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_DPoPUseProof_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DPoPPurgeBefore(ctx context.Context, in *RefreshIIPurgeRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_DPoPPurgeBefore_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TokenQuotasPurgeBefore(ctx context.Context, in *RefreshIIPurgeRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_TokenQuotasPurgeBefore_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TokenQuotasConsume(ctx context.Context, in *QuotaRequest, opts ...grpc.CallOption) (*QuotaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QuotaResponse)
+	err := c.cc.Invoke(ctx, StoreService_TokenQuotasConsume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TokenQuotasPeek(ctx context.Context, in *QuotaRequest, opts ...grpc.CallOption) (*QuotaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QuotaResponse)
+	err := c.cc.Invoke(ctx, StoreService_TokenQuotasPeek_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensCreate(ctx context.Context, in *RefreshTokenWrite, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -5438,6 +5632,24 @@ type StoreServiceServer interface {
 	DeviceCodesDecide(context.Context, *DeviceDecisionRequest) (*DeviceCodeResult, error)
 	DeviceCodesPoll(context.Context, *DevicePollRequest) (*DevicePollResult, error)
 	DeviceCodesDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	// refresh_tokens_ii.v1. Bound records use a versioned write RPC so an older
+	// plugin cannot acknowledge a write while silently dropping proof bindings.
+	RefreshTokensIICapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	RefreshTokensIIWrite(context.Context, *RefreshIIWrite) (*Result, error)
+	RefreshTokensIIRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error)
+	RefreshTokensConvertNonRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error)
+	RefreshTokensConvertRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error)
+	RefreshTokensRevokeByUserClient(context.Context, *RefreshIIRequest) (*CountResult, error)
+	RefreshTokensRevokeBySession(context.Context, *RefreshIIRequest) (*CountResult, error)
+	RefreshTokensListByUserPage(context.Context, *RefreshIIRequest) (*RefreshTokenPage, error)
+	RefreshTokensUpdateMetadata(context.Context, *RefreshIIRequest) (*RefreshTokenResult, error)
+	SessionsUpdateMetadata(context.Context, *RefreshIIRequest) (*SessionResult, error)
+	RefreshTokensRecordExchange(context.Context, *RefreshIIRequest) (*Result, error)
+	DPoPUseProof(context.Context, *DPoPProofRequest) (*Result, error)
+	DPoPPurgeBefore(context.Context, *RefreshIIPurgeRequest) (*CountResult, error)
+	TokenQuotasPurgeBefore(context.Context, *RefreshIIPurgeRequest) (*CountResult, error)
+	TokenQuotasConsume(context.Context, *QuotaRequest) (*QuotaResponse, error)
+	TokenQuotasPeek(context.Context, *QuotaRequest) (*QuotaResponse, error)
 	RefreshTokensCreate(context.Context, *RefreshTokenWrite) (*Result, error)
 	RefreshTokensGetByTokenHash(context.Context, *ScopedKey) (*RefreshTokenResult, error)
 	RefreshTokensGet(context.Context, *ScopedKey) (*RefreshTokenResult, error)
@@ -6594,6 +6806,54 @@ func (UnimplementedStoreServiceServer) DeviceCodesPoll(context.Context, *DeviceP
 }
 func (UnimplementedStoreServiceServer) DeviceCodesDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeviceCodesDeleteExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensIICapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensIICapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensIIWrite(context.Context, *RefreshIIWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensIIWrite not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensIIRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensIIRotate not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensConvertNonRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensConvertNonRotating not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensConvertRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensConvertRotating not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensRevokeByUserClient(context.Context, *RefreshIIRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRevokeByUserClient not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensRevokeBySession(context.Context, *RefreshIIRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRevokeBySession not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensListByUserPage(context.Context, *RefreshIIRequest) (*RefreshTokenPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensListByUserPage not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensUpdateMetadata(context.Context, *RefreshIIRequest) (*RefreshTokenResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensUpdateMetadata not implemented")
+}
+func (UnimplementedStoreServiceServer) SessionsUpdateMetadata(context.Context, *RefreshIIRequest) (*SessionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SessionsUpdateMetadata not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensRecordExchange(context.Context, *RefreshIIRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRecordExchange not implemented")
+}
+func (UnimplementedStoreServiceServer) DPoPUseProof(context.Context, *DPoPProofRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method DPoPUseProof not implemented")
+}
+func (UnimplementedStoreServiceServer) DPoPPurgeBefore(context.Context, *RefreshIIPurgeRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DPoPPurgeBefore not implemented")
+}
+func (UnimplementedStoreServiceServer) TokenQuotasPurgeBefore(context.Context, *RefreshIIPurgeRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TokenQuotasPurgeBefore not implemented")
+}
+func (UnimplementedStoreServiceServer) TokenQuotasConsume(context.Context, *QuotaRequest) (*QuotaResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TokenQuotasConsume not implemented")
+}
+func (UnimplementedStoreServiceServer) TokenQuotasPeek(context.Context, *QuotaRequest) (*QuotaResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TokenQuotasPeek not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshTokensCreate(context.Context, *RefreshTokenWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensCreate not implemented")
@@ -13315,6 +13575,294 @@ func _StoreService_DeviceCodesDeleteExpired_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshTokensIICapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensIICapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensIICapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensIICapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensIIWrite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensIIWrite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensIIWrite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensIIWrite(ctx, req.(*RefreshIIWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensIIRotate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshTokensRotateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensIIRotate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensIIRotate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensIIRotate(ctx, req.(*RefreshTokensRotateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensConvertNonRotating_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshTokensRotateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensConvertNonRotating(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensConvertNonRotating_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensConvertNonRotating(ctx, req.(*RefreshTokensRotateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensConvertRotating_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshTokensRotateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensConvertRotating(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensConvertRotating_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensConvertRotating(ctx, req.(*RefreshTokensRotateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensRevokeByUserClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensRevokeByUserClient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensRevokeByUserClient_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensRevokeByUserClient(ctx, req.(*RefreshIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensRevokeBySession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensRevokeBySession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensRevokeBySession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensRevokeBySession(ctx, req.(*RefreshIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensListByUserPage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensListByUserPage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensListByUserPage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensListByUserPage(ctx, req.(*RefreshIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensUpdateMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensUpdateMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensUpdateMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensUpdateMetadata(ctx, req.(*RefreshIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SessionsUpdateMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SessionsUpdateMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SessionsUpdateMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SessionsUpdateMetadata(ctx, req.(*RefreshIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensRecordExchange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensRecordExchange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensRecordExchange_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensRecordExchange(ctx, req.(*RefreshIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DPoPUseProof_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DPoPProofRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DPoPUseProof(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DPoPUseProof_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DPoPUseProof(ctx, req.(*DPoPProofRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DPoPPurgeBefore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIPurgeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DPoPPurgeBefore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DPoPPurgeBefore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DPoPPurgeBefore(ctx, req.(*RefreshIIPurgeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TokenQuotasPurgeBefore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIPurgeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TokenQuotasPurgeBefore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TokenQuotasPurgeBefore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TokenQuotasPurgeBefore(ctx, req.(*RefreshIIPurgeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TokenQuotasConsume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QuotaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TokenQuotasConsume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TokenQuotasConsume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TokenQuotasConsume(ctx, req.(*QuotaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TokenQuotasPeek_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QuotaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TokenQuotasPeek(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TokenQuotasPeek_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TokenQuotasPeek(ctx, req.(*QuotaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshTokenWrite)
 	if err := dec(in); err != nil {
@@ -15440,6 +15988,70 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeviceCodesDeleteExpired",
 			Handler:    _StoreService_DeviceCodesDeleteExpired_Handler,
+		},
+		{
+			MethodName: "RefreshTokensIICapabilities",
+			Handler:    _StoreService_RefreshTokensIICapabilities_Handler,
+		},
+		{
+			MethodName: "RefreshTokensIIWrite",
+			Handler:    _StoreService_RefreshTokensIIWrite_Handler,
+		},
+		{
+			MethodName: "RefreshTokensIIRotate",
+			Handler:    _StoreService_RefreshTokensIIRotate_Handler,
+		},
+		{
+			MethodName: "RefreshTokensConvertNonRotating",
+			Handler:    _StoreService_RefreshTokensConvertNonRotating_Handler,
+		},
+		{
+			MethodName: "RefreshTokensConvertRotating",
+			Handler:    _StoreService_RefreshTokensConvertRotating_Handler,
+		},
+		{
+			MethodName: "RefreshTokensRevokeByUserClient",
+			Handler:    _StoreService_RefreshTokensRevokeByUserClient_Handler,
+		},
+		{
+			MethodName: "RefreshTokensRevokeBySession",
+			Handler:    _StoreService_RefreshTokensRevokeBySession_Handler,
+		},
+		{
+			MethodName: "RefreshTokensListByUserPage",
+			Handler:    _StoreService_RefreshTokensListByUserPage_Handler,
+		},
+		{
+			MethodName: "RefreshTokensUpdateMetadata",
+			Handler:    _StoreService_RefreshTokensUpdateMetadata_Handler,
+		},
+		{
+			MethodName: "SessionsUpdateMetadata",
+			Handler:    _StoreService_SessionsUpdateMetadata_Handler,
+		},
+		{
+			MethodName: "RefreshTokensRecordExchange",
+			Handler:    _StoreService_RefreshTokensRecordExchange_Handler,
+		},
+		{
+			MethodName: "DPoPUseProof",
+			Handler:    _StoreService_DPoPUseProof_Handler,
+		},
+		{
+			MethodName: "DPoPPurgeBefore",
+			Handler:    _StoreService_DPoPPurgeBefore_Handler,
+		},
+		{
+			MethodName: "TokenQuotasPurgeBefore",
+			Handler:    _StoreService_TokenQuotasPurgeBefore_Handler,
+		},
+		{
+			MethodName: "TokenQuotasConsume",
+			Handler:    _StoreService_TokenQuotasConsume_Handler,
+		},
+		{
+			MethodName: "TokenQuotasPeek",
+			Handler:    _StoreService_TokenQuotasPeek_Handler,
 		},
 		{
 			MethodName: "RefreshTokensCreate",

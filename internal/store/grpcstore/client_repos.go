@@ -160,6 +160,10 @@ func (a clientTenants) Create(ctx context.Context, t *store.Tenant) error {
 	}
 	t = a.c.webauthnTenant(t)
 	return put("TenantsCreate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
+		if pb != nil && pb.DefaultTokenQuota != nil {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Tenant{Tenant: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.TenantsCreate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -195,6 +199,10 @@ func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
 	}
 	t = a.c.webauthnTenant(t)
 	return put("TenantsUpdate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
+		if pb != nil && pb.DefaultTokenQuota != nil {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Tenant{Tenant: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.TenantsUpdate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -217,6 +225,10 @@ type clientClients struct{ c *Client }
 func (a clientClients) Create(ctx context.Context, v *store.Client) error {
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsCreate", v, clientToPB, func(pb *storev1.Client) (result, error) {
+		if pb != nil && (pb.RequireProofOfPossession || pb.TokenQuota != nil || pb.GetRefreshToken().GetPolicies() != nil) {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Client{Client: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.ClientsCreate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -229,6 +241,10 @@ func (a clientClients) Get(ctx context.Context, tenantID, clientID string) (*sto
 func (a clientClients) Update(ctx context.Context, v *store.Client) error {
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsUpdate", v, clientToPB, func(pb *storev1.Client) (result, error) {
+		if pb != nil && (pb.RequireProofOfPossession || pb.TokenQuota != nil || pb.GetRefreshToken().GetPolicies() != nil) {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Client{Client: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.ClientsUpdate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -305,6 +321,10 @@ func (a clientResourceServers) Create(ctx context.Context, v *store.ResourceServ
 	}
 	v = a.c.clientCredentialsResourceServer(v)
 	return put("ResourceServersCreate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
+		if pb != nil && (pb.AllowOnlineAccess || pb.AllowOnlineAccessWithEphemeralSessions || pb.ProofOfPossession != nil) {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Api{Api: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.ResourceServersCreate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -327,6 +347,10 @@ func (a clientResourceServers) Update(ctx context.Context, v *store.ResourceServ
 	}
 	v = a.c.clientCredentialsResourceServer(v)
 	return put("ResourceServersUpdate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
+		if pb != nil && (pb.AllowOnlineAccess || pb.AllowOnlineAccessWithEphemeralSessions || pb.ProofOfPossession != nil) {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Api{Api: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.ResourceServersUpdate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -703,6 +727,10 @@ func (a clientSessions) Create(ctx context.Context, v *store.LoginSession) error
 	}
 	v = a.c.webauthnSession(v)
 	return put("SessionsCreate", v, sessionToPB, func(pb *storev1.LoginSession) (result, error) {
+		if pb != nil && pb.Metadata != nil {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Session{Session: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.SessionsCreate(ctx, &storev1.SessionWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -761,6 +789,10 @@ func (a clientAuthTransactions) Create(ctx context.Context, v *store.AuthTransac
 		}
 	}
 	return put("AuthTransactionsCreate", v, authTransactionToPB, func(pb *storev1.AuthTransaction) (result, error) {
+		if pb != nil && pb.DpopJkt != "" {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Transaction{Transaction: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.AuthTransactionsCreate(ctx, &storev1.AuthTransactionWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -791,6 +823,10 @@ func (a clientAuthCodes) Create(ctx context.Context, v *store.AuthCode) error {
 		}
 	}
 	return put("AuthCodesCreate", v, authCodeToPB, func(pb *storev1.AuthCode) (result, error) {
+		if pb != nil && pb.DpopJkt != "" {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Code{Code: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.AuthCodesCreate(ctx, &storev1.AuthCodeWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -924,6 +960,10 @@ func (a clientRefreshTokens) Create(ctx context.Context, v *store.RefreshToken) 
 		}
 	}
 	return put("RefreshTokensCreate", v, refreshTokenToPB, func(pb *storev1.RefreshToken) (result, error) {
+		if pb != nil && needsRefreshII(v) {
+			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Token{Token: pb}})
+			return &storev1.Result{}, err
+		}
 		return a.c.rpc.RefreshTokensCreate(ctx, &storev1.RefreshTokenWrite{TxId: a.c.txID, Value: pb})
 	})
 }
@@ -954,10 +994,20 @@ func (a clientRefreshTokens) Rotate(ctx context.Context, tenantID, oldID string,
 			return err
 		}
 	}
-	return put("RefreshTokensRotate", next, refreshTokenToPB, func(pb *storev1.RefreshToken) (result, error) {
-		return a.c.rpc.RefreshTokensRotate(ctx, &storev1.RefreshTokensRotateRequest{
-			TxId: a.c.txID, TenantId: tenantID, OldId: oldID, Next: pb, At: tsToPB(at), Leeway: durationpb.New(leeway)})
-	})
+	v, err := refreshTokenToPB(next)
+	if err != nil {
+		return err
+	}
+	q := &storev1.RefreshTokensRotateRequest{TxId: a.c.txID, TenantId: tenantID, OldId: oldID, Next: v, At: tsToPB(at), Leeway: durationpb.New(leeway)}
+	if err := a.c.CheckRefreshTokensIISupport(ctx); err != nil {
+		if !errors.Is(err, store.ErrRefreshTokensIIUnavailable) || needsRefreshII(next) {
+			return err
+		}
+		r, err := a.c.rpc.RefreshTokensRotate(ctx, q)
+		return do("RefreshTokensRotate", r, err)
+	}
+	r, err := a.c.rpc.RefreshTokensIIRotate(ctx, q)
+	return a.c.refreshResult("RefreshTokensIIRotate", r, err)
 }
 
 func (a clientRefreshTokens) Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error {

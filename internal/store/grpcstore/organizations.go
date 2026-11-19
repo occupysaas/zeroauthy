@@ -74,7 +74,7 @@ func orgToPB(o *store.Organization) *storev1.OrganizationMsg {
 	if o == nil {
 		return nil
 	}
-	pb := &storev1.OrganizationMsg{TenantId: o.TenantID, Id: o.ID, Name: o.Name, DisplayName: o.DisplayName,
+	pb := &storev1.OrganizationMsg{TokenQuota: quotaToPB(o.TokenQuota), TenantId: o.TenantID, Id: o.ID, Name: o.Name, DisplayName: o.DisplayName,
 		ClientAssociationLoaded: o.ClientAssociationLoaded, IsAppEntitlementActive: o.IsAppEntitlementActive, Metadata: stringMapToPB(o.Metadata), ThirdPartyClientAccess: o.ThirdPartyClientAccess,
 		CreatedAt: tsToPB(o.CreatedAt), UpdatedAt: tsToPB(o.UpdatedAt)}
 	if o.ClientAssociation != nil {
@@ -93,7 +93,7 @@ func orgFromPB(pb *storev1.OrganizationMsg) *store.Organization {
 	if pb == nil {
 		return nil
 	}
-	o := &store.Organization{TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, DisplayName: pb.DisplayName,
+	o := &store.Organization{TokenQuota: quotaFromPB(pb.TokenQuota), TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, DisplayName: pb.DisplayName,
 		ClientAssociationLoaded: pb.ClientAssociationLoaded, IsAppEntitlementActive: pb.IsAppEntitlementActive, Metadata: stringMapFromPB(pb.Metadata), ThirdPartyClientAccess: pb.ThirdPartyClientAccess,
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt)}
 	if pb.ClientAssociation != nil {
@@ -220,6 +220,9 @@ func (o clientOrganizations) Create(ctx context.Context, org *store.Organization
 			return err
 		}
 	}
+	if org != nil && org.TokenQuota != nil {
+		return o.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Record: &storev1.RefreshIIWrite_Organization{Organization: &storev1.OrganizationsRequest{Organization: orgToPB(org), Connections: orgConnsToPB(conns)}}})
+	}
 	_, err := orgCall(o.c, "Create", &storev1.OrganizationsRequest{Organization: orgToPB(org), Connections: orgConnsToPB(conns)}, o.c.rpc.OrganizationsCreate, ctx)
 	return err
 }
@@ -298,6 +301,9 @@ func (o clientOrganizations) Update(ctx context.Context, org *store.Organization
 		if err := o.c.requireOrganizationsII(ctx); err != nil {
 			return err
 		}
+	}
+	if org != nil && org.TokenQuota != nil {
+		return o.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Organization{Organization: &storev1.OrganizationsRequest{Organization: orgToPB(org)}}})
 	}
 	_, err := orgCall(o.c, "Update", &storev1.OrganizationsRequest{Organization: orgToPB(org)}, o.c.rpc.OrganizationsUpdate, ctx)
 	return err
