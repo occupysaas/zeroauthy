@@ -268,7 +268,7 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 
 **Files:**
 - Create: `internal/dpop/proof.go`, `nonce.go`, `context.go`, and focused tests.
-- Modify: `internal/oauth/token.go`, `minter.go`, `grant_authorization_code.go`, `grant_refresh_token.go`, `refresh.go`, all shared refresh issuance helpers, `internal/authz` authorize/PAR/JAR parsing and transaction/code creation, `internal/oidc/handlers.go`, `userinfo.go`, `internal/httpx` CORS, `internal/logscrub`.
+- Modify: `internal/server/server.go` (one shared DPoP service injected into OAuth and OIDC handlers), `internal/oauth/handlers.go`, `internal/oidc/handlers.go`, `internal/oauth/token.go`, `minter.go`, `grant_authorization_code.go`, `grant_refresh_token.go`, `refresh.go`, all shared refresh issuance helpers, `internal/authz` authorize/PAR/JAR parsing and transaction/code creation, `internal/oidc/handlers.go`, `userinfo.go`, `internal/httpx` CORS, `internal/logscrub`.
 - Modify: `internal/clientrules`, `internal/apirules`, `internal/mgmt` client/API codecs, seed rules, `internal/tenantrules` strict binding default, `api/*.yaml`, generated code via `make generate`.
 
 **Interfaces:** Consume Task 2/3 `Store.DPoP` and DPoPJKT fields. Produce
@@ -276,7 +276,8 @@ func quotaHeader(states []store.QuotaState, kind string) string // "b=per_hour;q
 with `Verify(ctx context.Context, r *http.Request, res tenant.Resolved,
 requireNonce bool, accessToken, expectedJKT string) (*dpop.Proof, *dpop.Error)`;
 `Proof{JKT string}`; `Error{Code string, Nonce string, Internal bool}`.
-Shared context helpers carry authenticated proof to minter and issuance;
+OAuth and OIDC handlers gain `DPoP *dpop.Service`; server wiring supplies the
+same store/wrapper/clock configuration. Shared context helpers carry authenticated proof to minter and issuance;
 no raw proof enters request-info/Action/log context. Bind access claims via
 an explicit `AccessTokenParams.DPoPJKT`; setting token_type follows actual
 access-token binding, independently of refresh binding.
