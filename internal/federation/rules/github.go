@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -38,6 +39,21 @@ var GitHubScopeFlags = []struct{ Option, Scope string }{
 
 // githubRejected are options GitHub connections never accept.
 var githubRejected = []string{"authorizationURL", "tokenURL", "api_host", "github_enterprise_url", "device_flow"}
+
+// ValidGitHubSubject reports whether s is a canonical GitHub user ID: a
+// positive base-10 int64 with no sign, leading zero, exponent or fraction.
+func ValidGitHubSubject(s string) bool {
+	if s == "" || s[0] < '1' || s[0] > '9' {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	return err == nil && n > 0
+}
 
 // GitHubEmailEnabled reports the email flag; it defaults to true.
 func GitHubEmailEnabled(o map[string]any) bool {

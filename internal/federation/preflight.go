@@ -19,6 +19,17 @@ func RequireMicrosoftFederation(ctx context.Context, st store.Store) error {
 	return supporter.MicrosoftFederationSupported(ctx)
 }
 
+// RequireGitHubFederation probes the actual backing store on every call. A
+// store without the capability (a plugin built before GitHub support) fails
+// closed, so GitHub identities are never stored unindexed.
+func RequireGitHubFederation(ctx context.Context, st store.Store) error {
+	supporter, ok := st.(store.GitHubFederationSupporter)
+	if !ok {
+		return store.ErrFederationUnavailable
+	}
+	return supporter.GitHubFederationSupported(ctx)
+}
+
 // PreflightMicrosoftIdentities checks every configured Microsoft connection and
 // identity without repairing or converting legacy ownership. Run before serving
 // traffic, with old writers drained for the rollout.

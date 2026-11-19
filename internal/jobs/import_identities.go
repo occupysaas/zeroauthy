@@ -46,6 +46,14 @@ func resolveImportIdentities(ctx context.Context, tx store.Store, tenant string,
 			break
 		}
 	}
+	for _, id := range ids {
+		if id.Provider == "github" {
+			if err := federation.RequireGitHubFederation(ctx, tx); err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
 	return store.ResolveFederatedKeys(&store.User{TenantID: tenant, Identities: ids}, func(name string) (*store.Connection, error) { return tx.Connections().GetByName(ctx, tenant, name) })
 }
 

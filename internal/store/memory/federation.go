@@ -277,3 +277,6 @@ func (s *Store) dropTenantFederation(tenantID string) {
 
 // MicrosoftFederationSupported reports support for canonical Microsoft identities.
 func (s *Store) MicrosoftFederationSupported(context.Context) error { return nil }
+
+// GitHubFederationSupported reports support for canonical GitHub identities.
+func (s *Store) GitHubFederationSupported(context.Context) error { return nil }
