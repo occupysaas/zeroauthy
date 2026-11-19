@@ -178,7 +178,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	if ut.organization != nil {
 		orgID = ut.organization.ID
 	}
-	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, orgID, ut.rs, ut.scopes, frozen)
+	auth, authErr := h.authorizeUserToken(ctx, tenantID, orgID, ut, frozen)
 	if authErr != nil {
 		return nil, false, authErr
 	}

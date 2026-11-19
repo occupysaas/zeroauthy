@@ -1,6 +1,9 @@
 package oauth
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"slices"
 	"testing"
 
@@ -303,6 +306,95 @@ func TestMRRTAuthorizationAtMint(t *testing.T) {
 			code, body := f.refresh(t, refreshForm(c.ClientID, raw, "audience", target))
 			if code != 400 || body["error"] != "invalid_request" || f.storedRT(t, raw).RotatedAt != nil {
 				t.Fatalf("status=%d error=%v", code, body["error"])
+			}
+		})
+	}
+}
+
+func TestMRRTFirstPolicyAtMint(t *testing.T) {
+	f := newActionsFixture(t)
+	f.actions.PostLogin(t, f.tid, "add permission", `exports.onExecutePostLogin = async (_, api) => api.accessToken.addScope("write:things");`)
+	raw, _ := f.issueRefresh(t, "rt-spa", []string{"offline_access", "read:things"}, acmeAPI)
+	f.h.Store = nativeBeforeTxStore{f.st, func() {
+		f.mrrtClient(t, store.MRRTPolicy{Audience: acmeAPI, Scope: []string{"read:things"}})
+	}}
+	status, body := f.refresh(t, refreshForm("rt-spa", raw))
+	if status != 400 || body["error"] != "invalid_request" || body["access_token"] != nil || body["refresh_token"] != nil {
+		t.Fatalf("first policy at mint: status=%d error=%v scope=%v", status, body["error"], body["scope"])
+	}
+	if got := f.storedRT(t, raw); got.RotatedAt != nil || got.RevokedAt != nil {
+		t.Fatal("first policy activation consumed the family")
+	}
+	f.h.Store = f.st
+	status, body = f.refresh(t, refreshForm("rt-spa", raw))
+	if status != 200 || body["scope"] != "offline_access read:things" {
+		t.Fatalf("retry with policy: status=%d scope=%v", status, body["scope"])
+	}
+}
+
+func TestMRRTDeletionBeforeSigning(t *testing.T) {
+	for _, tc := range []struct {
+		name                      string
+		frozen, plain, deleteUser bool
+	}{
+		{name: "target during snapshot"}, {name: "target after Action snapshot", frozen: true},
+		{name: "user during snapshot", deleteUser: true}, {name: "original API in plain refresh", plain: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newActionsFixture(t)
+			target := billingAPI
+			if tc.plain {
+				target = acmeAPI
+			} else {
+				f.mrrtClient(t, store.MRRTPolicy{Audience: target, Scope: []string{"read:invoices"}})
+			}
+			rs, err := f.st.ResourceServers().GetByIdentifier(t.Context(), f.tid, target)
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw, rt := f.issueRefresh(t, "rt-spa", []string{"offline_access", "read:things"}, acmeAPI)
+			if tc.frozen {
+				rs.EnforcePolicies = true
+				if err := f.st.ResourceServers().Update(t.Context(), rs); err != nil {
+					t.Fatal(err)
+				}
+				relay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if err := f.st.ResourceServers().Delete(r.Context(), f.tid, rs.ID); err != nil {
+						http.Error(w, "delete target", 500)
+						return
+					}
+					w.WriteHeader(204)
+				}))
+				defer relay.Close()
+				f.actions.PostLogin(t, f.tid, "remove target", fmt.Sprintf(`exports.onExecutePostLogin = async (event) => {
+					if (event.resource_server.identifier === %q && !(await fetch(%q)).ok) throw Error("delete target");
+				};`, target, relay.URL))
+			} else {
+				f.h.Store = changingRBACStore{f.st, func() {
+					var err error
+					if tc.deleteUser {
+						err = f.st.Users().Delete(t.Context(), f.tid, rt.UserID)
+					} else {
+						err = f.st.ResourceServers().Delete(t.Context(), f.tid, rs.ID)
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+				}}
+			}
+			status, body := f.refresh(t, refreshForm("rt-spa", raw, "audience", target))
+			if tc.plain || tc.deleteUser {
+				if status != 400 || body["error"] != "invalid_grant" {
+					t.Fatalf("status=%d error=%v", status, body["error"])
+				}
+				return
+			}
+			if status != 400 || body["error"] != "invalid_request" || body["error_description"] != disallowedMRRTAudience {
+				t.Fatalf("status=%d error=%v description=%v", status, body["error"], body["error_description"])
+			}
+			f.h.Store = f.st
+			if status, body := f.refresh(t, refreshForm("rt-spa", raw)); status != 200 || body["scope"] != "offline_access read:things" {
+				t.Fatalf("original audience after deletion: status=%d scope=%v", status, body["scope"])
 			}
 		})
 	}

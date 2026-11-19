@@ -19,11 +19,13 @@ type userAuthorization struct {
 // authorizeUserToken uses permissions fixed before a bound Action flow, or a
 // current snapshot when no flow captured them. API definition, application
 // policy and the original consent/refresh ceiling are still checked at mint.
-func (h *Handlers) authorizeUserToken(ctx context.Context, tid, uid, orgID string, rs *store.ResourceServer, scopes []string, frozen *actions.RBACSnapshot) (userAuthorization, *Error) {
+func (h *Handlers) authorizeUserToken(ctx context.Context, tid, orgID string, ut userTokens, frozen *actions.RBACSnapshot) (userAuthorization, *Error) {
+	rs, scopes := ut.rs, ut.scopes
 	out := userAuthorization{API: rs, Scopes: scopes}
 	if rs == nil || rs.IsSystem {
 		return out, nil
 	}
+	crossAudience := ut.mrrt != nil && ut.mrrt.audience != ut.mrrt.family.Audience
 	var snap *store.AuthorizationSnapshot
 	if frozen != nil {
 		if frozen.Audience != rs.Identifier {
@@ -31,6 +33,9 @@ func (h *Handlers) authorizeUserToken(ctx context.Context, tid, uid, orgID strin
 		}
 		current, err := h.Store.ResourceServers().GetByIdentifier(ctx, tid, rs.Identifier)
 		if errors.Is(err, store.ErrNotFound) {
+			if crossAudience {
+				return out, invalidRequest(disallowedMRRTAudience)
+			}
 			return out, invalidGrant("the requested user or audience no longer exists")
 		}
 		if err != nil {
@@ -54,12 +59,23 @@ func (h *Handlers) authorizeUserToken(ctx context.Context, tid, uid, orgID strin
 	}
 	var err error
 	if snap == nil {
-		snap, err = store.OrganizationAuthorizationSnapshot(ctx, h.Store, tid, uid, orgID, rs.Identifier)
+		snap, err = store.OrganizationAuthorizationSnapshot(ctx, h.Store, tid, ut.user.UserID, orgID, rs.Identifier)
 	}
 	if snap != nil && snap.API != nil && snap.API.Identifier != rs.Identifier {
 		return out, serverError()
 	}
 	if errors.Is(err, store.ErrNotFound) {
+		// A snapshot can lose either the subject or the API. Loss of an
+		// additional audience leaves the original family usable.
+		if crossAudience {
+			api, err := h.Store.ResourceServers().GetByIdentifier(ctx, tid, rs.Identifier)
+			if errors.Is(err, store.ErrNotFound) || (err == nil && api.ID != rs.ID) {
+				return out, invalidRequest(disallowedMRRTAudience)
+			}
+			if err != nil {
+				return out, serverError()
+			}
+		}
 		return out, invalidGrant("the requested user or audience no longer exists")
 	}
 	if err != nil || snap == nil || snap.API == nil {

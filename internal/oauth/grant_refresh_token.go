@@ -223,6 +223,11 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		if mrrt != nil {
 			return mrrt.checkMint(ctx, h, tx, currentClient)
 		}
+		if len(currentClient.RefreshToken.Policies) > 0 {
+			// The signed plain-refresh response did not apply the new MRRT
+			// ceiling to Action edits. Leave the presentation live for retry.
+			return invalidRequest("refresh token policies changed during refresh")
+		}
 		return nil
 	}, func(tx store.Store) error {
 		var writeErr error
