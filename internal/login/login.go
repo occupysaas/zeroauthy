@@ -318,6 +318,10 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
 	if errors.Is(err, errNoConnection) {
+		if h.homeRealmAvailable(r, f) {
+			h.renderIdentifier(w, r, http.StatusOK, f, h.stageData(f, f.txn.Params["login_hint"]))
+			return
+		}
 		if buttons := h.socialButtons(r, f); len(buttons) > 0 {
 			h.renderSocialOnly(w, r, http.StatusOK, f, buttons, "")
 			return
@@ -398,7 +402,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	var err error
 	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
-	if err != nil {
+	if err != nil && !(errors.Is(err, errNoConnection) && h.homeRealmAvailable(r, f)) {
 		h.fail(w, r, err, f)
 		return
 	}

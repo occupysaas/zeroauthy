@@ -80,15 +80,15 @@ func TestFederationInventory(t *testing.T) {
 			t.Error("aliases to rejected assurance parameters must also be rejected")
 		}
 	})
-	if len(inv.Strategies) != 4 {
-		t.Fatalf("need exactly four strategies, got %d", len(inv.Strategies))
+	if len(inv.Strategies) != 5 {
+		t.Fatalf("need exactly five strategies, got %d", len(inv.Strategies))
 	}
 	for strategy, want := range map[string]string{
 		"google-oauth2": "google-oauth2|<sub>", "oauth2": "oauth2|<connection-name>|<subject>", "oidc": "oidc|<connection-name>|<sub>",
-		"apple": "apple|<sub>",
+		"apple": "apple|<sub>", "okta": "okta|<connection-name>|<sub>",
 	} {
 		row, ok := inv.Strategies[strategy]
-		if !ok || row.IDFormat != want || row.IsSocial != (strategy != "oidc") {
+		if !ok || row.IDFormat != want || row.IsSocial != (strategy != "oidc" && strategy != "okta") {
 			t.Errorf("strategy %s: missing ID/social decision", strategy)
 		}
 		for field, rule := range row.Options {
@@ -135,8 +135,8 @@ func TestFederationInventory(t *testing.T) {
 		}
 	}
 	oidc := inv.Strategies["oidc"]
-	if oidc.Options["type"].Validation != "back_channel only; front_channel rejected" || string(oidc.Options["type"].Default) != `"back_channel"` {
-		t.Fatal("OIDC must be back-channel-only")
+	if oidc.Options["type"].Validation != "front_channel or back_channel; omitted means front_channel" || string(oidc.Options["type"].Default) != `"front_channel"` {
+		t.Fatal("OIDC channel contract")
 	}
 	if oidc.Options["scopes"].Type != "string" || !strings.Contains(oidc.Options["scopes"].Validation, "openid") {
 		t.Fatal("OIDC scopes wire format/openid requirement")
@@ -208,7 +208,7 @@ func TestFederationInventory(t *testing.T) {
 			t.Errorf("script privilege missing: %s", forbidden)
 		}
 	}
-	for _, option := range []string{"front_channel", "upstream_params", "authParams", "authParamsMap", "customHeaders", "fieldsMap", "freeform_scopes", "domain_restriction", "pkce_disabled", "development_keys", "connected_accounts", "direct_network", "arbitrary_npm", "issuer_metadata", "token_vault"} {
+	for _, option := range []string{"dpop_signing_alg", "upstream_params", "authParams", "authParamsMap", "customHeaders", "fieldsMap", "freeform_scopes", "domain_restriction", "pkce_disabled", "development_keys", "connected_accounts", "direct_network", "arbitrary_npm", "issuer_metadata", "token_vault"} {
 		row, ok := inv.Unsupported[option]
 		if !ok || !slices.Contains([]string{"stored-only", "rejected", "unavailable"}, row.Disposition) || row.Reason == "" || row.Source == "" {
 			t.Errorf("missing unsupported disposition %s", option)

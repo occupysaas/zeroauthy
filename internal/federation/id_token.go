@@ -3,10 +3,14 @@ package federation
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
@@ -17,7 +21,19 @@ func idTokenError(what string) error { return fmt.Errorf("%w: ID token %s", ErrP
 // parseIDToken accepts one RS256 signature, with keys supplied exclusively by
 // the pinned JWKS. Inspect raw headers: JOSE's typed Header hides x5c metadata.
 func parseIDToken(raw string) (*jose.JSONWebSignature, error) {
-	obj, err := jose.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256})
+	return parseIDTokenAlgorithms(raw, []string{"RS256"})
+}
+func parseIDTokenAlgorithms(raw string, allowed []string) (*jose.JSONWebSignature, error) {
+	if len(allowed) == 0 {
+		allowed = []string{"RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512"}
+	}
+	algorithms := []jose.SignatureAlgorithm{}
+	for _, a := range allowed {
+		if slices.Contains(rules.IDTokenAlgorithms, a) {
+			algorithms = append(algorithms, jose.SignatureAlgorithm(a))
+		}
+	}
+	obj, err := jose.ParseSigned(raw, algorithms)
 	if err != nil || len(obj.Signatures) != 1 {
 		return nil, idTokenError("is not a single RS256 JWS")
 	}
@@ -98,7 +114,7 @@ func validateIDTokenClaims(in ExchangeInput, tokens TokenSet, c map[string]any, 
 	if !okExp || !okIat || !now.Before(exp.Add(clockSkew)) || iat.After(now.Add(clockSkew)) {
 		return idTokenError("is expired or not yet valid")
 	}
-	if nonce, _ := c["nonce"].(string); !(in.Config.Strategy == StrategyApple && in.AppleNative) && (in.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonce), []byte(in.Nonce)) != 1) {
+	if nonce, _ := c["nonce"].(string); !(in.Config.Strategy == StrategyApple && in.AppleNative) && !(in.Config.Channel == "back_channel" && !in.Config.SendNonce && (in.Config.Strategy == StrategyOIDC || in.Config.Strategy == StrategyOkta)) && (in.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonce), []byte(in.Nonce)) != 1) {
 		return idTokenError("nonce mismatch")
 	}
 	if sub, _ := c["sub"].(string); ValidateSubject(sub) != nil {
@@ -107,7 +123,16 @@ func validateIDTokenClaims(in ExchangeInput, tokens TokenSet, c map[string]any, 
 	if v, present := c["at_hash"]; present {
 		s, _ := v.(string)
 		sum := sha256.Sum256([]byte(tokens.AccessToken))
-		if s == "" || subtle.ConstantTimeCompare([]byte(s), []byte(base64.RawURLEncoding.EncodeToString(sum[:16]))) != 1 {
+		digest := sum[:]
+		switch {
+		case strings.HasSuffix(in.IDTokenAlg, "384"):
+			v := sha512.Sum384([]byte(tokens.AccessToken))
+			digest = v[:]
+		case strings.HasSuffix(in.IDTokenAlg, "512"):
+			v := sha512.Sum512([]byte(tokens.AccessToken))
+			digest = v[:]
+		}
+		if s == "" || subtle.ConstantTimeCompare([]byte(s), []byte(base64.RawURLEncoding.EncodeToString(digest[:len(digest)/2]))) != 1 {
 			return idTokenError("at_hash mismatch")
 		}
 	}

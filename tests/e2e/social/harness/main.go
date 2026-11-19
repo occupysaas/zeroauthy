@@ -269,6 +269,20 @@ location.replace('https://sdk.e2e.test/authorize?'+p);
 		}()
 	}
 	control := http.NewServeMux()
+	if os.Getenv("E2E_M36") == "1" {
+		control.HandleFunc("POST /enterprise/register", func(w http.ResponseWriter, r *http.Request) {
+			var registration provider.EnterpriseRegistration
+			if json.NewDecoder(http.MaxBytesReader(w, r.Body, 32768)).Decode(&registration) != nil || idp.RegisterEnterprise(registration) != nil {
+				http.Error(w, "invalid registration", 400)
+				return
+			}
+			w.WriteHeader(204)
+		})
+		control.HandleFunc("GET /enterprise/audit", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			_ = json.NewEncoder(w).Encode(idp.EnterpriseAudit())
+		})
+	}
 	if apple != nil {
 		control.HandleFunc("POST /apple/code", func(w http.ResponseWriter, r *http.Request) {
 			var v struct{ Client, Subject string }

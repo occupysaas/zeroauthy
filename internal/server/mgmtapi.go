@@ -1072,3 +1072,19 @@ func (a mgmtAPI) RenameTenantConsoleAuthenticationMethod(w http.ResponseWriter, 
 		a.h.ConsoleAuthenticationMethods(w, r, tenant, id, method)
 	}, "update:authentication_methods")
 }
+
+func (a mgmtAPI) GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetConnectionKeys(w, r, id) }, "read:connections_keys")
+}
+func (a mgmtAPI) PostConnectionKeys(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostConnectionKeys(w, r, id) }, "create:connections_keys")
+}
+func (a mgmtAPI) PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostConnectionKeysRotate(w, r, id) }, "create:connections_keys", "update:connections_keys")
+}
+func (a mgmtAPI) GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetConnectionStatus(w, r, id) }, "read:connections")
+}
+func (a mgmtAPI) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.DeleteConnectionUsersByEmailParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteConnectionUsersByEmail(w, r, id, p) }, "delete:users")
+}

@@ -1398,6 +1398,98 @@ export interface paths {
         patch: operations["updateConnection"];
         trace?: never;
     };
+    "/api/v2/connections/{id}/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * getConnectionKeys
+         * @description List public signing and encryption certificates. Requires read:connections_keys.
+         */
+        get: operations["getConnectionKeys"];
+        put?: never;
+        /**
+         * postConnectionKeys
+         * @description Create current and next keys. Requires create:connections_keys. Existing keys of the same use return 409.
+         */
+        post: operations["postConnectionKeys"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/keys/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * postConnectionKeysRotate
+         * @description Promote the next key and retain the previous key. Requires create:connections_keys and update:connections_keys.
+         */
+        post: operations["postConnectionKeysRotate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * getConnectionStatus
+         * @description Check AD connector availability. Other strategies return 404. Requires read:connections.
+         */
+        get: operations["getConnectionStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * deleteConnectionUsersByEmail
+         * @description Delete database users of this connection with the specified email, including their sessions and grants. Requires delete:users. An unknown email returns 204.
+         */
+        delete: operations["deleteConnectionUsersByEmail"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/connections/{id}/clients": {
         parameters: {
             query?: never;
@@ -4484,6 +4576,147 @@ export interface components {
              * @default 180
              */
             time_step?: number;
+        };
+        ConnectionKey: {
+            kid: string;
+            cert: string;
+            pkcs?: string;
+            fingerprint: string;
+            thumbprint: string;
+            algorithm?: string;
+            subject_dn?: string;
+            /** @enum {string} */
+            key_use?: "signing" | "encryption";
+            current?: boolean;
+            next?: boolean;
+            previous?: boolean;
+            /** Format: date-time */
+            current_since?: string;
+        };
+        PostConnectionKeysRequestContent: {
+            /**
+             * @default signing
+             * @enum {string}
+             */
+            key_use?: "signing" | "encryption";
+            /**
+             * @default RS256
+             * @enum {string}
+             */
+            signing_alg?: "RS256" | "RS384" | "RS512" | "PS256" | "PS384" | "ES256" | "ES384";
+            /** @enum {string} */
+            encryption_alg?: "RSA-OAEP-256" | "RSA-OAEP-384" | "RSA-OAEP-512" | "ECDH-ES" | "ECDH-ES+A128KW" | "ECDH-ES+A192KW" | "ECDH-ES+A256KW";
+        };
+        ConnectionOptionsOIDC: {
+            client_id: string;
+            client_secret?: string;
+            discovery_url?: string;
+            issuer?: string;
+            authorization_endpoint?: string;
+            token_endpoint?: string;
+            jwks_uri?: string;
+            userinfo_endpoint?: string;
+            scope?: string;
+            scopes?: string;
+            tenant_domain?: string;
+            icon_url?: string;
+            pushed_authorization_request_endpoint?: string;
+            /**
+             * @default front_channel
+             * @enum {string}
+             */
+            type?: "back_channel" | "front_channel";
+            oidc_metadata?: {
+                [key: string]: unknown;
+            };
+            connection_settings?: {
+                /**
+                 * @default auto
+                 * @enum {string}
+                 */
+                pkce?: "auto" | "S256" | "s256" | "plain" | "disabled";
+            };
+            /** @default true */
+            send_back_channel_nonce?: boolean;
+            /** @enum {string|null} */
+            token_endpoint_auth_method?: "client_secret_post" | "private_key_jwt" | null;
+            /** @enum {string} */
+            token_endpoint_auth_signing_alg?: "RS256" | "RS384" | "RS512" | "PS256" | "PS384" | "ES256" | "ES384";
+            /** @enum {string} */
+            token_endpoint_jwtca_aud_format?: "issuer" | "token_endpoint";
+            id_token_signed_response_algs?: string[];
+            /** @enum {string} */
+            id_token_encrypted_response_alg?: "RSA-OAEP-256" | "RSA-OAEP-384" | "RSA-OAEP-512" | "ECDH-ES" | "ECDH-ES+A128KW" | "ECDH-ES+A192KW" | "ECDH-ES+A256KW";
+            id_token_encrypted_response_encs?: string[];
+            domain_aliases?: string[];
+            non_persistent_attrs?: string[];
+            enable_pushed_authorization_requests?: boolean;
+            id_token_session_expiry_supported?: boolean;
+            useOauthSpecScope?: boolean;
+            set_user_root_attributes?: string;
+            dpop_signing_alg?: string | null;
+            attribute_map?: {
+                /** @enum {string} */
+                mapping_mode?: "bind_all" | "use_map";
+                attributes?: {
+                    [key: string]: string;
+                };
+                userinfo_scope?: string;
+            };
+        };
+        ConnectionOptionsOkta: {
+            client_id: string;
+            client_secret?: string;
+            issuer?: string;
+            authorization_endpoint?: string;
+            token_endpoint?: string;
+            jwks_uri?: string;
+            userinfo_endpoint?: string;
+            scope?: string;
+            scopes?: string;
+            tenant_domain?: string;
+            icon_url?: string;
+            pushed_authorization_request_endpoint?: string;
+            /** @enum {string} */
+            type?: "back_channel";
+            oidc_metadata?: {
+                [key: string]: unknown;
+            };
+            connection_settings?: {
+                /**
+                 * @default auto
+                 * @enum {string}
+                 */
+                pkce?: "auto" | "S256" | "s256" | "plain" | "disabled";
+            };
+            /** @default true */
+            send_back_channel_nonce?: boolean;
+            /** @enum {string|null} */
+            token_endpoint_auth_method?: "client_secret_post" | "private_key_jwt" | null;
+            /** @enum {string} */
+            token_endpoint_auth_signing_alg?: "RS256" | "RS384" | "RS512" | "PS256" | "PS384" | "ES256" | "ES384";
+            /** @enum {string} */
+            token_endpoint_jwtca_aud_format?: "issuer" | "token_endpoint";
+            id_token_signed_response_algs?: string[];
+            /** @enum {string} */
+            id_token_encrypted_response_alg?: "RSA-OAEP-256" | "RSA-OAEP-384" | "RSA-OAEP-512" | "ECDH-ES" | "ECDH-ES+A128KW" | "ECDH-ES+A192KW" | "ECDH-ES+A256KW";
+            id_token_encrypted_response_encs?: string[];
+            domain_aliases?: string[];
+            non_persistent_attrs?: string[];
+            enable_pushed_authorization_requests?: boolean;
+            id_token_session_expiry_supported?: boolean;
+            useOauthSpecScope?: boolean;
+            set_user_root_attributes?: string;
+            dpop_signing_alg?: string | null;
+            attribute_map?: {
+                /** @enum {string} */
+                mapping_mode?: "basic_profile" | "use_map";
+                attributes?: {
+                    [key: string]: string;
+                };
+                userinfo_scope?: string;
+            };
+            domain: string;
         };
         /**
          * @description Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
@@ -8457,7 +8690,7 @@ export interface components {
              * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "okta";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -14315,6 +14548,147 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getConnectionKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionKey"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    postConnectionKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PostConnectionKeysRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionKey"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    postConnectionKeysRotate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PostConnectionKeysRequestContent"];
+            };
+        };
+        responses: {
+            /** @description Success. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionKey"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getConnectionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteConnectionUsersByEmail: {
+        parameters: {
+            query: {
+                email: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     getConnectionClients: {

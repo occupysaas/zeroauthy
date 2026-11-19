@@ -40,9 +40,10 @@ type code struct {
 // Provider serves all three flavors under /google, /oidc and /oauth2 on the
 // host it is mounted at.
 type Provider struct {
-	Base string // e.g. https://idp.e2e.test
-	key  *rsa.PrivateKey
-	mu   sync.Mutex
+	enterprise *enterpriseState
+	Base       string // e.g. https://idp.e2e.test
+	key        *rsa.PrivateKey
+	mu         sync.Mutex
 	// codes are single use; tokens map access tokens to subjects.
 	codes  map[string]code
 	tokens map[string]string
@@ -80,6 +81,10 @@ var form = template.Must(template.New("f").Parse(`<!doctype html><html lang="en"
 </form></body></html>`))
 
 func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/enterprise/") {
+		p.serveEnterprise(w, r)
+		return
+	}
 	if strings.HasPrefix(r.URL.Path, "/apple/") {
 		p.serveApple(w, r)
 		return

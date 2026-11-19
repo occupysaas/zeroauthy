@@ -1,7 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "reviewed": "2026-11-16",
-  "status": "implemented federation contract; Apple web/native active (Plan 39a)",
+  "status": "Plan 36 enterprise contract; runtime implementation tracked in implementation record",
   "strategies": {
     "google-oauth2": {
       "is_social": true,
@@ -205,34 +205,34 @@
         "client_id": {
           "type": "string",
           "default": null,
-          "validation": "required nonempty; immutable after creation",
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
           "secret": "public",
           "runtime": "active",
-          "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc"
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "client_secret": {
           "type": "string",
           "default": null,
-          "validation": "required nonempty on create; omitted PATCH preserves; empty/null rejected; seal before persistence",
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
           "secret": "write-only",
           "runtime": "active",
-          "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc"
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "set_user_root_attributes": {
           "type": "string",
-          "default": "on_each_login",
-          "validation": "on_each_login, on_first_login, never_on_login; local never_on_login provisions on first login but does not sync later",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
           "secret": "public",
           "runtime": "active",
-          "source": "local:docs/superpowers/specs/2026-10-26-zeroauthy-social-connections-design.md"
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "icon_url": {
           "type": "string",
           "default": null,
-          "validation": "bounded string; never fetched or rendered",
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
           "secret": "public",
-          "runtime": "stored-only",
-          "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/oauth2"
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "upstream_params": {
           "type": "object",
@@ -244,27 +244,27 @@
         },
         "type": {
           "type": "string",
-          "default": "back_channel",
-          "validation": "back_channel only; front_channel rejected",
+          "default": "front_channel",
+          "validation": "front_channel or back_channel; omitted means front_channel",
           "secret": "public",
           "runtime": "active",
-          "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc"
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "discovery_url": {
           "type": "string",
           "default": null,
-          "validation": "required immutable absolute HTTPS URL; no credentials/fragments; discovered issuer durably pinned by revision CAS",
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
           "secret": "public",
           "runtime": "active",
-          "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc"
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "scopes": {
           "type": "string",
           "default": null,
-          "validation": "required space-delimited nonempty scopes containing openid; scope alias rejected pending confirmation",
+          "validation": "space-delimited alias of scope; must include openid",
           "secret": "public",
           "runtime": "active",
-          "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc"
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         },
         "connection_settings.pkce": {
           "type": "string",
@@ -277,10 +277,194 @@
         "send_back_channel_nonce": {
           "type": "boolean",
           "default": true,
-          "validation": "true only; false rejected; exact nonce always validated",
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
           "secret": "public",
           "runtime": "active",
-          "source": "local:docs/superpowers/specs/2026-10-26-zeroauthy-social-connections-design.md"
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "issuer": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "authorization_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "jwks_uri": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "userinfo_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "scope": {
+          "type": "string",
+          "default": null,
+          "validation": "space-delimited; must include openid",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "tenant_domain": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "pushed_authorization_request_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "oidc_metadata": {
+          "type": "object",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "connection_settings": {
+          "type": "object",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint_auth_method": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint_auth_signing_alg": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint_jwtca_aud_format": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_signed_response_algs": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_encrypted_response_alg": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_encrypted_response_encs": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "domain_aliases": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "non_persistent_attrs": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "enable_pushed_authorization_requests": {
+          "type": "boolean",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_session_expiry_supported": {
+          "type": "boolean",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "useOauthSpecScope": {
+          "type": "boolean",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "dpop_signing_alg": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "rejected",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "attribute_map": {
+          "type": "object",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         }
       }
     },
@@ -379,6 +563,277 @@
           "validation": "stored-only; no runtime effect",
           "secret": "public",
           "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        }
+      }
+    },
+    "okta": {
+      "is_social": false,
+      "id_format": "okta|<connection-name>|<sub>",
+      "default_scopes": [],
+      "options": {
+        "client_id": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "client_secret": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "write-only",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "set_user_root_attributes": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "icon_url": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "upstream_params": {
+          "type": "object",
+          "default": {},
+          "validation": "inert values retained and diagnosed; reject reserved protocol overrides or security policy/authentication requirements",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/authenticate/identity-providers/pass-parameters-to-idps"
+        },
+        "type": {
+          "type": "string",
+          "default": "back_channel",
+          "validation": "front_channel or back_channel; omitted means front_channel",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "scopes": {
+          "type": "string",
+          "default": null,
+          "validation": "space-delimited alias of scope; must include openid",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "connection_settings.pkce": {
+          "type": "string",
+          "default": "s256",
+          "validation": "s256 or auto; both require S256; plain/disabled rejected",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc"
+        },
+        "send_back_channel_nonce": {
+          "type": "boolean",
+          "default": true,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "issuer": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "authorization_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "jwks_uri": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "userinfo_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "scope": {
+          "type": "string",
+          "default": null,
+          "validation": "space-delimited; must include openid",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "tenant_domain": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "pushed_authorization_request_endpoint": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "oidc_metadata": {
+          "type": "object",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "connection_settings": {
+          "type": "object",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint_auth_method": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint_auth_signing_alg": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "token_endpoint_jwtca_aud_format": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_signed_response_algs": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_encrypted_response_alg": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_encrypted_response_encs": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "domain_aliases": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "non_persistent_attrs": {
+          "type": "array",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "enable_pushed_authorization_requests": {
+          "type": "boolean",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "id_token_session_expiry_supported": {
+          "type": "boolean",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "useOauthSpecScope": {
+          "type": "boolean",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "stored-only",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "dpop_signing_alg": {
+          "type": "string",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "rejected",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "attribute_map": {
+          "type": "object",
+          "default": null,
+          "validation": "Plan 36 spec section 3; bounded and validated on write",
+          "secret": "public",
+          "runtime": "active",
+          "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
+        },
+        "domain": {
+          "type": "string",
+          "default": null,
+          "validation": "required DNS hostname, lower-case, immutable",
+          "secret": "public",
+          "runtime": "active",
           "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
         }
       }
@@ -661,11 +1116,6 @@
     "source": "https://auth0.com/docs/authenticate/identity-providers/social-identity-providers/oauth2"
   },
   "unsupported": {
-    "front_channel": {
-      "disposition": "rejected",
-      "reason": "back_channel code flow only",
-      "source": "https://auth0.com/docs/authenticate/identity-providers/enterprise-identity-providers/configure-pkce-claim-mapping-for-oidc"
-    },
     "upstream_params": {
       "disposition": "stored-only",
       "reason": "no static/dynamic forwarding; critical overrides and domain/auth requirements rejected",
@@ -765,6 +1215,11 @@
       "disposition": "stored-only",
       "reason": "retain only nonessential bounded values under Extra; unknown auth/security-critical settings rejected",
       "source": "local:docs/superpowers/specs/2026-10-26-zeroauthy-social-connections-design.md"
+    },
+    "dpop_signing_alg": {
+      "disposition": "rejected",
+      "reason": "DPoP is outside the roadmap; non-null refused",
+      "source": "https://auth0.com/docs/oas/management/v2/management-api-oas.json"
     }
   },
   "shared_fields": {

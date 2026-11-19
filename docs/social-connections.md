@@ -1,5 +1,8 @@
 # Social and OpenID Connect connections
 
+For complete enterprise OIDC/Okta configuration, connection keys and home realm
+discovery, see [enterprise connections](enterprise-connections.md).
+
 Plan 24 adds the federation core; Plan 39a adds Apple web and native login:
 
 | Strategy | Kind | Identity key | Public user ID |
@@ -7,7 +10,7 @@ Plan 24 adds the federation core; Plan 39a adds Apple web and native login:
 | `apple` | social (`isSocial: true`) | Apple `sub` | `apple|<sub>` |
 | `google-oauth2` | social (`isSocial: true`) | Google `sub` | `google-oauth2|<sub>` |
 | `oauth2` | social (`isSocial: true`) | `user_id` returned by the profile script | `oauth2|<connection>|<subject>` |
-| `oidc` (`type: back_channel`) | enterprise (`isSocial: false`), supported subset | ID token `sub` | `oidc|<connection>|<sub>` |
+| `oidc` (front or back channel) | enterprise (`isSocial: false`) | ID token `sub` | `oidc|<connection>|<sub>` |
 
 The frozen option inventory is `internal/federation/inventory.json`; the
 design is `docs/superpowers/specs/2026-10-26-zeroauthy-social-connections-design.md`.

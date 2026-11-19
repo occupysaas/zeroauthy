@@ -23,21 +23,22 @@ var fixedTime = time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
 
 // idp is a local OpenID provider over TLS.
 type idp struct {
-	t         *testing.T
-	srv       *httptest.Server
-	key       *rsa.PrivateKey
-	kid       string
-	mu        sync.Mutex
-	keys      []jose.JSONWebKey // published JWKS
-	claims    func(c map[string]any)
-	header    func(h map[jose.HeaderKey]any)
-	sign      func(payload []byte) string // overrides signing
-	accessTok string
-	userinfo  map[string]any
-	meta      func(m map[string]any)
-	tokenReqs []*http.Request
-	forms     []url.Values
-	jwksHits  int
+	t            *testing.T
+	srv          *httptest.Server
+	key          *rsa.PrivateKey
+	kid          string
+	mu           sync.Mutex
+	keys         []jose.JSONWebKey // published JWKS
+	claims       func(c map[string]any)
+	header       func(h map[jose.HeaderKey]any)
+	sign         func(payload []byte) string // overrides signing
+	accessTok    string
+	userinfo     map[string]any
+	meta         func(m map[string]any)
+	tokenReqs    []*http.Request
+	forms        []url.Values
+	jwksHits     int
+	userinfoHits int
 }
 
 func newIDP(t *testing.T) *idp {
@@ -75,6 +76,7 @@ func (p *idp) serve(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"access_token": p.accessTok, "token_type": "Bearer",
 			"expires_in": 3600, "refresh_token": "upstream-refresh", "id_token": p.idToken()})
 	case "/userinfo":
+		p.userinfoHits++
 		if r.Header.Get("Authorization") != "Bearer "+p.accessTok {
 			w.WriteHeader(401)
 			return

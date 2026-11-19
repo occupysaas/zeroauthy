@@ -1448,6 +1448,7 @@ const (
 	ConnectionCreateStrategyGoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
 	ConnectionCreateStrategyOauth2       ConnectionCreateStrategy = "oauth2"
 	ConnectionCreateStrategyOidc         ConnectionCreateStrategy = "oidc"
+	ConnectionCreateStrategyOkta         ConnectionCreateStrategy = "okta"
 	ConnectionCreateStrategySms          ConnectionCreateStrategy = "sms"
 	ConnectionCreateStrategyWaad         ConnectionCreateStrategy = "waad"
 	ConnectionCreateStrategyWindowslive  ConnectionCreateStrategy = "windowslive"
@@ -1468,11 +1469,31 @@ func (e ConnectionCreateStrategy) Valid() bool {
 		return true
 	case ConnectionCreateStrategyOidc:
 		return true
+	case ConnectionCreateStrategyOkta:
+		return true
 	case ConnectionCreateStrategySms:
 		return true
 	case ConnectionCreateStrategyWaad:
 		return true
 	case ConnectionCreateStrategyWindowslive:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionKeyKeyUse.
+const (
+	ConnectionKeyKeyUseEncryption ConnectionKeyKeyUse = "encryption"
+	ConnectionKeyKeyUseSigning    ConnectionKeyKeyUse = "signing"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionKeyKeyUse enum.
+func (e ConnectionKeyKeyUse) Valid() bool {
+	switch e {
+	case ConnectionKeyKeyUseEncryption:
+		return true
+	case ConnectionKeyKeyUseSigning:
 		return true
 	default:
 		return false
@@ -1527,6 +1548,333 @@ const (
 func (e ConnectionOptionsEmailEmailSyntax) Valid() bool {
 	switch e {
 	case ConnectionOptionsEmailEmailSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCAttributeMapMappingMode.
+const (
+	ConnectionOptionsOIDCAttributeMapMappingModeBindAll ConnectionOptionsOIDCAttributeMapMappingMode = "bind_all"
+	ConnectionOptionsOIDCAttributeMapMappingModeUseMap  ConnectionOptionsOIDCAttributeMapMappingMode = "use_map"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCAttributeMapMappingMode enum.
+func (e ConnectionOptionsOIDCAttributeMapMappingMode) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCAttributeMapMappingModeBindAll:
+		return true
+	case ConnectionOptionsOIDCAttributeMapMappingModeUseMap:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCConnectionSettingsPkce.
+const (
+	ConnectionOptionsOIDCConnectionSettingsPkceAuto     ConnectionOptionsOIDCConnectionSettingsPkce = "auto"
+	ConnectionOptionsOIDCConnectionSettingsPkceDisabled ConnectionOptionsOIDCConnectionSettingsPkce = "disabled"
+	ConnectionOptionsOIDCConnectionSettingsPkcePlain    ConnectionOptionsOIDCConnectionSettingsPkce = "plain"
+	ConnectionOptionsOIDCConnectionSettingsPkceS256     ConnectionOptionsOIDCConnectionSettingsPkce = "S256"
+	ConnectionOptionsOIDCConnectionSettingsPkceS2561    ConnectionOptionsOIDCConnectionSettingsPkce = "s256"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCConnectionSettingsPkce enum.
+func (e ConnectionOptionsOIDCConnectionSettingsPkce) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCConnectionSettingsPkceAuto:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkceDisabled:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkcePlain:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkceS256:
+		return true
+	case ConnectionOptionsOIDCConnectionSettingsPkceS2561:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCIdTokenEncryptedResponseAlg.
+const (
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHES       ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA128KW ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES+A128KW"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA192KW ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES+A192KW"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA256KW ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "ECDH-ES+A256KW"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP256   ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "RSA-OAEP-256"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP384   ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "RSA-OAEP-384"
+	ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP512   ConnectionOptionsOIDCIdTokenEncryptedResponseAlg = "RSA-OAEP-512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCIdTokenEncryptedResponseAlg enum.
+func (e ConnectionOptionsOIDCIdTokenEncryptedResponseAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHES:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA128KW:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA192KW:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgECDHESA256KW:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP256:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP384:
+		return true
+	case ConnectionOptionsOIDCIdTokenEncryptedResponseAlgRSAOAEP512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCTokenEndpointAuthMethod.
+const (
+	ConnectionOptionsOIDCTokenEndpointAuthMethodClientSecretPost ConnectionOptionsOIDCTokenEndpointAuthMethod = "client_secret_post"
+	ConnectionOptionsOIDCTokenEndpointAuthMethodPrivateKeyJwt    ConnectionOptionsOIDCTokenEndpointAuthMethod = "private_key_jwt"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCTokenEndpointAuthMethod enum.
+func (e ConnectionOptionsOIDCTokenEndpointAuthMethod) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTokenEndpointAuthMethodClientSecretPost:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthMethodPrivateKeyJwt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCTokenEndpointAuthSigningAlg.
+const (
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES256 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "ES256"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES384 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "ES384"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS256 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "PS256"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS384 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "PS384"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS256 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "RS256"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS384 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "RS384"
+	ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS512 ConnectionOptionsOIDCTokenEndpointAuthSigningAlg = "RS512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCTokenEndpointAuthSigningAlg enum.
+func (e ConnectionOptionsOIDCTokenEndpointAuthSigningAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES256:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgES384:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS256:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgPS384:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS256:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS384:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointAuthSigningAlgRS512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat.
+const (
+	ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatIssuer        ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat = "issuer"
+	ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatTokenEndpoint ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat = "token_endpoint"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat enum.
+func (e ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatIssuer:
+		return true
+	case ConnectionOptionsOIDCTokenEndpointJwtcaAudFormatTokenEndpoint:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOIDCType.
+const (
+	ConnectionOptionsOIDCTypeBackChannel  ConnectionOptionsOIDCType = "back_channel"
+	ConnectionOptionsOIDCTypeFrontChannel ConnectionOptionsOIDCType = "front_channel"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOIDCType enum.
+func (e ConnectionOptionsOIDCType) Valid() bool {
+	switch e {
+	case ConnectionOptionsOIDCTypeBackChannel:
+		return true
+	case ConnectionOptionsOIDCTypeFrontChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaAttributeMapMappingMode.
+const (
+	ConnectionOptionsOktaAttributeMapMappingModeBasicProfile ConnectionOptionsOktaAttributeMapMappingMode = "basic_profile"
+	ConnectionOptionsOktaAttributeMapMappingModeUseMap       ConnectionOptionsOktaAttributeMapMappingMode = "use_map"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaAttributeMapMappingMode enum.
+func (e ConnectionOptionsOktaAttributeMapMappingMode) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaAttributeMapMappingModeBasicProfile:
+		return true
+	case ConnectionOptionsOktaAttributeMapMappingModeUseMap:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaConnectionSettingsPkce.
+const (
+	ConnectionOptionsOktaConnectionSettingsPkceAuto     ConnectionOptionsOktaConnectionSettingsPkce = "auto"
+	ConnectionOptionsOktaConnectionSettingsPkceDisabled ConnectionOptionsOktaConnectionSettingsPkce = "disabled"
+	ConnectionOptionsOktaConnectionSettingsPkcePlain    ConnectionOptionsOktaConnectionSettingsPkce = "plain"
+	ConnectionOptionsOktaConnectionSettingsPkceS256     ConnectionOptionsOktaConnectionSettingsPkce = "S256"
+	ConnectionOptionsOktaConnectionSettingsPkceS2561    ConnectionOptionsOktaConnectionSettingsPkce = "s256"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaConnectionSettingsPkce enum.
+func (e ConnectionOptionsOktaConnectionSettingsPkce) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaConnectionSettingsPkceAuto:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkceDisabled:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkcePlain:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkceS256:
+		return true
+	case ConnectionOptionsOktaConnectionSettingsPkceS2561:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaIdTokenEncryptedResponseAlg.
+const (
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHES       ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA128KW ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES+A128KW"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA192KW ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES+A192KW"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA256KW ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "ECDH-ES+A256KW"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP256   ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "RSA-OAEP-256"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP384   ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "RSA-OAEP-384"
+	ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP512   ConnectionOptionsOktaIdTokenEncryptedResponseAlg = "RSA-OAEP-512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaIdTokenEncryptedResponseAlg enum.
+func (e ConnectionOptionsOktaIdTokenEncryptedResponseAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHES:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA128KW:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA192KW:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgECDHESA256KW:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP256:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP384:
+		return true
+	case ConnectionOptionsOktaIdTokenEncryptedResponseAlgRSAOAEP512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaTokenEndpointAuthMethod.
+const (
+	ConnectionOptionsOktaTokenEndpointAuthMethodClientSecretPost ConnectionOptionsOktaTokenEndpointAuthMethod = "client_secret_post"
+	ConnectionOptionsOktaTokenEndpointAuthMethodPrivateKeyJwt    ConnectionOptionsOktaTokenEndpointAuthMethod = "private_key_jwt"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaTokenEndpointAuthMethod enum.
+func (e ConnectionOptionsOktaTokenEndpointAuthMethod) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTokenEndpointAuthMethodClientSecretPost:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthMethodPrivateKeyJwt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaTokenEndpointAuthSigningAlg.
+const (
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgES256 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "ES256"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgES384 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "ES384"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS256 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "PS256"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS384 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "PS384"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS256 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "RS256"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS384 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "RS384"
+	ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS512 ConnectionOptionsOktaTokenEndpointAuthSigningAlg = "RS512"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaTokenEndpointAuthSigningAlg enum.
+func (e ConnectionOptionsOktaTokenEndpointAuthSigningAlg) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgES256:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgES384:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS256:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgPS384:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS256:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS384:
+		return true
+	case ConnectionOptionsOktaTokenEndpointAuthSigningAlgRS512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaTokenEndpointJwtcaAudFormat.
+const (
+	ConnectionOptionsOktaTokenEndpointJwtcaAudFormatIssuer        ConnectionOptionsOktaTokenEndpointJwtcaAudFormat = "issuer"
+	ConnectionOptionsOktaTokenEndpointJwtcaAudFormatTokenEndpoint ConnectionOptionsOktaTokenEndpointJwtcaAudFormat = "token_endpoint"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaTokenEndpointJwtcaAudFormat enum.
+func (e ConnectionOptionsOktaTokenEndpointJwtcaAudFormat) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTokenEndpointJwtcaAudFormatIssuer:
+		return true
+	case ConnectionOptionsOktaTokenEndpointJwtcaAudFormatTokenEndpoint:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConnectionOptionsOktaType.
+const (
+	ConnectionOptionsOktaTypeBackChannel ConnectionOptionsOktaType = "back_channel"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionOptionsOktaType enum.
+func (e ConnectionOptionsOktaType) Valid() bool {
+	switch e {
+	case ConnectionOptionsOktaTypeBackChannel:
 		return true
 	default:
 		return false
@@ -2306,16 +2654,16 @@ func (e EventsEventStreamEventTypeEnum) Valid() bool {
 
 // Defines values for EventsEventStreamStatusEnum.
 const (
-	Disabled EventsEventStreamStatusEnum = "disabled"
-	Enabled  EventsEventStreamStatusEnum = "enabled"
+	EventsEventStreamStatusEnumDisabled EventsEventStreamStatusEnum = "disabled"
+	EventsEventStreamStatusEnumEnabled  EventsEventStreamStatusEnum = "enabled"
 )
 
 // Valid indicates whether the value is a known member of the EventsEventStreamStatusEnum enum.
 func (e EventsEventStreamStatusEnum) Valid() bool {
 	switch e {
-	case Disabled:
+	case EventsEventStreamStatusEnumDisabled:
 		return true
-	case Enabled:
+	case EventsEventStreamStatusEnumEnabled:
 		return true
 	default:
 		return false
@@ -5697,6 +6045,90 @@ func (e PhoneTestRequestDeliveryMethod) Valid() bool {
 	}
 }
 
+// Defines values for PostConnectionKeysRequestContentEncryptionAlg.
+const (
+	PostConnectionKeysRequestContentEncryptionAlgECDHES       PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES"
+	PostConnectionKeysRequestContentEncryptionAlgECDHESA128KW PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES+A128KW"
+	PostConnectionKeysRequestContentEncryptionAlgECDHESA192KW PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES+A192KW"
+	PostConnectionKeysRequestContentEncryptionAlgECDHESA256KW PostConnectionKeysRequestContentEncryptionAlg = "ECDH-ES+A256KW"
+	PostConnectionKeysRequestContentEncryptionAlgRSAOAEP256   PostConnectionKeysRequestContentEncryptionAlg = "RSA-OAEP-256"
+	PostConnectionKeysRequestContentEncryptionAlgRSAOAEP384   PostConnectionKeysRequestContentEncryptionAlg = "RSA-OAEP-384"
+	PostConnectionKeysRequestContentEncryptionAlgRSAOAEP512   PostConnectionKeysRequestContentEncryptionAlg = "RSA-OAEP-512"
+)
+
+// Valid indicates whether the value is a known member of the PostConnectionKeysRequestContentEncryptionAlg enum.
+func (e PostConnectionKeysRequestContentEncryptionAlg) Valid() bool {
+	switch e {
+	case PostConnectionKeysRequestContentEncryptionAlgECDHES:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgECDHESA128KW:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgECDHESA192KW:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgECDHESA256KW:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgRSAOAEP256:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgRSAOAEP384:
+		return true
+	case PostConnectionKeysRequestContentEncryptionAlgRSAOAEP512:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostConnectionKeysRequestContentKeyUse.
+const (
+	PostConnectionKeysRequestContentKeyUseEncryption PostConnectionKeysRequestContentKeyUse = "encryption"
+	PostConnectionKeysRequestContentKeyUseSigning    PostConnectionKeysRequestContentKeyUse = "signing"
+)
+
+// Valid indicates whether the value is a known member of the PostConnectionKeysRequestContentKeyUse enum.
+func (e PostConnectionKeysRequestContentKeyUse) Valid() bool {
+	switch e {
+	case PostConnectionKeysRequestContentKeyUseEncryption:
+		return true
+	case PostConnectionKeysRequestContentKeyUseSigning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostConnectionKeysRequestContentSigningAlg.
+const (
+	PostConnectionKeysRequestContentSigningAlgES256 PostConnectionKeysRequestContentSigningAlg = "ES256"
+	PostConnectionKeysRequestContentSigningAlgES384 PostConnectionKeysRequestContentSigningAlg = "ES384"
+	PostConnectionKeysRequestContentSigningAlgPS256 PostConnectionKeysRequestContentSigningAlg = "PS256"
+	PostConnectionKeysRequestContentSigningAlgPS384 PostConnectionKeysRequestContentSigningAlg = "PS384"
+	PostConnectionKeysRequestContentSigningAlgRS256 PostConnectionKeysRequestContentSigningAlg = "RS256"
+	PostConnectionKeysRequestContentSigningAlgRS384 PostConnectionKeysRequestContentSigningAlg = "RS384"
+	PostConnectionKeysRequestContentSigningAlgRS512 PostConnectionKeysRequestContentSigningAlg = "RS512"
+)
+
+// Valid indicates whether the value is a known member of the PostConnectionKeysRequestContentSigningAlg enum.
+func (e PostConnectionKeysRequestContentSigningAlg) Valid() bool {
+	switch e {
+	case PostConnectionKeysRequestContentSigningAlgES256:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgES384:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgPS256:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgPS384:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgRS256:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgRS384:
+		return true
+	case PostConnectionKeysRequestContentSigningAlgRS512:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RBACPermissionSourceSourceType.
 const (
 	DIRECT RBACPermissionSourceSourceType = "DIRECT"
@@ -8495,6 +8927,25 @@ type ConnectionDeleted struct {
 	DeletedAt time.Time `json:"deleted_at"`
 }
 
+// ConnectionKey defines model for ConnectionKey.
+type ConnectionKey struct {
+	Algorithm    *string              `json:"algorithm,omitempty"`
+	Cert         string               `json:"cert"`
+	Current      *bool                `json:"current,omitempty"`
+	CurrentSince *time.Time           `json:"current_since,omitempty"`
+	Fingerprint  string               `json:"fingerprint"`
+	KeyUse       *ConnectionKeyKeyUse `json:"key_use,omitempty"`
+	Kid          string               `json:"kid"`
+	Next         *bool                `json:"next,omitempty"`
+	Pkcs         *string              `json:"pkcs,omitempty"`
+	Previous     *bool                `json:"previous,omitempty"`
+	SubjectDn    *string              `json:"subject_dn,omitempty"`
+	Thumbprint   string               `json:"thumbprint"`
+}
+
+// ConnectionKeyKeyUse defines model for ConnectionKey.KeyUse.
+type ConnectionKeyKeyUse string
+
 // ConnectionOptionsApple Apple web and native connection contract (D-0170). Create requires client_id (Services ID), team_id, kid and
 // app_secret; no developer credentials are supplied. The Services ID
 // is immutable. PATCH omitting app_secret preserves the sealed key;
@@ -8562,6 +9013,130 @@ type ConnectionOptionsEmail struct {
 
 // ConnectionOptionsEmailEmailSyntax defines model for ConnectionOptionsEmail.Email.Syntax.
 type ConnectionOptionsEmailEmailSyntax string
+
+// ConnectionOptionsOIDC defines model for ConnectionOptionsOIDC.
+type ConnectionOptionsOIDC struct {
+	AttributeMap *struct {
+		Attributes    *map[string]string                            `json:"attributes,omitempty"`
+		MappingMode   *ConnectionOptionsOIDCAttributeMapMappingMode `json:"mapping_mode,omitempty"`
+		UserinfoScope *string                                       `json:"userinfo_scope,omitempty"`
+	} `json:"attribute_map,omitempty"`
+	AuthorizationEndpoint *string `json:"authorization_endpoint,omitempty"`
+	ClientId              string  `json:"client_id"`
+	ClientSecret          *string `json:"client_secret,omitempty"`
+	ConnectionSettings    *struct {
+		Pkce *ConnectionOptionsOIDCConnectionSettingsPkce `json:"pkce,omitempty"`
+	} `json:"connection_settings,omitempty"`
+	DiscoveryUrl                       *string                                           `json:"discovery_url,omitempty"`
+	DomainAliases                      *[]string                                         `json:"domain_aliases,omitempty"`
+	DpopSigningAlg                     *string                                           `json:"dpop_signing_alg,omitempty"`
+	EnablePushedAuthorizationRequests  *bool                                             `json:"enable_pushed_authorization_requests,omitempty"`
+	IconUrl                            *string                                           `json:"icon_url,omitempty"`
+	IdTokenEncryptedResponseAlg        *ConnectionOptionsOIDCIdTokenEncryptedResponseAlg `json:"id_token_encrypted_response_alg,omitempty"`
+	IdTokenEncryptedResponseEncs       *[]string                                         `json:"id_token_encrypted_response_encs,omitempty"`
+	IdTokenSessionExpirySupported      *bool                                             `json:"id_token_session_expiry_supported,omitempty"`
+	IdTokenSignedResponseAlgs          *[]string                                         `json:"id_token_signed_response_algs,omitempty"`
+	Issuer                             *string                                           `json:"issuer,omitempty"`
+	JwksUri                            *string                                           `json:"jwks_uri,omitempty"`
+	NonPersistentAttrs                 *[]string                                         `json:"non_persistent_attrs,omitempty"`
+	OidcMetadata                       *map[string]interface{}                           `json:"oidc_metadata,omitempty"`
+	PushedAuthorizationRequestEndpoint *string                                           `json:"pushed_authorization_request_endpoint,omitempty"`
+	Scope                              *string                                           `json:"scope,omitempty"`
+	Scopes                             *string                                           `json:"scopes,omitempty"`
+	SendBackChannelNonce               *bool                                             `json:"send_back_channel_nonce,omitempty"`
+	SetUserRootAttributes              *string                                           `json:"set_user_root_attributes,omitempty"`
+	TenantDomain                       *string                                           `json:"tenant_domain,omitempty"`
+	TokenEndpoint                      *string                                           `json:"token_endpoint,omitempty"`
+	TokenEndpointAuthMethod            *ConnectionOptionsOIDCTokenEndpointAuthMethod     `json:"token_endpoint_auth_method,omitempty"`
+	TokenEndpointAuthSigningAlg        *ConnectionOptionsOIDCTokenEndpointAuthSigningAlg `json:"token_endpoint_auth_signing_alg,omitempty"`
+	TokenEndpointJwtcaAudFormat        *ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat `json:"token_endpoint_jwtca_aud_format,omitempty"`
+	Type                               *ConnectionOptionsOIDCType                        `json:"type,omitempty"`
+	UseOauthSpecScope                  *bool                                             `json:"useOauthSpecScope,omitempty"`
+	UserinfoEndpoint                   *string                                           `json:"userinfo_endpoint,omitempty"`
+}
+
+// ConnectionOptionsOIDCAttributeMapMappingMode defines model for ConnectionOptionsOIDC.AttributeMap.MappingMode.
+type ConnectionOptionsOIDCAttributeMapMappingMode string
+
+// ConnectionOptionsOIDCConnectionSettingsPkce defines model for ConnectionOptionsOIDC.ConnectionSettings.Pkce.
+type ConnectionOptionsOIDCConnectionSettingsPkce string
+
+// ConnectionOptionsOIDCIdTokenEncryptedResponseAlg defines model for ConnectionOptionsOIDC.IdTokenEncryptedResponseAlg.
+type ConnectionOptionsOIDCIdTokenEncryptedResponseAlg string
+
+// ConnectionOptionsOIDCTokenEndpointAuthMethod defines model for ConnectionOptionsOIDC.TokenEndpointAuthMethod.
+type ConnectionOptionsOIDCTokenEndpointAuthMethod string
+
+// ConnectionOptionsOIDCTokenEndpointAuthSigningAlg defines model for ConnectionOptionsOIDC.TokenEndpointAuthSigningAlg.
+type ConnectionOptionsOIDCTokenEndpointAuthSigningAlg string
+
+// ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat defines model for ConnectionOptionsOIDC.TokenEndpointJwtcaAudFormat.
+type ConnectionOptionsOIDCTokenEndpointJwtcaAudFormat string
+
+// ConnectionOptionsOIDCType defines model for ConnectionOptionsOIDC.Type.
+type ConnectionOptionsOIDCType string
+
+// ConnectionOptionsOkta defines model for ConnectionOptionsOkta.
+type ConnectionOptionsOkta struct {
+	AttributeMap *struct {
+		Attributes    *map[string]string                            `json:"attributes,omitempty"`
+		MappingMode   *ConnectionOptionsOktaAttributeMapMappingMode `json:"mapping_mode,omitempty"`
+		UserinfoScope *string                                       `json:"userinfo_scope,omitempty"`
+	} `json:"attribute_map,omitempty"`
+	AuthorizationEndpoint *string `json:"authorization_endpoint,omitempty"`
+	ClientId              string  `json:"client_id"`
+	ClientSecret          *string `json:"client_secret,omitempty"`
+	ConnectionSettings    *struct {
+		Pkce *ConnectionOptionsOktaConnectionSettingsPkce `json:"pkce,omitempty"`
+	} `json:"connection_settings,omitempty"`
+	Domain                             string                                            `json:"domain"`
+	DomainAliases                      *[]string                                         `json:"domain_aliases,omitempty"`
+	DpopSigningAlg                     *string                                           `json:"dpop_signing_alg,omitempty"`
+	EnablePushedAuthorizationRequests  *bool                                             `json:"enable_pushed_authorization_requests,omitempty"`
+	IconUrl                            *string                                           `json:"icon_url,omitempty"`
+	IdTokenEncryptedResponseAlg        *ConnectionOptionsOktaIdTokenEncryptedResponseAlg `json:"id_token_encrypted_response_alg,omitempty"`
+	IdTokenEncryptedResponseEncs       *[]string                                         `json:"id_token_encrypted_response_encs,omitempty"`
+	IdTokenSessionExpirySupported      *bool                                             `json:"id_token_session_expiry_supported,omitempty"`
+	IdTokenSignedResponseAlgs          *[]string                                         `json:"id_token_signed_response_algs,omitempty"`
+	Issuer                             *string                                           `json:"issuer,omitempty"`
+	JwksUri                            *string                                           `json:"jwks_uri,omitempty"`
+	NonPersistentAttrs                 *[]string                                         `json:"non_persistent_attrs,omitempty"`
+	OidcMetadata                       *map[string]interface{}                           `json:"oidc_metadata,omitempty"`
+	PushedAuthorizationRequestEndpoint *string                                           `json:"pushed_authorization_request_endpoint,omitempty"`
+	Scope                              *string                                           `json:"scope,omitempty"`
+	Scopes                             *string                                           `json:"scopes,omitempty"`
+	SendBackChannelNonce               *bool                                             `json:"send_back_channel_nonce,omitempty"`
+	SetUserRootAttributes              *string                                           `json:"set_user_root_attributes,omitempty"`
+	TenantDomain                       *string                                           `json:"tenant_domain,omitempty"`
+	TokenEndpoint                      *string                                           `json:"token_endpoint,omitempty"`
+	TokenEndpointAuthMethod            *ConnectionOptionsOktaTokenEndpointAuthMethod     `json:"token_endpoint_auth_method,omitempty"`
+	TokenEndpointAuthSigningAlg        *ConnectionOptionsOktaTokenEndpointAuthSigningAlg `json:"token_endpoint_auth_signing_alg,omitempty"`
+	TokenEndpointJwtcaAudFormat        *ConnectionOptionsOktaTokenEndpointJwtcaAudFormat `json:"token_endpoint_jwtca_aud_format,omitempty"`
+	Type                               *ConnectionOptionsOktaType                        `json:"type,omitempty"`
+	UseOauthSpecScope                  *bool                                             `json:"useOauthSpecScope,omitempty"`
+	UserinfoEndpoint                   *string                                           `json:"userinfo_endpoint,omitempty"`
+}
+
+// ConnectionOptionsOktaAttributeMapMappingMode defines model for ConnectionOptionsOkta.AttributeMap.MappingMode.
+type ConnectionOptionsOktaAttributeMapMappingMode string
+
+// ConnectionOptionsOktaConnectionSettingsPkce defines model for ConnectionOptionsOkta.ConnectionSettings.Pkce.
+type ConnectionOptionsOktaConnectionSettingsPkce string
+
+// ConnectionOptionsOktaIdTokenEncryptedResponseAlg defines model for ConnectionOptionsOkta.IdTokenEncryptedResponseAlg.
+type ConnectionOptionsOktaIdTokenEncryptedResponseAlg string
+
+// ConnectionOptionsOktaTokenEndpointAuthMethod defines model for ConnectionOptionsOkta.TokenEndpointAuthMethod.
+type ConnectionOptionsOktaTokenEndpointAuthMethod string
+
+// ConnectionOptionsOktaTokenEndpointAuthSigningAlg defines model for ConnectionOptionsOkta.TokenEndpointAuthSigningAlg.
+type ConnectionOptionsOktaTokenEndpointAuthSigningAlg string
+
+// ConnectionOptionsOktaTokenEndpointJwtcaAudFormat defines model for ConnectionOptionsOkta.TokenEndpointJwtcaAudFormat.
+type ConnectionOptionsOktaTokenEndpointJwtcaAudFormat string
+
+// ConnectionOptionsOktaType defines model for ConnectionOptionsOkta.Type.
+type ConnectionOptionsOktaType string
 
 // ConnectionOptionsSMS Options of the `sms` passwordless connection (name `sms`).
 // `twilio_token` and `gateway_authentication.secret` are sealed,
@@ -11892,6 +12467,22 @@ type PhoneTestRequest struct {
 // PhoneTestRequestDeliveryMethod defines model for PhoneTestRequest.DeliveryMethod.
 type PhoneTestRequestDeliveryMethod string
 
+// PostConnectionKeysRequestContent defines model for PostConnectionKeysRequestContent.
+type PostConnectionKeysRequestContent struct {
+	EncryptionAlg *PostConnectionKeysRequestContentEncryptionAlg `json:"encryption_alg,omitempty"`
+	KeyUse        *PostConnectionKeysRequestContentKeyUse        `json:"key_use,omitempty"`
+	SigningAlg    *PostConnectionKeysRequestContentSigningAlg    `json:"signing_alg,omitempty"`
+}
+
+// PostConnectionKeysRequestContentEncryptionAlg defines model for PostConnectionKeysRequestContent.EncryptionAlg.
+type PostConnectionKeysRequestContentEncryptionAlg string
+
+// PostConnectionKeysRequestContentKeyUse defines model for PostConnectionKeysRequestContent.KeyUse.
+type PostConnectionKeysRequestContentKeyUse string
+
+// PostConnectionKeysRequestContentSigningAlg defines model for PostConnectionKeysRequestContent.SigningAlg.
+type PostConnectionKeysRequestContentSigningAlg string
+
 // RBACPermission defines model for RBACPermission.
 type RBACPermission struct {
 	Description              string                  `json:"description"`
@@ -13662,6 +14253,11 @@ type GetConnectionClientsParams struct {
 // UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
 type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
 
+// DeleteConnectionUsersByEmailParams defines parameters for DeleteConnectionUsersByEmail.
+type DeleteConnectionUsersByEmailParams struct {
+	Email string `form:"email" json:"email"`
+}
+
 // GetCustomDomainsParams defines parameters for GetCustomDomains.
 type GetCustomDomainsParams struct {
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
@@ -14477,6 +15073,12 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
+
+// PostConnectionKeysJSONRequestBody defines body for PostConnectionKeys for application/json ContentType.
+type PostConnectionKeysJSONRequestBody = PostConnectionKeysRequestContent
+
+// PostConnectionKeysRotateJSONRequestBody defines body for PostConnectionKeysRotate for application/json ContentType.
+type PostConnectionKeysRotateJSONRequestBody = PostConnectionKeysRequestContent
 
 // CreateCustomDomainJSONRequestBody defines body for CreateCustomDomain for application/json ContentType.
 type CreateCustomDomainJSONRequestBody = CustomDomainCreate
@@ -21402,6 +22004,21 @@ type ServerInterface interface {
 	// UpdateConnectionClients Enable or disable applications on a connection
 	// (PATCH /api/v2/connections/{id}/clients)
 	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnectionKeys getConnectionKeys
+	// (GET /api/v2/connections/{id}/keys)
+	GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string)
+	// PostConnectionKeys postConnectionKeys
+	// (POST /api/v2/connections/{id}/keys)
+	PostConnectionKeys(w http.ResponseWriter, r *http.Request, id string)
+	// PostConnectionKeysRotate postConnectionKeysRotate
+	// (POST /api/v2/connections/{id}/keys/rotate)
+	PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnectionStatus getConnectionStatus
+	// (GET /api/v2/connections/{id}/status)
+	GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteConnectionUsersByEmail deleteConnectionUsersByEmail
+	// (DELETE /api/v2/connections/{id}/users)
+	DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, params DeleteConnectionUsersByEmailParams)
 	// GetCustomDomains List custom domains
 	// (GET /api/v2/custom-domains)
 	GetCustomDomains(w http.ResponseWriter, r *http.Request, params GetCustomDomainsParams)
@@ -22695,6 +23312,36 @@ func (_ Unimplemented) GetConnectionClients(w http.ResponseWriter, r *http.Reque
 // UpdateConnectionClients Enable or disable applications on a connection
 // (PATCH /api/v2/connections/{id}/clients)
 func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionKeys getConnectionKeys
+// (GET /api/v2/connections/{id}/keys)
+func (_ Unimplemented) GetConnectionKeys(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostConnectionKeys postConnectionKeys
+// (POST /api/v2/connections/{id}/keys)
+func (_ Unimplemented) PostConnectionKeys(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostConnectionKeysRotate postConnectionKeysRotate
+// (POST /api/v2/connections/{id}/keys/rotate)
+func (_ Unimplemented) PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionStatus getConnectionStatus
+// (GET /api/v2/connections/{id}/status)
+func (_ Unimplemented) GetConnectionStatus(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteConnectionUsersByEmail deleteConnectionUsersByEmail
+// (DELETE /api/v2/connections/{id}/users)
+func (_ Unimplemented) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request, id string, params DeleteConnectionUsersByEmailParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -27382,6 +28029,152 @@ func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateConnectionClients(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionKeys operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionKeys(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionKeys(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostConnectionKeys operation middleware
+func (siw *ServerInterfaceWrapper) PostConnectionKeys(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostConnectionKeys(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostConnectionKeysRotate operation middleware
+func (siw *ServerInterfaceWrapper) PostConnectionKeysRotate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostConnectionKeysRotate(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionStatus(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteConnectionUsersByEmail operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConnectionUsersByEmail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteConnectionUsersByEmailParams
+
+	// ------------- Required query parameter "email" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "email", r.URL.Query(), &params.Email, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "email"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteConnectionUsersByEmail(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -34984,6 +35777,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v2/connections/{id}", wrapper.UpdateConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/keys", wrapper.GetConnectionKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/keys", wrapper.PostConnectionKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections/{id}/keys/rotate", wrapper.PostConnectionKeysRotate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/status", wrapper.GetConnectionStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}/users", wrapper.DeleteConnectionUsersByEmail)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/connections/{id}/clients", wrapper.GetConnectionClients)

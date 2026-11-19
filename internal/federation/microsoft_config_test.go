@@ -40,7 +40,7 @@ func TestMicrosoftConfig(t *testing.T) {
 			}
 		})
 	}
-	for _, extra := range []string{`,"client_id":"bad"`, `,"scope":["openid","email"]`, `,"scope":"openid profile email"`, `,"scope":["openid","profile","email","offline_access"]`, `,"email_verified":false`, `,"trust_email_verified":true`, `,"domain_aliases":[]`, `,"ext_groups":true`, `,"upstream_params":{"alias":"prompt"}`, `,"discovery_url":"https://example.com"`} {
+	for _, extra := range []string{`,"client_id":"bad"`, `,"scope":["openid","email"]`, `,"scope":"openid profile email"`, `,"scope":["openid","profile","email","offline_access"]`, `,"email_verified":false`, `,"trust_email_verified":true`, `,"ext_groups":true`, `,"upstream_params":{"alias":"prompt"}`, `,"discovery_url":"https://example.com"`} {
 		t.Run(extra, func(t *testing.T) {
 			if _, err := ParseConfig(configSpec(t, "windowslive", microsoftOptions+extra+`}`)); err == nil {
 				t.Fatal("accepted unsupported option")

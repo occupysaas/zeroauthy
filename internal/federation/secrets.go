@@ -79,7 +79,10 @@ func ApplyConnection(w keys.Wrapper, prev *store.Connection, spec *connrules.Spe
 	} else if prev != nil {
 		next.FederationSecretsSealed = slices.Clone(prev.FederationSecretsSealed)
 	}
-	if len(next.FederationSecretsSealed) == 0 {
+	if cfg.Channel == "front_channel" {
+		next.FederationSecretsSealed = nil
+	}
+	if len(next.FederationSecretsSealed) == 0 && cfg.Channel != "front_channel" && cfg.TokenAuth != "private_key_jwt" {
 		return fmt.Errorf("%w: options.%s is required", ErrInvalidConfig, rules.SecretOption(spec.Strategy))
 	}
 	cfg.SecretReference = slices.Clone(next.FederationSecretsSealed)
@@ -140,7 +143,7 @@ func PinIssuer(ctx context.Context, st store.Store, tenantID, connectionID strin
 		if err != nil {
 			return err
 		}
-		if c.Strategy != StrategyOIDC {
+		if c.Strategy != StrategyOIDC && c.Strategy != StrategyOkta {
 			cfg, err := ParseConfig(*connrules.FromConnection(c))
 			tid, concrete := microsoftIssuerTenant(issuer)
 			if err != nil || cfg.Strategy != StrategyWAAD || cfg.MicrosoftMultiTenant || !concrete || tid == microsoftConsumerTenant {

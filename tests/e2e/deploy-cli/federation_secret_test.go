@@ -14,8 +14,11 @@ func TestFederationSecretReinjection(t *testing.T) {
 	const script = "function fetchUserProfile(accessToken, context, callback) { callback(null, {user_id: 'subject'}); }"
 	rows := []map[string]any{}
 	credentials := map[string]string{}
-	for _, strategy := range []string{"google-oauth2", "oauth2", "oidc", "windowslive", "waad"} {
+	for _, strategy := range []string{"google-oauth2", "oauth2", "oidc", "okta", "windowslive", "waad"} {
 		options := map[string]any{"client_id": "upstream"}
+		if strategy == "oidc" {
+			options["type"] = "back_channel"
+		}
 		if strategy == "oauth2" {
 			options["scripts"] = map[string]any{"fetchUserProfile": "scripts/profile.js"}
 		}
@@ -24,7 +27,7 @@ func TestFederationSecretReinjection(t *testing.T) {
 	}
 	b, _ := json.Marshal(rows)
 	export := deploymigration.Export{Resources: map[string]json.RawMessage{"connections": b}, Files: map[string][]byte{"scripts/profile.js": []byte(script)}}
-	for _, missing := range []string{"google-oauth2", "oauth2", "oidc", "windowslive", "waad"} {
+	for _, missing := range []string{"google-oauth2", "oauth2", "oidc", "okta", "windowslive", "waad"} {
 		creds := map[string]string{}
 		for k, v := range credentials {
 			if k != missing {
@@ -41,7 +44,7 @@ func TestFederationSecretReinjection(t *testing.T) {
 	}
 	var actual []map[string]any
 	_ = json.Unmarshal(imported, &actual)
-	if len(actual) != 5 {
+	if len(actual) != 6 {
 		t.Fatal("strategies lost")
 	}
 	for _, row := range actual {

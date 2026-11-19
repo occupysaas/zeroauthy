@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {readFile,readdir,writeFile}from 'node:fs/promises';
+import {Agent}from 'undici';
+import {api}from './social/client.mjs';
+const work=process.env.E2E_M36_WORK;
+const sensitive=await(await fetch('http://127.0.0.1:9173/enterprise/audit',{dispatcher:new Agent()})).json();assert.ok(sensitive.length>=10,'actual assertion, JWS, JWE and access-token samples required');
+assert.ok(sensitive.some(s=>s.split('.').length===5),'actual encrypted ID token required');
+await writeFile(`${work}/private-sensitive.json`,JSON.stringify(sensitive),{mode:0o600});
+const logs=await api('logs?per_page=100');assert.equal(logs.status,200);await writeFile(`${work}/management-logs.json`,JSON.stringify(logs.body));
+let scanned=0;for(const row of await readdir(work,{withFileTypes:true})){if(!row.isFile()||row.name==='private-sensitive.json'||!/\.(log|json)$/.test(row.name))continue;const text=await readFile(`${work}/${row.name}`,'utf8');for(const value of sensitive){assert.ok(!text.includes(value)&&!text.includes(JSON.stringify(value).slice(1,-1)),`sensitive value in ${row.name}`);}scanned++;}assert.ok(scanned>=6);console.log(`Plan 36 runtime audit: ${sensitive.length} actual sensitive values absent from ${scanned} public runtime files and Management logs`);

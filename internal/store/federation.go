@@ -44,10 +44,11 @@ type FederatedIdentityKey struct {
 // FederationEndpoints is the provider endpoint snapshot pinned when an
 // attempt starts; the callback never rediscovers them.
 type FederationEndpoints struct {
-	AuthorizationURL string
-	TokenURL         string
-	JWKSURL          string
-	UserInfoURL      string
+	PKCEMethod, ResponseType, PAREndpoint string
+	AuthorizationURL                      string
+	TokenURL                              string
+	JWKSURL                               string
+	UserInfoURL                           string
 	// TokenAuthMethod is client_secret_basic or client_secret_post.
 	TokenAuthMethod string
 	// PKCES256 records explicit metadata support (Apple auto policy).

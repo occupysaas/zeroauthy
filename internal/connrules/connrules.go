@@ -421,7 +421,7 @@ func normalizeFederated(s *Spec) []error {
 		if s.Strategy == rules.WindowsLive && k == "strategy_version" {
 			continue
 		}
-		if s.Strategy == rules.Apple && k == "non_persistent_attrs" {
+		if (s.Strategy == rules.Apple || s.Strategy == rules.OIDC || s.Strategy == rules.Okta) && k == "non_persistent_attrs" {
 			continue
 		}
 		if _, ok := o.Extra[k]; ok {
@@ -430,7 +430,18 @@ func normalizeFederated(s *Spec) []error {
 	}
 	errs = append(errs, normalizeExtra(o)...)
 	errs = append(errs, normalizePhoneAttributes(o)...)
-	_, ruleErrs := rules.Parse(s.FederationInput())
+	settings, ruleErrs := rules.Parse(s.FederationInput())
+	if len(ruleErrs) == 0 {
+		if settings.DomainAliases != nil {
+			s.Options.Extra["domain_aliases"] = settings.DomainAliases
+		}
+		if settings.OktaDomain != "" {
+			s.Options.Extra["domain"] = settings.OktaDomain
+		}
+		if settings.Channel != "" {
+			s.Options.Extra["type"] = settings.Channel
+		}
+	}
 	return append(errs, ruleErrs...)
 }
 

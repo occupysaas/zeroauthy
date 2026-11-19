@@ -3447,3 +3447,48 @@ send returns `204` with an empty body. It replaces the outstanding
 credential as in a regular start.
 
 **Observation gaps (optional, not implementation blockers):** B1 whether upstream emits `limit_wc` once per block or for every denial; B2 upstream clearing of a required identifier with `null` (local: reject); B3 what `verify_phone_number` triggers (local: Plan 34 verification code); B4 the login count seen by post-login Actions (local: preserve their existing position and increment semantics). These remain unobserved; see the follow-ups.
+
+## D-0120 — Enterprise OIDC and connection keys (Plan 36)
+
+Date: 2026-11-18. Contract frozen; runtime implementation in progress.
+Sources: Plan 36 spec §2; public Auth0 Management OAS and OIDC/PKCE/claim mapping pages, checked 2026-11-18.
+
+
+| ID | Ruling |
+|---|---|
+| LR36-1 | Omitted `type` on `oidc` means `front_channel` (OpenAPI default). Existing Plan 24 connections were all stored with `back_channel`, so no stored connection changes meaning; the migration writes `type: back_channel` explicitly into any stored `oidc` options that lack it. |
+| LR36-2 | `client_secret` on a front-channel connection is refused with `400`, so an unused secret is never stored. |
+| LR36-3 | `oidc_metadata` and discovery documents are capped at 128 KiB (documented discovery limit). |
+| LR36-4 | PKCE `auto` without `code_challenge_methods_supported` sends no PKCE. |
+| LR36-5 | Upstream PAR is back channel only. |
+| LR36-6 | `dpop_signing_alg` non-null → `400` (DPoP not planned, roadmap §5). |
+| LR36-7 | `tenant_domain` (oidc/okta), `useOauthSpecScope`, `non_persistent_attrs` are stored, not enforced, marked in the console. |
+| LR36-8 | Missing claims in `use_map`: whole-value reference omits the attribute; inside a concatenation it becomes empty. |
+| LR36-9 | `GET /connections/{id}/status` for a non-AD connection answers `404` with the "connection not found or offline" shape of the OpenAPI 404, until F5. |
+| LR36-10 | HRD forwards the email as `login_hint`. |
+| LR36-11 | Several HRD matches: the client's enabled-connection order wins. |
+| LR36-12 | Key types per algorithm as in §6.1; RSA 2048. |
+| LR36-13 | No JWKS URL is published for connection keys; operators register the `cert`. |
+| LR36-14 | With encryption configured, an unencrypted ID token is refused. |
+| LR36-15 | Front-channel attempt cookies use `SameSite=None; Secure`. |
+| LR36-16 | Userinfo references are refused on front-channel connections. |
+| LR36-17 | Connection keys are never seeded or exported. |
+
+Observe later (copied into `docs/superpowers/plan-1-followups.md`):
+
+- **V1** Okta custom authorization servers through `domain`.
+- **V2** `okta` identity `user_id` format.
+- **V3** Whether `scopes` is still accepted by Auth0 as an alias of `scope`.
+- **V4** PKCE `auto` when metadata omits `code_challenge_methods_supported`.
+- **V5** Default `token_endpoint_auth_signing_alg`.
+- **V6** Where `bind_all` non-root claims appear on the user.
+- **V7** The exact restricted-claims list for mapping.
+- **V8** Claim names containing dots in templates.
+- **V9** HRD subdomain matching and multiple matches.
+- **V10** Keys API message for unsupported strategies.
+- **V11** `subject_dn` format.
+- **V12** Lazy key creation when `private_key_jwt` is set first.
+- **V13** Delete-by-email when several users of one connection share the
+  email (local: all are deleted) and the answer for an unknown email
+  (local: `204`).
+

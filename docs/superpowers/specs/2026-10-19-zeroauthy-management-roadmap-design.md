@@ -22,7 +22,7 @@ per item; items without rulings can start as soon as their track allows.
 
 | Item | Plan | Spec | Rulings needed before (parts of) implementation |
 |---|---|---|---|
-| F1 | 36 enterprise OIDC | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
+| F1 | 36 enterprise OIDC (implementation branch; verification pending) | [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md) | none |
 | P2 | 48 refresh tokens II | [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md) | none |
 | P3 | 41a OIDC extras, logout | [spec](2026-11-16-zeroauthy-oidc-extras-logout-design.md) | none (ruled 2026-11-17: no front-channel logout; spec-compliant defaults; certify logout right after 41a merges) |
 | P4 | 41b DCR and CIMD | [spec](2026-11-16-zeroauthy-dynamic-client-registration-design.md) | none |
@@ -409,6 +409,10 @@ My Organization API/self-service organization administration Plan 42.
 Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm discovery by `domain_aliases`, and `/api/v2/connections/{id}/keys` (`GET`, `POST .../rotate`) for connections that sign requests. Also `GET /api/v2/connections/{id}/status`, and `DELETE /api/v2/connections/{id}/users?email=`. Basic `oidc` back-channel login was brought forward to Plan 24; the public-cloud v2 `waad` work/school sign-in subset was implemented in Plan 25. This plan retains Entra features beyond that subset and must not reimplement its login adapters. **Short**, on Plans 24–25's federation core.
 
 **Designed 2026-11-16 (paths item F1):** [spec](2026-11-16-zeroauthy-enterprise-oidc-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-36-enterprise-oidc.md) (16 tasks, D-0120, one migration numbered at merge, store capability `connection_keys.v1`). Adds front channel, explicit endpoints, claim mapping, PKCE modes, `private_key_jwt` and encrypted ID tokens towards the provider, upstream PAR, `okta`, home realm discovery (also `waad`), connection keys, delete-users-by-email and status. `/status` is AD/LDAP only on Auth0 (F5); Okta Universal Logout moves to P3; Entra Graph groups to F4.
+
+**Implemented and locally verified/reviewed (2026-11-18):** all 16 tasks on
+`plan-36-enterprise-oidc`; full CI and maintainer approval remain before merge.
+See the [implementation record](../2026-11-16-plan-36-implementation-record.md).
 
 ### Plan 37 — SAML, WS-Federation, SCIM, self-service SSO (full design; sub-project 4)
 

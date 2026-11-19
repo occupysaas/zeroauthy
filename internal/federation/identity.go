@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
@@ -124,6 +126,9 @@ func (s *Service) provision(ctx context.Context, tx store.Store, conn *store.Con
 // applyRoot copies the profile's present root fields onto u. A changed email
 // without an explicit verification is unverified.
 func applyRoot(u *store.User, p Profile) {
+	if p.Username != nil {
+		u.Username = strings.ToLower(*p.Username)
+	}
 	if p.Email != nil {
 		if *p.Email != u.Email && p.EmailVerified == nil {
 			u.EmailVerified = false
@@ -157,7 +162,7 @@ func (s *Service) synchronize(ctx context.Context, tx store.Store, conn *store.C
 	if id == nil {
 		return fmt.Errorf("%w: index owner lacks the identity", ErrIdentityConflict)
 	}
-	providerChanged := !maps.Equal(id.ProviderData, p.ProviderData) && p.ProviderData != nil
+	providerChanged := !reflect.DeepEqual(id.ProviderData, p.ProviderData) && p.ProviderData != nil
 	if providerChanged {
 		id.ProviderData = maps.Clone(p.ProviderData)
 	}
@@ -191,7 +196,7 @@ func (s *Service) synchronize(ctx context.Context, tx store.Store, conn *store.C
 		}
 		before := *u
 		applyRoot(u, p)
-		if before.Email == u.Email && before.EmailVerified == u.EmailVerified && before.Name == u.Name && before.Nickname == u.Nickname &&
+		if before.Username == u.Username && before.Email == u.Email && before.EmailVerified == u.EmailVerified && before.Name == u.Name && before.Nickname == u.Nickname &&
 			before.GivenName == u.GivenName && before.FamilyName == u.FamilyName && before.Picture == u.Picture && !providerChanged {
 			return nil
 		}

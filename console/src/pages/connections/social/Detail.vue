@@ -11,6 +11,10 @@ import Button from '../../../ui/Button.vue'
 import ClientsTab from '../ClientsTab.vue'
 import DangerZone from '../DangerZone.vue'
 import Settings from './Settings.vue'
+import EnterpriseSettings from '../enterprise/Settings.vue'
+import Mapping from '../enterprise/Mapping.vue'
+import Keys from '../enterprise/Keys.vue'
+import LoginExperience from '../enterprise/LoginExperience.vue'
 import { isFederated } from './social'
 
 const { t } = useI18n()
@@ -22,6 +26,8 @@ const connection = ref<Connection | null>(null)
 const error = ref('')
 const notFound = ref(false)
 const tab = ref('settings')
+const oidc = computed(() => ['oidc','okta'].includes(connection.value?.strategy ?? ''))
+const enterpriseConnection = computed(() => ['oidc','okta','waad'].includes(connection.value?.strategy ?? ''))
 let seq = 0
 
 // A reload keeps the shown connection (and the editor's draft) when it
@@ -64,12 +70,14 @@ watch([tenant, () => route.params.id], load, { immediate: true })
       <TabsRoot v-model="tab">
         <TabsList class="tabs flex-wrap" :aria-label="connection.name">
           <TabsTrigger class="tab" value="settings">{{ t('social.settings') }}</TabsTrigger>
+          <TabsTrigger v-if="oidc" class="tab" value="mapping">Mapping</TabsTrigger><TabsTrigger v-if="oidc" class="tab" value="keys">Keys</TabsTrigger><TabsTrigger v-if="enterpriseConnection" class="tab" value="experience">Login experience</TabsTrigger>
           <TabsTrigger class="tab" value="clients">{{ t('social.applications') }}</TabsTrigger>
           <TabsTrigger class="tab" value="danger">{{ t('social.danger') }}</TabsTrigger>
         </TabsList>
         <TabsContent value="settings">
-          <Settings :tenant="tenant" :connection="connection" @saved="connection = $event" />
+          <EnterpriseSettings v-if="oidc" :tenant="tenant" :connection="connection" @saved="connection = $event" /><Settings v-else :tenant="tenant" :connection="connection" @saved="connection = $event" />
         </TabsContent>
+        <TabsContent v-if="oidc" value="mapping"><Mapping :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent><TabsContent v-if="oidc" value="keys"><Keys :tenant="tenant" :connection="connection" /></TabsContent><TabsContent v-if="enterpriseConnection" value="experience"><LoginExperience :tenant="tenant" :connection="connection" @saved="connection = $event" /></TabsContent>
         <TabsContent value="clients">
           <ClientsTab :tenant="tenant" :connection="connection" />
         </TabsContent>

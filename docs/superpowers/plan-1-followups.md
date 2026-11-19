@@ -733,3 +733,23 @@ Its Minors are deferred, not 1.0 blockers unless noted:
   tenant-name probe (fix for all such routes together), and `consoleApi.updateUser`'s old
   profile type (blocks typed null/verify from the console).
 
+
+## Plan 36 observation points
+
+
+- **V1** Okta custom authorization servers through `domain`.
+- **V2** `okta` identity `user_id` format.
+- **V3** Whether `scopes` is still accepted by Auth0 as an alias of `scope`.
+- **V4** PKCE `auto` when metadata omits `code_challenge_methods_supported`.
+- **V5** Default `token_endpoint_auth_signing_alg`.
+- **V6** Where `bind_all` non-root claims appear on the user.
+- **V7** The exact restricted-claims list for mapping.
+- **V8** Claim names containing dots in templates.
+- **V9** HRD subdomain matching and multiple matches.
+- **V10** Keys API message for unsupported strategies.
+- **V11** `subject_dn` format.
+- **V12** Lazy key creation when `private_key_jwt` is set first.
+- **V13** Delete-by-email when several users of one connection share the
+  email (local: all are deleted) and the answer for an unknown email
+  (local: `204`).
+

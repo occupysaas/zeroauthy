@@ -28,3 +28,7 @@ func TestLogs(t *testing.T) {
 func TestClientCredentials(t *testing.T) {
 	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "ClientCredentials")
 }
+
+func TestConnectionKeys(t *testing.T) {
+	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "ConnectionKeys")
+}
