@@ -40,7 +40,7 @@ No nonce or proof runtime implementation was present in that review.
 |---|---|---|
 | 1 Contracts, decisions, inventory | Complete; reviewed | `af75a3de`, `3b8074af`, fix `1be49d7a`; design amendments `c3affc3b`, `3c038cfa` |
 | 2 Memory store and contracts | Complete; reviewed | `e7f81cbd`, fix `d59f1c22`; memory conformance passed, no skips |
-| 3 SQL, gRPC and migration | Starting | Database verification not run yet |
+| 3 SQL, gRPC and migration | Implemented; review pending | `4df0e8cc`; SQLite/gRPC and memory/plugin tests passed; PostgreSQL/MySQL pending CI |
 | 4 Conversion and strict overlap | Pending | Not run |
 | 5 Grant cascade | Pending | Not run |
 | 6 MRRT | Pending | Not run |
@@ -109,3 +109,40 @@ already enforced by memory Rotate. Durable drivers must follow those checks.
 
 The next migration is provisionally 0042 after merged Plan 36's 0041,
 replacing the design's stale 0038. Recheck main before the eventual push.
+
+## Task 3 verification checkpoint
+
+Signed commit `4df0e8cc` contains verified tree
+`744c25c9bf0f5bd95c84c129e4ba4f204307eab3`. Tests used Go 1.26.11 and a
+short tmpfs TMPDIR/GOTMPDIR, with external SQL DSNs unset.
+
+The initial affected-store run exited 1 (session 87975, tree
+`960e0e01dbff5b406d689a32ae6a9afba19b46ee`): memory passed in 9.984s and
+real plugin-process tests passed in 52.859s, but two historical SQLite
+fixture builders and seven gRPC full-field fixtures needed updates:
+
+- `TestMigration0019PreservesLegacyHostedData/sqlite`
+- `TestNativeSocialMigrationLeavesClients/sqlite`
+- `TestTenantRoundTrip`, `TestClientRoundTrip`, `TestResourceServerRoundTrip`
+- `TestSessionRoundTrip`, `TestAuthTransactionRoundTrip`, `TestAuthCodeRoundTrip`
+- `TestRefreshTokenRoundTrip`
+
+All nine focused fixture tests then passed. The corrected complete SQL and
+gRPC retry (session 69559) exited 0: SQL 125.743s, gRPC 205.904s. No Plan 48
+case skipped. Two existing organization-limit cases skipped across the
+runs: `TestOrganizationsPluginRoundTrip/Organizations/Limits` and
+`TestConformanceThroughPluginProcess/Organizations/Limits`; the test-only
+limit setter is not forwarded through those protocol lanes. These skips
+are not passing tests. PostgreSQL and MySQL have not run locally.
+
+Generation and focused migration, capability, transport-failure and sweeper
+checks passed. Detailed initial and intermediate failures, commands,
+snapshots, logs and final exits are in `task-3-report.md` in the active plan
+workspace. Full repository and plan E2E verification remain pending.
+
+SQL uses a per-tenant refresh insertion sequence and serialization lock;
+this favors atomic family transitions over independent-family write
+parallelism. Later performance changes must preserve those atomic outcomes.
+`store.CheckRefreshTokensIISupport(ctx, st)` distinguishes support, definitive
+older-plugin refusal, and transport failure. Versioned RPC writes protect
+new fields from silent downgrade.
