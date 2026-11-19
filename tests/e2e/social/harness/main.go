@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
+	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -38,6 +39,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/server"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/storage"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	dnsfixture "github.com/zeroauthy/zeroauthy/tests/e2e/domains/dns"
@@ -97,6 +99,15 @@ func run() error {
 			return err
 		}
 		apple.EnableAppleAudit()
+	}
+	// GitHub (Plan 39c): the fixture lives under E2E_GITHUB_BASE on the idp
+	// host; adapter endpoints are pointed at it by constructor injection.
+	github := ""
+	if os.Getenv("E2E_M39C") == "1" {
+		github = os.Getenv("E2E_GITHUB_BASE")
+		if u, err := url.Parse(github); err != nil || u.Scheme != "https" || u.Host != idpHost || u.Path != "/github" {
+			return fmt.Errorf("E2E_GITHUB_BASE must be https://%s/github", idpHost)
+		}
 	}
 	var dnsMu sync.RWMutex
 	records := map[string][]string{}
@@ -179,6 +190,9 @@ func run() error {
 			base := "https://apple.idp.test/apple"
 			ps.WithAppleFixture(federation.AppleOverride{Issuer: base, DiscoveryURL: base + "/.well-known/openid-configuration", Endpoints: federation.Endpoints{AuthorizationURL: base + "/authorize", TokenURL: base + "/token", JWKSURL: base + "/jwks", TokenAuthMethod: "client_secret_post"}})
 		}
+		if github != "" {
+			ps.WithGitHubFixture(federation.GitHubOverride{Endpoints: federation.Endpoints{AuthorizationURL: github + "/login/oauth/authorize", TokenURL: github + "/login/oauth/access_token"}, APIBase: github + "/api"})
+		}
 		flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: ps, Log: slog.Default()}
 		domains := customdomain.NewService(st, &customdomain.BoundedResolver{Server: "127.0.0.1:8073"}, customdomain.ServiceConfig{SystemHost: "system.e2e.test", OriginDomain: "origin.e2e.test", OriginTLSReady: true, Proxy: customdomain.ProxyPolicy{Trusted: []netip.Prefix{netip.MustParsePrefix("127.0.0.1/32")}}}, time.Now, rand.Reader)
 		var engine *actions.Engine
@@ -206,7 +220,16 @@ func run() error {
 			worker := &actions.Worker{Engine: engine, Store: st, Workers: 1, Poll: 20 * time.Millisecond}
 			go worker.Run(ctx)
 		}
-		za := server.New(server.Deps{EmailService: emailService, Domains: domains, Store: st, Keys: km, Wrapper: wrapper, Resolver: tenant.NewResolver(st.Tenants(), "", false),
+		// Users import jobs (the GitHub lane imports github identities) run
+		// on node one only.
+		var jobNotify func()
+		if github != "" && i == 0 {
+			runner := &jobs.Runner{Store: st, Workers: 1, Poll: 50 * time.Millisecond, Log: slog.Default(),
+				Processors: map[store.JobType]jobs.Processor{store.JobUsersImport: jobs.Importer{Wrapper: wrapper, Log: slog.Default()}}}
+			go runner.Run(ctx)
+			jobNotify = runner.Notify
+		}
+		za := server.New(server.Deps{JobNotify: jobNotify, EmailService: emailService, Domains: domains, Store: st, Keys: km, Wrapper: wrapper, Resolver: tenant.NewResolver(st.Tenants(), "", false),
 			Sessions: &session.Manager{Store: st}, Log: slog.Default(), SystemHost: "system.e2e.test", Federation: flows, Actions: engine})
 		mux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if (os.Getenv("E2E_M27") == "1" || os.Getenv("E2E_M29") == "1") && strings.EqualFold(strings.Split(r.Host, ":")[0], "callback.e2e.test") {
@@ -301,6 +324,16 @@ location.replace('https://sdk.e2e.test/authorize?'+p);
 		control.HandleFunc("GET /apple/audit", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Cache-Control", "no-store")
 			_ = json.NewEncoder(w).Encode(apple.AppleAuditSecrets())
+		})
+	}
+	if github != "" {
+		control.HandleFunc("POST /github/account", func(w http.ResponseWriter, r *http.Request) {
+			var a provider.GitHubAccount
+			if json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&a) != nil || idp.RegisterGitHub(a) != nil {
+				http.Error(w, "invalid GitHub account", 400)
+				return
+			}
+			w.WriteHeader(204)
 		})
 	}
 	if os.Getenv("E2E_M28") == "1" {
