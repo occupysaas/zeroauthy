@@ -18,7 +18,7 @@ DPoP for public clients, reject combined online/offline scopes, and are not
 Management API refresh-token resources. The maintainer authorized DPoP
 support in this conversation. The amended design adds downstream DPoP as
 Task 6a before ORT Task 7, and includes its persistence in Tasks 2 and 3.
-DPoP runtime is **not implemented yet**.
+DPoP runtime is implemented and reviewed as Task 6a; plan-level E2E and full verification remain pending.
 
 The public MRRT configuration guide now specifies 10 policies per client;
 the design's previous local limit of 100 was updated. Bulk revoke retains
@@ -44,8 +44,8 @@ No nonce or proof runtime implementation was present in that review.
 | 4 Conversion and strict overlap | Complete; reviewed | `8f8d6015`, fix `31b64bac`; full OAuth and focused store/plugin tests passed |
 | 5 Grant cascade | Complete; reviewed | `5f3bf19f`, fix `3b5afed3`; focused Management/OAuth/store tests passed |
 | 6 MRRT | Complete; reviewed | `261ab36d`, fix `969f3c1f`; focused and full OAuth tests passed |
-| 6a DPoP | Starting | Runtime proof verification not yet implemented |
-| 7 ORT | Pending | Not run |
+| 6a DPoP | Complete; reviewed | `a09bed3d`, fix `c04a1e25`; required packages and 343 OAuth tests passed |
+| 7 ORT | Starting | No runtime verification result yet |
 | 8 Management runtime | Pending | Not run |
 | 9 Quotas | Pending | Not run |
 | 10 Console | Pending | Not run |
@@ -216,3 +216,28 @@ refresh, and target deletion before signing returning the wrong error.
 All 15 selected tests and 332 full OAuth tests passed (146.411s), zero skips.
 Scoped re-review approved. A Minor additional `at_hash` value assertion is
 retained for final review. DPoP runtime is next; no full-plan checks or push.
+
+## Task 6a verification
+
+`a09bed3d` implements downstream DPoP proof validation, independent nonce
+domains, replay prevention, token/PAR/UserInfo binding, shared configuration,
+CORS, scrubbing and Management/operator boundaries. New tenants default to
+strict refresh binding; absent legacy settings retain per-API behavior.
+Bound refresh-token revocation requires proof after existing owner/origin
+checks. Existing wrong-client 400 and unknown/cross-origin 200 semantics
+remain unchanged.
+
+The initial required-package run failed two OAuth MFA groups because a
+synthetic audience was treated as a stored API; the virtual-resource lookup
+was corrected. Other required packages passed and unchanged packages were
+not repeated. Additional RED/GREEN cases covered explicit bound-token
+revocation and omitted default-audience proof policy. Final build and 341
+OAuth tests passed with no skips; the task report retains all initial failure
+names/output, corrections, commands and snapshot identities.
+
+Review found two Important pre-consumption gaps: device-code proof policy
+used the wrong audience source, and a wrong client could consume or replay a
+bound authorization code. `c04a1e25` fixes both. Regressions failed first,
+then focused checks and all 343 OAuth tests passed (140.229s, zero skips).
+Scoped re-review approved. One Minor nonce-origin test improvement remains
+for final review. No full-plan verification or push has occurred.
