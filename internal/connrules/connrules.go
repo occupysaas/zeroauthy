@@ -336,8 +336,8 @@ func normalize(s *Spec, api bool) []error {
 		s.Strategy = store.StrategyDatabase
 	}
 	if s.Strategy != store.StrategyDatabase && !s.Federated() && !s.Passwordless() {
-		fail("strategy %q is not supported (only %q, %q, %q, %q, %q, %q, %q, %q or %q)", s.Strategy,
-			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD, rules.Apple,
+		fail("strategy %q is not supported (only %q, %q, %q, %q, %q, %q, %q, %q, %q or %q)", s.Strategy,
+			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD, rules.Apple, rules.GitHub,
 			StrategyEmail, StrategySMS)
 	}
 	for _, r := range s.Realms {
@@ -440,6 +440,14 @@ func normalizeFederated(s *Spec) []error {
 		}
 		if settings.Channel != "" {
 			s.Options.Extra["type"] = settings.Channel
+		}
+		if s.Strategy == rules.GitHub {
+			// The effective scope is returned, as the GitHub rules document.
+			scope := make([]any, len(settings.Scopes))
+			for i, sc := range settings.Scopes {
+				scope[i] = sc
+			}
+			s.Options.Extra["scope"] = scope
 		}
 	}
 	return append(errs, ruleErrs...)
