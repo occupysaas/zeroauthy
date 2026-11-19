@@ -297,8 +297,20 @@ func (h *Handlers) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Reques
 			return err
 		}
 		var err error
-		n, err = tx.RefreshTokens().RevokeByUser(ctx, tn.ID, id, now)
-		return err
+		tokens, err := tx.RefreshTokens().ListByUser(ctx, tn.ID, id)
+		if err != nil {
+			return err
+		}
+		for _, rt := range tokens {
+			if rt.Access == "online" {
+				continue
+			}
+			if err := tx.RefreshTokens().RevokeFamily(ctx, tn.ID, rt.FamilyID, now); err != nil {
+				return err
+			}
+			n++
+		}
+		return nil
 	})
 	if err != nil {
 		Fail(w, internalError(h, r, "delete refresh tokens", err))
@@ -350,7 +362,7 @@ func (h *Handlers) GetRefreshToken(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 	t, err := h.Store.RefreshTokens().Get(r.Context(), resolved(r).ID, id)
-	if errors.Is(err, store.ErrNotFound) || (err == nil && !tokenLive(t, h.now())) {
+	if errors.Is(err, store.ErrNotFound) || (err == nil && (t.Access == "online" || !tokenLive(t, h.now()))) {
 		Fail(w, errNoRefreshToken)
 		return
 	}
@@ -370,6 +382,10 @@ func (h *Handlers) DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id
 	}
 	ctx, tn := r.Context(), resolved(r)
 	t, err := h.Store.RefreshTokens().Get(ctx, tn.ID, id)
+	if err == nil && t.Access == "online" {
+		writeJSON(w, http.StatusAccepted, map[string]any{})
+		return
+	}
 	if err == nil {
 		// Lock the user first, as a rotation does: one in flight commits
 		// wholly before this (and its successor is in the family revoked

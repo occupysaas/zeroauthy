@@ -2,7 +2,9 @@ package mgmt_test
 
 import (
 	"context"
+	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"log/slog"
 	"net/http"
 	"testing"
@@ -38,5 +40,44 @@ func TestDPoPConfiguration(t *testing.T) {
 	rs, _ := e.st.ResourceServers().Get(context.Background(), e.tn.ID, rid)
 	if rs.ProofOfPossession != nil {
 		t.Fatal("not cleared")
+	}
+}
+
+func TestORTResourceServerConfiguration(t *testing.T) {
+	e := newClientsEnv(t)
+	rec, out := e.call(t, e.tn, m2mCaller("create:resource_servers"), "POST", "/api/v2/resource-servers", map[string]any{"identifier": "https://online.example", "allow_online_access": true, "allow_online_access_with_ephemeral_sessions": true}, e.h.CreateResourceServer)
+	if rec.Code != 201 {
+		t.Fatalf("create %d", rec.Code)
+	}
+	rs := out.(map[string]any)
+	if rs["allow_online_access"] != true || rs["allow_online_access_with_ephemeral_sessions"] != true {
+		t.Fatal("online flags not returned")
+	}
+	id := rs["id"].(string)
+	rec, _ = e.call(t, e.tn, m2mCaller("update:resource_servers"), "PATCH", "/api/v2/resource-servers/"+id, map[string]any{"allow_online_access": false}, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateResourceServer(w, r, id) })
+	if rec.Code != 200 {
+		t.Fatal(rec.Code)
+	}
+	got, err := e.st.ResourceServers().Get(t.Context(), e.tn.ID, id)
+	if err != nil || got.AllowOnlineAccess || !got.AllowOnlineAccessWithEphemeralSessions {
+		t.Fatal("patch lost flag state")
+	}
+}
+
+func TestORTConfigurationCapability(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		probe error
+		want  int
+	}{{"legacy", store.ErrRefreshTokensIIUnavailable, 400}, {"lost", store.ErrRefreshTokensIISupportLost, 500}, {"transport", errors.New("temporary probe failure"), 500}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newClientsEnv(t)
+			e.h.Log = slog.New(slog.DiscardHandler)
+			e.h.Store = grantCascadeStore{Store: e.st, probe: tc.probe}
+			rec, _ := e.call(t, e.tn, m2mCaller("create:resource_servers"), "POST", "/api/v2/resource-servers", map[string]any{"identifier": "https://unsupported-online.example", "allow_online_access": true}, e.h.CreateResourceServer)
+			if rec.Code != tc.want {
+				t.Fatalf("status %d want %d", rec.Code, tc.want)
+			}
+		})
 	}
 }

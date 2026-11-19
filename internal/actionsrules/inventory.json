@@ -716,9 +716,9 @@
         },
         {
           "name": "refreshToken.revoke",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "Plan 48 ends the login session and invalidates every online refresh token in it when this method revokes an online refresh token. Calls fail closed until the Plan 48 handler is implemented."
+          "support": "supported",
+          "evidence": "documented",
+          "note": "On refresh exchanges, revokes the token family and refuses the exchange. For online refresh tokens, ends the whole login session. Outside refresh exchanges it has no token to revoke."
         },
         {
           "name": "refreshToken.setExpiresAt",

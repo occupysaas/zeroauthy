@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/url"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
@@ -108,8 +109,28 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		return nil, oerr
 	}
 	scopes := userScopes(ac.Scopes, rs, offlineAllowed(c, rs))
+	var onlineSess *store.LoginSession
+	online := false
+	if slices.Contains(ac.Scopes, "online_access") {
+		if store.CheckRefreshTokensIISupport(ctx, h.Store) != nil {
+			return nil, serverError()
+		}
+		onlineSess, err = onlineSession(ctx, h.Store, res, user.UserID, ac.SessionID, h.now().UTC())
+		if err != nil && !errors.Is(err, errOnlineSession) {
+			return nil, serverError()
+		}
+		online = onlineEligible(c, rs, onlineSess)
+		if online {
+			if failure := onlineProof(ctx, c); failure != nil {
+				return nil, failure
+			}
+		}
+	}
+	if !online {
+		scopes = slices.DeleteFunc(scopes, func(s string) bool { return s == "online_access" })
+	}
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
+		online: online, organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
 		nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, mfaAt: ac.MFAAt, effects: eff,
 	})
 	if oerr != nil {
@@ -132,6 +153,13 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime, expiresAt: expiresAt,
 		})
 	}
+	if online && resp.Scope != nil && slices.Contains(strings.Fields(*resp.Scope), "online_access") && slices.Contains(ceiling, "online_access") {
+		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{origin: res.Origin(), dpopJKT: proofJKT(ctx), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime})
+		rt.Access = "online"
+		rt.Rotating = false
+		rt.ExpiresAt = onlineSess.ExpiresAt
+		rt.IdleExpiresAt = time.Time{}
+	}
 	// The user authenticated at /authorize, possibly long ago, so there is
 	// no Version to compare (D-0043); the user must still exist and not be
 	// blocked when the tokens are minted.
@@ -141,11 +169,37 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		if rt == nil {
 			return nil
 		}
+		if rt.Access == "online" {
+			currentClient, e := tx.Clients().Get(ctx, tenantID, c.ClientID)
+			if e != nil {
+				return e
+			}
+			currentAPI, e := tx.ResourceServers().GetByIdentifier(ctx, tenantID, ac.Audience)
+			if e != nil {
+				return e
+			}
+			currentSess, e := onlineSession(ctx, tx, res, user.UserID, ac.SessionID, h.now().UTC())
+			if e != nil {
+				return e
+			}
+			if !onlineEligible(currentClient, currentAPI, currentSess) {
+				return errOnlineSession
+			}
+			if failure := onlineProof(ctx, currentClient); failure != nil {
+				return failure
+			}
+			rt.ExpiresAt = currentSess.ExpiresAt
+			if e := tx.Sessions().Touch(ctx, tenantID, currentSess.ID, currentSess.LastInteractedAt, currentSess.IdleExpiresAt, currentSess.LastIP, currentSess.LastUserAgent); e != nil {
+				return e
+			}
+		}
 		return tx.RefreshTokens().Create(ctx, rt)
 	})
 	switch {
 	case errors.Is(err, errOrganizationGrant):
 		return nil, invalidGrant("the organization grant is no longer eligible")
+	case errors.Is(err, errOnlineSession):
+		return nil, invalidGrant("the online session is no longer eligible")
 	case errors.Is(err, errUserChanged):
 		return nil, invalidGrant("the user is not allowed to sign in")
 	case err != nil:

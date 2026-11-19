@@ -25,7 +25,7 @@ var oidcScopes = []string{"openid", "profile", "email"}
 func userScopes(requested []string, rs *store.ResourceServer, offline bool) []string {
 	var out []string
 	for _, s := range requested {
-		ok := slices.Contains(oidcScopes, s) || (offline && s == "offline_access")
+		ok := slices.Contains(oidcScopes, s) || (offline && s == "offline_access") || (s == "online_access" && rs != nil && rs.AllowOnlineAccess)
 		if !ok && rs != nil {
 			ok = slices.ContainsFunc(rs.Scopes, func(d store.Scope) bool { return d.Value == s })
 		}
@@ -138,6 +138,7 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
+	online bool
 	// mrrt records the policy and scopes used to sign a multi-resource exchange.
 	mrrt              *mrrtExchange
 	organization      *store.Organization
@@ -217,6 +218,9 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, false, oerr
 	}
 	final := ut.effects.ApplyScopes(nil, ut.scopes)
+	if !ut.online {
+		final = slices.DeleteFunc(final, func(s string) bool { return s == "online_access" })
+	}
 	if ut.mrrt != nil {
 		final = actions.CeilingOf(final, ut.scopes)
 		ut.mrrt.signedAPI, ut.mrrt.issued, ut.mrrt.frozenRBAC = ut.rs, final, frozen != nil

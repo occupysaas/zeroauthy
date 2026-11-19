@@ -122,6 +122,7 @@ type PostLoginInput struct {
 	Connection      *store.Connection
 	EnrolledFactors []map[string]any
 	Session         *store.LoginSession
+	RefreshToken    *store.RefreshToken
 	Request         RequestInfo
 	Transaction     TransactionInfo
 	Protocol        string
@@ -285,9 +286,13 @@ func sessionEvent(s *store.LoginSession) map[string]any {
 	if s == nil {
 		return nil
 	}
+	md := maps.Clone(s.Metadata)
+	if md == nil {
+		md = map[string]string{}
+	}
 	return map[string]any{"id": s.ID, "created_at": rfc3339(s.CreatedAt), "updated_at": rfc3339(s.UpdatedAt),
 		"authenticated_at": rfc3339(s.AuthenticatedAt), "last_interacted_at": rfc3339(s.LastInteractedAt),
-		"expires_at": rfc3339(s.ExpiresAt), "idle_expires_at": rfc3339(s.IdleExpiresAt)}
+		"expires_at": rfc3339(s.ExpiresAt), "idle_expires_at": rfc3339(s.IdleExpiresAt), "metadata": md}
 }
 
 func organizationEvent(o *store.Organization) map[string]any {
@@ -352,6 +357,17 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 	}
 	if rs := resourceServerEvent(in.ResourceServer); rs != nil {
 		ev["resource_server"] = rs
+	}
+	if rt := in.RefreshToken; rt != nil {
+		access := rt.Access
+		if access == "" {
+			access = "offline"
+		}
+		md := maps.Clone(rt.Metadata)
+		if md == nil {
+			md = map[string]string{}
+		}
+		ev["refresh_token"] = map[string]any{"id": rt.ID, "access": access, "metadata": md, "created_at": rfc3339(rt.CreatedAt)}
 	}
 	if s := sessionEvent(in.Session); s != nil {
 		ev["session"] = s

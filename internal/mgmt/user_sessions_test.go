@@ -2,7 +2,9 @@ package mgmt_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -541,4 +543,87 @@ func TestUnstorableIDsAndQueries(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestORTHiddenFromManagement(t *testing.T) {
+	e := newUsersEnv(t)
+	u := e.mustCreate(t, map[string]any{"email": "online@x.test"})["user_id"].(string)
+	e.addToken(t, "online", u, now, func(rt *store.RefreshToken) { rt.Access = "online"; rt.SessionID = "sess_online" })
+	code, _ := e.call2(t, "read:refresh_tokens", "GET", "/api/v2/refresh-tokens/online", func(w http.ResponseWriter, r *http.Request) { e.h.GetRefreshToken(w, r, "online") })
+	if code != 404 {
+		t.Fatalf("online token visible: %d", code)
+	}
+	code, _ = e.call2(t, "delete:refresh_tokens", "DELETE", "/api/v2/refresh-tokens/online", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteRefreshToken(w, r, "online") })
+	if code != 202 {
+		t.Fatalf("delete online %d", code)
+	}
+	rt, err := e.st.RefreshTokens().Get(t.Context(), e.tn.ID, "online")
+	if err != nil || rt.RevokedAt != nil {
+		t.Fatal("Management individually revoked ORT")
+	}
+	code, _ = e.call2(t, "delete:refresh_tokens", "DELETE", "/api/v2/users/"+u+"/refresh-tokens", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteUserRefreshTokens(w, r, u) })
+	if code != 202 {
+		t.Fatal(code)
+	}
+	rt, err = e.st.RefreshTokens().Get(t.Context(), e.tn.ID, "online")
+	if err != nil || rt.RevokedAt != nil {
+		t.Fatal("Management bulk revoked ORT")
+	}
+}
+
+func TestORTExplicitSessionRevoke(t *testing.T) {
+	e := newUsersEnv(t)
+	u := e.mustCreate(t, map[string]any{"email": "session-revoke@x.test"})["user_id"].(string)
+	e.addSession(t, "ort_session", u, now)
+	e.addToken(t, "ort", u, now, func(rt *store.RefreshToken) { rt.Access = "online"; rt.SessionID = "ort_session" })
+	e.addToken(t, "offline", u, now, func(rt *store.RefreshToken) { rt.SessionID = "ort_session" })
+	code, _ := e.call2(t, "delete:sessions delete:refresh_tokens", "POST", "/api/v2/sessions/ort_session/revoke", func(w http.ResponseWriter, r *http.Request) { e.h.RevokeSession(w, r, "ort_session") })
+	if code != 202 {
+		t.Fatalf("revoke session %d", code)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), e.tn.ID, "ort_session"); err == nil {
+		t.Fatal("session survived")
+	}
+	for _, id := range []string{"ort", "offline"} {
+		rt, err := e.st.RefreshTokens().Get(t.Context(), e.tn.ID, id)
+		if err != nil || rt.RevokedAt == nil {
+			t.Fatalf("%s survived explicit session revoke", id)
+		}
+	}
+}
+
+func TestORTSessionRevokeFailure(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		probe, revoke error
+		status        int
+	}{{"legacy", store.ErrRefreshTokensIIUnavailable, nil, 501}, {"lost", store.ErrRefreshTokensIISupportLost, nil, 500}, {"transport", errors.New("temporary storage error"), nil, 500}, {"rollback", nil, errors.New("write failed"), 500}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newUsersEnv(t)
+			u := e.mustCreate(t, map[string]any{"email": "failed-revoke@x.test"})["user_id"].(string)
+			e.addSession(t, "session", u, now)
+			e.addToken(t, "rt", u, now, func(rt *store.RefreshToken) { rt.SessionID = "session" })
+			e.h.Log = slog.New(slog.DiscardHandler)
+			e.h.Store = grantCascadeStore{Store: e.st, probe: tc.probe, revoke: tc.revoke}
+			code, _ := e.call2(t, "delete:sessions delete:refresh_tokens", "POST", "/api/v2/sessions/session/revoke", func(w http.ResponseWriter, r *http.Request) { e.h.RevokeSession(w, r, "session") })
+			if code != tc.status {
+				t.Fatalf("status %d want %d", code, tc.status)
+			}
+			if _, err := e.st.Sessions().Get(t.Context(), e.tn.ID, "session"); err != nil {
+				t.Fatal("failed request removed session")
+			}
+			rt, err := e.st.RefreshTokens().Get(t.Context(), e.tn.ID, "rt")
+			if err != nil || rt.RevokedAt != nil {
+				t.Fatal("failed request revoked token")
+			}
+		})
+	}
+}
+
+func (r grantCascadeTokens) RevokeBySession(ctx context.Context, tid, sid string, at time.Time) (int, error) {
+	n, err := r.RefreshTokens.RevokeBySession(ctx, tid, sid, at)
+	if err != nil {
+		return n, err
+	}
+	return n, r.err
 }

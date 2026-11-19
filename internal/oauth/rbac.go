@@ -94,7 +94,7 @@ func (h *Handlers) authorizeUserToken(ctx context.Context, tid, orgID string, ut
 	out.IncludePermissions = strings.HasSuffix(snap.API.TokenDialect, "_authz")
 	filtered := []string{}
 	for _, s := range out.Scopes {
-		if slices.Contains(oidcScopes, s) || s == "offline_access" || slices.Contains(out.Permissions, s) {
+		if slices.Contains(oidcScopes, s) || s == "offline_access" || s == "online_access" || slices.Contains(out.Permissions, s) {
 			filtered = append(filtered, s)
 		}
 	}

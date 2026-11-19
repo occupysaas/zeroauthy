@@ -60,8 +60,9 @@ type Spec struct {
 	// CheckWebLifetime is set when the caller sent token_lifetime_for_web:
 	// Normalize then requires it not to exceed the token lifetime. A stored
 	// web lifetime above a lowered token_lifetime is not an error (D-0041).
-	CheckWebLifetime   bool
-	AllowOfflineAccess bool
+	CheckWebLifetime                                          bool
+	AllowOfflineAccess                                        bool
+	AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions bool
 
 	SkipConsentForVerifiableFirstPartyClients *bool
 	SubjectTypeAuthorization                  store.SubjectTypeAuthorization
@@ -172,6 +173,7 @@ func Apply(rs *store.ResourceServer, s *Spec) {
 	}
 	rs.TokenLifetime, rs.TokenLifetimeForWeb = s.TokenLifetime, s.TokenLifetimeForWeb
 	rs.AllowOfflineAccess = s.AllowOfflineAccess
+	rs.AllowOnlineAccess, rs.AllowOnlineAccessWithEphemeralSessions = s.AllowOnlineAccess, s.AllowOnlineAccessWithEphemeralSessions
 	rs.SkipConsentForVerifiableFirstPartyClients = *s.SkipConsentForVerifiableFirstPartyClients
 	rs.SubjectTypeAuthorization = s.SubjectTypeAuthorization
 }
@@ -184,7 +186,8 @@ func FromResourceServer(rs *store.ResourceServer) Spec {
 		ProofOfPossession: cloneProof(rs.ProofOfPossession), Identifier: rs.Identifier, Name: rs.Name, Scopes: slices.Clone(rs.Scopes), SigningAlg: cmp.Or(rs.SigningAlg, SigningAlg),
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: cmp.Or(rs.TokenDialect, "access_token"),
 		TokenLifetime: rs.TokenLifetime, TokenLifetimeForWeb: rs.TokenLifetimeForWeb,
-		AllowOfflineAccess:                        rs.AllowOfflineAccess,
+		AllowOfflineAccess: rs.AllowOfflineAccess,
+		AllowOnlineAccess:  rs.AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions: rs.AllowOnlineAccessWithEphemeralSessions,
 		SkipConsentForVerifiableFirstPartyClients: &skip,
 		SubjectTypeAuthorization:                  rs.SubjectTypeAuthorization,
 	}

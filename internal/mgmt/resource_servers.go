@@ -150,6 +150,11 @@ func (h *Handlers) CreateResourceServer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		if rs.AllowOnlineAccess || rs.AllowOnlineAccessWithEphemeralSessions {
+			if e := checkOnlineSupport(r.Context(), tx); e != nil {
+				return e
+			}
+		}
 		if rs.ProofOfPossession != nil {
 			if e := checkMRRTSupport(r.Context(), tx); e != nil {
 				return e
@@ -204,6 +209,11 @@ func (h *Handlers) UpdateResourceServer(w http.ResponseWriter, r *http.Request, 
 		in, err := readResourceServerBody(body, &spec, false)
 		if err != nil {
 			return err
+		}
+		if spec.AllowOnlineAccess || spec.AllowOnlineAccessWithEphemeralSessions || body["allow_online_access"] != nil || body["allow_online_access_with_ephemeral_sessions"] != nil {
+			if e := checkOnlineSupport(r.Context(), tx); e != nil {
+				return e
+			}
 		}
 		if spec.ProofOfPossession != nil || body["proof_of_possession"] != nil {
 			if e := checkMRRTSupport(r.Context(), tx); e != nil {
@@ -435,6 +445,7 @@ func (h *Handlers) resourceServerView(rs *store.ResourceServer) (mgmtapi.Resourc
 		SigningAlg:         mgmtapi.ResourceServerSigningAlg(cmp.Or(rs.SigningAlg, apirules.SigningAlg)),
 		TokenLifetime:      cmp.Or(rs.TokenLifetime, apirules.DefaultTokenLifetime),
 		AllowOfflineAccess: rs.AllowOfflineAccess,
+		AllowOnlineAccess:  &rs.AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions: &rs.AllowOnlineAccessWithEphemeralSessions,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
 		TokenLifetimeForWeb:                       cmp.Or(rs.TokenLifetimeForWeb, apirules.DefaultTokenLifetimeForWeb),
 		EnforcePolicies:                           rs.EnforcePolicies,
@@ -525,6 +536,10 @@ func readResourceServerBody(body map[string]json.RawMessage, s *apirules.Spec, c
 		case "token_lifetime_for_web":
 			err = decodeLifetime(raw, &s.TokenLifetimeForWeb)
 			s.CheckWebLifetime = true
+		case "allow_online_access":
+			err = decodeStrict(raw, &s.AllowOnlineAccess)
+		case "allow_online_access_with_ephemeral_sessions":
+			err = decodeStrict(raw, &s.AllowOnlineAccessWithEphemeralSessions)
 		case "allow_offline_access":
 			err = decodeStrict(raw, &s.AllowOfflineAccess)
 		case "skip_consent_for_verifiable_first_party_clients":

@@ -70,6 +70,12 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, res tenant.Res
 		}
 		ctx = r.Context()
 	}
+	if rt.Access == "online" {
+		if e := h.endOnlineSession(ctx, res, rt); e != nil {
+			return serverError()
+		}
+		return nil
+	}
 	revoked := rt.RevokedAt == nil
 	flags, _ := res.Tenant.SettingsExtra["flags"].(map[string]any)
 	deleteGrant, _ := flags["revoke_refresh_token_grant"].(bool)

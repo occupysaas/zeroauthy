@@ -282,7 +282,7 @@ func wantSupport(trigger, name string) string {
 		return "supported"
 	}
 	switch name {
-	case "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny", "multifactor.enable":
+	case "refreshToken.revoke", "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny", "multifactor.enable":
 		return "supported"
 	}
 	switch name {

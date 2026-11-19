@@ -135,6 +135,9 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		}
 	}
 
+	if slices.Contains(strings.Fields(req.Scope), "online_access") && slices.Contains(strings.Fields(req.Scope), "offline_access") {
+		return client, errInvalidRequest("online_access and offline_access cannot be combined"), true
+	}
 	if req.DPoPJKT != "" {
 		b, e := base64.RawURLEncoding.DecodeString(req.DPoPJKT)
 		if e != nil || len(b) != 32 || len(req.DPoPJKT) != 43 {

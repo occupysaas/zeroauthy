@@ -397,8 +397,8 @@ func (a mgmtAPI) UpdateSession(w http.ResponseWriter, r *http.Request, _ string)
 	scoped(w, r, refreshTokensUnavailable, "update:sessions")
 }
 
-func (a mgmtAPI) RevokeSession(w http.ResponseWriter, r *http.Request, _ string) {
-	scopedAll(w, r, refreshTokensUnavailable, "delete:sessions", "delete:refresh_tokens")
+func (a mgmtAPI) RevokeSession(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RevokeSession(w, r, id) }, "delete:sessions", "delete:refresh_tokens")
 }
 
 func refreshTokensUnavailable(w http.ResponseWriter, _ *http.Request) {

@@ -51,3 +51,12 @@ func TestDPoPJARBinding(t *testing.T) {
 		t.Fatal("JAR lost binding")
 	}
 }
+
+func TestORTWithOffline(t *testing.T) {
+	e := newEnv(t)
+	req := ParseRequest(with(goodQuery(), "scope", "openid online_access offline_access"))
+	_, failure, _ := ValidateRequest(t.Context(), e.st, e.tenant, &req)
+	if failure == nil || failure.Code != "invalid_request" {
+		t.Fatal("combined online and offline scopes accepted")
+	}
+}

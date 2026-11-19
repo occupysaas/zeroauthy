@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
@@ -43,6 +44,7 @@ func accessProof(ctx context.Context, c *store.Client, rs *store.ResourceServer)
 func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant.Resolved, c *store.Client, form url.Values) *Error {
 	*r = *r.WithContext(context.WithValue(r.Context(), proofMintKey{}, &proofMint{}))
 	expected := ""
+	online := false
 	aud := form.Get("audience")
 	grant := form.Get("grant_type")
 	switch grant {
@@ -50,6 +52,18 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 		ac, e := h.Store.AuthCodes().Get(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("code")))
 		if e == nil && ac.ClientID == c.ClientID && res.CheckOrigin(ac.Origin) == nil {
 			expected = ac.DPoPJKT
+			online = slices.Contains(ac.Scopes, "online_access")
+			if online {
+				rs, lookup := h.Store.ResourceServers().GetByIdentifier(r.Context(), res.Tenant.ID, ac.Audience)
+				if lookup != nil && !errors.Is(lookup, store.ErrNotFound) {
+					return serverError()
+				}
+				sess, lookup := onlineSession(r.Context(), h.Store, res, ac.UserID, ac.SessionID, h.now().UTC())
+				if lookup != nil && !errors.Is(lookup, errOnlineSession) {
+					return serverError()
+				}
+				online = onlineEligible(c, rs, sess)
+			}
 			aud = ac.Audience
 		} else if e != nil && !errors.Is(e, store.ErrNotFound) {
 			return serverError()
@@ -67,6 +81,7 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 		rt, e := h.Store.RefreshTokens().GetByTokenHash(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("refresh_token")))
 		if e == nil && rt.ClientID == c.ClientID && res.CheckOrigin(rt.Origin) == nil {
 			expected = rt.DPoPJKT
+			online = rt.Access == "online"
 			if aud == "" {
 				aud = rt.Audience
 			}
@@ -102,7 +117,7 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 			ctx = logscrub.WithCredentials(ctx, v)
 		}
 		*r = *r.WithContext(ctx)
-	} else if expected != "" || c.RequireProofOfPossession {
+	} else if expected != "" || c.RequireProofOfPossession || (online && c.TokenEndpointAuthMethod == store.AuthMethodNone) {
 		return &Error{Status: 400, Code: "invalid_dpop_proof", Description: "a proof is required for this request"}
 	}
 	// Bound source validation precedes consumption even when no proof was supplied.

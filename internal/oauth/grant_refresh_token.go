@@ -106,6 +106,22 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		return nil, oerr
 	}
 	offlineGrant := rt.Access != "online"
+	var onlineSess *store.LoginSession
+	if !offlineGrant {
+		if !capable {
+			return nil, serverError()
+		}
+		onlineSess, err = onlineSession(ctx, h.Store, res, rt.UserID, rt.SessionID, now)
+		if err != nil && !errors.Is(err, errOnlineSession) {
+			return nil, serverError()
+		}
+		if errors.Is(err, errOnlineSession) || !onlineEligible(c, source, onlineSess) {
+			return nil, invalidGrant("the online session is no longer eligible")
+		}
+		if failure := onlineProof(ctx, c); failure != nil {
+			return nil, failure
+		}
+	}
 	if offlineGrant && source != nil && !source.AllowOfflineAccess {
 		return nil, invalidGrant(errOfflineAccessDisabled.Error())
 	}
@@ -162,7 +178,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	// target-scope and addScope additions are never stored with the
 	// family (whose ceiling never grows): the flow must add them again.
 	// Target edits are filtered by API definition, policy and RBAC.
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, session: onlineSess, refreshToken: rt, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
 		requested: d.Scopes, target: d.Scopes})
 	if oerr != nil {
 		return nil, oerr
@@ -183,7 +199,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	}
 	scopes = d.Scopes
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		mrrt: mrrt, organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
+		online: !offlineGrant, mrrt: mrrt, organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
 		sessionID: rt.SessionID, authTime: rt.AuthTime, refreshSessionMFA: true, effects: eff,
 	})
 	if oerr != nil {
@@ -230,6 +246,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		}
 		return nil
 	}, func(tx store.Store) error {
+		if !offlineGrant {
+			return h.finishOnline(ctx, tx, res, currentClient, rt)
+		}
 		var writeErr error
 		nextRaw, writeErr = finishRefresh(ctx, tx.RefreshTokens(), rt, currentClient, res.Origin(), h.now().UTC(), keep, capable)
 		if errors.Is(writeErr, store.ErrAlreadyUsed) {
@@ -241,6 +260,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	var policyErr *Error
 	if errors.As(err, &policyErr) {
 		return nil, policyErr
+	}
+	if errors.Is(err, errOnlineSession) {
+		return nil, invalidGrant("the online session is no longer eligible")
 	}
 	if errors.Is(err, errOfflineAccessDisabled) {
 		return nil, invalidGrant(errOfflineAccessDisabled.Error())
