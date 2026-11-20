@@ -107,32 +107,9 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 			aud = res.Tenant.DefaultAudience
 		}
 	}
-	supplied := len(r.Header.Values("DPoP")) > 0
-	if supplied {
-		service := h.DPoP
-		if service == nil {
-			service = &dpop.Service{Store: h.Store, Wrapper: h.Wrapper, Now: h.Now}
-		}
-		p, e := service.Verify(r.Context(), r, res, dpop.AuthorizationServer, c.TokenEndpointAuthMethod == store.AuthMethodNone, "", expected)
-		if e != nil {
-			if e.Nonce != "" {
-				w.Header().Set("DPoP-Nonce", e.Nonce)
-			}
-			if e.Internal {
-				return serverError()
-			}
-			return &Error{Status: 400, Code: e.Code, Description: "the proof could not be accepted"}
-		}
-		if p.Nonce != "" {
-			w.Header().Set("DPoP-Nonce", p.Nonce)
-		}
-		ctx := dpop.WithProof(r.Context(), &dpop.Proof{JKT: p.JKT})
-		for _, v := range r.Header.Values("DPoP") {
-			ctx = logscrub.WithCredentials(ctx, v)
-		}
-		*r = *r.WithContext(ctx)
-	} else if expected != "" || c.RequireProofOfPossession || (online && c.TokenEndpointAuthMethod == store.AuthMethodNone) {
-		return &Error{Status: 400, Code: "invalid_dpop_proof", Description: "a proof is required for this request"}
+	public := c.TokenEndpointAuthMethod == store.AuthMethodNone
+	if e := h.verifyProofHeader(w, r, res, public, expected, c.RequireProofOfPossession || online && public); e != nil {
+		return e
 	}
 	// Bound source validation precedes consumption even when no proof was supplied.
 	if aud != "" {
@@ -145,6 +122,41 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 			return serverError()
 		}
 	}
+	return nil
+}
+
+// verifyProofHeader authenticates this endpoint and the credential's key.
+// Access-token issuance policy belongs to the grant using the verified proof.
+func (h *Handlers) verifyProofHeader(w http.ResponseWriter, r *http.Request, res tenant.Resolved, public bool, expected string, required bool) *Error {
+	values := r.Header.Values("DPoP")
+	if len(values) == 0 {
+		if required || expected != "" {
+			return &Error{Status: 400, Code: "invalid_dpop_proof", Description: "a proof is required for this request"}
+		}
+		return nil
+	}
+	service := h.DPoP
+	if service == nil {
+		service = &dpop.Service{Store: h.Store, Wrapper: h.Wrapper, Now: h.Now}
+	}
+	p, e := service.Verify(r.Context(), r, res, dpop.AuthorizationServer, public, "", expected)
+	if e != nil {
+		if e.Nonce != "" {
+			w.Header().Set("DPoP-Nonce", e.Nonce)
+		}
+		if e.Internal {
+			return serverError()
+		}
+		return &Error{Status: 400, Code: e.Code, Description: "the proof could not be accepted"}
+	}
+	if p.Nonce != "" {
+		w.Header().Set("DPoP-Nonce", p.Nonce)
+	}
+	ctx := dpop.WithProof(r.Context(), &dpop.Proof{JKT: p.JKT})
+	for _, value := range values {
+		ctx = logscrub.WithCredentials(ctx, value)
+	}
+	*r = *r.WithContext(ctx)
 	return nil
 }
 

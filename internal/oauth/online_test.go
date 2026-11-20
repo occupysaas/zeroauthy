@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -357,6 +358,28 @@ func TestORTConfidentialProof(t *testing.T) {
 	}
 	if current, _ := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID); !current.ExpiresAt.Equal(s.ExpiresAt) {
 		t.Fatal("absolute session deadline changed")
+	}
+	client, err := f.st.Clients().Get(t.Context(), s.TenantID, "rt-web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.RequireProofOfPossession = true
+	if err := f.st.Clients().Update(t.Context(), client); err != nil {
+		t.Fatal(err)
+	}
+	form.Del("refresh_token")
+	form.Del("grant_type")
+	form.Set("token", raw)
+	req := httptest.NewRequest(http.MethodPost, "https://acme.example.test/oauth/revoke", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", formType)
+	req.Header.Set("DPoP", dpopJWT(t, key, "/oauth/revoke", ""))
+	w := httptest.NewRecorder()
+	tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(f.h.OauthRevoke)).ServeHTTP(w, req)
+	if w.Code != 200 {
+		t.Fatalf("owned online credential revocation returned %d", w.Code)
+	}
+	if _, err := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("valid owner revocation kept the online session")
 	}
 }
 func TestORTIdlePolicy(t *testing.T) {

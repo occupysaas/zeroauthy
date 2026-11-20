@@ -429,6 +429,16 @@ func TestDPoPBoundRevocation(t *testing.T) {
 			if rec.Code != 400 || rec.Header().Get("DPoP-Nonce") == "" {
 				t.Fatal("revocation nonce missing")
 			}
+			// New access tokens are ineligible at this bearer-only API. The
+			// owner still holds the proof key of the existing credential.
+			client, err := f.st.Clients().Get(t.Context(), source.TenantID, source.ClientID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			client.RequireProofOfPossession = true
+			if err := f.st.Clients().Update(t.Context(), client); err != nil {
+				t.Fatal(err)
+			}
 			rec = call(dpopJWT(t, key, "/oauth/revoke", rec.Header().Get("DPoP-Nonce")))
 			if rec.Code != 200 {
 				t.Fatalf("valid revoke %d", rec.Code)
