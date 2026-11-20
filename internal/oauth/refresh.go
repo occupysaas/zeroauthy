@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"slices"
 	"time"
 
@@ -66,8 +67,13 @@ type refreshGrant struct {
 
 // newRefreshToken builds a refresh token record for c and returns it with
 // the token value. The idle expiry starts now and never passes expiresAt.
-func (h *Handlers) newRefreshToken(c *store.Client, tenantID string, g refreshGrant) (*store.RefreshToken, string) {
-	return newRefreshTokenAt(c, tenantID, g, h.now().UTC())
+func (h *Handlers) newRefreshToken(ctx context.Context, c *store.Client, tenantID string, g refreshGrant) (*store.RefreshToken, string) {
+	rt, raw := newRefreshTokenAt(c, tenantID, g, h.now().UTC())
+	if store.CheckRefreshTokensIISupport(ctx, h.Store) == nil {
+		ri := requestInfoFrom(ctx)
+		rt.Device = &store.RefreshTokenDevice{InitialIP: ri.IP, InitialUserAgent: ri.UserAgent, LastIP: ri.IP, LastUserAgent: ri.UserAgent}
+	}
+	return rt, raw
 }
 
 func newRefreshTokenAt(c *store.Client, tenantID string, g refreshGrant, now time.Time) (*store.RefreshToken, string) {

@@ -88,7 +88,10 @@ func (h *Handlers) finishOnline(ctx context.Context, tx store.Store, res tenant.
 	if e != nil {
 		return e
 	}
-	return tx.Sessions().Touch(ctx, s.TenantID, s.ID, now, session.IdleExpiry(currentTenant, s, now), ri.IP, ri.UserAgent)
+	if err := tx.Sessions().Touch(ctx, s.TenantID, s.ID, now, session.IdleExpiry(currentTenant, s, now), ri.IP, ri.UserAgent); err != nil {
+		return err
+	}
+	return tx.RefreshTokens().RecordExchange(ctx, rt.TenantID, rt.ID, ri.IP, ri.UserAgent, now)
 }
 
 func proofJKT(ctx context.Context) string {

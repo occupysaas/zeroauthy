@@ -276,14 +276,7 @@ func (r refreshTokens) RevokeByUserClient(_ context.Context, tid, userID, client
 		if t.UserID != userID || t.ClientID != clientID {
 			return false
 		}
-		if audience == "" || t.Audience == audience {
-			return true
-		}
-		origin := t.Origin
-		if tn := r.s.tenants[tid]; origin == "" && tn != nil && tn.CanonicalHost != "" {
-			origin = "https://" + tn.CanonicalHost
-		}
-		return t.Audience == "" && origin != "" && audience == origin+"/userinfo"
+		return audience == "" || r.matchesAudience(t, audience)
 	}), nil
 }
 func (r refreshTokens) RevokeBySession(_ context.Context, tid, sessionID string, at time.Time) (int, error) {
@@ -352,4 +345,26 @@ func (r refreshTokens) RecordExchange(_ context.Context, tid, id, ip, ua string,
 	t.Device.LastIP, t.Device.LastUserAgent = ip, ua
 	t.LastExchangedAt = &at
 	return nil
+}
+
+func (r refreshTokens) RevokeOfflineByUser(_ context.Context, tid, user, client string, audience *string, at time.Time) (int, error) {
+	if user == "" {
+		return 0, store.ErrInvalid
+	}
+	r.s.lock()
+	defer r.s.unlock()
+	return r.revokeMatching(tid, at, func(t *store.RefreshToken) bool {
+		return t.Access != "online" && t.UserID == user && (client == "" || t.ClientID == client) && (audience == nil || r.matchesAudience(t, *audience))
+	}), nil
+}
+
+func (r refreshTokens) matchesAudience(t *store.RefreshToken, audience string) bool {
+	if t.Audience == audience {
+		return true
+	}
+	origin := t.Origin
+	if tn := r.s.tenants[t.TenantID]; origin == "" && tn != nil && tn.CanonicalHost != "" {
+		origin = "https://" + tn.CanonicalHost
+	}
+	return t.Audience == "" && origin != "" && audience == origin+"/userinfo"
 }

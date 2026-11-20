@@ -329,3 +329,14 @@ func TestDPoPFields(t *testing.T) {
 		}
 	}
 }
+
+func TestSessionMetadataRedacted(t *testing.T) {
+	input := []byte(`{"session_metadata":{"note":"private session value"},"refresh_token_metadata":{"note":"private refresh value"}}`)
+	output, err := logscrub.Scrub(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(output), "private session value") || strings.Contains(string(output), "private refresh value") {
+		t.Fatal("metadata escaped scrubbing")
+	}
+}

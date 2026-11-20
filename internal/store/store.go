@@ -467,6 +467,13 @@ type DeviceCodes interface {
 // is unique within a tenant. Rotation and reuse detection happen inside
 // Rotate so that drivers can make them atomic.
 type RefreshTokens interface {
+	// RevokeOfflineByUser revokes every retained offline record for the user,
+	// including rotated predecessors. Empty client selects all clients; nil
+	// audience selects all audiences, while a pointer to empty selects only
+	// the stored empty audience. Public UserInfo URLs also match empty-audience
+	// records bound to that exact origin (canonical host for originless legacy
+	// records). Already revoked timestamps are preserved.
+	RevokeOfflineByUser(ctx context.Context, tid, userID, clientID string, audience *string, at time.Time) (int, error)
 	// CheckRotation checks a rotating presentation before the grant runs Actions.
 	// Reuse revokes its family and returns ErrAlreadyUsed. A valid token is
 	// unchanged. This is not a reservation: Rotate and ConvertRotating repeat

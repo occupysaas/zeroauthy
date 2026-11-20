@@ -507,6 +507,7 @@ service StoreService {
   rpc RefreshTokensConvertNonRotating(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensConvertRotating(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensRevokeByUserClient(RefreshIIRequest) returns (CountResult);
+  rpc RefreshTokensRevokeOfflineByUser(RefreshIIRequest) returns (CountResult);
   rpc RefreshTokensRevokeBySession(RefreshIIRequest) returns (CountResult);
   rpc RefreshTokensListByUserPage(RefreshIIRequest) returns (RefreshTokenPage);
   rpc RefreshTokensUpdateMetadata(RefreshIIRequest) returns (RefreshTokenResult);
@@ -1837,6 +1838,7 @@ message RefreshIIRequest {
   string user_id = 4; string client_id = 5; string audience = 6;
   string from = 7; int32 take = 8; StringMap metadata = 9;
   string ip = 10; string user_agent = 11; google.protobuf.Timestamp at = 12;
+  bool filter_audience = 13;
 }
 message RefreshTokenPage { Error error = 1; repeated RefreshToken values = 2; string next = 3; }
 message DPoPProofRequest {

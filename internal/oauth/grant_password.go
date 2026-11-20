@@ -327,7 +327,7 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 		if absolute > 0 {
 			expiresAt = now.Add(absolute)
 		}
-		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{
 			dpopJKT:        refreshProof(ctx, res, rs),
 			organizationID: orgID, organizationConnectionID: flow.ConnectionID,
 			origin:   res.Origin(),

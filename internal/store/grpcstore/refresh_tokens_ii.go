@@ -443,3 +443,33 @@ func (s *Server) refreshIIUserGrantsGet(ctx context.Context, q *pb.ScopedKey) (*
 	}, userGrantToPB)
 	return &pb.UserGrantResult{Value: v, Error: e}, err
 }
+
+func (r clientRefreshTokens) RevokeOfflineByUser(ctx context.Context, tid, user, client string, audience *string, at time.Time) (int, error) {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return 0, err
+	}
+	q := &pb.RefreshIIRequest{TxId: r.c.txID, TenantId: tid, UserId: user, ClientId: client, At: tsToPB(at), FilterAudience: audience != nil}
+	if audience != nil {
+		q.Audience = *audience
+	}
+	res, err := r.c.rpc.RefreshTokensRevokeOfflineByUser(ctx, q)
+	if err = r.c.refreshResult("RefreshTokensRevokeOfflineByUser", res, err); err != nil {
+		return 0, err
+	}
+	return int(res.Count), nil
+}
+func (s *Server) RefreshTokensRevokeOfflineByUser(ctx context.Context, q *pb.RefreshIIRequest) (*pb.CountResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).refreshTokensRevokeOfflineByUser)
+}
+func (s *Server) refreshTokensRevokeOfflineByUser(ctx context.Context, q *pb.RefreshIIRequest) (*pb.CountResult, error) {
+	var aud *string
+	if q.FilterAudience {
+		aud = &q.Audience
+	}
+	if err := checkTS(q.At); err != nil {
+		return &pb.CountResult{Error: errToPB(err)}, nil
+	}
+	return count(s, q.TxId, func(st store.Store) (int, error) {
+		return st.RefreshTokens().RevokeOfflineByUser(ctx, q.TenantId, q.UserId, q.ClientId, aud, tsFromPB(q.At))
+	}), nil
+}

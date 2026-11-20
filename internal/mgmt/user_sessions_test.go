@@ -216,7 +216,10 @@ func TestUserRefreshTokenObject(t *testing.T) {
 	u := e.mustCreate(t, map[string]any{"email": "s@x.test"})["user_id"].(string)
 	created := now.Add(-time.Hour)
 	e.addSession(t, "sess_a", u, created)
-	e.addToken(t, "rt_a", u, created, func(r *store.RefreshToken) { r.SessionID = "sess_a" })
+	e.addToken(t, "rt_a", u, created, func(r *store.RefreshToken) {
+		r.SessionID = "sess_a"
+		r.Device = &store.RefreshTokenDevice{InitialIP: "203.0.113.7", InitialUserAgent: "agent-1", LastIP: "198.51.100.9", LastUserAgent: "agent-2"}
+	})
 	e.addToken(t, "rt_b", u, created.Add(-time.Minute), func(r *store.RefreshToken) {
 		r.Audience, r.Rotating, r.ExpiresAt, r.IdleExpiresAt, r.Scopes = "", false, time.Time{}, time.Time{}, []string{"openid"}
 	})
@@ -229,7 +232,7 @@ func TestUserRefreshTokenObject(t *testing.T) {
 		"id": "rt_a", "user_id": u, "created_at": ts, "idle_expires_at": "2026-10-18T13:00:00.000Z", "expires_at": "2026-10-19T12:00:00.000Z",
 		"client_id": "spa", "session_id": "sess_a", "rotating": true,
 		"resource_servers":  []any{map[string]any{"audience": "https://api.acme.test", "scopes": "openid offline_access read:things"}},
-		"device":            map[string]any{"initial_user_agent": "agent-1", "initial_ip": "203.0.113.7", "last_user_agent": "agent-2", "last_ip": "198.51.100.9"},
+		"device":            map[string]any{"initial_user_agent": "agent-1", "initial_ip": "203.0.113.7", "last_user_agent": "agent-2", "last_ip": "198.51.100.9", "initial_asn": "", "last_asn": ""},
 		"last_exchanged_at": nil,
 	}
 	wantB := map[string]any{
@@ -255,10 +258,10 @@ func TestUserRefreshTokenObject(t *testing.T) {
 			t.Errorf("get token %q = %d %v", id, code, out)
 		}
 	}
-	// A revoked token is gone; a token whose session is gone has no device.
+	// A revoked token is gone; token-owned device data survives session removal.
 	_ = e.st.Sessions().Delete(context.Background(), e.tn.ID, "sess_a")
 	_, one = e.call2(t, "read:refresh_tokens", "GET", "/api/v2/refresh-tokens/rt_a", func(w http.ResponseWriter, r *http.Request) { e.h.GetRefreshToken(w, r, "rt_a") })
-	if _, has := one["device"]; has || one["id"] != "rt_a" {
+	if _, has := one["device"]; !has || one["id"] != "rt_a" {
 		t.Errorf("token without session = %v", one)
 	}
 	_ = e.st.RefreshTokens().Revoke(context.Background(), e.tn.ID, "rt_a", now)

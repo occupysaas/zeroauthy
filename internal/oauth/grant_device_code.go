@@ -109,7 +109,7 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 		if absolute > 0 {
 			expiresAt = now.UTC().Add(absolute)
 		}
-		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{
 			dpopJKT:  refreshProof(ctx, res, rs),
 			origin:   res.Origin(),
 			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: ceiling, expiresAt: expiresAt,

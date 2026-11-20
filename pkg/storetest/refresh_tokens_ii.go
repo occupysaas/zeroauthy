@@ -17,6 +17,71 @@ func familyToken(id, family string, rotating bool) *store.RefreshToken {
 }
 
 func testRefreshTokensII(t *testing.T, newStore Factory) {
+	t.Run("OfflineManagementRevoke", func(t *testing.T) {
+		s := open(t, newStore)
+		ctx := context.Background()
+		repo := s.RefreshTokens()
+		for _, id := range []string{"old", "next", "other", "online", "tenant", "userinfo", "alias", "other-origin"} {
+			rt := familyToken(id, "fam-"+id, true)
+			switch id {
+			case "old":
+				at := ts(time.Second)
+				rt.RotatedAt = &at
+			case "other":
+				rt.ClientID = "other"
+			case "online":
+				rt.Access = "online"
+			case "tenant":
+				rt.TenantID = "ten_b"
+			case "userinfo":
+				rt.Audience = ""
+			case "alias":
+				rt.Audience = ""
+				rt.Origin = "https://alias.example"
+			case "other-origin":
+				rt.Audience = ""
+				rt.Origin = "https://other.example"
+			}
+			mustNoErr(t, repo.Create(ctx, rt))
+		}
+		aud := "https://alias.example/userinfo"
+		n, e := repo.RevokeOfflineByUser(ctx, "ten_a", "auth0|u1", "spa", &aud, ts(time.Minute))
+		mustNoErr(t, e)
+		mustEqual(t, n, 1)
+		otherOrigin, err := repo.Get(ctx, "ten_a", "other-origin")
+		mustNoErr(t, err)
+		mustEqual(t, otherOrigin.RevokedAt == nil, true)
+		aud = ""
+		n, e = repo.RevokeOfflineByUser(ctx, "ten_a", "auth0|u1", "spa", &aud, ts(time.Minute))
+		mustNoErr(t, e)
+		mustEqual(t, n, 2)
+		n, e = repo.RevokeOfflineByUser(ctx, "ten_a", "auth0|u1", "spa", nil, ts(time.Minute))
+		mustNoErr(t, e)
+		mustEqual(t, n, 2)
+		for _, id := range []string{"old", "next", "userinfo"} {
+			rt, e := repo.Get(ctx, "ten_a", id)
+			mustNoErr(t, e)
+			mustEqual(t, rt.RevokedAt != nil, true)
+		}
+		for _, id := range []string{"other", "online"} {
+			rt, e := repo.Get(ctx, "ten_a", id)
+			mustNoErr(t, e)
+			mustEqual(t, rt.RevokedAt == nil, true)
+		}
+		rt, e := repo.Get(ctx, "ten_b", "tenant")
+		mustNoErr(t, e)
+		mustEqual(t, rt.RevokedAt == nil, true)
+		mustErrIs(t, s.WithTx(ctx, func(tx store.Store) error {
+			_, e := tx.RefreshTokens().RevokeOfflineByUser(ctx, "ten_a", "auth0|u1", "", nil, ts(time.Minute))
+			if e != nil {
+				return e
+			}
+			return store.ErrInvalid
+		}), store.ErrInvalid)
+		rt, e = repo.Get(ctx, "ten_a", "other")
+		mustNoErr(t, e)
+		mustEqual(t, rt.RevokedAt == nil, true)
+	})
 	t.Run("GrantCascade", func(t *testing.T) { testGrantCascade(t, newStore) })
 	t.Run("CheckRotation", func(t *testing.T) { testCheckRotation(t, newStore) })
 	t.Run("ConversionFreshFamily", func(t *testing.T) { testConversionFreshFamily(t, newStore) })

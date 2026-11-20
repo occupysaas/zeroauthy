@@ -255,7 +255,13 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 			reused = true
 			return nil
 		}
-		return writeErr
+		if writeErr != nil {
+			return writeErr
+		}
+		if capable {
+			return h.recordRefreshExchange(ctx, tx.RefreshTokens(), rt, nextRaw)
+		}
+		return nil
 	})
 	var policyErr *Error
 	if errors.As(err, &policyErr) {

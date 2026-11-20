@@ -145,7 +145,7 @@ func sessionJSON(s *store.LoginSession) map[string]any {
 	for i, c := range s.ClientIDs {
 		clients[i] = map[string]any{"client_id": c}
 	}
-	return map[string]any{
+	out := map[string]any{
 		"id": s.ID, "user_id": s.UserID,
 		"created_at": userTime(s.CreatedAt), "updated_at": userTime(s.UpdatedAt),
 		"authenticated_at": userTime(s.AuthenticatedAt),
@@ -155,13 +155,17 @@ func sessionJSON(s *store.LoginSession) map[string]any {
 		"last_interacted_at": userTime(s.LastInteractedAt),
 		"cookie":             map[string]any{"mode": "persistent"},
 	}
+	if s.Metadata != nil {
+		out["session_metadata"] = s.Metadata
+	}
+	return out
 }
 
 // refreshTokenJSON renders a token as Auth0 does. The device comes from the
-// token's session, when it still exists. A token for /userinfo only lists
+// token itself, independently of the session. A token for /userinfo only lists
 // the tenant's userinfo audience as its resource server. IDs keep
 // zeroauthy's format, not Auth0's dcr_ prefix.
-func refreshTokenJSON(t *store.RefreshToken, sess *store.LoginSession, userinfoAudience string) map[string]any {
+func refreshTokenJSON(t *store.RefreshToken, userinfoAudience string) map[string]any {
 	nullable := func(at time.Time) any {
 		if at.IsZero() {
 			return nil
@@ -176,8 +180,8 @@ func refreshTokenJSON(t *store.RefreshToken, sess *store.LoginSession, userinfoA
 	if t.SessionID != "" {
 		sessionID = t.SessionID
 	}
-	if t.RotatedAt != nil {
-		exchanged = userTime(*t.RotatedAt)
+	if t.LastExchangedAt != nil {
+		exchanged = userTime(*t.LastExchangedAt)
 	}
 	m := map[string]any{
 		"id": t.ID, "user_id": t.UserID, "created_at": userTime(t.CreatedAt),
@@ -186,8 +190,11 @@ func refreshTokenJSON(t *store.RefreshToken, sess *store.LoginSession, userinfoA
 		"resource_servers":  []map[string]any{{"audience": audience, "scopes": strings.Join(t.Scopes, " ")}},
 		"last_exchanged_at": exchanged,
 	}
-	if sess != nil {
-		m["device"] = sessionDevice(sess)
+	if t.Device != nil {
+		m["device"] = map[string]any{"initial_ip": t.Device.InitialIP, "initial_asn": t.Device.InitialASN, "initial_user_agent": t.Device.InitialUserAgent, "last_ip": t.Device.LastIP, "last_asn": t.Device.LastASN, "last_user_agent": t.Device.LastUserAgent}
+	}
+	if t.Metadata != nil {
+		m["refresh_token_metadata"] = t.Metadata
 	}
 	return m
 }
@@ -256,29 +263,12 @@ func (h *Handlers) GetUserRefreshTokens(w http.ResponseWriter, r *http.Request, 
 	}
 	now := h.now()
 	all = slices.DeleteFunc(all, func(t *store.RefreshToken) bool { return !tokenLive(t, now) })
-	sessions := map[string]*store.LoginSession{}
 	audience := h.userinfoAudience(r)
 	checkpointList(w, r, "tokens", all,
 		func(t *store.RefreshToken) (time.Time, string) { return t.CreatedAt, t.ID },
 		func(t *store.RefreshToken) any {
-			return refreshTokenJSON(t, h.tokenSession(r, t, sessions), audience)
+			return refreshTokenJSON(t, audience)
 		})
-}
-
-// tokenSession returns the live session of t, if any, caching by ID.
-func (h *Handlers) tokenSession(r *http.Request, t *store.RefreshToken, cache map[string]*store.LoginSession) *store.LoginSession {
-	if t.SessionID == "" {
-		return nil
-	}
-	if s, ok := cache[t.SessionID]; ok {
-		return s
-	}
-	s, err := h.Store.Sessions().Get(r.Context(), t.TenantID, t.SessionID)
-	if err != nil {
-		s = nil
-	}
-	cache[t.SessionID] = s
-	return s
 }
 
 // DeleteUserRefreshTokens revokes every refresh token of the user and bumps
@@ -289,6 +279,12 @@ func (h *Handlers) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	ctx, tn, now := r.Context(), resolved(r), h.now()
+	support := store.CheckRefreshTokensIISupport(ctx, h.Store)
+	legacy := errors.Is(support, store.ErrRefreshTokensIIUnavailable) && !errors.Is(support, store.ErrRefreshTokensIISupportLost)
+	if support != nil && !legacy {
+		Fail(w, internalError(h, r, "check user refresh revoke capability", support))
+		return
+	}
 	// Bump first, as for sessions: a refresh rotating now is refused rather
 	// than minting a token after the revocation.
 	var n int
@@ -297,20 +293,12 @@ func (h *Handlers) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Reques
 			return err
 		}
 		var err error
-		tokens, err := tx.RefreshTokens().ListByUser(ctx, tn.ID, id)
-		if err != nil {
-			return err
+		if legacy {
+			n, err = tx.RefreshTokens().RevokeByUser(ctx, tn.ID, id, now)
+		} else {
+			n, err = tx.RefreshTokens().RevokeOfflineByUser(ctx, tn.ID, id, "", nil, h.now())
 		}
-		for _, rt := range tokens {
-			if rt.Access == "online" {
-				continue
-			}
-			if err := tx.RefreshTokens().RevokeFamily(ctx, tn.ID, rt.FamilyID, now); err != nil {
-				return err
-			}
-			n++
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		Fail(w, internalError(h, r, "delete refresh tokens", err))
@@ -370,7 +358,7 @@ func (h *Handlers) GetRefreshToken(w http.ResponseWriter, r *http.Request, id st
 		Fail(w, internalError(h, r, "get refresh token", err))
 		return
 	}
-	writeJSON(w, http.StatusOK, refreshTokenJSON(t, h.tokenSession(r, t, map[string]*store.LoginSession{}), h.userinfoAudience(r)))
+	writeJSON(w, http.StatusOK, refreshTokenJSON(t, h.userinfoAudience(r)))
 }
 
 // DeleteRefreshToken revokes a refresh token and its rotation family, also

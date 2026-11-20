@@ -352,14 +352,8 @@ func (r refreshTokens) RevokeByUserClient(ctx context.Context, tid, user, client
 	if audience == "" {
 		return r.revokeWhere(ctx, tid, at, "user_id=? AND client_id=?", user, client)
 	}
-	if origin, ok := strings.CutSuffix(audience, "/userinfo"); ok && strings.HasPrefix(origin, "https://") && len(origin) > len("https://") {
-		// An originless legacy token belongs to the pinned canonical host.
-		return r.revokeWhere(ctx, tid, at, `user_id=? AND client_id=? AND (audience=? OR
-			(audience='' AND (origin=? OR (origin='' AND EXISTS
-			(SELECT 1 FROM tenants WHERE id=? AND canonical_host=?)))))`,
-			user, client, audience, origin, tid, strings.TrimPrefix(origin, "https://"))
-	}
-	return r.revokeWhere(ctx, tid, at, "user_id=? AND client_id=? AND audience=?", user, client, audience)
+	where, args := refreshAudienceWhere(tid, audience)
+	return r.revokeWhere(ctx, tid, at, "user_id=? AND client_id=? AND ("+where+")", append([]any{user, client}, args...)...)
 }
 func (r refreshTokens) RevokeBySession(ctx context.Context, tid, id string, at time.Time) (int, error) {
 	if id == "" {
@@ -431,4 +425,29 @@ func (r refreshTokens) RecordExchange(ctx context.Context, tid, id, ip, ua strin
 		_, err = tx.exec(ctx, "UPDATE refresh_tokens SET device=?,last_exchanged_at=? WHERE tenant_id=? AND id=?", jsonColumn{&device}, micros(at), tid, id)
 		return err
 	})
+}
+
+func (r refreshTokens) RevokeOfflineByUser(ctx context.Context, tid, user, client string, audience *string, at time.Time) (int, error) {
+	if user == "" {
+		return 0, store.ErrInvalid
+	}
+	where := "access<>'online' AND user_id=?"
+	args := []any{user}
+	if client != "" {
+		where += " AND client_id=?"
+		args = append(args, client)
+	}
+	if audience != nil {
+		filter, values := refreshAudienceWhere(tid, *audience)
+		where += " AND (" + filter + ")"
+		args = append(args, values...)
+	}
+	return r.revokeWhere(ctx, tid, at, where, args...)
+}
+
+func refreshAudienceWhere(tid, audience string) (string, []any) {
+	if origin, ok := strings.CutSuffix(audience, "/userinfo"); ok && strings.HasPrefix(origin, "https://") && len(origin) > len("https://") {
+		return `audience=? OR (audience='' AND (origin=? OR (origin='' AND EXISTS (SELECT 1 FROM tenants WHERE id=? AND canonical_host=?))))`, []any{audience, origin, tid, strings.TrimPrefix(origin, "https://")}
+	}
+	return "audience=?", []any{audience}
 }

@@ -72,7 +72,7 @@ func TestConvertToRotating(t *testing.T) {
 		t.Fatal("converted token has incorrect family, rotation or lifetimes")
 	}
 	if !old.ValidSuccessor(next) || next.Access != "offline" || !slices.Equal(old.Scopes, next.Scopes) ||
-		!next.AuthTime.Equal(old.AuthTime) || !maps.Equal(next.Metadata, old.Metadata) || next.Device == nil || *next.Device != *old.Device {
+		!next.AuthTime.Equal(old.AuthTime) || !maps.Equal(next.Metadata, old.Metadata) || next.Device == nil || next.Device.InitialUserAgent != old.Device.InitialUserAgent || next.Device.InitialIP != old.Device.InitialIP || next.Device.LastIP != "192.0.2.1" || next.LastExchangedAt == nil || !next.LastExchangedAt.Equal(now) {
 		t.Fatal("conversion lost a grant binding or device detail")
 	}
 	f.requireInvalidRefresh(t, raw)

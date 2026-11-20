@@ -211,6 +211,13 @@ func TestRefreshIIRetainedDataAfterReplacement(t *testing.T) {
 			c.rpc = serveWith(t, old).rpc
 			var err error
 			switch operation {
+			case "offline-revoke":
+				_, err = c.RefreshTokens().RevokeOfflineByUser(ctx, "t", "user", "", nil, time.Now())
+			case "tx-offline-revoke":
+				err = c.WithTx(ctx, func(tx store.Store) error {
+					_, e := tx.RefreshTokens().RevokeOfflineByUser(ctx, "t", "user", "", nil, time.Now())
+					return e
+				})
 			case "session-lock":
 				_, err = c.Sessions().GetForUpdate(ctx, "t", "session")
 			case "consume":
@@ -266,7 +273,7 @@ func (s changingRefreshBackend) WithTx(ctx context.Context, fn func(store.Store)
 }
 func TestRefreshIIReceivingStore(t *testing.T) {
 	ctx := t.Context()
-	for _, op := range []string{"code", "rotate", "check-rotation", "tx-check-rotation", "tx-code", "tx-only", "session-lock", "tx-session-lock", "transient"} {
+	for _, op := range []string{"code", "rotate", "check-rotation", "tx-check-rotation", "tx-code", "tx-only", "session-lock", "tx-session-lock", "offline-revoke", "tx-offline-revoke", "transient"} {
 		t.Run(op, func(t *testing.T) {
 			backing := memory.New()
 			var declined atomic.Bool
@@ -280,7 +287,7 @@ func TestRefreshIIReceivingStore(t *testing.T) {
 				return store.ErrRefreshTokensIIUnavailable
 			}
 			srvBase := changingRefreshBackend{backing, refusal, refusal}
-			if op == "tx-only" || op == "tx-check-rotation" || op == "tx-session-lock" {
+			if op == "tx-only" || op == "tx-check-rotation" || op == "tx-session-lock" || op == "tx-offline-revoke" {
 				srvBase.probe = func() error { return nil }
 			}
 			if op == "tx-code" {
@@ -301,6 +308,13 @@ func TestRefreshIIReceivingStore(t *testing.T) {
 			}
 			var err error
 			switch op {
+			case "offline-revoke":
+				_, err = c.RefreshTokens().RevokeOfflineByUser(ctx, "t", "user", "", nil, time.Now())
+			case "tx-offline-revoke":
+				err = c.WithTx(ctx, func(tx store.Store) error {
+					_, e := tx.RefreshTokens().RevokeOfflineByUser(ctx, "t", "user", "", nil, time.Now())
+					return e
+				})
 			case "session-lock":
 				_, err = c.Sessions().GetForUpdate(ctx, "t", "session")
 			case "tx-session-lock":

@@ -145,7 +145,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		if absolute > 0 {
 			expiresAt = now.UTC().Add(absolute)
 		}
-		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{
 			dpopJKT:        refreshProof(ctx, res, rs),
 			organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID,
 			origin:   res.Origin(),
@@ -154,7 +154,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		})
 	}
 	if online && resp.Scope != nil && slices.Contains(strings.Fields(*resp.Scope), "online_access") && slices.Contains(ceiling, "online_access") {
-		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{origin: res.Origin(), dpopJKT: proofJKT(ctx), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime})
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{origin: res.Origin(), dpopJKT: proofJKT(ctx), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime})
 		rt.Access = "online"
 		rt.Rotating = false
 		rt.ExpiresAt = onlineSess.ExpiresAt

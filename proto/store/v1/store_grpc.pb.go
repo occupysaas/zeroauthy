@@ -420,6 +420,7 @@ const (
 	StoreService_RefreshTokensConvertNonRotating_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertNonRotating"
 	StoreService_RefreshTokensConvertRotating_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertRotating"
 	StoreService_RefreshTokensRevokeByUserClient_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUserClient"
+	StoreService_RefreshTokensRevokeOfflineByUser_FullMethodName              = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeOfflineByUser"
 	StoreService_RefreshTokensRevokeBySession_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeBySession"
 	StoreService_RefreshTokensListByUserPage_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensListByUserPage"
 	StoreService_RefreshTokensUpdateMetadata_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshTokensUpdateMetadata"
@@ -958,6 +959,7 @@ type StoreServiceClient interface {
 	RefreshTokensConvertNonRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensConvertRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensRevokeByUserClient(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error)
+	RefreshTokensRevokeOfflineByUser(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error)
 	RefreshTokensRevokeBySession(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error)
 	RefreshTokensListByUserPage(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*RefreshTokenPage, error)
 	RefreshTokensUpdateMetadata(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*RefreshTokenResult, error)
@@ -5049,6 +5051,16 @@ func (c *storeServiceClient) RefreshTokensRevokeByUserClient(ctx context.Context
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshTokensRevokeOfflineByUser(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensRevokeOfflineByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensRevokeBySession(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CountResult)
@@ -6035,6 +6047,7 @@ type StoreServiceServer interface {
 	RefreshTokensConvertNonRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error)
 	RefreshTokensConvertRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error)
 	RefreshTokensRevokeByUserClient(context.Context, *RefreshIIRequest) (*CountResult, error)
+	RefreshTokensRevokeOfflineByUser(context.Context, *RefreshIIRequest) (*CountResult, error)
 	RefreshTokensRevokeBySession(context.Context, *RefreshIIRequest) (*CountResult, error)
 	RefreshTokensListByUserPage(context.Context, *RefreshIIRequest) (*RefreshTokenPage, error)
 	RefreshTokensUpdateMetadata(context.Context, *RefreshIIRequest) (*RefreshTokenResult, error)
@@ -7306,6 +7319,9 @@ func (UnimplementedStoreServiceServer) RefreshTokensConvertRotating(context.Cont
 }
 func (UnimplementedStoreServiceServer) RefreshTokensRevokeByUserClient(context.Context, *RefreshIIRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRevokeByUserClient not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensRevokeOfflineByUser(context.Context, *RefreshIIRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRevokeOfflineByUser not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshTokensRevokeBySession(context.Context, *RefreshIIRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRevokeBySession not implemented")
@@ -14675,6 +14691,24 @@ func _StoreService_RefreshTokensRevokeByUserClient_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshTokensRevokeOfflineByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensRevokeOfflineByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensRevokeOfflineByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensRevokeOfflineByUser(ctx, req.(*RefreshIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensRevokeBySession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshIIRequest)
 	if err := dec(in); err != nil {
@@ -17152,6 +17186,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshTokensRevokeByUserClient",
 			Handler:    _StoreService_RefreshTokensRevokeByUserClient_Handler,
+		},
+		{
+			MethodName: "RefreshTokensRevokeOfflineByUser",
+			Handler:    _StoreService_RefreshTokensRevokeOfflineByUser_Handler,
 		},
 		{
 			MethodName: "RefreshTokensRevokeBySession",
