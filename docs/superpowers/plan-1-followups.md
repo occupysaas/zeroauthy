@@ -574,11 +574,17 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
 
 1. Tenant MFA policy on custom token exchange: keep it not applied (current,
    documented), or fail closed.
-2. JWKS without `alg`: keep, or publish `alg` again with a second PS256 entry
-   for the same key.
-3. Discovery `id_token_signing_alg_values_supported`: whether to list PS256
-   and HS256 (it lists only RS256 today).
-4. HS256 minimum secret length: 16 characters (current) or 32.
+2. JWKS without `alg`: **ruled 2026-11-19: keep it without `alg`.** `alg` is
+   optional (RFC 7517 §4.4), and RS256 and PS256 share the tenant key, so a
+   second PS256 entry for the same key would confuse key selection.
+3. Discovery `id_token_signing_alg_values_supported`: **ruled 2026-11-19:
+   list `["HS256","RS256","PS256"]`** once ID tokens can use them per client;
+   built by Plan 41a Task 5 (spec §5).
+4. HS256 minimum secret length: **ruled 2026-11-19: 32 characters** for a
+   supplied API `signing_secret` (RFC 7518 §3.2 requires at least 256 bits;
+   standing spec-compliant-by-default rule). Applies on write (Management API
+   and seed); stored shorter secrets keep signing. Built by Plan 41a Task 5.
+   Client secrets already need 48 characters, so HS256 ID tokens are covered.
 5. Seed apply deleting API-added keys on seed-owned clients.
 
 **Deferred review findings** (minor; none blocks the release):

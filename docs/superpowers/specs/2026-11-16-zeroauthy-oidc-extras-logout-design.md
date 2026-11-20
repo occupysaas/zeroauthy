@@ -447,6 +447,16 @@ Observe later (`docs/superpowers/plan-1-followups.md`):
    submission **right after Plan 41a merges** (one droplet run, maintainer
    signs). Dynamic OP is a separate submission after Plan 41b.
 
+Plan 35 follow-ups ruled 2026-11-19 (`plan-1-followups.md`, Plan 35 points
+2–4):
+
+4. Discovery lists `["HS256","RS256","PS256"]` (§5) — confirmed.
+5. The JWKS keeps omitting `alg`: RS256 and PS256 ID tokens verify against
+   the same tenant key.
+6. A supplied API `signing_secret` needs **at least 32 characters** (was 16;
+   RFC 7518 §3.2). Enforced on Management API and seed writes; stored shorter
+   secrets keep signing. Done in Task 5 with the other HS256 work.
+
 ## 12. Left to the builder
 
 - Where the claims selection lives (`internal/claims` is the natural home).
