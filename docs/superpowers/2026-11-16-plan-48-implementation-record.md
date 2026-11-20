@@ -46,8 +46,8 @@ No nonce or proof runtime implementation was present in that review.
 | 6 MRRT | Complete; reviewed | `261ab36d`, fix `969f3c1f`; focused and full OAuth tests passed |
 | 6a DPoP | Complete; reviewed | `a09bed3d`, fix `c04a1e25`; required packages and 343 OAuth tests passed |
 | 7 ORT | Complete; reviewed | `e7ae33b3`, fix `473a1850`; OAuth/supporting suites and build passed |
-| 8 Management runtime | Starting | Remaining endpoints not verified yet |
-| 9 Quotas | Pending | Not run |
+| 8 Management runtime | Complete; reviewed | `f8001e9d`, fix `227b8b11`; full Management/OAuth and supporting tests passed |
+| 9 Quotas | Starting | Enforcement not verified yet |
 | 10 Console | Pending | Not run |
 | 11 Seed and Deploy CLI | Pending | Not run |
 | 12 E2E, docs and final verification | Pending | Not run |
@@ -262,3 +262,20 @@ Task 8 still owns the retained offline-only bulk selector and remaining list,
 metadata and device/exchange recording endpoints. Explicit session revoke was
 pulled forward to Task 7. All snapshot, command and selector/test-harness
 corrections are retained in the task report; no full-plan or CI claim yet.
+
+## Task 8 verification
+
+`f8001e9d` completes token lists/bulk revoke/metadata, session metadata,
+exact offline-only retained-token selection, token-owned device/exchange
+history, real scope adapters and metadata redaction. Full Management/OAuth
+passed 833 tests with zero skips. Supporting store/SDK/router/API checks
+and build passed. Initially unmatched metadata filters were corrected and
+the exact cases ran on memory, SQLite, gRPC and the real SDK process.
+
+Review reproduced a public audience mismatch for alias-issued UserInfo
+tokens. `227b8b11` renders from the issuing origin, with canonical fallback
+for legacy records. RED/GREEN tests cover list-to-revoke using the reported
+audience and legacy views through an alias. All 470 Management tests passed
+(111.631s, zero skips); scoped re-review approved. One Minor issuance-device
+probe error classification remains for final review. Plan-wide checks and
+CI remain pending.
