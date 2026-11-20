@@ -12,6 +12,11 @@ This folder holds how zeroauthy is designed and built:
 - `plan-1-followups.md` — open follow-ups and observation points.
 - `reviews/` — whole-project reviews.
 
+P2 / Plan 48 is implemented through Task 11; the dedicated acceptance lane
+and documentation are being completed on `plan-48-refresh-tokens-ii`. Final
+local verification, whole-branch review and CI remain pending. See
+[its record](2026-11-16-plan-48-implementation-record.md).
+
 ## What to work on next
 
 Every remaining roadmap item except X1 (hosted zeroauthy, maintainer-only)

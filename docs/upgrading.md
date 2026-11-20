@@ -158,3 +158,28 @@ pass the `Authorization` header. The bundled console and server ship together.
 Reload an open console after upgrading to pick up the new client and CSP.
 Existing tenant Management endpoints and M2M credentials continue to work
 on their configured hosts.
+
+## Plan 48: refresh tokens, DPoP and quotas
+
+Back up before applying the forward-only refresh-token migration (numbered
+at integration). Old records remain offline and gain no invented proof or
+parent history. Upgrade every replica and rebuild plugins for
+`refresh_tokens_ii.v1` before enabling the new features.
+
+Overlap behavior is stricter: only the immediately previous rotating token
+can be retried inside leeway. Older-token retries revoke the entire family;
+serialize refresh and save the latest token. Legacy rotated records without
+provable parent history fail closed on retry. Configuration conversion starts
+a new lifetime and atomically invalidates the matching previous token set.
+
+Grant deletion now revokes matching refresh tokens. Explicit session revoke
+also revokes offline tokens; ordinary logout/session deletion still preserves
+offline tokens. Online tokens end with their session. New tenants enable
+strict DPoP refresh binding; existing absent/false settings retain per-API
+behavior, and existing bound records never lose their key. Public online
+clients need DPoP, including nonce retry; see [DPoP](dpop.md).
+
+Stored valid tenant quota defaults remain effective after migration. Limits
+are enforced only on successful client-credentials issuance; partial PATCH
+preserves omitted limits. Read [refresh tokens and quotas](refresh-tokens.md)
+for the Management routes, configuration and console reset-all limitation.

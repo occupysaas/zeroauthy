@@ -58,7 +58,7 @@ evidence log; the user-facing summary, with the gaps listed first, is
 | Operator-only script try (`POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try`) | Implemented | zeroauthy extension, not an Auth0 surface. Configuration values are masked in its response and in the server log (D-0042) |
 | Management API v2: `/api/v2/users` (list and v3 search, create, get, update, delete) and `/api/v2/users-by-email` | Implemented | Verified with auth0-cli 1.37.0, node-auth0 and the console (m17); contract test against `api/management.yaml`. Decision D-0043; query guide `docs/user-search.md`; observations in `docs/compat/observations/management-users.md`. Differences: search is immediately consistent; default picture uses Gravatar `d=mp`; `device.*_asn` not returned; `blocked: false` is never shown; `search_engine=v1` refused |
 | Management API v2: `/api/v2/users/{id}/identities` (link, unlink) | Implemented | By `provider`/`user_id` or `link_with` (an ID token of the calling client). Unlink recreates the secondary from `profileData` only (D-0043) |
-| Management API v2: `/api/v2/users/{id}/sessions`, `/api/v2/sessions/{id}` | Implemented | Checkpoint paging only; deletes are `202`; deleting sessions leaves refresh tokens alone (D-0043) |
+| Management API v2: `/api/v2/users/{id}/sessions`, `/api/v2/sessions/{id}` | Implemented | Checkpoint paging only; deletes are `202`; ordinary deletion preserves offline tokens and invalidates online tokens; explicit revoke ends both (D-0043, D-0070) |
 | Management API v2: `/api/v2/users/{id}/refresh-tokens`, `/api/v2/refresh-tokens/{id}` | Implemented | zeroauthy ID formats (no `dcr_` prefix); deleting one revokes its rotation family (D-0043) |
 | Management API v2: `/api/v2/grants` (list, delete by user, delete by ID) | Implemented | `clientID` (sic) and a sorted `scope` array, as Auth0 returns them (D-0043) |
 | Management API v2: `/api/v2/tickets/password-change`, `/api/v2/tickets/email-verification` | Implemented | Hosted pages `/u/reset-verify` and `/u/email-verification`; the verification email is sent at sign-up and user creation. Success page of a password-change ticket does not redirect to `result_url`, as on Auth0 (D-0043) |
@@ -235,3 +235,15 @@ Guardian `auth0` uses the tenant phone provider, `sns` is an extension,
 hosted prompt), phone-provider protection `exponential` is stored but not
 enforced (Plan 45), and gaps P1–P24 stand until observed. Guides:
 [passwordless](../passwordless.md), [phone providers](../phone-providers.md).
+
+## Plan 48 refresh-token completion
+
+The implemented surfaces are rotation conversion/strict overlap, MRRT,
+online refresh tokens with public-client DPoP, token/session metadata and
+device history, list/bulk revocation, grant cascade, explicit session revoke,
+and client-credentials quotas. See [the guide](../refresh-tokens.md).
+The dedicated acceptance lane exercises local pinned SDKs and actual Deploy
+CLI four-cell round trips. Plan-wide checks and CI are tracked separately in
+[the implementation record](../superpowers/2026-11-16-plan-48-implementation-record.md);
+this entry is not an OpenID certification claim. Upstream enterprise DPoP
+and mTLS remain unsupported.
