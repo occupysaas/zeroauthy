@@ -3,7 +3,9 @@ import {appendFile} from 'node:fs/promises';
 import {origin,redirect,API,realm,email,secrets,pkce,key,proof,token,dpopToken,fixtureFetch,api,rawApi,decode,verifyResource,management,secret,work} from './m48-node-auth0.mjs';
 test.skip(!process.env.E2E_M48_WORK,'Run make e2e-refresh-tokens');
 test.use({trace:'off'});
-async function browserContext(browser){const ctx=await browser.newContext({proxy:{server:'http://127.0.0.1:9198'},ignoreHTTPSErrors:true});await ctx.route('https://callback.e2e.test/**',r=>r.fulfill({status:200,body:'Plan48 local callback'}));const page=await ctx.newPage();page.on('console',m=>{appendFile(`${work}/browser-console.log`,m.text()+'\n');});return {ctx,page};}
+const consoleWrites=[];
+test.afterEach(async()=>{await Promise.all(consoleWrites.splice(0));});
+async function browserContext(browser){const ctx=await browser.newContext({proxy:{server:'http://127.0.0.1:9198'},ignoreHTTPSErrors:true});await ctx.route('https://callback.e2e.test/**',r=>r.fulfill({status:200,body:'Plan48 local callback'}));const page=await ctx.newPage();page.on('console',m=>{const writing=appendFile(`${work}/browser-console.log`,m.text()+'\n');consoleWrites.push(writing);writing.catch(()=>{});});return {ctx,page};}
 async function code(page,k,scope='openid email online_access',prompt='login'){
  const p=pkce();const u=new URL(`${origin}/authorize`);u.search=new URLSearchParams({client_id:'m48-public',response_type:'code',redirect_uri:redirect,scope,audience:API,code_challenge:p.challenge,code_challenge_method:'S256',state:'fixture48',dpop_jkt:k.jkt,prompt}).toString();await page.goto(u.href);
  if(prompt!=='none'&&!page.url().startsWith(redirect)){await page.fill('#username',email);await page.fill('#password',secrets().password);await page.locator('form[action="/u/login"] button[type=submit]').click();}
@@ -21,7 +23,7 @@ test('public ORT: nonce/key binding, independent API verifier, UserInfo replay, 
   const rows=await api(`refresh-tokens?user_id=${encodeURIComponent(user)}`);expect(rows.refresh_tokens.every(v=>v.client_id!=='m48-public')).toBe(true);
   const wrong=await dpopToken(key(),{grant_type:'refresh_token',client_id:'m48-public',refresh_token:t.body.refresh_token});expect(wrong.status).toBe(400);
   expect((await token({grant_type:'refresh_token',client_id:'m48-public',refresh_token:t.body.refresh_token})).body.error).toBe('invalid_dpop_proof');
-  const r=await dpopToken(k,{grant_type:'refresh_token',client_id:'m48-public',refresh_token:t.body.refresh_token},t.nonce);expect(r.status).toBe(200);expect(r.body.refresh_token).toBeUndefined();const after=await sdk.sessions.get(sid);expect(after.expires_at).toBe(before.expires_at);expect(Date.parse(after.idle_expires_at)).toBeGreaterThanOrEqual(Date.parse(before.idle_expires_at));
+  const r=await dpopToken(k,{grant_type:'refresh_token',client_id:'m48-public',refresh_token:t.body.refresh_token},t.nonce);expect(r.status).toBe(200);expect(r.body.refresh_token===undefined,'online reuse must not return an opaque successor').toBe(true);const after=await sdk.sessions.get(sid);expect(after.expires_at).toBe(before.expires_at);expect(Date.parse(after.idle_expires_at)).toBeGreaterThanOrEqual(Date.parse(before.idle_expires_at));
   const ch=await userinfo(k,r.body.access_token,t.nonce);expect(ch.r.status).toBe(401);expect(ch.r.headers.get('www-authenticate')).toContain('use_dpop_nonce');const un=await secret(ch.r.headers.get('dpop-nonce'));const good=await userinfo(k,r.body.access_token,un);expect(good.r.status).toBe(200);expect(good.body.sub).toBe(user);
   const replay=await fixtureFetch(`${origin}/userinfo`,{method:'POST',headers:{authorization:`DPoP ${r.body.access_token}`,DPoP:good.jwt}});expect(replay.status).toBe(401);
   const bearer=await fixtureFetch(`${origin}/userinfo`,{headers:{authorization:`Bearer ${r.body.access_token}`}});expect(bearer.status).toBe(401);

@@ -57,6 +57,8 @@ server_pid=${pids[-1]}
 ready=false
 for _ in $(seq 1 300); do if curl -fsS --cacert "$root/cert.pem" https://127.0.0.1:9543/healthz >/dev/null 2>&1; then ready=true; break; fi; kill -0 "$server_pid" 2>/dev/null || break; sleep 0.1; done
 [[ "$ready" == true ]] || { echo 'Plan48 server did not become ready; inspect protected server.log' >&2; exit 1; }
+node --test tests/e2e/m48-harness.test.mjs
+: > "$root/browser-console.log"
 node tests/e2e/m48-node-auth0.mjs setup
 (cd tests/e2e && ./node_modules/.bin/playwright test m48-refresh-tokens.spec.mjs --config playwright.config.mjs --output "$root/playwright-results")
 node tests/e2e/m48-node-auth0.mjs sdk
