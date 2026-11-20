@@ -259,6 +259,39 @@ func TestRefreshLegacyNegotiation(t *testing.T) {
 	}
 }
 
+func TestRefreshClientGrantAtCommit(t *testing.T) {
+	for _, rotate := range []bool{false, true} {
+		name := "convert"
+		if rotate {
+			name = "rotate"
+		}
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			f.rotationPolicy(t, rotate, 0)
+			raw, record := f.issueRefresh(t, "rt-spa", []string{"offline_access"}, acmeAPI)
+			f.rotationPolicy(t, true, 0)
+			f.h.Store = nativeBeforeTxStore{f.st, func() {
+				c, err := f.st.Clients().Get(t.Context(), record.TenantID, record.ClientID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				c.GrantTypes = slices.DeleteFunc(c.GrantTypes, func(g string) bool { return g == "refresh_token" })
+				if err := f.st.Clients().Update(t.Context(), c); err != nil {
+					t.Fatal(err)
+				}
+			}}
+			status, body := f.refresh(t, refreshForm(record.ClientID, raw))
+			if status == 200 || body["access_token"] != nil || body["refresh_token"] != nil {
+				t.Fatal("published a response after the refresh grant was disabled")
+			}
+			got, err := f.st.RefreshTokens().Get(t.Context(), record.TenantID, record.ID)
+			if err != nil || got.RotatedAt != nil || got.RevokedAt != nil || got.LastExchangedAt != nil {
+				t.Fatal("client policy refusal changed the presentation")
+			}
+		})
+	}
+}
+
 func TestRefreshPolicyAtCommit(t *testing.T) {
 	f := newFixture(t)
 	raw, rt := f.issueRefresh(t, "rt-spa", []string{"openid"}, acmeAPI)

@@ -225,6 +225,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		if err != nil {
 			return err
 		}
+		if offlineGrant && !slices.Contains(currentClient.GrantTypes, "refresh_token") {
+			return invalidRequest("the refresh grant is no longer enabled")
+		}
 		if offlineGrant && source != nil {
 			// The family remains bound to its issuing API even when the access
 			// token is for another audience.
