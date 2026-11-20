@@ -109,13 +109,16 @@ func (h *Handlers) revokeOffline(ctx context.Context, res tenant.Resolved, rt *s
 			}
 		}
 		current, err := tx.RefreshTokens().GetByTokenHash(ctx, tid, rt.TokenHash)
+		at := h.now().UTC()
 		if errors.Is(err, store.ErrNotFound) {
-			return nil
+			// Conversion or cleanup can remove the verified presentation
+			// while its family still has a live successor.
+			revoked = rt.RevokedAt == nil
+			return tx.RefreshTokens().RevokeFamily(ctx, tid, rt.FamilyID, at)
 		}
 		if err != nil {
 			return err
 		}
-		at := h.now().UTC()
 		if current.ID != rt.ID || current.UserID != rt.UserID || current.ClientID != rt.ClientID ||
 			current.DPoPJKT != rt.DPoPJKT || res.CheckOrigin(current.Origin) != nil {
 			return nil
