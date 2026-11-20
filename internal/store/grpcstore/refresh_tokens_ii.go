@@ -262,6 +262,30 @@ func (s *Server) setCodeBinding(ctx context.Context, q *pb.CodeBindingRequest) (
 	}), nil
 }
 
+func (r clientRefreshTokens) SessionOwners(ctx context.Context, tid, id string) ([]string, error) {
+	if err := r.c.requireRefreshII(ctx); err != nil {
+		return nil, err
+	}
+	res, err := r.c.rpc.RefreshIISessionTokenOwners(ctx, &pb.ScopedKey{TxId: r.c.txID, TenantId: tid, Key: id})
+	if err := r.c.refreshResult("RefreshIISessionTokenOwners", res, err); err != nil {
+		return nil, err
+	}
+	return res.GetUserIds(), nil
+}
+
+func (s *Server) RefreshIISessionTokenOwners(ctx context.Context, q *pb.ScopedKey) (*pb.SessionTokenOwnersResult, error) {
+	return withRefreshII(s, ctx, q, (*Server).sessionTokenOwners)
+}
+
+func (s *Server) sessionTokenOwners(ctx context.Context, q *pb.ScopedKey) (*pb.SessionTokenOwnersResult, error) {
+	var users []string
+	err := s.with(q.TxId, func(st store.Store) (err error) {
+		users, err = st.RefreshTokens().SessionOwners(ctx, q.TenantId, q.Key)
+		return err
+	})
+	return &pb.SessionTokenOwnersResult{UserIds: users, Error: errToPB(err)}, nil
+}
+
 func (s *Server) RefreshTokensConvertNonRotating(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
 	return withRefreshII(s, ctx, q, (*Server).refreshTokensConvertNonRotating)
 }

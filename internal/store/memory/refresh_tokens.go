@@ -307,6 +307,21 @@ func (r refreshTokens) RevokeBySession(_ context.Context, tid, sessionID string,
 	defer r.s.unlock()
 	return r.revokeMatching(tid, at, func(t *store.RefreshToken) bool { return t.SessionID == sessionID }), nil
 }
+
+func (r refreshTokens) SessionOwners(_ context.Context, tid, sessionID string) ([]string, error) {
+	if sessionID == "" {
+		return nil, store.ErrInvalid
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	owners := map[string]bool{}
+	for k, t := range r.s.refreshTokens {
+		if k.tenant == tid && t.SessionID == sessionID && t.RevokedAt == nil && t.UserID != "" {
+			owners[t.UserID] = true
+		}
+	}
+	return slices.Sorted(maps.Keys(owners)), nil
+}
 func (r refreshTokens) revokeMatching(tid string, at time.Time, matches func(*store.RefreshToken) bool) int {
 	n := 0
 	for k, t := range r.s.refreshTokens {

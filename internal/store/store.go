@@ -496,6 +496,9 @@ type RefreshTokens interface {
 	RevokeByUserClient(ctx context.Context, tid, userID, clientID, audience string, at time.Time) (int, error)
 	// RevokeBySession covers both offline and online tokens.
 	RevokeBySession(ctx context.Context, tid, sessionID string, at time.Time) (int, error)
+	// SessionOwners returns the distinct users with unrevoked tokens for this
+	// tenant and session, including rotated predecessors and online tokens.
+	SessionOwners(ctx context.Context, tid, sessionID string) ([]string, error)
 	// ListByUserPage lists unrevoked, unrotated offline tokens by ascending
 	// ID, strictly after from. A nonempty next is the last returned ID when
 	// another matching result exists. An empty clientID selects every client.

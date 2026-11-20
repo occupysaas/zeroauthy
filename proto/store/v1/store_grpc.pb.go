@@ -473,6 +473,7 @@ const (
 	StoreService_RefreshIISessionsGetForUpdate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/RefreshIISessionsGetForUpdate"
 	StoreService_GitHubFederationSupported_FullMethodName                     = "/zeroauthy.store.v1.StoreService/GitHubFederationSupported"
 	StoreService_RefreshIISetCodeBinding_FullMethodName                       = "/zeroauthy.store.v1.StoreService/RefreshIISetCodeBinding"
+	StoreService_RefreshIISessionTokenOwners_FullMethodName                   = "/zeroauthy.store.v1.StoreService/RefreshIISessionTokenOwners"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -1027,6 +1028,7 @@ type StoreServiceClient interface {
 	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
 	GitHubFederationSupported(ctx context.Context, in *GitHubFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshIISetCodeBinding(ctx context.Context, in *CodeBindingRequest, opts ...grpc.CallOption) (*Result, error)
+	RefreshIISessionTokenOwners(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionTokenOwnersResult, error)
 }
 
 type storeServiceClient struct {
@@ -5598,6 +5600,16 @@ func (c *storeServiceClient) RefreshIISetCodeBinding(ctx context.Context, in *Co
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshIISessionTokenOwners(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionTokenOwnersResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionTokenOwnersResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIISessionTokenOwners_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -6150,6 +6162,7 @@ type StoreServiceServer interface {
 	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
 	GitHubFederationSupported(context.Context, *GitHubFederationCapabilitiesRequest) (*Result, error)
 	RefreshIISetCodeBinding(context.Context, *CodeBindingRequest) (*Result, error)
+	RefreshIISessionTokenOwners(context.Context, *ScopedKey) (*SessionTokenOwnersResult, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -7521,6 +7534,9 @@ func (UnimplementedStoreServiceServer) GitHubFederationSupported(context.Context
 }
 func (UnimplementedStoreServiceServer) RefreshIISetCodeBinding(context.Context, *CodeBindingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshIISetCodeBinding not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIISessionTokenOwners(context.Context, *ScopedKey) (*SessionTokenOwnersResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIISessionTokenOwners not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -15690,6 +15706,24 @@ func _StoreService_RefreshIISetCodeBinding_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshIISessionTokenOwners_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIISessionTokenOwners(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIISessionTokenOwners_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIISessionTokenOwners(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -17500,6 +17534,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshIISetCodeBinding",
 			Handler:    _StoreService_RefreshIISetCodeBinding_Handler,
+		},
+		{
+			MethodName: "RefreshIISessionTokenOwners",
+			Handler:    _StoreService_RefreshIISessionTokenOwners_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

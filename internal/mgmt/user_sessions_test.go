@@ -595,6 +595,40 @@ func TestORTExplicitSessionRevoke(t *testing.T) {
 	}
 }
 
+func TestExplicitRevokeAfterSessionRemoval(t *testing.T) {
+	e := newUsersEnv(t)
+	ctx := t.Context()
+	uid := e.mustCreate(t, map[string]any{"email": "retained@example.test"})["user_id"].(string)
+	s := e.addSession(t, "removed", uid, now)
+	e.addToken(t, "kept-offline", uid, now, func(rt *store.RefreshToken) { rt.SessionID = s.ID })
+	e.addToken(t, "other-session", uid, now, func(rt *store.RefreshToken) { rt.SessionID = "separate" })
+	if err := e.st.Sessions().Delete(ctx, e.tn.ID, s.ID); err != nil {
+		t.Fatal(err)
+	}
+	before, err := e.st.Users().Get(ctx, e.tn.ID, uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		code, _ := e.call2(t, "delete:sessions delete:refresh_tokens", "POST", "/api/v2/sessions/removed/revoke", func(w http.ResponseWriter, r *http.Request) { e.h.RevokeSession(w, r, s.ID) })
+		if code != 202 {
+			t.Fatalf("revoke returned %d", code)
+		}
+	}
+	rt, err := e.st.RefreshTokens().Get(ctx, e.tn.ID, "kept-offline")
+	if err != nil || rt.RevokedAt == nil {
+		t.Fatal("retained session credential was not revoked")
+	}
+	other, err := e.st.RefreshTokens().Get(ctx, e.tn.ID, "other-session")
+	if err != nil || other.RevokedAt != nil {
+		t.Fatal("unrelated session changed")
+	}
+	after, err := e.st.Users().Get(ctx, e.tn.ID, uid)
+	if err != nil || after.Version != before.Version+1 {
+		t.Fatal("expected one version bump for the retained credential owner")
+	}
+}
+
 func TestORTSessionRevokeFailure(t *testing.T) {
 	for _, tc := range []struct {
 		name          string

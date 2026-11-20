@@ -17,6 +17,32 @@ func familyToken(id, family string, rotating bool) *store.RefreshToken {
 }
 
 func testRefreshTokensII(t *testing.T, newStore Factory) {
+	t.Run("SessionOwners", func(t *testing.T) {
+		ctx := context.Background()
+		repo := open(t, newStore).RefreshTokens()
+		for _, id := range []string{"current", "parent", "online", "revoked", "other-tenant", "other-session"} {
+			rt := familyToken(id, id, true)
+			rt.UserID = id
+			switch id {
+			case "parent":
+				rt.UserID, rt.RotatedAt = "current", new(ts(time.Second))
+			case "online":
+				rt.Access = "online"
+			case "revoked":
+				rt.RevokedAt = new(ts(time.Second))
+			case "other-tenant":
+				rt.TenantID = "ten_b"
+			case "other-session":
+				rt.SessionID = "other"
+			}
+			mustNoErr(t, repo.Create(ctx, rt))
+		}
+		owners, err := repo.SessionOwners(ctx, "ten_a", "s1")
+		mustNoErr(t, err)
+		mustEqual(t, owners, []string{"current", "online"})
+		_, err = repo.SessionOwners(ctx, "ten_a", "")
+		mustErrIs(t, err, store.ErrInvalid)
+	})
 	t.Run("ConversionLineage", func(t *testing.T) {
 		for _, anchor := range []string{"original", "intermediate", "deleted", "current"} {
 			t.Run(anchor, func(t *testing.T) {

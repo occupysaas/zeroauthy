@@ -396,6 +396,26 @@ func (r refreshTokens) RevokeBySession(ctx context.Context, tid, id string, at t
 	}
 	return r.revokeWhere(ctx, tid, at, "session_id=?", id)
 }
+
+func (r refreshTokens) SessionOwners(ctx context.Context, tid, id string) ([]string, error) {
+	if id == "" {
+		return nil, store.ErrInvalid
+	}
+	rows, err := r.s.query(ctx, "SELECT DISTINCT user_id FROM refresh_tokens WHERE tenant_id=? AND session_id=? AND revoked_at IS NULL AND user_id<>'' ORDER BY user_id", tid, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var owners []string
+	for rows.Next() {
+		var owner string
+		if err := rows.Scan(&owner); err != nil {
+			return nil, err
+		}
+		owners = append(owners, owner)
+	}
+	return owners, rows.Err()
+}
 func (r refreshTokens) ListByUserPage(ctx context.Context, tid, user, client, from string, take int) ([]*store.RefreshToken, string, error) {
 	if take < 1 || take > 100 {
 		return nil, "", store.ErrInvalid
