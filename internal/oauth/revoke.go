@@ -68,23 +68,12 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, res tenant.Res
 		return nil
 	}
 	revoked := rt.RevokedAt == nil
-	flags, _ := res.Tenant.SettingsExtra["flags"].(map[string]any)
-	deleteGrant, _ := flags["revoke_refresh_token_grant"].(bool)
-	// A stale presentation may end its own family, as on a legacy plugin.
-	// Only a current token can authorize deleting consent and other families.
-	deleteGrant = deleteGrant && revoked && !refreshExpired(rt, h.now())
-	if deleteGrant {
-		err = store.CheckRefreshTokensIISupport(ctx, h.Store)
-		if errors.Is(err, store.ErrRefreshTokensIIUnavailable) && !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
-			deleteGrant, err = false, nil
-		}
-	}
-	if err == nil {
-		if deleteGrant {
-			revoked, err = h.revokeGrant(ctx, res, rt)
-		} else {
-			err = h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, h.now().UTC())
-		}
+	err = store.CheckRefreshTokensIISupport(ctx, h.Store)
+	switch {
+	case err == nil:
+		revoked, err = h.revokeOffline(ctx, res, rt)
+	case errors.Is(err, store.ErrRefreshTokensIIUnavailable) && !errors.Is(err, store.ErrRefreshTokensIISupportLost):
+		err = h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, h.now().UTC())
 	}
 	if err != nil {
 		h.log().ErrorContext(ctx, "revoke refresh tokens", "tenant", tenantID, "err", err)
@@ -97,17 +86,27 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, res tenant.Res
 	return nil
 }
 
-// revokeGrant rechecks the presented token after locking its owner. A token
-// revoked or converted in the meantime cannot authorize a new grant deletion.
-func (h *Handlers) revokeGrant(ctx context.Context, res tenant.Resolved, rt *store.RefreshToken) (bool, error) {
+// revokeOffline chooses the revocation scope under the tenant policy lock.
+func (h *Handlers) revokeOffline(ctx context.Context, res tenant.Resolved, rt *store.RefreshToken) (bool, error) {
 	tid := res.Tenant.ID
 	var revoked bool
 	err := h.Store.WithTx(ctx, func(tx store.Store) error {
-		if _, err := tx.Users().GetForUpdate(ctx, tid, rt.UserID); err != nil {
-			if errors.Is(err, store.ErrNotFound) {
-				return nil
-			}
+		if err := store.CheckRefreshTokensIISupport(ctx, tx); err != nil {
 			return err
+		}
+		t, err := tx.Tenants().Get(ctx, tid)
+		if err != nil {
+			return err
+		}
+		flags, _ := t.SettingsExtra["flags"].(map[string]any)
+		deleteGrant, _ := flags["revoke_refresh_token_grant"].(bool)
+		if deleteGrant {
+			if _, err := tx.Users().GetForUpdate(ctx, tid, rt.UserID); err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					return nil
+				}
+				return err
+			}
 		}
 		current, err := tx.RefreshTokens().GetByTokenHash(ctx, tid, rt.TokenHash)
 		if errors.Is(err, store.ErrNotFound) {
@@ -118,12 +117,11 @@ func (h *Handlers) revokeGrant(ctx context.Context, res tenant.Resolved, rt *sto
 		}
 		at := h.now().UTC()
 		if current.ID != rt.ID || current.UserID != rt.UserID || current.ClientID != rt.ClientID ||
-			res.CheckOrigin(current.Origin) != nil {
+			current.DPoPJKT != rt.DPoPJKT || res.CheckOrigin(current.Origin) != nil {
 			return nil
 		}
-		if current.RevokedAt != nil || refreshExpired(current, at) {
-			// The presentation became stale while waiting for the user lock.
-			// Its verified family can still contain a live successor.
+		if !deleteGrant || current.RevokedAt != nil || refreshExpired(current, at) {
+			// A stale presentation can still have a live family successor.
 			revoked = current.RevokedAt == nil
 			return tx.RefreshTokens().RevokeFamily(ctx, tid, current.FamilyID, at)
 		}

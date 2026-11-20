@@ -146,6 +146,43 @@ func TestRevokeUnknownTokenHasEmptyBody(t *testing.T) {
 	}
 }
 
+func TestRevocationUsesCommittedTenantSetting(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		enabled bool
+	}{{"enabled", true}, {"disabled", false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			ctx := t.Context()
+			raw, first := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, acmeAPI)
+			second, _ := f.issueRefresh(t, first.ClientID, first.Scopes, acmeAPI)
+			f.revokeGrantFlag(t, first.TenantID, !tc.enabled)
+			prior, err := f.st.Tenants().Get(ctx, first.TenantID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = f.st.UserGrants().Upsert(ctx, &store.UserGrant{TenantID: first.TenantID, ID: "consent", ClientID: first.ClientID, UserID: first.UserID, Audience: acmeAPI})
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.revokeGrantFlag(t, first.TenantID, tc.enabled)
+			form := url.Values{"client_id": {first.ClientID}, "token": {raw}}
+			req := httptest.NewRequest(http.MethodPost, "https://acme.example.test/oauth/revoke", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", formType)
+			if failure := f.h.revoke(httptest.NewRecorder(), req, tenant.Resolved{Tenant: prior, Host: acmeHost}); failure != nil {
+				t.Fatal(failure.Code)
+			}
+			if f.storedRT(t, raw).RevokedAt == nil || (f.storedRT(t, second).RevokedAt != nil) != tc.enabled {
+				t.Fatal("family revocation scope did not follow the committed setting")
+			}
+			_, err = f.st.UserGrants().Find(ctx, first.TenantID, first.ClientID, first.UserID, acmeAPI)
+			if tc.enabled && !errors.Is(err, store.ErrNotFound) || !tc.enabled && err != nil {
+				t.Fatal("consent did not follow the committed setting")
+			}
+		})
+	}
+}
+
 func TestRevokeDeletesGrantFlag(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
