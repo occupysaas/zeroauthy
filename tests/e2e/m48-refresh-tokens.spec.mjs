@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {appendFile} from 'node:fs/promises';
-import {origin,redirect,API,realm,email,secrets,pkce,key,proof,token,dpopToken,fixtureFetch,api,rawApi,decode,verifyResource,management,secret,work} from './m48-node-auth0.mjs';
+import {fileURLToPath} from 'node:url';
+import {origin,redirect,API,SECOND,realm,email,secrets,pkce,key,proof,token,dpopToken,fixtureFetch,api,rawApi,decode,verifyResource,management,secret,work} from './m48-node-auth0.mjs';
 test.skip(!process.env.E2E_M48_WORK,'Run make e2e-refresh-tokens');
 test.use({trace:'off'});
 const consoleWrites=[];
@@ -52,4 +53,76 @@ test('ordinary session deletion invalidates online tokens and preserves offline 
   expect((await dpopToken(k,{grant_type:'refresh_token',client_id:'m48-public',refresh_token:online.body.refresh_token})).body.error).toBe('invalid_grant');
   expect((await dpopToken(k,{grant_type:'refresh_token',client_id:'m48-public',refresh_token:offline.body.refresh_token})).status).toBe(200);
  }finally{await ctx.close();}
+});
+
+test('rotating SPA SDK cache uses the refresh grant across two APIs', async ({browser}) => {
+ const {ctx, page} = await browserContext(browser);
+ const clientId = 'm48-spa-sdk';
+ const bundle = fileURLToPath(new URL('./node_modules/@auth0/auth0-spa-js/dist/auth0-spa-js.production.js', import.meta.url));
+ const init = async () => {
+  await page.addScriptTag({path: bundle});
+  await page.evaluate(options => { window.client = new auth0.Auth0Client(options); }, {
+   domain: new URL(origin).hostname, clientId, cacheLocation: 'localstorage',
+   useRefreshTokens: true, useRefreshTokensFallback: false, useMrrt: true,
+   authorizationParams: {redirect_uri: redirect, audience: API, scope: {[API]: 'read:one', [SECOND]: 'read:two'}},
+  });
+ };
+ const exchange = async action => {
+  const [response, result] = await Promise.all([
+   page.waitForResponse(r => r.url() === origin + '/oauth/token' && r.request().method() === 'POST'),
+   action(),
+  ]);
+  expect(response.status()).toBe(200);
+  const request = response.request().postDataJSON();
+  const body = await response.json();
+  for (const value of [request.code, request.code_verifier, body.id_token, body.access_token, body.refresh_token]) await secret(value);
+  return {request, body, result};
+ };
+ try {
+  await ctx.route(redirect + '**', r => r.fulfill({contentType: 'text/html', body: '<!doctype html><title>Plan 48 SDK fixture</title>'}));
+  await page.goto(redirect);
+  await init();
+  await page.evaluate(audience => window.client.loginWithRedirect({authorizationParams: {audience, scope: 'read:one'}}), API);
+  await page.locator('#username').fill(email);
+  await page.locator('#password').fill(secrets().password);
+  await page.locator('form[action="/u/login"] button[type=submit]').click();
+  await page.waitForURL(u => u.origin === new URL(redirect).origin);
+  await init();
+  const initial = await exchange(() => page.evaluate(() => window.client.handleRedirectCallback()));
+  expect(initial.request.grant_type).toBe('authorization_code');
+  expect(typeof initial.body.refresh_token).toBe('string');
+  expect(initial.body.scope.split(' ').sort()).toEqual(['offline_access', 'openid', 'read:one']);
+  const user = decode(initial.body.access_token).sub;
+  let previous = initial.body.refresh_token;
+  let authorizeRequests = 0;
+  page.on('request', r => { if (new URL(r.url()).pathname === '/authorize') authorizeRequests++; });
+  for (const [audience, granted, excluded] of [[SECOND, 'read:two', 'read:one'], [API, 'read:one', 'read:two']]) {
+   const {request, body, result} = await exchange(() => page.evaluate(audience =>
+    window.client.getTokenSilently({authorizationParams: {audience}, cacheMode: 'off', detailedResponse: true}), audience));
+   expect(request.grant_type).toBe('refresh_token');
+   expect(request.audience).toBe(audience);
+   expect(request.scope.split(' ')).toContain(granted);
+   expect(request.refresh_token === previous, 'SDK must send its latest cached refresh token').toBe(true);
+   expect(typeof body.refresh_token).toBe('string');
+   expect(body.refresh_token !== previous, 'each refresh must rotate').toBe(true);
+   expect(result.access_token === body.access_token, 'SDK returned the access token from this exchange').toBe(true);
+   const claims = decode(result.access_token);
+   expect([claims.aud].flat()).toContain(audience);
+   expect(claims.scope.split(' ')).toContain(granted);
+   expect(claims.scope.split(' ')).not.toContain(excluded);
+   if (audience === SECOND) expect(claims.scope).toBe('read:two');
+   previous = body.refresh_token;
+  }
+  expect(authorizeRequests).toBe(0);
+  const list = await api('refresh-tokens?user_id=' + encodeURIComponent(user) + '&client_id=' + clientId);
+  const rows = list.refresh_tokens.filter(row => row.client_id === clientId);
+  expect(rows).toHaveLength(1);
+  for (const row of rows) {
+   expect(row.rotating).toBe(true);
+   expect(row.resource_servers.map(resource => resource.audience)).toEqual([API]);
+   expect(row.resource_servers[0].scopes.split(' ').sort()).toEqual(initial.body.scope.split(' ').sort());
+  }
+ } finally {
+  await ctx.close();
+ }
 });

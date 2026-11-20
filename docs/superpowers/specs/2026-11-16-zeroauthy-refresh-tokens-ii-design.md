@@ -233,6 +233,10 @@ At `grant_type=refresh_token`:
 - Rotation proceeds as for any exchange (the new token keeps the family's
   original audience and stored scopes).
 - `id_token` is issued as today when `openid` is in the family's scopes.
+- On a cross-API exchange the token response also reports an explicitly
+  requested, family-authorized `openid` for the issued ID token and
+  `offline_access` for an offline refresh token supplied or retained. The
+  target access token contains only its permitted API scopes.
 - Post-login Actions run with `event.resource_server` = the target API and
   `event.client.refresh_token.policies` populated (documented member).
 

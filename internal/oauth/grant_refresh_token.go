@@ -298,6 +298,20 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if nextRaw != "" {
 		resp.RefreshToken = &nextRaw
 	}
+	if cross {
+		// The response also describes credentials supplied by the original
+		// identity and offline grants. The signed token contains only the
+		// second API's authorized permissions.
+		responseScopes := slices.Clone(mrrt.issued)
+		if resp.IdToken != nil && slices.Contains(requested, "openid") {
+			responseScopes = append(responseScopes, "openid")
+		}
+		if offlineGrant && keep && slices.Contains(rt.Scopes, "offline_access") && slices.Contains(requested, "offline_access") {
+			responseScopes = append(responseScopes, "offline_access")
+		}
+		scope := strings.Join(responseScopes, " ")
+		resp.Scope = &scope
+	}
 	if user != nil {
 		eventUserID = user.UserID
 	}

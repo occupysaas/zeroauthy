@@ -31,6 +31,13 @@ import {writeFile} from 'node:fs/promises';import {dump} from './tests/e2e/node_
 const s=JSON.parse(process.env.E2E_M48_CREDENTIALS),origin='https://refresh.e2e.test',api='https://api.refresh.e2e.test';
 const scopes=['read:clients','update:clients','read:resource_servers','update:resource_servers','read:users','create:users','read:refresh_tokens','update:refresh_tokens','delete:refresh_tokens','read:sessions','update:sessions','delete:sessions','read:grants','delete:grants','read:tenant_settings','update:tenant_settings'];
 const seed={tenants:[{name:'refresh',domains:['refresh.e2e.test'],default_directory:'Username-Password-Authentication',skip_non_verifiable_callback_uri_confirmation_prompt:true,clients:[{client_id:'m48-admin',app_type:'non_interactive',client_secret:s.admin,grant_types:['client_credentials']},{client_id:'m48-quota',app_type:'non_interactive',client_secret:s.quota,grant_types:['client_credentials']},{client_id:'m48-web',app_type:'regular_web',is_first_party:true,client_secret:s.web,grant_types:['authorization_code','password','refresh_token'],callbacks:['https://callback.e2e.test/']},{client_id:'m48-public',app_type:'spa',is_first_party:true,token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],callbacks:['https://callback.e2e.test/'],allowed_logout_urls:['https://callback.e2e.test/']}],resource_servers:[{identifier:api,name:'Plan48 original API',allow_offline_access:true,allow_online_access:true,skip_consent_for_verifiable_first_party_clients:true,proof_of_possession:{mechanism:'dpop',required:false},scopes:[{value:'read:one'}]},{identifier:'https://second.refresh.e2e.test',name:'Plan48 additional API',allow_offline_access:true,skip_consent_for_verifiable_first_party_clients:true,scopes:[{value:'read:two'}]}],client_grants:[{client_id:'m48-admin',audience:origin+'/api/v2/',scopes},{client_id:'m48-quota',audience:api,scopes:['read:one']}],connections:[{name:'Username-Password-Authentication',is_domain_connection:true,enabled_clients:['m48-web','m48-public']}]}]};
+const appOrigin='https://callback.e2e.test';
+seed.tenants[0].clients.push({
+ client_id:'m48-spa-sdk', app_type:'spa', is_first_party:true, token_endpoint_auth_method:'none',
+ grant_types:['authorization_code','refresh_token'], callbacks:[appOrigin+'/'], web_origins:[appOrigin], allowed_origins:[appOrigin],
+ refresh_token:{rotation_type:'rotating',expiration_type:'expiring',policies:[{audience:'https://second.refresh.e2e.test',scope:['read:two']}]},
+});
+seed.tenants[0].connections[0].enabled_clients.push('m48-spa-sdk');
 await writeFile(process.env.E2E_M48_WORK+'/seed.yaml',dump(seed),{mode:0o600});
 JS
 cat > "$root/config.yaml" <<YAML

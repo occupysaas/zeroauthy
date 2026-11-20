@@ -74,7 +74,11 @@ func TestMRRTOtherAudience(t *testing.T) {
 			t.Fatal(err)
 		}
 		code, body := f.refresh(t, refreshForm(c.ClientID, raw, "audience", billingAPI, "scope", scope))
-		if code != 200 || body["scope"] != "read:invoices" || body["expires_in"] != float64(143) || body["id_token"] == nil {
+		wantScope := "read:invoices"
+		if scope != "" {
+			wantScope += " openid"
+		}
+		if code != 200 || body["scope"] != wantScope || body["expires_in"] != float64(143) || body["id_token"] == nil {
 			t.Fatalf("status=%d scope=%v expires_in=%v id_token present=%v", code, body["scope"], body["expires_in"], body["id_token"] != nil)
 		}
 		idt, _ := verifyToken(t, f.keys, c.TenantID, body["id_token"].(string))
@@ -85,6 +89,32 @@ func TestMRRTOtherAudience(t *testing.T) {
 		if at["aud"] != billingAPI || at["scope"] != "read:invoices" {
 			t.Fatalf("aud=%v scope=%v", at["aud"], at["scope"])
 		}
+	}
+}
+
+func TestMRRTRequestedCredentialScopes(t *testing.T) {
+	f := newFixture(t)
+	c := f.mrrtClient(t, store.MRRTPolicy{Audience: billingAPI, Scope: []string{"read:invoices"}})
+	for _, tc := range []struct {
+		name     string
+		family   []string
+		response string
+	}{
+		{"id and continued offline grant", []string{"openid", "offline_access"}, "read:invoices openid offline_access"},
+		{"no identity grant", []string{"offline_access"}, "read:invoices offline_access"},
+		{"no offline grant in historic scopes", []string{"openid"}, "read:invoices openid"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw, _ := f.issueRefresh(t, c.ClientID, tc.family, acmeAPI)
+			code, body := f.refresh(t, refreshForm(c.ClientID, raw, "audience", billingAPI, "scope", "openid offline_access online_access read:invoices"))
+			if code != 200 || body["scope"] != tc.response {
+				t.Fatalf("status=%d response scope=%v", code, body["scope"])
+			}
+			claims, _ := verifyToken(t, f.keys, c.TenantID, body["access_token"].(string))
+			if claims["aud"] != billingAPI || claims["scope"] != "read:invoices" {
+				t.Fatal("second API access token exceeded its policy")
+			}
+		})
 	}
 }
 

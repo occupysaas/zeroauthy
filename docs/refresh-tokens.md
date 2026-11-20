@@ -40,7 +40,11 @@ An access token targets one API and uses that API's signing/lifetime policy.
 Rotation retains the refresh family's original audience and scopes; a
 cross-API exchange never widens that stored ceiling. Post-login Actions see
 the target API and `event.client.refresh_token.policies`. Family OIDC scopes
-determine ID-token eligibility. Use `null` to clear policies.
+determine ID-token eligibility. On a cross-API exchange, the response's
+`scope` also reports an explicitly requested `openid` when an ID token is
+returned and an explicitly requested `offline_access` when the family's
+offline grant supplies or retains a refresh token. The access token's
+`scope` contains the target API's granted permissions. Use `null` to clear policies.
 
 ## Online refresh tokens
 
