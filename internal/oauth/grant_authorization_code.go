@@ -155,11 +155,10 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		rt.ExpiresAt = onlineSess.ExpiresAt
 		rt.IdleExpiresAt = time.Time{}
 	}
-	// The user authenticated at /authorize, possibly long ago, so there is
-	// no Version to compare (D-0043); the user must still exist and not be
-	// blocked when the tokens are minted.
+	// Compare the revision sampled by this redemption, after the earlier
+	// browser authorization or device approval.
 	replayed := false
-	err = h.mintCheckedTx(ctx, tenantID, user.UserID, nil, func(tx store.Store) error {
+	err = h.mintCheckedTx(ctx, tenantID, user.UserID, &user.Version, func(tx store.Store) error {
 		return checkTokenOrganization(ctx, tx, tenantID, user.UserID, ac.OrganizationID, ac.OrganizationConnectionID, c.ClientID)
 	}, func(tx store.Store) error {
 		if rt != nil && rt.Access == "online" {
