@@ -27,6 +27,30 @@ func sealedEffects() []byte { return []byte{0, 0xff, 0xfe, 'e', 0, 0x80, 0x7f} }
 func testAuthCodes(t *testing.T, newStore Factory) {
 	ctx := context.Background()
 
+	t.Run("RedemptionBinding", func(t *testing.T) {
+		s := open(t, newStore)
+		repo := s.AuthCodes()
+		mustNoErr(t, repo.Create(ctx, newAuthCode("ten_a", "claim")))
+		mustErrIs(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "", "first"), store.ErrNotFound)
+		_, err := repo.Consume(ctx, "ten_a", "claim", ts(time.Second))
+		mustNoErr(t, err)
+		mustNoErr(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "", "first"))
+		mustErrIs(t, repo.SetRedemptionBinding(ctx, "ten_b", "claim", "first", ""), store.ErrNotFound)
+		mustErrIs(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "other", ""), store.ErrNotFound)
+		mustErrIs(t, s.WithTx(ctx, func(tx store.Store) error {
+			if err := tx.AuthCodes().SetRedemptionBinding(ctx, "ten_a", "claim", "first", ""); err != nil {
+				return err
+			}
+			return store.ErrInvalid
+		}), store.ErrInvalid)
+		got, err := repo.Get(ctx, "ten_a", "claim")
+		mustNoErr(t, err)
+		mustEqual(t, got.DPoPJKT, "first")
+		mustNoErr(t, repo.SetRedemptionBinding(ctx, "ten_a", "claim", "first", ""))
+		got, err = repo.Get(ctx, "ten_a", "claim")
+		mustNoErr(t, err)
+		mustEqual(t, got.DPoPJKT, "")
+	})
 	t.Run("ConsumeOnce", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h1")))

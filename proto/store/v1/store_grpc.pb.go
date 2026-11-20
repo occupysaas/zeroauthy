@@ -472,6 +472,7 @@ const (
 	StoreService_RefreshIIUserGrantsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshIIUserGrantsGet"
 	StoreService_RefreshIISessionsGetForUpdate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/RefreshIISessionsGetForUpdate"
 	StoreService_GitHubFederationSupported_FullMethodName                     = "/zeroauthy.store.v1.StoreService/GitHubFederationSupported"
+	StoreService_RefreshIISetCodeBinding_FullMethodName                       = "/zeroauthy.store.v1.StoreService/RefreshIISetCodeBinding"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -1025,6 +1026,7 @@ type StoreServiceClient interface {
 	// Plan 39c capability: github identities are indexed by canonical numeric ID.
 	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
 	GitHubFederationSupported(ctx context.Context, in *GitHubFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
+	RefreshIISetCodeBinding(ctx context.Context, in *CodeBindingRequest, opts ...grpc.CallOption) (*Result, error)
 }
 
 type storeServiceClient struct {
@@ -5586,6 +5588,16 @@ func (c *storeServiceClient) GitHubFederationSupported(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshIISetCodeBinding(ctx context.Context, in *CodeBindingRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIISetCodeBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -6137,6 +6149,7 @@ type StoreServiceServer interface {
 	// Plan 39c capability: github identities are indexed by canonical numeric ID.
 	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
 	GitHubFederationSupported(context.Context, *GitHubFederationCapabilitiesRequest) (*Result, error)
+	RefreshIISetCodeBinding(context.Context, *CodeBindingRequest) (*Result, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -7505,6 +7518,9 @@ func (UnimplementedStoreServiceServer) RefreshIISessionsGetForUpdate(context.Con
 }
 func (UnimplementedStoreServiceServer) GitHubFederationSupported(context.Context, *GitHubFederationCapabilitiesRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method GitHubFederationSupported not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIISetCodeBinding(context.Context, *CodeBindingRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIISetCodeBinding not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -15656,6 +15672,24 @@ func _StoreService_GitHubFederationSupported_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshIISetCodeBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CodeBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIISetCodeBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIISetCodeBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIISetCodeBinding(ctx, req.(*CodeBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -17462,6 +17496,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GitHubFederationSupported",
 			Handler:    _StoreService_GitHubFederationSupported_Handler,
+		},
+		{
+			MethodName: "RefreshIISetCodeBinding",
+			Handler:    _StoreService_RefreshIISetCodeBinding_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

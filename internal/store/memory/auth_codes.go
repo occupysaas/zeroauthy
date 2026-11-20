@@ -49,6 +49,17 @@ func (r authCodes) Get(_ context.Context, tenantID, codeHash string) (*store.Aut
 	return cloneAuthCode(c), nil
 }
 
+func (r authCodes) SetRedemptionBinding(_ context.Context, tid, hash, expected, binding string) error {
+	r.s.lock()
+	defer r.s.unlock()
+	c := r.s.authCodes[key{tid, hash}]
+	if c == nil || c.UsedAt == nil || c.DPoPJKT != expected {
+		return store.ErrNotFound
+	}
+	c.DPoPJKT = binding
+	return nil
+}
+
 func (r authCodes) DeleteExpired(_ context.Context, before time.Time) (int, error) {
 	r.s.lock()
 	defer r.s.unlock()

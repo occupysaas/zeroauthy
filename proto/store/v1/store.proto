@@ -578,7 +578,9 @@ service StoreService {
   // Plan 39c capability: github identities are indexed by canonical numeric ID.
   // Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
   rpc GitHubFederationSupported(GitHubFederationCapabilitiesRequest) returns (Result);
+  rpc RefreshIISetCodeBinding(CodeBindingRequest) returns (Result);
 }
+
 
 // ---- errors and generic results ----
 
@@ -1861,3 +1863,11 @@ message QuotaRequest { string tx_id = 1; string tenant_id = 2; repeated QuotaSub
 message QuotaResponse { Error error = 1; repeated QuotaStateMsg states = 2; }
 
 message GitHubFederationCapabilitiesRequest { string tx_id = 1; }
+
+message CodeBindingRequest {
+  string tx_id = 1;
+  string tenant_id = 2;
+  string hash = 3;
+  string expected = 4;
+  string binding = 5;
+}

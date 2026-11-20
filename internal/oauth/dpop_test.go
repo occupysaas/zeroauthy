@@ -70,6 +70,10 @@ func TestDPoPCodeAndRefresh(t *testing.T) {
 	if rt.DPoPJKT == "" {
 		t.Fatal("refresh not bound")
 	}
+	ac, e = f.st.AuthCodes().Get(context.Background(), rt.TenantID, secrets.HashToken(code))
+	if e != nil || ac.DPoPJKT != rt.DPoPJKT {
+		t.Fatal("redeemed authorization code did not retain its issued credential's key")
+	}
 	if body["token_type"] != "Bearer" {
 		t.Fatal("unconfigured API access bound")
 	}
@@ -91,6 +95,54 @@ func TestDPoPCodeAndRefresh(t *testing.T) {
 		t.Fatal("binding lost")
 	}
 }
+func TestCodeClaimSerializesProofBinding(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	tid := f.tenantID(t, "acme")
+	tn, err := f.st.Tenants().Get(ctx, tid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := tenant.Resolved{Tenant: tn, Host: acmeHost}
+	const hash = "synthetic-code-row"
+	if err := f.st.AuthCodes().Create(ctx, &store.AuthCode{TenantID: tid, CodeHash: hash, ClientID: "spa"}); err != nil {
+		t.Fatal(err)
+	}
+	type claim struct {
+		key string
+		err error
+	}
+	start, done := make(chan struct{}), make(chan claim, 2)
+	for _, key := range []string{"first", "second"} {
+		go func() {
+			<-start
+			_, err := f.h.claimAuthorizationCode(dpop.WithProof(ctx, &dpop.Proof{JKT: key}), res, "spa", hash, fixedNow())
+			done <- claim{key, err}
+		}()
+	}
+	close(start)
+	var winner string
+	for range 2 {
+		result := <-done
+		if result.err == nil {
+			if winner != "" {
+				t.Fatal("multiple winning claims")
+			}
+			winner = result.key
+		} else if failure, ok := result.err.(*Error); !ok || failure.Code != "invalid_dpop_proof" {
+			t.Fatal("unexpected competing claim result")
+		}
+	}
+	_, err = f.h.claimAuthorizationCode(ctx, res, "spa", hash, fixedNow())
+	if failure, ok := err.(*Error); !ok || failure.Code != "invalid_dpop_proof" {
+		t.Fatal("claim without the winning key was accepted")
+	}
+	code, err := f.st.AuthCodes().Get(ctx, tid, hash)
+	if err != nil || winner == "" || code.DPoPJKT != winner || code.ReplayedAt != nil {
+		t.Fatal("competing claims changed the winning binding or replay marker")
+	}
+}
+
 func TestDPoPPolicy(t *testing.T) {
 	for _, tc := range []struct {
 		name                                    string

@@ -30145,6 +30145,82 @@ func (x *GitHubFederationCapabilitiesRequest) GetTxId() string {
 	return ""
 }
 
+type CodeBindingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TxId          string                 `protobuf:"bytes,1,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Hash          string                 `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+	Expected      string                 `protobuf:"bytes,4,opt,name=expected,proto3" json:"expected,omitempty"`
+	Binding       string                 `protobuf:"bytes,5,opt,name=binding,proto3" json:"binding,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CodeBindingRequest) Reset() {
+	*x = CodeBindingRequest{}
+	mi := &file_store_proto_msgTypes[392]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CodeBindingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CodeBindingRequest) ProtoMessage() {}
+
+func (x *CodeBindingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_store_proto_msgTypes[392]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CodeBindingRequest.ProtoReflect.Descriptor instead.
+func (*CodeBindingRequest) Descriptor() ([]byte, []int) {
+	return file_store_proto_rawDescGZIP(), []int{392}
+}
+
+func (x *CodeBindingRequest) GetTxId() string {
+	if x != nil {
+		return x.TxId
+	}
+	return ""
+}
+
+func (x *CodeBindingRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *CodeBindingRequest) GetHash() string {
+	if x != nil {
+		return x.Hash
+	}
+	return ""
+}
+
+func (x *CodeBindingRequest) GetExpected() string {
+	if x != nil {
+		return x.Expected
+	}
+	return ""
+}
+
+func (x *CodeBindingRequest) GetBinding() string {
+	if x != nil {
+		return x.Binding
+	}
+	return ""
+}
+
 var File_store_proto protoreflect.FileDescriptor
 
 const file_store_proto_rawDesc = "" +
@@ -32923,7 +32999,13 @@ const file_store_proto_rawDesc = "" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x129\n" +
 	"\x06states\x18\x02 \x03(\v2!.zeroauthy.store.v1.QuotaStateMsgR\x06states\":\n" +
 	"#GitHubFederationCapabilitiesRequest\x12\x13\n" +
-	"\x05tx_id\x18\x01 \x01(\tR\x04txId2\xc7\xe3\x02\n" +
+	"\x05tx_id\x18\x01 \x01(\tR\x04txId\"\x90\x01\n" +
+	"\x12CodeBindingRequest\x12\x13\n" +
+	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x12\n" +
+	"\x04hash\x18\x03 \x01(\tR\x04hash\x12\x1a\n" +
+	"\bexpected\x18\x04 \x01(\tR\bexpected\x12\x18\n" +
+	"\abinding\x18\x05 \x01(\tR\abinding2\xa6\xe4\x02\n" +
 	"\fStoreService\x12`\n" +
 	"\x0fMFACapabilities\x12\x1f.zeroauthy.store.v1.PingRequest\x1a,.zeroauthy.store.v1.EventsCapabilitiesResult\x12g\n" +
 	"\x0eMFAGetGuardian\x12).zeroauthy.store.v1.MFAGetGuardianRequest\x1a*.zeroauthy.store.v1.MFAGetGuardianResponse\x12g\n" +
@@ -33387,7 +33469,8 @@ const file_store_proto_rawDesc = "" +
 	"\x11JobsDeleteExpired\x12(.zeroauthy.store.v1.DeleteExpiredRequest\x1a\x1f.zeroauthy.store.v1.CountResult\x12\\\n" +
 	"\x16RefreshIIUserGrantsGet\x12\x1d.zeroauthy.store.v1.ScopedKey\x1a#.zeroauthy.store.v1.UserGrantResult\x12a\n" +
 	"\x1dRefreshIISessionsGetForUpdate\x12\x1d.zeroauthy.store.v1.ScopedKey\x1a!.zeroauthy.store.v1.SessionResult\x12p\n" +
-	"\x19GitHubFederationSupported\x127.zeroauthy.store.v1.GitHubFederationCapabilitiesRequest\x1a\x1a.zeroauthy.store.v1.ResultB7Z5github.com/zeroauthy/zeroauthy/proto/store/v1;storev1b\x06proto3"
+	"\x19GitHubFederationSupported\x127.zeroauthy.store.v1.GitHubFederationCapabilitiesRequest\x1a\x1a.zeroauthy.store.v1.Result\x12]\n" +
+	"\x17RefreshIISetCodeBinding\x12&.zeroauthy.store.v1.CodeBindingRequest\x1a\x1a.zeroauthy.store.v1.ResultB7Z5github.com/zeroauthy/zeroauthy/proto/store/v1;storev1b\x06proto3"
 
 var (
 	file_store_proto_rawDescOnce sync.Once
@@ -33402,7 +33485,7 @@ func file_store_proto_rawDescGZIP() []byte {
 }
 
 var file_store_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_store_proto_msgTypes = make([]protoimpl.MessageInfo, 396)
+var file_store_proto_msgTypes = make([]protoimpl.MessageInfo, 397)
 var file_store_proto_goTypes = []any{
 	(Error_Kind)(0),                                   // 0: zeroauthy.store.v1.Error.Kind
 	(UserQuery_Op)(0),                                 // 1: zeroauthy.store.v1.UserQuery.Op
@@ -33799,34 +33882,35 @@ var file_store_proto_goTypes = []any{
 	(*QuotaRequest)(nil),                              // 392: zeroauthy.store.v1.QuotaRequest
 	(*QuotaResponse)(nil),                             // 393: zeroauthy.store.v1.QuotaResponse
 	(*GitHubFederationCapabilitiesRequest)(nil),       // 394: zeroauthy.store.v1.GitHubFederationCapabilitiesRequest
-	nil,                           // 395: zeroauthy.store.v1.StringMap.ValuesEntry
-	nil,                           // 396: zeroauthy.store.v1.MFAGuardian.FactorsEntry
-	nil,                           // 397: zeroauthy.store.v1.MFAGuardian.StoredEntry
-	nil,                           // 398: zeroauthy.store.v1.MFAGuardian.SealedSecretsEntry
-	(*timestamppb.Timestamp)(nil), // 399: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),   // 400: google.protobuf.Duration
+	(*CodeBindingRequest)(nil),                        // 395: zeroauthy.store.v1.CodeBindingRequest
+	nil,                                               // 396: zeroauthy.store.v1.StringMap.ValuesEntry
+	nil,                                               // 397: zeroauthy.store.v1.MFAGuardian.FactorsEntry
+	nil,                                               // 398: zeroauthy.store.v1.MFAGuardian.StoredEntry
+	nil,                                               // 399: zeroauthy.store.v1.MFAGuardian.SealedSecretsEntry
+	(*timestamppb.Timestamp)(nil),                     // 400: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),                       // 401: google.protobuf.Duration
 }
 var file_store_proto_depIdxs = []int32{
 	0,    // 0: zeroauthy.store.v1.Error.kind:type_name -> zeroauthy.store.v1.Error.Kind
 	3,    // 1: zeroauthy.store.v1.Result.error:type_name -> zeroauthy.store.v1.Error
 	3,    // 2: zeroauthy.store.v1.CountResult.error:type_name -> zeroauthy.store.v1.Error
 	6,    // 3: zeroauthy.store.v1.CountResult.job_outcomes:type_name -> zeroauthy.store.v1.JobOutcome
-	399,  // 4: zeroauthy.store.v1.JobOutcome.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 4: zeroauthy.store.v1.JobOutcome.updated_at:type_name -> google.protobuf.Timestamp
 	3,    // 5: zeroauthy.store.v1.BeginTxResponse.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 6: zeroauthy.store.v1.TouchRequest.idle_expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 7: zeroauthy.store.v1.TouchRequest.at:type_name -> google.protobuf.Timestamp
-	399,  // 8: zeroauthy.store.v1.DeleteExpiredRequest.before:type_name -> google.protobuf.Timestamp
-	399,  // 9: zeroauthy.store.v1.ConsumeRequest.at:type_name -> google.protobuf.Timestamp
-	399,  // 10: zeroauthy.store.v1.RevokeRequest.at:type_name -> google.protobuf.Timestamp
-	395,  // 11: zeroauthy.store.v1.StringMap.values:type_name -> zeroauthy.store.v1.StringMap.ValuesEntry
+	400,  // 6: zeroauthy.store.v1.TouchRequest.idle_expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 7: zeroauthy.store.v1.TouchRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 8: zeroauthy.store.v1.DeleteExpiredRequest.before:type_name -> google.protobuf.Timestamp
+	400,  // 9: zeroauthy.store.v1.ConsumeRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 10: zeroauthy.store.v1.RevokeRequest.at:type_name -> google.protobuf.Timestamp
+	396,  // 11: zeroauthy.store.v1.StringMap.values:type_name -> zeroauthy.store.v1.StringMap.ValuesEntry
 	17,   // 12: zeroauthy.store.v1.Tenant.domains:type_name -> zeroauthy.store.v1.StringList
 	17,   // 13: zeroauthy.store.v1.Tenant.allowed_logout_urls:type_name -> zeroauthy.store.v1.StringList
 	17,   // 14: zeroauthy.store.v1.Tenant.enabled_locales:type_name -> zeroauthy.store.v1.StringList
 	20,   // 15: zeroauthy.store.v1.Tenant.branding:type_name -> zeroauthy.store.v1.Branding
-	399,  // 16: zeroauthy.store.v1.Tenant.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 16: zeroauthy.store.v1.Tenant.created_at:type_name -> google.protobuf.Timestamp
 	379,  // 17: zeroauthy.store.v1.Tenant.default_token_quota:type_name -> zeroauthy.store.v1.DefaultQuotaMsg
-	399,  // 18: zeroauthy.store.v1.ClientSecret.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 19: zeroauthy.store.v1.ClientSecret.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 18: zeroauthy.store.v1.ClientSecret.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 19: zeroauthy.store.v1.ClientSecret.expires_at:type_name -> google.protobuf.Timestamp
 	21,   // 20: zeroauthy.store.v1.ClientSecretList.values:type_name -> zeroauthy.store.v1.ClientSecret
 	382,  // 21: zeroauthy.store.v1.RefreshTokenPolicy.policies:type_name -> zeroauthy.store.v1.MRRTPolicyList
 	22,   // 22: zeroauthy.store.v1.Client.secrets:type_name -> zeroauthy.store.v1.ClientSecretList
@@ -33836,29 +33920,29 @@ var file_store_proto_depIdxs = []int32{
 	17,   // 26: zeroauthy.store.v1.Client.web_origins:type_name -> zeroauthy.store.v1.StringList
 	17,   // 27: zeroauthy.store.v1.Client.allowed_origins:type_name -> zeroauthy.store.v1.StringList
 	23,   // 28: zeroauthy.store.v1.Client.refresh_token:type_name -> zeroauthy.store.v1.RefreshTokenPolicy
-	399,  // 29: zeroauthy.store.v1.Client.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 29: zeroauthy.store.v1.Client.created_at:type_name -> google.protobuf.Timestamp
 	17,   // 30: zeroauthy.store.v1.Client.organization_discovery_methods:type_name -> zeroauthy.store.v1.StringList
 	378,  // 31: zeroauthy.store.v1.Client.token_quota:type_name -> zeroauthy.store.v1.TokenQuotaMsg
 	25,   // 32: zeroauthy.store.v1.ScopeList.values:type_name -> zeroauthy.store.v1.Scope
 	26,   // 33: zeroauthy.store.v1.ResourceServer.scopes:type_name -> zeroauthy.store.v1.ScopeList
-	399,  // 34: zeroauthy.store.v1.ResourceServer.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 34: zeroauthy.store.v1.ResourceServer.created_at:type_name -> google.protobuf.Timestamp
 	380,  // 35: zeroauthy.store.v1.ResourceServer.proof_of_possession:type_name -> zeroauthy.store.v1.PoPConfig
 	17,   // 36: zeroauthy.store.v1.ClientGrant.scopes:type_name -> zeroauthy.store.v1.StringList
-	399,  // 37: zeroauthy.store.v1.ClientGrant.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 37: zeroauthy.store.v1.ClientGrant.created_at:type_name -> google.protobuf.Timestamp
 	17,   // 38: zeroauthy.store.v1.UserGrant.scopes:type_name -> zeroauthy.store.v1.StringList
-	399,  // 39: zeroauthy.store.v1.UserGrant.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 40: zeroauthy.store.v1.UserGrant.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 41: zeroauthy.store.v1.SigningKey.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 42: zeroauthy.store.v1.SigningKey.current_since:type_name -> google.protobuf.Timestamp
-	399,  // 43: zeroauthy.store.v1.SigningKey.current_until:type_name -> google.protobuf.Timestamp
-	399,  // 44: zeroauthy.store.v1.SigningKey.revoked_at:type_name -> google.protobuf.Timestamp
+	400,  // 39: zeroauthy.store.v1.UserGrant.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 40: zeroauthy.store.v1.UserGrant.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 41: zeroauthy.store.v1.SigningKey.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 42: zeroauthy.store.v1.SigningKey.current_since:type_name -> google.protobuf.Timestamp
+	400,  // 43: zeroauthy.store.v1.SigningKey.current_until:type_name -> google.protobuf.Timestamp
+	400,  // 44: zeroauthy.store.v1.SigningKey.revoked_at:type_name -> google.protobuf.Timestamp
 	3,    // 45: zeroauthy.store.v1.SigningKeyResult.error:type_name -> zeroauthy.store.v1.Error
 	31,   // 46: zeroauthy.store.v1.SigningKeyResult.value:type_name -> zeroauthy.store.v1.SigningKey
 	31,   // 47: zeroauthy.store.v1.SigningKeyRotation.current:type_name -> zeroauthy.store.v1.SigningKey
 	31,   // 48: zeroauthy.store.v1.SigningKeyRotation.next:type_name -> zeroauthy.store.v1.SigningKey
 	3,    // 49: zeroauthy.store.v1.SigningKeyRotationResult.error:type_name -> zeroauthy.store.v1.Error
 	33,   // 50: zeroauthy.store.v1.SigningKeyRotationResult.value:type_name -> zeroauthy.store.v1.SigningKeyRotation
-	399,  // 51: zeroauthy.store.v1.SigningKeyRevokeRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 51: zeroauthy.store.v1.SigningKeyRevokeRequest.at:type_name -> google.protobuf.Timestamp
 	3,    // 52: zeroauthy.store.v1.CustomSigningKeySetResult.error:type_name -> zeroauthy.store.v1.Error
 	37,   // 53: zeroauthy.store.v1.CustomSigningKeySetResult.value:type_name -> zeroauthy.store.v1.CustomSigningKeySet
 	37,   // 54: zeroauthy.store.v1.CustomSigningKeySetWrite.value:type_name -> zeroauthy.store.v1.CustomSigningKeySet
@@ -33866,10 +33950,10 @@ var file_store_proto_depIdxs = []int32{
 	40,   // 56: zeroauthy.store.v1.HostedLoginConfigResult.value:type_name -> zeroauthy.store.v1.HostedLoginConfig
 	40,   // 57: zeroauthy.store.v1.HostedLoginConfigWrite.value:type_name -> zeroauthy.store.v1.HostedLoginConfig
 	43,   // 58: zeroauthy.store.v1.FederationAttempt.endpoints:type_name -> zeroauthy.store.v1.FederationEndpoints
-	399,  // 59: zeroauthy.store.v1.FederationAttempt.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 60: zeroauthy.store.v1.FederationAttempt.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 59: zeroauthy.store.v1.FederationAttempt.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 60: zeroauthy.store.v1.FederationAttempt.created_at:type_name -> google.protobuf.Timestamp
 	44,   // 61: zeroauthy.store.v1.FederationAttemptWrite.value:type_name -> zeroauthy.store.v1.FederationAttempt
-	399,  // 62: zeroauthy.store.v1.FederationClaimRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 62: zeroauthy.store.v1.FederationClaimRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 63: zeroauthy.store.v1.FederationAttemptResult.error:type_name -> zeroauthy.store.v1.Error
 	44,   // 64: zeroauthy.store.v1.FederationAttemptResult.value:type_name -> zeroauthy.store.v1.FederationAttempt
 	49,   // 65: zeroauthy.store.v1.FederatedIdentityRequest.key:type_name -> zeroauthy.store.v1.FederatedIdentityKey
@@ -33877,17 +33961,17 @@ var file_store_proto_depIdxs = []int32{
 	49,   // 67: zeroauthy.store.v1.FederatedTokensWrite.key:type_name -> zeroauthy.store.v1.FederatedIdentityKey
 	3,    // 68: zeroauthy.store.v1.FederatedTokensResult.error:type_name -> zeroauthy.store.v1.Error
 	49,   // 69: zeroauthy.store.v1.UsersFindByIdentityRequest.key:type_name -> zeroauthy.store.v1.FederatedIdentityKey
-	399,  // 70: zeroauthy.store.v1.HostedStateCASRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 70: zeroauthy.store.v1.HostedStateCASRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 71: zeroauthy.store.v1.EmailProviderResult.error:type_name -> zeroauthy.store.v1.Error
 	56,   // 72: zeroauthy.store.v1.EmailProviderResult.value:type_name -> zeroauthy.store.v1.EmailProvider
 	56,   // 73: zeroauthy.store.v1.EmailProviderWrite.value:type_name -> zeroauthy.store.v1.EmailProvider
 	3,    // 74: zeroauthy.store.v1.EmailTemplateResult.error:type_name -> zeroauthy.store.v1.Error
 	60,   // 75: zeroauthy.store.v1.EmailTemplateResult.value:type_name -> zeroauthy.store.v1.EmailTemplate
 	60,   // 76: zeroauthy.store.v1.EmailTemplateWrite.value:type_name -> zeroauthy.store.v1.EmailTemplate
-	399,  // 77: zeroauthy.store.v1.EmailNotificationClaimRequest.now:type_name -> google.protobuf.Timestamp
-	399,  // 78: zeroauthy.store.v1.EmailNotificationClaimRequest.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 77: zeroauthy.store.v1.EmailNotificationClaimRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 78: zeroauthy.store.v1.EmailNotificationClaimRequest.expires_at:type_name -> google.protobuf.Timestamp
 	3,    // 79: zeroauthy.store.v1.EmailNotificationClaimResult.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 80: zeroauthy.store.v1.EmailNotificationSweepRequest.before:type_name -> google.protobuf.Timestamp
+	400,  // 80: zeroauthy.store.v1.EmailNotificationSweepRequest.before:type_name -> google.protobuf.Timestamp
 	17,   // 81: zeroauthy.store.v1.PasswordComplexity.character_types:type_name -> zeroauthy.store.v1.StringList
 	17,   // 82: zeroauthy.store.v1.PasswordDictionary.custom:type_name -> zeroauthy.store.v1.StringList
 	17,   // 83: zeroauthy.store.v1.PasswordProfileData.blocked_fields:type_name -> zeroauthy.store.v1.StringList
@@ -33897,72 +33981,72 @@ var file_store_proto_depIdxs = []int32{
 	71,   // 87: zeroauthy.store.v1.PasswordOptions.profile_data:type_name -> zeroauthy.store.v1.PasswordProfileData
 	17,   // 88: zeroauthy.store.v1.Connection.enabled_clients:type_name -> zeroauthy.store.v1.StringList
 	67,   // 89: zeroauthy.store.v1.Connection.password_policy:type_name -> zeroauthy.store.v1.PasswordPolicy
-	399,  // 90: zeroauthy.store.v1.Connection.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 90: zeroauthy.store.v1.Connection.created_at:type_name -> google.protobuf.Timestamp
 	18,   // 91: zeroauthy.store.v1.Connection.custom_scripts:type_name -> zeroauthy.store.v1.StringMap
 	72,   // 92: zeroauthy.store.v1.Connection.password_options:type_name -> zeroauthy.store.v1.PasswordOptions
 	74,   // 93: zeroauthy.store.v1.IdentityList.values:type_name -> zeroauthy.store.v1.Identity
 	75,   // 94: zeroauthy.store.v1.User.identities:type_name -> zeroauthy.store.v1.IdentityList
-	399,  // 95: zeroauthy.store.v1.User.last_login:type_name -> google.protobuf.Timestamp
-	399,  // 96: zeroauthy.store.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 97: zeroauthy.store.v1.User.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 98: zeroauthy.store.v1.User.last_password_reset:type_name -> google.protobuf.Timestamp
-	399,  // 99: zeroauthy.store.v1.LoginSession.authenticated_at:type_name -> google.protobuf.Timestamp
+	400,  // 95: zeroauthy.store.v1.User.last_login:type_name -> google.protobuf.Timestamp
+	400,  // 96: zeroauthy.store.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 97: zeroauthy.store.v1.User.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 98: zeroauthy.store.v1.User.last_password_reset:type_name -> google.protobuf.Timestamp
+	400,  // 99: zeroauthy.store.v1.LoginSession.authenticated_at:type_name -> google.protobuf.Timestamp
 	17,   // 100: zeroauthy.store.v1.LoginSession.client_ids:type_name -> zeroauthy.store.v1.StringList
-	399,  // 101: zeroauthy.store.v1.LoginSession.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 102: zeroauthy.store.v1.LoginSession.idle_expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 103: zeroauthy.store.v1.LoginSession.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 104: zeroauthy.store.v1.LoginSession.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 105: zeroauthy.store.v1.LoginSession.last_interacted_at:type_name -> google.protobuf.Timestamp
-	399,  // 106: zeroauthy.store.v1.LoginSession.mfa_at:type_name -> google.protobuf.Timestamp
+	400,  // 101: zeroauthy.store.v1.LoginSession.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 102: zeroauthy.store.v1.LoginSession.idle_expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 103: zeroauthy.store.v1.LoginSession.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 104: zeroauthy.store.v1.LoginSession.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 105: zeroauthy.store.v1.LoginSession.last_interacted_at:type_name -> google.protobuf.Timestamp
+	400,  // 106: zeroauthy.store.v1.LoginSession.mfa_at:type_name -> google.protobuf.Timestamp
 	18,   // 107: zeroauthy.store.v1.LoginSession.metadata:type_name -> zeroauthy.store.v1.StringMap
 	18,   // 108: zeroauthy.store.v1.AuthTransaction.params:type_name -> zeroauthy.store.v1.StringMap
-	399,  // 109: zeroauthy.store.v1.AuthTransaction.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 110: zeroauthy.store.v1.AuthTransaction.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 109: zeroauthy.store.v1.AuthTransaction.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 110: zeroauthy.store.v1.AuthTransaction.created_at:type_name -> google.protobuf.Timestamp
 	17,   // 111: zeroauthy.store.v1.AuthCode.scopes:type_name -> zeroauthy.store.v1.StringList
-	399,  // 112: zeroauthy.store.v1.AuthCode.auth_time:type_name -> google.protobuf.Timestamp
-	399,  // 113: zeroauthy.store.v1.AuthCode.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 114: zeroauthy.store.v1.AuthCode.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 115: zeroauthy.store.v1.AuthCode.used_at:type_name -> google.protobuf.Timestamp
-	399,  // 116: zeroauthy.store.v1.AuthCode.replayed_at:type_name -> google.protobuf.Timestamp
-	399,  // 117: zeroauthy.store.v1.AuthCode.mfa_at:type_name -> google.protobuf.Timestamp
+	400,  // 112: zeroauthy.store.v1.AuthCode.auth_time:type_name -> google.protobuf.Timestamp
+	400,  // 113: zeroauthy.store.v1.AuthCode.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 114: zeroauthy.store.v1.AuthCode.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 115: zeroauthy.store.v1.AuthCode.used_at:type_name -> google.protobuf.Timestamp
+	400,  // 116: zeroauthy.store.v1.AuthCode.replayed_at:type_name -> google.protobuf.Timestamp
+	400,  // 117: zeroauthy.store.v1.AuthCode.mfa_at:type_name -> google.protobuf.Timestamp
 	18,   // 118: zeroauthy.store.v1.PushedAuthRequest.params:type_name -> zeroauthy.store.v1.StringMap
-	399,  // 119: zeroauthy.store.v1.PushedAuthRequest.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 120: zeroauthy.store.v1.PushedAuthRequest.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 121: zeroauthy.store.v1.PushedAuthRequest.used_at:type_name -> google.protobuf.Timestamp
+	400,  // 119: zeroauthy.store.v1.PushedAuthRequest.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 120: zeroauthy.store.v1.PushedAuthRequest.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 121: zeroauthy.store.v1.PushedAuthRequest.used_at:type_name -> google.protobuf.Timestamp
 	17,   // 122: zeroauthy.store.v1.DeviceCode.scopes:type_name -> zeroauthy.store.v1.StringList
 	17,   // 123: zeroauthy.store.v1.DeviceCode.granted_scopes:type_name -> zeroauthy.store.v1.StringList
-	399,  // 124: zeroauthy.store.v1.DeviceCode.last_polled_at:type_name -> google.protobuf.Timestamp
-	399,  // 125: zeroauthy.store.v1.DeviceCode.expired_reported_at:type_name -> google.protobuf.Timestamp
-	399,  // 126: zeroauthy.store.v1.DeviceCode.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 127: zeroauthy.store.v1.DeviceCode.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 124: zeroauthy.store.v1.DeviceCode.last_polled_at:type_name -> google.protobuf.Timestamp
+	400,  // 125: zeroauthy.store.v1.DeviceCode.expired_reported_at:type_name -> google.protobuf.Timestamp
+	400,  // 126: zeroauthy.store.v1.DeviceCode.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 127: zeroauthy.store.v1.DeviceCode.created_at:type_name -> google.protobuf.Timestamp
 	17,   // 128: zeroauthy.store.v1.RefreshToken.scopes:type_name -> zeroauthy.store.v1.StringList
-	399,  // 129: zeroauthy.store.v1.RefreshToken.auth_time:type_name -> google.protobuf.Timestamp
-	399,  // 130: zeroauthy.store.v1.RefreshToken.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 131: zeroauthy.store.v1.RefreshToken.idle_expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 132: zeroauthy.store.v1.RefreshToken.rotated_at:type_name -> google.protobuf.Timestamp
-	399,  // 133: zeroauthy.store.v1.RefreshToken.revoked_at:type_name -> google.protobuf.Timestamp
-	399,  // 134: zeroauthy.store.v1.RefreshToken.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 129: zeroauthy.store.v1.RefreshToken.auth_time:type_name -> google.protobuf.Timestamp
+	400,  // 130: zeroauthy.store.v1.RefreshToken.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 131: zeroauthy.store.v1.RefreshToken.idle_expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 132: zeroauthy.store.v1.RefreshToken.rotated_at:type_name -> google.protobuf.Timestamp
+	400,  // 133: zeroauthy.store.v1.RefreshToken.revoked_at:type_name -> google.protobuf.Timestamp
+	400,  // 134: zeroauthy.store.v1.RefreshToken.created_at:type_name -> google.protobuf.Timestamp
 	18,   // 135: zeroauthy.store.v1.RefreshToken.metadata:type_name -> zeroauthy.store.v1.StringMap
 	383,  // 136: zeroauthy.store.v1.RefreshToken.device:type_name -> zeroauthy.store.v1.RefreshDeviceMsg
-	399,  // 137: zeroauthy.store.v1.RefreshToken.last_exchanged_at:type_name -> google.protobuf.Timestamp
-	399,  // 138: zeroauthy.store.v1.PasswordResetTicket.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 139: zeroauthy.store.v1.PasswordResetTicket.used_at:type_name -> google.protobuf.Timestamp
-	399,  // 140: zeroauthy.store.v1.PasswordResetTicket.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 141: zeroauthy.store.v1.PasswordResetTicket.challenge_passed_at:type_name -> google.protobuf.Timestamp
-	399,  // 142: zeroauthy.store.v1.EmailVerificationTicket.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 143: zeroauthy.store.v1.EmailVerificationTicket.used_at:type_name -> google.protobuf.Timestamp
-	399,  // 144: zeroauthy.store.v1.EmailVerificationTicket.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 137: zeroauthy.store.v1.RefreshToken.last_exchanged_at:type_name -> google.protobuf.Timestamp
+	400,  // 138: zeroauthy.store.v1.PasswordResetTicket.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 139: zeroauthy.store.v1.PasswordResetTicket.used_at:type_name -> google.protobuf.Timestamp
+	400,  // 140: zeroauthy.store.v1.PasswordResetTicket.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 141: zeroauthy.store.v1.PasswordResetTicket.challenge_passed_at:type_name -> google.protobuf.Timestamp
+	400,  // 142: zeroauthy.store.v1.EmailVerificationTicket.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 143: zeroauthy.store.v1.EmailVerificationTicket.used_at:type_name -> google.protobuf.Timestamp
+	400,  // 144: zeroauthy.store.v1.EmailVerificationTicket.created_at:type_name -> google.protobuf.Timestamp
 	85,   // 145: zeroauthy.store.v1.Job.summary:type_name -> zeroauthy.store.v1.JobSummary
-	399,  // 146: zeroauthy.store.v1.Job.lease_until:type_name -> google.protobuf.Timestamp
-	399,  // 147: zeroauthy.store.v1.Job.first_claimed_at:type_name -> google.protobuf.Timestamp
-	399,  // 148: zeroauthy.store.v1.Job.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 149: zeroauthy.store.v1.Job.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 150: zeroauthy.store.v1.Job.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 146: zeroauthy.store.v1.Job.lease_until:type_name -> google.protobuf.Timestamp
+	400,  // 147: zeroauthy.store.v1.Job.first_claimed_at:type_name -> google.protobuf.Timestamp
+	400,  // 148: zeroauthy.store.v1.Job.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 149: zeroauthy.store.v1.Job.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 150: zeroauthy.store.v1.Job.expires_at:type_name -> google.protobuf.Timestamp
 	87,   // 151: zeroauthy.store.v1.JobErrorItems.values:type_name -> zeroauthy.store.v1.JobErrorItem
 	88,   // 152: zeroauthy.store.v1.JobError.errors:type_name -> zeroauthy.store.v1.JobErrorItems
 	17,   // 153: zeroauthy.store.v1.Operator.tenants:type_name -> zeroauthy.store.v1.StringList
-	399,  // 154: zeroauthy.store.v1.Operator.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 155: zeroauthy.store.v1.Operator.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 154: zeroauthy.store.v1.Operator.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 155: zeroauthy.store.v1.Operator.updated_at:type_name -> google.protobuf.Timestamp
 	19,   // 156: zeroauthy.store.v1.TenantWrite.value:type_name -> zeroauthy.store.v1.Tenant
 	3,    // 157: zeroauthy.store.v1.TenantResult.error:type_name -> zeroauthy.store.v1.Error
 	19,   // 158: zeroauthy.store.v1.TenantResult.value:type_name -> zeroauthy.store.v1.Tenant
@@ -33994,7 +34078,7 @@ var file_store_proto_depIdxs = []int32{
 	3,    // 184: zeroauthy.store.v1.SigningKeyList.error:type_name -> zeroauthy.store.v1.Error
 	31,   // 185: zeroauthy.store.v1.SigningKeyList.values:type_name -> zeroauthy.store.v1.SigningKey
 	31,   // 186: zeroauthy.store.v1.SigningKeysRotateRequest.next:type_name -> zeroauthy.store.v1.SigningKey
-	399,  // 187: zeroauthy.store.v1.SigningKeysRotateRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 187: zeroauthy.store.v1.SigningKeysRotateRequest.at:type_name -> google.protobuf.Timestamp
 	73,   // 188: zeroauthy.store.v1.ConnectionWrite.value:type_name -> zeroauthy.store.v1.Connection
 	3,    // 189: zeroauthy.store.v1.ConnectionResult.error:type_name -> zeroauthy.store.v1.Error
 	73,   // 190: zeroauthy.store.v1.ConnectionResult.value:type_name -> zeroauthy.store.v1.Connection
@@ -34006,7 +34090,7 @@ var file_store_proto_depIdxs = []int32{
 	76,   // 196: zeroauthy.store.v1.UserWrite.value:type_name -> zeroauthy.store.v1.User
 	3,    // 197: zeroauthy.store.v1.UserResult.error:type_name -> zeroauthy.store.v1.Error
 	76,   // 198: zeroauthy.store.v1.UserResult.value:type_name -> zeroauthy.store.v1.User
-	399,  // 199: zeroauthy.store.v1.UsersRecordLoginRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 199: zeroauthy.store.v1.UsersRecordLoginRequest.at:type_name -> google.protobuf.Timestamp
 	3,    // 200: zeroauthy.store.v1.UserListResult.error:type_name -> zeroauthy.store.v1.Error
 	76,   // 201: zeroauthy.store.v1.UserListResult.values:type_name -> zeroauthy.store.v1.User
 	1,    // 202: zeroauthy.store.v1.UserQuery.op:type_name -> zeroauthy.store.v1.UserQuery.Op
@@ -34014,7 +34098,7 @@ var file_store_proto_depIdxs = []int32{
 	2,    // 204: zeroauthy.store.v1.UserQuery.kind:type_name -> zeroauthy.store.v1.UserQuery.Kind
 	130,  // 205: zeroauthy.store.v1.UsersListRequest.query:type_name -> zeroauthy.store.v1.UserQuery
 	3,    // 206: zeroauthy.store.v1.VersionResult.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 207: zeroauthy.store.v1.UsersSetPasswordHashRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 207: zeroauthy.store.v1.UsersSetPasswordHashRequest.at:type_name -> google.protobuf.Timestamp
 	77,   // 208: zeroauthy.store.v1.SessionWrite.value:type_name -> zeroauthy.store.v1.LoginSession
 	3,    // 209: zeroauthy.store.v1.SessionResult.error:type_name -> zeroauthy.store.v1.Error
 	77,   // 210: zeroauthy.store.v1.SessionResult.value:type_name -> zeroauthy.store.v1.LoginSession
@@ -34033,7 +34117,7 @@ var file_store_proto_depIdxs = []int32{
 	3,    // 223: zeroauthy.store.v1.DeviceCodeResult.error:type_name -> zeroauthy.store.v1.Error
 	81,   // 224: zeroauthy.store.v1.DeviceCodeResult.value:type_name -> zeroauthy.store.v1.DeviceCode
 	17,   // 225: zeroauthy.store.v1.DeviceDecisionRequest.granted_scopes:type_name -> zeroauthy.store.v1.StringList
-	399,  // 226: zeroauthy.store.v1.DevicePollRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 226: zeroauthy.store.v1.DevicePollRequest.at:type_name -> google.protobuf.Timestamp
 	3,    // 227: zeroauthy.store.v1.DevicePollResult.error:type_name -> zeroauthy.store.v1.Error
 	81,   // 228: zeroauthy.store.v1.DevicePollResult.code:type_name -> zeroauthy.store.v1.DeviceCode
 	82,   // 229: zeroauthy.store.v1.RefreshTokenWrite.value:type_name -> zeroauthy.store.v1.RefreshToken
@@ -34042,9 +34126,9 @@ var file_store_proto_depIdxs = []int32{
 	3,    // 232: zeroauthy.store.v1.RefreshTokenList.error:type_name -> zeroauthy.store.v1.Error
 	82,   // 233: zeroauthy.store.v1.RefreshTokenList.values:type_name -> zeroauthy.store.v1.RefreshToken
 	82,   // 234: zeroauthy.store.v1.RefreshTokensRotateRequest.next:type_name -> zeroauthy.store.v1.RefreshToken
-	399,  // 235: zeroauthy.store.v1.RefreshTokensRotateRequest.at:type_name -> google.protobuf.Timestamp
-	400,  // 236: zeroauthy.store.v1.RefreshTokensRotateRequest.leeway:type_name -> google.protobuf.Duration
-	399,  // 237: zeroauthy.store.v1.PasswordResetTicketChallengeRequest.passed_at:type_name -> google.protobuf.Timestamp
+	400,  // 235: zeroauthy.store.v1.RefreshTokensRotateRequest.at:type_name -> google.protobuf.Timestamp
+	401,  // 236: zeroauthy.store.v1.RefreshTokensRotateRequest.leeway:type_name -> google.protobuf.Duration
+	400,  // 237: zeroauthy.store.v1.PasswordResetTicketChallengeRequest.passed_at:type_name -> google.protobuf.Timestamp
 	83,   // 238: zeroauthy.store.v1.PasswordResetTicketWrite.value:type_name -> zeroauthy.store.v1.PasswordResetTicket
 	3,    // 239: zeroauthy.store.v1.PasswordResetTicketResult.error:type_name -> zeroauthy.store.v1.Error
 	83,   // 240: zeroauthy.store.v1.PasswordResetTicketResult.value:type_name -> zeroauthy.store.v1.PasswordResetTicket
@@ -34056,58 +34140,58 @@ var file_store_proto_depIdxs = []int32{
 	90,   // 246: zeroauthy.store.v1.OperatorResult.value:type_name -> zeroauthy.store.v1.Operator
 	3,    // 247: zeroauthy.store.v1.OperatorList.error:type_name -> zeroauthy.store.v1.Error
 	90,   // 248: zeroauthy.store.v1.OperatorList.values:type_name -> zeroauthy.store.v1.Operator
-	399,  // 249: zeroauthy.store.v1.UsersUpgradeImportedHashRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 249: zeroauthy.store.v1.UsersUpgradeImportedHashRequest.at:type_name -> google.protobuf.Timestamp
 	86,   // 250: zeroauthy.store.v1.JobWrite.value:type_name -> zeroauthy.store.v1.Job
 	3,    // 251: zeroauthy.store.v1.JobResult.error:type_name -> zeroauthy.store.v1.Error
 	86,   // 252: zeroauthy.store.v1.JobResult.value:type_name -> zeroauthy.store.v1.Job
 	3,    // 253: zeroauthy.store.v1.JobPage.error:type_name -> zeroauthy.store.v1.Error
 	86,   // 254: zeroauthy.store.v1.JobPage.values:type_name -> zeroauthy.store.v1.Job
-	399,  // 255: zeroauthy.store.v1.JobsClaimRequest.now:type_name -> google.protobuf.Timestamp
-	400,  // 256: zeroauthy.store.v1.JobsClaimRequest.lease:type_name -> google.protobuf.Duration
-	399,  // 257: zeroauthy.store.v1.JobsRenewRequest.until:type_name -> google.protobuf.Timestamp
+	400,  // 255: zeroauthy.store.v1.JobsClaimRequest.now:type_name -> google.protobuf.Timestamp
+	401,  // 256: zeroauthy.store.v1.JobsClaimRequest.lease:type_name -> google.protobuf.Duration
+	400,  // 257: zeroauthy.store.v1.JobsRenewRequest.until:type_name -> google.protobuf.Timestamp
 	85,   // 258: zeroauthy.store.v1.JobsCheckpointRequest.summary:type_name -> zeroauthy.store.v1.JobSummary
 	89,   // 259: zeroauthy.store.v1.JobsCheckpointRequest.errors:type_name -> zeroauthy.store.v1.JobError
-	399,  // 260: zeroauthy.store.v1.JobsFinishRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 260: zeroauthy.store.v1.JobsFinishRequest.at:type_name -> google.protobuf.Timestamp
 	3,    // 261: zeroauthy.store.v1.JobErrorList.error:type_name -> zeroauthy.store.v1.Error
 	89,   // 262: zeroauthy.store.v1.JobErrorList.values:type_name -> zeroauthy.store.v1.JobError
 	3,    // 263: zeroauthy.store.v1.JobFileChunk.error:type_name -> zeroauthy.store.v1.Error
 	174,  // 264: zeroauthy.store.v1.ProtectionLimit.key:type_name -> zeroauthy.store.v1.ProtectionKey
-	400,  // 265: zeroauthy.store.v1.ProtectionLimit.window:type_name -> google.protobuf.Duration
-	400,  // 266: zeroauthy.store.v1.ProtectionLimit.refill:type_name -> google.protobuf.Duration
-	400,  // 267: zeroauthy.store.v1.ProtectionLimit.lockout:type_name -> google.protobuf.Duration
+	401,  // 265: zeroauthy.store.v1.ProtectionLimit.window:type_name -> google.protobuf.Duration
+	401,  // 266: zeroauthy.store.v1.ProtectionLimit.refill:type_name -> google.protobuf.Duration
+	401,  // 267: zeroauthy.store.v1.ProtectionLimit.lockout:type_name -> google.protobuf.Duration
 	174,  // 268: zeroauthy.store.v1.ProtectionBlock.key:type_name -> zeroauthy.store.v1.ProtectionKey
-	399,  // 269: zeroauthy.store.v1.ProtectionBlock.blocked_until:type_name -> google.protobuf.Timestamp
+	400,  // 269: zeroauthy.store.v1.ProtectionBlock.blocked_until:type_name -> google.protobuf.Timestamp
 	175,  // 270: zeroauthy.store.v1.ProtectionRequest.limits:type_name -> zeroauthy.store.v1.ProtectionLimit
-	399,  // 271: zeroauthy.store.v1.ProtectionRequest.now:type_name -> google.protobuf.Timestamp
-	399,  // 272: zeroauthy.store.v1.ProtectionRequest.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 271: zeroauthy.store.v1.ProtectionRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 272: zeroauthy.store.v1.ProtectionRequest.expires_at:type_name -> google.protobuf.Timestamp
 	174,  // 273: zeroauthy.store.v1.ProtectionRequest.filter:type_name -> zeroauthy.store.v1.ProtectionKey
 	3,    // 274: zeroauthy.store.v1.ProtectionResult.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 275: zeroauthy.store.v1.ProtectionResult.retry_at:type_name -> google.protobuf.Timestamp
+	400,  // 275: zeroauthy.store.v1.ProtectionResult.retry_at:type_name -> google.protobuf.Timestamp
 	176,  // 276: zeroauthy.store.v1.ProtectionResult.blocks:type_name -> zeroauthy.store.v1.ProtectionBlock
 	18,   // 277: zeroauthy.store.v1.CustomDomain.domain_metadata:type_name -> zeroauthy.store.v1.StringMap
-	399,  // 278: zeroauthy.store.v1.CustomDomain.proof_created_at:type_name -> google.protobuf.Timestamp
-	399,  // 279: zeroauthy.store.v1.CustomDomain.proof_verified_at:type_name -> google.protobuf.Timestamp
-	399,  // 280: zeroauthy.store.v1.CustomDomain.last_proof_check_at:type_name -> google.protobuf.Timestamp
-	399,  // 281: zeroauthy.store.v1.CustomDomain.proof_failure_since:type_name -> google.protobuf.Timestamp
-	399,  // 282: zeroauthy.store.v1.CustomDomain.next_attempt_at:type_name -> google.protobuf.Timestamp
-	399,  // 283: zeroauthy.store.v1.CustomDomain.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 284: zeroauthy.store.v1.CustomDomain.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 278: zeroauthy.store.v1.CustomDomain.proof_created_at:type_name -> google.protobuf.Timestamp
+	400,  // 279: zeroauthy.store.v1.CustomDomain.proof_verified_at:type_name -> google.protobuf.Timestamp
+	400,  // 280: zeroauthy.store.v1.CustomDomain.last_proof_check_at:type_name -> google.protobuf.Timestamp
+	400,  // 281: zeroauthy.store.v1.CustomDomain.proof_failure_since:type_name -> google.protobuf.Timestamp
+	400,  // 282: zeroauthy.store.v1.CustomDomain.next_attempt_at:type_name -> google.protobuf.Timestamp
+	400,  // 283: zeroauthy.store.v1.CustomDomain.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 284: zeroauthy.store.v1.CustomDomain.updated_at:type_name -> google.protobuf.Timestamp
 	17,   // 285: zeroauthy.store.v1.TLSPublicData.sans:type_name -> zeroauthy.store.v1.StringList
-	399,  // 286: zeroauthy.store.v1.TLSPublicData.not_before:type_name -> google.protobuf.Timestamp
-	399,  // 287: zeroauthy.store.v1.TLSPublicData.not_after:type_name -> google.protobuf.Timestamp
+	400,  // 286: zeroauthy.store.v1.TLSPublicData.not_before:type_name -> google.protobuf.Timestamp
+	400,  // 287: zeroauthy.store.v1.TLSPublicData.not_after:type_name -> google.protobuf.Timestamp
 	181,  // 288: zeroauthy.store.v1.TLSAsset.public_data:type_name -> zeroauthy.store.v1.TLSPublicData
-	399,  // 289: zeroauthy.store.v1.TLSAsset.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 290: zeroauthy.store.v1.TLSLease.until:type_name -> google.protobuf.Timestamp
+	400,  // 289: zeroauthy.store.v1.TLSAsset.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 290: zeroauthy.store.v1.TLSLease.until:type_name -> google.protobuf.Timestamp
 	179,  // 291: zeroauthy.store.v1.CustomDomainRequest.value:type_name -> zeroauthy.store.v1.CustomDomain
 	180,  // 292: zeroauthy.store.v1.CustomDomainRequest.binding:type_name -> zeroauthy.store.v1.HostBinding
 	3,    // 293: zeroauthy.store.v1.CustomDomainResult.error:type_name -> zeroauthy.store.v1.Error
 	179,  // 294: zeroauthy.store.v1.CustomDomainResult.value:type_name -> zeroauthy.store.v1.CustomDomain
 	179,  // 295: zeroauthy.store.v1.CustomDomainResult.values:type_name -> zeroauthy.store.v1.CustomDomain
 	180,  // 296: zeroauthy.store.v1.CustomDomainResult.binding:type_name -> zeroauthy.store.v1.HostBinding
-	400,  // 297: zeroauthy.store.v1.CustomDomainResult.retry_after:type_name -> google.protobuf.Duration
+	401,  // 297: zeroauthy.store.v1.CustomDomainResult.retry_after:type_name -> google.protobuf.Duration
 	182,  // 298: zeroauthy.store.v1.TLSAssetRequest.value:type_name -> zeroauthy.store.v1.TLSAsset
 	183,  // 299: zeroauthy.store.v1.TLSAssetRequest.lease:type_name -> zeroauthy.store.v1.TLSLease
-	400,  // 300: zeroauthy.store.v1.TLSAssetRequest.duration:type_name -> google.protobuf.Duration
+	401,  // 300: zeroauthy.store.v1.TLSAssetRequest.duration:type_name -> google.protobuf.Duration
 	3,    // 301: zeroauthy.store.v1.TLSAssetResult.error:type_name -> zeroauthy.store.v1.Error
 	182,  // 302: zeroauthy.store.v1.TLSAssetResult.value:type_name -> zeroauthy.store.v1.TLSAsset
 	182,  // 303: zeroauthy.store.v1.TLSAssetResult.values:type_name -> zeroauthy.store.v1.TLSAsset
@@ -34128,8 +34212,8 @@ var file_store_proto_depIdxs = []int32{
 	199,  // 318: zeroauthy.store.v1.OrganizationBrandingMsg.colors:type_name -> zeroauthy.store.v1.OrganizationColorsMsg
 	200,  // 319: zeroauthy.store.v1.OrganizationMsg.branding:type_name -> zeroauthy.store.v1.OrganizationBrandingMsg
 	18,   // 320: zeroauthy.store.v1.OrganizationMsg.metadata:type_name -> zeroauthy.store.v1.StringMap
-	399,  // 321: zeroauthy.store.v1.OrganizationMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 322: zeroauthy.store.v1.OrganizationMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 321: zeroauthy.store.v1.OrganizationMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 322: zeroauthy.store.v1.OrganizationMsg.updated_at:type_name -> google.protobuf.Timestamp
 	228,  // 323: zeroauthy.store.v1.OrganizationMsg.client_association:type_name -> zeroauthy.store.v1.OrganizationClientMsg
 	378,  // 324: zeroauthy.store.v1.OrganizationMsg.token_quota:type_name -> zeroauthy.store.v1.TokenQuotaMsg
 	201,  // 325: zeroauthy.store.v1.OrganizationsRequest.organization:type_name -> zeroauthy.store.v1.OrganizationMsg
@@ -34142,32 +34226,32 @@ var file_store_proto_depIdxs = []int32{
 	202,  // 332: zeroauthy.store.v1.OrganizationsResponse.connection:type_name -> zeroauthy.store.v1.OrganizationConnectionMsg
 	202,  // 333: zeroauthy.store.v1.OrganizationsResponse.connections:type_name -> zeroauthy.store.v1.OrganizationConnectionMsg
 	3,    // 334: zeroauthy.store.v1.OrganizationsCapabilitiesResult.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 335: zeroauthy.store.v1.ActionSecretMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 335: zeroauthy.store.v1.ActionSecretMsg.updated_at:type_name -> google.protobuf.Timestamp
 	207,  // 336: zeroauthy.store.v1.ActionMsg.dependencies:type_name -> zeroauthy.store.v1.ActionDependency
 	208,  // 337: zeroauthy.store.v1.ActionMsg.secrets:type_name -> zeroauthy.store.v1.ActionSecretMsg
-	399,  // 338: zeroauthy.store.v1.ActionMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 339: zeroauthy.store.v1.ActionMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 338: zeroauthy.store.v1.ActionMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 339: zeroauthy.store.v1.ActionMsg.updated_at:type_name -> google.protobuf.Timestamp
 	221,  // 340: zeroauthy.store.v1.ActionMsg.modules:type_name -> zeroauthy.store.v1.ActionModuleRefMsg
 	207,  // 341: zeroauthy.store.v1.ActionVersionMsg.dependencies:type_name -> zeroauthy.store.v1.ActionDependency
 	208,  // 342: zeroauthy.store.v1.ActionVersionMsg.secrets:type_name -> zeroauthy.store.v1.ActionSecretMsg
-	399,  // 343: zeroauthy.store.v1.ActionVersionMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 343: zeroauthy.store.v1.ActionVersionMsg.created_at:type_name -> google.protobuf.Timestamp
 	221,  // 344: zeroauthy.store.v1.ActionVersionMsg.modules:type_name -> zeroauthy.store.v1.ActionModuleRefMsg
 	207,  // 345: zeroauthy.store.v1.ActionBuildMsg.requested:type_name -> zeroauthy.store.v1.ActionDependency
 	207,  // 346: zeroauthy.store.v1.ActionBuildMsg.resolved:type_name -> zeroauthy.store.v1.ActionDependency
-	399,  // 347: zeroauthy.store.v1.ActionBuildMsg.built_at:type_name -> google.protobuf.Timestamp
-	399,  // 348: zeroauthy.store.v1.ActionBindingMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 349: zeroauthy.store.v1.ActionBindingMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 347: zeroauthy.store.v1.ActionBuildMsg.built_at:type_name -> google.protobuf.Timestamp
+	400,  // 348: zeroauthy.store.v1.ActionBindingMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 349: zeroauthy.store.v1.ActionBindingMsg.updated_at:type_name -> google.protobuf.Timestamp
 	212,  // 350: zeroauthy.store.v1.ActionBoundMsg.binding:type_name -> zeroauthy.store.v1.ActionBindingMsg
 	209,  // 351: zeroauthy.store.v1.ActionBoundMsg.action:type_name -> zeroauthy.store.v1.ActionMsg
 	210,  // 352: zeroauthy.store.v1.ActionBoundMsg.version:type_name -> zeroauthy.store.v1.ActionVersionMsg
-	399,  // 353: zeroauthy.store.v1.ActionExecutionResultMsg.started_at:type_name -> google.protobuf.Timestamp
-	399,  // 354: zeroauthy.store.v1.ActionExecutionResultMsg.ended_at:type_name -> google.protobuf.Timestamp
+	400,  // 353: zeroauthy.store.v1.ActionExecutionResultMsg.started_at:type_name -> google.protobuf.Timestamp
+	400,  // 354: zeroauthy.store.v1.ActionExecutionResultMsg.ended_at:type_name -> google.protobuf.Timestamp
 	214,  // 355: zeroauthy.store.v1.ActionExecutionMsg.results:type_name -> zeroauthy.store.v1.ActionExecutionResultMsg
-	399,  // 356: zeroauthy.store.v1.ActionExecutionMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 357: zeroauthy.store.v1.ActionExecutionMsg.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 358: zeroauthy.store.v1.ActionContinueMsg.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 359: zeroauthy.store.v1.ActionContinueMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 360: zeroauthy.store.v1.ActionsRequest.time:type_name -> google.protobuf.Timestamp
+	400,  // 356: zeroauthy.store.v1.ActionExecutionMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 357: zeroauthy.store.v1.ActionExecutionMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 358: zeroauthy.store.v1.ActionContinueMsg.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 359: zeroauthy.store.v1.ActionContinueMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 360: zeroauthy.store.v1.ActionsRequest.time:type_name -> google.protobuf.Timestamp
 	209,  // 361: zeroauthy.store.v1.ActionsRequest.action:type_name -> zeroauthy.store.v1.ActionMsg
 	211,  // 362: zeroauthy.store.v1.ActionsRequest.build:type_name -> zeroauthy.store.v1.ActionBuildMsg
 	215,  // 363: zeroauthy.store.v1.ActionsRequest.execution:type_name -> zeroauthy.store.v1.ActionExecutionMsg
@@ -34175,8 +34259,8 @@ var file_store_proto_depIdxs = []int32{
 	212,  // 365: zeroauthy.store.v1.ActionsRequest.bindings:type_name -> zeroauthy.store.v1.ActionBindingMsg
 	222,  // 366: zeroauthy.store.v1.ActionsRequest.module:type_name -> zeroauthy.store.v1.ActionModuleMsg
 	225,  // 367: zeroauthy.store.v1.ActionsRequest.job:type_name -> zeroauthy.store.v1.ActionJobMsg
-	400,  // 368: zeroauthy.store.v1.ActionsRequest.lease:type_name -> google.protobuf.Duration
-	399,  // 369: zeroauthy.store.v1.ActionsRequest.lease_until:type_name -> google.protobuf.Timestamp
+	401,  // 368: zeroauthy.store.v1.ActionsRequest.lease:type_name -> google.protobuf.Duration
+	400,  // 369: zeroauthy.store.v1.ActionsRequest.lease_until:type_name -> google.protobuf.Timestamp
 	3,    // 370: zeroauthy.store.v1.ActionsResponse.error:type_name -> zeroauthy.store.v1.Error
 	209,  // 371: zeroauthy.store.v1.ActionsResponse.action:type_name -> zeroauthy.store.v1.ActionMsg
 	209,  // 372: zeroauthy.store.v1.ActionsResponse.actions:type_name -> zeroauthy.store.v1.ActionMsg
@@ -34198,23 +34282,23 @@ var file_store_proto_depIdxs = []int32{
 	3,    // 388: zeroauthy.store.v1.ActionsCapabilitiesResult.error:type_name -> zeroauthy.store.v1.Error
 	207,  // 389: zeroauthy.store.v1.ActionModuleMsg.dependencies:type_name -> zeroauthy.store.v1.ActionDependency
 	208,  // 390: zeroauthy.store.v1.ActionModuleMsg.secrets:type_name -> zeroauthy.store.v1.ActionSecretMsg
-	399,  // 391: zeroauthy.store.v1.ActionModuleMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 392: zeroauthy.store.v1.ActionModuleMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 391: zeroauthy.store.v1.ActionModuleMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 392: zeroauthy.store.v1.ActionModuleMsg.updated_at:type_name -> google.protobuf.Timestamp
 	207,  // 393: zeroauthy.store.v1.ActionModuleVersionMsg.dependencies:type_name -> zeroauthy.store.v1.ActionDependency
 	208,  // 394: zeroauthy.store.v1.ActionModuleVersionMsg.secrets:type_name -> zeroauthy.store.v1.ActionSecretMsg
-	399,  // 395: zeroauthy.store.v1.ActionModuleVersionMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 395: zeroauthy.store.v1.ActionModuleVersionMsg.created_at:type_name -> google.protobuf.Timestamp
 	209,  // 396: zeroauthy.store.v1.ActionModuleUserMsg.action:type_name -> zeroauthy.store.v1.ActionMsg
-	399,  // 397: zeroauthy.store.v1.ActionJobMsg.next_at:type_name -> google.protobuf.Timestamp
-	399,  // 398: zeroauthy.store.v1.ActionJobMsg.lease_until:type_name -> google.protobuf.Timestamp
-	399,  // 399: zeroauthy.store.v1.ActionJobMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 400: zeroauthy.store.v1.ActionJobMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 397: zeroauthy.store.v1.ActionJobMsg.next_at:type_name -> google.protobuf.Timestamp
+	400,  // 398: zeroauthy.store.v1.ActionJobMsg.lease_until:type_name -> google.protobuf.Timestamp
+	400,  // 399: zeroauthy.store.v1.ActionJobMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 400: zeroauthy.store.v1.ActionJobMsg.updated_at:type_name -> google.protobuf.Timestamp
 	17,   // 401: zeroauthy.store.v1.OrganizationInvitationMsg.roles:type_name -> zeroauthy.store.v1.StringList
-	399,  // 402: zeroauthy.store.v1.OrganizationInvitationMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 403: zeroauthy.store.v1.OrganizationInvitationMsg.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 404: zeroauthy.store.v1.OrganizationInvitationMsg.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 405: zeroauthy.store.v1.InvitationReceiptMsg.accepted_at:type_name -> google.protobuf.Timestamp
+	400,  // 402: zeroauthy.store.v1.OrganizationInvitationMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 403: zeroauthy.store.v1.OrganizationInvitationMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 404: zeroauthy.store.v1.OrganizationInvitationMsg.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 405: zeroauthy.store.v1.InvitationReceiptMsg.accepted_at:type_name -> google.protobuf.Timestamp
 	203,  // 406: zeroauthy.store.v1.OrganizationsIIRequest.page:type_name -> zeroauthy.store.v1.OrganizationPageMsg
-	399,  // 407: zeroauthy.store.v1.OrganizationsIIRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 407: zeroauthy.store.v1.OrganizationsIIRequest.now:type_name -> google.protobuf.Timestamp
 	226,  // 408: zeroauthy.store.v1.OrganizationsIIRequest.invitation:type_name -> zeroauthy.store.v1.OrganizationInvitationMsg
 	228,  // 409: zeroauthy.store.v1.OrganizationsIIRequest.clients:type_name -> zeroauthy.store.v1.OrganizationClientMsg
 	229,  // 410: zeroauthy.store.v1.OrganizationsIIRequest.discovery_domain:type_name -> zeroauthy.store.v1.OrganizationDiscoveryDomainMsg
@@ -34272,9 +34356,9 @@ var file_store_proto_depIdxs = []int32{
 	249,  // 462: zeroauthy.store.v1.EventsResponse.streams:type_name -> zeroauthy.store.v1.EventStreamMsg
 	252,  // 463: zeroauthy.store.v1.EventsResponse.delivery:type_name -> zeroauthy.store.v1.EventDeliveryMsg
 	252,  // 464: zeroauthy.store.v1.EventsResponse.deliveries:type_name -> zeroauthy.store.v1.EventDeliveryMsg
-	396,  // 465: zeroauthy.store.v1.MFAGuardian.factors:type_name -> zeroauthy.store.v1.MFAGuardian.FactorsEntry
-	397,  // 466: zeroauthy.store.v1.MFAGuardian.stored:type_name -> zeroauthy.store.v1.MFAGuardian.StoredEntry
-	398,  // 467: zeroauthy.store.v1.MFAGuardian.sealed_secrets:type_name -> zeroauthy.store.v1.MFAGuardian.SealedSecretsEntry
+	397,  // 465: zeroauthy.store.v1.MFAGuardian.factors:type_name -> zeroauthy.store.v1.MFAGuardian.FactorsEntry
+	398,  // 466: zeroauthy.store.v1.MFAGuardian.stored:type_name -> zeroauthy.store.v1.MFAGuardian.StoredEntry
+	399,  // 467: zeroauthy.store.v1.MFAGuardian.sealed_secrets:type_name -> zeroauthy.store.v1.MFAGuardian.SealedSecretsEntry
 	3,    // 468: zeroauthy.store.v1.MFAGetGuardianResponse.error:type_name -> zeroauthy.store.v1.Error
 	257,  // 469: zeroauthy.store.v1.MFAGetGuardianResponse.value:type_name -> zeroauthy.store.v1.MFAGuardian
 	257,  // 470: zeroauthy.store.v1.MFAPutGuardianRequest.v:type_name -> zeroauthy.store.v1.MFAGuardian
@@ -34321,12 +34405,12 @@ var file_store_proto_depIdxs = []int32{
 	3,    // 511: zeroauthy.store.v1.MFAPurgeMFAResponse.error:type_name -> zeroauthy.store.v1.Error
 	3,    // 512: zeroauthy.store.v1.MFADeleteUserMFAResponse.error:type_name -> zeroauthy.store.v1.Error
 	3,    // 513: zeroauthy.store.v1.MFADeleteTenantMFAResponse.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 514: zeroauthy.store.v1.PhoneProvider.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 515: zeroauthy.store.v1.PhoneProvider.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 516: zeroauthy.store.v1.PhoneTemplate.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 517: zeroauthy.store.v1.PhoneTemplate.updated_at:type_name -> google.protobuf.Timestamp
-	399,  // 518: zeroauthy.store.v1.PasswordlessCode.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 519: zeroauthy.store.v1.PasswordlessCode.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 514: zeroauthy.store.v1.PhoneProvider.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 515: zeroauthy.store.v1.PhoneProvider.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 516: zeroauthy.store.v1.PhoneTemplate.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 517: zeroauthy.store.v1.PhoneTemplate.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 518: zeroauthy.store.v1.PasswordlessCode.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 519: zeroauthy.store.v1.PasswordlessCode.created_at:type_name -> google.protobuf.Timestamp
 	3,    // 520: zeroauthy.store.v1.PhoneErrorResponse.error:type_name -> zeroauthy.store.v1.Error
 	319,  // 521: zeroauthy.store.v1.PhoneProviderRequest.v:type_name -> zeroauthy.store.v1.PhoneProvider
 	3,    // 522: zeroauthy.store.v1.PhoneProviderResponse.error:type_name -> zeroauthy.store.v1.Error
@@ -34339,15 +34423,15 @@ var file_store_proto_depIdxs = []int32{
 	3,    // 529: zeroauthy.store.v1.PhoneListTemplatesResponse.error:type_name -> zeroauthy.store.v1.Error
 	320,  // 530: zeroauthy.store.v1.PhoneListTemplatesResponse.values:type_name -> zeroauthy.store.v1.PhoneTemplate
 	321,  // 531: zeroauthy.store.v1.PhonePutCodeRequest.v:type_name -> zeroauthy.store.v1.PasswordlessCode
-	399,  // 532: zeroauthy.store.v1.PhoneCodeKeyRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 532: zeroauthy.store.v1.PhoneCodeKeyRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 533: zeroauthy.store.v1.PhoneFailCodeResponse.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 534: zeroauthy.store.v1.PhoneConsumeCodeRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 534: zeroauthy.store.v1.PhoneConsumeCodeRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 535: zeroauthy.store.v1.PhoneCodeResponse.error:type_name -> zeroauthy.store.v1.Error
 	321,  // 536: zeroauthy.store.v1.PhoneCodeResponse.value:type_name -> zeroauthy.store.v1.PasswordlessCode
-	399,  // 537: zeroauthy.store.v1.PhonePeekLinkRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 537: zeroauthy.store.v1.PhonePeekLinkRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 538: zeroauthy.store.v1.PhoneFindUsersResponse.error:type_name -> zeroauthy.store.v1.Error
 	76,   // 539: zeroauthy.store.v1.PhoneFindUsersResponse.values:type_name -> zeroauthy.store.v1.User
-	399,  // 540: zeroauthy.store.v1.PhonePurgeRequest.before:type_name -> google.protobuf.Timestamp
+	400,  // 540: zeroauthy.store.v1.PhonePurgeRequest.before:type_name -> google.protobuf.Timestamp
 	3,    // 541: zeroauthy.store.v1.PhoneCountResponse.error:type_name -> zeroauthy.store.v1.Error
 	3,    // 542: zeroauthy.store.v1.WebAuthnErrorResponse.error:type_name -> zeroauthy.store.v1.Error
 	3,    // 543: zeroauthy.store.v1.WebAuthnAuthenticatorResponse.error:type_name -> zeroauthy.store.v1.Error
@@ -34355,28 +34439,28 @@ var file_store_proto_depIdxs = []int32{
 	258,  // 545: zeroauthy.store.v1.WebAuthnCreatePasskeyRequest.v:type_name -> zeroauthy.store.v1.MFAAuthenticator
 	76,   // 546: zeroauthy.store.v1.WebAuthnCreateUserWithPasskeyRequest.user:type_name -> zeroauthy.store.v1.User
 	258,  // 547: zeroauthy.store.v1.WebAuthnCreateUserWithPasskeyRequest.v:type_name -> zeroauthy.store.v1.MFAAuthenticator
-	399,  // 548: zeroauthy.store.v1.WebAuthnAcceptAssertionRequest.at:type_name -> google.protobuf.Timestamp
-	399,  // 549: zeroauthy.store.v1.WebAuthnSnoozeMsg.until:type_name -> google.protobuf.Timestamp
+	400,  // 548: zeroauthy.store.v1.WebAuthnAcceptAssertionRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 549: zeroauthy.store.v1.WebAuthnSnoozeMsg.until:type_name -> google.protobuf.Timestamp
 	348,  // 550: zeroauthy.store.v1.WebAuthnPutSnoozeRequest.v:type_name -> zeroauthy.store.v1.WebAuthnSnoozeMsg
-	399,  // 551: zeroauthy.store.v1.WebAuthnGetSnoozeRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 551: zeroauthy.store.v1.WebAuthnGetSnoozeRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 552: zeroauthy.store.v1.WebAuthnSnoozeResponse.error:type_name -> zeroauthy.store.v1.Error
 	348,  // 553: zeroauthy.store.v1.WebAuthnSnoozeResponse.value:type_name -> zeroauthy.store.v1.WebAuthnSnoozeMsg
 	3,    // 554: zeroauthy.store.v1.WebAuthnHostTenantsResponse.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 555: zeroauthy.store.v1.WebAuthnPurgeRequest.before:type_name -> google.protobuf.Timestamp
+	400,  // 555: zeroauthy.store.v1.WebAuthnPurgeRequest.before:type_name -> google.protobuf.Timestamp
 	3,    // 556: zeroauthy.store.v1.WebAuthnCountResponse.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 557: zeroauthy.store.v1.ClientCredentialMsg.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 558: zeroauthy.store.v1.ClientCredentialMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 559: zeroauthy.store.v1.ClientCredentialMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 557: zeroauthy.store.v1.ClientCredentialMsg.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 558: zeroauthy.store.v1.ClientCredentialMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 559: zeroauthy.store.v1.ClientCredentialMsg.updated_at:type_name -> google.protobuf.Timestamp
 	357,  // 560: zeroauthy.store.v1.ClientCredentialsCreateRequest.v:type_name -> zeroauthy.store.v1.ClientCredentialMsg
 	3,    // 561: zeroauthy.store.v1.ClientCredentialResult.error:type_name -> zeroauthy.store.v1.Error
 	357,  // 562: zeroauthy.store.v1.ClientCredentialResult.value:type_name -> zeroauthy.store.v1.ClientCredentialMsg
 	3,    // 563: zeroauthy.store.v1.ClientCredentialListResult.error:type_name -> zeroauthy.store.v1.Error
 	357,  // 564: zeroauthy.store.v1.ClientCredentialListResult.values:type_name -> zeroauthy.store.v1.ClientCredentialMsg
-	399,  // 565: zeroauthy.store.v1.ClientCredentialsUpdateExpiryRequest.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 566: zeroauthy.store.v1.ClientCredentialsUseJTIRequest.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 567: zeroauthy.store.v1.ClientCredentialsPurgeRequest.before:type_name -> google.protobuf.Timestamp
-	399,  // 568: zeroauthy.store.v1.TokenExchangeProfileMsg.created_at:type_name -> google.protobuf.Timestamp
-	399,  // 569: zeroauthy.store.v1.TokenExchangeProfileMsg.updated_at:type_name -> google.protobuf.Timestamp
+	400,  // 565: zeroauthy.store.v1.ClientCredentialsUpdateExpiryRequest.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 566: zeroauthy.store.v1.ClientCredentialsUseJTIRequest.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 567: zeroauthy.store.v1.ClientCredentialsPurgeRequest.before:type_name -> google.protobuf.Timestamp
+	400,  // 568: zeroauthy.store.v1.TokenExchangeProfileMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 569: zeroauthy.store.v1.TokenExchangeProfileMsg.updated_at:type_name -> google.protobuf.Timestamp
 	366,  // 570: zeroauthy.store.v1.TokenExchangeProfileCreateRequest.v:type_name -> zeroauthy.store.v1.TokenExchangeProfileMsg
 	366,  // 571: zeroauthy.store.v1.TokenExchangeProfileWrite.v:type_name -> zeroauthy.store.v1.TokenExchangeProfileMsg
 	3,    // 572: zeroauthy.store.v1.TokenExchangeProfileResult.error:type_name -> zeroauthy.store.v1.Error
@@ -34384,11 +34468,11 @@ var file_store_proto_depIdxs = []int32{
 	3,    // 574: zeroauthy.store.v1.TokenExchangeProfileListResult.error:type_name -> zeroauthy.store.v1.Error
 	366,  // 575: zeroauthy.store.v1.TokenExchangeProfileListResult.values:type_name -> zeroauthy.store.v1.TokenExchangeProfileMsg
 	3,    // 576: zeroauthy.store.v1.MFAGuardianUsersResponse.error:type_name -> zeroauthy.store.v1.Error
-	399,  // 577: zeroauthy.store.v1.ConnectionKeyMsg.current_since:type_name -> google.protobuf.Timestamp
-	399,  // 578: zeroauthy.store.v1.ConnectionKeyMsg.created_at:type_name -> google.protobuf.Timestamp
+	400,  // 577: zeroauthy.store.v1.ConnectionKeyMsg.current_since:type_name -> google.protobuf.Timestamp
+	400,  // 578: zeroauthy.store.v1.ConnectionKeyMsg.created_at:type_name -> google.protobuf.Timestamp
 	375,  // 579: zeroauthy.store.v1.ConnectionKeysRequest.current:type_name -> zeroauthy.store.v1.ConnectionKeyMsg
 	375,  // 580: zeroauthy.store.v1.ConnectionKeysRequest.next:type_name -> zeroauthy.store.v1.ConnectionKeyMsg
-	399,  // 581: zeroauthy.store.v1.ConnectionKeysRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 581: zeroauthy.store.v1.ConnectionKeysRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 582: zeroauthy.store.v1.ConnectionKeysResult.error:type_name -> zeroauthy.store.v1.Error
 	375,  // 583: zeroauthy.store.v1.ConnectionKeysResult.values:type_name -> zeroauthy.store.v1.ConnectionKeyMsg
 	378,  // 584: zeroauthy.store.v1.DefaultQuotaMsg.clients:type_name -> zeroauthy.store.v1.TokenQuotaMsg
@@ -34404,18 +34488,18 @@ var file_store_proto_depIdxs = []int32{
 	79,   // 594: zeroauthy.store.v1.RefreshIIWrite.code:type_name -> zeroauthy.store.v1.AuthCode
 	82,   // 595: zeroauthy.store.v1.RefreshIIWrite.token:type_name -> zeroauthy.store.v1.RefreshToken
 	18,   // 596: zeroauthy.store.v1.RefreshIIRequest.metadata:type_name -> zeroauthy.store.v1.StringMap
-	399,  // 597: zeroauthy.store.v1.RefreshIIRequest.at:type_name -> google.protobuf.Timestamp
+	400,  // 597: zeroauthy.store.v1.RefreshIIRequest.at:type_name -> google.protobuf.Timestamp
 	3,    // 598: zeroauthy.store.v1.RefreshTokenPage.error:type_name -> zeroauthy.store.v1.Error
 	82,   // 599: zeroauthy.store.v1.RefreshTokenPage.values:type_name -> zeroauthy.store.v1.RefreshToken
-	399,  // 600: zeroauthy.store.v1.DPoPProofRequest.now:type_name -> google.protobuf.Timestamp
-	399,  // 601: zeroauthy.store.v1.DPoPProofRequest.expires_at:type_name -> google.protobuf.Timestamp
-	399,  // 602: zeroauthy.store.v1.RefreshIIPurgeRequest.before:type_name -> google.protobuf.Timestamp
+	400,  // 600: zeroauthy.store.v1.DPoPProofRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 601: zeroauthy.store.v1.DPoPProofRequest.expires_at:type_name -> google.protobuf.Timestamp
+	400,  // 602: zeroauthy.store.v1.RefreshIIPurgeRequest.before:type_name -> google.protobuf.Timestamp
 	378,  // 603: zeroauthy.store.v1.QuotaSubjectMsg.quota:type_name -> zeroauthy.store.v1.TokenQuotaMsg
-	399,  // 604: zeroauthy.store.v1.QuotaBucketMsg.reset_at:type_name -> google.protobuf.Timestamp
+	400,  // 604: zeroauthy.store.v1.QuotaBucketMsg.reset_at:type_name -> google.protobuf.Timestamp
 	389,  // 605: zeroauthy.store.v1.QuotaStateMsg.subject:type_name -> zeroauthy.store.v1.QuotaSubjectMsg
 	390,  // 606: zeroauthy.store.v1.QuotaStateMsg.buckets:type_name -> zeroauthy.store.v1.QuotaBucketMsg
 	389,  // 607: zeroauthy.store.v1.QuotaRequest.subjects:type_name -> zeroauthy.store.v1.QuotaSubjectMsg
-	399,  // 608: zeroauthy.store.v1.QuotaRequest.now:type_name -> google.protobuf.Timestamp
+	400,  // 608: zeroauthy.store.v1.QuotaRequest.now:type_name -> google.protobuf.Timestamp
 	3,    // 609: zeroauthy.store.v1.QuotaResponse.error:type_name -> zeroauthy.store.v1.Error
 	391,  // 610: zeroauthy.store.v1.QuotaResponse.states:type_name -> zeroauthy.store.v1.QuotaStateMsg
 	7,    // 611: zeroauthy.store.v1.StoreService.MFACapabilities:input_type -> zeroauthy.store.v1.PingRequest
@@ -34871,461 +34955,463 @@ var file_store_proto_depIdxs = []int32{
 	12,   // 1061: zeroauthy.store.v1.StoreService.RefreshIIUserGrantsGet:input_type -> zeroauthy.store.v1.ScopedKey
 	12,   // 1062: zeroauthy.store.v1.StoreService.RefreshIISessionsGetForUpdate:input_type -> zeroauthy.store.v1.ScopedKey
 	394,  // 1063: zeroauthy.store.v1.StoreService.GitHubFederationSupported:input_type -> zeroauthy.store.v1.GitHubFederationCapabilitiesRequest
-	247,  // 1064: zeroauthy.store.v1.StoreService.MFACapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
-	264,  // 1065: zeroauthy.store.v1.StoreService.MFAGetGuardian:output_type -> zeroauthy.store.v1.MFAGetGuardianResponse
-	266,  // 1066: zeroauthy.store.v1.StoreService.MFAPutGuardian:output_type -> zeroauthy.store.v1.MFAPutGuardianResponse
-	268,  // 1067: zeroauthy.store.v1.StoreService.MFACreateAuthenticator:output_type -> zeroauthy.store.v1.MFACreateAuthenticatorResponse
-	270,  // 1068: zeroauthy.store.v1.StoreService.MFAGetAuthenticator:output_type -> zeroauthy.store.v1.MFAGetAuthenticatorResponse
-	272,  // 1069: zeroauthy.store.v1.StoreService.MFAGetAuthenticatorByEnrollmentID:output_type -> zeroauthy.store.v1.MFAGetAuthenticatorByEnrollmentIDResponse
-	374,  // 1070: zeroauthy.store.v1.StoreService.MFAGuardianUsers:output_type -> zeroauthy.store.v1.MFAGuardianUsersResponse
-	274,  // 1071: zeroauthy.store.v1.StoreService.MFAListAuthenticators:output_type -> zeroauthy.store.v1.MFAListAuthenticatorsResponse
-	276,  // 1072: zeroauthy.store.v1.StoreService.MFAUpdateAuthenticator:output_type -> zeroauthy.store.v1.MFAUpdateAuthenticatorResponse
-	278,  // 1073: zeroauthy.store.v1.StoreService.MFADeleteAuthenticator:output_type -> zeroauthy.store.v1.MFADeleteAuthenticatorResponse
-	280,  // 1074: zeroauthy.store.v1.StoreService.MFADeleteUserAuthenticators:output_type -> zeroauthy.store.v1.MFADeleteUserAuthenticatorsResponse
-	282,  // 1075: zeroauthy.store.v1.StoreService.MFAAcceptTOTPStep:output_type -> zeroauthy.store.v1.MFAAcceptTOTPStepResponse
-	284,  // 1076: zeroauthy.store.v1.StoreService.MFAReplaceRecoveryCode:output_type -> zeroauthy.store.v1.MFAReplaceRecoveryCodeResponse
-	286,  // 1077: zeroauthy.store.v1.StoreService.MFAAcceptSignCount:output_type -> zeroauthy.store.v1.MFAAcceptSignCountResponse
-	288,  // 1078: zeroauthy.store.v1.StoreService.MFACreateMFAToken:output_type -> zeroauthy.store.v1.MFACreateMFATokenResponse
-	290,  // 1079: zeroauthy.store.v1.StoreService.MFAConsumeMFAToken:output_type -> zeroauthy.store.v1.MFAConsumeMFATokenResponse
-	292,  // 1080: zeroauthy.store.v1.StoreService.MFAPeekMFAToken:output_type -> zeroauthy.store.v1.MFAPeekMFATokenResponse
-	294,  // 1081: zeroauthy.store.v1.StoreService.MFACreateChallenge:output_type -> zeroauthy.store.v1.MFACreateChallengeResponse
-	296,  // 1082: zeroauthy.store.v1.StoreService.MFAGetChallenge:output_type -> zeroauthy.store.v1.MFAGetChallengeResponse
-	298,  // 1083: zeroauthy.store.v1.StoreService.MFAFailChallenge:output_type -> zeroauthy.store.v1.MFAFailChallengeResponse
-	300,  // 1084: zeroauthy.store.v1.StoreService.MFAConsumeChallenge:output_type -> zeroauthy.store.v1.MFAConsumeChallengeResponse
-	302,  // 1085: zeroauthy.store.v1.StoreService.MFACreateTicket:output_type -> zeroauthy.store.v1.MFACreateTicketResponse
-	304,  // 1086: zeroauthy.store.v1.StoreService.MFAConsumeTicket:output_type -> zeroauthy.store.v1.MFAConsumeTicketResponse
-	306,  // 1087: zeroauthy.store.v1.StoreService.MFAPeekTicket:output_type -> zeroauthy.store.v1.MFAPeekTicketResponse
-	308,  // 1088: zeroauthy.store.v1.StoreService.MFAPutBrowser:output_type -> zeroauthy.store.v1.MFAPutBrowserResponse
-	310,  // 1089: zeroauthy.store.v1.StoreService.MFAGetBrowser:output_type -> zeroauthy.store.v1.MFAGetBrowserResponse
-	312,  // 1090: zeroauthy.store.v1.StoreService.MFABumpRememberEpoch:output_type -> zeroauthy.store.v1.MFABumpRememberEpochResponse
-	314,  // 1091: zeroauthy.store.v1.StoreService.MFAPurgeMFA:output_type -> zeroauthy.store.v1.MFAPurgeMFAResponse
-	316,  // 1092: zeroauthy.store.v1.StoreService.MFADeleteUserMFA:output_type -> zeroauthy.store.v1.MFADeleteUserMFAResponse
-	318,  // 1093: zeroauthy.store.v1.StoreService.MFADeleteTenantMFA:output_type -> zeroauthy.store.v1.MFADeleteTenantMFAResponse
-	4,    // 1094: zeroauthy.store.v1.StoreService.SessionsMarkMFA:output_type -> zeroauthy.store.v1.Result
-	247,  // 1095: zeroauthy.store.v1.StoreService.PhoneCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
-	327,  // 1096: zeroauthy.store.v1.StoreService.PhoneListProviders:output_type -> zeroauthy.store.v1.PhoneListProvidersResponse
-	326,  // 1097: zeroauthy.store.v1.StoreService.PhoneGetProvider:output_type -> zeroauthy.store.v1.PhoneProviderResponse
-	322,  // 1098: zeroauthy.store.v1.StoreService.PhoneCreateProvider:output_type -> zeroauthy.store.v1.PhoneErrorResponse
-	322,  // 1099: zeroauthy.store.v1.StoreService.PhoneUpdateProvider:output_type -> zeroauthy.store.v1.PhoneErrorResponse
-	322,  // 1100: zeroauthy.store.v1.StoreService.PhoneDeleteProvider:output_type -> zeroauthy.store.v1.PhoneErrorResponse
-	330,  // 1101: zeroauthy.store.v1.StoreService.PhoneListTemplates:output_type -> zeroauthy.store.v1.PhoneListTemplatesResponse
-	329,  // 1102: zeroauthy.store.v1.StoreService.PhoneGetTemplate:output_type -> zeroauthy.store.v1.PhoneTemplateResponse
-	322,  // 1103: zeroauthy.store.v1.StoreService.PhonePutTemplate:output_type -> zeroauthy.store.v1.PhoneErrorResponse
-	322,  // 1104: zeroauthy.store.v1.StoreService.PhoneDeleteTemplate:output_type -> zeroauthy.store.v1.PhoneErrorResponse
-	322,  // 1105: zeroauthy.store.v1.StoreService.PhonePutPasswordlessCode:output_type -> zeroauthy.store.v1.PhoneErrorResponse
-	333,  // 1106: zeroauthy.store.v1.StoreService.PhoneFailPasswordlessCode:output_type -> zeroauthy.store.v1.PhoneFailCodeResponse
-	335,  // 1107: zeroauthy.store.v1.StoreService.PhoneConsumePasswordlessCode:output_type -> zeroauthy.store.v1.PhoneCodeResponse
-	335,  // 1108: zeroauthy.store.v1.StoreService.PhonePeekPasswordlessLink:output_type -> zeroauthy.store.v1.PhoneCodeResponse
-	338,  // 1109: zeroauthy.store.v1.StoreService.PhoneFindUsersByPhone:output_type -> zeroauthy.store.v1.PhoneFindUsersResponse
-	340,  // 1110: zeroauthy.store.v1.StoreService.PhonePurge:output_type -> zeroauthy.store.v1.PhoneCountResponse
-	322,  // 1111: zeroauthy.store.v1.StoreService.PhoneDeleteTenant:output_type -> zeroauthy.store.v1.PhoneErrorResponse
-	247,  // 1112: zeroauthy.store.v1.StoreService.WebAuthnCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
-	343,  // 1113: zeroauthy.store.v1.StoreService.WebAuthnGetByCredentialID:output_type -> zeroauthy.store.v1.WebAuthnAuthenticatorResponse
-	341,  // 1114: zeroauthy.store.v1.StoreService.WebAuthnCreatePasskey:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
-	341,  // 1115: zeroauthy.store.v1.StoreService.WebAuthnCreateUserWithPasskey:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
-	341,  // 1116: zeroauthy.store.v1.StoreService.WebAuthnAcceptAssertion:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
-	341,  // 1117: zeroauthy.store.v1.StoreService.WebAuthnMovePasskeys:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
-	341,  // 1118: zeroauthy.store.v1.StoreService.WebAuthnPutSnooze:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
-	351,  // 1119: zeroauthy.store.v1.StoreService.WebAuthnGetSnooze:output_type -> zeroauthy.store.v1.WebAuthnSnoozeResponse
-	353,  // 1120: zeroauthy.store.v1.StoreService.WebAuthnHostTenantsUnder:output_type -> zeroauthy.store.v1.WebAuthnHostTenantsResponse
-	355,  // 1121: zeroauthy.store.v1.StoreService.WebAuthnPurge:output_type -> zeroauthy.store.v1.WebAuthnCountResponse
-	247,  // 1122: zeroauthy.store.v1.StoreService.ConnectionKeysCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
-	377,  // 1123: zeroauthy.store.v1.StoreService.ListConnectionKeys:output_type -> zeroauthy.store.v1.ConnectionKeysResult
-	4,    // 1124: zeroauthy.store.v1.StoreService.CreateConnectionKeys:output_type -> zeroauthy.store.v1.Result
-	377,  // 1125: zeroauthy.store.v1.StoreService.RotateConnectionKeys:output_type -> zeroauthy.store.v1.ConnectionKeysResult
-	247,  // 1126: zeroauthy.store.v1.StoreService.ClientCredentialsCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
-	4,    // 1127: zeroauthy.store.v1.StoreService.ClientCredentialsCreate:output_type -> zeroauthy.store.v1.Result
-	360,  // 1128: zeroauthy.store.v1.StoreService.ClientCredentialsGet:output_type -> zeroauthy.store.v1.ClientCredentialResult
-	362,  // 1129: zeroauthy.store.v1.StoreService.ClientCredentialsList:output_type -> zeroauthy.store.v1.ClientCredentialListResult
-	4,    // 1130: zeroauthy.store.v1.StoreService.ClientCredentialsUpdateExpiry:output_type -> zeroauthy.store.v1.Result
-	4,    // 1131: zeroauthy.store.v1.StoreService.ClientCredentialsDelete:output_type -> zeroauthy.store.v1.Result
-	4,    // 1132: zeroauthy.store.v1.StoreService.ClientCredentialsUseJTI:output_type -> zeroauthy.store.v1.Result
-	5,    // 1133: zeroauthy.store.v1.StoreService.ClientCredentialsPurgeJTIs:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1134: zeroauthy.store.v1.StoreService.ClientCredentialsCreateProfile:output_type -> zeroauthy.store.v1.Result
-	370,  // 1135: zeroauthy.store.v1.StoreService.ClientCredentialsGetProfile:output_type -> zeroauthy.store.v1.TokenExchangeProfileResult
-	370,  // 1136: zeroauthy.store.v1.StoreService.ClientCredentialsGetProfileByType:output_type -> zeroauthy.store.v1.TokenExchangeProfileResult
-	372,  // 1137: zeroauthy.store.v1.StoreService.ClientCredentialsListProfiles:output_type -> zeroauthy.store.v1.TokenExchangeProfileListResult
-	4,    // 1138: zeroauthy.store.v1.StoreService.ClientCredentialsUpdateProfile:output_type -> zeroauthy.store.v1.Result
-	4,    // 1139: zeroauthy.store.v1.StoreService.ClientCredentialsDeleteProfile:output_type -> zeroauthy.store.v1.Result
-	5,    // 1140: zeroauthy.store.v1.StoreService.ClientCredentialsProfilesForAction:output_type -> zeroauthy.store.v1.CountResult
-	247,  // 1141: zeroauthy.store.v1.StoreService.EventsCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
-	256,  // 1142: zeroauthy.store.v1.StoreService.AppendEvents:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1143: zeroauthy.store.v1.StoreService.GetEvent:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1144: zeroauthy.store.v1.StoreService.EventsAfter:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1145: zeroauthy.store.v1.StoreService.EventsFromTime:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1146: zeroauthy.store.v1.StoreService.LatestEventSeq:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1147: zeroauthy.store.v1.StoreService.PurgedEventSeq:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1148: zeroauthy.store.v1.StoreService.OldestEventSeq:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1149: zeroauthy.store.v1.StoreService.PurgeEvents:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1150: zeroauthy.store.v1.StoreService.DeleteTenantEvents:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1151: zeroauthy.store.v1.StoreService.CreateEventStream:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1152: zeroauthy.store.v1.StoreService.GetEventStream:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1153: zeroauthy.store.v1.StoreService.ListEventStreams:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1154: zeroauthy.store.v1.StoreService.CountEventStreams:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1155: zeroauthy.store.v1.StoreService.UpdateEventStream:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1156: zeroauthy.store.v1.StoreService.DeleteEventStream:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1157: zeroauthy.store.v1.StoreService.LeaseEventStream:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1158: zeroauthy.store.v1.StoreService.RecordEventDelivery:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1159: zeroauthy.store.v1.StoreService.ListDeliveries:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1160: zeroauthy.store.v1.StoreService.GetDelivery:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1161: zeroauthy.store.v1.StoreService.QueueRedelivery:output_type -> zeroauthy.store.v1.EventsResponse
-	256,  // 1162: zeroauthy.store.v1.StoreService.QueuedDeliveries:output_type -> zeroauthy.store.v1.EventsResponse
-	234,  // 1163: zeroauthy.store.v1.StoreService.LogsCapabilities:output_type -> zeroauthy.store.v1.LogsCapabilitiesResult
-	246,  // 1164: zeroauthy.store.v1.StoreService.AppendLogs:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1165: zeroauthy.store.v1.StoreService.GetLog:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1166: zeroauthy.store.v1.StoreService.SearchLogs:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1167: zeroauthy.store.v1.StoreService.LogsAfter:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1168: zeroauthy.store.v1.StoreService.LatestLogs:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1169: zeroauthy.store.v1.StoreService.PurgeLogs:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1170: zeroauthy.store.v1.StoreService.DeleteTenantLogs:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1171: zeroauthy.store.v1.StoreService.CreateLogStream:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1172: zeroauthy.store.v1.StoreService.GetLogStream:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1173: zeroauthy.store.v1.StoreService.ListLogStreams:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1174: zeroauthy.store.v1.StoreService.UpdateLogStream:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1175: zeroauthy.store.v1.StoreService.DeleteLogStream:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1176: zeroauthy.store.v1.StoreService.LeaseLogStream:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1177: zeroauthy.store.v1.StoreService.RecordDelivery:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1178: zeroauthy.store.v1.StoreService.DailyStats:output_type -> zeroauthy.store.v1.LogsResponse
-	246,  // 1179: zeroauthy.store.v1.StoreService.ActiveUsers:output_type -> zeroauthy.store.v1.LogsResponse
-	198,  // 1180: zeroauthy.store.v1.StoreService.RBACCapabilities:output_type -> zeroauthy.store.v1.RBACCapabilitiesResult
-	197,  // 1181: zeroauthy.store.v1.StoreService.RBACCreateRole:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1182: zeroauthy.store.v1.StoreService.RBACGetRole:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1183: zeroauthy.store.v1.StoreService.RBACUpdateRole:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1184: zeroauthy.store.v1.StoreService.RBACDeleteRole:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1185: zeroauthy.store.v1.StoreService.RBACListRoles:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1186: zeroauthy.store.v1.StoreService.RBACRolePermissions:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1187: zeroauthy.store.v1.StoreService.RBACChangeRolePermissions:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1188: zeroauthy.store.v1.StoreService.RBACRoleUsers:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1189: zeroauthy.store.v1.StoreService.RBACAssignRoleUsers:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1190: zeroauthy.store.v1.StoreService.RBACUserRoles:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1191: zeroauthy.store.v1.StoreService.RBACChangeUserRoles:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1192: zeroauthy.store.v1.StoreService.RBACUserPermissions:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1193: zeroauthy.store.v1.StoreService.RBACChangeUserPermissions:output_type -> zeroauthy.store.v1.RBACResponse
-	197,  // 1194: zeroauthy.store.v1.StoreService.RBACSnapshot:output_type -> zeroauthy.store.v1.RBACResponse
-	206,  // 1195: zeroauthy.store.v1.StoreService.OrganizationsIICapabilities:output_type -> zeroauthy.store.v1.OrganizationsCapabilitiesResult
-	231,  // 1196: zeroauthy.store.v1.StoreService.OrganizationsIICreateInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1197: zeroauthy.store.v1.StoreService.OrganizationsIIGetInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1198: zeroauthy.store.v1.StoreService.OrganizationsIIFindInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1199: zeroauthy.store.v1.StoreService.OrganizationsIIListInvitations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1200: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1201: zeroauthy.store.v1.StoreService.OrganizationsIIConsumeInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1202: zeroauthy.store.v1.StoreService.OrganizationsIIGetInvitationReceipt:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1203: zeroauthy.store.v1.StoreService.OrganizationsIIPutClients:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1204: zeroauthy.store.v1.StoreService.OrganizationsIIGetClient:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1205: zeroauthy.store.v1.StoreService.OrganizationsIIListClients:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1206: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteClients:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1207: zeroauthy.store.v1.StoreService.OrganizationsIIPutClientGrant:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1208: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteClientGrant:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1209: zeroauthy.store.v1.StoreService.OrganizationsIIListClientGrants:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1210: zeroauthy.store.v1.StoreService.OrganizationsIIGrantOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1211: zeroauthy.store.v1.StoreService.OrganizationsIIHasClientGrant:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1212: zeroauthy.store.v1.StoreService.OrganizationsIIPutDiscoveryDomain:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1213: zeroauthy.store.v1.StoreService.OrganizationsIIGetDiscoveryDomain:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1214: zeroauthy.store.v1.StoreService.OrganizationsIIGetDiscoveryDomainByName:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1215: zeroauthy.store.v1.StoreService.OrganizationsIIListDiscoveryDomains:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1216: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteDiscoveryDomain:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1217: zeroauthy.store.v1.StoreService.OrganizationsIIDiscoverOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1218: zeroauthy.store.v1.StoreService.OrganizationsIISearch:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	206,  // 1219: zeroauthy.store.v1.StoreService.OrganizationsCapabilities:output_type -> zeroauthy.store.v1.OrganizationsCapabilitiesResult
-	205,  // 1220: zeroauthy.store.v1.StoreService.OrganizationsCreate:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1221: zeroauthy.store.v1.StoreService.OrganizationsGet:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1222: zeroauthy.store.v1.StoreService.OrganizationsGetByName:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1223: zeroauthy.store.v1.StoreService.OrganizationsList:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1224: zeroauthy.store.v1.StoreService.OrganizationsUpdate:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1225: zeroauthy.store.v1.StoreService.OrganizationsDelete:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1226: zeroauthy.store.v1.StoreService.OrganizationsConnections:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1227: zeroauthy.store.v1.StoreService.OrganizationsGetConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1228: zeroauthy.store.v1.StoreService.OrganizationsPutConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1229: zeroauthy.store.v1.StoreService.OrganizationsDeleteConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1230: zeroauthy.store.v1.StoreService.OrganizationsConnectionsByConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1231: zeroauthy.store.v1.StoreService.OrganizationsMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1232: zeroauthy.store.v1.StoreService.OrganizationsAddMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1233: zeroauthy.store.v1.StoreService.OrganizationsRemoveMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1234: zeroauthy.store.v1.StoreService.OrganizationsIsMember:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1235: zeroauthy.store.v1.StoreService.OrganizationsUserOrganizations:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1236: zeroauthy.store.v1.StoreService.OrganizationsMemberRoles:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1237: zeroauthy.store.v1.StoreService.OrganizationsChangeMemberRoles:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1238: zeroauthy.store.v1.StoreService.OrganizationsRoleMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	220,  // 1239: zeroauthy.store.v1.StoreService.ActionsCapabilities:output_type -> zeroauthy.store.v1.ActionsCapabilitiesResult
-	218,  // 1240: zeroauthy.store.v1.StoreService.ActionsCreateAction:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1241: zeroauthy.store.v1.StoreService.ActionsGetAction:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1242: zeroauthy.store.v1.StoreService.ActionsGetActionByName:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1243: zeroauthy.store.v1.StoreService.ActionsUpdateAction:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1244: zeroauthy.store.v1.StoreService.ActionsDeleteAction:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1245: zeroauthy.store.v1.StoreService.ActionsListActions:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1246: zeroauthy.store.v1.StoreService.ActionsDeploy:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1247: zeroauthy.store.v1.StoreService.ActionsGetVersion:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1248: zeroauthy.store.v1.StoreService.ActionsListVersions:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1249: zeroauthy.store.v1.StoreService.ActionsPutBuild:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1250: zeroauthy.store.v1.StoreService.ActionsGetBuild:output_type -> zeroauthy.store.v1.ActionsResponse
-	4,    // 1251: zeroauthy.store.v1.StoreService.ActionsPutArtifact:output_type -> zeroauthy.store.v1.Result
-	219,  // 1252: zeroauthy.store.v1.StoreService.ActionsGetArtifact:output_type -> zeroauthy.store.v1.ActionsArtifactChunk
-	218,  // 1253: zeroauthy.store.v1.StoreService.ActionsBindings:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1254: zeroauthy.store.v1.StoreService.ActionsBindingsInitialized:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1255: zeroauthy.store.v1.StoreService.ActionsInitializeBindings:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1256: zeroauthy.store.v1.StoreService.ActionsReplaceBindings:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1257: zeroauthy.store.v1.StoreService.ActionsCreateExecution:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1258: zeroauthy.store.v1.StoreService.ActionsListExecutions:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1259: zeroauthy.store.v1.StoreService.ActionsGetExecution:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1260: zeroauthy.store.v1.StoreService.ActionsPurgeExecutions:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1261: zeroauthy.store.v1.StoreService.ActionsCreateContinue:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1262: zeroauthy.store.v1.StoreService.ActionsConsumeContinue:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1263: zeroauthy.store.v1.StoreService.ActionsPurgeContinue:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1264: zeroauthy.store.v1.StoreService.ActionsCreateModule:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1265: zeroauthy.store.v1.StoreService.ActionsGetModule:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1266: zeroauthy.store.v1.StoreService.ActionsGetModuleByName:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1267: zeroauthy.store.v1.StoreService.ActionsUpdateModule:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1268: zeroauthy.store.v1.StoreService.ActionsDeleteModule:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1269: zeroauthy.store.v1.StoreService.ActionsListModules:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1270: zeroauthy.store.v1.StoreService.ActionsPublishModule:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1271: zeroauthy.store.v1.StoreService.ActionsRollbackModule:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1272: zeroauthy.store.v1.StoreService.ActionsListModuleVersions:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1273: zeroauthy.store.v1.StoreService.ActionsGetModuleVersion:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1274: zeroauthy.store.v1.StoreService.ActionsModuleUsers:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1275: zeroauthy.store.v1.StoreService.ActionsEnqueueJob:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1276: zeroauthy.store.v1.StoreService.ActionsGetJob:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1277: zeroauthy.store.v1.StoreService.ActionsCancelJob:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1278: zeroauthy.store.v1.StoreService.ActionsClaimJobs:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1279: zeroauthy.store.v1.StoreService.ActionsFinishJob:output_type -> zeroauthy.store.v1.ActionsResponse
-	218,  // 1280: zeroauthy.store.v1.StoreService.ActionsPurgeJobs:output_type -> zeroauthy.store.v1.ActionsResponse
-	4,    // 1281: zeroauthy.store.v1.StoreService.Ping:output_type -> zeroauthy.store.v1.Result
-	4,    // 1282: zeroauthy.store.v1.StoreService.MicrosoftFederationSupported:output_type -> zeroauthy.store.v1.Result
-	4,    // 1283: zeroauthy.store.v1.StoreService.CustomDomainsSupported:output_type -> zeroauthy.store.v1.Result
-	186,  // 1284: zeroauthy.store.v1.StoreService.CustomDomainsGet:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1285: zeroauthy.store.v1.StoreService.CustomDomainsList:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1286: zeroauthy.store.v1.StoreService.CustomDomainsListDue:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1287: zeroauthy.store.v1.StoreService.CustomDomainsCreate:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1288: zeroauthy.store.v1.StoreService.CustomDomainsUpdate:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1289: zeroauthy.store.v1.StoreService.CustomDomainsDelete:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1290: zeroauthy.store.v1.StoreService.CustomDomainsGetHost:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1291: zeroauthy.store.v1.StoreService.CustomDomainsPutHost:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1292: zeroauthy.store.v1.StoreService.CustomDomainsDeleteHost:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1293: zeroauthy.store.v1.StoreService.CustomDomainsGetDefault:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1294: zeroauthy.store.v1.StoreService.CustomDomainsSetDefault:output_type -> zeroauthy.store.v1.CustomDomainResult
-	186,  // 1295: zeroauthy.store.v1.StoreService.CustomDomainsAdmitAttempt:output_type -> zeroauthy.store.v1.CustomDomainResult
-	188,  // 1296: zeroauthy.store.v1.StoreService.TLSAssetsGet:output_type -> zeroauthy.store.v1.TLSAssetResult
-	188,  // 1297: zeroauthy.store.v1.StoreService.TLSAssetsPut:output_type -> zeroauthy.store.v1.TLSAssetResult
-	188,  // 1298: zeroauthy.store.v1.StoreService.TLSAssetsDelete:output_type -> zeroauthy.store.v1.TLSAssetResult
-	188,  // 1299: zeroauthy.store.v1.StoreService.TLSAssetsListExpired:output_type -> zeroauthy.store.v1.TLSAssetResult
-	188,  // 1300: zeroauthy.store.v1.StoreService.TLSAssetsClaimLease:output_type -> zeroauthy.store.v1.TLSAssetResult
-	188,  // 1301: zeroauthy.store.v1.StoreService.TLSAssetsRenewLease:output_type -> zeroauthy.store.v1.TLSAssetResult
-	188,  // 1302: zeroauthy.store.v1.StoreService.TLSAssetsCheckLease:output_type -> zeroauthy.store.v1.TLSAssetResult
-	188,  // 1303: zeroauthy.store.v1.StoreService.TLSAssetsReleaseLease:output_type -> zeroauthy.store.v1.TLSAssetResult
-	178,  // 1304: zeroauthy.store.v1.StoreService.ProtectionReserve:output_type -> zeroauthy.store.v1.ProtectionResult
-	178,  // 1305: zeroauthy.store.v1.StoreService.ProtectionComplete:output_type -> zeroauthy.store.v1.ProtectionResult
-	178,  // 1306: zeroauthy.store.v1.StoreService.ProtectionBlocks:output_type -> zeroauthy.store.v1.ProtectionResult
-	178,  // 1307: zeroauthy.store.v1.StoreService.ProtectionClear:output_type -> zeroauthy.store.v1.ProtectionResult
-	178,  // 1308: zeroauthy.store.v1.StoreService.ProtectionUseProof:output_type -> zeroauthy.store.v1.ProtectionResult
-	178,  // 1309: zeroauthy.store.v1.StoreService.ProtectionRecordRisk:output_type -> zeroauthy.store.v1.ProtectionResult
-	178,  // 1310: zeroauthy.store.v1.StoreService.ProtectionRiskCount:output_type -> zeroauthy.store.v1.ProtectionResult
-	178,  // 1311: zeroauthy.store.v1.StoreService.ProtectionSweep:output_type -> zeroauthy.store.v1.ProtectionResult
-	4,    // 1312: zeroauthy.store.v1.StoreService.TenantSettingsSupported:output_type -> zeroauthy.store.v1.Result
-	9,    // 1313: zeroauthy.store.v1.StoreService.BeginTx:output_type -> zeroauthy.store.v1.BeginTxResponse
-	4,    // 1314: zeroauthy.store.v1.StoreService.Commit:output_type -> zeroauthy.store.v1.Result
-	4,    // 1315: zeroauthy.store.v1.StoreService.Rollback:output_type -> zeroauthy.store.v1.Result
-	4,    // 1316: zeroauthy.store.v1.StoreService.TenantsCreate:output_type -> zeroauthy.store.v1.Result
-	94,   // 1317: zeroauthy.store.v1.StoreService.TenantsGet:output_type -> zeroauthy.store.v1.TenantResult
-	94,   // 1318: zeroauthy.store.v1.StoreService.TenantsGetByName:output_type -> zeroauthy.store.v1.TenantResult
-	94,   // 1319: zeroauthy.store.v1.StoreService.TenantsGetByDomain:output_type -> zeroauthy.store.v1.TenantResult
-	4,    // 1320: zeroauthy.store.v1.StoreService.TenantsUpdate:output_type -> zeroauthy.store.v1.Result
-	95,   // 1321: zeroauthy.store.v1.StoreService.TenantsList:output_type -> zeroauthy.store.v1.TenantList
-	4,    // 1322: zeroauthy.store.v1.StoreService.TenantsDelete:output_type -> zeroauthy.store.v1.Result
-	4,    // 1323: zeroauthy.store.v1.StoreService.ClientsCreate:output_type -> zeroauthy.store.v1.Result
-	97,   // 1324: zeroauthy.store.v1.StoreService.ClientsGet:output_type -> zeroauthy.store.v1.ClientResult
-	4,    // 1325: zeroauthy.store.v1.StoreService.ClientsUpdate:output_type -> zeroauthy.store.v1.Result
-	4,    // 1326: zeroauthy.store.v1.StoreService.ClientsDelete:output_type -> zeroauthy.store.v1.Result
-	98,   // 1327: zeroauthy.store.v1.StoreService.ClientsList:output_type -> zeroauthy.store.v1.ClientList
-	100,  // 1328: zeroauthy.store.v1.StoreService.ClientsListPage:output_type -> zeroauthy.store.v1.ClientPage
-	4,    // 1329: zeroauthy.store.v1.StoreService.ResourceServersCreate:output_type -> zeroauthy.store.v1.Result
-	102,  // 1330: zeroauthy.store.v1.StoreService.ResourceServersGet:output_type -> zeroauthy.store.v1.ResourceServerResult
-	102,  // 1331: zeroauthy.store.v1.StoreService.ResourceServersGetByIdentifier:output_type -> zeroauthy.store.v1.ResourceServerResult
-	4,    // 1332: zeroauthy.store.v1.StoreService.ResourceServersUpdate:output_type -> zeroauthy.store.v1.Result
-	4,    // 1333: zeroauthy.store.v1.StoreService.ResourceServersDelete:output_type -> zeroauthy.store.v1.Result
-	103,  // 1334: zeroauthy.store.v1.StoreService.ResourceServersList:output_type -> zeroauthy.store.v1.ResourceServerList
-	4,    // 1335: zeroauthy.store.v1.StoreService.ResourceServersRenameSystem:output_type -> zeroauthy.store.v1.Result
-	4,    // 1336: zeroauthy.store.v1.StoreService.ClientGrantsCreate:output_type -> zeroauthy.store.v1.Result
-	106,  // 1337: zeroauthy.store.v1.StoreService.ClientGrantsFind:output_type -> zeroauthy.store.v1.ClientGrantResult
-	4,    // 1338: zeroauthy.store.v1.StoreService.ClientGrantsUpdate:output_type -> zeroauthy.store.v1.Result
-	4,    // 1339: zeroauthy.store.v1.StoreService.ClientGrantsDelete:output_type -> zeroauthy.store.v1.Result
-	108,  // 1340: zeroauthy.store.v1.StoreService.ClientGrantsList:output_type -> zeroauthy.store.v1.ClientGrantList
-	111,  // 1341: zeroauthy.store.v1.StoreService.UserGrantsFind:output_type -> zeroauthy.store.v1.UserGrantResult
-	111,  // 1342: zeroauthy.store.v1.StoreService.UserGrantsUpsert:output_type -> zeroauthy.store.v1.UserGrantResult
-	112,  // 1343: zeroauthy.store.v1.StoreService.UserGrantsList:output_type -> zeroauthy.store.v1.UserGrantList
-	112,  // 1344: zeroauthy.store.v1.StoreService.UserGrantsListByUser:output_type -> zeroauthy.store.v1.UserGrantList
-	112,  // 1345: zeroauthy.store.v1.StoreService.UserGrantsListByAudience:output_type -> zeroauthy.store.v1.UserGrantList
-	4,    // 1346: zeroauthy.store.v1.StoreService.UserGrantsDelete:output_type -> zeroauthy.store.v1.Result
-	5,    // 1347: zeroauthy.store.v1.StoreService.UserGrantsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1348: zeroauthy.store.v1.StoreService.SigningKeysCreate:output_type -> zeroauthy.store.v1.Result
-	115,  // 1349: zeroauthy.store.v1.StoreService.SigningKeysList:output_type -> zeroauthy.store.v1.SigningKeyList
-	4,    // 1350: zeroauthy.store.v1.StoreService.SigningKeysRotate:output_type -> zeroauthy.store.v1.Result
-	32,   // 1351: zeroauthy.store.v1.StoreService.SigningKeysGet:output_type -> zeroauthy.store.v1.SigningKeyResult
-	34,   // 1352: zeroauthy.store.v1.StoreService.SigningKeysRotateWithResult:output_type -> zeroauthy.store.v1.SigningKeyRotationResult
-	32,   // 1353: zeroauthy.store.v1.StoreService.SigningKeysRevoke:output_type -> zeroauthy.store.v1.SigningKeyResult
-	32,   // 1354: zeroauthy.store.v1.StoreService.SigningKeysSetCertificate:output_type -> zeroauthy.store.v1.SigningKeyResult
-	38,   // 1355: zeroauthy.store.v1.StoreService.CustomSigningKeysGet:output_type -> zeroauthy.store.v1.CustomSigningKeySetResult
-	4,    // 1356: zeroauthy.store.v1.StoreService.CustomSigningKeysReplace:output_type -> zeroauthy.store.v1.Result
-	4,    // 1357: zeroauthy.store.v1.StoreService.CustomSigningKeysDelete:output_type -> zeroauthy.store.v1.Result
-	41,   // 1358: zeroauthy.store.v1.StoreService.HostedLoginsGet:output_type -> zeroauthy.store.v1.HostedLoginConfigResult
-	4,    // 1359: zeroauthy.store.v1.StoreService.HostedLoginsPut:output_type -> zeroauthy.store.v1.Result
-	132,  // 1360: zeroauthy.store.v1.StoreService.FederationIdentityEpoch:output_type -> zeroauthy.store.v1.VersionResult
-	4,    // 1361: zeroauthy.store.v1.StoreService.FederationBumpIdentityEpoch:output_type -> zeroauthy.store.v1.Result
-	4,    // 1362: zeroauthy.store.v1.StoreService.FederationCreateAttempt:output_type -> zeroauthy.store.v1.Result
-	48,   // 1363: zeroauthy.store.v1.StoreService.FederationGetAttempt:output_type -> zeroauthy.store.v1.FederationAttemptResult
-	48,   // 1364: zeroauthy.store.v1.StoreService.FederationClaimAttempt:output_type -> zeroauthy.store.v1.FederationAttemptResult
-	4,    // 1365: zeroauthy.store.v1.StoreService.FederationFinishAttempt:output_type -> zeroauthy.store.v1.Result
-	4,    // 1366: zeroauthy.store.v1.StoreService.FederationPutIdentity:output_type -> zeroauthy.store.v1.Result
-	4,    // 1367: zeroauthy.store.v1.StoreService.FederationDeleteIdentity:output_type -> zeroauthy.store.v1.Result
-	53,   // 1368: zeroauthy.store.v1.StoreService.FederationGetTokens:output_type -> zeroauthy.store.v1.FederatedTokensResult
-	4,    // 1369: zeroauthy.store.v1.StoreService.FederationPutTokens:output_type -> zeroauthy.store.v1.Result
-	4,    // 1370: zeroauthy.store.v1.StoreService.FederationDeleteTokens:output_type -> zeroauthy.store.v1.Result
-	5,    // 1371: zeroauthy.store.v1.StoreService.FederationDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	125,  // 1372: zeroauthy.store.v1.StoreService.UsersFindByIdentity:output_type -> zeroauthy.store.v1.UserResult
-	57,   // 1373: zeroauthy.store.v1.StoreService.EmailProvidersGet:output_type -> zeroauthy.store.v1.EmailProviderResult
-	4,    // 1374: zeroauthy.store.v1.StoreService.EmailProvidersPut:output_type -> zeroauthy.store.v1.Result
-	4,    // 1375: zeroauthy.store.v1.StoreService.EmailProvidersDelete:output_type -> zeroauthy.store.v1.Result
-	62,   // 1376: zeroauthy.store.v1.StoreService.EmailTemplatesGet:output_type -> zeroauthy.store.v1.EmailTemplateResult
-	4,    // 1377: zeroauthy.store.v1.StoreService.EmailTemplatesPut:output_type -> zeroauthy.store.v1.Result
-	65,   // 1378: zeroauthy.store.v1.StoreService.EmailNotificationsClaim:output_type -> zeroauthy.store.v1.EmailNotificationClaimResult
-	5,    // 1379: zeroauthy.store.v1.StoreService.EmailNotificationsSweep:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1380: zeroauthy.store.v1.StoreService.ConnectionsCreate:output_type -> zeroauthy.store.v1.Result
-	118,  // 1381: zeroauthy.store.v1.StoreService.ConnectionsGet:output_type -> zeroauthy.store.v1.ConnectionResult
-	118,  // 1382: zeroauthy.store.v1.StoreService.ConnectionsGetByName:output_type -> zeroauthy.store.v1.ConnectionResult
-	4,    // 1383: zeroauthy.store.v1.StoreService.ConnectionsUpdate:output_type -> zeroauthy.store.v1.Result
-	119,  // 1384: zeroauthy.store.v1.StoreService.ConnectionsList:output_type -> zeroauthy.store.v1.ConnectionList
-	121,  // 1385: zeroauthy.store.v1.StoreService.ConnectionsListPage:output_type -> zeroauthy.store.v1.ConnectionPage
-	4,    // 1386: zeroauthy.store.v1.StoreService.ConnectionsDelete:output_type -> zeroauthy.store.v1.Result
-	4,    // 1387: zeroauthy.store.v1.StoreService.PasswordHistoriesAdd:output_type -> zeroauthy.store.v1.Result
-	123,  // 1388: zeroauthy.store.v1.StoreService.PasswordHistoriesList:output_type -> zeroauthy.store.v1.PasswordHistoryList
-	4,    // 1389: zeroauthy.store.v1.StoreService.UsersCreate:output_type -> zeroauthy.store.v1.Result
-	125,  // 1390: zeroauthy.store.v1.StoreService.UsersGet:output_type -> zeroauthy.store.v1.UserResult
-	125,  // 1391: zeroauthy.store.v1.StoreService.UsersFindByLogin:output_type -> zeroauthy.store.v1.UserResult
-	4,    // 1392: zeroauthy.store.v1.StoreService.UsersUpdate:output_type -> zeroauthy.store.v1.Result
-	4,    // 1393: zeroauthy.store.v1.StoreService.UsersRecordLogin:output_type -> zeroauthy.store.v1.Result
-	4,    // 1394: zeroauthy.store.v1.StoreService.UsersSetPasswordHash:output_type -> zeroauthy.store.v1.Result
-	129,  // 1395: zeroauthy.store.v1.StoreService.UsersFindByEmail:output_type -> zeroauthy.store.v1.UserListResult
-	4,    // 1396: zeroauthy.store.v1.StoreService.UsersSetPasswordHashIfEmpty:output_type -> zeroauthy.store.v1.Result
-	4,    // 1397: zeroauthy.store.v1.StoreService.UsersUpgradeImportedHash:output_type -> zeroauthy.store.v1.Result
-	132,  // 1398: zeroauthy.store.v1.StoreService.UsersBumpVersion:output_type -> zeroauthy.store.v1.VersionResult
-	125,  // 1399: zeroauthy.store.v1.StoreService.UsersGetForUpdate:output_type -> zeroauthy.store.v1.UserResult
-	4,    // 1400: zeroauthy.store.v1.StoreService.UsersDelete:output_type -> zeroauthy.store.v1.Result
-	129,  // 1401: zeroauthy.store.v1.StoreService.UsersList:output_type -> zeroauthy.store.v1.UserListResult
-	4,    // 1402: zeroauthy.store.v1.StoreService.SessionsCreate:output_type -> zeroauthy.store.v1.Result
-	135,  // 1403: zeroauthy.store.v1.StoreService.SessionsGetByTokenHash:output_type -> zeroauthy.store.v1.SessionResult
-	135,  // 1404: zeroauthy.store.v1.StoreService.SessionsGet:output_type -> zeroauthy.store.v1.SessionResult
-	136,  // 1405: zeroauthy.store.v1.StoreService.SessionsListByUser:output_type -> zeroauthy.store.v1.SessionList
-	4,    // 1406: zeroauthy.store.v1.StoreService.SessionsTouch:output_type -> zeroauthy.store.v1.Result
-	4,    // 1407: zeroauthy.store.v1.StoreService.SessionsAddClient:output_type -> zeroauthy.store.v1.Result
-	4,    // 1408: zeroauthy.store.v1.StoreService.SessionsAddMethod:output_type -> zeroauthy.store.v1.Result
-	4,    // 1409: zeroauthy.store.v1.StoreService.SessionsDelete:output_type -> zeroauthy.store.v1.Result
-	5,    // 1410: zeroauthy.store.v1.StoreService.SessionsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
-	5,    // 1411: zeroauthy.store.v1.StoreService.SessionsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1412: zeroauthy.store.v1.StoreService.AuthTransactionsCreate:output_type -> zeroauthy.store.v1.Result
-	139,  // 1413: zeroauthy.store.v1.StoreService.AuthTransactionsGet:output_type -> zeroauthy.store.v1.AuthTransactionResult
-	4,    // 1414: zeroauthy.store.v1.StoreService.AuthTransactionsDelete:output_type -> zeroauthy.store.v1.Result
-	5,    // 1415: zeroauthy.store.v1.StoreService.AuthTransactionsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1416: zeroauthy.store.v1.StoreService.AuthTransactionsCompareAndSwapHosted:output_type -> zeroauthy.store.v1.Result
-	4,    // 1417: zeroauthy.store.v1.StoreService.AuthCodesCreate:output_type -> zeroauthy.store.v1.Result
-	141,  // 1418: zeroauthy.store.v1.StoreService.AuthCodesConsume:output_type -> zeroauthy.store.v1.AuthCodeResult
-	141,  // 1419: zeroauthy.store.v1.StoreService.AuthCodesGet:output_type -> zeroauthy.store.v1.AuthCodeResult
-	5,    // 1420: zeroauthy.store.v1.StoreService.AuthCodesDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1421: zeroauthy.store.v1.StoreService.PushedAuthRequestsCreate:output_type -> zeroauthy.store.v1.Result
-	143,  // 1422: zeroauthy.store.v1.StoreService.PushedAuthRequestsConsume:output_type -> zeroauthy.store.v1.PushedAuthRequestResult
-	143,  // 1423: zeroauthy.store.v1.StoreService.PushedAuthRequestsGet:output_type -> zeroauthy.store.v1.PushedAuthRequestResult
-	5,    // 1424: zeroauthy.store.v1.StoreService.PushedAuthRequestsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1425: zeroauthy.store.v1.StoreService.DeviceCodesCreate:output_type -> zeroauthy.store.v1.Result
-	145,  // 1426: zeroauthy.store.v1.StoreService.DeviceCodesGet:output_type -> zeroauthy.store.v1.DeviceCodeResult
-	145,  // 1427: zeroauthy.store.v1.StoreService.DeviceCodesGetByUserCode:output_type -> zeroauthy.store.v1.DeviceCodeResult
-	145,  // 1428: zeroauthy.store.v1.StoreService.DeviceCodesDecide:output_type -> zeroauthy.store.v1.DeviceCodeResult
-	148,  // 1429: zeroauthy.store.v1.StoreService.DeviceCodesPoll:output_type -> zeroauthy.store.v1.DevicePollResult
-	5,    // 1430: zeroauthy.store.v1.StoreService.DeviceCodesDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	247,  // 1431: zeroauthy.store.v1.StoreService.RefreshTokensIICapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
-	94,   // 1432: zeroauthy.store.v1.StoreService.RefreshIITenantsGet:output_type -> zeroauthy.store.v1.TenantResult
-	94,   // 1433: zeroauthy.store.v1.StoreService.RefreshIITenantsGetByName:output_type -> zeroauthy.store.v1.TenantResult
-	94,   // 1434: zeroauthy.store.v1.StoreService.RefreshIITenantsGetByDomain:output_type -> zeroauthy.store.v1.TenantResult
-	95,   // 1435: zeroauthy.store.v1.StoreService.RefreshIITenantsList:output_type -> zeroauthy.store.v1.TenantList
-	97,   // 1436: zeroauthy.store.v1.StoreService.RefreshIIClientsGet:output_type -> zeroauthy.store.v1.ClientResult
-	98,   // 1437: zeroauthy.store.v1.StoreService.RefreshIIClientsList:output_type -> zeroauthy.store.v1.ClientList
-	100,  // 1438: zeroauthy.store.v1.StoreService.RefreshIIClientsListPage:output_type -> zeroauthy.store.v1.ClientPage
-	102,  // 1439: zeroauthy.store.v1.StoreService.RefreshIIResourceServersGet:output_type -> zeroauthy.store.v1.ResourceServerResult
-	102,  // 1440: zeroauthy.store.v1.StoreService.RefreshIIResourceServersGetByIdentifier:output_type -> zeroauthy.store.v1.ResourceServerResult
-	103,  // 1441: zeroauthy.store.v1.StoreService.RefreshIIResourceServersList:output_type -> zeroauthy.store.v1.ResourceServerList
-	197,  // 1442: zeroauthy.store.v1.StoreService.RefreshIIRBACSnapshot:output_type -> zeroauthy.store.v1.RBACResponse
-	205,  // 1443: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsGet:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1444: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsGetByName:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1445: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsList:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	205,  // 1446: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsUserOrganizations:output_type -> zeroauthy.store.v1.OrganizationsResponse
-	231,  // 1447: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsIIGrantOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1448: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsIIDiscoverOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	231,  // 1449: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsIISearch:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
-	135,  // 1450: zeroauthy.store.v1.StoreService.RefreshIISessionsGet:output_type -> zeroauthy.store.v1.SessionResult
-	135,  // 1451: zeroauthy.store.v1.StoreService.RefreshIISessionsGetByTokenHash:output_type -> zeroauthy.store.v1.SessionResult
-	136,  // 1452: zeroauthy.store.v1.StoreService.RefreshIISessionsListByUser:output_type -> zeroauthy.store.v1.SessionList
-	139,  // 1453: zeroauthy.store.v1.StoreService.RefreshIIAuthTransactionsGet:output_type -> zeroauthy.store.v1.AuthTransactionResult
-	141,  // 1454: zeroauthy.store.v1.StoreService.RefreshIIAuthCodesGet:output_type -> zeroauthy.store.v1.AuthCodeResult
-	141,  // 1455: zeroauthy.store.v1.StoreService.RefreshIIAuthCodesConsume:output_type -> zeroauthy.store.v1.AuthCodeResult
-	150,  // 1456: zeroauthy.store.v1.StoreService.RefreshIIRefreshTokensGet:output_type -> zeroauthy.store.v1.RefreshTokenResult
-	150,  // 1457: zeroauthy.store.v1.StoreService.RefreshIIRefreshTokensGetByTokenHash:output_type -> zeroauthy.store.v1.RefreshTokenResult
-	151,  // 1458: zeroauthy.store.v1.StoreService.RefreshIIRefreshTokensListByUser:output_type -> zeroauthy.store.v1.RefreshTokenList
-	4,    // 1459: zeroauthy.store.v1.StoreService.RefreshTokensIIWrite:output_type -> zeroauthy.store.v1.Result
-	4,    // 1460: zeroauthy.store.v1.StoreService.RefreshTokensIICheckRotation:output_type -> zeroauthy.store.v1.Result
-	4,    // 1461: zeroauthy.store.v1.StoreService.RefreshTokensIIRotate:output_type -> zeroauthy.store.v1.Result
-	4,    // 1462: zeroauthy.store.v1.StoreService.RefreshIIRevokeFamily:output_type -> zeroauthy.store.v1.Result
-	4,    // 1463: zeroauthy.store.v1.StoreService.RefreshTokensConvertNonRotating:output_type -> zeroauthy.store.v1.Result
-	4,    // 1464: zeroauthy.store.v1.StoreService.RefreshTokensConvertRotating:output_type -> zeroauthy.store.v1.Result
-	5,    // 1465: zeroauthy.store.v1.StoreService.RefreshTokensRevokeByUserClient:output_type -> zeroauthy.store.v1.CountResult
-	5,    // 1466: zeroauthy.store.v1.StoreService.RefreshTokensRevokeOfflineByUser:output_type -> zeroauthy.store.v1.CountResult
-	5,    // 1467: zeroauthy.store.v1.StoreService.RefreshTokensRevokeBySession:output_type -> zeroauthy.store.v1.CountResult
-	386,  // 1468: zeroauthy.store.v1.StoreService.RefreshTokensListByUserPage:output_type -> zeroauthy.store.v1.RefreshTokenPage
-	150,  // 1469: zeroauthy.store.v1.StoreService.RefreshTokensUpdateMetadata:output_type -> zeroauthy.store.v1.RefreshTokenResult
-	135,  // 1470: zeroauthy.store.v1.StoreService.SessionsUpdateMetadata:output_type -> zeroauthy.store.v1.SessionResult
-	4,    // 1471: zeroauthy.store.v1.StoreService.RefreshTokensRecordExchange:output_type -> zeroauthy.store.v1.Result
-	4,    // 1472: zeroauthy.store.v1.StoreService.DPoPUseProof:output_type -> zeroauthy.store.v1.Result
-	5,    // 1473: zeroauthy.store.v1.StoreService.DPoPPurgeBefore:output_type -> zeroauthy.store.v1.CountResult
-	5,    // 1474: zeroauthy.store.v1.StoreService.TokenQuotasPurgeBefore:output_type -> zeroauthy.store.v1.CountResult
-	393,  // 1475: zeroauthy.store.v1.StoreService.TokenQuotasConsume:output_type -> zeroauthy.store.v1.QuotaResponse
-	393,  // 1476: zeroauthy.store.v1.StoreService.TokenQuotasPeek:output_type -> zeroauthy.store.v1.QuotaResponse
-	4,    // 1477: zeroauthy.store.v1.StoreService.RefreshTokensCreate:output_type -> zeroauthy.store.v1.Result
-	150,  // 1478: zeroauthy.store.v1.StoreService.RefreshTokensGetByTokenHash:output_type -> zeroauthy.store.v1.RefreshTokenResult
-	150,  // 1479: zeroauthy.store.v1.StoreService.RefreshTokensGet:output_type -> zeroauthy.store.v1.RefreshTokenResult
-	151,  // 1480: zeroauthy.store.v1.StoreService.RefreshTokensListByUser:output_type -> zeroauthy.store.v1.RefreshTokenList
-	4,    // 1481: zeroauthy.store.v1.StoreService.RefreshTokensRevoke:output_type -> zeroauthy.store.v1.Result
-	4,    // 1482: zeroauthy.store.v1.StoreService.RefreshTokensRotate:output_type -> zeroauthy.store.v1.Result
-	4,    // 1483: zeroauthy.store.v1.StoreService.RefreshTokensTouch:output_type -> zeroauthy.store.v1.Result
-	4,    // 1484: zeroauthy.store.v1.StoreService.RefreshTokensRevokeFamily:output_type -> zeroauthy.store.v1.Result
-	5,    // 1485: zeroauthy.store.v1.StoreService.RefreshTokensRevokeByUser:output_type -> zeroauthy.store.v1.CountResult
-	5,    // 1486: zeroauthy.store.v1.StoreService.RefreshTokensDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1487: zeroauthy.store.v1.StoreService.PasswordResetTicketsMarkChallengePassed:output_type -> zeroauthy.store.v1.Result
-	4,    // 1488: zeroauthy.store.v1.StoreService.PasswordResetTicketsCreate:output_type -> zeroauthy.store.v1.Result
-	155,  // 1489: zeroauthy.store.v1.StoreService.PasswordResetTicketsGetByTokenHash:output_type -> zeroauthy.store.v1.PasswordResetTicketResult
-	155,  // 1490: zeroauthy.store.v1.StoreService.PasswordResetTicketsConsume:output_type -> zeroauthy.store.v1.PasswordResetTicketResult
-	5,    // 1491: zeroauthy.store.v1.StoreService.PasswordResetTicketsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
-	5,    // 1492: zeroauthy.store.v1.StoreService.PasswordResetTicketsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	4,    // 1493: zeroauthy.store.v1.StoreService.EmailVerificationTicketsCreate:output_type -> zeroauthy.store.v1.Result
-	157,  // 1494: zeroauthy.store.v1.StoreService.EmailVerificationTicketsGetByTokenHash:output_type -> zeroauthy.store.v1.EmailVerificationTicketResult
-	157,  // 1495: zeroauthy.store.v1.StoreService.EmailVerificationTicketsConsume:output_type -> zeroauthy.store.v1.EmailVerificationTicketResult
-	5,    // 1496: zeroauthy.store.v1.StoreService.EmailVerificationTicketsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
-	5,    // 1497: zeroauthy.store.v1.StoreService.EmailVerificationTicketsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	159,  // 1498: zeroauthy.store.v1.StoreService.OperatorsGet:output_type -> zeroauthy.store.v1.OperatorResult
-	4,    // 1499: zeroauthy.store.v1.StoreService.OperatorsUpsert:output_type -> zeroauthy.store.v1.Result
-	160,  // 1500: zeroauthy.store.v1.StoreService.OperatorsList:output_type -> zeroauthy.store.v1.OperatorList
-	4,    // 1501: zeroauthy.store.v1.StoreService.OperatorsDelete:output_type -> zeroauthy.store.v1.Result
-	4,    // 1502: zeroauthy.store.v1.StoreService.JobsCreate:output_type -> zeroauthy.store.v1.Result
-	163,  // 1503: zeroauthy.store.v1.StoreService.JobsGet:output_type -> zeroauthy.store.v1.JobResult
-	164,  // 1504: zeroauthy.store.v1.StoreService.JobsList:output_type -> zeroauthy.store.v1.JobPage
-	5,    // 1505: zeroauthy.store.v1.StoreService.JobsCountActive:output_type -> zeroauthy.store.v1.CountResult
-	163,  // 1506: zeroauthy.store.v1.StoreService.JobsClaim:output_type -> zeroauthy.store.v1.JobResult
-	4,    // 1507: zeroauthy.store.v1.StoreService.JobsRenew:output_type -> zeroauthy.store.v1.Result
-	4,    // 1508: zeroauthy.store.v1.StoreService.JobsCheckpoint:output_type -> zeroauthy.store.v1.Result
-	4,    // 1509: zeroauthy.store.v1.StoreService.JobsFinish:output_type -> zeroauthy.store.v1.Result
-	171,  // 1510: zeroauthy.store.v1.StoreService.JobsErrors:output_type -> zeroauthy.store.v1.JobErrorList
-	4,    // 1511: zeroauthy.store.v1.StoreService.JobsAppendFile:output_type -> zeroauthy.store.v1.Result
-	173,  // 1512: zeroauthy.store.v1.StoreService.JobsReadFile:output_type -> zeroauthy.store.v1.JobFileChunk
-	5,    // 1513: zeroauthy.store.v1.StoreService.JobsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
-	111,  // 1514: zeroauthy.store.v1.StoreService.RefreshIIUserGrantsGet:output_type -> zeroauthy.store.v1.UserGrantResult
-	135,  // 1515: zeroauthy.store.v1.StoreService.RefreshIISessionsGetForUpdate:output_type -> zeroauthy.store.v1.SessionResult
-	4,    // 1516: zeroauthy.store.v1.StoreService.GitHubFederationSupported:output_type -> zeroauthy.store.v1.Result
-	1064, // [1064:1517] is the sub-list for method output_type
-	611,  // [611:1064] is the sub-list for method input_type
+	395,  // 1064: zeroauthy.store.v1.StoreService.RefreshIISetCodeBinding:input_type -> zeroauthy.store.v1.CodeBindingRequest
+	247,  // 1065: zeroauthy.store.v1.StoreService.MFACapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
+	264,  // 1066: zeroauthy.store.v1.StoreService.MFAGetGuardian:output_type -> zeroauthy.store.v1.MFAGetGuardianResponse
+	266,  // 1067: zeroauthy.store.v1.StoreService.MFAPutGuardian:output_type -> zeroauthy.store.v1.MFAPutGuardianResponse
+	268,  // 1068: zeroauthy.store.v1.StoreService.MFACreateAuthenticator:output_type -> zeroauthy.store.v1.MFACreateAuthenticatorResponse
+	270,  // 1069: zeroauthy.store.v1.StoreService.MFAGetAuthenticator:output_type -> zeroauthy.store.v1.MFAGetAuthenticatorResponse
+	272,  // 1070: zeroauthy.store.v1.StoreService.MFAGetAuthenticatorByEnrollmentID:output_type -> zeroauthy.store.v1.MFAGetAuthenticatorByEnrollmentIDResponse
+	374,  // 1071: zeroauthy.store.v1.StoreService.MFAGuardianUsers:output_type -> zeroauthy.store.v1.MFAGuardianUsersResponse
+	274,  // 1072: zeroauthy.store.v1.StoreService.MFAListAuthenticators:output_type -> zeroauthy.store.v1.MFAListAuthenticatorsResponse
+	276,  // 1073: zeroauthy.store.v1.StoreService.MFAUpdateAuthenticator:output_type -> zeroauthy.store.v1.MFAUpdateAuthenticatorResponse
+	278,  // 1074: zeroauthy.store.v1.StoreService.MFADeleteAuthenticator:output_type -> zeroauthy.store.v1.MFADeleteAuthenticatorResponse
+	280,  // 1075: zeroauthy.store.v1.StoreService.MFADeleteUserAuthenticators:output_type -> zeroauthy.store.v1.MFADeleteUserAuthenticatorsResponse
+	282,  // 1076: zeroauthy.store.v1.StoreService.MFAAcceptTOTPStep:output_type -> zeroauthy.store.v1.MFAAcceptTOTPStepResponse
+	284,  // 1077: zeroauthy.store.v1.StoreService.MFAReplaceRecoveryCode:output_type -> zeroauthy.store.v1.MFAReplaceRecoveryCodeResponse
+	286,  // 1078: zeroauthy.store.v1.StoreService.MFAAcceptSignCount:output_type -> zeroauthy.store.v1.MFAAcceptSignCountResponse
+	288,  // 1079: zeroauthy.store.v1.StoreService.MFACreateMFAToken:output_type -> zeroauthy.store.v1.MFACreateMFATokenResponse
+	290,  // 1080: zeroauthy.store.v1.StoreService.MFAConsumeMFAToken:output_type -> zeroauthy.store.v1.MFAConsumeMFATokenResponse
+	292,  // 1081: zeroauthy.store.v1.StoreService.MFAPeekMFAToken:output_type -> zeroauthy.store.v1.MFAPeekMFATokenResponse
+	294,  // 1082: zeroauthy.store.v1.StoreService.MFACreateChallenge:output_type -> zeroauthy.store.v1.MFACreateChallengeResponse
+	296,  // 1083: zeroauthy.store.v1.StoreService.MFAGetChallenge:output_type -> zeroauthy.store.v1.MFAGetChallengeResponse
+	298,  // 1084: zeroauthy.store.v1.StoreService.MFAFailChallenge:output_type -> zeroauthy.store.v1.MFAFailChallengeResponse
+	300,  // 1085: zeroauthy.store.v1.StoreService.MFAConsumeChallenge:output_type -> zeroauthy.store.v1.MFAConsumeChallengeResponse
+	302,  // 1086: zeroauthy.store.v1.StoreService.MFACreateTicket:output_type -> zeroauthy.store.v1.MFACreateTicketResponse
+	304,  // 1087: zeroauthy.store.v1.StoreService.MFAConsumeTicket:output_type -> zeroauthy.store.v1.MFAConsumeTicketResponse
+	306,  // 1088: zeroauthy.store.v1.StoreService.MFAPeekTicket:output_type -> zeroauthy.store.v1.MFAPeekTicketResponse
+	308,  // 1089: zeroauthy.store.v1.StoreService.MFAPutBrowser:output_type -> zeroauthy.store.v1.MFAPutBrowserResponse
+	310,  // 1090: zeroauthy.store.v1.StoreService.MFAGetBrowser:output_type -> zeroauthy.store.v1.MFAGetBrowserResponse
+	312,  // 1091: zeroauthy.store.v1.StoreService.MFABumpRememberEpoch:output_type -> zeroauthy.store.v1.MFABumpRememberEpochResponse
+	314,  // 1092: zeroauthy.store.v1.StoreService.MFAPurgeMFA:output_type -> zeroauthy.store.v1.MFAPurgeMFAResponse
+	316,  // 1093: zeroauthy.store.v1.StoreService.MFADeleteUserMFA:output_type -> zeroauthy.store.v1.MFADeleteUserMFAResponse
+	318,  // 1094: zeroauthy.store.v1.StoreService.MFADeleteTenantMFA:output_type -> zeroauthy.store.v1.MFADeleteTenantMFAResponse
+	4,    // 1095: zeroauthy.store.v1.StoreService.SessionsMarkMFA:output_type -> zeroauthy.store.v1.Result
+	247,  // 1096: zeroauthy.store.v1.StoreService.PhoneCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
+	327,  // 1097: zeroauthy.store.v1.StoreService.PhoneListProviders:output_type -> zeroauthy.store.v1.PhoneListProvidersResponse
+	326,  // 1098: zeroauthy.store.v1.StoreService.PhoneGetProvider:output_type -> zeroauthy.store.v1.PhoneProviderResponse
+	322,  // 1099: zeroauthy.store.v1.StoreService.PhoneCreateProvider:output_type -> zeroauthy.store.v1.PhoneErrorResponse
+	322,  // 1100: zeroauthy.store.v1.StoreService.PhoneUpdateProvider:output_type -> zeroauthy.store.v1.PhoneErrorResponse
+	322,  // 1101: zeroauthy.store.v1.StoreService.PhoneDeleteProvider:output_type -> zeroauthy.store.v1.PhoneErrorResponse
+	330,  // 1102: zeroauthy.store.v1.StoreService.PhoneListTemplates:output_type -> zeroauthy.store.v1.PhoneListTemplatesResponse
+	329,  // 1103: zeroauthy.store.v1.StoreService.PhoneGetTemplate:output_type -> zeroauthy.store.v1.PhoneTemplateResponse
+	322,  // 1104: zeroauthy.store.v1.StoreService.PhonePutTemplate:output_type -> zeroauthy.store.v1.PhoneErrorResponse
+	322,  // 1105: zeroauthy.store.v1.StoreService.PhoneDeleteTemplate:output_type -> zeroauthy.store.v1.PhoneErrorResponse
+	322,  // 1106: zeroauthy.store.v1.StoreService.PhonePutPasswordlessCode:output_type -> zeroauthy.store.v1.PhoneErrorResponse
+	333,  // 1107: zeroauthy.store.v1.StoreService.PhoneFailPasswordlessCode:output_type -> zeroauthy.store.v1.PhoneFailCodeResponse
+	335,  // 1108: zeroauthy.store.v1.StoreService.PhoneConsumePasswordlessCode:output_type -> zeroauthy.store.v1.PhoneCodeResponse
+	335,  // 1109: zeroauthy.store.v1.StoreService.PhonePeekPasswordlessLink:output_type -> zeroauthy.store.v1.PhoneCodeResponse
+	338,  // 1110: zeroauthy.store.v1.StoreService.PhoneFindUsersByPhone:output_type -> zeroauthy.store.v1.PhoneFindUsersResponse
+	340,  // 1111: zeroauthy.store.v1.StoreService.PhonePurge:output_type -> zeroauthy.store.v1.PhoneCountResponse
+	322,  // 1112: zeroauthy.store.v1.StoreService.PhoneDeleteTenant:output_type -> zeroauthy.store.v1.PhoneErrorResponse
+	247,  // 1113: zeroauthy.store.v1.StoreService.WebAuthnCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
+	343,  // 1114: zeroauthy.store.v1.StoreService.WebAuthnGetByCredentialID:output_type -> zeroauthy.store.v1.WebAuthnAuthenticatorResponse
+	341,  // 1115: zeroauthy.store.v1.StoreService.WebAuthnCreatePasskey:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
+	341,  // 1116: zeroauthy.store.v1.StoreService.WebAuthnCreateUserWithPasskey:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
+	341,  // 1117: zeroauthy.store.v1.StoreService.WebAuthnAcceptAssertion:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
+	341,  // 1118: zeroauthy.store.v1.StoreService.WebAuthnMovePasskeys:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
+	341,  // 1119: zeroauthy.store.v1.StoreService.WebAuthnPutSnooze:output_type -> zeroauthy.store.v1.WebAuthnErrorResponse
+	351,  // 1120: zeroauthy.store.v1.StoreService.WebAuthnGetSnooze:output_type -> zeroauthy.store.v1.WebAuthnSnoozeResponse
+	353,  // 1121: zeroauthy.store.v1.StoreService.WebAuthnHostTenantsUnder:output_type -> zeroauthy.store.v1.WebAuthnHostTenantsResponse
+	355,  // 1122: zeroauthy.store.v1.StoreService.WebAuthnPurge:output_type -> zeroauthy.store.v1.WebAuthnCountResponse
+	247,  // 1123: zeroauthy.store.v1.StoreService.ConnectionKeysCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
+	377,  // 1124: zeroauthy.store.v1.StoreService.ListConnectionKeys:output_type -> zeroauthy.store.v1.ConnectionKeysResult
+	4,    // 1125: zeroauthy.store.v1.StoreService.CreateConnectionKeys:output_type -> zeroauthy.store.v1.Result
+	377,  // 1126: zeroauthy.store.v1.StoreService.RotateConnectionKeys:output_type -> zeroauthy.store.v1.ConnectionKeysResult
+	247,  // 1127: zeroauthy.store.v1.StoreService.ClientCredentialsCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
+	4,    // 1128: zeroauthy.store.v1.StoreService.ClientCredentialsCreate:output_type -> zeroauthy.store.v1.Result
+	360,  // 1129: zeroauthy.store.v1.StoreService.ClientCredentialsGet:output_type -> zeroauthy.store.v1.ClientCredentialResult
+	362,  // 1130: zeroauthy.store.v1.StoreService.ClientCredentialsList:output_type -> zeroauthy.store.v1.ClientCredentialListResult
+	4,    // 1131: zeroauthy.store.v1.StoreService.ClientCredentialsUpdateExpiry:output_type -> zeroauthy.store.v1.Result
+	4,    // 1132: zeroauthy.store.v1.StoreService.ClientCredentialsDelete:output_type -> zeroauthy.store.v1.Result
+	4,    // 1133: zeroauthy.store.v1.StoreService.ClientCredentialsUseJTI:output_type -> zeroauthy.store.v1.Result
+	5,    // 1134: zeroauthy.store.v1.StoreService.ClientCredentialsPurgeJTIs:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1135: zeroauthy.store.v1.StoreService.ClientCredentialsCreateProfile:output_type -> zeroauthy.store.v1.Result
+	370,  // 1136: zeroauthy.store.v1.StoreService.ClientCredentialsGetProfile:output_type -> zeroauthy.store.v1.TokenExchangeProfileResult
+	370,  // 1137: zeroauthy.store.v1.StoreService.ClientCredentialsGetProfileByType:output_type -> zeroauthy.store.v1.TokenExchangeProfileResult
+	372,  // 1138: zeroauthy.store.v1.StoreService.ClientCredentialsListProfiles:output_type -> zeroauthy.store.v1.TokenExchangeProfileListResult
+	4,    // 1139: zeroauthy.store.v1.StoreService.ClientCredentialsUpdateProfile:output_type -> zeroauthy.store.v1.Result
+	4,    // 1140: zeroauthy.store.v1.StoreService.ClientCredentialsDeleteProfile:output_type -> zeroauthy.store.v1.Result
+	5,    // 1141: zeroauthy.store.v1.StoreService.ClientCredentialsProfilesForAction:output_type -> zeroauthy.store.v1.CountResult
+	247,  // 1142: zeroauthy.store.v1.StoreService.EventsCapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
+	256,  // 1143: zeroauthy.store.v1.StoreService.AppendEvents:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1144: zeroauthy.store.v1.StoreService.GetEvent:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1145: zeroauthy.store.v1.StoreService.EventsAfter:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1146: zeroauthy.store.v1.StoreService.EventsFromTime:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1147: zeroauthy.store.v1.StoreService.LatestEventSeq:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1148: zeroauthy.store.v1.StoreService.PurgedEventSeq:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1149: zeroauthy.store.v1.StoreService.OldestEventSeq:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1150: zeroauthy.store.v1.StoreService.PurgeEvents:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1151: zeroauthy.store.v1.StoreService.DeleteTenantEvents:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1152: zeroauthy.store.v1.StoreService.CreateEventStream:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1153: zeroauthy.store.v1.StoreService.GetEventStream:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1154: zeroauthy.store.v1.StoreService.ListEventStreams:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1155: zeroauthy.store.v1.StoreService.CountEventStreams:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1156: zeroauthy.store.v1.StoreService.UpdateEventStream:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1157: zeroauthy.store.v1.StoreService.DeleteEventStream:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1158: zeroauthy.store.v1.StoreService.LeaseEventStream:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1159: zeroauthy.store.v1.StoreService.RecordEventDelivery:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1160: zeroauthy.store.v1.StoreService.ListDeliveries:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1161: zeroauthy.store.v1.StoreService.GetDelivery:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1162: zeroauthy.store.v1.StoreService.QueueRedelivery:output_type -> zeroauthy.store.v1.EventsResponse
+	256,  // 1163: zeroauthy.store.v1.StoreService.QueuedDeliveries:output_type -> zeroauthy.store.v1.EventsResponse
+	234,  // 1164: zeroauthy.store.v1.StoreService.LogsCapabilities:output_type -> zeroauthy.store.v1.LogsCapabilitiesResult
+	246,  // 1165: zeroauthy.store.v1.StoreService.AppendLogs:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1166: zeroauthy.store.v1.StoreService.GetLog:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1167: zeroauthy.store.v1.StoreService.SearchLogs:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1168: zeroauthy.store.v1.StoreService.LogsAfter:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1169: zeroauthy.store.v1.StoreService.LatestLogs:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1170: zeroauthy.store.v1.StoreService.PurgeLogs:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1171: zeroauthy.store.v1.StoreService.DeleteTenantLogs:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1172: zeroauthy.store.v1.StoreService.CreateLogStream:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1173: zeroauthy.store.v1.StoreService.GetLogStream:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1174: zeroauthy.store.v1.StoreService.ListLogStreams:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1175: zeroauthy.store.v1.StoreService.UpdateLogStream:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1176: zeroauthy.store.v1.StoreService.DeleteLogStream:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1177: zeroauthy.store.v1.StoreService.LeaseLogStream:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1178: zeroauthy.store.v1.StoreService.RecordDelivery:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1179: zeroauthy.store.v1.StoreService.DailyStats:output_type -> zeroauthy.store.v1.LogsResponse
+	246,  // 1180: zeroauthy.store.v1.StoreService.ActiveUsers:output_type -> zeroauthy.store.v1.LogsResponse
+	198,  // 1181: zeroauthy.store.v1.StoreService.RBACCapabilities:output_type -> zeroauthy.store.v1.RBACCapabilitiesResult
+	197,  // 1182: zeroauthy.store.v1.StoreService.RBACCreateRole:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1183: zeroauthy.store.v1.StoreService.RBACGetRole:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1184: zeroauthy.store.v1.StoreService.RBACUpdateRole:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1185: zeroauthy.store.v1.StoreService.RBACDeleteRole:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1186: zeroauthy.store.v1.StoreService.RBACListRoles:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1187: zeroauthy.store.v1.StoreService.RBACRolePermissions:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1188: zeroauthy.store.v1.StoreService.RBACChangeRolePermissions:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1189: zeroauthy.store.v1.StoreService.RBACRoleUsers:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1190: zeroauthy.store.v1.StoreService.RBACAssignRoleUsers:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1191: zeroauthy.store.v1.StoreService.RBACUserRoles:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1192: zeroauthy.store.v1.StoreService.RBACChangeUserRoles:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1193: zeroauthy.store.v1.StoreService.RBACUserPermissions:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1194: zeroauthy.store.v1.StoreService.RBACChangeUserPermissions:output_type -> zeroauthy.store.v1.RBACResponse
+	197,  // 1195: zeroauthy.store.v1.StoreService.RBACSnapshot:output_type -> zeroauthy.store.v1.RBACResponse
+	206,  // 1196: zeroauthy.store.v1.StoreService.OrganizationsIICapabilities:output_type -> zeroauthy.store.v1.OrganizationsCapabilitiesResult
+	231,  // 1197: zeroauthy.store.v1.StoreService.OrganizationsIICreateInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1198: zeroauthy.store.v1.StoreService.OrganizationsIIGetInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1199: zeroauthy.store.v1.StoreService.OrganizationsIIFindInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1200: zeroauthy.store.v1.StoreService.OrganizationsIIListInvitations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1201: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1202: zeroauthy.store.v1.StoreService.OrganizationsIIConsumeInvitation:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1203: zeroauthy.store.v1.StoreService.OrganizationsIIGetInvitationReceipt:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1204: zeroauthy.store.v1.StoreService.OrganizationsIIPutClients:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1205: zeroauthy.store.v1.StoreService.OrganizationsIIGetClient:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1206: zeroauthy.store.v1.StoreService.OrganizationsIIListClients:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1207: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteClients:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1208: zeroauthy.store.v1.StoreService.OrganizationsIIPutClientGrant:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1209: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteClientGrant:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1210: zeroauthy.store.v1.StoreService.OrganizationsIIListClientGrants:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1211: zeroauthy.store.v1.StoreService.OrganizationsIIGrantOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1212: zeroauthy.store.v1.StoreService.OrganizationsIIHasClientGrant:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1213: zeroauthy.store.v1.StoreService.OrganizationsIIPutDiscoveryDomain:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1214: zeroauthy.store.v1.StoreService.OrganizationsIIGetDiscoveryDomain:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1215: zeroauthy.store.v1.StoreService.OrganizationsIIGetDiscoveryDomainByName:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1216: zeroauthy.store.v1.StoreService.OrganizationsIIListDiscoveryDomains:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1217: zeroauthy.store.v1.StoreService.OrganizationsIIDeleteDiscoveryDomain:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1218: zeroauthy.store.v1.StoreService.OrganizationsIIDiscoverOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1219: zeroauthy.store.v1.StoreService.OrganizationsIISearch:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	206,  // 1220: zeroauthy.store.v1.StoreService.OrganizationsCapabilities:output_type -> zeroauthy.store.v1.OrganizationsCapabilitiesResult
+	205,  // 1221: zeroauthy.store.v1.StoreService.OrganizationsCreate:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1222: zeroauthy.store.v1.StoreService.OrganizationsGet:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1223: zeroauthy.store.v1.StoreService.OrganizationsGetByName:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1224: zeroauthy.store.v1.StoreService.OrganizationsList:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1225: zeroauthy.store.v1.StoreService.OrganizationsUpdate:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1226: zeroauthy.store.v1.StoreService.OrganizationsDelete:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1227: zeroauthy.store.v1.StoreService.OrganizationsConnections:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1228: zeroauthy.store.v1.StoreService.OrganizationsGetConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1229: zeroauthy.store.v1.StoreService.OrganizationsPutConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1230: zeroauthy.store.v1.StoreService.OrganizationsDeleteConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1231: zeroauthy.store.v1.StoreService.OrganizationsConnectionsByConnection:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1232: zeroauthy.store.v1.StoreService.OrganizationsMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1233: zeroauthy.store.v1.StoreService.OrganizationsAddMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1234: zeroauthy.store.v1.StoreService.OrganizationsRemoveMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1235: zeroauthy.store.v1.StoreService.OrganizationsIsMember:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1236: zeroauthy.store.v1.StoreService.OrganizationsUserOrganizations:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1237: zeroauthy.store.v1.StoreService.OrganizationsMemberRoles:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1238: zeroauthy.store.v1.StoreService.OrganizationsChangeMemberRoles:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1239: zeroauthy.store.v1.StoreService.OrganizationsRoleMembers:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	220,  // 1240: zeroauthy.store.v1.StoreService.ActionsCapabilities:output_type -> zeroauthy.store.v1.ActionsCapabilitiesResult
+	218,  // 1241: zeroauthy.store.v1.StoreService.ActionsCreateAction:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1242: zeroauthy.store.v1.StoreService.ActionsGetAction:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1243: zeroauthy.store.v1.StoreService.ActionsGetActionByName:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1244: zeroauthy.store.v1.StoreService.ActionsUpdateAction:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1245: zeroauthy.store.v1.StoreService.ActionsDeleteAction:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1246: zeroauthy.store.v1.StoreService.ActionsListActions:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1247: zeroauthy.store.v1.StoreService.ActionsDeploy:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1248: zeroauthy.store.v1.StoreService.ActionsGetVersion:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1249: zeroauthy.store.v1.StoreService.ActionsListVersions:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1250: zeroauthy.store.v1.StoreService.ActionsPutBuild:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1251: zeroauthy.store.v1.StoreService.ActionsGetBuild:output_type -> zeroauthy.store.v1.ActionsResponse
+	4,    // 1252: zeroauthy.store.v1.StoreService.ActionsPutArtifact:output_type -> zeroauthy.store.v1.Result
+	219,  // 1253: zeroauthy.store.v1.StoreService.ActionsGetArtifact:output_type -> zeroauthy.store.v1.ActionsArtifactChunk
+	218,  // 1254: zeroauthy.store.v1.StoreService.ActionsBindings:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1255: zeroauthy.store.v1.StoreService.ActionsBindingsInitialized:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1256: zeroauthy.store.v1.StoreService.ActionsInitializeBindings:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1257: zeroauthy.store.v1.StoreService.ActionsReplaceBindings:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1258: zeroauthy.store.v1.StoreService.ActionsCreateExecution:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1259: zeroauthy.store.v1.StoreService.ActionsListExecutions:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1260: zeroauthy.store.v1.StoreService.ActionsGetExecution:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1261: zeroauthy.store.v1.StoreService.ActionsPurgeExecutions:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1262: zeroauthy.store.v1.StoreService.ActionsCreateContinue:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1263: zeroauthy.store.v1.StoreService.ActionsConsumeContinue:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1264: zeroauthy.store.v1.StoreService.ActionsPurgeContinue:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1265: zeroauthy.store.v1.StoreService.ActionsCreateModule:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1266: zeroauthy.store.v1.StoreService.ActionsGetModule:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1267: zeroauthy.store.v1.StoreService.ActionsGetModuleByName:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1268: zeroauthy.store.v1.StoreService.ActionsUpdateModule:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1269: zeroauthy.store.v1.StoreService.ActionsDeleteModule:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1270: zeroauthy.store.v1.StoreService.ActionsListModules:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1271: zeroauthy.store.v1.StoreService.ActionsPublishModule:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1272: zeroauthy.store.v1.StoreService.ActionsRollbackModule:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1273: zeroauthy.store.v1.StoreService.ActionsListModuleVersions:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1274: zeroauthy.store.v1.StoreService.ActionsGetModuleVersion:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1275: zeroauthy.store.v1.StoreService.ActionsModuleUsers:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1276: zeroauthy.store.v1.StoreService.ActionsEnqueueJob:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1277: zeroauthy.store.v1.StoreService.ActionsGetJob:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1278: zeroauthy.store.v1.StoreService.ActionsCancelJob:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1279: zeroauthy.store.v1.StoreService.ActionsClaimJobs:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1280: zeroauthy.store.v1.StoreService.ActionsFinishJob:output_type -> zeroauthy.store.v1.ActionsResponse
+	218,  // 1281: zeroauthy.store.v1.StoreService.ActionsPurgeJobs:output_type -> zeroauthy.store.v1.ActionsResponse
+	4,    // 1282: zeroauthy.store.v1.StoreService.Ping:output_type -> zeroauthy.store.v1.Result
+	4,    // 1283: zeroauthy.store.v1.StoreService.MicrosoftFederationSupported:output_type -> zeroauthy.store.v1.Result
+	4,    // 1284: zeroauthy.store.v1.StoreService.CustomDomainsSupported:output_type -> zeroauthy.store.v1.Result
+	186,  // 1285: zeroauthy.store.v1.StoreService.CustomDomainsGet:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1286: zeroauthy.store.v1.StoreService.CustomDomainsList:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1287: zeroauthy.store.v1.StoreService.CustomDomainsListDue:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1288: zeroauthy.store.v1.StoreService.CustomDomainsCreate:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1289: zeroauthy.store.v1.StoreService.CustomDomainsUpdate:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1290: zeroauthy.store.v1.StoreService.CustomDomainsDelete:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1291: zeroauthy.store.v1.StoreService.CustomDomainsGetHost:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1292: zeroauthy.store.v1.StoreService.CustomDomainsPutHost:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1293: zeroauthy.store.v1.StoreService.CustomDomainsDeleteHost:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1294: zeroauthy.store.v1.StoreService.CustomDomainsGetDefault:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1295: zeroauthy.store.v1.StoreService.CustomDomainsSetDefault:output_type -> zeroauthy.store.v1.CustomDomainResult
+	186,  // 1296: zeroauthy.store.v1.StoreService.CustomDomainsAdmitAttempt:output_type -> zeroauthy.store.v1.CustomDomainResult
+	188,  // 1297: zeroauthy.store.v1.StoreService.TLSAssetsGet:output_type -> zeroauthy.store.v1.TLSAssetResult
+	188,  // 1298: zeroauthy.store.v1.StoreService.TLSAssetsPut:output_type -> zeroauthy.store.v1.TLSAssetResult
+	188,  // 1299: zeroauthy.store.v1.StoreService.TLSAssetsDelete:output_type -> zeroauthy.store.v1.TLSAssetResult
+	188,  // 1300: zeroauthy.store.v1.StoreService.TLSAssetsListExpired:output_type -> zeroauthy.store.v1.TLSAssetResult
+	188,  // 1301: zeroauthy.store.v1.StoreService.TLSAssetsClaimLease:output_type -> zeroauthy.store.v1.TLSAssetResult
+	188,  // 1302: zeroauthy.store.v1.StoreService.TLSAssetsRenewLease:output_type -> zeroauthy.store.v1.TLSAssetResult
+	188,  // 1303: zeroauthy.store.v1.StoreService.TLSAssetsCheckLease:output_type -> zeroauthy.store.v1.TLSAssetResult
+	188,  // 1304: zeroauthy.store.v1.StoreService.TLSAssetsReleaseLease:output_type -> zeroauthy.store.v1.TLSAssetResult
+	178,  // 1305: zeroauthy.store.v1.StoreService.ProtectionReserve:output_type -> zeroauthy.store.v1.ProtectionResult
+	178,  // 1306: zeroauthy.store.v1.StoreService.ProtectionComplete:output_type -> zeroauthy.store.v1.ProtectionResult
+	178,  // 1307: zeroauthy.store.v1.StoreService.ProtectionBlocks:output_type -> zeroauthy.store.v1.ProtectionResult
+	178,  // 1308: zeroauthy.store.v1.StoreService.ProtectionClear:output_type -> zeroauthy.store.v1.ProtectionResult
+	178,  // 1309: zeroauthy.store.v1.StoreService.ProtectionUseProof:output_type -> zeroauthy.store.v1.ProtectionResult
+	178,  // 1310: zeroauthy.store.v1.StoreService.ProtectionRecordRisk:output_type -> zeroauthy.store.v1.ProtectionResult
+	178,  // 1311: zeroauthy.store.v1.StoreService.ProtectionRiskCount:output_type -> zeroauthy.store.v1.ProtectionResult
+	178,  // 1312: zeroauthy.store.v1.StoreService.ProtectionSweep:output_type -> zeroauthy.store.v1.ProtectionResult
+	4,    // 1313: zeroauthy.store.v1.StoreService.TenantSettingsSupported:output_type -> zeroauthy.store.v1.Result
+	9,    // 1314: zeroauthy.store.v1.StoreService.BeginTx:output_type -> zeroauthy.store.v1.BeginTxResponse
+	4,    // 1315: zeroauthy.store.v1.StoreService.Commit:output_type -> zeroauthy.store.v1.Result
+	4,    // 1316: zeroauthy.store.v1.StoreService.Rollback:output_type -> zeroauthy.store.v1.Result
+	4,    // 1317: zeroauthy.store.v1.StoreService.TenantsCreate:output_type -> zeroauthy.store.v1.Result
+	94,   // 1318: zeroauthy.store.v1.StoreService.TenantsGet:output_type -> zeroauthy.store.v1.TenantResult
+	94,   // 1319: zeroauthy.store.v1.StoreService.TenantsGetByName:output_type -> zeroauthy.store.v1.TenantResult
+	94,   // 1320: zeroauthy.store.v1.StoreService.TenantsGetByDomain:output_type -> zeroauthy.store.v1.TenantResult
+	4,    // 1321: zeroauthy.store.v1.StoreService.TenantsUpdate:output_type -> zeroauthy.store.v1.Result
+	95,   // 1322: zeroauthy.store.v1.StoreService.TenantsList:output_type -> zeroauthy.store.v1.TenantList
+	4,    // 1323: zeroauthy.store.v1.StoreService.TenantsDelete:output_type -> zeroauthy.store.v1.Result
+	4,    // 1324: zeroauthy.store.v1.StoreService.ClientsCreate:output_type -> zeroauthy.store.v1.Result
+	97,   // 1325: zeroauthy.store.v1.StoreService.ClientsGet:output_type -> zeroauthy.store.v1.ClientResult
+	4,    // 1326: zeroauthy.store.v1.StoreService.ClientsUpdate:output_type -> zeroauthy.store.v1.Result
+	4,    // 1327: zeroauthy.store.v1.StoreService.ClientsDelete:output_type -> zeroauthy.store.v1.Result
+	98,   // 1328: zeroauthy.store.v1.StoreService.ClientsList:output_type -> zeroauthy.store.v1.ClientList
+	100,  // 1329: zeroauthy.store.v1.StoreService.ClientsListPage:output_type -> zeroauthy.store.v1.ClientPage
+	4,    // 1330: zeroauthy.store.v1.StoreService.ResourceServersCreate:output_type -> zeroauthy.store.v1.Result
+	102,  // 1331: zeroauthy.store.v1.StoreService.ResourceServersGet:output_type -> zeroauthy.store.v1.ResourceServerResult
+	102,  // 1332: zeroauthy.store.v1.StoreService.ResourceServersGetByIdentifier:output_type -> zeroauthy.store.v1.ResourceServerResult
+	4,    // 1333: zeroauthy.store.v1.StoreService.ResourceServersUpdate:output_type -> zeroauthy.store.v1.Result
+	4,    // 1334: zeroauthy.store.v1.StoreService.ResourceServersDelete:output_type -> zeroauthy.store.v1.Result
+	103,  // 1335: zeroauthy.store.v1.StoreService.ResourceServersList:output_type -> zeroauthy.store.v1.ResourceServerList
+	4,    // 1336: zeroauthy.store.v1.StoreService.ResourceServersRenameSystem:output_type -> zeroauthy.store.v1.Result
+	4,    // 1337: zeroauthy.store.v1.StoreService.ClientGrantsCreate:output_type -> zeroauthy.store.v1.Result
+	106,  // 1338: zeroauthy.store.v1.StoreService.ClientGrantsFind:output_type -> zeroauthy.store.v1.ClientGrantResult
+	4,    // 1339: zeroauthy.store.v1.StoreService.ClientGrantsUpdate:output_type -> zeroauthy.store.v1.Result
+	4,    // 1340: zeroauthy.store.v1.StoreService.ClientGrantsDelete:output_type -> zeroauthy.store.v1.Result
+	108,  // 1341: zeroauthy.store.v1.StoreService.ClientGrantsList:output_type -> zeroauthy.store.v1.ClientGrantList
+	111,  // 1342: zeroauthy.store.v1.StoreService.UserGrantsFind:output_type -> zeroauthy.store.v1.UserGrantResult
+	111,  // 1343: zeroauthy.store.v1.StoreService.UserGrantsUpsert:output_type -> zeroauthy.store.v1.UserGrantResult
+	112,  // 1344: zeroauthy.store.v1.StoreService.UserGrantsList:output_type -> zeroauthy.store.v1.UserGrantList
+	112,  // 1345: zeroauthy.store.v1.StoreService.UserGrantsListByUser:output_type -> zeroauthy.store.v1.UserGrantList
+	112,  // 1346: zeroauthy.store.v1.StoreService.UserGrantsListByAudience:output_type -> zeroauthy.store.v1.UserGrantList
+	4,    // 1347: zeroauthy.store.v1.StoreService.UserGrantsDelete:output_type -> zeroauthy.store.v1.Result
+	5,    // 1348: zeroauthy.store.v1.StoreService.UserGrantsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1349: zeroauthy.store.v1.StoreService.SigningKeysCreate:output_type -> zeroauthy.store.v1.Result
+	115,  // 1350: zeroauthy.store.v1.StoreService.SigningKeysList:output_type -> zeroauthy.store.v1.SigningKeyList
+	4,    // 1351: zeroauthy.store.v1.StoreService.SigningKeysRotate:output_type -> zeroauthy.store.v1.Result
+	32,   // 1352: zeroauthy.store.v1.StoreService.SigningKeysGet:output_type -> zeroauthy.store.v1.SigningKeyResult
+	34,   // 1353: zeroauthy.store.v1.StoreService.SigningKeysRotateWithResult:output_type -> zeroauthy.store.v1.SigningKeyRotationResult
+	32,   // 1354: zeroauthy.store.v1.StoreService.SigningKeysRevoke:output_type -> zeroauthy.store.v1.SigningKeyResult
+	32,   // 1355: zeroauthy.store.v1.StoreService.SigningKeysSetCertificate:output_type -> zeroauthy.store.v1.SigningKeyResult
+	38,   // 1356: zeroauthy.store.v1.StoreService.CustomSigningKeysGet:output_type -> zeroauthy.store.v1.CustomSigningKeySetResult
+	4,    // 1357: zeroauthy.store.v1.StoreService.CustomSigningKeysReplace:output_type -> zeroauthy.store.v1.Result
+	4,    // 1358: zeroauthy.store.v1.StoreService.CustomSigningKeysDelete:output_type -> zeroauthy.store.v1.Result
+	41,   // 1359: zeroauthy.store.v1.StoreService.HostedLoginsGet:output_type -> zeroauthy.store.v1.HostedLoginConfigResult
+	4,    // 1360: zeroauthy.store.v1.StoreService.HostedLoginsPut:output_type -> zeroauthy.store.v1.Result
+	132,  // 1361: zeroauthy.store.v1.StoreService.FederationIdentityEpoch:output_type -> zeroauthy.store.v1.VersionResult
+	4,    // 1362: zeroauthy.store.v1.StoreService.FederationBumpIdentityEpoch:output_type -> zeroauthy.store.v1.Result
+	4,    // 1363: zeroauthy.store.v1.StoreService.FederationCreateAttempt:output_type -> zeroauthy.store.v1.Result
+	48,   // 1364: zeroauthy.store.v1.StoreService.FederationGetAttempt:output_type -> zeroauthy.store.v1.FederationAttemptResult
+	48,   // 1365: zeroauthy.store.v1.StoreService.FederationClaimAttempt:output_type -> zeroauthy.store.v1.FederationAttemptResult
+	4,    // 1366: zeroauthy.store.v1.StoreService.FederationFinishAttempt:output_type -> zeroauthy.store.v1.Result
+	4,    // 1367: zeroauthy.store.v1.StoreService.FederationPutIdentity:output_type -> zeroauthy.store.v1.Result
+	4,    // 1368: zeroauthy.store.v1.StoreService.FederationDeleteIdentity:output_type -> zeroauthy.store.v1.Result
+	53,   // 1369: zeroauthy.store.v1.StoreService.FederationGetTokens:output_type -> zeroauthy.store.v1.FederatedTokensResult
+	4,    // 1370: zeroauthy.store.v1.StoreService.FederationPutTokens:output_type -> zeroauthy.store.v1.Result
+	4,    // 1371: zeroauthy.store.v1.StoreService.FederationDeleteTokens:output_type -> zeroauthy.store.v1.Result
+	5,    // 1372: zeroauthy.store.v1.StoreService.FederationDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	125,  // 1373: zeroauthy.store.v1.StoreService.UsersFindByIdentity:output_type -> zeroauthy.store.v1.UserResult
+	57,   // 1374: zeroauthy.store.v1.StoreService.EmailProvidersGet:output_type -> zeroauthy.store.v1.EmailProviderResult
+	4,    // 1375: zeroauthy.store.v1.StoreService.EmailProvidersPut:output_type -> zeroauthy.store.v1.Result
+	4,    // 1376: zeroauthy.store.v1.StoreService.EmailProvidersDelete:output_type -> zeroauthy.store.v1.Result
+	62,   // 1377: zeroauthy.store.v1.StoreService.EmailTemplatesGet:output_type -> zeroauthy.store.v1.EmailTemplateResult
+	4,    // 1378: zeroauthy.store.v1.StoreService.EmailTemplatesPut:output_type -> zeroauthy.store.v1.Result
+	65,   // 1379: zeroauthy.store.v1.StoreService.EmailNotificationsClaim:output_type -> zeroauthy.store.v1.EmailNotificationClaimResult
+	5,    // 1380: zeroauthy.store.v1.StoreService.EmailNotificationsSweep:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1381: zeroauthy.store.v1.StoreService.ConnectionsCreate:output_type -> zeroauthy.store.v1.Result
+	118,  // 1382: zeroauthy.store.v1.StoreService.ConnectionsGet:output_type -> zeroauthy.store.v1.ConnectionResult
+	118,  // 1383: zeroauthy.store.v1.StoreService.ConnectionsGetByName:output_type -> zeroauthy.store.v1.ConnectionResult
+	4,    // 1384: zeroauthy.store.v1.StoreService.ConnectionsUpdate:output_type -> zeroauthy.store.v1.Result
+	119,  // 1385: zeroauthy.store.v1.StoreService.ConnectionsList:output_type -> zeroauthy.store.v1.ConnectionList
+	121,  // 1386: zeroauthy.store.v1.StoreService.ConnectionsListPage:output_type -> zeroauthy.store.v1.ConnectionPage
+	4,    // 1387: zeroauthy.store.v1.StoreService.ConnectionsDelete:output_type -> zeroauthy.store.v1.Result
+	4,    // 1388: zeroauthy.store.v1.StoreService.PasswordHistoriesAdd:output_type -> zeroauthy.store.v1.Result
+	123,  // 1389: zeroauthy.store.v1.StoreService.PasswordHistoriesList:output_type -> zeroauthy.store.v1.PasswordHistoryList
+	4,    // 1390: zeroauthy.store.v1.StoreService.UsersCreate:output_type -> zeroauthy.store.v1.Result
+	125,  // 1391: zeroauthy.store.v1.StoreService.UsersGet:output_type -> zeroauthy.store.v1.UserResult
+	125,  // 1392: zeroauthy.store.v1.StoreService.UsersFindByLogin:output_type -> zeroauthy.store.v1.UserResult
+	4,    // 1393: zeroauthy.store.v1.StoreService.UsersUpdate:output_type -> zeroauthy.store.v1.Result
+	4,    // 1394: zeroauthy.store.v1.StoreService.UsersRecordLogin:output_type -> zeroauthy.store.v1.Result
+	4,    // 1395: zeroauthy.store.v1.StoreService.UsersSetPasswordHash:output_type -> zeroauthy.store.v1.Result
+	129,  // 1396: zeroauthy.store.v1.StoreService.UsersFindByEmail:output_type -> zeroauthy.store.v1.UserListResult
+	4,    // 1397: zeroauthy.store.v1.StoreService.UsersSetPasswordHashIfEmpty:output_type -> zeroauthy.store.v1.Result
+	4,    // 1398: zeroauthy.store.v1.StoreService.UsersUpgradeImportedHash:output_type -> zeroauthy.store.v1.Result
+	132,  // 1399: zeroauthy.store.v1.StoreService.UsersBumpVersion:output_type -> zeroauthy.store.v1.VersionResult
+	125,  // 1400: zeroauthy.store.v1.StoreService.UsersGetForUpdate:output_type -> zeroauthy.store.v1.UserResult
+	4,    // 1401: zeroauthy.store.v1.StoreService.UsersDelete:output_type -> zeroauthy.store.v1.Result
+	129,  // 1402: zeroauthy.store.v1.StoreService.UsersList:output_type -> zeroauthy.store.v1.UserListResult
+	4,    // 1403: zeroauthy.store.v1.StoreService.SessionsCreate:output_type -> zeroauthy.store.v1.Result
+	135,  // 1404: zeroauthy.store.v1.StoreService.SessionsGetByTokenHash:output_type -> zeroauthy.store.v1.SessionResult
+	135,  // 1405: zeroauthy.store.v1.StoreService.SessionsGet:output_type -> zeroauthy.store.v1.SessionResult
+	136,  // 1406: zeroauthy.store.v1.StoreService.SessionsListByUser:output_type -> zeroauthy.store.v1.SessionList
+	4,    // 1407: zeroauthy.store.v1.StoreService.SessionsTouch:output_type -> zeroauthy.store.v1.Result
+	4,    // 1408: zeroauthy.store.v1.StoreService.SessionsAddClient:output_type -> zeroauthy.store.v1.Result
+	4,    // 1409: zeroauthy.store.v1.StoreService.SessionsAddMethod:output_type -> zeroauthy.store.v1.Result
+	4,    // 1410: zeroauthy.store.v1.StoreService.SessionsDelete:output_type -> zeroauthy.store.v1.Result
+	5,    // 1411: zeroauthy.store.v1.StoreService.SessionsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
+	5,    // 1412: zeroauthy.store.v1.StoreService.SessionsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1413: zeroauthy.store.v1.StoreService.AuthTransactionsCreate:output_type -> zeroauthy.store.v1.Result
+	139,  // 1414: zeroauthy.store.v1.StoreService.AuthTransactionsGet:output_type -> zeroauthy.store.v1.AuthTransactionResult
+	4,    // 1415: zeroauthy.store.v1.StoreService.AuthTransactionsDelete:output_type -> zeroauthy.store.v1.Result
+	5,    // 1416: zeroauthy.store.v1.StoreService.AuthTransactionsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1417: zeroauthy.store.v1.StoreService.AuthTransactionsCompareAndSwapHosted:output_type -> zeroauthy.store.v1.Result
+	4,    // 1418: zeroauthy.store.v1.StoreService.AuthCodesCreate:output_type -> zeroauthy.store.v1.Result
+	141,  // 1419: zeroauthy.store.v1.StoreService.AuthCodesConsume:output_type -> zeroauthy.store.v1.AuthCodeResult
+	141,  // 1420: zeroauthy.store.v1.StoreService.AuthCodesGet:output_type -> zeroauthy.store.v1.AuthCodeResult
+	5,    // 1421: zeroauthy.store.v1.StoreService.AuthCodesDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1422: zeroauthy.store.v1.StoreService.PushedAuthRequestsCreate:output_type -> zeroauthy.store.v1.Result
+	143,  // 1423: zeroauthy.store.v1.StoreService.PushedAuthRequestsConsume:output_type -> zeroauthy.store.v1.PushedAuthRequestResult
+	143,  // 1424: zeroauthy.store.v1.StoreService.PushedAuthRequestsGet:output_type -> zeroauthy.store.v1.PushedAuthRequestResult
+	5,    // 1425: zeroauthy.store.v1.StoreService.PushedAuthRequestsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1426: zeroauthy.store.v1.StoreService.DeviceCodesCreate:output_type -> zeroauthy.store.v1.Result
+	145,  // 1427: zeroauthy.store.v1.StoreService.DeviceCodesGet:output_type -> zeroauthy.store.v1.DeviceCodeResult
+	145,  // 1428: zeroauthy.store.v1.StoreService.DeviceCodesGetByUserCode:output_type -> zeroauthy.store.v1.DeviceCodeResult
+	145,  // 1429: zeroauthy.store.v1.StoreService.DeviceCodesDecide:output_type -> zeroauthy.store.v1.DeviceCodeResult
+	148,  // 1430: zeroauthy.store.v1.StoreService.DeviceCodesPoll:output_type -> zeroauthy.store.v1.DevicePollResult
+	5,    // 1431: zeroauthy.store.v1.StoreService.DeviceCodesDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	247,  // 1432: zeroauthy.store.v1.StoreService.RefreshTokensIICapabilities:output_type -> zeroauthy.store.v1.EventsCapabilitiesResult
+	94,   // 1433: zeroauthy.store.v1.StoreService.RefreshIITenantsGet:output_type -> zeroauthy.store.v1.TenantResult
+	94,   // 1434: zeroauthy.store.v1.StoreService.RefreshIITenantsGetByName:output_type -> zeroauthy.store.v1.TenantResult
+	94,   // 1435: zeroauthy.store.v1.StoreService.RefreshIITenantsGetByDomain:output_type -> zeroauthy.store.v1.TenantResult
+	95,   // 1436: zeroauthy.store.v1.StoreService.RefreshIITenantsList:output_type -> zeroauthy.store.v1.TenantList
+	97,   // 1437: zeroauthy.store.v1.StoreService.RefreshIIClientsGet:output_type -> zeroauthy.store.v1.ClientResult
+	98,   // 1438: zeroauthy.store.v1.StoreService.RefreshIIClientsList:output_type -> zeroauthy.store.v1.ClientList
+	100,  // 1439: zeroauthy.store.v1.StoreService.RefreshIIClientsListPage:output_type -> zeroauthy.store.v1.ClientPage
+	102,  // 1440: zeroauthy.store.v1.StoreService.RefreshIIResourceServersGet:output_type -> zeroauthy.store.v1.ResourceServerResult
+	102,  // 1441: zeroauthy.store.v1.StoreService.RefreshIIResourceServersGetByIdentifier:output_type -> zeroauthy.store.v1.ResourceServerResult
+	103,  // 1442: zeroauthy.store.v1.StoreService.RefreshIIResourceServersList:output_type -> zeroauthy.store.v1.ResourceServerList
+	197,  // 1443: zeroauthy.store.v1.StoreService.RefreshIIRBACSnapshot:output_type -> zeroauthy.store.v1.RBACResponse
+	205,  // 1444: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsGet:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1445: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsGetByName:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1446: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsList:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	205,  // 1447: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsUserOrganizations:output_type -> zeroauthy.store.v1.OrganizationsResponse
+	231,  // 1448: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsIIGrantOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1449: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsIIDiscoverOrganizations:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	231,  // 1450: zeroauthy.store.v1.StoreService.RefreshIIOrganizationsIISearch:output_type -> zeroauthy.store.v1.OrganizationsIIResponse
+	135,  // 1451: zeroauthy.store.v1.StoreService.RefreshIISessionsGet:output_type -> zeroauthy.store.v1.SessionResult
+	135,  // 1452: zeroauthy.store.v1.StoreService.RefreshIISessionsGetByTokenHash:output_type -> zeroauthy.store.v1.SessionResult
+	136,  // 1453: zeroauthy.store.v1.StoreService.RefreshIISessionsListByUser:output_type -> zeroauthy.store.v1.SessionList
+	139,  // 1454: zeroauthy.store.v1.StoreService.RefreshIIAuthTransactionsGet:output_type -> zeroauthy.store.v1.AuthTransactionResult
+	141,  // 1455: zeroauthy.store.v1.StoreService.RefreshIIAuthCodesGet:output_type -> zeroauthy.store.v1.AuthCodeResult
+	141,  // 1456: zeroauthy.store.v1.StoreService.RefreshIIAuthCodesConsume:output_type -> zeroauthy.store.v1.AuthCodeResult
+	150,  // 1457: zeroauthy.store.v1.StoreService.RefreshIIRefreshTokensGet:output_type -> zeroauthy.store.v1.RefreshTokenResult
+	150,  // 1458: zeroauthy.store.v1.StoreService.RefreshIIRefreshTokensGetByTokenHash:output_type -> zeroauthy.store.v1.RefreshTokenResult
+	151,  // 1459: zeroauthy.store.v1.StoreService.RefreshIIRefreshTokensListByUser:output_type -> zeroauthy.store.v1.RefreshTokenList
+	4,    // 1460: zeroauthy.store.v1.StoreService.RefreshTokensIIWrite:output_type -> zeroauthy.store.v1.Result
+	4,    // 1461: zeroauthy.store.v1.StoreService.RefreshTokensIICheckRotation:output_type -> zeroauthy.store.v1.Result
+	4,    // 1462: zeroauthy.store.v1.StoreService.RefreshTokensIIRotate:output_type -> zeroauthy.store.v1.Result
+	4,    // 1463: zeroauthy.store.v1.StoreService.RefreshIIRevokeFamily:output_type -> zeroauthy.store.v1.Result
+	4,    // 1464: zeroauthy.store.v1.StoreService.RefreshTokensConvertNonRotating:output_type -> zeroauthy.store.v1.Result
+	4,    // 1465: zeroauthy.store.v1.StoreService.RefreshTokensConvertRotating:output_type -> zeroauthy.store.v1.Result
+	5,    // 1466: zeroauthy.store.v1.StoreService.RefreshTokensRevokeByUserClient:output_type -> zeroauthy.store.v1.CountResult
+	5,    // 1467: zeroauthy.store.v1.StoreService.RefreshTokensRevokeOfflineByUser:output_type -> zeroauthy.store.v1.CountResult
+	5,    // 1468: zeroauthy.store.v1.StoreService.RefreshTokensRevokeBySession:output_type -> zeroauthy.store.v1.CountResult
+	386,  // 1469: zeroauthy.store.v1.StoreService.RefreshTokensListByUserPage:output_type -> zeroauthy.store.v1.RefreshTokenPage
+	150,  // 1470: zeroauthy.store.v1.StoreService.RefreshTokensUpdateMetadata:output_type -> zeroauthy.store.v1.RefreshTokenResult
+	135,  // 1471: zeroauthy.store.v1.StoreService.SessionsUpdateMetadata:output_type -> zeroauthy.store.v1.SessionResult
+	4,    // 1472: zeroauthy.store.v1.StoreService.RefreshTokensRecordExchange:output_type -> zeroauthy.store.v1.Result
+	4,    // 1473: zeroauthy.store.v1.StoreService.DPoPUseProof:output_type -> zeroauthy.store.v1.Result
+	5,    // 1474: zeroauthy.store.v1.StoreService.DPoPPurgeBefore:output_type -> zeroauthy.store.v1.CountResult
+	5,    // 1475: zeroauthy.store.v1.StoreService.TokenQuotasPurgeBefore:output_type -> zeroauthy.store.v1.CountResult
+	393,  // 1476: zeroauthy.store.v1.StoreService.TokenQuotasConsume:output_type -> zeroauthy.store.v1.QuotaResponse
+	393,  // 1477: zeroauthy.store.v1.StoreService.TokenQuotasPeek:output_type -> zeroauthy.store.v1.QuotaResponse
+	4,    // 1478: zeroauthy.store.v1.StoreService.RefreshTokensCreate:output_type -> zeroauthy.store.v1.Result
+	150,  // 1479: zeroauthy.store.v1.StoreService.RefreshTokensGetByTokenHash:output_type -> zeroauthy.store.v1.RefreshTokenResult
+	150,  // 1480: zeroauthy.store.v1.StoreService.RefreshTokensGet:output_type -> zeroauthy.store.v1.RefreshTokenResult
+	151,  // 1481: zeroauthy.store.v1.StoreService.RefreshTokensListByUser:output_type -> zeroauthy.store.v1.RefreshTokenList
+	4,    // 1482: zeroauthy.store.v1.StoreService.RefreshTokensRevoke:output_type -> zeroauthy.store.v1.Result
+	4,    // 1483: zeroauthy.store.v1.StoreService.RefreshTokensRotate:output_type -> zeroauthy.store.v1.Result
+	4,    // 1484: zeroauthy.store.v1.StoreService.RefreshTokensTouch:output_type -> zeroauthy.store.v1.Result
+	4,    // 1485: zeroauthy.store.v1.StoreService.RefreshTokensRevokeFamily:output_type -> zeroauthy.store.v1.Result
+	5,    // 1486: zeroauthy.store.v1.StoreService.RefreshTokensRevokeByUser:output_type -> zeroauthy.store.v1.CountResult
+	5,    // 1487: zeroauthy.store.v1.StoreService.RefreshTokensDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1488: zeroauthy.store.v1.StoreService.PasswordResetTicketsMarkChallengePassed:output_type -> zeroauthy.store.v1.Result
+	4,    // 1489: zeroauthy.store.v1.StoreService.PasswordResetTicketsCreate:output_type -> zeroauthy.store.v1.Result
+	155,  // 1490: zeroauthy.store.v1.StoreService.PasswordResetTicketsGetByTokenHash:output_type -> zeroauthy.store.v1.PasswordResetTicketResult
+	155,  // 1491: zeroauthy.store.v1.StoreService.PasswordResetTicketsConsume:output_type -> zeroauthy.store.v1.PasswordResetTicketResult
+	5,    // 1492: zeroauthy.store.v1.StoreService.PasswordResetTicketsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
+	5,    // 1493: zeroauthy.store.v1.StoreService.PasswordResetTicketsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	4,    // 1494: zeroauthy.store.v1.StoreService.EmailVerificationTicketsCreate:output_type -> zeroauthy.store.v1.Result
+	157,  // 1495: zeroauthy.store.v1.StoreService.EmailVerificationTicketsGetByTokenHash:output_type -> zeroauthy.store.v1.EmailVerificationTicketResult
+	157,  // 1496: zeroauthy.store.v1.StoreService.EmailVerificationTicketsConsume:output_type -> zeroauthy.store.v1.EmailVerificationTicketResult
+	5,    // 1497: zeroauthy.store.v1.StoreService.EmailVerificationTicketsDeleteByUser:output_type -> zeroauthy.store.v1.CountResult
+	5,    // 1498: zeroauthy.store.v1.StoreService.EmailVerificationTicketsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	159,  // 1499: zeroauthy.store.v1.StoreService.OperatorsGet:output_type -> zeroauthy.store.v1.OperatorResult
+	4,    // 1500: zeroauthy.store.v1.StoreService.OperatorsUpsert:output_type -> zeroauthy.store.v1.Result
+	160,  // 1501: zeroauthy.store.v1.StoreService.OperatorsList:output_type -> zeroauthy.store.v1.OperatorList
+	4,    // 1502: zeroauthy.store.v1.StoreService.OperatorsDelete:output_type -> zeroauthy.store.v1.Result
+	4,    // 1503: zeroauthy.store.v1.StoreService.JobsCreate:output_type -> zeroauthy.store.v1.Result
+	163,  // 1504: zeroauthy.store.v1.StoreService.JobsGet:output_type -> zeroauthy.store.v1.JobResult
+	164,  // 1505: zeroauthy.store.v1.StoreService.JobsList:output_type -> zeroauthy.store.v1.JobPage
+	5,    // 1506: zeroauthy.store.v1.StoreService.JobsCountActive:output_type -> zeroauthy.store.v1.CountResult
+	163,  // 1507: zeroauthy.store.v1.StoreService.JobsClaim:output_type -> zeroauthy.store.v1.JobResult
+	4,    // 1508: zeroauthy.store.v1.StoreService.JobsRenew:output_type -> zeroauthy.store.v1.Result
+	4,    // 1509: zeroauthy.store.v1.StoreService.JobsCheckpoint:output_type -> zeroauthy.store.v1.Result
+	4,    // 1510: zeroauthy.store.v1.StoreService.JobsFinish:output_type -> zeroauthy.store.v1.Result
+	171,  // 1511: zeroauthy.store.v1.StoreService.JobsErrors:output_type -> zeroauthy.store.v1.JobErrorList
+	4,    // 1512: zeroauthy.store.v1.StoreService.JobsAppendFile:output_type -> zeroauthy.store.v1.Result
+	173,  // 1513: zeroauthy.store.v1.StoreService.JobsReadFile:output_type -> zeroauthy.store.v1.JobFileChunk
+	5,    // 1514: zeroauthy.store.v1.StoreService.JobsDeleteExpired:output_type -> zeroauthy.store.v1.CountResult
+	111,  // 1515: zeroauthy.store.v1.StoreService.RefreshIIUserGrantsGet:output_type -> zeroauthy.store.v1.UserGrantResult
+	135,  // 1516: zeroauthy.store.v1.StoreService.RefreshIISessionsGetForUpdate:output_type -> zeroauthy.store.v1.SessionResult
+	4,    // 1517: zeroauthy.store.v1.StoreService.GitHubFederationSupported:output_type -> zeroauthy.store.v1.Result
+	4,    // 1518: zeroauthy.store.v1.StoreService.RefreshIISetCodeBinding:output_type -> zeroauthy.store.v1.Result
+	1065, // [1065:1519] is the sub-list for method output_type
+	611,  // [611:1065] is the sub-list for method input_type
 	611,  // [611:611] is the sub-list for extension type_name
 	611,  // [611:611] is the sub-list for extension extendee
 	0,    // [0:611] is the sub-list for field type_name
@@ -35378,7 +35464,7 @@ func file_store_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_store_proto_rawDesc), len(file_store_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   396,
+			NumMessages:   397,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

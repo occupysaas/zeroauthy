@@ -413,6 +413,10 @@ type AuthCodes interface {
 	// kept) and returns it together with ErrAlreadyUsed, so callers can react
 	// to replay. Unknown codes return ErrNotFound.
 	Consume(ctx context.Context, tenantID, codeHash string, at time.Time) (*AuthCode, error)
+	// SetRedemptionBinding compares the used code's stored key with expected
+	// and sets the binding that future presentations must prove. A missing,
+	// unused or mismatched code returns ErrNotFound without changing it.
+	SetRedemptionBinding(ctx context.Context, tenantID, codeHash, expected, binding string) error
 	// Get returns the code without changing it, or ErrNotFound.
 	Get(ctx context.Context, tenantID, codeHash string) (*AuthCode, error)
 	// DeleteExpired removes, in every tenant, the codes whose ExpiresAt is

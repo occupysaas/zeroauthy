@@ -84,6 +84,14 @@ func (r authCodes) Get(ctx context.Context, tenantID, codeHash string) (*store.A
 	return c, err
 }
 
+func (r authCodes) SetRedemptionBinding(ctx context.Context, tid, hash, expected, binding string) error {
+	res, err := r.s.write(ctx, nil, "UPDATE auth_codes SET dpop_jkt=? WHERE tenant_id=? AND code_hash=? AND used_at IS NOT NULL AND dpop_jkt=?", binding, tid, hash, expected)
+	if err != nil {
+		return err
+	}
+	return expectRow(res)
+}
+
 func (r authCodes) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
 	var n int
 	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) (err error) {

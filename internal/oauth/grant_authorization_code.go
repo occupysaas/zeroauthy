@@ -38,7 +38,8 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	now := h.now()
 	// Only the owning client on the issuing origin may consume a code or
 	// trigger replay revocation of its refresh-token family.
-	pre, err := h.Store.AuthCodes().Get(ctx, tenantID, secrets.HashToken(code))
+	hash := secrets.HashToken(code)
+	pre, err := h.Store.AuthCodes().Get(ctx, tenantID, hash)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, invalidGrant("invalid authorization code")
 	}
@@ -49,24 +50,18 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	if res.CheckOrigin(pre.Origin) != nil || pre.ClientID != c.ClientID {
 		return nil, invalidGrant("invalid authorization code")
 	}
-	ac, err := h.Store.AuthCodes().Consume(ctx, tenantID, secrets.HashToken(code), now)
-	// Also defend token issuance and replay revocation against a stale store read.
-	if ac != nil && (res.CheckOrigin(ac.Origin) != nil || ac.ClientID != c.ClientID) {
-		return nil, invalidGrant("invalid authorization code")
-	}
-	switch {
-	case errors.Is(err, store.ErrNotFound):
-		return nil, invalidGrant("invalid authorization code")
-	case errors.Is(err, store.ErrAlreadyUsed):
-		// RFC 9700 §4.5: a replayed code may be stolen; revoke what it issued.
-		h.log().WarnContext(ctx, "authorization code reused; revoking its refresh tokens", "tenant", tenantID, "client_id", ac.ClientID, "user_id", ac.UserID)
-		if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, familyForCode(ac.CodeHash), now); err != nil {
-			h.log().ErrorContext(ctx, "revoke refresh tokens of a replayed code", "tenant", tenantID, "err", err)
+	ac, err := h.claimAuthorizationCode(ctx, res, c.ClientID, hash, now)
+	if err != nil {
+		var failure *Error
+		switch {
+		case errors.As(err, &failure):
+			return nil, failure
+		case errors.Is(err, store.ErrNotFound), errors.Is(err, store.ErrAlreadyUsed):
+			return nil, invalidGrant("invalid authorization code")
+		default:
+			h.log().ErrorContext(ctx, "claim authorization code", "tenant", tenantID, "err", err)
+			return nil, serverError()
 		}
-		return nil, invalidGrant("invalid authorization code")
-	case err != nil:
-		h.log().ErrorContext(ctx, "consume authorization code", "tenant", tenantID, "err", err)
-		return nil, serverError()
 	}
 	if !now.Before(ac.ExpiresAt) {
 		return nil, invalidGrant("authorization code expired")
@@ -163,13 +158,11 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	// The user authenticated at /authorize, possibly long ago, so there is
 	// no Version to compare (D-0043); the user must still exist and not be
 	// blocked when the tokens are minted.
+	replayed := false
 	err = h.mintCheckedTx(ctx, tenantID, user.UserID, nil, func(tx store.Store) error {
 		return checkTokenOrganization(ctx, tx, tenantID, user.UserID, ac.OrganizationID, ac.OrganizationConnectionID, c.ClientID)
 	}, func(tx store.Store) error {
-		if rt == nil {
-			return nil
-		}
-		if rt.Access == "online" {
+		if rt != nil && rt.Access == "online" {
 			currentClient, e := tx.Clients().Get(ctx, tenantID, c.ClientID)
 			if e != nil {
 				return e
@@ -190,7 +183,28 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			}
 			rt.ExpiresAt = currentSess.ExpiresAt
 		}
-		return tx.RefreshTokens().Create(ctx, rt)
+		// An authorization-time key is permanent. A key reserved by the
+		// initial claim is released only if this exchange issued no bound RT.
+		if key := proofJKT(ctx); key != "" && ac.DPoPJKT == "" && (rt == nil || rt.DPoPJKT == "") {
+			if err := tx.AuthCodes().SetRedemptionBinding(ctx, tenantID, ac.CodeHash, key, ""); err != nil {
+				return err
+			}
+		}
+		if rt == nil {
+			return nil
+		}
+		if err := tx.RefreshTokens().Create(ctx, rt); err != nil {
+			return err
+		}
+		latest, err := tx.AuthCodes().Get(ctx, tenantID, ac.CodeHash)
+		if err != nil {
+			return err
+		}
+		replayed = latest.ReplayedAt != nil
+		if replayed {
+			return tx.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, now)
+		}
+		return nil
 	})
 	switch {
 	case errors.Is(err, errOrganizationGrant):
@@ -203,26 +217,56 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	if replayed {
+		return nil, invalidGrant("invalid authorization code")
+	}
 	if rt != nil {
-		// A replay that ran after Consume but before Create found no token
-		// to revoke. Replays record ReplayedAt before revoking, so either it
-		// is visible here or the replay's RevokeFamily saw the stored token.
-		latest, err := h.Store.AuthCodes().Get(ctx, tenantID, ac.CodeHash)
-		if err != nil {
-			h.log().ErrorContext(ctx, "reload authorization code", "tenant", tenantID, "err", err)
-			return nil, serverError()
-		}
-		if latest.ReplayedAt != nil {
-			h.log().WarnContext(ctx, "authorization code replayed during exchange; revoking its refresh tokens", "tenant", tenantID, "client_id", ac.ClientID, "user_id", ac.UserID)
-			if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, familyForCode(ac.CodeHash), now); err != nil {
-				h.log().ErrorContext(ctx, "revoke refresh tokens of a replayed code", "tenant", tenantID, "err", err)
-			}
-			return nil, invalidGrant("invalid authorization code")
-		}
 		resp.RefreshToken = &raw
 	}
 	if user != nil {
 		eventUserID = user.UserID
 	}
 	return resp, nil
+}
+
+// claimAuthorizationCode reserves the verified key before any signing work.
+// A competing claim must prove the key observed under the same lock as the
+// replay marker and revocation. Returning an error rolls back both effects.
+func (h *Handlers) claimAuthorizationCode(ctx context.Context, res tenant.Resolved, clientID, hash string, at time.Time) (*store.AuthCode, error) {
+	tid := res.Tenant.ID
+	var ac *store.AuthCode
+	var replay bool
+	err := h.Store.WithTx(ctx, func(tx store.Store) error {
+		// Policy writers and final mints lock the tenant before code/family rows.
+		if _, err := tx.Tenants().Get(ctx, tid); err != nil {
+			return err
+		}
+		var err error
+		ac, err = tx.AuthCodes().Consume(ctx, tid, hash, at)
+		replay = errors.Is(err, store.ErrAlreadyUsed)
+		if err != nil && !replay {
+			return err
+		}
+		if ac == nil || ac.ClientID != clientID || res.CheckOrigin(ac.Origin) != nil {
+			return store.ErrNotFound
+		}
+		key := proofJKT(ctx)
+		if ac.DPoPJKT != "" && ac.DPoPJKT != key {
+			return &Error{Status: 400, Code: "invalid_dpop_proof", Description: "the proof could not be accepted"}
+		}
+		if replay {
+			return tx.RefreshTokens().RevokeFamily(ctx, tid, familyForCode(hash), at)
+		}
+		if key != "" && ac.DPoPJKT == "" {
+			return tx.AuthCodes().SetRedemptionBinding(ctx, tid, hash, "", key)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if replay {
+		return ac, store.ErrAlreadyUsed
+	}
+	return ac, nil
 }

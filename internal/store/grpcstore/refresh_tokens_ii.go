@@ -244,6 +244,24 @@ func (s *Server) RefreshIIRevokeFamily(ctx context.Context, q *pb.RevokeRequest)
 	return withRefreshII(s, ctx, q, (*Server).RefreshTokensRevokeFamily)
 }
 
+func (a clientAuthCodes) SetRedemptionBinding(ctx context.Context, tid, hash, expected, binding string) error {
+	if err := a.c.requireRefreshII(ctx); err != nil {
+		return err
+	}
+	r, err := a.c.rpc.RefreshIISetCodeBinding(ctx, &pb.CodeBindingRequest{TxId: a.c.txID, TenantId: tid, Hash: hash, Expected: expected, Binding: binding})
+	return a.c.refreshResult("RefreshIISetCodeBinding", r, err)
+}
+
+func (s *Server) RefreshIISetCodeBinding(ctx context.Context, q *pb.CodeBindingRequest) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).setCodeBinding)
+}
+
+func (s *Server) setCodeBinding(ctx context.Context, q *pb.CodeBindingRequest) (*pb.Result, error) {
+	return exec(s, q.TxId, func(st store.Store) error {
+		return st.AuthCodes().SetRedemptionBinding(ctx, q.TenantId, q.Hash, q.Expected, q.Binding)
+	}), nil
+}
+
 func (s *Server) RefreshTokensConvertNonRotating(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
 	return withRefreshII(s, ctx, q, (*Server).refreshTokensConvertNonRotating)
 }
