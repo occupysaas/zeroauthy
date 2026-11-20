@@ -141,7 +141,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			expiresAt = now.UTC().Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{
-			dpopJKT:        refreshProof(ctx, res, rs),
+
 			organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID,
 			origin:   res.Origin(),
 			familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID,
@@ -149,7 +149,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		})
 	}
 	if online && resp.Scope != nil && slices.Contains(strings.Fields(*resp.Scope), "online_access") && slices.Contains(ceiling, "online_access") {
-		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{origin: res.Origin(), dpopJKT: proofJKT(ctx), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime})
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{origin: res.Origin(), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime})
 		rt.Access = "online"
 		rt.Rotating = false
 		rt.ExpiresAt = onlineSess.ExpiresAt
@@ -182,6 +182,11 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			}
 			rt.ExpiresAt = currentSess.ExpiresAt
 		}
+		if rt != nil {
+			if err := createInitialRefresh(ctx, tx, rt); err != nil {
+				return err
+			}
+		}
 		// An authorization-time key is permanent. A key reserved by the
 		// initial claim is released only if this exchange issued no bound RT.
 		if key := proofJKT(ctx); key != "" && ac.DPoPJKT == "" && (rt == nil || rt.DPoPJKT == "") {
@@ -191,9 +196,6 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		}
 		if rt == nil {
 			return nil
-		}
-		if err := tx.RefreshTokens().Create(ctx, rt); err != nil {
-			return err
 		}
 		latest, err := tx.AuthCodes().Get(ctx, tenantID, ac.CodeHash)
 		if err != nil {

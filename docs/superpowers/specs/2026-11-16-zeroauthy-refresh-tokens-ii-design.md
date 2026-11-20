@@ -340,7 +340,7 @@ requiring PoP cannot receive an unbound API token. Refresh tokens bind to
 any valid supplied proof independently of API access-token policy. For
 legacy tenants with explicit `dpop_strict_refresh_token_binding=false`,
 retain the documented per-audience binding; online public tokens always
-bind. New tenants default to strict binding. An existing bound token never
+bind. Both new and upgraded tenants default to strict binding when the setting is absent. An existing bound token never
 loses its key when settings change. An unbound token is never silently
 upgraded by presenting a proof on refresh (RFC 9449 §5).
 

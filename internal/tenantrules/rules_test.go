@@ -147,6 +147,9 @@ func TestPictureURLCanonicalBranding(t *testing.T) {
 
 func TestDPoPNewTenantDefault(t *testing.T) {
 	tn := &store.Tenant{}
+	if Public(tn)["dpop_strict_refresh_token_binding"] != true {
+		t.Fatal("an upgraded tenant with no stored choice must report strict binding")
+	}
 	ApplyNewTenantDefaults(tn)
 	if tn.SettingsExtra["dpop_strict_refresh_token_binding"] != true {
 		t.Fatal("new tenant lacks strict binding")

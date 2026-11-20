@@ -53,9 +53,10 @@ tokens keep the existing successful empty response; wrong-client behavior
 remains `invalid_grant`.
 
 Presenting a proof with an already unbound refresh token does not upgrade
-that family's binding. Existing tenants can retain per-API binding through
-explicit `dpop_strict_refresh_token_binding:false`; an existing binding
-never disappears when settings change.
+that family's binding. New and upgraded tenants use strict refresh binding
+when the setting is absent. An explicit `dpop_strict_refresh_token_binding: false`
+applies per-API binding to newly issued offline credentials. Existing bound
+credentials keep their key when settings change.
 
 To bind the authorization code, send `dpop_jkt` through `/authorize`, JAR,
 or PAR. PAR also accepts a proof signed for `/oauth/par`. If both are sent,

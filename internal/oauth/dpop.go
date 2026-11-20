@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 func accessProof(ctx context.Context, c *store.Client, rs *store.ResourceServer) (string, *Error) {
@@ -133,19 +134,28 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 	}
 	return nil
 }
-func refreshProof(ctx context.Context, res tenant.Resolved, rs *store.ResourceServer) string {
-	p := dpop.FromContext(ctx)
-	if p == nil {
-		return ""
+
+// createInitialRefresh chooses the new credential's key under the final
+// policy lock. Rotation and conversion inherit the existing record's key.
+func createInitialRefresh(ctx context.Context, tx store.Store, rt *store.RefreshToken) error {
+	key := proofJKT(ctx)
+	if key != "" && rt.Access != "online" && rt.Audience != "" {
+		tn, err := tx.Tenants().Get(ctx, rt.TenantID)
+		if err != nil {
+			return err
+		}
+		if !tenantrules.StrictRefreshBinding(tn) {
+			rs, err := tx.ResourceServers().GetByIdentifier(ctx, rt.TenantID, rt.Audience)
+			if err != nil {
+				return err
+			}
+			if rs.ProofOfPossession == nil || rs.ProofOfPossession.Mechanism != "dpop" {
+				key = ""
+			}
+		}
 	}
-	strict := false
-	if v, ok := res.Tenant.SettingsExtra["dpop_strict_refresh_token_binding"].(bool); ok {
-		strict = v
-	}
-	if strict || rs == nil || (rs.ProofOfPossession != nil && rs.ProofOfPossession.Mechanism == "dpop") {
-		return p.JKT
-	}
-	return ""
+	rt.DPoPJKT = key
+	return tx.RefreshTokens().Create(ctx, rt)
 }
 
 // proofMint records the exact access binding signed before the final policy lock.

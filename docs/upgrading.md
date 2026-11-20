@@ -174,9 +174,10 @@ a new lifetime and atomically invalidates the matching previous token set.
 
 Grant deletion now revokes matching refresh tokens. Explicit session revoke
 also revokes offline tokens; ordinary logout/session deletion still preserves
-offline tokens. Online tokens end with their session. New tenants enable
-strict DPoP refresh binding; existing absent/false settings retain per-API
-behavior, and existing bound records never lose their key. Public online
+offline tokens. Online tokens end with their session. An absent DPoP binding setting enables
+strict binding for new offline credentials on upgraded tenants. Set
+`dpop_strict_refresh_token_binding` to `false` to retain per-API binding.
+Existing credentials keep their original binding. Public online
 clients need DPoP, including nonce retry; see [DPoP](dpop.md).
 
 Stored valid tenant quota defaults remain effective after migration. Limits

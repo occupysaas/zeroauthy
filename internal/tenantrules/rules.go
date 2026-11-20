@@ -204,6 +204,7 @@ func Public(t *store.Tenant) map[string]any {
 	} else {
 		delete(out, "default_token_quota")
 	}
+	out["dpop_strict_refresh_token_binding"] = StrictRefreshBinding(t)
 	// Enforced phone settings read explicit values (see PhoneSettingsOf).
 	ps := PhoneSettingsOf(t)
 	out["phone_consolidated_experience"] = ps.Consolidated
@@ -235,4 +236,11 @@ func Public(t *store.Tenant) map[string]any {
 	}
 	out["session_cookie"] = map[string]any{"mode": mode}
 	return out
+}
+
+// StrictRefreshBinding defaults to strict binding for all tenants. Only a
+// stored boolean false selects per-API binding for a new offline credential.
+func StrictRefreshBinding(t *store.Tenant) bool {
+	v, present := t.SettingsExtra["dpop_strict_refresh_token_binding"].(bool)
+	return !present || v
 }

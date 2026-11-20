@@ -321,6 +321,57 @@ func TestDPoPUnboundAndLegacyRefresh(t *testing.T) {
 	}
 }
 
+func TestInitialRefreshBindingAtMint(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		before    bool
+		current   any
+		wantBound bool
+	}{
+		{"enabled", false, true, true},
+		{"explicit per-API", true, false, false},
+		{"upgraded tenant with absent setting", false, nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			ctx, tid := t.Context(), f.tenantID(t, "acme")
+			prior, err := f.st.Tenants().Get(ctx, tid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			prior.SettingsExtra["dpop_strict_refresh_token_binding"] = tc.before
+			current, err := f.st.Tenants().Get(ctx, tid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			delete(current.SettingsExtra, "dpop_strict_refresh_token_binding")
+			if tc.current != nil {
+				current.SettingsExtra["dpop_strict_refresh_token_binding"] = tc.current
+			}
+			if err := f.st.Tenants().Update(ctx, current); err != nil {
+				t.Fatal(err)
+			}
+			c, err := f.st.Clients().Get(ctx, tid, "rt-spa")
+			if err != nil {
+				t.Fatal(err)
+			}
+			const redirect = "https://rt.acme.test/cb"
+			raw := f.issueCode(t, c.ClientID, redirect, acmeAPI, []string{"offline_access"}, pkceChallenge)
+			const key = "verified-presentation"
+			ctx = dpop.WithProof(ctx, &dpop.Proof{JKT: key})
+			resp, failure := f.h.authorizationCode(ctx, tenant.Resolved{Tenant: prior, Host: acmeHost}, c, codeForm(raw, c.ClientID, redirect, pkceVerifier))
+			if failure != nil || resp.RefreshToken == nil || resp.TokenType != "Bearer" {
+				t.Fatal("bearer API issuance failed")
+			}
+			rt := f.storedRT(t, *resp.RefreshToken)
+			ac, err := f.st.AuthCodes().Get(ctx, tid, secrets.HashToken(raw))
+			if err != nil || (rt.DPoPJKT == key) != tc.wantBound || ac.DPoPJKT != rt.DPoPJKT {
+				t.Fatal("new credential binding differs from the committed tenant policy")
+			}
+		})
+	}
+}
+
 func TestDPoPBoundRevocation(t *testing.T) {
 	for _, expired := range []bool{false, true} {
 		t.Run(strconv.FormatBool(expired), func(t *testing.T) {
