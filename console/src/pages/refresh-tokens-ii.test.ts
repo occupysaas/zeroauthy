@@ -19,6 +19,60 @@ async function tab(name: string) {
 const apis = [resourceServer('billing', { scopes: [{ value: 'read:invoices', description: 'Read invoices' }] }), resourceServer('mgmt', { is_system: true, identifier: 'https://acme.example.test/api/v2/' }), resourceServer('operator', { identifier: 'urn:zeroauthy:management' })]
 
 describe('Refresh tokens II console', () => {
+  it('keeps ordinary API name and lifetime edits working when storage rejects Plan 48 fields', async () => {
+    const server = resourceServer('billing')
+    const { wrapper, calls } = await mountAt(ApiDetail, '/t/acme/apis/billing', c => {
+      const body = c.body as Record<string, unknown>
+      if (c.method === 'PATCH' && ['allow_online_access', 'allow_online_access_with_ephemeral_sessions', 'proof_of_possession'].some(key => key in body)) return { status: 400, body: { error: 'invalid_body', message: 'Refresh tokens II unsupported' } }
+      return { status: 200, body: c.method === 'PATCH' ? { ...server, ...body } : server }
+    })
+    await wrapper.get('#api-name').setValue('Billing v2')
+    await wrapper.get('#api-lifetime').setValue('3600')
+    await wrapper.get('#api-lifetime-web').setValue('1800')
+    await wrapper.get('form').trigger('submit'); await flushPromises()
+    expect(wrapper.text()).toContain('Saved')
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toMatchObject({ name: 'Billing v2', token_lifetime: 3600 })
+    wrapper.unmount()
+  })
+  it('keeps ordinary rotation edits working when storage rejects Plan 48 fields', async () => {
+    const app = client('abc')
+    let acceptedWrites = 0
+    const { wrapper, calls } = await mountAt(AppDetail, '/t/acme/applications/abc', c => {
+      const body = c.body as Record<string, unknown>
+      if (c.method === 'PATCH' && ('require_proof_of_possession' in body || 'token_quota' in body || 'policies' in (body.refresh_token as object))) return { status: 400, body: { error: 'invalid_body', message: 'Refresh tokens II unsupported' } }
+      if (c.method === 'PATCH') acceptedWrites++
+      return { status: 200, body: c.url.includes('/resource-servers') ? { resource_servers: [] } : c.method === 'PATCH' ? { ...app, ...body } : app }
+    })
+    await tab('Refresh tokens')
+    await wrapper.get('#refresh-rotation').setValue('rotating')
+    await wrapper.get('[data-testid=refresh-settings]').trigger('submit'); await flushPromises()
+    expect(acceptedWrites).toBe(1)
+    expect(wrapper.find('[role=alert]').exists()).toBe(false)
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toMatchObject({ refresh_token: { rotation_type: 'rotating' } })
+    wrapper.unmount()
+  })
+  it('includes a newly enabled application quota', async () => {
+    const app = client('abc')
+    const { wrapper, calls } = await mountAt(AppDetail, '/t/acme/applications/abc', c => ({ status: 200, body: c.url.includes('/resource-servers') ? { resource_servers: [], total: 0 } : app }))
+    await tab('Refresh tokens')
+    await wrapper.get('#app-quota-enabled').setValue(true)
+    await wrapper.get('#app-quota-hour').setValue('25')
+    await wrapper.get('[data-testid=refresh-settings]').trigger('submit'); await flushPromises()
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toMatchObject({ token_quota: { client_credentials: { per_hour: 25, enforce: true } } })
+    wrapper.unmount()
+  })
+  it('explicitly clears configured application policies, proof requirement and quota', async () => {
+    const app = client('abc', { require_proof_of_possession: true, refresh_token: { policies: [{ audience: 'https://api.example.test/billing', scope: [] }] }, token_quota: { client_credentials: { per_hour: 10 } } })
+    const { wrapper, calls } = await mountAt(AppDetail, '/t/acme/applications/abc', c => ({ status: 200, body: c.url.includes('/resource-servers') ? { resource_servers: apis, total: apis.length } : app }))
+    await tab('Refresh tokens')
+    await wrapper.findAll('button').find(b => b.text() === 'Remove policy')!.trigger('click')
+    await wrapper.get('#app-require-proof').setValue(false)
+    await wrapper.get('#app-quota-enabled').setValue(false)
+    await wrapper.get('[data-testid=refresh-settings]').trigger('submit'); await flushPromises()
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toMatchObject({ refresh_token: { policies: null }, require_proof_of_possession: false, token_quota: null })
+    wrapper.unmount()
+  })
+
   it('edits first-party MRRT policies with API/scope choices and clears an application quota with null', async () => {
     const app = client('abc', { token_quota: { client_credentials: { per_hour: 10, per_day: 50, enforce: true } } } as Partial<ReturnType<typeof client>>)
     const { wrapper, calls } = await mountAt(AppDetail, '/t/acme/applications/abc', c => c.url.includes('/resource-servers') ? { status: 200, body: { resource_servers: apis, total: 3 } } : { status: 200, body: app })
@@ -48,7 +102,7 @@ describe('Refresh tokens II console', () => {
   })
   it('saves online access and DPoP policy for a custom API and can clear it', async () => {
     const api = resourceServer('billing')
-    const { wrapper, calls } = await mountAt(ApiDetail, '/t/acme/apis/billing', () => ({ status: 200, body: api }))
+    const { wrapper, calls } = await mountAt(ApiDetail, '/t/acme/apis/billing', c => { if (c.method === 'PATCH') Object.assign(api, c.body); return { status: 200, body: { ...api } } })
     await tab('Settings')
     await wrapper.get('#api-online').setValue(true)
     await wrapper.get('#api-online-ephemeral').setValue(true)
@@ -57,9 +111,11 @@ describe('Refresh tokens II console', () => {
     await wrapper.get('#api-proof-for').setValue('public_clients')
     await wrapper.get('form').trigger('submit'); await flushPromises()
     expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toMatchObject({ allow_online_access: true, allow_online_access_with_ephemeral_sessions: true, proof_of_possession: { mechanism: 'dpop', required: true, required_for: 'public_clients' } })
+    await wrapper.get('#api-online').setValue(false)
+    await wrapper.get('#api-online-ephemeral').setValue(false)
     await wrapper.get('#api-proof-mechanism').setValue('none')
     await wrapper.get('form').trigger('submit'); await flushPromises()
-    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toHaveProperty('proof_of_possession', null)
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toMatchObject({ proof_of_possession: null, allow_online_access: false, allow_online_access_with_ephemeral_sessions: false })
     wrapper.unmount()
   })
   it('confirms explicit session revoke including offline tokens, shows token device history and edits metadata', async () => {
@@ -87,7 +143,9 @@ describe('Refresh tokens II console', () => {
     expect(wrapper.get('[data-testid=mrrt-add]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('#mrrt-audience-0').element).toHaveProperty('value', 'https://unknown.test/0')
     await wrapper.get('[data-testid=refresh-settings]').trigger('submit'); await flushPromises()
-    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).toMatchObject({ refresh_token: { policies: app.refresh_token.policies } })
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)?.body).not.toHaveProperty('refresh_token.policies')
+    expect(wrapper.get('#mrrt-audience-0').element).toHaveProperty('value', 'https://unknown.test/0')
+    expect(wrapper.get('[value="future:scope"]').element).toHaveProperty('checked', true)
     wrapper.unmount()
   })
   it('saves tenant defaults in one request and confirms clearing both defaults with null', async () => {

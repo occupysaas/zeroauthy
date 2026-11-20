@@ -44,9 +44,11 @@ async function save() {
     }
     if (props.client.is_first_party) {
       if (policies.value.length > 10 || policies.value.some(p => !p.audience || [...p.audience].length > 600 || p.scope.some(s => [...s].length > 280)) || new Set(policies.value.map(p => p.audience)).size !== policies.value.length) throw new Error(t('rt48.invalidPolicies'))
-      refresh.policies = policies.value.length ? policies.value.map(p => ({ audience: p.audience, scope: [...p.scope] })) : null
+      if (JSON.stringify(policies.value) !== JSON.stringify(props.client.refresh_token.policies ?? [])) refresh.policies = policies.value.length ? policies.value.map(p => ({ audience: p.audience, scope: [...p.scope] })) : null
     }
-    const body: ClientUpdate = { refresh_token: refresh, require_proof_of_possession: form.proof, token_quota: quotaValue(quota.value) }
+    const body: ClientUpdate = { refresh_token: refresh }
+    if (form.proof !== (props.client.require_proof_of_possession === true)) body.require_proof_of_possession = form.proof
+    if (JSON.stringify(quota.value) !== JSON.stringify(quotaDraft(props.client.token_quota))) body.token_quota = quotaValue(quota.value)
     busy.value = true
     const result = await api.updateClient(tenant, id, body)
     if (mine !== epoch) return

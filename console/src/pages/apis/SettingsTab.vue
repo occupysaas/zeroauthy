@@ -91,8 +91,11 @@ async function save() {
     if (form.alg === 'HS256' && form.secret.trim()) body.signing_secret = form.secret.trim()
     body.token_dialect = (form.profile + (form.permissions ? '_authz' : '')) as ResourceServerUpdate['token_dialect']
     body.allow_offline_access = form.offline
-    body.allow_online_access = form.online; body.allow_online_access_with_ephemeral_sessions = form.ephemeral
-    body.proof_of_possession = form.proof === 'none' ? null : { mechanism: 'dpop', required: form.proofRequired, required_for: form.proofFor }
+    if (form.online !== (props.server.allow_online_access === true)) body.allow_online_access = form.online
+    if (form.ephemeral !== (props.server.allow_online_access_with_ephemeral_sessions === true)) body.allow_online_access_with_ephemeral_sessions = form.ephemeral
+    const proof = form.proof === 'none' ? null : { mechanism: 'dpop' as const, required: form.proofRequired, required_for: form.proofFor }
+    const originalProof = props.server.proof_of_possession?.mechanism === 'dpop' ? { mechanism: 'dpop', required: props.server.proof_of_possession.required === true, required_for: props.server.proof_of_possession.required_for ?? 'all_clients' } : null
+    if (JSON.stringify(proof) !== JSON.stringify(originalProof)) body.proof_of_possession = proof
     body.skip_consent_for_verifiable_first_party_clients = form.skipConsent
     body.subject_type_authorization = { user: { policy: form.user as 'allow_all' }, client: { policy: form.client as 'deny_all' } }
   }
