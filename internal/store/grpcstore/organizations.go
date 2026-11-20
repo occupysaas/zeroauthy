@@ -302,10 +302,14 @@ func (o clientOrganizations) Update(ctx context.Context, org *store.Organization
 			return err
 		}
 	}
-	if org != nil && org.TokenQuota != nil {
+	versioned, err := o.c.useRefreshIIUpdate(ctx, org != nil && org.TokenQuota != nil)
+	if err != nil {
+		return err
+	}
+	if versioned {
 		return o.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Organization{Organization: &storev1.OrganizationsRequest{Organization: orgToPB(org)}}})
 	}
-	_, err := orgCall(o.c, "Update", &storev1.OrganizationsRequest{Organization: orgToPB(org)}, o.c.rpc.OrganizationsUpdate, ctx)
+	_, err = orgCall(o.c, "Update", &storev1.OrganizationsRequest{Organization: orgToPB(org)}, o.c.rpc.OrganizationsUpdate, ctx)
 	return err
 }
 func (srv *Server) OrganizationsUpdate(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {

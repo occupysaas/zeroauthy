@@ -199,7 +199,11 @@ func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
 	}
 	t = a.c.webauthnTenant(t)
 	return put("TenantsUpdate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
-		if pb != nil && pb.DefaultTokenQuota != nil {
+		versioned, err := a.c.useRefreshIIUpdate(ctx, pb.GetDefaultTokenQuota() != nil)
+		if err != nil {
+			return nil, err
+		}
+		if versioned {
 			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Tenant{Tenant: pb}})
 			return &storev1.Result{}, err
 		}
@@ -241,7 +245,11 @@ func (a clientClients) Get(ctx context.Context, tenantID, clientID string) (*sto
 func (a clientClients) Update(ctx context.Context, v *store.Client) error {
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsUpdate", v, clientToPB, func(pb *storev1.Client) (result, error) {
-		if pb != nil && (pb.RequireProofOfPossession || pb.TokenQuota != nil || pb.GetRefreshToken().GetPolicies() != nil) {
+		versioned, err := a.c.useRefreshIIUpdate(ctx, pb.GetRequireProofOfPossession() || pb.GetTokenQuota() != nil || pb.GetRefreshToken().GetPolicies() != nil)
+		if err != nil {
+			return nil, err
+		}
+		if versioned {
 			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Client{Client: pb}})
 			return &storev1.Result{}, err
 		}
@@ -347,7 +355,11 @@ func (a clientResourceServers) Update(ctx context.Context, v *store.ResourceServ
 	}
 	v = a.c.clientCredentialsResourceServer(v)
 	return put("ResourceServersUpdate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
-		if pb != nil && (pb.AllowOnlineAccess || pb.AllowOnlineAccessWithEphemeralSessions || pb.ProofOfPossession != nil) {
+		versioned, err := a.c.useRefreshIIUpdate(ctx, pb.GetAllowOnlineAccess() || pb.GetAllowOnlineAccessWithEphemeralSessions() || pb.GetProofOfPossession() != nil)
+		if err != nil {
+			return nil, err
+		}
+		if versioned {
 			err := a.c.writeRefreshII(ctx, &storev1.RefreshIIWrite{Update: true, Record: &storev1.RefreshIIWrite_Api{Api: pb}})
 			return &storev1.Result{}, err
 		}

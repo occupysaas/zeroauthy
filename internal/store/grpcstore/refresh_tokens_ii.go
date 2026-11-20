@@ -81,6 +81,17 @@ func (c *Client) requireRefreshII(ctx context.Context) error {
 	return c.refreshOperationError(c.CheckRefreshTokensIISupport(ctx))
 }
 
+// Full-record replacements can clear protected configuration even when their
+// new value contains no protected fields. Only an initially legacy peer can
+// receive an ordinary replacement through the older method.
+func (c *Client) useRefreshIIUpdate(ctx context.Context, hasProtectedFields bool) (bool, error) {
+	err := c.CheckRefreshTokensIISupport(ctx)
+	if !hasProtectedFields && errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+		return false, nil
+	}
+	return err == nil, c.refreshOperationError(err)
+}
+
 func (c *Client) refreshResult(op string, r result, err error) error {
 	if err != nil {
 		err = rpcErr(op, capabilityError(err, store.ErrRefreshTokensIIUnavailable))

@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	pb "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -265,6 +266,91 @@ type changingRefreshBackend struct {
 	store.Store
 	probe   func() error
 	txProbe func() error
+}
+
+func TestRefreshIIConfigurationClears(t *testing.T) {
+	ctx := t.Context()
+	for _, kind := range []string{"tenant", "client", "resource server", "organization"} {
+		t.Run(kind, func(t *testing.T) {
+			base := memory.New()
+			quota := &store.TokenQuota{Enforce: true, PerHour: 3}
+			tenant := store.Tenant{ID: "t", Name: "acme", DefaultTokenQuota: &store.DefaultTokenQuota{Clients: quota}}
+			client := store.Client{TenantID: "t", ClientID: "app", RequireProofOfPossession: true}
+			api := store.ResourceServer{TenantID: "t", ID: "api", Identifier: "https://api.example.test", AllowOnlineAccess: true}
+			org := store.Organization{TenantID: "t", ID: orgrules.NewID(), Name: "acme", DisplayName: "Acme", TokenQuota: quota}
+			for _, err := range []error{base.Tenants().Create(ctx, &tenant), base.Clients().Create(ctx, &client),
+				base.ResourceServers().Create(ctx, &api), base.Organizations().Create(ctx, &org, nil)} {
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			tenant.DefaultTokenQuota, client.RequireProofOfPossession, api.AllowOnlineAccess, org.TokenQuota = nil, false, false, nil
+			clear := map[string]func(store.Store) error{
+				"tenant":          func(s store.Store) error { return s.Tenants().Update(ctx, &tenant) },
+				"client":          func(s store.Store) error { return s.Clients().Update(ctx, &client) },
+				"resource server": func(s store.Store) error { return s.ResourceServers().Update(ctx, &api) },
+				"organization":    func(s store.Store) error { return s.Organizations().Update(ctx, &org) },
+			}[kind]
+			var decline atomic.Bool
+			srv := NewServer(changingRefreshBackend{base, func() error { return nil }, func() error {
+				if decline.Load() {
+					return store.ErrRefreshTokensIIUnavailable
+				}
+				return nil
+			}})
+			t.Cleanup(srv.Close)
+			c := serveWith(t, srv)
+			if err := c.CheckRefreshTokensIISupport(ctx); err != nil {
+				t.Fatal(err)
+			}
+			decline.Store(true)
+			if err := c.WithTx(ctx, clear); !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+				t.Errorf("clearing a protected field on a declining transaction returned %v", err)
+			}
+			decline.Store(false)
+			if err := clear(c); !errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+				t.Errorf("clear after loss returned %v", err)
+			}
+			tenantRow, err1 := base.Tenants().Get(ctx, "t")
+			clientRow, err2 := base.Clients().Get(ctx, "t", client.ClientID)
+			apiRow, err3 := base.ResourceServers().Get(ctx, "t", api.ID)
+			orgRow, err4 := base.Organizations().Get(ctx, "t", org.ID)
+			if err := errors.Join(err1, err2, err3, err4); err != nil {
+				t.Fatal(err)
+			}
+			if tenantRow.DefaultTokenQuota == nil || !clientRow.RequireProofOfPossession || !apiRow.AllowOnlineAccess || orgRow.TokenQuota == nil {
+				t.Fatal("a declined full-record update changed protected configuration")
+			}
+			reconnected := serveWith(t, srv)
+			if err := reconnected.WithTx(ctx, clear); err != nil {
+				t.Fatalf("clear on a capable transaction: %v", err)
+			}
+		})
+	}
+}
+
+func TestRefreshIILegacyConfigurationUpdate(t *testing.T) {
+	ctx := t.Context()
+	base := memory.New()
+	v := &store.Client{TenantID: "t", ClientID: "app"}
+	if err := base.Clients().Create(ctx, v); err != nil {
+		t.Fatal(err)
+	}
+	srv := &refreshProbeServer{Server: NewServer(base), failure: codes.Unimplemented}
+	t.Cleanup(srv.Close)
+	c := serveWith(t, srv)
+	v.Name = "Updated"
+	if err := c.Clients().Update(ctx, v); err != nil {
+		t.Fatal(err)
+	}
+	got, err := base.Clients().Get(ctx, v.TenantID, v.ClientID)
+	if err != nil || got.Name != v.Name {
+		t.Fatal("ordinary legacy update failed")
+	}
+	v.RequireProofOfPossession = true
+	if err := c.Clients().Update(ctx, v); !errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+		t.Fatalf("protected update on legacy peer returned %v", err)
+	}
 }
 
 func (s changingRefreshBackend) CheckRefreshTokensIISupport(context.Context) error { return s.probe() }
