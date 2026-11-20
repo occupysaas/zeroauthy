@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 )
 
 // ValidateOrganizations limits offline imports to the pinned Deploy CLI 9.1.0
@@ -48,10 +50,20 @@ func ValidateOrganizations(source Export) error {
 		grantCount[ref]++
 	}
 	for _, org := range orgs {
-		allowed := map[string]bool{"id": true, "name": true, "display_name": true, "branding": true, "metadata": true, "connections": true, "clients": true, "client_grants": true, "discovery_domains": true, "third_party_client_access": true, "is_app_entitlement_active": true}
+		allowed := map[string]bool{"token_quota": true, "id": true, "name": true, "display_name": true, "branding": true, "metadata": true, "connections": true, "clients": true, "client_grants": true, "discovery_domains": true, "third_party_client_access": true, "is_app_entitlement_active": true}
 		for k := range org {
 			if !allowed[k] {
 				return fmt.Errorf("deploymigration: unsupported organization field %q", k)
+			}
+		}
+
+		if raw, present := org["token_quota"]; present {
+			var quota any
+			if json.Unmarshal(raw, &quota) != nil {
+				return errors.New("deploymigration: invalid organization token quota")
+			}
+			if _, err := quotarules.ParseTokenQuota(quota, "token_quota"); err != nil {
+				return errors.New("deploymigration: invalid organization token quota")
 			}
 		}
 

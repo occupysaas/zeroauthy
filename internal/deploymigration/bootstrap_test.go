@@ -3,6 +3,7 @@ package deploymigration
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/json"
 	"strings"
@@ -266,4 +267,42 @@ func TestBootstrapOrganizationFields(t *testing.T) {
 		t.Fatal(err)
 	}
 
+}
+
+func TestBootstrapRefreshTokensII(t *testing.T) {
+	bootstrap, err := seed.Parse([]byte("tenants:\n - name: destination\n   domains: [dest.example.test]\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := Export{Resources: map[string]json.RawMessage{"clients": json.RawMessage(`[{"client_id":"public-id","name":"SPA","app_type":"spa","token_endpoint_auth_method":"none","grant_types":["authorization_code","refresh_token"],"is_first_party":true,"require_proof_of_possession":true,"token_quota":{"client_credentials":{"per_hour":42,"enforce":false}},"refresh_token":{"rotation_type":"rotating","expiration_type":"expiring","policies":[{"audience":"https://api.example.test","scope":["read:things"]}]}}]`)}}
+	got, err := PrepareBootstrap(source, bootstrap, map[string]string{}, BootstrapOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := got.Tenants[0].Clients[0]
+	if !c.RequireProofOfPossession || len(c.RefreshToken.Policies) != 1 || c.TokenQuota == nil {
+		t.Fatal("prepared client lost II settings")
+	}
+	st := memory.New()
+	result, err := ApplyBootstrap(t.Context(), st, got, func() keys.Wrapper {
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			t.Fatal(err)
+		}
+		w, err := keys.NewLocalWrapper(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return w
+	}(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := st.Clients().Get(t.Context(), result.TenantID, "public-id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stored.RequireProofOfPossession || len(stored.RefreshToken.Policies) != 1 || stored.RefreshToken.Policies[0].Audience != "https://api.example.test" || stored.TokenQuota == nil || stored.TokenQuota.PerHour != 42 || stored.TokenQuota.Enforce {
+		t.Fatal("bootstrap did not persist protected settings")
+	}
 }

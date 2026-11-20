@@ -148,10 +148,12 @@ type ResourceServer struct {
 	// SigningAlg is RS256 (the default), HS256 or PS256. HS256 signs with
 	// SigningSecret, plaintext in the seed and sealed when applied; an HS256
 	// API without one keeps its stored secret, or gets a generated one.
-	SigningAlg         string `yaml:"signing_alg"`
-	SigningSecret      string `yaml:"signing_secret"`
-	TokenLifetime      int    `yaml:"token_lifetime"`
-	AllowOfflineAccess bool   `yaml:"allow_offline_access"`
+	SigningAlg                             string `yaml:"signing_alg"`
+	SigningSecret                          string `yaml:"signing_secret"`
+	TokenLifetime                          int    `yaml:"token_lifetime"`
+	AllowOfflineAccess                     bool   `yaml:"allow_offline_access"`
+	AllowOnlineAccess                      bool   `yaml:"allow_online_access"`
+	AllowOnlineAccessWithEphemeralSessions bool   `yaml:"allow_online_access_with_ephemeral_sessions"`
 
 	SkipConsentForVerifiableFirstPartyClients *bool                    `yaml:"skip_consent_for_verifiable_first_party_clients"`
 	SubjectTypeAuthorization                  SubjectTypeAuthorization `yaml:"subject_type_authorization"`
@@ -169,6 +171,7 @@ func (rs *ResourceServer) spec() apirules.Spec {
 	return apirules.Spec{
 		ProofOfPossession: rs.ProofOfPossession, Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes, SigningAlg: rs.SigningAlg,
 		TokenLifetime: rs.TokenLifetime, AllowOfflineAccess: rs.AllowOfflineAccess,
+		AllowOnlineAccess: rs.AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions: rs.AllowOnlineAccessWithEphemeralSessions,
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: rs.TokenDialect,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
 		SubjectTypeAuthorization: store.SubjectTypeAuthorization{

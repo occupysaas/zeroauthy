@@ -20,7 +20,7 @@ func checkDPoPStorage(ctx context.Context, st store.Store, f *File) error {
 			}
 		}
 		for _, rs := range t.ResourceServers {
-			if rs.ProofOfPossession != nil {
+			if rs.ProofOfPossession != nil || rs.AllowOnlineAccess || rs.AllowOnlineAccessWithEphemeralSessions {
 				if e := store.CheckRefreshTokensIISupport(ctx, st); e != nil {
 					return e
 				}
