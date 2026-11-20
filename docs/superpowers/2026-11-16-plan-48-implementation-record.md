@@ -1,9 +1,14 @@
 # Plan 48 implementation record
 
-Status: **in progress**. This is not a completed plan or a claim that runtime
-features pass. Work started 2026-11-18 from `origin/main` at `8eb2dd45`
-(Plan 36 merged). Branch: `plan-48-refresh-tokens-ii`; worktree:
-`/mnt/nvme2/code/zeroauthy-plan48`. No branch push or CI run yet.
+Status: **implementation and local verification complete; CI pending**.
+All twelve original tasks plus the authorized DPoP task are implemented and
+reviewed. Whole-branch review and its coordinated fixes are complete; the
+last narrow correction was dispositioned with RED/GREEN and final suites.
+Work started 2026-11-18 at `8eb2dd45`, integrated `main` at `8412413f`, and
+verified final implementation commit `16f9d4cb` on `plan-48-refresh-tokens-ii`.
+No merge approval is inferred. The following task sections preserve historical
+verification checkpoints; the final results below supersede earlier pending
+local-check statements.
 
 Design: [Refresh tokens II](specs/2026-11-16-zeroauthy-refresh-tokens-ii-design.md).
 Plan: [implementation tasks](plans/2026-11-16-zeroauthy-plan-48-refresh-tokens-ii.md).
@@ -18,7 +23,7 @@ DPoP for public clients, reject combined online/offline scopes, and are not
 Management API refresh-token resources. The maintainer authorized DPoP
 support in this conversation. The amended design adds downstream DPoP as
 Task 6a before ORT Task 7, and includes its persistence in Tasks 2 and 3.
-DPoP runtime is implemented and reviewed as Task 6a; plan-level E2E and full verification remain pending.
+DPoP runtime, integrated plan E2E and the non-race local Go tier are complete; CI remains pending.
 
 The public MRRT configuration guide now specifies 10 policies per client;
 the design's previous local limit of 100 was updated. Bulk revoke retains
@@ -27,8 +32,7 @@ preserved; the plan's stale 1.26.10 text was corrected without a pin change.
 
 Conversion uses presented-token identity for atomic claims. The SQL and
 quota work must serialize family-head and absent-counter decisions, and
-quota results must expose atomic warning-threshold crossings. These are
-implementation requirements, not results already verified.
+quota results must expose atomic warning-threshold crossings. These contracts are exercised by the focused store and integrated suites.
 
 Review corrected the proposed DPoP design to separate authorization-server
 and UserInfo nonce domains and to support both PAR binding mechanisms.
@@ -50,7 +54,7 @@ No nonce or proof runtime implementation was present in that review.
 | 9 Quotas | Complete; reviewed | `9f9fae1a`; OAuth/shared configuration/supporting tests and build passed |
 | 10 Console | Complete; reviewed | `d98e073f`, fix `ede3ae09`; make console 721 tests and visual QA passed |
 | 11 Seed and Deploy CLI | Complete; reviewed | `313d9e8c`; four actual CLI cells and 174 Go tests passed |
-| 12 E2E, docs and final verification | In progress | Plan checks and whole-branch review pending |
+| 12 E2E, docs and final verification | Locally complete; reviewed | Final `16f9d4cb` Go and acceptance tiers passed; CI pending |
 
 ## Task 1 verification
 
@@ -333,3 +337,55 @@ scopes and incorrect directory name) and their corrections. Complete focused
 seed/bootstrap/shared-rule packages passed 174 tests with zero skips. Review
 approved with no findings. No live Auth0 calls or new dependencies were used.
 The dedicated runner will be included in Task 12 acceptance.
+
+## Final integrated verification and review disposition
+
+Final implementation commit `16f9d4cb9b1450364db6a0606cda3a9f96fc0bd1`, tree
+`d95d7bfd804164c5e4f06c8e76a1f7bf0178ee57`, passed both required final commands
+with Go 1.26.11 and short tmpfs TMPDIR/GOTMPDIR paths:
+
+- `go test -p 4 -count=1 -v ./...`: exit 0, 103 packages, 3,794 top-level
+  passes / 15,475 including subtests, zero failures and five actual skips.
+- `make e2e-refresh-tokens`: exit 0, seven privacy helper tests, four real
+  Chromium cases including pinned SPA SDK rotation/MRRT, Node SDK/protocol
+  assertions, local pinned CLI, mandatory log/database sink audit including
+  refresh-token digests, and all four Deploy CLI cells; zero skips.
+
+The Go run's five skips are the two plugin `Organizations/Limits` cases
+(test-only limit setter unavailable), `TestDeployedAppleKey`,
+`TestE2EPrivateEmailProviderCredentialAfterImport`, and
+`TestE2EPrivateLogStreamSecretsAfterImport` (each reserved for its isolated
+Deploy lane). They are not counted as passes.
+
+Console generation/lint/typecheck, 727 tests and committed build passed after
+main integration. No console or dependency changes followed. User-search
+FuzzParse ran for 60s and exited 0 with 25,986 executions; progress plateaued
+after 3s, so no sustained-throughput claim is made. Govulncheck v1.10.0 exited
+0: no called or imported-package vulnerabilities, one uncalled required-module
+finding. Zizmor 1.32.0 exited 0 in default offline mode with no findings,
+four ignored and 26 suppressed. Commands, snapshots and actual exit records
+are retained in the private execution workspace.
+
+Whole-branch review assessed the complete implementation and all seventeen
+previously deferred task-review items. Its Important findings were addressed
+in one coordinated pass with per-finding RED/GREEN evidence and a scoped
+review. A narrow final revocation correction was dispositioned by the
+controller and verified by four additional RED/GREEN cases plus both final
+suites. The earlier full-tier failure at `TestManagementContractUsers` is
+retained in the report; a test-only recursive schema-reference correction
+preserves valid and invalid nested metadata assertions. No test or permission
+was weakened. Earlier failed commands remain historical failures even though
+later corrected runs passed.
+
+Nonblocking follow-ups remain: SDK interface/sentinel/precision/cancellation
+polish, unmeasured tenant-lock throughput, selected assertion specificity,
+device-history probe classification for decorators, tenant-wrapper PATCH
+extensions, reset-after-local-error UI handling, ephemeral cookie-mode
+rendering, cleanup error precedence, and replay-specific operational logging.
+The complete private disposition and local rulings are retained for maintainer
+review; these do not claim production performance or external-provider parity.
+
+Race tests, live PostgreSQL/MySQL, every other E2E lane and full conformance
+remain the plan-branch CI tier. CI run URL and actual results will be recorded
+after the authorized push. Merging still requires green checks and explicit
+maintainer approval in the current conversation.

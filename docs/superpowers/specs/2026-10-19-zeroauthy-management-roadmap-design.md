@@ -506,9 +506,9 @@ The maintainer's hosting offer: tenant sign-up, subdomain and droplet provisioni
 
 ### Plan 48 — Refresh tokens II
 
-Implementation is in final acceptance/documentation on `plan-48-refresh-tokens-ii`.
-Task reviews through 11 are complete; full local checks, whole-branch review and
-CI remain pending. [Verification record](../2026-11-16-plan-48-implementation-record.md).
+Implementation, local checks and whole-branch review are complete on
+`plan-48-refresh-tokens-ii`, including the authorized DPoP extension.
+Full plan-branch CI remains pending. [Verification record](../2026-11-16-plan-48-implementation-record.md).
 
 Proposed by the pre-1.0 review. Turning on rotation converts existing non-rotating tokens on their next exchange and deletes the client's other non-rotating tokens (Auth0's documented behaviour); the rotation `leeway` accepts only the immediately previous token; deleting a user grant revokes the refresh tokens issued under it; the refresh grant re-checks the API's `allow_offline_access`; multi-resource and session-bound refresh tokens. **Short.**
 

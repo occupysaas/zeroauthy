@@ -1,6 +1,6 @@
 # Plan 48 — Refresh tokens II (rotation conversion, strict leeway, grant cascade, MRRT, online refresh tokens, token quotas)
 
-**Date:** 2026-11-16; amended 2026-11-18. **Status:** implementation started. Maintainer authorized DPoP support for online refresh tokens on 2026-11-18.
+**Date:** 2026-11-16; amended 2026-11-18. **Status:** implementation and local review/verification complete; CI pending. Maintainer authorized DPoP support for online refresh tokens on 2026-11-18.
 
 **Roadmap entry:** [management roadmap, Plan 48](2026-10-19-zeroauthy-management-roadmap-design.md)
 ("short", proposed by the pre-1.0 review); [parallel paths](2026-11-13-zeroauthy-parallel-paths-design.md)
