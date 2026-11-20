@@ -45,8 +45,8 @@ No nonce or proof runtime implementation was present in that review.
 | 5 Grant cascade | Complete; reviewed | `5f3bf19f`, fix `3b5afed3`; focused Management/OAuth/store tests passed |
 | 6 MRRT | Complete; reviewed | `261ab36d`, fix `969f3c1f`; focused and full OAuth tests passed |
 | 6a DPoP | Complete; reviewed | `a09bed3d`, fix `c04a1e25`; required packages and 343 OAuth tests passed |
-| 7 ORT | Starting | No runtime verification result yet |
-| 8 Management runtime | Pending | Not run |
+| 7 ORT | Complete; reviewed | `e7ae33b3`, fix `473a1850`; OAuth/supporting suites and build passed |
+| 8 Management runtime | Starting | Remaining endpoints not verified yet |
 | 9 Quotas | Pending | Not run |
 | 10 Console | Pending | Not run |
 | 11 Seed and Deploy CLI | Pending | Not run |
@@ -241,3 +241,24 @@ bound authorization code. `c04a1e25` fixes both. Regressions failed first,
 then focused checks and all 343 OAuth tests passed (140.229s, zero skips).
 Scoped re-review approved. One Minor nonce-origin test improvement remains
 for final review. No full-plan verification or push has occurred.
+
+## Task 7 verification
+
+`e7ae33b3` implements online refresh-token issuance/reuse/session lifecycle,
+DPoP, Actions revocation, Management invisibility and explicit session revoke.
+Ordinary session deletion preserves offline tokens. Stored ORT expiry is the
+session absolute expiry; session state remains authoritative for idle life.
+Initial verification passed 356 OAuth and 329 supporting tests, zero skips.
+
+Review found two Important issues: stale Touch-as-lock could rewind a newer
+session interaction, and a revoked ORT could end a fresh live session.
+`473a1850` adds real Sessions.GetForUpdate across memory/SQL/versioned gRPC
+and validates current revocation/expiry authority. Regressions failed first,
+then all 361 OAuth and 75 supporting top-level tests passed with zero skips;
+build passed. Scoped re-review approved both fixes. One Minor cross-client
+lifecycle assertion remains for final review.
+
+Task 8 still owns the retained offline-only bulk selector and remaining list,
+metadata and device/exchange recording endpoints. Explicit session revoke was
+pulled forward to Task 7. All snapshot, command and selector/test-harness
+corrections are retained in the task report; no full-plan or CI claim yet.
