@@ -53,6 +53,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | M1 | 38d Management API gaps | [spec](specs/2026-11-16-zeroauthy-management-gaps-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-38d-management-gaps.md) |
 | S1 | 39a Sign in with Apple | [spec](specs/2026-11-16-zeroauthy-apple-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39a-apple.md) |
 | S2 | 39b Remaining social providers | [spec](specs/2026-11-16-zeroauthy-social-providers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39b-social-providers.md) |
+| S2 | 39c GitHub social connection (split out of 39b; implemented on `plan-39-github-social`) | [spec](specs/2026-11-16-zeroauthy-github-connection-design.md) | [plan](plans/2026-11-18-zeroauthy-plan-39c-github.md) |
 | A1 | 40 Actions III | [spec](specs/2026-11-16-zeroauthy-actions-iii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-40-actions-iii.md) |
 | P3 | 41a OIDC extras and logout | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
 | P4 | 41b Dynamic Client Registration, CIMD | [spec](specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) |

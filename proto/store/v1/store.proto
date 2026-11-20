@@ -573,6 +573,10 @@ service StoreService {
 
   // Plan 48 session row lock; no legacy fallback.
   rpc RefreshIISessionsGetForUpdate(ScopedKey) returns (SessionResult);
+
+  // Plan 39c capability: github identities are indexed by canonical numeric ID.
+  // Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
+  rpc GitHubFederationSupported(GitHubFederationCapabilitiesRequest) returns (Result);
 }
 
 // ---- errors and generic results ----
@@ -1854,3 +1858,5 @@ message QuotaBucketMsg {
 message QuotaStateMsg { QuotaSubjectMsg subject = 1; repeated QuotaBucketMsg buckets = 2; bool exceeded = 3; }
 message QuotaRequest { string tx_id = 1; string tenant_id = 2; repeated QuotaSubjectMsg subjects = 3; google.protobuf.Timestamp now = 4; }
 message QuotaResponse { Error error = 1; repeated QuotaStateMsg states = 2; }
+
+message GitHubFederationCapabilitiesRequest { string tx_id = 1; }

@@ -24,6 +24,7 @@ const (
 	WindowsLive = "windowslive"
 	WAAD        = "waad"
 	Google      = "google-oauth2"
+	GitHub      = "github"
 	OAuth2      = "oauth2"
 	OIDC        = "oidc"
 )
@@ -59,13 +60,13 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == OAuth2 || strategy == OIDC || strategy == Okta
+	return strategy == Apple || strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == GitHub || strategy == OAuth2 || strategy == OIDC || strategy == Okta
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
 // OIDC is an enterprise strategy.
 func IsSocial(strategy string) bool {
-	return strategy == Apple || strategy == WindowsLive || strategy == Google || strategy == OAuth2
+	return strategy == Apple || strategy == WindowsLive || strategy == Google || strategy == GitHub || strategy == OAuth2
 }
 
 // RejectedKeys are the upstream parameter names that no inert map may target
@@ -127,6 +128,9 @@ type Input struct {
 	RootAttributes string
 	// Authentication is the top-level purpose object; nil means not named.
 	Authentication map[string]any
+	// ConnectedAccounts is the top-level connected_accounts object; nil
+	// means not named. Only GitHub validates it (never active).
+	ConnectedAccounts map[string]any
 	// HasSealedSecret reports that a sealed client secret is already stored.
 	HasSealedSecret bool
 }
@@ -241,7 +245,7 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(rejectedOptions)) {
-		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !(in.Strategy == Apple && k == "freeform_scopes") {
+		if _, ok := o[k]; ok && !((in.Strategy == OIDC || in.Strategy == Okta) && enterpriseOption(k) && (k != "domain" || in.Strategy == Okta)) && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain" || k == "domain_aliases")) && !((in.Strategy == Apple || in.Strategy == GitHub) && k == "freeform_scopes") {
 			fail("options.%s: %s", k, rejectedOptions[k])
 		}
 	}
@@ -278,6 +282,8 @@ func Parse(in Input) (Settings, []error) {
 		errs = append(errs, parseMicrosoft(o, &out)...)
 	case Google:
 		errs = append(errs, parseGoogle(o, &out)...)
+	case GitHub:
+		errs = append(errs, parseGitHub(o, in.ConnectedAccounts, &out)...)
 	case OAuth2:
 		errs = append(errs, parseOAuth2(o, &out)...)
 	case OIDC, Okta:

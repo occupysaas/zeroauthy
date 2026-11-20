@@ -54,6 +54,11 @@ type Provider struct {
 	appleAudit   bool
 	appleSecrets []string
 	appleSeen    map[string]bool
+	// GitHub (Plan 39c): accounts registered by the test, single-use codes
+	// and access tokens.
+	githubAccounts map[string]GitHubAccount
+	githubCodes    map[string]gitHubCode
+	githubTokens   map[string]gitHubToken
 }
 
 // New returns a provider for base.
@@ -87,6 +92,10 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/apple/") {
 		p.serveApple(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/github/") {
+		p.serveGitHub(w, r)
 		return
 	}
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/"), "/", 2)

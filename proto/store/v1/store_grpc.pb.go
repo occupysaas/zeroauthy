@@ -470,6 +470,7 @@ const (
 	StoreService_JobsDeleteExpired_FullMethodName                             = "/zeroauthy.store.v1.StoreService/JobsDeleteExpired"
 	StoreService_RefreshIIUserGrantsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/RefreshIIUserGrantsGet"
 	StoreService_RefreshIISessionsGetForUpdate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/RefreshIISessionsGetForUpdate"
+	StoreService_GitHubFederationSupported_FullMethodName                     = "/zeroauthy.store.v1.StoreService/GitHubFederationSupported"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -1019,6 +1020,9 @@ type StoreServiceClient interface {
 	RefreshIIUserGrantsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantResult, error)
 	// Plan 48 session row lock; no legacy fallback.
 	RefreshIISessionsGetForUpdate(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error)
+	// Plan 39c capability: github identities are indexed by canonical numeric ID.
+	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
+	GitHubFederationSupported(ctx context.Context, in *GitHubFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
 }
 
 type storeServiceClient struct {
@@ -5560,6 +5564,16 @@ func (c *storeServiceClient) RefreshIISessionsGetForUpdate(ctx context.Context, 
 	return out, nil
 }
 
+func (c *storeServiceClient) GitHubFederationSupported(ctx context.Context, in *GitHubFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_GitHubFederationSupported_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -6107,6 +6121,9 @@ type StoreServiceServer interface {
 	RefreshIIUserGrantsGet(context.Context, *ScopedKey) (*UserGrantResult, error)
 	// Plan 48 session row lock; no legacy fallback.
 	RefreshIISessionsGetForUpdate(context.Context, *ScopedKey) (*SessionResult, error)
+	// Plan 39c capability: github identities are indexed by canonical numeric ID.
+	// Plugins built earlier answer Unimplemented, and GitHub stays unavailable.
+	GitHubFederationSupported(context.Context, *GitHubFederationCapabilitiesRequest) (*Result, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -7469,6 +7486,9 @@ func (UnimplementedStoreServiceServer) RefreshIIUserGrantsGet(context.Context, *
 }
 func (UnimplementedStoreServiceServer) RefreshIISessionsGetForUpdate(context.Context, *ScopedKey) (*SessionResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshIISessionsGetForUpdate not implemented")
+}
+func (UnimplementedStoreServiceServer) GitHubFederationSupported(context.Context, *GitHubFederationCapabilitiesRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method GitHubFederationSupported not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -15584,6 +15604,24 @@ func _StoreService_RefreshIISessionsGetForUpdate_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_GitHubFederationSupported_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GitHubFederationCapabilitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).GitHubFederationSupported(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_GitHubFederationSupported_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).GitHubFederationSupported(ctx, req.(*GitHubFederationCapabilitiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -17382,6 +17420,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshIISessionsGetForUpdate",
 			Handler:    _StoreService_RefreshIISessionsGetForUpdate_Handler,
+		},
+		{
+			MethodName: "GitHubFederationSupported",
+			Handler:    _StoreService_GitHubFederationSupported_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -10,7 +10,8 @@ import Button from '../../../ui/Button.vue'
 import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
 import MicrosoftOptions from './MicrosoftOptions.vue'
-import { applePEM, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
+import GitHubOptions from './GitHubOptions.vue'
+import { applePEM, githubFlagOptions, APPLE_IDENTIFIER, callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
 
 const { t } = useI18n()
 const { api } = useServices()
@@ -31,6 +32,7 @@ const draft = reactive({
   clientSecret: '',
   appleTeam: '', appleKID: '', appleKey: '', appleName: true,
   email: true,
+  githubFlags: {} as Record<string, boolean>,
   profile: true,
   authorizationURL: '',
   tokenURL: '',
@@ -109,6 +111,9 @@ function body(): ConnectionCreate {
     case 'apple':
       delete options.client_secret
       Object.assign(options, { team_id: draft.appleTeam, kid: draft.appleKID, app_secret: draft.appleKey, name: draft.appleName, email: draft.email })
+      break
+    case 'github':
+      Object.assign(options, githubFlagOptions(draft.email, draft.githubFlags))
       break
     case 'windowslive':
       options.client_id = draft.clientId.trim().toLowerCase()
@@ -201,6 +206,7 @@ function describedBy(id: string, key: string, hint = false): string {
         <label class="check"><input id="apple-name" v-model="draft.appleName" type="checkbox" /> {{ t('social.appleName') }}</label>
         <label class="check"><input id="apple-email" v-model="draft.email" type="checkbox" /> {{ t('social.googleEmail') }}</label>
       </template>
+      <GitHubOptions v-if="draft.strategy === 'github'" v-model:email="draft.email" v-model:flags="draft.githubFlags" />
       <template v-if="draft.strategy === 'google-oauth2'">
         <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>
         <label class="check"><input v-model="draft.profile" type="checkbox" /> <span>{{ t('social.googleProfile') }}</span></label>
@@ -230,6 +236,7 @@ function describedBy(id: string, key: string, hint = false): string {
       <section class="stack" aria-labelledby="social-callbacks">
         <h2 id="social-callbacks" class="m-0 text-base">{{ t('social.callbacks') }}</h2>
         <p class="muted">{{ t('social.callbacksHint') }}</p>
+        <p v-if="draft.strategy === 'github'" class="muted" data-testid="github-callbacks">{{ t('social.githubCallbacks') }}</p>
         <ul class="m-0 break-all" data-testid="callbacks">
           <li v-for="u in callbacks" :key="u"><code>{{ u }}</code></li>
         </ul>

@@ -1347,6 +1347,8 @@ export interface paths {
          *     operator credentials are required on create, `client_id` is immutable,
          *     and `app_secret` is sealed and never returned. Apple web and native
          *     authorization-code login are active (D-0170).
+         *     Plan 39c implements `github` options in `ConnectionOptionsGitHub`:
+         *     `client_secret` is sealed and write-only and `scope` follows the flags.
          */
         post: operations["createConnection"];
         delete?: never;
@@ -4828,6 +4830,144 @@ export interface components {
             freeform_scopes?: ("name" | "email")[];
             /**
              * @description Apple names are preserved after the first login regardless of this setting (LR39a-10).
+             * @default on_each_login
+             * @enum {string}
+             */
+            set_user_root_attributes?: "on_each_login" | "on_first_login" | "never_on_login";
+            /** @description Stored only; reserved protocol and security overrides are refused (Plan 24 policy). */
+            upstream_params?: {
+                [key: string]: unknown;
+            };
+            /** @description Stored only. */
+            non_persistent_attrs?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * @description GitHub connection contract (Plan 39c, D-0181). Create requires client_id and
+         *     client_secret of a GitHub OAuth App; the secret is sealed and never
+         *     returned. PATCH omitting client_secret preserves it; empty or null is
+         *     refused. client_id is immutable. The endpoints are fixed to github.com
+         *     and api.github.com: GitHub Enterprise hosts, endpoint overrides, the
+         *     device flow and connected_accounts.active are rejected.
+         *     The requested scope is computed from the flags: user:email when
+         *     `email` is on (the default), then each true scope flag. `scope` is
+         *     returned on read as that effective array. An input `scope` is accepted
+         *     only when it equals the effective scope as a set; otherwise the request
+         *     is `400` naming the expected scope. `profile` is stored and returned
+         *     only: login always reads the GitHub user for the subject.
+         *     Rotating client_secret or changing the scope increments FederationRevision.
+         */
+        ConnectionOptionsGitHub: {
+            /** @description GitHub OAuth App client ID; immutable after creation. */
+            client_id?: string;
+            /** @description Sealed at write and never returned, logged or exported. */
+            client_secret?: string;
+            /**
+             * @description Stored and returned only; login always maps the GitHub user profile.
+             * @default true
+             */
+            profile?: boolean;
+            /**
+             * @description Requests user:email and reads the verified primary email; false creates users without an email.
+             * @default true
+             */
+            email?: boolean;
+            /**
+             * @description Requests the GitHub `admin:org` scope.
+             * @default false
+             */
+            admin_org?: boolean;
+            /**
+             * @description Requests the GitHub `admin:public_key` scope.
+             * @default false
+             */
+            admin_public_key?: boolean;
+            /**
+             * @description Requests the GitHub `admin:repo_hook` scope.
+             * @default false
+             */
+            admin_repo_hook?: boolean;
+            /**
+             * @description Requests the GitHub `delete_repo` scope.
+             * @default false
+             */
+            delete_repo?: boolean;
+            /**
+             * @description Requests the GitHub `user:follow` scope.
+             * @default false
+             */
+            follow?: boolean;
+            /**
+             * @description Requests the GitHub `gist` scope.
+             * @default false
+             */
+            gist?: boolean;
+            /**
+             * @description Requests the GitHub `notifications` scope.
+             * @default false
+             */
+            notifications?: boolean;
+            /**
+             * @description Requests the GitHub `public_repo` scope.
+             * @default false
+             */
+            public_repo?: boolean;
+            /**
+             * @description Requests the GitHub `read:org` scope.
+             * @default false
+             */
+            read_org?: boolean;
+            /**
+             * @description Requests the GitHub `read:public_key` scope.
+             * @default false
+             */
+            read_public_key?: boolean;
+            /**
+             * @description Requests the GitHub `read:repo_hook` scope.
+             * @default false
+             */
+            read_repo_hook?: boolean;
+            /**
+             * @description Requests the GitHub `read:user` scope.
+             * @default false
+             */
+            read_user?: boolean;
+            /**
+             * @description Requests the GitHub `repo` scope.
+             * @default false
+             */
+            repo?: boolean;
+            /**
+             * @description Requests the GitHub `repo_deployment` scope.
+             * @default false
+             */
+            repo_deployment?: boolean;
+            /**
+             * @description Requests the GitHub `repo:status` scope.
+             * @default false
+             */
+            repo_status?: boolean;
+            /**
+             * @description Requests the GitHub `write:org` scope.
+             * @default false
+             */
+            write_org?: boolean;
+            /**
+             * @description Requests the GitHub `write:public_key` scope.
+             * @default false
+             */
+            write_public_key?: boolean;
+            /**
+             * @description Requests the GitHub `write:repo_hook` scope.
+             * @default false
+             */
+            write_repo_hook?: boolean;
+            /** @description Effective scope computed from the flags. Input must equal it as a set. */
+            scope?: string[];
+            /** @description Only absent or empty is accepted. */
+            freeform_scopes?: string[];
+            /**
              * @default on_each_login
              * @enum {string}
              */
@@ -8787,10 +8927,10 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /**
-             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170).
+             * @description `email` and `sms` are passwordless connections whose name must equal the strategy; options follow ConnectionOptionsEmail and ConnectionOptionsSMS (Plan 34). `apple` follows ConnectionOptionsApple; web/native login is active (D-0170). `github` follows ConnectionOptionsGitHub (Plan 39c).
              * @enum {string}
              */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "okta";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad" | "email" | "sms" | "apple" | "github" | "okta";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -8803,7 +8943,7 @@ export interface components {
          * @description A connection. `options.configuration` values are opaque blobs, never
          *     plaintext. `enabled_clients` is returned by create only. `fields`
          *     can leave out any property but `id` and `is_domain_connection`.
-         *     For `google-oauth2`, `oauth2`, `oidc`, `windowslive` and `waad` connections
+         *     For `google-oauth2`, `github`, `oauth2`, `oidc`, `windowslive` and `waad` connections
          *     `options.client_secret` is write-only: it is sealed when written and
          *     never returned.
          *     Microsoft connections require GUID client IDs and request exactly

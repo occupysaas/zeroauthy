@@ -4,6 +4,7 @@ import { mountAt } from '../../../test/mount'
 import { connection } from '../../../test/services'
 import Detail from './Detail.vue'
 import { appleKey } from '../../../test/apple'
+import { githubOptions } from '../../../test/github'
 
 const clientId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 describe('Microsoft settings', () => {
@@ -64,6 +65,33 @@ describe('Apple settings', () => {
     expect(second).toMatchObject({app_secret: appleKey, team_id: 'ABCDE54321', kid: 'ABCDE09876', name: false, email: true})
     expect(second.scope).toBeUndefined(); expect(second.client_secret).toBeUndefined()
     expect(wrapper.find<HTMLTextAreaElement>('#apple-key').element.value).toBe('')
+    wrapper.unmount()
+  })
+})
+
+describe('GitHub settings', () => {
+  it('keeps the client ID read-only, shows the effective scope and the notes, and omits scope and secret on save', async () => {
+    const item = connection('con_gh', { strategy: 'github', options: githubOptions })
+    const { wrapper, calls } = await mountAt(Detail, '/t/acme/social/con_gh', () => ({ status: 200, body: item }), { domains: ['login.acme.com'] })
+    expect(wrapper.find<HTMLInputElement>('#social-client-id').element.readOnly).toBe(true)
+    expect(wrapper.find<HTMLInputElement>('#github-effective').element.value).toBe('user:email repo')
+    expect(wrapper.find<HTMLInputElement>('#github-effective').element.readOnly).toBe(true)
+    expect(wrapper.find<HTMLInputElement>('#github-scope-repo').element.checked).toBe(true)
+    expect(wrapper.text()).toContain('A secret is configured')
+    expect(wrapper.text()).toContain('GitHub App gets its permissions from its own registration')
+    expect(wrapper.find('[data-testid="github-callbacks"]').text()).toContain('Register every listed URL exactly')
+    expect(wrapper.findAll('[data-testid="callbacks"] code').map(c => c.text())).toEqual(['https://acme.example.test/login/callback', 'https://login.acme.com/login/callback'])
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    const first = (calls.find(c => c.method === 'PATCH')?.body as { options: Record<string, unknown> }).options
+    expect(first).toEqual({ client_id: 'Iv1.testclientid0000', email: true, repo: true })
+    await wrapper.find('#github-scope-repo').setValue(false)
+    await wrapper.find('#github-scope-gist').setValue(true)
+    await wrapper.find('#github-email').setValue(false)
+    expect(wrapper.find<HTMLInputElement>('#github-effective').element.value).toBe('gist')
+    await wrapper.find('#social-secret').setValue('rotated')
+    await wrapper.find('form').trigger('submit'); await flushPromises()
+    const second = (calls.filter(c => c.method === 'PATCH')[1]?.body as { options: Record<string, unknown> }).options
+    expect(second).toEqual({ client_id: 'Iv1.testclientid0000', email: false, gist: true, client_secret: 'rotated' })
     wrapper.unmount()
   })
 })

@@ -21,7 +21,8 @@ Auth0 or Okta.
 | Enterprise login | SAML and WS-Federation, SCIM, self-service SSO | Plan 37 |
 | Enterprise login | OIDC/Okta front/back channel, mapping, PAR, JWE, connection keys and domain routing implemented; Entra Graph extras remain deferred | [Guide](enterprise-connections.md) |
 | Enterprise login | Active Directory / LDAP connector | Plan 38 |
-| Social login | Providers beyond Apple, Google, Microsoft and generic OAuth 2 / OIDC (GitHub, Facebook, ...) | Plan 39b |
+| Social login | Providers beyond Apple, Google, Microsoft, GitHub and generic OAuth 2 / OIDC (Facebook, ...) | Plan 39b |
+| Social login | GitHub: OAuth app sign-in and token retrieval implemented; GitHub Enterprise, device flow and token refresh are not | [Guide](social-connections.md#github) |
 | Native social login | Google and Facebook exchanges (switches are stored only); Apple is implemented | Plan 39b |
 | Protocol | Back-channel and front-channel logout, CIBA, Dynamic Client Registration, the `claims` parameter | Plan 41 |
 | Protocol | Implicit and hybrid flows (`response_type=token`, `id_token`) | Plan 41, only where Auth0's behaviour passes the OIDF profiles |
