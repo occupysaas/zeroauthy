@@ -1729,9 +1729,10 @@ export interface paths {
         /**
          * Delete a user's sessions
          * @description Requires `delete:sessions`. Deletes every session of the user, which
-         *     ends their single sign-on, and bumps the user's version. Refresh
-         *     tokens are not revoked. Answers `202 {}`, also when there were none;
-         *     an unknown user is `404 inexistent_user`.
+         *     ends their single sign-on, invalidates online refresh tokens bound
+         *     to those sessions, and bumps the user's version. Offline refresh
+         *     tokens remain valid. Answers `202 {}`, also when there were none.
+         *     An unknown user is `404 inexistent_user`.
          */
         delete: operations["deleteUserSessions"];
         options?: never;
@@ -1751,8 +1752,8 @@ export interface paths {
         };
         /**
          * List a user's refresh tokens
-         * @description Requires `read:refresh_tokens`. The user's live refresh tokens (not
-         *     revoked, rotated or expired), newest first, by checkpoint paging only
+         * @description Requires `read:refresh_tokens`. The user's live offline refresh
+         *     tokens, newest first, by checkpoint paging only
          *     as for sessions: `take`, `from`, and `next` on every non-empty page.
          *     An unknown user is `404 inexistent_user`.
          */
@@ -1761,9 +1762,9 @@ export interface paths {
         post?: never;
         /**
          * Delete a user's refresh tokens
-         * @description Requires `delete:refresh_tokens`. Revokes every refresh token of the
-         *     user; a refresh grant with one answers `invalid_grant`. Answers
-         *     `202 {}`, also when there were none; an unknown user is
+         * @description Requires `delete:refresh_tokens`. Revokes the user's offline refresh
+         *     tokens. A refresh grant with a revoked token answers `invalid_grant`.
+         *     Answers `202 {}`, also when there were none. An unknown user is
          *     `404 inexistent_user`.
          */
         delete: operations["deleteUserRefreshTokens"];
@@ -1793,10 +1794,83 @@ export interface paths {
         /**
          * Delete a session
          * @description Requires `delete:sessions`. Ends the session, so the next
-         *     `/authorize?prompt=none` answers `login_required`. Answers `202 {}`,
+         *     `/authorize?prompt=none` answers `login_required`, and invalidates its
+         *     online refresh tokens. Offline refresh tokens remain valid. Answers `202 {}`,
          *     also when there was no such session.
          */
         delete: operations["deleteSession"];
+        options?: never;
+        head?: never;
+        /**
+         * Update session metadata
+         * @description Requires `update:sessions`. Replaces the metadata. Use `null` or `{}` to clear it.
+         */
+        patch: operations["updateSession"];
+        trace?: never;
+    };
+    "/api/v2/sessions/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a session and its refresh tokens
+         * @description Requires both `delete:sessions` and `delete:refresh_tokens`. Ends the
+         *     session and revokes all refresh tokens issued in it.
+         */
+        post: operations["revokeSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/refresh-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List refresh tokens by user
+         * @description Requires `read:refresh_tokens`. Lists the user's live offline tokens in
+         *     ascending ID order. Pass `client_id` to filter by application. An
+         *     unknown user is `404 inexistent_user`.
+         */
+        get: operations["getRefreshTokens"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/refresh-tokens/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke refresh tokens in bulk
+         * @description Requires `delete:refresh_tokens`. Select offline tokens by up to 100 IDs or
+         *     by user, optionally narrowed by client and then by audience. Revocation
+         *     completes before the server returns `202` (D-0070 LR48-9).
+         */
+        post: operations["revokeRefreshTokens"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1807,7 +1881,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                /** @description The refresh token's ID (not the token). */
+                /** @description The Management API identifier of an offline refresh token. */
                 id: string;
             };
             cookie?: never;
@@ -1830,7 +1904,11 @@ export interface paths {
         delete: operations["deleteRefreshToken"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update refresh token metadata
+         * @description Requires `update:refresh_tokens`. Replaces the metadata. Use `null` or `{}` to clear it.
+         */
+        patch: operations["updateRefreshToken"];
         trace?: never;
     };
     "/api/v2/grants": {
@@ -6345,13 +6423,25 @@ export interface components {
             primary: string;
             page_background: string;
         };
+        /** @description Application or organization quota for the client-credentials grant. Null removes the override. */
         IITokenQuota: {
             client_credentials: components["schemas"]["IITokenQuotaClientCredentials"];
-        };
+        } | null;
         IITokenQuotaClientCredentials: {
+            /** @default true */
             enforce?: boolean;
             per_day?: number;
             per_hour?: number;
+        };
+        /** @description Fallback quotas for clients and organizations that have no override. Null removes the defaults. */
+        DefaultTokenQuota: {
+            clients?: components["schemas"]["DefaultTokenQuotaSubject"];
+            organizations?: components["schemas"]["DefaultTokenQuotaSubject"];
+        } | null;
+        DefaultTokenQuotaSubject: {
+            client_credentials: components["schemas"]["IITokenQuotaClientCredentials"];
+        } & {
+            [key: string]: unknown;
         };
         /** @enum {string} */
         IIOrganizationThirdPartyClientAccessEnum: "block" | "allow";
@@ -6681,6 +6771,7 @@ export interface components {
             display_name: string;
             branding?: components["schemas"]["OrganizationBranding"];
             metadata?: components["schemas"]["OrganizationMetadata"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access: string;
             /**
@@ -6700,6 +6791,7 @@ export interface components {
             display_name: string;
             branding?: components["schemas"]["OrganizationBranding"];
             metadata?: components["schemas"]["OrganizationMetadata"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access: string;
             /**
@@ -6738,6 +6830,7 @@ export interface components {
             display_name?: string;
             branding?: components["schemas"]["OrganizationBrandingWrite"];
             metadata?: components["schemas"]["OrganizationMetadataWrite"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access?: string;
             /**
@@ -6753,6 +6846,7 @@ export interface components {
             display_name?: string;
             branding?: components["schemas"]["OrganizationBrandingWrite"];
             metadata?: components["schemas"]["OrganizationMetadataWrite"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description `block` (default) or `allow`. */
             third_party_client_access?: string;
             /**
@@ -7492,27 +7586,7 @@ export interface components {
                  */
                 url?: string;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
-            default_token_quota?: {
-                clients?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-                organizations?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-            } | null;
+            default_token_quota?: components["schemas"]["DefaultTokenQuota"];
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
@@ -7537,6 +7611,10 @@ export interface components {
                 no_disclose_enterprise_connections?: boolean;
                 enforce_client_authentication_on_passwordless_start?: boolean;
                 enable_adfs_waad_email_verification?: boolean;
+                /**
+                 * @description Whether OAuth refresh token revocation also deletes the associated user grant.
+                 * @default false
+                 */
                 revoke_refresh_token_grant?: boolean;
                 dashboard_log_streams_next?: boolean;
                 dashboard_insights_view?: boolean;
@@ -7699,8 +7777,8 @@ export interface components {
              */
             authorization_response_iss_parameter_supported?: boolean | null;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-             * @default false
+             * @description Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
+             * @default true
              */
             dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
@@ -7784,27 +7862,7 @@ export interface components {
                  */
                 url?: string;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
-            default_token_quota?: {
-                clients?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-                organizations?: {
-                    client_credentials: {
-                        enforce?: boolean;
-                        per_day?: number;
-                        per_hour?: number;
-                    };
-                } & {
-                    [key: string]: unknown;
-                };
-            } | null;
+            default_token_quota?: components["schemas"]["DefaultTokenQuota"];
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
@@ -7829,6 +7887,10 @@ export interface components {
                 no_disclose_enterprise_connections?: boolean;
                 enforce_client_authentication_on_passwordless_start?: boolean;
                 enable_adfs_waad_email_verification?: boolean;
+                /**
+                 * @description Whether OAuth refresh token revocation also deletes the associated user grant.
+                 * @default false
+                 */
                 revoke_refresh_token_grant?: boolean;
                 dashboard_log_streams_next?: boolean;
                 dashboard_insights_view?: boolean;
@@ -7999,8 +8061,8 @@ export interface components {
              */
             authorization_response_iss_parameter_supported?: boolean | null;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-             * @default false
+             * @description Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
+             * @default true
              */
             dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
@@ -8064,13 +8126,23 @@ export interface components {
             /** @description Accepted and ignored (HS256 is not offered). */
             secret_encoded?: boolean;
         };
+        DPoPPolicy: {
+            /** @enum {string} */
+            mechanism: "none" | "dpop";
+            required: boolean;
+            /**
+             * @default all_clients
+             * @enum {string}
+             */
+            required_for?: "all_clients" | "public_clients";
+        } | null;
         /** @description The refresh tokens the application receives. */
         RefreshTokenSettings: {
             /** @enum {string} */
             rotation_type?: "rotating" | "non-rotating";
             /** @enum {string} */
             expiration_type?: "expiring" | "non-expiring";
-            /** @description Seconds a rotated token may still be used. */
+            /** @description Seconds during which only the immediately previous rotating token may be exchanged again. */
             leeway?: number;
             /** @description Absolute lifetime in seconds. */
             token_lifetime?: number;
@@ -8080,6 +8152,16 @@ export interface components {
             infinite_token_lifetime?: boolean;
             /** @description True for non-expiring tokens; derived from `expiration_type`. */
             infinite_idle_token_lifetime?: boolean;
+            /**
+             * @description API audiences and scopes available to this first-party application
+             *     during refresh token exchange. Audience identifiers must be unique.
+             *     The Management API is excluded. Null clears the policies.
+             */
+            policies?: components["schemas"]["RefreshTokenPolicy"][] | null;
+        };
+        RefreshTokenPolicy: {
+            audience: string;
+            scope: string[];
         };
         RoamingUVSettings: {
             /**
@@ -8175,12 +8257,15 @@ export interface components {
             allowed_origins?: string[];
             jwt_configuration?: components["schemas"]["JwtConfiguration"];
             refresh_token?: components["schemas"]["RefreshTokenSettings"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @description zeroauthy is always OIDC-conformant; `false` is refused. */
             oidc_conformant?: boolean;
             /** @enum {string} */
             redirection_policy?: "open_redirect_protection" | "allow_always";
             /** @description Overrides the tenant's setting; null inherits it. */
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
+            /** @default false */
+            require_proof_of_possession?: boolean;
             /** @description Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR). */
             require_pushed_authorization_requests?: boolean;
             /** @description A secret to set instead of a generated one (confidential applications only). */
@@ -8307,9 +8392,12 @@ export interface components {
             token_exchange?: components["schemas"]["ClientTokenExchange"];
             jwt_configuration: components["schemas"]["JwtConfiguration"];
             refresh_token: components["schemas"]["RefreshTokenSettings"];
+            token_quota?: components["schemas"]["IITokenQuota"];
             /** @enum {string} */
             redirection_policy?: "open_redirect_protection" | "allow_always";
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
+            /** @default false */
+            require_proof_of_possession?: boolean;
             require_pushed_authorization_requests: boolean;
             /**
              * @description Left out when unset (deny).
@@ -8503,6 +8591,16 @@ export interface components {
             token_lifetime_for_web?: number;
             /** @description Whether clients may get refresh tokens for the API. */
             allow_offline_access?: boolean;
+            /**
+             * @description Allow clients to obtain session-bound refresh tokens for this API.
+             * @default false
+             */
+            allow_online_access?: boolean;
+            /**
+             * @description Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+             * @default false
+             */
+            allow_online_access_with_ephemeral_sessions?: boolean;
             skip_consent_for_verifiable_first_party_clients?: boolean;
             subject_type_authorization?: components["schemas"]["SubjectTypeAuthorization"];
             /** @description Limit custom API user scopes to current role and direct permissions when true. */
@@ -8514,8 +8612,7 @@ export interface components {
             token_dialect?: "access_token" | "access_token_authz" | "rfc9068_profile" | "rfc9068_profile_authz";
             /** @description Only null is accepted (transactional authorization is not supported). */
             consent_policy?: unknown;
-            /** @description Only null is accepted (mTLS and DPoP are not supported). */
-            proof_of_possession?: unknown;
+            proof_of_possession?: components["schemas"]["DPoPPolicy"];
             /** @description Only null or an empty list is accepted (rich authorization requests are not supported). */
             authorization_details?: unknown;
             /** @description Only null is accepted (token encryption is not supported). */
@@ -8558,7 +8655,10 @@ export interface components {
             signing_secret?: string;
             token_lifetime: number;
             token_lifetime_for_web: number;
+            proof_of_possession?: components["schemas"]["DPoPPolicy"];
             allow_offline_access: boolean;
+            allow_online_access?: boolean;
+            allow_online_access_with_ephemeral_sessions?: boolean;
             skip_consent_for_verifiable_first_party_clients: boolean;
             subject_type_authorization: {
                 user: {
@@ -8872,6 +8972,12 @@ export interface components {
             last_user_agent?: string;
             last_ip?: string;
         };
+        SessionMetadata: {
+            [key: string]: string;
+        } | null;
+        SessionMetadataUpdate: {
+            session_metadata: components["schemas"]["SessionMetadata"];
+        };
         UserSession: {
             id: string;
             user_id: string;
@@ -8901,6 +9007,7 @@ export interface components {
             }[];
             /** Format: date-time */
             last_interacted_at: string;
+            session_metadata?: components["schemas"]["SessionMetadata"];
             cookie: {
                 /** @enum {string} */
                 mode: "persistent";
@@ -8911,32 +9018,65 @@ export interface components {
             /** @description Pass as `from` for the next page; absent when the page is empty. */
             next?: string;
         };
-        UserRefreshToken: {
-            id: string;
-            user_id: string;
+        /** @description Device details recorded when the refresh token was issued and last exchanged. */
+        RefreshTokenDevice: {
+            initial_ip?: string;
+            /** @description Empty because ASN lookup is unavailable. */
+            initial_asn?: string;
+            initial_user_agent?: string;
+            last_ip?: string;
+            /** @description Empty because ASN lookup is unavailable. */
+            last_asn?: string;
+            last_user_agent?: string;
+        };
+        RefreshTokenMetadata: {
+            [key: string]: string;
+        } | null;
+        RefreshTokenMetadataUpdate: {
+            refresh_token_metadata: components["schemas"]["RefreshTokenMetadata"];
+        };
+        RefreshToken: {
+            id?: string;
+            user_id?: string;
             /** Format: date-time */
-            created_at: string;
+            created_at?: string;
             /** Format: date-time */
-            idle_expires_at: string | null;
+            idle_expires_at?: string | null;
             /** Format: date-time */
-            expires_at: string | null;
-            client_id: string;
-            session_id: string | null;
-            rotating: boolean;
+            expires_at?: string | null;
+            client_id?: string;
+            session_id?: string | null;
+            rotating?: boolean;
             /** @description The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API. */
-            resource_servers: {
+            resource_servers?: {
                 audience: string;
                 scopes: string;
             }[];
-            device?: components["schemas"]["SessionDevice"];
-            /** Format: date-time */
-            last_exchanged_at: string | null;
+            device?: components["schemas"]["RefreshTokenDevice"];
+            refresh_token_metadata?: components["schemas"]["RefreshTokenMetadata"];
+            /**
+             * Format: date-time
+             * @description The last successful exchange, or null before the first exchange.
+             */
+            last_exchanged_at?: string | null;
+        };
+        UserRefreshToken: components["schemas"]["RefreshToken"] & Record<string, never>;
+        RefreshTokenPage: {
+            refresh_tokens: components["schemas"]["RefreshToken"][];
+            /** @description Cursor to pass as `from` on the next request. */
+            next?: string;
         };
         UserRefreshTokenPage: {
             tokens: components["schemas"]["UserRefreshToken"][];
             /** @description Pass as `from` for the next page; absent when the page is empty. */
             next?: string;
         };
+        RefreshTokenRevocation: {
+            ids?: string[];
+            user_id?: string;
+            client_id?: string;
+            audience?: string;
+        } & (unknown | unknown | unknown | unknown);
         UserGrant: {
             id: string;
             /** @description Spelled `clientID`, as Auth0 does. */
@@ -9486,6 +9626,15 @@ export interface components {
         };
         /** @description The storage plugin lacks the `client_credentials.v1` capability, or the operation is not built yet. */
         NotImplemented: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description The refresh-token or session operation is unavailable. */
+        RefreshTokensUnavailable: {
             headers: {
                 [name: string]: unknown;
             };
@@ -15151,12 +15300,120 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    updateSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionMetadataUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
+    revokeSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: components["responses"]["Accepted"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
+    getRefreshTokens: {
+        parameters: {
+            query: {
+                /** @description The user whose refresh tokens to list. */
+                user_id: string;
+                /** @description Only return refresh tokens issued to this application. */
+                client_id?: string;
+                /** @description The `next` cursor from the previous page. */
+                from?: string;
+                /** @description Page size. */
+                take?: number;
+                /** @description Comma-separated fields to include or exclude from each refresh token. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A checkpoint page of refresh tokens. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshTokenPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
+    revokeRefreshTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenRevocation"];
+            };
+        };
+        responses: {
+            202: components["responses"]["Accepted"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            501: components["responses"]["RefreshTokensUnavailable"];
+        };
+    };
     getRefreshToken: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description The refresh token's ID (not the token). */
+                /** @description The Management API identifier of an offline refresh token. */
                 id: string;
             };
             cookie?: never;
@@ -15182,7 +15439,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description The refresh token's ID (not the token). */
+                /** @description The Management API identifier of an offline refresh token. */
                 id: string;
             };
             cookie?: never;
@@ -15192,6 +15449,38 @@ export interface operations {
             202: components["responses"]["Accepted"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    updateRefreshToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The Management API identifier of an offline refresh token. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenMetadataUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated refresh token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRefreshToken"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["RefreshTokensUnavailable"];
         };
     };
     getGrants: {

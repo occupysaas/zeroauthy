@@ -19,7 +19,7 @@ const MAX_LIFETIME = 2592000
 const userPolicies = ['allow_all', 'require_client_grant', 'deny_all']
 const clientPolicies = ['require_client_grant', 'deny_all']
 
-const form = reactive({ alg: 'RS256' as 'RS256' | 'HS256' | 'PS256', secret: '', name: '', lifetime: '', lifetimeWeb: '', offline: false, skipConsent: false, user: 'allow_all', client: 'require_client_grant', rbac: false, profile: 'access_token', permissions: false })
+const form = reactive({ alg: 'RS256' as 'RS256' | 'HS256' | 'PS256', secret: '', name: '', lifetime: '', lifetimeWeb: '', offline: false, skipConsent: false, user: 'allow_all', client: 'require_client_grant', rbac: false, profile: 'access_token', permissions: false, online: false, ephemeral: false, proof: 'none' as 'none' | 'dpop', proofRequired: false, proofFor: 'all_clients' as 'all_clients' | 'public_clients' })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
@@ -49,6 +49,8 @@ function reset(s: ResourceServer) {
   form.lifetime = String(s.token_lifetime)
   form.lifetimeWeb = String(s.token_lifetime_for_web)
   form.offline = s.allow_offline_access
+  form.online = s.allow_online_access === true; form.ephemeral = s.allow_online_access_with_ephemeral_sessions === true
+  form.proof = s.proof_of_possession?.mechanism === 'dpop' ? 'dpop' : 'none'; form.proofRequired = s.proof_of_possession?.required === true; form.proofFor = s.proof_of_possession?.required_for ?? 'all_clients'
   form.skipConsent = s.skip_consent_for_verifiable_first_party_clients
   form.user = s.subject_type_authorization.user.policy
   form.client = s.subject_type_authorization.client.policy
@@ -89,6 +91,8 @@ async function save() {
     if (form.alg === 'HS256' && form.secret.trim()) body.signing_secret = form.secret.trim()
     body.token_dialect = (form.profile + (form.permissions ? '_authz' : '')) as ResourceServerUpdate['token_dialect']
     body.allow_offline_access = form.offline
+    body.allow_online_access = form.online; body.allow_online_access_with_ephemeral_sessions = form.ephemeral
+    body.proof_of_possession = form.proof === 'none' ? null : { mechanism: 'dpop', required: form.proofRequired, required_for: form.proofFor }
     body.skip_consent_for_verifiable_first_party_clients = form.skipConsent
     body.subject_type_authorization = { user: { policy: form.user as 'allow_all' }, client: { policy: form.client as 'deny_all' } }
   }
@@ -169,14 +173,25 @@ function describedBy(id: string, key: string): string {
         />
       </Field>
       <label class="check">
-        <input v-model="form.offline" type="checkbox" :disabled="server.is_system" />
+        <input id="api-offline" v-model="form.offline" type="checkbox" :disabled="server.is_system" />
         <span>
           <strong>{{ t('apis.allowOffline') }}</strong>
           <span class="muted">{{ t('apis.allowOfflineHint') }}</span>
         </span>
       </label>
+      <fieldset v-if="!server.is_system" class="stack"><legend>{{ t('rt48.refresh') }}</legend>
+        <label class="check"><input id="api-online" v-model="form.online" type="checkbox" />{{ t('rt48.online') }}</label>
+        <label class="check"><input id="api-online-ephemeral" v-model="form.ephemeral" type="checkbox" />{{ t('rt48.ephemeral') }}</label>
+        <p class="muted m-0">{{ t('rt48.onlineHint') }}</p>
+      </fieldset>
+      <fieldset v-if="!server.is_system" class="stack"><legend>{{ t('rt48.proof') }}</legend>
+        <Field id="api-proof-mechanism" :label="t('rt48.mechanism')"><select id="api-proof-mechanism" v-model="form.proof"><option value="none">{{ t('rt48.noProof') }}</option><option value="dpop">{{ t('rt48.dpop') }}</option></select></Field>
+        <template v-if="form.proof === 'dpop'"><label class="check"><input id="api-proof-required" v-model="form.proofRequired" type="checkbox" />{{ t('rt48.required') }}</label>
+          <Field id="api-proof-for" :label="t('rt48.requiredFor')"><select id="api-proof-for" v-model="form.proofFor" :disabled="!form.proofRequired"><option value="all_clients">{{ t('rt48.allClients') }}</option><option value="public_clients">{{ t('rt48.publicClients') }}</option></select></Field>
+        </template>
+      </fieldset>
       <label class="check">
-        <input v-model="form.skipConsent" type="checkbox" :disabled="server.is_system" />
+        <input id="api-skip-consent" v-model="form.skipConsent" type="checkbox" :disabled="server.is_system" />
         <span>
           <strong>{{ t('apis.skipConsent') }}</strong>
           <span class="muted">{{ t('apis.skipConsentHint') }}</span>

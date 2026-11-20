@@ -5,6 +5,7 @@ import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import PolicyForm from './PolicyForm.vue'
+import TokenDefaults from './TokenDefaults.vue'
 import SigningKeys from './SigningKeys.vue'
 import CustomSigningKeys from './CustomSigningKeys.vue'
 import { settingsPanels } from './panels'
@@ -19,7 +20,7 @@ const tab = ref('general')
     <p><RouterLink :to="{ name: 'relying-party-ids', params: { tenant: tenant.name } }">{{ t('passkeys.rpidTitle') }}</RouterLink></p>
     <TabsRoot v-model="tab">
       <TabsList class="tabs flex-wrap" :aria-label="t('nav.settings')"><TabsTrigger v-for="panel in settingsPanels" :key="panel.key" class="tab" :value="panel.key">{{ t(panel.title) }}</TabsTrigger><TabsTrigger class="tab" value="signing-keys">{{ t('signingKeys.managedTitle') }}</TabsTrigger><TabsTrigger class="tab" value="custom-signing-keys">{{ t('signingKeys.customTitle') }}</TabsTrigger></TabsList>
-      <TabsContent v-for="panel in settingsPanels" :key="panel.key" :value="panel.key"><PolicyForm :tenant="tenant" :panel="panel" /></TabsContent>
+      <TabsContent v-for="panel in settingsPanels" :key="panel.key" :value="panel.key"><PolicyForm :tenant="tenant" :panel="panel" /><TokenDefaults v-if="panel.key === 'advanced'" :tenant="tenant" /></TabsContent>
       <TabsContent value="signing-keys"><SigningKeys :key="tenant.host + ':managed-signing'" :tenant="tenant" /></TabsContent>
       <TabsContent value="custom-signing-keys"><CustomSigningKeys :key="tenant.host + ':custom-signing'" :tenant="tenant" /></TabsContent>
     </TabsRoot>

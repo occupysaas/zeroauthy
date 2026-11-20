@@ -9,6 +9,8 @@ export const settingsPanels: Panel[] = [
   ] },
   { ...settings, key: 'languages', title: 'policy.languages', fields: [field('enabled_locales', 'lines', { hint: 'policy.localesHint' })] },
   { ...settings, key: 'advanced', title: 'policy.advanced', fields: [
+    { ...field('flags.revoke_refresh_token_grant', 'toggle'), label: 'rt48.revokeFlag' },
+    { ...field('dpop_strict_refresh_token_binding', 'toggle'), label: 'rt48.strictBinding' },
     field('default_audience'), field('default_directory'), field('allowed_logout_urls', 'lines', { hint: 'policy.linesHint' }),
     field('device_flow.charset', undefined, { options: ['base20', 'digits'] }), field('device_flow.mask'),
     field('pushed_authorization_requests_supported', 'toggle'), field('skip_non_verifiable_callback_uri_confirmation_prompt', 'toggle'),

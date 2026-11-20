@@ -55,8 +55,11 @@ export type UserUpdate = components['schemas']['UserProfileSettings']
 export type UserIdentity = components['schemas']['UserIdentity']
 export type UserSession = components['schemas']['UserSession']
 export type UserSessionPage = components['schemas']['UserSessionPage']
-export type UserRefreshToken = components['schemas']['UserRefreshToken']
-export type UserRefreshTokenPage = components['schemas']['UserRefreshTokenPage']
+// openapi-typescript renders the required-only allOf branch as Record<string, never>.
+// Keep the wire schema's required properties while deriving their types from the generated base.
+type RefreshTokenView = components['schemas']['RefreshToken']
+export type UserRefreshToken = RefreshTokenView & Required<Pick<RefreshTokenView, 'id' | 'user_id' | 'created_at' | 'idle_expires_at' | 'expires_at' | 'client_id' | 'session_id' | 'rotating' | 'resource_servers' | 'last_exchanged_at'>>
+export type UserRefreshTokenPage = Omit<components['schemas']['UserRefreshTokenPage'], 'tokens'> & { tokens: UserRefreshToken[] }
 export type UserGrant = components['schemas']['UserGrant']
 export type Job = components['schemas']['Job']
 export type JobPage = components['schemas']['JobPage']
@@ -668,6 +671,18 @@ export class Api {
 
   deleteSession(t: SystemTenant, id: string): Promise<void> {
     return this.tenantRequest(t, 'DELETE', '/api/v2/sessions/' + encodeURIComponent(id))
+  }
+
+  revokeSession(t: SystemTenant, id: string): Promise<void> {
+    return this.tenantRequest(t, 'POST', '/api/v2/sessions/' + encodeURIComponent(id) + '/revoke')
+  }
+
+  updateSessionMetadata(t: SystemTenant, id: string, metadata: Record<string, string> | null): Promise<UserSession> {
+    return this.tenantRequest(t, 'PATCH', '/api/v2/sessions/' + encodeURIComponent(id), { body: { session_metadata: metadata } })
+  }
+
+  updateRefreshTokenMetadata(t: SystemTenant, id: string, metadata: Record<string, string> | null): Promise<UserRefreshToken> {
+    return this.tenantRequest(t, 'PATCH', '/api/v2/refresh-tokens/' + encodeURIComponent(id), { body: { refresh_token_metadata: metadata } })
   }
 
   listUserRefreshTokens(t: SystemTenant, id: string, q: { take: number; from?: string }): Promise<UserRefreshTokenPage> {

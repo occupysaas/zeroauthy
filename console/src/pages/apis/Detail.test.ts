@@ -117,8 +117,8 @@ describe('API detail', () => {
       await wrapper.find('#api-name').setValue('Orders v2')
       await wrapper.find('#api-lifetime').setValue('3600')
       await wrapper.find('#api-lifetime-web').setValue('1800')
-      await wrapper.findAll('input[type="checkbox"]')[0]!.setValue(true)
-      await wrapper.findAll('input[type="checkbox"]')[1]!.setValue(true)
+      await wrapper.get('#api-offline').setValue(true)
+      await wrapper.get('#api-skip-consent').setValue(true)
       await wrapper.find('#api-user-policy').setValue('deny_all')
       await wrapper.find('#api-client-policy').setValue('deny_all')
       await wrapper.find('form').trigger('submit')
@@ -129,6 +129,9 @@ describe('API detail', () => {
         token_lifetime: 3600,
         token_lifetime_for_web: 1800,
         allow_offline_access: true,
+        allow_online_access: false,
+        allow_online_access_with_ephemeral_sessions: false,
+        proof_of_possession: null,
         enforce_policies: false,
         token_dialect: 'access_token',
         skip_consent_for_verifiable_first_party_clients: true,
