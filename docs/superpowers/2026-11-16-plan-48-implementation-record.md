@@ -48,8 +48,8 @@ No nonce or proof runtime implementation was present in that review.
 | 7 ORT | Complete; reviewed | `e7ae33b3`, fix `473a1850`; OAuth/supporting suites and build passed |
 | 8 Management runtime | Complete; reviewed | `f8001e9d`, fix `227b8b11`; full Management/OAuth and supporting tests passed |
 | 9 Quotas | Complete; reviewed | `9f9fae1a`; OAuth/shared configuration/supporting tests and build passed |
-| 10 Console | Starting | UI verification pending |
-| 11 Seed and Deploy CLI | Pending | Not run |
+| 10 Console | Complete; reviewed | `d98e073f`, fix `ede3ae09`; make console 721 tests and visual QA passed |
+| 11 Seed and Deploy CLI | Starting | Round-trip verification pending |
 | 12 E2E, docs and final verification | Pending | Not run |
 
 ## Task 1 verification
@@ -295,3 +295,25 @@ retains RED/GREEN, fixture/import-cycle corrections and the reverted proposal
 to reject already permitted wrapper extensions. Review approved with no
 Important findings. One Minor repeated tenant-wrapper PATCH compatibility
 edge remains for final review. Full-plan checks and CI are still pending.
+
+## Task 10 verification
+
+`d98e073f` adds console MRRT, DPoP, online-access, quota, metadata, device
+history and explicit session-revoke controls. Initial make console passed
+717 tests, generation/lint/typecheck/build. Existing isolated Chromium
+visually checked real components at desktop and 390px widths without page
+errors or overflow after the primary browser tool failed. Dependencies and
+pins were unchanged; console/dist is committed.
+
+Review found ordinary legacy-plugin saves sent unchanged II-only fields.
+`ede3ae09` omits unchanged fields while preserving deliberate enable/disable/
+clear writes. RED/GREEN payload regressions and make console passed all 721
+tests and rebuilt assets; scoped re-review approved. An initial test fixture
+pagination omission caused worker OOM and was corrected before meaningful
+RED/GREEN; the report retains it. Layout was unchanged in that fix.
+
+Tenant defaults expose one confirmed reset-all because nested removal is not
+supported atomically by the current API. Generated allOf types need a thin
+client alias derived from generated properties; compile-time tests cover it.
+One Minor reset-after-local-error UI case remains for final review. No full
+plan verification or CI push yet.
