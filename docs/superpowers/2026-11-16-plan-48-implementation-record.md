@@ -47,8 +47,8 @@ No nonce or proof runtime implementation was present in that review.
 | 6a DPoP | Complete; reviewed | `a09bed3d`, fix `c04a1e25`; required packages and 343 OAuth tests passed |
 | 7 ORT | Complete; reviewed | `e7ae33b3`, fix `473a1850`; OAuth/supporting suites and build passed |
 | 8 Management runtime | Complete; reviewed | `f8001e9d`, fix `227b8b11`; full Management/OAuth and supporting tests passed |
-| 9 Quotas | Starting | Enforcement not verified yet |
-| 10 Console | Pending | Not run |
+| 9 Quotas | Complete; reviewed | `9f9fae1a`; OAuth/shared configuration/supporting tests and build passed |
+| 10 Console | Starting | UI verification pending |
 | 11 Seed and Deploy CLI | Pending | Not run |
 | 12 E2E, docs and final verification | Pending | Not run |
 
@@ -279,3 +279,19 @@ audience and legacy views through an alias. All 470 Management tests passed
 (111.631s, zero skips); scoped re-review approved. One Minor issuance-device
 probe error classification remains for final review. Plan-wide checks and
 CI remain pending.
+
+## Task 9 verification
+
+`9f9fae1a` enforces client/organization quotas atomically after signing and
+fresh authorization. Refused/failed requests consume no quota. UTC windows,
+headers, exact concurrent winners and post-commit warning claims are tested.
+Shared rules support Management and seed, partial PATCH preservation, null
+clearing and valid legacy stored-only tenant defaults. Invalid legacy limits
+fail closed. Existing wrapper-extension compatibility remains preserved.
+
+Full OAuth passed 380 tests; supporting checks passed 209 and the final tenant
+capability-guard delta passed 32, all zero skips; build passed. The report
+retains RED/GREEN, fixture/import-cycle corrections and the reverted proposal
+to reject already permitted wrapper extensions. Review approved with no
+Important findings. One Minor repeated tenant-wrapper PATCH compatibility
+edge remains for final review. Full-plan checks and CI are still pending.
