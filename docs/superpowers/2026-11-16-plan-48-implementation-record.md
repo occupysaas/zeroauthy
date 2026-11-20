@@ -357,8 +357,9 @@ The Go run's five skips are the two plugin `Organizations/Limits` cases
 `TestE2EPrivateLogStreamSecretsAfterImport` (each reserved for its isolated
 Deploy lane). They are not counted as passes.
 
-Console generation/lint/typecheck, 727 tests and committed build passed after
-main integration. No console or dependency changes followed. User-search
+Console generation/lint/typecheck, 727 tests and production build passed after
+main integration. Final source changes subsequently required another generated
+asset rebuild, as recorded in the CI correction below. User-search
 FuzzParse ran for 60s and exited 0 with 25,986 executions; progress plateaued
 after 3s, so no sustained-throughput claim is made. Govulncheck v1.10.0 exited
 0: no called or imported-package vulnerabilities, one uncalled required-module
@@ -389,3 +390,32 @@ Race tests, live PostgreSQL/MySQL, every other E2E lane and full conformance
 remain the plan-branch CI tier. CI run URL and actual results will be recorded
 after the authorized push. Merging still requires green checks and explicit
 maintainer approval in the current conversation.
+
+
+## First plan-branch CI and corrections
+
+[Run 44788965951](https://github.com/occupysaas/zeroauthy/actions/runs/44788965951)
+on `9b479be6514ccfa92a6bfd48a2bd675b6f1437ce` completed with two failed jobs:
+`ci / console` and `ci / sql`. Race tests, vulnerability checking, all 23 E2E
+lanes and conformance passed. The two failures remain recorded as failures;
+the old jobs were not rerun.
+
+The console's 727 tests and production build passed, but its generated-output
+check found stale committed assets. A local rebuild produced the exact CI
+asset names, a second build was stable, and full `make console` exited 0.
+The regenerated assets are committed; dependencies and console source are
+unchanged. The generation check is clean after committing.
+
+MySQL migration 0042 exceeded InnoDB's 3,072-byte key limit: the tuple index
+required 3,196 bytes after the earlier user-ID column expansion. Its nonunique
+audience prefix is reduced from 160 to 128 characters, bringing the key to
+3,068 bytes while retaining full user/client columns and full-value SQL
+predicates. A regression exercises maximum-width identifiers and distinct
+Unicode audiences sharing the indexed prefix. The new regression first failed against MySQL 8.4 with the original Error
+1071. The corrected focused suite then passed on MySQL 8.4 and SQLite in
+66.138 seconds, including fresh migrations, refresh-token/DPoP/quota
+conformance and the new regression; no skips. An initial command selected
+broader tests accidentally and was terminated with exit 143; that log is
+retained and is not counted as passing. Independent review found no Critical
+or Important issues. Full SQL/race/E2E/conformance verification remains subject
+to the replacement plan-branch CI run.
