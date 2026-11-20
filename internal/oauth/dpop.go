@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
@@ -49,6 +50,18 @@ func (h *Handlers) verifyDPoP(w http.ResponseWriter, r *http.Request, res tenant
 	aud := form.Get("audience")
 	grant := form.Get("grant_type")
 	switch grant {
+	case clientrules.GrantMFAOTP, clientrules.GrantMFAOOB, clientrules.GrantMFARecoveryCode:
+		// Only the authenticated continuation can select the issuing audience.
+		// Preserve the grant's error reporting and factor-failure event paths.
+		pending := &pendingMFARequest{failure: mfaUnavailableError()}
+		if h.MFA != nil {
+			pending.token, pending.request, pending.failure = h.pendingMFAToken(r.Context(), res, form.Get("mfa_token"), c.ClientID)
+		}
+		*r = *r.WithContext(context.WithValue(r.Context(), pendingMFARequestKey{}, pending))
+		aud = ""
+		if pending.failure == nil {
+			aud = pending.request.Audience
+		}
 	case "authorization_code":
 		ac, e := h.Store.AuthCodes().Get(r.Context(), res.Tenant.ID, secrets.HashToken(form.Get("code")))
 		if e == nil && ac.ClientID == c.ClientID && res.CheckOrigin(ac.Origin) == nil {

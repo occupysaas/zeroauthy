@@ -454,6 +454,90 @@ func (s failMFACommitRepo) ConsumeMFAToken(ctx context.Context, tid, hash, clien
 	}
 	return nil, errors.New("injected commit failure")
 }
+func TestMFAContinuationProofPolicy(t *testing.T) {
+	t.Run("initial binding in factor transaction", func(t *testing.T) {
+		f, mail := mfaFixture(t)
+		ctx, tid := t.Context(), f.tenantID(t, "acme")
+		setStrict := func(value bool) {
+			tn, err := f.st.Tenants().Get(ctx, tid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tn.SettingsExtra["dpop_strict_refresh_token_binding"] = value
+			if err := f.st.Tenants().Update(ctx, tn); err != nil {
+				t.Fatal(err)
+			}
+		}
+		setStrict(false)
+		token := f.mfaRequired(t)
+		secret, _ := f.associateOTP(t, token)
+		f.h.MFA = mfa.NewService(nativeBeforeTxStore{f.st, func() { setStrict(true) }}, f.wrapper, mail, nil, f.h.Log, f.h.Now)
+		w, body := f.call(t, false, tokenCall{host: acmeHost, form: mfaForm(otpGrant, token, "otp", otpAt(secret, f.h.now())),
+			header: map[string]string{"DPoP": dpopJWT(t, dpopKey(t), "/oauth/token", "")}})
+		raw, ok := body["refresh_token"].(string)
+		if w.Code != 200 || !ok || body["token_type"] != "Bearer" || f.storedRT(t, raw).DPoPJKT == "" {
+			t.Fatal("MFA did not persist the final strict binding on its offline credential")
+		}
+	})
+	t.Run("sealed audience", func(t *testing.T) {
+		f, _ := mfaFixture(t)
+		token := f.mfaRequired(t)
+		secret, _ := f.associateOTP(t, token)
+		ctx, tid := t.Context(), f.tenantID(t, "acme")
+		const other = "https://new-default.example.test"
+		api := &store.ResourceServer{TenantID: tid, ID: "new-default", Identifier: other,
+			ProofOfPossession: &store.ProofOfPossession{Mechanism: "dpop", Required: true}}
+		if err := f.st.ResourceServers().Create(ctx, api); err != nil {
+			t.Fatal(err)
+		}
+		tn, err := f.st.Tenants().Get(ctx, tid)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tn.DefaultAudience = other
+		if err := f.st.Tenants().Update(ctx, tn); err != nil {
+			t.Fatal(err)
+		}
+		w, body := f.call(t, false, tokenCall{host: acmeHost, form: mfaForm(otpGrant, token, "otp", otpAt(secret, f.h.now()))})
+		if w.Code != 200 || body["refresh_token"] == nil {
+			t.Fatalf("continuation for its sealed audience returned %d", w.Code)
+		}
+	})
+	t.Run("proof policy in factor transaction", func(t *testing.T) {
+		f, mail := mfaFixture(t)
+		token := f.mfaRequired(t)
+		secret, _ := f.associateOTP(t, token)
+		ctx, tid := t.Context(), f.tenantID(t, "acme")
+		current := nativeBeforeTxStore{f.st, func() {
+			api, err := f.st.ResourceServers().GetByIdentifier(ctx, tid, acmeAPI)
+			if err != nil {
+				t.Fatal(err)
+			}
+			api.ProofOfPossession = &store.ProofOfPossession{Mechanism: "dpop", Required: true}
+			if err := f.st.ResourceServers().Update(ctx, api); err != nil {
+				t.Fatal(err)
+			}
+		}}
+		f.h.MFA = mfa.NewService(current, f.wrapper, mail, nil, f.h.Log, f.h.Now)
+		w, body := f.call(t, false, tokenCall{host: acmeHost, form: mfaForm(otpGrant, token, "otp", otpAt(secret, f.h.now()))})
+		if w.Code == 200 || body["access_token"] != nil || body["refresh_token"] != nil {
+			t.Fatal("factor commit accepted an obsolete access proof policy")
+		}
+		if _, err := f.st.MFA().PeekMFAToken(ctx, tid, secrets.HashToken(token), fixedNow()); err != nil {
+			t.Fatal("policy refusal consumed the continuation")
+		}
+		list, err := f.st.MFA().ListAuthenticators(ctx, tid, f.aliceID(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, a := range list {
+			if a.Type == "totp" && (a.Confirmed || a.LastStep != -1) {
+				t.Fatal("policy refusal consumed the factor")
+			}
+		}
+	})
+}
+
 func TestMFAProofTransactionRollback(t *testing.T) {
 	f, mail := mfaFixture(t)
 	tok := f.mfaRequired(t)
