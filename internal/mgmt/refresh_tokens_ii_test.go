@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 func TestListRefreshTokens(t *testing.T) {
@@ -263,4 +264,93 @@ func TestBulkRevokeAudienceOriginAndRetainedRecords(t *testing.T) {
 			t.Fatalf("origin selection wrong for %s", id)
 		}
 	}
+}
+
+func TestRefreshTokenUserInfoAudienceOrigin(t *testing.T) {
+	e := newUsersEnv(t)
+	uid := e.mustCreate(t, map[string]any{"email": "audience-origin@x.test"})["user_id"].(string)
+	for id, origin := range map[string]string{"alias": "https://alias.example.test", "canonical": "https://login.acme.test", "other": "https://other.example.test", "legacy": ""} {
+		e.addToken(t, id, uid, now, func(rt *store.RefreshToken) { rt.Audience = ""; rt.Origin = origin })
+	}
+	audience := func(t *testing.T, value map[string]any) string {
+		t.Helper()
+		resources, ok := value["resource_servers"].([]any)
+		if !ok || len(resources) != 1 {
+			t.Fatalf("resource servers=%v", value["resource_servers"])
+		}
+		got, _ := resources[0].(map[string]any)["audience"].(string)
+		return got
+	}
+	t.Run("reported audience revokes exact issuing origin", func(t *testing.T) {
+		code, out := e.call2(t, "read:refresh_tokens", "GET", "/api/v2/refresh-tokens?user_id="+url.QueryEscape(uid), e.h.GetRefreshTokens)
+		if code != 200 {
+			t.Fatal(code)
+		}
+		byID := map[string]map[string]any{}
+		for _, item := range out["refresh_tokens"].([]any) {
+			m := item.(map[string]any)
+			byID[m["id"].(string)] = m
+		}
+		advertised := audience(t, byID["alias"])
+		if advertised != "https://alias.example.test/userinfo" {
+			t.Fatalf("alias audience = %q", advertised)
+		}
+		rec, _ := e.do(t, m2mCaller("delete:refresh_tokens"), "POST", "/api/v2/refresh-tokens/revoke", map[string]any{"user_id": uid, "client_id": "spa", "audience": advertised}, e.h.RevokeRefreshTokens)
+		if rec.Code != 202 {
+			t.Fatalf("revoke=%d", rec.Code)
+		}
+		for _, id := range []string{"alias", "canonical", "other", "legacy"} {
+			rt, err := e.st.RefreshTokens().Get(t.Context(), e.tn.ID, id)
+			if err != nil || (rt.RevokedAt != nil) != (id == "alias") {
+				t.Fatalf("revocation origin incorrect for %s", id)
+			}
+		}
+	})
+	t.Run("canonical legacy view through alias", func(t *testing.T) {
+		for _, view := range []string{"checkpoint-list", "user-list", "get", "metadata"} {
+			t.Run(view, func(t *testing.T) {
+				var item map[string]any
+				handler := func(w http.ResponseWriter, r *http.Request) {
+					r = r.WithContext(tenant.WithResolved(r.Context(), tenant.Resolved{Tenant: e.tn, Host: "alias.example.test"}))
+					switch view {
+					case "checkpoint-list":
+						e.h.GetRefreshTokens(w, r)
+					case "user-list":
+						e.h.GetUserRefreshTokens(w, r, uid)
+					case "get":
+						e.h.GetRefreshToken(w, r, "legacy")
+					case "metadata":
+						e.h.UpdateRefreshToken(w, r, "legacy")
+					}
+				}
+				method, scope, body := "GET", "read:refresh_tokens", any(nil)
+				if view == "metadata" {
+					method, scope, body = "PATCH", "update:refresh_tokens", map[string]any{"refresh_token_metadata": map[string]string{"label": "legacy"}}
+				}
+				rec, out := e.do(t, m2mCaller(scope), method, "/view?user_id="+url.QueryEscape(uid), body, handler)
+				if rec.Code != 200 {
+					t.Fatalf("view=%d %s", rec.Code, rec.Body)
+				}
+				result := out.(map[string]any)
+				switch view {
+				case "checkpoint-list", "user-list":
+					key := "refresh_tokens"
+					if view == "user-list" {
+						key = "tokens"
+					}
+					for _, v := range result[key].([]any) {
+						m := v.(map[string]any)
+						if m["id"] == "legacy" {
+							item = m
+						}
+					}
+				default:
+					item = result
+				}
+				if item == nil || audience(t, item) != "https://login.acme.test/userinfo" {
+					t.Fatalf("legacy audience via alias = %v", item)
+				}
+			})
+		}
+	})
 }

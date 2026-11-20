@@ -163,7 +163,8 @@ func sessionJSON(s *store.LoginSession) map[string]any {
 
 // refreshTokenJSON renders a token as Auth0 does. The device comes from the
 // token itself, independently of the session. A token for /userinfo only lists
-// the tenant's userinfo audience as its resource server. IDs keep
+// its issuing origin's UserInfo audience as its resource server, using the
+// tenant's pinned canonical origin for legacy originless records. IDs keep
 // zeroauthy's format, not Auth0's dcr_ prefix.
 func refreshTokenJSON(t *store.RefreshToken, userinfoAudience string) map[string]any {
 	nullable := func(at time.Time) any {
@@ -174,7 +175,11 @@ func refreshTokenJSON(t *store.RefreshToken, userinfoAudience string) map[string
 	}
 	audience := t.Audience
 	if audience == "" {
-		audience = userinfoAudience
+		if t.Origin != "" {
+			audience = t.Origin + "/userinfo"
+		} else {
+			audience = userinfoAudience
+		}
 	}
 	var sessionID, exchanged any
 	if t.SessionID != "" {
@@ -201,7 +206,7 @@ func refreshTokenJSON(t *store.RefreshToken, userinfoAudience string) map[string
 
 func (h *Handlers) userinfoAudience(r *http.Request) string {
 	res, _ := tenant.FromContext(r.Context())
-	return res.Issuer() + "userinfo"
+	return tenant.CanonicalOrigin(res.Tenant) + "/userinfo"
 }
 
 // GetUserSessions lists the user's unexpired sessions, newest first.
