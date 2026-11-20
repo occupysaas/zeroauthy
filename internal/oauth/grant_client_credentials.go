@@ -184,6 +184,9 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	if failure := h.finishClientCredentials(ctx, res, c, rs, grant.ID, orgID, scopes, jkt, lifetime); failure != nil {
+		return nil, failure
+	}
 	resp := &authapi.TokenResponse{
 		AccessToken: token,
 		TokenType:   "Bearer",

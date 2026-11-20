@@ -7,6 +7,11 @@ import (
 
 func checkDPoPStorage(ctx context.Context, st store.Store, f *File) error {
 	for _, t := range f.Tenants {
+		if t.Settings["default_token_quota"] != nil {
+			if err := store.CheckRefreshTokensIISupport(ctx, st); err != nil {
+				return err
+			}
+		}
 		for _, c := range t.Clients {
 			if c.RequireProofOfPossession {
 				if e := store.CheckRefreshTokensIISupport(ctx, st); e != nil {

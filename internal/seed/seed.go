@@ -193,10 +193,11 @@ type Scope struct {
 }
 
 type Client struct {
-	RequireProofOfPossession bool   `yaml:"require_proof_of_possession"`
-	ClientID                 string `yaml:"client_id"`
-	Name                     string `yaml:"name"`
-	AppType                  string `yaml:"app_type"`
+	TokenQuota               map[string]any `yaml:"token_quota"`
+	RequireProofOfPossession bool           `yaml:"require_proof_of_possession"`
+	ClientID                 string         `yaml:"client_id"`
+	Name                     string         `yaml:"name"`
+	AppType                  string         `yaml:"app_type"`
 	// ClientSecret is plaintext in the seed file and sealed under the master
 	// key when applied (D-0038). Protect seed files like any other credential
 	// store. A confidential client may omit it once it exists: its stored
@@ -244,6 +245,7 @@ type Client struct {
 	parsedCredentials           []parsedCredential
 
 	// normalized is the client after clientrules.Normalize, set by validate.
+	tokenQuota *store.TokenQuota
 	normalized *clientrules.Spec
 }
 
@@ -255,7 +257,8 @@ func (c *Client) spec() clientrules.Spec {
 		method = store.AuthMethodClientSecretPost
 	}
 	return clientrules.Spec{
-		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
+		TokenQuota: c.tokenQuota,
+		Name:       c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
 		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
 		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,

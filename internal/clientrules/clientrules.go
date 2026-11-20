@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -70,6 +71,7 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // Spec is a client's settings. Empty strings and nil pointers mean "the
 // default", which Normalize fills in.
 type Spec struct {
+	TokenQuota               *store.TokenQuota
 	RequireProofOfPossession bool
 	NativeSocialLogin        map[string]bool
 	// Mobile configures native app associations.
@@ -268,6 +270,9 @@ func Normalize(s *Spec, parSupported bool) []error {
 		fail("client_credentials requires a confidential client")
 	}
 
+	if err := quotarules.ValidateTokenQuota(s.TokenQuota); err != nil {
+		errs = append(errs, err)
+	}
 	rt := &s.RefreshToken
 	if err := validateMRRT(rt.Policies, firstParty); err != nil {
 		errs = append(errs, err)
@@ -385,6 +390,11 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 // Apply copies a normalized s into c. It leaves the identity (tenant,
 // client ID, creation time, origin) and the secrets alone.
 func Apply(c *store.Client, s *Spec) {
+	c.TokenQuota = nil
+	if s.TokenQuota != nil {
+		q := *s.TokenQuota
+		c.TokenQuota = &q
+	}
 	c.Mobile = s.Mobile.Clone()
 	c.NativeSocialLogin = maps.Clone(s.NativeSocialLogin)
 	c.InitiateLoginURI = s.InitiateLoginURI
@@ -421,6 +431,7 @@ func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
 		Mobile:            c.Mobile.Clone(),
+		TokenQuota:        cloneTokenQuota(c.TokenQuota),
 		NativeSocialLogin: maps.Clone(c.NativeSocialLogin),
 		InitiateLoginURI:  c.InitiateLoginURI, Name: c.Name, AppType: string(c.AppType),
 		TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
@@ -452,4 +463,12 @@ func FromClient(c *store.Client) Spec {
 		s.SkipNonVerifiableCallbackURIConfirmationPrompt = &v
 	}
 	return s
+}
+
+func cloneTokenQuota(q *store.TokenQuota) *store.TokenQuota {
+	if q == nil {
+		return nil
+	}
+	copy := *q
+	return &copy
 }

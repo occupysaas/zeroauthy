@@ -8,11 +8,13 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 type Organization struct {
+	TokenQuota             map[string]any                `yaml:"token_quota"`
 	IsAppEntitlementActive bool                          `yaml:"is_app_entitlement_active"`
 	ThirdPartyClientAccess string                        `yaml:"third_party_client_access"`
 	Clients                []OrganizationClient          `yaml:"clients"`
@@ -81,6 +83,16 @@ func applyOrganization(ctx context.Context, st store.Store, tid string, in Organ
 		if c := in.Branding.Colors; c != nil {
 			org.Branding.Colors = &store.OrgColors{Primary: c.Primary, PageBackground: c.PageBackground}
 		}
+	}
+	if in.TokenQuota != nil {
+		if err := store.CheckRefreshTokensIISupport(ctx, st); err != nil {
+			return err
+		}
+		q, e := quotarules.ParseTokenQuota(in.TokenQuota, "token_quota")
+		if e != nil {
+			return e
+		}
+		org.TokenQuota = q
 	}
 	org, err := orgrules.NormalizeOrganization(org)
 	if err != nil {

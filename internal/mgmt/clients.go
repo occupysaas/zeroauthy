@@ -31,6 +31,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/passwordless"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
@@ -288,7 +289,7 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		c.TokenEndpointAuthMethod = ""
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
-		if in.policiesSet || c.RequireProofOfPossession {
+		if in.policiesSet || c.RequireProofOfPossession || c.TokenQuota != nil {
 			if err := checkMRRTSupport(r.Context(), tx); err != nil {
 				return err
 			}
@@ -361,7 +362,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		if err != nil {
 			return err
 		}
-		if in.policiesSet || spec.RefreshToken.Policies != nil || spec.RequireProofOfPossession || body["require_proof_of_possession"] != nil {
+		if body["token_quota"] != nil || spec.TokenQuota != nil || in.policiesSet || spec.RefreshToken.Policies != nil || spec.RequireProofOfPossession || body["require_proof_of_possession"] != nil {
 			if err := checkMRRTSupport(r.Context(), tx); err != nil {
 				return err
 			}
@@ -581,6 +582,12 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		},
 		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: &c.RequireProofOfPossession,
 		CreatedAt: &created,
+	}
+	if c.TokenQuota != nil {
+		raw, _ := json.Marshal(quotarules.PublicTokenQuota(c.TokenQuota))
+		var quota mgmtapi.IITokenQuota
+		_ = json.Unmarshal(raw, &quota)
+		v.TokenQuota = &quota
 	}
 	if c.RefreshToken.Policies != nil {
 		policies := make([]mgmtapi.RefreshTokenPolicy, len(c.RefreshToken.Policies))
@@ -823,6 +830,11 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			}
 		case "jwt_configuration":
 			err = readJWTConfiguration(raw, s)
+		case "token_quota":
+			var value any
+			if err = json.Unmarshal(raw, &value); err == nil {
+				s.TokenQuota, err = quotarules.PatchTokenQuota(s.TokenQuota, value, "token_quota")
+			}
 		case "refresh_token":
 			out.policiesSet, err = readRefreshToken(raw, &s.RefreshToken)
 		default:

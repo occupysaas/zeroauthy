@@ -160,3 +160,19 @@ func TestDPoPBindingReset(t *testing.T) {
 		t.Fatal("null reset did not enable default")
 	}
 }
+
+func TestQuotaLegacyDefault(t *testing.T) {
+	legacy := &store.Tenant{SettingsExtra: map[string]any{"default_token_quota": map[string]any{"clients": map[string]any{"client_credentials": map[string]any{"per_hour": 3}}}}}
+	public := Public(legacy)
+	if public["default_token_quota"] == nil {
+		t.Fatal("legacy quota disappeared")
+	}
+	updated, err := Apply(legacy, map[string]any{"friendly_name": "kept"})
+	if err != nil || updated.DefaultTokenQuota == nil || updated.DefaultTokenQuota.Clients.PerHour != 3 {
+		t.Fatal("legacy quota not materialized", err)
+	}
+	cleared, err := Apply(updated, map[string]any{"default_token_quota": nil})
+	if err != nil || cleared.DefaultTokenQuota != nil || Public(cleared)["default_token_quota"] != nil {
+		t.Fatal("clear did not remove default", err)
+	}
+}

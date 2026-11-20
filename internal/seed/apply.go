@@ -383,7 +383,7 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	if in.OrganizationUsage != "" && in.OrganizationUsage != store.OrgUsageDeny && !store.OrganizationsSupported(st) {
 		return store.ErrOrganizationsUnavailable
 	}
-	if in.RefreshToken.Policies != nil {
+	if in.RefreshToken.Policies != nil || in.TokenQuota != nil {
 		if err := store.CheckRefreshTokensIISupport(ctx, st); err != nil {
 			return err
 		}

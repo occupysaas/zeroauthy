@@ -54,6 +54,11 @@ func (h *Handlers) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) 
 		if current.Reserved {
 			return errSystemTenant
 		}
+		if patch["default_token_quota"] != nil || current.DefaultTokenQuota != nil || current.SettingsExtra["default_token_quota"] != nil {
+			if err := checkMRRTSupport(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		out, err = tenantrules.Apply(current, patch)
 		if err != nil {
 			return badBody("%s", err)

@@ -116,5 +116,9 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	e.Audience = form.Get("audience")
 	e.Scope = form.Get("scope")
 	ctx = logs.WithEvent(ctx, e)
-	return grant(h, ctx, res, client, form)
+	quota := &quotaResponse{}
+	ctx = context.WithValue(ctx, quotaResponseKey{}, quota)
+	response, failure := grant(h, ctx, res, client, form)
+	quota.apply(w)
+	return response, failure
 }
