@@ -49,8 +49,8 @@ No nonce or proof runtime implementation was present in that review.
 | 8 Management runtime | Complete; reviewed | `f8001e9d`, fix `227b8b11`; full Management/OAuth and supporting tests passed |
 | 9 Quotas | Complete; reviewed | `9f9fae1a`; OAuth/shared configuration/supporting tests and build passed |
 | 10 Console | Complete; reviewed | `d98e073f`, fix `ede3ae09`; make console 721 tests and visual QA passed |
-| 11 Seed and Deploy CLI | Starting | Round-trip verification pending |
-| 12 E2E, docs and final verification | Pending | Not run |
+| 11 Seed and Deploy CLI | Complete; reviewed | `313d9e8c`; four actual CLI cells and 174 Go tests passed |
+| 12 E2E, docs and final verification | In progress | Plan checks and whole-branch review pending |
 
 ## Task 1 verification
 
@@ -317,3 +317,19 @@ supported atomically by the current API. Generated allOf types need a thin
 client alias derived from generated properties; compile-time tests cover it.
 One Minor reset-after-local-error UI case remains for final review. No full
 plan verification or CI push yet.
+
+## Task 11 verification
+
+`313d9e8c` completes seed online flags and preserved-ID bootstrap support for
+MRRT/quota/DPoP fields, with shared validation. The actual pinned Deploy CLI
+9.1.0 passed YAML/directory × generated/preserved-ID cells, each exporting,
+importing, reimporting and exporting with API assertions. Client/org/default
+quotas, MRRT, online/ephemeral flags, DPoP and tenant flags survived; explicit
+false strict binding was imported into a true-default destination. No
+exercised field was tool-unsupported.
+
+The report retains two fixture failures (missing organization export read
+scopes and incorrect directory name) and their corrections. Complete focused
+seed/bootstrap/shared-rule packages passed 174 tests with zero skips. Review
+approved with no findings. No live Auth0 calls or new dependencies were used.
+The dedicated runner will be included in Task 12 acceptance.
