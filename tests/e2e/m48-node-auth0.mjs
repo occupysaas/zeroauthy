@@ -12,7 +12,16 @@ export const API='https://api.refresh.e2e.test', SECOND='https://second.refresh.
 export const realm='Username-Password-Authentication', email='refresh48@e2e.local';
 export const secrets=()=>JSON.parse(process.env.E2E_M48_CREDENTIALS);
 const watched=new Set();
-export async function secret(v){if(typeof v==='string'&&v.length>8&&!watched.has(v)){watched.add(v);await appendFile(`${work}/private-values.jsonl`,JSON.stringify(v)+'\n',{mode:0o600});}return v;}
+export async function secret(value, kind = 'credential') {
+ if (typeof value === 'string' && value.length > 8) {
+  const record = JSON.stringify({kind, value});
+  if (!watched.has(record)) {
+   watched.add(record);
+   await appendFile(`${work}/private-values.jsonl`, record + '\n', {mode:0o600});
+  }
+ }
+ return value;
+}
 export function fixtureFetch(input,opts={}) {
  const url=new URL(input instanceof Request?input.url:String(input));
  assert.equal(url.origin,origin,'fixture refuses outbound destinations');
@@ -26,7 +35,10 @@ export function fixtureFetch(input,opts={}) {
 export async function token(fields,headers={}){
  if(fields.client_secret)await secret(fields.client_secret);
  const r=await fixtureFetch(`${origin}/oauth/token`,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded',...headers},body:new URLSearchParams(fields)});
- const body=await r.json();for(const k of ['access_token','refresh_token','id_token'])await secret(body[k]);
+ const body=await r.json();
+ await secret(body.access_token);
+ await secret(body.refresh_token, 'refresh_token');
+ await secret(body.id_token);
  return {status:r.status,body,headers:r.headers};
 }
 let admin;
@@ -50,7 +62,7 @@ export async function sdkAndProtocols(){
  const listed=await sdk.refreshTokens.list({user_id:user});const items=[];for await(const row of listed)items.push(row);assert.ok(items.length>0,'node-auth0 list');const id=items.find(v=>v.client_id==='m48-web').id;
  await sdk.refreshTokens.update(id,{refresh_token_metadata:{fixture:'sdk'}});assert.equal((await sdk.refreshTokens.get(id)).refresh_token_metadata.fixture,'sdk');
  const auth=new AuthClient({domain:'refresh.e2e.test',clientId:'m48-web',clientSecret:secrets().web,customFetch:fixtureFetch});
- const refreshed=await auth.getTokenByRefreshToken({refreshToken:first.body.refresh_token});assert.ok(refreshed.accessToken,'auth-js refresh');await secret(refreshed.accessToken);const history=await sdk.refreshTokens.get(id);assert.equal(typeof history.device.initial_user_agent,'string');assert.ok(history.last_exchanged_at,'successful SDK exchange recorded');
+ const refreshed=await auth.getTokenByRefreshToken({refreshToken:first.body.refresh_token});assert.ok(refreshed.accessToken,'auth-js refresh');await secret(refreshed.accessToken);await secret(refreshed.idToken);await secret(refreshed.refreshToken,'refresh_token');const history=await sdk.refreshTokens.get(id);assert.equal(typeof history.device.initial_user_agent,'string');assert.ok(history.last_exchanged_at,'successful SDK exchange recorded');
  await api('clients/m48-web','PATCH',{refresh_token:{policies:[{audience:SECOND,scope:['read:two']}]}});
  const other=await token({grant_type:'refresh_token',client_id:'m48-web',client_secret:secrets().web,refresh_token:first.body.refresh_token,audience:SECOND,scope:'read:two forbidden'});assert.equal(other.status,200);assert.equal(decode(other.body.access_token).aud,SECOND);assert.equal(other.body.scope,'read:two');
  const own=await token({grant_type:'refresh_token',client_id:'m48-web',client_secret:secrets().web,refresh_token:first.body.refresh_token});assert.equal(own.status,200);assert.ok(!own.body.scope.includes('read:two'),'family ceiling unchanged');
@@ -64,5 +76,28 @@ export async function sdkAndProtocols(){
  const refusedSelector=await rawApi('refresh-tokens/revoke','POST',{client_id:'m48-web'});assert.equal(refusedSelector.status,400);const offline=await passwordToken();assert.equal(offline.status,200);const rs=(await api('resource-servers')).find(v=>v.identifier===API);await api(`resource-servers/${rs.id}`,'PATCH',{allow_offline_access:false});const denied=await exchange(offline.body.refresh_token);assert.equal(denied.body.error,'invalid_grant');await api(`resource-servers/${rs.id}`,'PATCH',{allow_offline_access:true});await sdk.refreshTokens.revoke({user_id:user,client_id:'m48-web'});
  console.log('Plan48 node-auth0/auth-js: metadata, MRRT, conversion, strict reuse, cascade and concurrent quotas passed');
 }
-export async function audit(directory=work){const vals=(await readFile(`${directory}/private-values.jsonl`,'utf8')).trim().split('\n').filter(Boolean).map(JSON.parse);for(const file of ['server.log','browser-console.log','cli.log','stored-sinks.jsonl']){const text=await readFile(`${directory}/${file}`,'utf8');for(const v of vals)assert.equal(text.includes(v),false,`${file} leaked representative secret`);}console.log('Plan48 representative-secret log audit passed');}
+export async function audit(directory = work) {
+ const samples = await readFile(`${directory}/private-values.jsonl`, 'utf8');
+ const values = new Set();
+ let hasRefreshToken = false;
+ for (const line of samples.split('\n').filter(line => line.trim() !== '')) {
+  let sample;
+  try { sample = JSON.parse(line); } catch { throw new Error('Invalid representative sample'); }
+  if (!sample || !['credential', 'refresh_token'].includes(sample.kind) || typeof sample.value !== 'string' || sample.value.length <= 8) {
+   throw new Error('Invalid representative sample');
+  }
+  values.add(sample.value);
+  if (sample.kind === 'refresh_token') {
+   hasRefreshToken = true;
+   // Match the lowercase hexadecimal SHA-256 produced by secrets.HashToken.
+   values.add(createHash('sha256').update(sample.value).digest('hex'));
+  }
+ }
+ assert.ok(hasRefreshToken, 'The audit requires a representative issued refresh token sample');
+ for (const file of ['server.log', 'browser-console.log', 'cli.log', 'stored-sinks.jsonl']) {
+  const content = await readFile(`${directory}/${file}`, 'utf8');
+  for (const value of values) assert.equal(content.includes(value), false, `${file} leaked a representative secret`);
+ }
+ console.log('Plan48 representative-secret log audit passed');
+}
 if(process.argv[1]?.endsWith('/m48-node-auth0.mjs')){const phase=process.argv[2];if(phase==='setup')await setup();else if(phase==='sdk')await sdkAndProtocols();else if(phase==='audit')await audit();else throw Error('unknown Plan48 phase');}

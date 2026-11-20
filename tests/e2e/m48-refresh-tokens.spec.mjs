@@ -75,7 +75,8 @@ test('rotating SPA SDK cache uses the refresh grant across two APIs', async ({br
   expect(response.status()).toBe(200);
   const request = response.request().postDataJSON();
   const body = await response.json();
-  for (const value of [request.code, request.code_verifier, body.id_token, body.access_token, body.refresh_token]) await secret(value);
+  for (const value of [request.code, request.code_verifier, body.id_token, body.access_token]) await secret(value);
+  await secret(body.refresh_token, 'refresh_token');
   return {request, body, result};
  };
  try {
