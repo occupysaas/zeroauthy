@@ -28,7 +28,10 @@ CREATE TABLE refresh_token_sequences (
  tenant_id VARCHAR(64) PRIMARY KEY,
  last_order BIGINT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
-CREATE INDEX refresh_tokens_tuple ON refresh_tokens (tenant_id,user_id,client_id,audience(160));
+-- user_id is VARBINARY(1280) since 0021; utf8mb4 tenant/client/audience
+-- prefixes contribute 256 + 1020 + 512 bytes, keeping this key at 3068.
+-- This nonunique lookup index retains full-value predicates in every query.
+CREATE INDEX refresh_tokens_tuple ON refresh_tokens (tenant_id,user_id,client_id,audience(128));
 CREATE INDEX refresh_tokens_session ON refresh_tokens (tenant_id,session_id);
 CREATE INDEX refresh_tokens_family_created ON refresh_tokens (tenant_id,family_id,created_at);
 CREATE INDEX refresh_tokens_family_order ON refresh_tokens (tenant_id,family_id,insertion_order);
