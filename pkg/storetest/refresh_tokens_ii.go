@@ -17,6 +17,32 @@ func familyToken(id, family string, rotating bool) *store.RefreshToken {
 }
 
 func testRefreshTokensII(t *testing.T, newStore Factory) {
+	t.Run("ConversionLineage", func(t *testing.T) {
+		for _, anchor := range []string{"original", "intermediate", "deleted", "current"} {
+			t.Run(anchor, func(t *testing.T) {
+				ctx := context.Background()
+				repo := open(t, newStore).RefreshTokens()
+				at := ts(time.Minute)
+				mustNoErr(t, repo.Create(ctx, familyToken("one", "original", false)))
+				mustNoErr(t, repo.ConvertNonRotating(ctx, "ten_a", "one", familyToken("two", "intermediate", true)))
+				mustNoErr(t, repo.ConvertRotating(ctx, "ten_a", "two", familyToken("three", "deleted", false), at, 0))
+				mustNoErr(t, repo.ConvertNonRotating(ctx, "ten_a", "three", familyToken("four", "current", true)))
+				mustNoErr(t, repo.Rotate(ctx, "ten_a", "four", familyToken("five", "current", true), at, 0))
+				mustNoErr(t, repo.Create(ctx, familyToken("separate", "independent", true)))
+				mustNoErr(t, repo.RevokeFamily(ctx, "ten_a", anchor, at))
+				got, err := repo.Get(ctx, "ten_a", "five")
+				mustNoErr(t, err)
+				if got.RevokedAt == nil {
+					t.Error("conversion descendant missing revocation")
+				}
+				separate, err := repo.Get(ctx, "ten_a", "separate")
+				mustNoErr(t, err)
+				if separate.RevokedAt != nil {
+					t.Error("unrelated issuance was revoked")
+				}
+			})
+		}
+	})
 	t.Run("OfflineManagementRevoke", func(t *testing.T) {
 		s := open(t, newStore)
 		ctx := context.Background()

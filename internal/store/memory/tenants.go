@@ -177,6 +177,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.deviceCodes, id)
 	purge(s.refreshTokens, id)
 	purge(s.refreshOrder, id)
+	purge(s.refreshFamilyAliases, id)
 	s.dpopProofs.deleteTenant(id)
 	for k := range s.quotaCounters {
 		if k.tenant == id {

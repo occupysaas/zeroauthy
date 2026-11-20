@@ -16,6 +16,14 @@ ALTER TABLE resource_servers ADD COLUMN proof_of_possession LONGTEXT;
 ALTER TABLE resource_servers ADD COLUMN allow_online_access BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE resource_servers ADD COLUMN allow_online_access_with_ephemeral_sessions BOOLEAN NOT NULL DEFAULT FALSE;
 
+CREATE TABLE refresh_family_aliases (
+ tenant_id VARCHAR(64) NOT NULL,
+ family_id VARCHAR(255) NOT NULL,
+ current_family VARCHAR(255) NOT NULL,
+ PRIMARY KEY (tenant_id,family_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
+CREATE INDEX refresh_family_current ON refresh_family_aliases (tenant_id,current_family);
+
 CREATE TABLE refresh_token_sequences (
  tenant_id VARCHAR(64) PRIMARY KEY,
  last_order BIGINT NOT NULL

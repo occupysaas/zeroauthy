@@ -417,6 +417,7 @@ const (
 	StoreService_RefreshTokensIIWrite_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RefreshTokensIIWrite"
 	StoreService_RefreshTokensIICheckRotation_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshTokensIICheckRotation"
 	StoreService_RefreshTokensIIRotate_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RefreshTokensIIRotate"
+	StoreService_RefreshIIRevokeFamily_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RefreshIIRevokeFamily"
 	StoreService_RefreshTokensConvertNonRotating_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertNonRotating"
 	StoreService_RefreshTokensConvertRotating_FullMethodName                  = "/zeroauthy.store.v1.StoreService/RefreshTokensConvertRotating"
 	StoreService_RefreshTokensRevokeByUserClient_FullMethodName               = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUserClient"
@@ -957,6 +958,7 @@ type StoreServiceClient interface {
 	RefreshTokensIIWrite(ctx context.Context, in *RefreshIIWrite, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensIICheckRotation(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensIIRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
+	RefreshIIRevokeFamily(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensConvertNonRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensConvertRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensRevokeByUserClient(ctx context.Context, in *RefreshIIRequest, opts ...grpc.CallOption) (*CountResult, error)
@@ -5025,6 +5027,16 @@ func (c *storeServiceClient) RefreshTokensIIRotate(ctx context.Context, in *Refr
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshIIRevokeFamily(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshIIRevokeFamily_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensConvertNonRotating(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -6058,6 +6070,7 @@ type StoreServiceServer interface {
 	RefreshTokensIIWrite(context.Context, *RefreshIIWrite) (*Result, error)
 	RefreshTokensIICheckRotation(context.Context, *RefreshTokensRotateRequest) (*Result, error)
 	RefreshTokensIIRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error)
+	RefreshIIRevokeFamily(context.Context, *RevokeRequest) (*Result, error)
 	RefreshTokensConvertNonRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error)
 	RefreshTokensConvertRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error)
 	RefreshTokensRevokeByUserClient(context.Context, *RefreshIIRequest) (*CountResult, error)
@@ -7327,6 +7340,9 @@ func (UnimplementedStoreServiceServer) RefreshTokensIICheckRotation(context.Cont
 }
 func (UnimplementedStoreServiceServer) RefreshTokensIIRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensIIRotate not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshIIRevokeFamily(context.Context, *RevokeRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshIIRevokeFamily not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshTokensConvertNonRotating(context.Context, *RefreshTokensRotateRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensConvertNonRotating not implemented")
@@ -14657,6 +14673,24 @@ func _StoreService_RefreshTokensIIRotate_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshIIRevokeFamily_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshIIRevokeFamily(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshIIRevokeFamily_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshIIRevokeFamily(ctx, req.(*RevokeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensConvertNonRotating_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshTokensRotateRequest)
 	if err := dec(in); err != nil {
@@ -17212,6 +17246,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshTokensIIRotate",
 			Handler:    _StoreService_RefreshTokensIIRotate_Handler,
+		},
+		{
+			MethodName: "RefreshIIRevokeFamily",
+			Handler:    _StoreService_RefreshIIRevokeFamily_Handler,
 		},
 		{
 			MethodName: "RefreshTokensConvertNonRotating",

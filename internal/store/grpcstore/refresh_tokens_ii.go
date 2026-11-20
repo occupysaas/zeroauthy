@@ -240,6 +240,10 @@ func (s *Server) RefreshTokensIIRotate(ctx context.Context, q *pb.RefreshTokensR
 	return withRefreshII(s, ctx, q, (*Server).RefreshTokensRotate)
 }
 
+func (s *Server) RefreshIIRevokeFamily(ctx context.Context, q *pb.RevokeRequest) (*pb.Result, error) {
+	return withRefreshII(s, ctx, q, (*Server).RefreshTokensRevokeFamily)
+}
+
 func (s *Server) RefreshTokensConvertNonRotating(ctx context.Context, q *pb.RefreshTokensRotateRequest) (*pb.Result, error) {
 	return withRefreshII(s, ctx, q, (*Server).refreshTokensConvertNonRotating)
 }

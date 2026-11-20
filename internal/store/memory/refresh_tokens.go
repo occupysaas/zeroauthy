@@ -48,7 +48,7 @@ func (r refreshTokens) findByHash(tenantID, hash string) (*store.RefreshToken, b
 func (r refreshTokens) Create(_ context.Context, t *store.RefreshToken) error {
 	r.s.lock()
 	defer r.s.unlock()
-	if r.taken(t) {
+	if r.taken(t) || r.s.refreshFamilyAliases[key{t.TenantID, t.FamilyID}] != "" {
 		return store.ErrConflict
 	}
 	r.insert(t, t.ParentID)
@@ -142,6 +142,9 @@ func (r refreshTokens) Touch(_ context.Context, tenantID, id string, idleExpires
 func (r refreshTokens) RevokeFamily(_ context.Context, tenantID, familyID string, at time.Time) error {
 	r.s.lock()
 	defer r.s.unlock()
+	if current := r.s.refreshFamilyAliases[key{tenantID, familyID}]; current != "" {
+		familyID = current
+	}
 	r.revokeFamily(tenantID, familyID, at)
 	return nil
 }
@@ -161,13 +164,19 @@ func (r refreshTokens) DeleteExpired(_ context.Context, before time.Time) (int, 
 	r.s.lock()
 	defer r.s.unlock()
 	n := 0
+	retained := make(map[key]bool)
 	for k, t := range r.s.refreshTokens {
 		if expiredToken(t, before) {
 			delete(r.s.refreshTokens, k)
 			delete(r.s.refreshOrder, k)
 			n++
+		} else {
+			retained[key{k.tenant, t.FamilyID}] = true
 		}
 	}
+	maps.DeleteFunc(r.s.refreshFamilyAliases, func(k key, current string) bool {
+		return !retained[key{k.tenant, current}]
+	})
 	return n, nil
 }
 
@@ -244,6 +253,9 @@ func (r refreshTokens) convert(tid, id string, next *store.RefreshToken, rotatin
 	if next.FamilyID == "" {
 		return store.ErrInvalid
 	}
+	if r.s.refreshFamilyAliases[key{tid, next.FamilyID}] != "" {
+		return store.ErrConflict
+	}
 	for k, t := range r.s.refreshTokens {
 		if k.tenant == tid && t.FamilyID == next.FamilyID {
 			return store.ErrConflict
@@ -265,6 +277,14 @@ func (r refreshTokens) convert(tid, id string, next *store.RefreshToken, rotatin
 			t.RevokedAt = &at
 		}
 	}
+	// Preserve every earlier revocation handle even when its source row was
+	// deleted. Only the presented family's aliases follow this conversion.
+	for k, current := range r.s.refreshFamilyAliases {
+		if k.tenant == tid && current == old.FamilyID {
+			r.s.refreshFamilyAliases[k] = next.FamilyID
+		}
+	}
+	r.s.refreshFamilyAliases[key{tid, old.FamilyID}] = next.FamilyID
 	r.insert(next, "")
 	return nil
 }

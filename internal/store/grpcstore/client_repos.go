@@ -1012,7 +1012,7 @@ func (a clientRefreshTokens) Touch(ctx context.Context, tenantID, id string, idl
 }
 
 func (a clientRefreshTokens) RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error {
-	r, err := a.c.rpc.RefreshTokensRevokeFamily(ctx, &storev1.RevokeRequest{TxId: a.c.txID, TenantId: tenantID, Key: familyID, At: tsToPB(at)})
+	r, err := refreshRead(a.c, a.c.rpc.RefreshTokensRevokeFamily, a.c.rpc.RefreshIIRevokeFamily)(ctx, &storev1.RevokeRequest{TxId: a.c.txID, TenantId: tenantID, Key: familyID, At: tsToPB(at)})
 	return do("RefreshTokensRevokeFamily", r, err)
 }
 

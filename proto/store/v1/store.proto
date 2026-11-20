@@ -504,6 +504,7 @@ service StoreService {
   rpc RefreshTokensIIWrite(RefreshIIWrite) returns (Result);
   rpc RefreshTokensIICheckRotation(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensIIRotate(RefreshTokensRotateRequest) returns (Result);
+  rpc RefreshIIRevokeFamily(RevokeRequest) returns (Result);
   rpc RefreshTokensConvertNonRotating(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensConvertRotating(RefreshTokensRotateRequest) returns (Result);
   rpc RefreshTokensRevokeByUserClient(RefreshIIRequest) returns (CountResult);

@@ -528,7 +528,8 @@ type RefreshTokens interface {
 	// rotated; otherwise it returns ErrNotFound.
 	Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error
 	// RevokeFamily sets RevokedAt = at on every unrevoked token of the
-	// family. An unknown family is not an error.
+	// family, including its successors in a fresh family after one or more
+	// conversions. An unknown family is not an error.
 	RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error
 	// RevokeByUser sets RevokedAt = at on every unrevoked token of the user
 	// in the tenant and returns how many it revoked. Already revoked tokens

@@ -16,6 +16,14 @@ ALTER TABLE resource_servers ADD COLUMN proof_of_possession TEXT;
 ALTER TABLE resource_servers ADD COLUMN allow_online_access BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE resource_servers ADD COLUMN allow_online_access_with_ephemeral_sessions BOOLEAN NOT NULL DEFAULT FALSE;
 
+CREATE TABLE refresh_family_aliases (
+ tenant_id TEXT NOT NULL,
+ family_id TEXT NOT NULL,
+ current_family TEXT NOT NULL,
+ PRIMARY KEY (tenant_id,family_id)
+);
+CREATE INDEX refresh_family_current ON refresh_family_aliases (tenant_id,current_family);
+
 CREATE TABLE refresh_token_sequences (
  tenant_id TEXT PRIMARY KEY,
  last_order BIGINT NOT NULL

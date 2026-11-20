@@ -20,7 +20,20 @@ const refreshCols = `tenant_id, id, token_hash, family_id, client_id, user_id, s
 // Create retries on deadlock: on MySQL an INSERT can be the victim of a cycle
 // with the sweepers' range DELETEs (gap locks).
 func (r refreshTokens) Create(ctx context.Context, t *store.RefreshToken) error {
-	return r.atomic(ctx, t.TenantID, func(tx *Store) error { return refreshTokens{tx}.insert(ctx, t, t.ParentID) })
+	return r.atomic(ctx, t.TenantID, func(tx *Store) error {
+		if _, err := (refreshTokens{tx}).familyAlias(ctx, t.TenantID, t.FamilyID); err == nil {
+			return store.ErrConflict
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		return (refreshTokens{tx}).insert(ctx, t, t.ParentID)
+	})
+}
+
+func (r refreshTokens) familyAlias(ctx context.Context, tid, family string) (string, error) {
+	var current string
+	err := r.s.queryRow(ctx, "SELECT current_family FROM refresh_family_aliases WHERE tenant_id=? AND family_id=?"+r.s.d.forUpdate, tid, family).Scan(&current)
+	return current, err
 }
 
 // A sequence row is the tenant's write lock, including for the very first
@@ -185,6 +198,12 @@ func (r refreshTokens) transition(ctx context.Context, tid, id string, next *sto
 			if err := (refreshTokens{tx}).retireConversionSources(ctx, old, at); err != nil {
 				return err
 			}
+			if _, err := tx.exec(ctx, "UPDATE refresh_family_aliases SET current_family=? WHERE tenant_id=? AND current_family=?", next.FamilyID, tid, old.FamilyID); err != nil {
+				return err
+			}
+			if _, err := tx.exec(ctx, "INSERT INTO refresh_family_aliases (tenant_id, family_id, current_family) VALUES (?,?,?)", tid, old.FamilyID, next.FamilyID); err != nil {
+				return tx.conflict(err)
+			}
 			return (refreshTokens{tx}).insert(ctx, next, "")
 		}
 		if old.RotatedAt == nil {
@@ -214,6 +233,11 @@ func (r refreshTokens) validateSuccessor(ctx context.Context, old, next *store.R
 	if convert {
 		if next.FamilyID == "" {
 			return store.ErrInvalid
+		}
+		if _, err := r.familyAlias(ctx, old.TenantID, next.FamilyID); err == nil {
+			return store.ErrConflict
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
 		}
 		if err := r.s.queryRow(ctx, "SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE tenant_id=? AND family_id=?)", old.TenantID, next.FamilyID).Scan(&taken); err != nil {
 			return err
@@ -263,7 +287,13 @@ func (r refreshTokens) Touch(ctx context.Context, tenantID, id string, idleExpir
 
 func (r refreshTokens) RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error {
 	return r.atomic(ctx, tenantID, func(tx *Store) error {
-		_, err := revokeUntilStable(ctx, tx, `family_id`, tenantID, familyID, at)
+		current, err := (refreshTokens{tx}).familyAlias(ctx, tenantID, familyID)
+		if errors.Is(err, sql.ErrNoRows) {
+			current = familyID
+		} else if err != nil {
+			return err
+		}
+		_, err = revokeUntilStable(ctx, tx, `family_id`, tenantID, current, at)
 		return err
 	})
 }
@@ -319,7 +349,12 @@ func (r refreshTokens) DeleteExpired(ctx context.Context, before time.Time) (int
 		}
 		total += n
 	}
-	return total, nil
+	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) error {
+		_, err := tx.exec(ctx, `DELETE FROM refresh_family_aliases WHERE NOT EXISTS (
+ SELECT 1 FROM refresh_tokens t WHERE t.tenant_id=refresh_family_aliases.tenant_id AND t.family_id=refresh_family_aliases.current_family)`)
+		return err
+	})
+	return total, err
 }
 
 func scanRefreshToken(row scanner) (*store.RefreshToken, error) {

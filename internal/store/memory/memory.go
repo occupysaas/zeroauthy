@@ -87,6 +87,7 @@ type state struct {
 	txMu                   sync.RWMutex
 	mu                     sync.RWMutex
 	refreshOrder           map[key]uint64
+	refreshFamilyAliases   map[key]string // retired family ID to its current conversion descendant
 	refreshSequence        uint64
 	dpopProofs             replayIndex
 	quotaCounters          map[quotaKey]quotaCounter
@@ -175,6 +176,7 @@ func New() *Store {
 		exchangeProfiles:       map[key]*store.TokenExchangeProfile{},
 		deviceCodes:            map[key]*store.DeviceCode{},
 		refreshOrder:           map[key]uint64{},
+		refreshFamilyAliases:   map[key]string{},
 		dpopProofs:             replayIndex{positions: map[dpopKey]int{}},
 		quotaCounters:          map[quotaKey]quotaCounter{},
 		refreshTokens:          map[key]*store.RefreshToken{},
