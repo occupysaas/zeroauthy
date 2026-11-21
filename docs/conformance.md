@@ -322,3 +322,6 @@ pass. The retained essential-name warning is for a request granting only
 openid: the implementation follows LR41a-4's consent boundary rather than
 returning ungranted profile data. Historical scope/ACR/unsupported-claims
 explanations were removed. No new warning class was accepted.
+
+The post-review acceptance rerun also exited 0 on the final production snapshot
+(`7607f4bc`), results `20261121T050646Z`, with the same module counts above.

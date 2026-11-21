@@ -1,10 +1,11 @@
 # Plan 41a implementation record
 
-Status: **in progress**, starting from `main` commit `18d01994` (Plan 48
-merged). Branch: `plan-41a-oidc-extras-logout`; worktree:
-`/mnt/nvme2/code/zeroauthy-plan41a`. Nothing has been pushed or submitted for
-certification. The full plan remains active until all tasks, final local
-checks and branch review are complete.
+Status: **implementation and local verification complete**, starting from
+`main` commit `18d01994` (Plan 48 merged). Branch:
+`plan-41a-oidc-extras-logout`; worktree:
+`/mnt/nvme2/code/zeroauthy-plan41a`. One independent whole-branch review and
+its regression-tested fix pass are complete. Full plan-branch CI and maintainer
+approval govern integration; formal certification has not been submitted.
 
 ## Progress
 
@@ -15,8 +16,9 @@ checks and branch review are complete.
 5. Task 12: seed and bootstrap committed; real Deploy CLI four-cell round trips passed.
 6. Task 13: all five conformance plans finished, exit 0; hosted kit render/prepare passed.
 7. Task 14: full E2E lane passed (three browser journeys, SDK CRUD, secret scan
-   and four-cell Deploy CLI); final aggregate Go run passed. Final review and plan-branch
-   CI remain pending. No push or PR has been made.
+   and four-cell Deploy CLI); final aggregate Go run and independent review passed.
+   Full plan-branch CI results are reported in the pull request; maintainer approval
+   remains required before merge.
 
 ## Verification
 
@@ -51,8 +53,8 @@ parsing. Errors contain no claim values. `go test ./internal/claims` passed
 (exit 0). The parser is now connected to authorization, PAR and signed request objects; shared selection governs ID tokens and userinfo without widening consent.
 
 Final local verification passed: full Go, logout E2E, five conformance plans,
-vulnerability, workflow and source checks. There is no CI run yet; final review
-remains the gate before pushing.
+vulnerability, workflow and source checks. The independent review and its fix verification are recorded below. Full CI
+results belong to the plan-branch workflow and pull request.
 
 ## Rulings
 
@@ -345,7 +347,7 @@ review rulings, if any, will be appended after review.
 ## Whole-branch review and fix verification
 
 The one fresh-context review covered 18d01994..7a3e8629. Its correctness fixes
-are being verified together: adaptive-policy mandatory enrollment, retained
+were verified together: adaptive-policy mandatory enrollment, retained
 expiry snapshots and draining, transactional lock ordering and participant
 snapshots, retired issuer handling, receiver authority validation, safe outcome
 logging, actual plugin backing capability checks, online/operator session-end
@@ -360,5 +362,37 @@ refresh session is absent or expired. The signer-compatible JSON number type
 preserves registered numeric dates when custom claims are merged. SQL, gRPC,
 actual authorization, exchange/refresh and UserInfo regressions cover the path.
 
-Local verification after these fixes remains pending. Earlier passing runs at
-7a3e8629 do not certify the changed snapshot.
+Post-review aggregate verification on `f149ca5c`: `go test -p 4 ./...` with
+TMPDIR/GOTMPDIR `/dev/shm/za41a` exited 0 (`full-go-reviewed-final.log/.exit`).
+An earlier reviewed-snapshot run exited 1 only because the unit notification
+fixture had not stored its tenant; it now supplies that row and preserves both
+rollback and success assertions. Every session test passed before the aggregate.
+
+Post-review conformance on production snapshot `7607f4bc` exited 0, results
+`20261121T050646Z`: all 84 modules finished with the same documented profile
+counts above. The later commit changes only the session unit fixture.
+
+Post-review `make e2e-logout` exited 0 in isolation: SDK CRUD/privacy checks,
+all three browser journeys and four Deploy CLI cells passed. Protected artifacts:
+`/dev/shm/za41a/tmp.cojeROhML3` (browser/SDK) and
+`/dev/shm/za41a/tmp.IeaOer1qx5` (Deploy CLI). A prior simultaneous run exited 2
+at Deploy CLI startup because conformance already owned host port 8443; its log
+and status remain preserved, rather than being counted as a pass.
+
+All required local implementation gates are satisfied. Full race, SQL-server,
+console reproducibility and all-E2E CI remain the integration checks. No merge
+or formal certification is authorized by these local results.
+
+## Final review rulings
+
+- Final: Ruling: browser cookie replacement during new login remains rotation without logout fanout — it is not an explicit RP/IdP/session-revocation operation, and notifying would sign out existing relying parties during a fresh login — if wrong, an older relying-party session can outlive the browser session switch. Explicitly documented in docs/logout.md; ORT revocation and operator removal now do fanout as session-revoked.
+
+- Final: Ruling: skip notifications for invalid, retired or reassigned historical issuers while committing local termination — never mint under a no-longer-owned issuer, and a retired host cannot block credential/account changes — if wrong, the corresponding relying party misses that logout notice. Transient storage errors still preserve atomic rollback.
+
+- Final: Ruling: reviewer-declined optional Implicit/Hybrid and full-post certification follow the actual inventory/pinned-suite rulings above — implementing unsupported grants or invented plan variants would misrepresent coverage — if wrong, these profiles remain uncertified until separately implemented.
+
+- Final: Ruling: reviewer-declined front-channel logout, Session Transfer Tokens and three stored-only initiators retain the explicit spec exclusions — do not expand this plan — if wrong, applications depending on those mechanisms remain unsupported as documented.
+
+- Final: Ruling: reviewer-declined formal certification remains maintainer-owned after merge; full SQL/race/all-E2E verification remains in plan-branch CI — repository mandates that verification split — if wrong, a CI-only issue may still require another branch fix before approval.
+
+Deferred minor: the older compatibility table at docs/compatibility.md:27 still lists claims parameter/back-channel logout as unimplemented. The later summary and operator docs describe the implemented behavior.
