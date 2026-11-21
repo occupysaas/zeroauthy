@@ -26,6 +26,8 @@ type BootstrapResult struct {
 type BootstrapOptions struct{ ExcludedClientIDs []string }
 
 type exportedClient struct {
+	OIDCLogout               map[string]any       `json:"oidc_logout"`
+	OIDCSupport              map[string]any       `json:"oidc_support"`
 	RequireProofOfPossession bool                 `json:"require_proof_of_possession"`
 	TokenQuota               map[string]any       `json:"token_quota"`
 	NativeSocialLogin        map[string]any       `json:"native_social_login"`
@@ -122,7 +124,7 @@ func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[strin
 			continue
 		}
 		seenID[c.ClientID], seenName[c.Name] = true, true
-		if (c.OIDCConformant != nil && !*c.OIDCConformant) || (c.JWTConfiguration.Alg != "" && c.JWTConfiguration.Alg != "RS256") || c.JWTConfiguration.SecretEncoded {
+		if (c.OIDCConformant != nil && !*c.OIDCConformant) || c.JWTConfiguration.SecretEncoded {
 			return nil, errors.New("deploymigration: source client has unsupported token settings")
 		}
 		if c.JWTConfiguration.Lifetime != 0 {
@@ -145,6 +147,7 @@ func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[strin
 		t.Clients = append(t.Clients, seed.Client{
 			OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 			ClientID: c.ClientID, Name: c.Name, AppType: c.AppType, ClientSecret: secret,
+			OIDCLogout: c.OIDCLogout, OIDCSupport: c.OIDCSupport, JWTConfiguration: &seed.JWTConfiguration{Alg: c.JWTConfiguration.Alg},
 			RequireProofOfPossession: c.RequireProofOfPossession, TokenQuota: c.TokenQuota,
 			Mobile:                  c.Mobile,
 			TokenEndpointAuthMethod: c.AuthMethod, GrantTypes: slices.Clone(c.GrantTypes), Callbacks: slices.Clone(c.Callbacks),

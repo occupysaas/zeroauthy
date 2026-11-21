@@ -80,6 +80,9 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 			}
 		}
 	}
+	if err := checkOIDCStorage(ctx, st, f); err != nil {
+		return err
+	}
 	if err := checkWebAuthnStorage(ctx, st, f); err != nil {
 		return err
 	}
@@ -388,6 +391,11 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 			return err
 		}
 	}
+	if store.ClientNeedsOIDCLogout(c) {
+		if err := store.CheckOIDCLogoutSupport(ctx, st); err != nil {
+			return err
+		}
+	}
 	capable := store.ClientCredentialsAvailable(ctx, st)
 	if err := tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
 		if err := setClient(c, create, in, now, w); err != nil {
@@ -440,6 +448,16 @@ func setClient(c *store.Client, create bool, in Client, now time.Time, w keys.Wr
 			return err
 		}
 		c.Secrets = []store.ClientSecret{{Sealed: sealed, CreatedAt: now}}
+	}
+	if c.IDTokenAlg == "HS256" {
+		if in.usesPrivateKeyJWT() {
+			return errors.New("HS256 requires client-secret authentication")
+		}
+		raw, err := keys.ClientSigningSecret(w, c, now)
+		if err != nil {
+			return err
+		}
+		clear(raw)
 	}
 	return nil
 }

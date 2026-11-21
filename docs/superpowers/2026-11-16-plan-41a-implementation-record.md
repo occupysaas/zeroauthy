@@ -237,3 +237,23 @@ the existing large-chunk warning. Dependency installation used the unchanged
 lockfile with scripts disabled; npm reported 13 moderate dependency findings.
 No dependency update or audit fix was applied as part of this feature.
 Browser E2E and final full-plan verification remain pending.
+
+
+## Task 12 seed and Deploy CLI
+
+Seed clients accept the shared validated oidc_logout/oidc_support objects and
+jwt_configuration.alg/lifetime_in_seconds, retaining id_token_lifetime as the
+legacy spelling and rejecting conflicting values. HS256 checks secret
+availability, authentication method and minimum length; old plugins fail
+before a partial seed applies. Preserved-ID bootstrap carries these fields
+and accepts the implemented signing algorithms.
+
+Both seed and migration package suites passed. The actual unmodified Deploy
+CLI 9.1.0 exported/imported/reimported/exported logout settings, OIDC scope
+restrictions and PS256 in all four cells, exit 0. Logs: task12-deploy.log/.exit;
+protected generated artifacts: /dev/shm/za41a/tmp.jTsvvf8Hht. E2E dependencies
+were reused from an existing install only after the lockfiles matched; no
+package was added. The backend snapshot suite's two OIDC failure-fixture
+regressions were fixed by preserving injected errors in transaction views;
+full OIDC/session package rerun passed (13.317 s / 0.012 s). Its original
+snapshot run remains recorded as exit 1, with all other 17 packages passing.

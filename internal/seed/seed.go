@@ -196,6 +196,11 @@ type Scope struct {
 }
 
 type Client struct {
+	OIDCLogout               map[string]any    `yaml:"oidc_logout"`
+	OIDCSupport              map[string]any    `yaml:"oidc_support"`
+	JWTConfiguration         *JWTConfiguration `yaml:"jwt_configuration"`
+	oidcLogout               *store.OIDCLogout
+	oidcSupport              *store.OIDCSupport
 	TokenQuota               map[string]any `yaml:"token_quota"`
 	RequireProofOfPossession bool           `yaml:"require_proof_of_possession"`
 	ClientID                 string         `yaml:"client_id"`
@@ -254,17 +259,25 @@ type Client struct {
 
 // spec returns the client's settings for clientrules.
 func (c *Client) spec() clientrules.Spec {
+	alg := ""
+	lifetime := c.IDTokenLifetime
+	if c.JWTConfiguration != nil {
+		alg = c.JWTConfiguration.Alg
+		if c.JWTConfiguration.LifetimeInSeconds != nil {
+			lifetime = *c.JWTConfiguration.LifetimeInSeconds
+		}
+	}
 	method := c.TokenEndpointAuthMethod
 	if c.usesPrivateKeyJWT() {
 		// Normalize needs a confidential method; the stored one stays empty.
 		method = store.AuthMethodClientSecretPost
 	}
 	return clientrules.Spec{
-		TokenQuota: c.tokenQuota,
-		Name:       c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
+		TokenQuota: c.tokenQuota, OIDCLogout: c.oidcLogout.Clone(), OIDCSupport: c.oidcSupport.Clone(), IDTokenAlg: alg,
+		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
 		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
-		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,
+		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: lifetime,
 		RefreshToken: clientrules.RefreshToken{
 			Policies:     c.RefreshToken.Policies,
 			RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType,

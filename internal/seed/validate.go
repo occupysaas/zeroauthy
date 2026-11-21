@@ -295,6 +295,9 @@ func (t *Tenant) validate() []error {
 			}
 			c.tokenQuota = q
 		}
+		for _, err := range c.validateOIDC() {
+			fail("client %q: %v", c.ClientID, err)
+		}
 		spec := c.spec()
 		for _, err := range clientrules.Normalize(&spec, t.PushedAuthorizationRequestsSupported) {
 			fail("client %q: %v", c.ClientID, err)

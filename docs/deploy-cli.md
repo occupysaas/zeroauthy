@@ -455,3 +455,14 @@ Native SNS is a zeroauthy extension and is outside the pinned provider schema.
 Use the direct API or seed for these resources; see [phone providers](phone-providers.md)
 and [passwordless](passwordless.md). This is not a claim of four-cell migration
 acceptance for new phone resources.
+
+
+Plan 41a adds client `oidc_logout`, `oidc_support` and
+`jwt_configuration.alg` to seed and preserved-ID bootstrap. The pinned
+Deploy CLI 9.1.0 lane `tests/e2e/run-m41a-logout-deploy.sh` verifies export,
+import, reimport and export in all four YAML/directory × generated/preserved
+ID cells. Its fixtures exercise a back-channel receiver, initiators, optional
+session metadata, explicit OIDC scope restrictions and PS256 ID tokens.
+HS256 seed validation separately requires a confidential application and a
+usable sealed secret of at least 32 characters; plaintext source credentials
+must still be supplied privately when bootstrapping confidential clients.
