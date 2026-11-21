@@ -8,8 +8,8 @@ checks and branch review are complete.
 
 ## Progress
 
-1. Contracts, D-0080 and conformance inventory: in progress.
-2. Compatibility switches: implemented; focused verification passed. Later protocol tasks still need to consume them.
+1. Contracts, D-0080 and conformance inventory: complete (`dd5f5114`).
+2. Compatibility switches: complete (`145311d1`); focused verification passed. Later protocol tasks still need to consume them.
 3. Claims and client OIDC restrictions: in progress. The bounded claims request parser is tested; scope selection and protocol integration remain pending.
 4. MFA step-up and acr: pending.
 5. Client ID-token signing algorithms: pending.
@@ -34,6 +34,9 @@ minimum; no dependency or toolchain downgrade was made.
   and revocation route before the schemas changed; passed afterwards.
 - Schema validation test: failed when both OIDC scope controls were
   permitted; passed after making them mutually exclusive.
+- `go test ./api ./internal/server ./internal/tenantrules ./internal/logrules`:
+  exit 0; server tests took 56.683 seconds. Full log retained in the local
+  plan workspace as task1-tests.log.
 - `make generate`: exit 0.
 - `go build ./...`: exit 0 after adding the generated route's 501 adapter.
 - [Implicit/Hybrid inventory](2026-11-16-plan-41a-conformance-check.md):
@@ -46,7 +49,7 @@ with all three enabled switches producing one warning each. Empty/0/false
 are disabled; 1/true are enabled. Other values fail configuration without
 echoing their contents. Unknown switch names still fail strict decoding.
 
-Task 3's claims parser accepts Core claim requests and ignores unknown
+Task 3's claims parser (`f0d2fa60`) accepts Core claim requests and ignores unknown
 members, validates target/claim object shapes and value controls, rejects
 trailing JSON and invalid UTF-8, and enforces a 4096-byte bound before
 parsing. Errors contain no claim values. `go test ./internal/claims` passed
