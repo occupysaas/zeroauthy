@@ -40,12 +40,38 @@ tenants:
         grant_types: [authorization_code, refresh_token]
         callbacks: ["https://www.certification.openid.net/test/a/@@ALIAS@@/callback"]
         allowed_logout_urls: ["https://www.certification.openid.net/test/a/@@ALIAS@@/post_logout_redirect"]
+      - client_id: za-cert-logout
+        name: Conformance back-channel logout
+        app_type: regular_web
+        client_secret: "@@CLIENT_LOGOUT_SECRET@@"
+        token_endpoint_auth_method: client_secret_basic
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://www.certification.openid.net/test/a/@@ALIAS@@/callback"]
+        allowed_logout_urls: ["https://www.certification.openid.net/test/a/@@ALIAS@@/post_logout_redirect"]
+        oidc_logout:
+          backchannel_logout_urls: ["https://www.certification.openid.net/test/a/@@ALIAS@@/backchannel_logout"]
     connections:
       - name: Username-Password-Authentication
-        enabled_clients: [za-cert-1, za-cert-2, za-cert-post]
+        enabled_clients: [za-cert-1, za-cert-2, za-cert-post, za-cert-logout]
     users:
       - connection: Username-Password-Authentication
         email: conformance@example.com
+        password: "@@USER_PASSWORD@@"
+        email_verified: true
+        name: Conformance User
+        given_name: Conformance
+        family_name: User
+        nickname: conformance
+      - connection: Username-Password-Authentication
+        email: acr-basic@example.com
+        password: "@@USER_PASSWORD@@"
+        email_verified: true
+        name: Conformance User
+        given_name: Conformance
+        family_name: User
+        nickname: conformance
+      - connection: Username-Password-Authentication
+        email: acr-formpost@example.com
         password: "@@USER_PASSWORD@@"
         email_verified: true
         name: Conformance User

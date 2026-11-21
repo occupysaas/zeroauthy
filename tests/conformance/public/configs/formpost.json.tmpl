@@ -249,6 +249,119 @@
                     ]
                 }
             ]
+        },
+        "oidcc-ensure-request-with-acr-values-succeeds": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "acr-formpost@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Use recovery factor",
+                            "match": "*/u/mfa-otp-challenge*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "a[href*=\"action=another\"]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Select recovery code",
+                            "match": "*/u/mfa?*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[value=\"recovery-code\"]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Recovery proof",
+                            "match": "*/u/mfa-recovery-code-challenge*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "code",
+                                    "@@RECOVERY_FORMPOST@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Acknowledge rotated recovery code",
+                            "optional": true,
+                            "match": "*/u/mfa-recovery-code-*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "input[name=ack]"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
         }
     }
 }

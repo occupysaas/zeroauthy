@@ -2,9 +2,9 @@
 # tests/conformance/run.sh: run OpenID Foundation conformance test plans
 # against a seeded zeroauthy built from the working tree. See README.md.
 #
-#   ./tests/conformance/run.sh [basic|config|formpost|logout ...]
+#   ./tests/conformance/run.sh [basic|config|formpost|logout|backchannel ...]
 #
-# With no arguments it runs all four plans. The exit status is
+# With no arguments it runs all five plans. The exit status is
 # run-test-plan.py's. Results go to tests/conformance/results/<timestamp>/.
 # Environment:
 #   CONFORMANCE_RUNTIME  podman (default) or docker
@@ -33,13 +33,14 @@ declare -A plan_spec=(
   [config]="oidcc-config-certification-test-plan config.json"
   [formpost]="oidcc-formpost-basic-certification-test-plan[server_metadata=discovery][client_registration=static_client] formpost.json"
   [logout]="oidcc-rp-initiated-logout-certification-test-plan[response_type=code][client_registration=static_client] logout.json"
+  [backchannel]="oidcc-backchannel-rp-initiated-logout-certification-test-plan[response_type=code][client_registration=static_client] backchannel.json"
 )
 plans=("$@")
-[[ ${#plans[@]} -gt 0 ]] || plans=(basic config formpost logout)
+[[ ${#plans[@]} -gt 0 ]] || plans=(basic config formpost logout backchannel)
 runner_args=()
 for p in "${plans[@]}"; do
   if [[ -z "${plan_spec[$p]:-}" ]]; then
-    echo "unknown plan '$p' (expected basic, config, formpost or logout)" >&2
+    echo "unknown plan '$p' (expected basic, config, formpost, logout or backchannel)" >&2
     exit 2
   fi
   read -r spec cfg <<<"${plan_spec[$p]}"
@@ -123,6 +124,29 @@ export CONFORMANCE_IMAGE_TAG="$tag" CONFORMANCE_WORK="$work" CONFORMANCE_REPO="$
 ZEROAUTHY_MASTER_KEY="$(openssl rand -base64 32)"
 export ZEROAUTHY_MASTER_KEY
 
+# Provision real throwaway second factors and complete standard profile data.
+# The suite browser supports static text commands, so each ACR module uses its
+# own one-use recovery proof and acknowledges its replacement after MFA.
+mkdir -m 700 "$work/configs"
+ZA_RECOVERY_BASIC="$(openssl rand -hex 12)" ZA_RECOVERY_FORMPOST="$(openssl rand -hex 12)" \
+ python3 -I - "$here/configs" "$work/configs" "$work/fixtures.json" <<'PYFIX'
+import json, os, pathlib, sys
+src, dst, fixture = sys.argv[1:]
+values = {k: os.environ["ZA_"+k] for k in ("RECOVERY_BASIC", "RECOVERY_FORMPOST")}
+for path in pathlib.Path(src).glob("*.json"):
+    content = path.read_text()
+    for key, value in values.items(): content = content.replace("@@"+key+"@@",value)
+    output = pathlib.Path(dst)/path.name
+    output.write_text(content); output.chmod(0o600)
+pathlib.Path(fixture).write_text(json.dumps({k.lower():v for k,v in values.items()}))
+pathlib.Path(fixture).chmod(0o600)
+PYFIX
+for i in "${!runner_args[@]}"; do
+ if [[ "${runner_args[$i]}" == "$here/configs/"* ]]; then runner_args[$i]="$work/configs/${runner_args[$i]##*/}"; fi
+done
+ZEROAUTHY_SECURITY__MASTER_KEY="$ZEROAUTHY_MASTER_KEY" go run ./tests/conformance/prepare \
+ --dsn "sqlite://$work/data/conformance.db" --seed "$here/seed.yaml" --fixtures "$work/fixtures.json"
+
 # Per-run CA, and a certificate for zeroauthy signed by it.
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=zeroauthy conformance CA" \
   -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign" \
@@ -131,7 +155,7 @@ openssl req -newkey rsa:2048 -nodes -subj "/CN=zeroauthy.conformance.test" \
   -keyout "$work/tls/key.pem" -out "$work/tls/cert.csr" 2>/dev/null
 openssl x509 -req -in "$work/tls/cert.csr" -CA "$work/tls/ca.pem" -CAkey "$work/tls/ca-key.pem" \
   -CAcreateserial -days 1 -out "$work/tls/cert.pem" \
-  -extfile <(printf 'subjectAltName=DNS:zeroauthy.conformance.test\nextendedKeyUsage=serverAuth\n') 2>/dev/null
+  -extfile <(printf 'subjectAltName=DNS:zeroauthy.conformance.test,DNS:localhost.emobix.co.uk\nextendedKeyUsage=serverAuth\n') 2>/dev/null
 rm -f "$work/tls/ca-key.pem" "$work/tls/cert.csr"
 chmod 644 "$work/tls/"*
 

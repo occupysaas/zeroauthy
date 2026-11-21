@@ -1,14 +1,5 @@
 [
     {
-        "test-name": "oidcc-scope-profile",
-        "variant": "*",
-        "configuration-filename": "*/configs/basic.json",
-        "current-block": "",
-        "condition": "VerifyScopesReturnedInUserInfoClaims",
-        "expected-result": "warning",
-        "comment": "D-0036: extra profile attributes not yet emitted; follow-up"
-    },
-    {
         "test-name": "oidcc-scope-email",
         "variant": "*",
         "configuration-filename": "*/configs/basic.json",
@@ -27,15 +18,6 @@
         "comment": "D-0036: scope claims in the ID token, as Auth0 does"
     },
     {
-        "test-name": "oidcc-ensure-request-with-acr-values-succeeds",
-        "variant": "*",
-        "configuration-filename": "*/configs/basic.json",
-        "current-block": "Verify authorization endpoint response",
-        "condition": "ValidateIdTokenACRClaimAgainstAcrValuesRequest",
-        "expected-result": "warning",
-        "comment": "D-0036: no acr claim; follow-up"
-    },
-    {
         "test-name": "oidcc-codereuse-30seconds",
         "variant": "*",
         "configuration-filename": "*/configs/basic.json",
@@ -43,24 +25,6 @@
         "condition": "EnsureHttpStatusCodeIs4xx",
         "expected-result": "warning",
         "comment": "D-0036 / D-0013: JWT access tokens are not revocable, as on Auth0"
-    },
-    {
-        "test-name": "oidcc-claims-essential",
-        "variant": "*",
-        "configuration-filename": "*/configs/basic.json",
-        "current-block": "",
-        "condition": "EnsureUserInfoContainsName",
-        "expected-result": "warning",
-        "comment": "D-0036: claims request parameter not supported; follow-up"
-    },
-    {
-        "test-name": "oidcc-scope-profile",
-        "variant": "*",
-        "configuration-filename": "*/configs/formpost.json",
-        "current-block": "",
-        "condition": "VerifyScopesReturnedInUserInfoClaims",
-        "expected-result": "warning",
-        "comment": "D-0036: extra profile attributes not yet emitted; follow-up"
     },
     {
         "test-name": "oidcc-scope-email",
@@ -81,15 +45,6 @@
         "comment": "D-0036: scope claims in the ID token, as Auth0 does"
     },
     {
-        "test-name": "oidcc-ensure-request-with-acr-values-succeeds",
-        "variant": "*",
-        "configuration-filename": "*/configs/formpost.json",
-        "current-block": "Verify authorization endpoint response",
-        "condition": "ValidateIdTokenACRClaimAgainstAcrValuesRequest",
-        "expected-result": "warning",
-        "comment": "D-0036: no acr claim; follow-up"
-    },
-    {
         "test-name": "oidcc-codereuse-30seconds",
         "variant": "*",
         "configuration-filename": "*/configs/formpost.json",
@@ -101,10 +56,19 @@
     {
         "test-name": "oidcc-claims-essential",
         "variant": "*",
+        "configuration-filename": "*/configs/basic.json",
+        "current-block": "",
+        "condition": "EnsureUserInfoContainsName",
+        "expected-result": "warning",
+        "comment": "D-0080 / LR41a-4: the module requests name with openid only; name needs profile scope consent. Core 5.5 permits declining essential claims. Supporting claims does not widen granted scopes."
+    },
+    {
+        "test-name": "oidcc-claims-essential",
+        "variant": "*",
         "configuration-filename": "*/configs/formpost.json",
         "current-block": "",
         "condition": "EnsureUserInfoContainsName",
         "expected-result": "warning",
-        "comment": "D-0036: claims request parameter not supported; follow-up"
+        "comment": "D-0080 / LR41a-4: the module requests name with openid only; name needs profile scope consent. Core 5.5 permits declining essential claims. Supporting claims does not widen granted scopes."
     }
 ]

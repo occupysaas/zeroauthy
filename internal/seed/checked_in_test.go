@@ -51,6 +51,7 @@ func TestPublicSeedTemplate(t *testing.T) {
 		"@@CLIENT1_SECRET@@", strings.Repeat("a1", 32),
 		"@@CLIENT2_SECRET@@", strings.Repeat("b2", 32),
 		"@@CLIENT_POST_SECRET@@", strings.Repeat("c3", 32),
+		"@@CLIENT_LOGOUT_SECRET@@", strings.Repeat("d4", 32),
 		"@@USER_PASSWORD@@", "Za-0123456789abcdef01234567",
 	).Replace(string(tmpl))
 	if strings.Contains(rendered, "@@") {
@@ -72,7 +73,7 @@ func TestPublicSeedTemplate(t *testing.T) {
 	if len(tn.Domains) != 1 || tn.Domains[0] != "auth.example.com" {
 		t.Errorf("domains = %v", tn.Domains)
 	}
-	for _, id := range []string{"za-cert-1", "za-cert-2", "za-cert-post"} {
+	for _, id := range []string{"za-cert-1", "za-cert-2", "za-cert-post", "za-cert-logout"} {
 		c, err := st.Clients().Get(ctx, tn.ID, id)
 		if err != nil {
 			t.Fatalf("client %s: %v", id, err)

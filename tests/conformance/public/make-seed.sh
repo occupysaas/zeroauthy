@@ -8,7 +8,7 @@
 #           https://www.certification.openid.net/test/a/ALIAS/callback)
 #   OUTDIR  where to write; must be outside the repository
 #
-# Writes OUTDIR/seed.yaml, OUTDIR/configs/{basic,config,formpost,logout}.json
+# Writes OUTDIR/seed.yaml, OUTDIR/configs/{basic,config,formpost,logout,backchannel}.json
 # and OUTDIR/secrets.txt, with fresh random client secrets and a fresh user
 # password. The hosted suite publishes its logs, so these secrets are
 # throwaway: never reuse them and never commit the output.
@@ -43,7 +43,7 @@ case "$out_abs/" in
     exit 1
     ;;
 esac
-for f in seed.yaml secrets.txt configs; do
+for f in seed.yaml secrets.txt fixtures.json configs; do
   if [[ -e "$out_abs/$f" ]]; then
     echo "$out_abs/$f already exists; refusing to overwrite a rendered kit (delete it or pick another OUTDIR)" >&2
     exit 1
@@ -58,18 +58,21 @@ mkdir -p "$out_abs/configs"
 client1_secret="$(openssl rand -hex 32)"
 client2_secret="$(openssl rand -hex 32)"
 client_post_secret="$(openssl rand -hex 32)"
+client_logout_secret="$(openssl rand -hex 32)"
 user_password="Za-$(openssl rand -hex 12)"
+recovery_basic="$(openssl rand -hex 12)"
+recovery_formpost="$(openssl rand -hex 12)"
 
 # The secrets reach the substitution through the environment of one child
 # process, never its command line, so they do not show up in ps.
 render() {
   ZA_HOST="$host" ZA_ALIAS="$alias" ZA_CLIENT1_SECRET="$client1_secret" \
-    ZA_CLIENT2_SECRET="$client2_secret" ZA_CLIENT_POST_SECRET="$client_post_secret" \
-    ZA_USER_PASSWORD="$user_password" python3 -I - "$1" "$2" <<'PY'
+    ZA_CLIENT2_SECRET="$client2_secret" ZA_CLIENT_POST_SECRET="$client_post_secret" ZA_CLIENT_LOGOUT_SECRET="$client_logout_secret" \
+    ZA_USER_PASSWORD="$user_password" ZA_RECOVERY_BASIC="$recovery_basic" ZA_RECOVERY_FORMPOST="$recovery_formpost" python3 -I - "$1" "$2" <<'PY'
 import os, sys
 src, dst = sys.argv[1:]
 text = open(src).read()
-for name in ("HOST", "ALIAS", "CLIENT1_SECRET", "CLIENT2_SECRET", "CLIENT_POST_SECRET", "USER_PASSWORD"):
+for name in ("HOST", "ALIAS", "CLIENT1_SECRET", "CLIENT2_SECRET", "CLIENT_POST_SECRET", "CLIENT_LOGOUT_SECRET", "USER_PASSWORD", "RECOVERY_BASIC", "RECOVERY_FORMPOST"):
     text = text.replace("@@" + name + "@@", os.environ["ZA_" + name])
 with open(dst, "w") as f:
     f.write(text)
@@ -81,7 +84,8 @@ PY
 }
 
 render "$here/seed.yaml.tmpl" "$out_abs/seed.yaml"
-for p in basic config formpost logout; do
+render "$here/fixtures.json.tmpl" "$out_abs/fixtures.json"
+for p in basic config formpost logout backchannel; do
   render "$here/configs/$p.json.tmpl" "$out_abs/configs/$p.json"
 done
 
@@ -96,6 +100,7 @@ post_logout_redirect=https://www.certification.openid.net/test/a/$alias/post_log
 za-cert-1 (client_secret_basic)=$client1_secret
 za-cert-2 (client_secret_basic)=$client2_secret
 za-cert-post (client_secret_post)=$client_post_secret
+za-cert-logout (client_secret_basic)=$client_logout_secret
 user conformance@example.com password=$user_password
 EOF
 

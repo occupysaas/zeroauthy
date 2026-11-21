@@ -3,8 +3,8 @@
 Runs the OpenID Foundation conformance suite (https://gitlab.com/openid/conformance-suite) against a zeroauthy built from the working tree. It runs on demand, not on every push. User guide, expected-failure process and certification checklist: `docs/conformance.md`. The design is in `docs/superpowers/specs/2026-10-17-zeroauthy-oidf-conformance-design.md`.
 
 ```bash
-make conformance                 # all four plans
-make conformance PLANS=config    # only some: basic, config, formpost, logout
+make conformance                 # all five plans
+make conformance PLANS=config    # only some: basic, config, formpost, logout, backchannel
 ./tests/conformance/run.sh config logout
 CONFORMANCE_RUNTIME=docker ./tests/conformance/run.sh   # docker instead of podman (CI)
 CONFORMANCE_KEEP=1 ./tests/conformance/run.sh config    # leave everything up to debug
