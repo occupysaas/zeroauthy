@@ -432,3 +432,27 @@ returned 200), then passed with it (429); all three existing browser journeys,
 SDK/privacy checks and all four logout Deploy CLI cells also passed. Protected
 artifacts: `/dev/shm/za41a/tmp.3IyVlnaQbl` and `/dev/shm/za41a/tmp.cKu8UvkLuR`.
 No production dependency, authorization bypass or scanner suppression was added.
+
+## Race-suite timeout and the single rerun
+
+At `66f838ea`, full plan-branch run 44875768271 passed the SQL matrix (56m43s),
+every E2E lane, conformance, console and vulnerability checks. All PR checks,
+including CodeQL, passed. Its race job 136760086203 failed at the unchanged
+60-minute per-package limit in grpcstore and sqlstore, without a reported race
+or assertion failure. The active tests were older Actions-II queue-cap and
+Guardian cases, advancing through fresh database migrations. The preceding
+successful Plan 48 run 44816878045 took 2058s/2301s in those packages.
+
+After reading both logs, the single permitted failed-job rerun was used and
+recorded in the PR. Job 136782514634 timed out too (1h18m50s job total), in
+older Logs/Guardian cases and migration setup. No second unchanged rerun was
+requested. Both failures are retained in the plan evidence and PR.
+
+The CI race tier now places test temporary files at short tmpfs path
+`/dev/shm/za-test`, reducing repeated SQLite migration disk I/O, with compiler
+scratch explicitly on disk at `/tmp/za-build`. The exact `go test -race
+-timeout=60m ./...` command, coverage, migration semantics, assertions and
+permissions are retained. Focused race tests covering SQL authorization-code
+round trips, Guardian setup, old-plugin queue-cap and capability refusal passed
+(SQL 5.049s, gRPC 69.156s); zizmor passed with existing suppressions. Full CI on
+the workflow change remains the required final gate.
