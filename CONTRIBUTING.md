@@ -101,6 +101,35 @@ Contributors work from a fork. Nobody pushes directly to this repository.
 5. Open a pull request against `main` and complete the template, including
    the clean-room checklist. Merging needs green CI and maintainer approval.
 
+## Running tests by area
+
+`go test ./...` runs everything. To run the area you are working on, use the
+same groups CI uses (`scripts/test-group.sh`):
+
+```bash
+make test-groups                      # groups and their packages
+make test-group G=protocol            # oauth, oidc, authz, login, hostedlogin, webauthn
+make test-group G=mgmt ARGS=-race     # mgmt, server, app, seed, api
+make test-group G=tenant-code         # actions, noderunner, customdb, dbconn, federation
+make test-group G=store-sqlite        # the SQL store (SQLite; see scripts/test-sql.sh for the servers)
+make test-group G=store-grpc          # the gRPC storage plugin
+make test-group G=rest                # every package no other group names
+```
+
+CI runs each group as its own `go test -race` job. The two store groups are
+split further into shards (`store-sqlite:1` … `:3` and `:other`): shards 1–3
+run the shared `pkg/storetest` conformance suite by area, `:other` runs the
+package's remaining tests. To run one storetest area against a driver:
+
+```bash
+ZA_STORETEST_AREAS=oauth go test -run '^TestConformance$' ./internal/store/sqlstore
+```
+
+The areas are `identity`, `oauth`, `orgs`, `runtime` and `tenancy`
+(`storetest.Areas`); `ZA_STORETEST_SKIP_AREAS` runs every area except the
+ones named. A new suite must be added to an area, or `pkg/storetest`'s own
+test fails.
+
 ## Licence and sign-off (DCO)
 
 zeroauthy is licensed under the [Apache License 2.0](LICENSE). Under section 5

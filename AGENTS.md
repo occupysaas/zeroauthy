@@ -56,7 +56,7 @@ Apply this protocol to delegated agents as well as the controller. It changes mo
 
 Full verification of a plan runs in GitHub Actions, not as a local sequential run (maintainer, 2026-11-07):
 
-- During a task, run that task's focused tests.
+- During a task, run that task's focused tests. `make test-group G=<area>` runs one area as CI does (`make test-groups` lists them; see CONTRIBUTING.md).
 - At the end of a plan, run a fast local tier: `go test ./...` (no `-race`) with `TMPDIR`/`GOTMPDIR` on a short tmpfs path such as `/dev/shm/<name>` (Unix socket paths must stay under 108 bytes), plus the plan's own E2E suite.
 - Only after all implementation tasks, required local checks and final
   review are complete, push the plan branch (`plan-*`; never `main`). `.github/workflows/plan-branch.yml` runs race tests, the SQL databases, the console build, every E2E suite in parallel and conformance. Pushing plan branches needs no further approval.
