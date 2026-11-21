@@ -18,6 +18,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/events"
@@ -168,9 +169,13 @@ func (a authAPI) PasskeyAppleAssociation(w http.ResponseWriter, r *http.Request)
 func (a authAPI) PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Request) {
 	a.oauth.Passkeys.WellKnown(w, r)
 }
-func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request)  { a.oauth.OauthToken(w, r) }
+func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request, _ authapi.OauthTokenParams) {
+	a.oauth.OauthToken(w, r)
+}
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.OauthRevoke(w, r) }
-func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request)    { a.oauth.OauthPar(w, r) }
+func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.OauthParParams) {
+	a.oauth.OauthPar(w, r)
+}
 func (a authAPI) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 	a.oauth.OauthDeviceCode(w, r)
 }
@@ -300,9 +305,11 @@ func New(d Deps) http.Handler {
 				next.ServeHTTP(w, r.WithContext(logs.WithRecorder(r.Context(), d.Recorder)))
 			})
 		})
+		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
-			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
+			oidc: &oidc.Handlers{DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
+				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,
 				Passkeys:   d.Passkeys,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -72,6 +73,9 @@ func Organization(o store.Organization) map[string]any {
 		"id": o.ID, "name": o.Name, "display_name": o.DisplayName,
 		"third_party_client_access": o.ThirdPartyClientAccess,
 		"is_app_entitlement_active": o.IsAppEntitlementActive,
+	}
+	if o.TokenQuota != nil {
+		out["token_quota"] = quotarules.PublicTokenQuota(o.TokenQuota)
 	}
 	if b := o.Branding; b != nil {
 		branding := map[string]any{}

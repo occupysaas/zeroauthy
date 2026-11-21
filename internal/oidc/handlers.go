@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -19,6 +20,7 @@ import (
 const metadataCacheControl = "public, max-age=300"
 
 type Handlers struct {
+	DPoP     *dpop.Service
 	Keys     *keys.Manager
 	Store    store.Store
 	Sessions *session.Manager
@@ -36,12 +38,13 @@ func (h *Handlers) now() time.Time {
 // Configuration is OpenID Provider metadata (OpenID Connect Discovery 1.0
 // §3). It lists only what this server implements.
 type Configuration struct {
-	Issuer                             string `json:"issuer"`
-	AuthorizationEndpoint              string `json:"authorization_endpoint"`
-	TokenEndpoint                      string `json:"token_endpoint"`
-	RevocationEndpoint                 string `json:"revocation_endpoint"`
-	DeviceAuthorizationEndpoint        string `json:"device_authorization_endpoint,omitempty"`
-	PushedAuthorizationRequestEndpoint string `json:"pushed_authorization_request_endpoint,omitempty"`
+	DPoPSigningAlgValuesSupported      []string `json:"dpop_signing_alg_values_supported,omitempty"`
+	Issuer                             string   `json:"issuer"`
+	AuthorizationEndpoint              string   `json:"authorization_endpoint"`
+	TokenEndpoint                      string   `json:"token_endpoint"`
+	RevocationEndpoint                 string   `json:"revocation_endpoint"`
+	DeviceAuthorizationEndpoint        string   `json:"device_authorization_endpoint,omitempty"`
+	PushedAuthorizationRequestEndpoint string   `json:"pushed_authorization_request_endpoint,omitempty"`
 	// RequestURIParameterSupported is always false (D-0030): request_uri is
 	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
 	RequestURIParameterSupported bool `json:"request_uri_parameter_supported"`
@@ -107,6 +110,9 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	}
 	if res.Tenant.PushedAuthorizationRequestsSupported {
 		cfg.PushedAuthorizationRequestEndpoint = base + "/oauth/par" // P8
+	}
+	if h.Store != nil && store.CheckRefreshTokensIISupport(r.Context(), h.Store) == nil {
+		cfg.DPoPSigningAlgValuesSupported = []string{"ES256", "RS256"}
 	}
 	httpx.WriteJSON(w, http.StatusOK, cfg)
 }

@@ -12,7 +12,7 @@ func TestOrganizationsIIDeployRoundTrip(t *testing.T) {
 	for _, format := range []string{"yaml", "directory"} {
 		t.Run(format, func(t *testing.T) {
 			for _, body := range []string{
-				`[{"name":"example","token_quota":{"client_credentials":{"per_day":100}}}]`,
+				`[{"name":"example","token_quota":{"client_credentials":{"per_day":0}}}]`,
 				`[{"name":"example","connections":[{"name":"Db","organization_member_access_level":"full"}]}]`,
 				`[{"name":"example","discovery_domains":[{"domain":"example.test","status":"verified"}]}]`,
 				`[{"name":"example","invitations":[{"invitation_url":"secret"}]}]`,
@@ -62,5 +62,13 @@ func TestOrganizationsIIDeployRoundTripRejectsAmbiguousGrantReference(t *testing
 	source.Resources["clientGrants"] = json.RawMessage(`[]`)
 	if e := ValidateOrganizations(source); e == nil {
 		t.Fatal("unresolved grant mapping accepted")
+	}
+}
+
+func TestOrganizationsRefreshTokenQuota(t *testing.T) {
+	for _, body := range []string{`[{"name":"example","token_quota":{"client_credentials":{"per_day":100}}}]`, `[{"name":"example","token_quota":null}]`} {
+		if err := ValidateOrganizations(Export{Resources: map[string]json.RawMessage{"organizations": json.RawMessage(body)}}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

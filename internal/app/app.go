@@ -176,6 +176,12 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	for _, opt := range opts {
 		opt(&o)
 	}
+	if err := store.CheckRefreshTokensIISupport(ctx, st); err != nil {
+		if !errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+			return nil, fmt.Errorf("app: refresh token storage capability: %w", err)
+		}
+		log.Warn("storage plugin lacks refresh_tokens_ii.v1; refresh token rotation uses legacy leeway semantics")
+	}
 	if capable, ok := st.(store.RBACSupporter); ok {
 		if err := capable.CheckRBACSupport(ctx); err != nil {
 			return nil, fmt.Errorf("app: RBAC storage capability required: %w", err)

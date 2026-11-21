@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -224,6 +225,16 @@ func readOrgBody(r *http.Request, o *store.Organization, create bool) ([]store.O
 	hasConns := false
 	for k, raw := range body {
 		switch k {
+		case "token_quota":
+			var value any
+			if err := json.Unmarshal(raw, &value); err != nil {
+				return nil, false, badBody("invalid token quota")
+			}
+			q, err := quotarules.PatchTokenQuota(o.TokenQuota, value, "token_quota")
+			if err != nil {
+				return nil, false, badBody("%s", err)
+			}
+			o.TokenQuota = q
 		case "name":
 			if decodeString(raw, &o.Name) != nil {
 				return nil, false, badBody("name must be a string")
@@ -356,6 +367,12 @@ func (h *Handlers) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
+	if o.TokenQuota != nil {
+		if err := checkMRRTSupport(r.Context(), h.Store); err != nil {
+			h.failTx(w, r, "configure token quota", err)
+			return
+		}
+	}
 	if o.IsAppEntitlementActive && !h.orgIIAvailable(w, r) {
 		return
 	}
@@ -440,6 +457,11 @@ func (h *Handlers) UpdateOrganization(w http.ResponseWriter, r *http.Request, id
 		}
 		if _, _, err := readOrgBody(r, o, false); err != nil {
 			return err
+		}
+		if o.TokenQuota != nil {
+			if err := checkMRRTSupport(r.Context(), tx); err != nil {
+				return err
+			}
 		}
 		if o.IsAppEntitlementActive {
 			if c, ok := h.Store.(store.OrganizationsIISupporter); ok {

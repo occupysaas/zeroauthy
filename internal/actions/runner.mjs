@@ -407,6 +407,7 @@ function buildApi(req, commands, event, parse) {
   api.groups = { getUserGroups: () => out({ groups: [] }), hasGroupMembership: () => Promise.resolve(false) };
   api.rules = { wasExecuted: () => false };
   for (const name of unsupportedNamespaces) api[name] = unsupported(name);
+  api.refreshToken = ns('refreshToken', ['revoke']);
   api.multifactor = ns('multifactor', ['enable']);
   api.authentication = ns('authentication', ['challengeWith', 'challengeWithAny', 'enrollWith', 'enrollWithAny', 'setUserById', 'setUserByConnection', 'setOrganization', 'setActor']);
 

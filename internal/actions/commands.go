@@ -181,6 +181,14 @@ func (a *accum) apply(c command) error {
 	switch c.Op {
 	case "multifactor.enable", "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny":
 		return a.applyMFA(c)
+	case "refreshToken.revoke":
+		if err := argCount(c, 0, 1); err != nil {
+			return err
+		}
+		if _, err := optString(c, 0, "reason"); err != nil {
+			return err
+		}
+		a.eff.RefreshTokenRevoke = true
 	case "access.deny":
 		return a.deny(c)
 	case "validation.error":

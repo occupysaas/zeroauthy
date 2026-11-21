@@ -268,6 +268,24 @@ func (e MFARequiredError) Valid() bool {
 	}
 }
 
+// Defines values for OpenIDConfigurationDpopSigningAlgValuesSupported.
+const (
+	OpenIDConfigurationDpopSigningAlgValuesSupportedES256 OpenIDConfigurationDpopSigningAlgValuesSupported = "ES256"
+	OpenIDConfigurationDpopSigningAlgValuesSupportedRS256 OpenIDConfigurationDpopSigningAlgValuesSupported = "RS256"
+)
+
+// Valid indicates whether the value is a known member of the OpenIDConfigurationDpopSigningAlgValuesSupported enum.
+func (e OpenIDConfigurationDpopSigningAlgValuesSupported) Valid() bool {
+	switch e {
+	case OpenIDConfigurationDpopSigningAlgValuesSupportedES256:
+		return true
+	case OpenIDConfigurationDpopSigningAlgValuesSupportedRS256:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OpenIDConfigurationRequestObjectSigningAlgValuesSupported.
 const (
 	OpenIDConfigurationRequestObjectSigningAlgValuesSupportedPS256 OpenIDConfigurationRequestObjectSigningAlgValuesSupported = "PS256"
@@ -506,6 +524,7 @@ type AuthorizeRequest struct {
 	CodeChallenge       *string `json:"code_challenge,omitempty"`
 	CodeChallengeMethod *string `json:"code_challenge_method,omitempty"`
 	Connection          *string `json:"connection,omitempty"`
+	DpopJkt             *string `json:"dpop_jkt,omitempty"`
 	Invitation          *string `json:"invitation,omitempty"`
 	LoginHint           *string `json:"login_hint,omitempty"`
 	MaxAge              *string `json:"max_age,omitempty"`
@@ -727,15 +746,16 @@ type OidcLogoutRequest struct {
 
 // OpenIDConfiguration defines model for OpenIDConfiguration.
 type OpenIDConfiguration struct {
-	AuthorizationEndpoint            string    `json:"authorization_endpoint"`
-	ClaimsSupported                  *[]string `json:"claims_supported,omitempty"`
-	CodeChallengeMethodsSupported    *[]string `json:"code_challenge_methods_supported,omitempty"`
-	DeviceAuthorizationEndpoint      *string   `json:"device_authorization_endpoint,omitempty"`
-	EndSessionEndpoint               *string   `json:"end_session_endpoint,omitempty"`
-	GrantTypesSupported              *[]string `json:"grant_types_supported,omitempty"`
-	IdTokenSigningAlgValuesSupported []string  `json:"id_token_signing_alg_values_supported"`
-	Issuer                           string    `json:"issuer"`
-	JwksUri                          string    `json:"jwks_uri"`
+	AuthorizationEndpoint            string                                              `json:"authorization_endpoint"`
+	ClaimsSupported                  *[]string                                           `json:"claims_supported,omitempty"`
+	CodeChallengeMethodsSupported    *[]string                                           `json:"code_challenge_methods_supported,omitempty"`
+	DeviceAuthorizationEndpoint      *string                                             `json:"device_authorization_endpoint,omitempty"`
+	DpopSigningAlgValuesSupported    *[]OpenIDConfigurationDpopSigningAlgValuesSupported `json:"dpop_signing_alg_values_supported,omitempty"`
+	EndSessionEndpoint               *string                                             `json:"end_session_endpoint,omitempty"`
+	GrantTypesSupported              *[]string                                           `json:"grant_types_supported,omitempty"`
+	IdTokenSigningAlgValuesSupported []string                                            `json:"id_token_signing_alg_values_supported"`
+	Issuer                           string                                              `json:"issuer"`
+	JwksUri                          string                                              `json:"jwks_uri"`
 
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
@@ -762,6 +782,9 @@ type OpenIDConfiguration struct {
 	TokenEndpointAuthSigningAlgValuesSupported *[]OpenIDConfigurationTokenEndpointAuthSigningAlgValuesSupported `json:"token_endpoint_auth_signing_alg_values_supported,omitempty"`
 	UserinfoEndpoint                           *string                                                          `json:"userinfo_endpoint,omitempty"`
 }
+
+// OpenIDConfigurationDpopSigningAlgValuesSupported defines model for OpenIDConfiguration.DpopSigningAlgValuesSupported.
+type OpenIDConfigurationDpopSigningAlgValuesSupported string
 
 // OpenIDConfigurationRequestObjectSigningAlgValuesSupported defines model for OpenIDConfiguration.RequestObjectSigningAlgValuesSupported.
 type OpenIDConfigurationRequestObjectSigningAlgValuesSupported string
@@ -867,7 +890,7 @@ type PasswordlessStartResponse struct {
 	PhoneVerified *bool   `json:"phone_verified,omitempty"`
 }
 
-// PushedAuthorizationRequest The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
+// PushedAuthorizationRequest The `/authorize` parameters (including dpop_jkt), plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
 type PushedAuthorizationRequest struct {
 	Audience *string `json:"audience,omitempty"`
 
@@ -981,7 +1004,11 @@ type TokenFormRequest struct {
 	// ActorTokenType Required with `actor_token`.
 	ActorTokenType *string `json:"actor_token_type,omitempty"`
 
-	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	// Audience Identifier of the API the token is for. On the refresh grant it
+	// defaults to the refresh token's original audience. A different
+	// audience must be allowed by the client's refresh token policies
+	// (D-0070). Other grants use the tenant's default audience when
+	// applicable.
 	Audience      *string                         `json:"audience,omitempty"`
 	AuthSession   *string                         `json:"auth_session,omitempty"`
 	AuthnResponse *TokenFormRequest_AuthnResponse `json:"authn_response,omitempty"`
@@ -1024,7 +1051,10 @@ type TokenFormRequest struct {
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
-	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	// Scope Space-separated scopes to request. On the refresh grant the
+	// original scopes and any applicable refresh token policy determine
+	// the scopes that can be issued. On the client-credentials grant the
+	// default is all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
 	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
@@ -1062,7 +1092,11 @@ type TokenRequest struct {
 	// ActorTokenType Required with `actor_token`.
 	ActorTokenType *string `json:"actor_token_type,omitempty"`
 
-	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	// Audience Identifier of the API the token is for. On the refresh grant it
+	// defaults to the refresh token's original audience. A different
+	// audience must be allowed by the client's refresh token policies
+	// (D-0070). Other grants use the tenant's default audience when
+	// applicable.
 	Audience      *string                     `json:"audience,omitempty"`
 	AuthSession   *string                     `json:"auth_session,omitempty"`
 	AuthnResponse *TokenRequest_AuthnResponse `json:"authn_response,omitempty"`
@@ -1105,7 +1139,10 @@ type TokenRequest struct {
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
-	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	// Scope Space-separated scopes to request. On the refresh grant the
+	// original scopes and any applicable refresh token policy determine
+	// the scopes that can be issued. On the client-credentials grant the
+	// default is all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
 	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
@@ -1146,7 +1183,11 @@ type TokenRequestFields struct {
 	// ActorTokenType Required with `actor_token`.
 	ActorTokenType *string `json:"actor_token_type,omitempty"`
 
-	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
+	// Audience Identifier of the API the token is for. On the refresh grant it
+	// defaults to the refresh token's original audience. A different
+	// audience must be allowed by the client's refresh token policies
+	// (D-0070). Other grants use the tenant's default audience when
+	// applicable.
 	Audience      *string                           `json:"audience,omitempty"`
 	AuthSession   *string                           `json:"auth_session,omitempty"`
 	AuthnResponse *TokenRequestFields_AuthnResponse `json:"authn_response,omitempty"`
@@ -1189,7 +1230,10 @@ type TokenRequestFields struct {
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
-	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
+	// Scope Space-separated scopes to request. On the refresh grant the
+	// original scopes and any applicable refresh token policy determine
+	// the scopes that can be issued. On the client-credentials grant the
+	// default is all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 
 	// SubjectToken The external token to exchange, or an Apple authorization code for the native Apple type (D-0170). Never logged.
@@ -1234,7 +1278,7 @@ type TokenResponse struct {
 	RefreshToken *string `json:"refresh_token,omitempty"`
 	Scope        *string `json:"scope,omitempty"`
 
-	// TokenType Examples: Bearer
+	// TokenType Examples: Bearer, DPoP
 	TokenType string `json:"token_type"`
 }
 
@@ -1314,6 +1358,9 @@ type AuthorizeParams struct {
 	// UiLocales Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it.
 	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
 
+	// DpopJkt RFC 9449 authorization-code key thumbprint.
+	DpopJkt *string `form:"dpop_jkt,omitempty" json:"dpop_jkt,omitempty"`
+
 	// RequestUri A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match.
 	RequestUri *string `form:"request_uri,omitempty" json:"request_uri,omitempty"`
 
@@ -1330,6 +1377,18 @@ type AuthorizeParams struct {
 // DbconnectionsSignup400JSONResponseBody defines parameters for DbconnectionsSignup.
 type DbconnectionsSignup400JSONResponseBody struct {
 	union json.RawMessage
+}
+
+// OauthParParams defines parameters for OauthPar.
+type OauthParParams struct {
+	// DPoP Optional RFC 9449 PAR key binding.
+	DPoP *string `json:"DPoP,omitempty"`
+}
+
+// OauthTokenParams defines parameters for OauthToken.
+type OauthTokenParams struct {
+	// DPoP RFC 9449 compact proof JWT.
+	DPoP *string `json:"DPoP,omitempty"`
 }
 
 // OauthToken403JSONResponseBody defines parameters for OauthToken.
@@ -2314,13 +2373,13 @@ type ServerInterface interface {
 	OauthDeviceCode(w http.ResponseWriter, r *http.Request)
 	// OauthPar Push an authorization request
 	// (POST /oauth/par)
-	OauthPar(w http.ResponseWriter, r *http.Request)
+	OauthPar(w http.ResponseWriter, r *http.Request, params OauthParParams)
 	// OauthRevoke Revoke a refresh token
 	// (POST /oauth/revoke)
 	OauthRevoke(w http.ResponseWriter, r *http.Request)
 	// OauthToken Get a token
 	// (POST /oauth/token)
-	OauthToken(w http.ResponseWriter, r *http.Request)
+	OauthToken(w http.ResponseWriter, r *http.Request, params OauthTokenParams)
 	// OidcLogout Log the user out (OpenID Connect RP-Initiated Logout)
 	// (GET /oidc/logout)
 	OidcLogout(w http.ResponseWriter, r *http.Request, params OidcLogoutParams)
@@ -2437,7 +2496,7 @@ func (_ Unimplemented) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 
 // OauthPar Push an authorization request
 // (POST /oauth/par)
-func (_ Unimplemented) OauthPar(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) OauthPar(w http.ResponseWriter, r *http.Request, params OauthParParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2449,7 +2508,7 @@ func (_ Unimplemented) OauthRevoke(w http.ResponseWriter, r *http.Request) {
 
 // OauthToken Get a token
 // (POST /oauth/token)
-func (_ Unimplemented) OauthToken(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) OauthToken(w http.ResponseWriter, r *http.Request, params OauthTokenParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2795,6 +2854,19 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// ------------- Optional query parameter "dpop_jkt" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "dpop_jkt", r.URL.Query(), &params.DpopJkt, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "dpop_jkt"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "dpop_jkt", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "request_uri" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "request_uri", r.URL.Query(), &params.RequestUri, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
@@ -2985,8 +3057,35 @@ func (siw *ServerInterfaceWrapper) OauthDeviceCode(w http.ResponseWriter, r *htt
 // OauthPar operation middleware
 func (siw *ServerInterfaceWrapper) OauthPar(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params OauthParParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "DPoP" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("DPoP")]; found {
+		var DPoP string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "DPoP", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "DPoP", valueList[0], &DPoP, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "DPoP", Err: err})
+			return
+		}
+
+		params.DPoP = &DPoP
+
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.OauthPar(w, r)
+		siw.Handler.OauthPar(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3013,8 +3112,35 @@ func (siw *ServerInterfaceWrapper) OauthRevoke(w http.ResponseWriter, r *http.Re
 // OauthToken operation middleware
 func (siw *ServerInterfaceWrapper) OauthToken(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params OauthTokenParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "DPoP" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("DPoP")]; found {
+		var DPoP string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "DPoP", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "DPoP", valueList[0], &DPoP, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "DPoP", Err: err})
+			return
+		}
+
+		params.DPoP = &DPoP
+
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.OauthToken(w, r)
+		siw.Handler.OauthToken(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {

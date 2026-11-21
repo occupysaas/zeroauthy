@@ -91,6 +91,23 @@ func purgePhone(ctx context.Context, st store.Store, before time.Time) (int, err
 	return total, nil
 }
 
+func purgeRefreshII(purge func(context.Context, time.Time, int) (int, error)) func(context.Context, time.Time) (int, error) {
+	return func(ctx context.Context, before time.Time) (int, error) {
+		total := 0
+		for range mfaPurgeBatches {
+			n, err := purge(ctx, before, mfaPurgeBatch)
+			if errors.Is(err, store.ErrRefreshTokensIIUnavailable) {
+				return total, nil
+			}
+			total += n
+			if err != nil || n < mfaPurgeBatch {
+				return total, err
+			}
+		}
+		return total, nil
+	}
+}
+
 // sweep deletes expired records and returns how many it removed. A failure
 // in one kind of record does not stop the others.
 func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
@@ -104,6 +121,8 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{st.PushedAuthRequests().DeleteExpired, now},
 		{st.DeviceCodes().DeleteExpired, now.Add(-deviceCodeRetention)},
 		{st.RefreshTokens().DeleteExpired, now},
+		{purgeRefreshII(st.TokenQuotas().PurgeBefore), now},
+		{purgeRefreshII(st.DPoP().PurgeBefore), now},
 		{st.PasswordResetTickets().DeleteExpired, now},
 		{st.EmailVerificationTickets().DeleteExpired, now},
 		{func(ctx context.Context, before time.Time) (int, error) {

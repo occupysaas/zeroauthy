@@ -29,6 +29,7 @@ type Minter struct {
 }
 
 type AccessTokenParams struct {
+	DPoPJKT  string
 	TenantID string
 	Issuer   string
 	Subject  string
@@ -59,18 +60,19 @@ type AccessTokenParams struct {
 }
 
 type accessTokenClaims struct {
-	Issuer          string    `json:"iss"`
-	Subject         string    `json:"sub"`
-	Audience        audience  `json:"aud"`
-	IssuedAt        int64     `json:"iat"`
-	Expiry          int64     `json:"exp"`
-	Scope           string    `json:"scope,omitempty"`
-	AuthorizedParty string    `json:"azp,omitempty"`
-	ClientID        string    `json:"client_id,omitempty"`
-	Permissions     *[]string `json:"permissions,omitempty"`
-	GrantType       string    `json:"gty,omitempty"`
-	ID              string    `json:"jti"`
-	Operator        []string  `json:"https://zeroauthy.dev/operator,omitempty"`
+	Confirmation    map[string]string `json:"cnf,omitempty"`
+	Issuer          string            `json:"iss"`
+	Subject         string            `json:"sub"`
+	Audience        audience          `json:"aud"`
+	IssuedAt        int64             `json:"iat"`
+	Expiry          int64             `json:"exp"`
+	Scope           string            `json:"scope,omitempty"`
+	AuthorizedParty string            `json:"azp,omitempty"`
+	ClientID        string            `json:"client_id,omitempty"`
+	Permissions     *[]string         `json:"permissions,omitempty"`
+	GrantType       string            `json:"gty,omitempty"`
+	ID              string            `json:"jti"`
+	Operator        []string          `json:"https://zeroauthy.dev/operator,omitempty"`
 	// Actor is the RFC 8693 act claim: the acting party, its earlier actors
 	// nested under act.
 	Actor map[string]any `json:"act,omitempty"`
@@ -143,6 +145,9 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 		ID:              secrets.RandomString(24),
 		Operator:        p.Operator,
 		Actor:           p.Actor,
+	}
+	if p.DPoPJKT != "" {
+		c.Confirmation = map[string]string{"jkt": p.DPoPJKT}
 	}
 	if authz && p.IncludePermissions {
 		permissions := append([]string{}, p.Permissions...)

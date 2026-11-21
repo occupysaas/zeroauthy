@@ -52,6 +52,28 @@ profiles into the matrix fixtures is a Plan 35 follow-up. When migrating, keep
 the PEMs (or a seed that names Actions, profiles and keys) as the source of
 truth.
 
+**Refresh tokens and DPoP (Plan 48).** The focused local
+`tests/e2e/run-m48-refresh-tokens-deploy.sh` lane runs the unmodified 9.1.0
+CLI in all four cells (YAML/directory × generated/preserved client IDs).
+It verifies export, import, unchanged re-import and export for:
+
+- client MRRT `refresh_token.policies`, `token_quota` and
+  `require_proof_of_possession`;
+- API `allow_online_access`, `allow_online_access_with_ephemeral_sessions`
+  and `proof_of_possession`;
+- organization `token_quota`;
+- tenant `default_token_quota`, `flags.revoke_refresh_token_grant` and
+  `dpop_strict_refresh_token_binding` (including explicit false).
+
+All these fields are carried by the pinned handlers; none of this focused
+configuration set is classified tool-unsupported. Preserved-ID bootstrap
+validates the new client fields through the seed's shared rules. Organization
+quota validation also uses the shared quota rules and rejects invalid limits.
+This lane uses fresh local tenants and generated deployment credentials;
+public exports never contain those credentials. Runtime token/session
+metadata is not deployment configuration. These results do not claim a live
+Auth0 observation or expand the older all-resource matrix's fixture set.
+
 Rules, hooks and their configurations are finite empty compatibility
 collections; they do not execute scripts.
 

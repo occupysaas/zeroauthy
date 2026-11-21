@@ -327,6 +327,7 @@ const (
 )
 
 var ErrProtectionUnimplemented = store.ErrProtectionUnimplemented
+var CloneMRRTPolicies = store.CloneMRRTPolicies
 var CloneSettings = store.CloneSettings
 
 // ValidateProtectionSecrets rejects accidental plaintext CAPTCHA persistence.
@@ -411,3 +412,21 @@ var ErrClientCredentialsUnavailable = store.ErrClientCredentialsUnavailable
 var ErrWebAuthnUnavailable = store.ErrWebAuthnUnavailable
 
 var ErrConnectionKeysUnavailable = store.ErrConnectionKeysUnavailable
+
+type (
+	RefreshTokensIISupporter = store.RefreshTokensIISupporter
+	DPoP                     = store.DPoP
+	TokenQuotas              = store.TokenQuotas
+	TokenQuota               = store.TokenQuota
+	DefaultTokenQuota        = store.DefaultTokenQuota
+	QuotaSubject             = store.QuotaSubject
+	QuotaState               = store.QuotaState
+	QuotaBucket              = store.QuotaBucket
+	MRRTPolicy               = store.MRRTPolicy
+	ProofOfPossession        = store.ProofOfPossession
+	RefreshTokenDevice       = store.RefreshTokenDevice
+)
+
+var ErrRefreshTokensIISupportLost = store.ErrRefreshTokensIISupportLost
+
+var ErrRefreshTokensIIUnavailable = store.ErrRefreshTokensIIUnavailable

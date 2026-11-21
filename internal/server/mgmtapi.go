@@ -381,6 +381,26 @@ func (a mgmtAPI) DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id s
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteRefreshToken(w, r, id) }, "delete:refresh_tokens")
 }
 
+func (a mgmtAPI) GetRefreshTokens(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetRefreshTokensParams) {
+	scoped(w, r, a.h.GetRefreshTokens, "read:refresh_tokens")
+}
+
+func (a mgmtAPI) RevokeRefreshTokens(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.RevokeRefreshTokens, "delete:refresh_tokens")
+}
+
+func (a mgmtAPI) UpdateRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateRefreshToken(w, r, id) }, "update:refresh_tokens")
+}
+
+func (a mgmtAPI) UpdateSession(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateSession(w, r, id) }, "update:sessions")
+}
+
+func (a mgmtAPI) RevokeSession(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RevokeSession(w, r, id) }, "delete:sessions", "delete:refresh_tokens")
+}
+
 // GetGrants: read:grants.
 func (a mgmtAPI) GetGrants(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetGrantsParams) {
 	scoped(w, r, a.h.GetGrants, "read:grants")

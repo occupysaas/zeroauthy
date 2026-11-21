@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
@@ -17,6 +16,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
+
+var errOfflineAccessDisabled = errors.New("the API no longer allows offline access")
 
 // refreshToken implements RFC 6749 §6 with rotation and reuse detection
 // (RFC 9700 §4.14, D-0012).
@@ -69,33 +70,85 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if rt.RevokedAt != nil {
 		return nil, invalid
 	}
-	// A rotated token presented outside the leeway is reuse. Detect it before
-	// any other check so those checks cannot mask it or probe the family.
+	probe := store.CheckRefreshTokensIISupport(ctx, h.Store)
+	if probe != nil && (!errors.Is(probe, store.ErrRefreshTokensIIUnavailable) || errors.Is(probe, store.ErrRefreshTokensIISupportLost)) {
+		h.log().ErrorContext(ctx, "check refresh token store capability", "tenant", tenantID)
+		return nil, serverError()
+	}
+	capable := probe == nil
+	// Detect reuse before audience, scope, expiry and Actions can mask it.
 	if rt.Rotating && rt.RotatedAt != nil {
-		leeway := time.Duration(c.RefreshToken.Leeway) * time.Second
-		if leeway <= 0 || !now.Before(rt.RotatedAt.Add(leeway)) {
+		err = checkRefreshRotation(ctx, h.Store.RefreshTokens(), rt, c.RefreshToken, now, capable)
+		switch {
+		case errors.Is(err, store.ErrAlreadyUsed):
 			h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
-			if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, now); err != nil {
-				h.log().ErrorContext(ctx, "revoke refresh token family", "tenant", tenantID, "family", rt.FamilyID, "err", err)
-			}
 			return nil, invalid
+		case errors.Is(err, store.ErrNotFound):
+			return nil, invalid
+		case err != nil:
+			h.log().ErrorContext(ctx, "check refresh token reuse", "tenant", tenantID)
+			return nil, serverError()
 		}
 	}
 	if refreshExpired(rt, now) {
 		return nil, invalid
 	}
-	if aud := form.Get("audience"); aud != "" && aud != rt.Audience {
+	audience := form.Get("audience")
+	if audience == "" {
+		audience = rt.Audience
+	}
+	cross := audience != rt.Audience
+	if cross && len(c.RefreshToken.Policies) == 0 {
 		return nil, invalidRequest("audience does not match the refresh token")
 	}
-	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, rt.Audience)
+	source, lifetime, oerr := h.audienceFor(ctx, tenantID, rt.Audience)
 	if oerr != nil {
 		return nil, oerr
 	}
-	// Requested scopes are filtered as issuance filters them, so scopes the
-	// API does not define are ignored; what remains may only narrow. If
-	// nothing remains, the token's scopes apply, as without a scope.
+	offlineGrant := rt.Access != "online"
+	var onlineSess *store.LoginSession
+	if !offlineGrant {
+		if !capable {
+			return nil, serverError()
+		}
+		onlineSess, err = onlineSession(ctx, h.Store, res, rt.UserID, rt.SessionID, now)
+		if err != nil && !errors.Is(err, errOnlineSession) {
+			return nil, serverError()
+		}
+		if errors.Is(err, errOnlineSession) || !onlineEligible(c, source, onlineSess) {
+			return nil, invalidGrant("the online session is no longer eligible")
+		}
+		if failure := onlineProof(ctx, c); failure != nil {
+			return nil, failure
+		}
+	}
+	if offlineGrant && source != nil && !source.AllowOfflineAccess {
+		return nil, invalidGrant(errOfflineAccessDisabled.Error())
+	}
+	rs := source
+	var mrrt *mrrtExchange
+	requested := strings.Fields(form.Get("scope"))
 	scopes := rt.Scopes
-	if requested := userScopes(strings.Fields(form.Get("scope")), rs, true); len(requested) > 0 {
+	if len(c.RefreshToken.Policies) > 0 {
+		if !capable {
+			return nil, invalidRequest("refresh token policies require storage support")
+		}
+		mrrt = &mrrtExchange{family: rt, audience: audience, managementAudience: tenant.ManagementAPIIdentifier(res.Tenant, h.BaseDomain), requested: requested}
+		if cross {
+			rs, err = h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, audience)
+			if errors.Is(err, store.ErrNotFound) {
+				return nil, invalidRequest(disallowedMRRTAudience)
+			}
+			if err != nil {
+				return nil, serverError()
+			}
+		}
+		scopes, oerr = mrrt.resolve(ctx, h, h.Store, c, rs)
+		if oerr != nil {
+			return nil, oerr
+		}
+	} else if requested := userScopes(requested, rs, true); len(requested) > 0 {
+		// Plain refresh can only narrow scopes that issuance recognizes.
 		for _, s := range requested {
 			if !slices.Contains(rt.Scopes, s) {
 				return nil, invalidScope(fmt.Sprintf("scope %q was not granted to this refresh token", s))
@@ -125,14 +178,18 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	// target-scope and addScope additions are never stored with the
 	// family (whose ceiling never grows): the flow must add them again.
 	// Target edits are filtered by API definition, policy and RBAC.
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, session: onlineSess, refreshToken: rt, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
 		requested: d.Scopes, target: d.Scopes})
 	if oerr != nil {
 		return nil, oerr
 	}
 	before := d.Scopes
 	if eff != nil && eff.Target != nil {
-		target, oerr := h.consentedAdditions(ctx, tenantID, c, user.UserID, rs, before, eff.Target.Scopes)
+		target := eff.Target.Scopes
+		if mrrt != nil {
+			target = actions.CeilingOf(target, before)
+		}
+		target, oerr := h.consentedAdditions(ctx, tenantID, c, user.UserID, rs, before, target)
 		if oerr != nil {
 			return nil, oerr
 		}
@@ -142,7 +199,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	}
 	scopes = d.Scopes
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
+		online: !offlineGrant, mrrt: mrrt, organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
 		sessionID: rt.SessionID, authTime: rt.AuthTime, refreshSessionMFA: true, effects: eff,
 	})
 	if oerr != nil {
@@ -156,38 +213,69 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 
 	// The minted tokens are only sent once the refresh token is consumed,
 	// in a transaction that checks the user is still at the Version loaded
-	// above. The store's own error from Rotate or Touch is kept apart and
-	// the transaction commits, so a family revoked for reuse stays revoked.
+	// above. Preserve the family revocation on ErrAlreadyUsed while rolling
+	// back ordinary write failures.
 	version := user.Version
-	var writeErr error
+	var currentClient *store.Client
+	var reused bool
 	var nextRaw string
 	err = h.mintCheckedTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
-		return checkTokenOrganization(ctx, tx, tenantID, user.UserID, rt.OrganizationID, rt.OrganizationConnectionID, c.ClientID)
-	}, func(tx store.Store) error {
-		if !keep {
-			return nil
+		var err error
+		currentClient, err = clientForTokenOrganization(ctx, tx, tenantID, user.UserID, rt.OrganizationID, rt.OrganizationConnectionID, c.ClientID)
+		if err != nil {
+			return err
 		}
-		if rt.Rotating {
-			next, raw := h.newRefreshToken(c, tenantID, refreshGrant{
-				organizationID: rt.OrganizationID, organizationConnectionID: rt.OrganizationConnectionID,
-				origin:   res.Origin(),
-				familyID: rt.FamilyID, userID: rt.UserID, sessionID: rt.SessionID, audience: rt.Audience,
-				scopes: rt.Scopes, authTime: rt.AuthTime, expiresAt: rt.ExpiresAt,
-			})
-			next.Rotating = true
-			nextRaw = raw
-			writeErr = tx.RefreshTokens().Rotate(ctx, tenantID, rt.ID, next, now, time.Duration(c.RefreshToken.Leeway)*time.Second)
-			return nil
+		if offlineGrant && !slices.Contains(currentClient.GrantTypes, "refresh_token") {
+			return invalidRequest("the refresh grant is no longer enabled")
 		}
-		if _, idle := refreshLifetimes(c.RefreshToken); idle > 0 {
-			idleAt := now.Add(idle)
-			if !rt.ExpiresAt.IsZero() && idleAt.After(rt.ExpiresAt) {
-				idleAt = rt.ExpiresAt
+		if offlineGrant && source != nil {
+			// The family remains bound to its issuing API even when the access
+			// token is for another audience.
+			currentAPI, err := tx.ResourceServers().GetByIdentifier(ctx, tenantID, rt.Audience)
+			if err != nil {
+				return err
 			}
-			writeErr = tx.RefreshTokens().Touch(ctx, tenantID, rt.ID, idleAt)
+			if !currentAPI.AllowOfflineAccess {
+				return errOfflineAccessDisabled
+			}
+		}
+		if mrrt != nil {
+			return mrrt.checkMint(ctx, h, tx, currentClient)
+		}
+		if len(currentClient.RefreshToken.Policies) > 0 {
+			// The signed plain-refresh response did not apply the new MRRT
+			// ceiling to Action edits. Leave the presentation live for retry.
+			return invalidRequest("refresh token policies changed during refresh")
+		}
+		return nil
+	}, func(tx store.Store) error {
+		if !offlineGrant {
+			return h.finishOnline(ctx, tx, res, currentClient, rt)
+		}
+		var writeErr error
+		nextRaw, writeErr = finishRefresh(ctx, tx.RefreshTokens(), rt, currentClient, res.Origin(), h.now().UTC(), keep, capable)
+		if errors.Is(writeErr, store.ErrAlreadyUsed) {
+			reused = true
+			return nil
+		}
+		if writeErr != nil {
+			return writeErr
+		}
+		if capable {
+			return h.recordRefreshExchange(ctx, tx.RefreshTokens(), rt, nextRaw)
 		}
 		return nil
 	})
+	var policyErr *Error
+	if errors.As(err, &policyErr) {
+		return nil, policyErr
+	}
+	if errors.Is(err, errOnlineSession) {
+		return nil, invalidGrant("the online session is no longer eligible")
+	}
+	if errors.Is(err, errOfflineAccessDisabled) {
+		return nil, invalidGrant(errOfflineAccessDisabled.Error())
+	}
 	if errors.Is(err, errOrganizationGrant) {
 		return nil, invalidGrant("the organization grant is no longer eligible")
 	}
@@ -197,24 +285,32 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if errors.Is(err, errUserChanged) {
 		return nil, invalidGrant("the user is not allowed to sign in")
 	}
-	if err == nil {
-		err = writeErr
-	}
 	switch {
-	case rt.Rotating && errors.Is(err, store.ErrAlreadyUsed):
+	case err == nil && reused:
 		h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
 		return nil, invalid
 	case errors.Is(err, store.ErrNotFound):
 		return nil, invalid
-	case err != nil && rt.Rotating:
-		h.log().ErrorContext(ctx, "rotate refresh token", "tenant", tenantID, "err", err)
-		return nil, serverError()
 	case err != nil:
-		h.log().ErrorContext(ctx, "extend refresh token", "tenant", tenantID, "err", err)
+		h.log().ErrorContext(ctx, "complete refresh exchange", "tenant", tenantID)
 		return nil, serverError()
 	}
-	if rt.Rotating && keep {
+	if nextRaw != "" {
 		resp.RefreshToken = &nextRaw
+	}
+	if cross {
+		// The response also describes credentials supplied by the original
+		// identity and offline grants. The signed token contains only the
+		// second API's authorized permissions.
+		responseScopes := slices.Clone(mrrt.issued)
+		if resp.IdToken != nil && slices.Contains(requested, "openid") {
+			responseScopes = append(responseScopes, "openid")
+		}
+		if offlineGrant && keep && slices.Contains(rt.Scopes, "offline_access") && slices.Contains(requested, "offline_access") {
+			responseScopes = append(responseScopes, "offline_access")
+		}
+		scope := strings.Join(responseScopes, " ")
+		resp.Scope = &scope
 	}
 	if user != nil {
 		eventUserID = user.UserID

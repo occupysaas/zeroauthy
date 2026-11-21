@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
+	"maps"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -39,7 +41,126 @@ func newMgmtContract(t *testing.T) *mgmtContract {
 	if err != nil {
 		t.Fatal(err)
 	}
+	bundleResponseComponents(t, doc)
 	return &mgmtContract{t: t, router: router}
+}
+
+// kin-openapi v0.150.0 compiles bodies as standalone JSON Schemas. Its $defs
+// rewrite can miss a definition reached through several component references.
+// Give each response its reachable definitions at the original JSON pointers.
+// Copy the response schema so the shared document components stay pristine.
+func bundleResponseComponents(t *testing.T, doc *openapi3.T) {
+	t.Helper()
+	jsonValue := func(value any) any {
+		raw, err := json.Marshal(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var node any
+		if err := json.Unmarshal(raw, &node); err != nil {
+			t.Fatal(err)
+		}
+		return node
+	}
+	definitions := jsonValue(doc.Components.Schemas).(map[string]any)
+	bundled := make(map[*openapi3.Schema]*openapi3.Schema)
+	bundle := func(root *openapi3.Schema) *openapi3.Schema {
+		if result, known := bundled[root]; known {
+			return result
+		}
+		used := make(map[string]any)
+		collectSchemaComponents(jsonValue(root), definitions, used)
+		if len(used) == 0 {
+			bundled[root] = root
+			return root
+		}
+		clone := *root
+		clone.Extensions = map[string]any{"components": map[string]any{"schemas": used}}
+		maps.Copy(clone.Extensions, root.Extensions)
+		bundled[root], bundled[&clone] = &clone, &clone
+		return &clone
+	}
+	for _, path := range doc.Paths.Map() {
+		for _, op := range path.Operations() {
+			for _, response := range op.Responses.Map() {
+				for _, media := range response.Value.Content {
+					if media.Schema == nil {
+						continue
+					}
+					ref := *media.Schema
+					ref.Value = bundle(ref.Value)
+					media.Schema = &ref
+				}
+			}
+		}
+	}
+}
+
+func collectSchemaComponents(node any, definitions, used map[string]any) {
+	switch node := node.(type) {
+	case []any:
+		for _, child := range node {
+			collectSchemaComponents(child, definitions, used)
+		}
+	case map[string]any:
+		ref, _ := node["$ref"].(string)
+		if pointer, ok := strings.CutPrefix(ref, "#/components/schemas/"); ok {
+			name, _, _ := strings.Cut(pointer, "/")
+			name = strings.NewReplacer("~1", "/", "~0", "~").Replace(name)
+			if target, exists := definitions[name]; exists {
+				if _, seen := used[name]; !seen {
+					used[name] = target
+					collectSchemaComponents(target, definitions, used)
+				}
+			}
+		}
+		for _, child := range node {
+			collectSchemaComponents(child, definitions, used)
+		}
+	}
+}
+
+func TestContractComponentReferenceCycle(t *testing.T) {
+	ref := func(pointer string) any { return map[string]any{"$ref": "#/components/schemas/" + pointer} }
+	definitions := map[string]any{
+		"Root":  map[string]any{"properties": map[string]any{"child": ref("Child")}},
+		"Child": map[string]any{"anyOf": []any{ref("Root"), ref("Leaf/properties/value")}},
+		"Leaf":  map[string]any{"properties": map[string]any{"value": map[string]any{"type": "string"}}},
+	}
+	used := make(map[string]any)
+	collectSchemaComponents(ref("Root"), definitions, used)
+	for name := range definitions {
+		if _, ok := used[name]; !ok {
+			t.Fatalf("missing nested schema component %s", name)
+		}
+	}
+}
+
+func TestUserRefreshTokenPageMetadataContract(t *testing.T) {
+	contract := newMgmtContract(t)
+	route, _, err := contract.router.FindRoute(httptest.NewRequest("GET", usersBase+"/example/refresh-tokens", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := route.Operation.Responses.Status(http.StatusOK).Value.Content.Get("application/json").Schema.Value
+	metadata := map[string]any{"label": "example"}
+	page := map[string]any{"tokens": []any{map[string]any{
+		"id": "record", "user_id": "user", "created_at": "2026-01-01T00:00:00Z",
+		"idle_expires_at": nil, "expires_at": nil, "client_id": "client", "session_id": nil,
+		"rotating": false, "resource_servers": []any{}, "last_exchanged_at": nil,
+		"refresh_token_metadata": metadata,
+	}}}
+	validate := func() error {
+		return schema.VisitJSON(page, openapi3.EnableJSONSchema2020(), openapi3.VisitAsResponse())
+	}
+	if err := validate(); err != nil {
+		t.Fatalf("valid metadata: %v", err)
+	}
+	metadata["label"] = strings.Repeat("a", 256)
+	var field *openapi3.SchemaError
+	if err := validate(); !errors.As(err, &field) || !strings.Contains(err.Error(), "/refresh_token_metadata/label") || !strings.Contains(err.Error(), "maxLength") {
+		t.Fatalf("expected nested metadata maxLength failure, got %v", err)
+	}
 }
 
 // do sends the request through h and validates the response against the

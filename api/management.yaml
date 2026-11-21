@@ -76,7 +76,7 @@ tags:
   - name: sessions
     description: Login sessions (Auth0's `/api/v2/sessions`).
   - name: refresh-tokens
-    description: Refresh tokens (Auth0's `/api/v2/refresh-tokens`).
+    description: Offline refresh tokens. Online refresh tokens are managed through their login sessions.
   - name: grants
     description: Users' consents (Auth0's `/api/v2/grants`).
   - name: tickets
@@ -4328,6 +4328,7 @@ paths:
         described in `ResourceServerCreate`.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/post-resource-servers
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
       requestBody:
         required: true
         content:
@@ -4357,6 +4358,7 @@ paths:
       description: Requires `read:resource_servers`.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/get-resource-servers-by-id
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       parameters:
         - name: fields
           in: query
@@ -4387,6 +4389,7 @@ paths:
         current value is accepted.
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/configure-online-refresh-tokens
       requestBody:
         required: true
         content:
@@ -5297,11 +5300,13 @@ paths:
       summary: Delete a user's sessions
       description: |
         Requires `delete:sessions`. Deletes every session of the user, which
-        ends their single sign-on, and bumps the user's version. Refresh
-        tokens are not revoked. Answers `202 {}`, also when there were none;
-        an unknown user is `404 inexistent_user`.
+        ends their single sign-on, invalidates online refresh tokens bound
+        to those sessions, and bumps the user's version. Offline refresh
+        tokens remain valid. Answers `202 {}`, also when there were none.
+        An unknown user is `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/delete-sessions-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "400": {$ref: "#/components/responses/BadRequest"}
@@ -5320,12 +5325,13 @@ paths:
       tags: [users]
       summary: List a user's refresh tokens
       description: |
-        Requires `read:refresh_tokens`. The user's live refresh tokens (not
-        revoked, rotated or expired), newest first, by checkpoint paging only
+        Requires `read:refresh_tokens`. The user's live offline refresh
+        tokens, newest first, by checkpoint paging only
         as for sessions: `take`, `from`, and `next` on every non-empty page.
         An unknown user is `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/get-refresh-tokens-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       parameters:
         - name: take
           in: query
@@ -5350,12 +5356,13 @@ paths:
       tags: [users]
       summary: Delete a user's refresh tokens
       description: |
-        Requires `delete:refresh_tokens`. Revokes every refresh token of the
-        user; a refresh grant with one answers `invalid_grant`. Answers
-        `202 {}`, also when there were none; an unknown user is
+        Requires `delete:refresh_tokens`. Revokes the user's offline refresh
+        tokens. A refresh grant with a revoked token answers `invalid_grant`.
+        Answers `202 {}`, also when there were none. An unknown user is
         `404 inexistent_user`.
       x-source:
         - https://auth0.com/docs/api/management/v2/users/delete-refresh-tokens-for-user
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "400": {$ref: "#/components/responses/BadRequest"}
@@ -5393,20 +5400,139 @@ paths:
       summary: Delete a session
       description: |
         Requires `delete:sessions`. Ends the session, so the next
-        `/authorize?prompt=none` answers `login_required`. Answers `202 {}`,
+        `/authorize?prompt=none` answers `login_required`, and invalidates its
+        online refresh tokens. Offline refresh tokens remain valid. Answers `202 {}`,
         also when there was no such session.
       x-source:
         - https://auth0.com/docs/api/management/v2/sessions/delete-session
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
       responses:
         "202": {$ref: "#/components/responses/Accepted"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+    patch:
+      operationId: updateSession
+      tags: [sessions]
+      summary: Update session metadata
+      description: Requires `update:sessions`. Replaces the metadata. Use `null` or `{}` to clear it.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/sessions/patch-sessions-by-id
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SessionMetadataUpdate"}
+      responses:
+        "200":
+          description: The updated session.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserSession"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
+  /api/v2/sessions/{id}/revoke:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The session's ID.
+        schema: {type: string}
+    post:
+      operationId: revokeSession
+      tags: [sessions]
+      summary: Revoke a session and its refresh tokens
+      description: |
+        Requires both `delete:sessions` and `delete:refresh_tokens`. Ends the
+        session and revokes all refresh tokens issued in it.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/sessions/revoke-session
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
+  /api/v2/refresh-tokens:
+    get:
+      operationId: getRefreshTokens
+      tags: [refresh-tokens]
+      summary: List refresh tokens by user
+      description: |
+        Requires `read:refresh_tokens`. Lists the user's live offline tokens in
+        ascending ID order. Pass `client_id` to filter by application. An
+        unknown user is `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-tokens
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          description: The user whose refresh tokens to list.
+          schema: {type: string, minLength: 1}
+        - name: client_id
+          in: query
+          description: Only return refresh tokens issued to this application.
+          schema: {type: string}
+        - name: from
+          in: query
+          description: The `next` cursor from the previous page.
+          schema: {type: string}
+        - name: take
+          in: query
+          description: Page size.
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or exclude from each refresh token.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: A checkpoint page of refresh tokens.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RefreshTokenPage"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
+  /api/v2/refresh-tokens/revoke:
+    post:
+      operationId: revokeRefreshTokens
+      tags: [refresh-tokens]
+      summary: Revoke refresh tokens in bulk
+      description: |
+        Requires `delete:refresh_tokens`. Select offline tokens by up to 100 IDs or
+        by user, optionally narrowed by client and then by audience. Revocation
+        completes before the server returns `202` (D-0070 LR48-9).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/revoke-refresh-tokens
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/online-refresh-tokens/online-refresh-tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RefreshTokenRevocation"}
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
   /api/v2/refresh-tokens/{id}:
     parameters:
       - name: id
         in: path
         required: true
-        description: The refresh token's ID (not the token).
+        description: The Management API identifier of an offline refresh token.
         schema: {type: string}
     get:
       operationId: getRefreshToken
@@ -5418,6 +5544,7 @@ paths:
         not exist.").
       x-source:
         - https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-token
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
       responses:
         "200":
           description: The refresh token.
@@ -5441,6 +5568,30 @@ paths:
         "202": {$ref: "#/components/responses/Accepted"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+    patch:
+      operationId: updateRefreshToken
+      tags: [refresh-tokens]
+      summary: Update refresh token metadata
+      description: Requires `update:refresh_tokens`. Replaces the metadata. Use `null` or `{}` to clear it.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/patch-refresh-tokens-by-id
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RefreshTokenMetadataUpdate"}
+      responses:
+        "200":
+          description: The updated refresh token.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserRefreshToken"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "501": {$ref: "#/components/responses/RefreshTokensUnavailable"}
   /api/v2/grants:
     get:
       operationId: getGrants
@@ -18352,7 +18503,9 @@ components:
         page_background:
           type: string
     IITokenQuota:
-      type: object
+      type: [object, "null"]
+      description: Application or organization quota for the client-credentials grant. Null removes the override.
+      x-source: [https://auth0.com/docs/fine-grained-m2m-token-quotas]
       additionalProperties: false
       required:
       - client_credentials
@@ -18366,6 +18519,7 @@ components:
       properties:
         enforce:
           type: boolean
+          default: true
         per_day:
           type: integer
           minimum: 1
@@ -18374,6 +18528,21 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+    DefaultTokenQuota:
+      type: [object, "null"]
+      additionalProperties: false
+      minProperties: 1
+      description: Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+      x-source: [https://auth0.com/docs/fine-grained-m2m-token-quotas]
+      properties:
+        clients: {$ref: "#/components/schemas/DefaultTokenQuotaSubject"}
+        organizations: {$ref: "#/components/schemas/DefaultTokenQuotaSubject"}
+    DefaultTokenQuotaSubject:
+      type: object
+      additionalProperties: true
+      required: [client_credentials]
+      properties:
+        client_credentials: {$ref: "#/components/schemas/IITokenQuotaClientCredentials"}
     IIOrganizationThirdPartyClientAccessEnum:
       type: string
       enum:
@@ -19204,6 +19373,8 @@ components:
           $ref: '#/components/schemas/OrganizationBranding'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadata'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19239,6 +19410,8 @@ components:
           $ref: '#/components/schemas/OrganizationBranding'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadata'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19317,6 +19490,8 @@ components:
           $ref: '#/components/schemas/OrganizationBrandingWrite'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadataWrite'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -19351,6 +19526,8 @@ components:
           $ref: '#/components/schemas/OrganizationBrandingWrite'
         metadata:
           $ref: '#/components/schemas/OrganizationMetadataWrite'
+        token_quota:
+          $ref: '#/components/schemas/IITokenQuota'
         third_party_client_access:
           type: string
           description: '`block` (default) or `allow`.'
@@ -21099,56 +21276,7 @@ components:
           description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
             inventory for the follow-up owner.
           nullable: true
-        default_token_quota:
-          type: object
-          additionalProperties: false
-          minProperties: 1
-          properties:
-            clients:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-            organizations:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
-          nullable: true
+        default_token_quota: {$ref: "#/components/schemas/DefaultTokenQuota"}
         flags:
           type: object
           additionalProperties: false
@@ -21195,6 +21323,8 @@ components:
               type: boolean
             revoke_refresh_token_grant:
               type: boolean
+              default: false
+              description: Whether OAuth refresh token revocation also deletes the associated user grant.
             dashboard_log_streams_next:
               type: boolean
             dashboard_insights_view:
@@ -21570,9 +21700,8 @@ components:
           nullable: true
         dpop_strict_refresh_token_binding:
           type: boolean
-          default: false
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          default: true
+          description: Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
           nullable: true
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: boolean
@@ -21709,56 +21838,7 @@ components:
           description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
             inventory for the follow-up owner.
           nullable: true
-        default_token_quota:
-          type: object
-          additionalProperties: false
-          minProperties: 1
-          properties:
-            clients:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-            organizations:
-              type: object
-              additionalProperties: true
-              required:
-              - client_credentials
-              properties:
-                client_credentials:
-                  type: object
-                  additionalProperties: false
-                  minProperties: 1
-                  properties:
-                    enforce:
-                      type: boolean
-                    per_day:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-                    per_hour:
-                      type: integer
-                      minimum: 1
-                      maximum: 2147483647
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
-          nullable: true
+        default_token_quota: {$ref: "#/components/schemas/DefaultTokenQuota"}
         flags:
           type: object
           additionalProperties: false
@@ -21805,6 +21885,8 @@ components:
               type: boolean
             revoke_refresh_token_grant:
               type: boolean
+              default: false
+              description: Whether OAuth refresh token revocation also deletes the associated user grant.
             dashboard_log_streams_next:
               type: boolean
             dashboard_insights_view:
@@ -22205,9 +22287,8 @@ components:
           nullable: true
         dpop_strict_refresh_token_binding:
           type: boolean
-          default: false
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          default: true
+          description: Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
           nullable: true
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: boolean
@@ -22295,6 +22376,16 @@ components:
         secret_encoded:
           type: boolean
           description: Accepted and ignored (HS256 is not offered).
+    DPoPPolicy:
+      type: object
+      nullable: true
+      additionalProperties: false
+      required: [mechanism, required]
+      x-source: [https://auth0.com/docs/secure/sender-constraining/configure-sender-constraining]
+      properties:
+        mechanism: {type: string, enum: [none, dpop]}
+        required: {type: boolean}
+        required_for: {type: string, enum: [all_clients, public_clients], default: all_clients}
     RefreshTokenSettings:
       type: object
       description: The refresh tokens the application receives.
@@ -22308,7 +22399,7 @@ components:
         leeway:
           type: integer
           minimum: 0
-          description: Seconds a rotated token may still be used.
+          description: Seconds during which only the immediately previous rotating token may be exchanged again.
         token_lifetime:
           type: integer
           minimum: 0
@@ -22323,6 +22414,27 @@ components:
         infinite_idle_token_lifetime:
           type: boolean
           description: True for non-expiring tokens; derived from `expiration_type`.
+        policies:
+          type: [array, "null"]
+          description: |
+            API audiences and scopes available to this first-party application
+            during refresh token exchange. Audience identifiers must be unique.
+            The Management API is excluded. Null clears the policies.
+          minItems: 1
+          maxItems: 10
+          items: {$ref: "#/components/schemas/RefreshTokenPolicy"}
+    RefreshTokenPolicy:
+      type: object
+      additionalProperties: false
+      required: [audience, scope]
+      x-source:
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/multi-resource-refresh-token/configure-and-implement-multi-resource-refresh-token
+        - https://auth0.com/docs/oas/management/v2/management-api-oas.json
+      properties:
+        audience: {type: string, minLength: 1, maxLength: 600}
+        scope:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 280}
     RoamingUVSettings:
       type: object
       additionalProperties: false
@@ -22420,6 +22532,7 @@ components:
         allowed_origins: {type: array, items: {type: string}, description: Origins allowed for cross-origin requests.}
         jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
         refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
+        token_quota: {$ref: "#/components/schemas/IITokenQuota"}
         oidc_conformant:
           type: boolean
           description: zeroauthy is always OIDC-conformant; `false` is refused.
@@ -22429,6 +22542,7 @@ components:
         skip_non_verifiable_callback_uri_confirmation_prompt:
           type: [boolean, "null"]
           description: Overrides the tenant's setting; null inherits it.
+        require_proof_of_possession: {type: boolean, default: false}
         require_pushed_authorization_requests:
           type: boolean
           description: Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
@@ -22550,8 +22664,10 @@ components:
         token_exchange: {$ref: "#/components/schemas/ClientTokenExchange"}
         jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
         refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
+        token_quota: {$ref: "#/components/schemas/IITokenQuota"}
         redirection_policy: {type: string, enum: [open_redirect_protection, allow_always]}
         skip_non_verifiable_callback_uri_confirmation_prompt: {type: boolean}
+        require_proof_of_possession: {type: boolean, default: false}
         require_pushed_authorization_requests: {type: boolean}
         organization_usage: {type: string, enum: [deny, allow, require], description: Left out when unset (deny).}
         organization_require_behavior: {type: string, enum: [no_prompt, pre_login_prompt, post_login_prompt], description: Left out when unset (no_prompt).}
@@ -22749,6 +22865,14 @@ components:
             hybrid flow, so nothing uses it. When sent, it must not exceed
             `token_lifetime`.
         allow_offline_access: {type: boolean, description: Whether clients may get refresh tokens for the API.}
+        allow_online_access:
+          type: boolean
+          default: false
+          description: Allow clients to obtain session-bound refresh tokens for this API.
+        allow_online_access_with_ephemeral_sessions:
+          type: boolean
+          default: false
+          description: Allow online refresh token issuance for ephemeral sessions when online access is enabled.
         skip_consent_for_verifiable_first_party_clients: {type: boolean}
         subject_type_authorization: {$ref: "#/components/schemas/SubjectTypeAuthorization"}
         enforce_policies:
@@ -22759,7 +22883,7 @@ components:
           enum: [access_token, access_token_authz, rfc9068_profile, rfc9068_profile_authz]
           description: Access-token profile; defaults to access_token.
         consent_policy: {description: "Only null is accepted (transactional authorization is not supported)."}
-        proof_of_possession: {description: "Only null is accepted (mTLS and DPoP are not supported)."}
+        proof_of_possession: {$ref: "#/components/schemas/DPoPPolicy"}
         authorization_details: {description: "Only null or an empty list is accepted (rich authorization requests are not supported)."}
         token_encryption: {description: "Only null is accepted (token encryption is not supported)."}
     ResourceServerCreate:
@@ -22806,7 +22930,10 @@ components:
         signing_secret: {type: string, description: "HS256 only; returned on read (C16)."}
         token_lifetime: {type: integer}
         token_lifetime_for_web: {type: integer}
+        proof_of_possession: {$ref: "#/components/schemas/DPoPPolicy"}
         allow_offline_access: {type: boolean}
+        allow_online_access: {type: boolean}
+        allow_online_access_with_ephemeral_sessions: {type: boolean}
         skip_consent_for_verifiable_first_party_clients: {type: boolean}
         subject_type_authorization:
           type: object
@@ -23188,6 +23315,17 @@ components:
         initial_ip: {type: string}
         last_user_agent: {type: string}
         last_ip: {type: string}
+    SessionMetadata:
+      type: [object, "null"]
+      maxProperties: 25
+      propertyNames: {type: string, maxLength: 255}
+      additionalProperties: {type: string, maxLength: 255}
+    SessionMetadataUpdate:
+      type: object
+      additionalProperties: false
+      required: [session_metadata]
+      properties:
+        session_metadata: {$ref: "#/components/schemas/SessionMetadata"}
     UserSession:
       type: object
       required: [id, user_id, created_at, updated_at, authenticated_at, authentication, idle_expires_at, expires_at, device, clients, last_interacted_at, cookie]
@@ -23221,6 +23359,7 @@ components:
             properties:
               client_id: {type: string}
         last_interacted_at: {type: string, format: date-time}
+        session_metadata: {$ref: "#/components/schemas/SessionMetadata"}
         cookie:
           type: object
           required: [mode]
@@ -23234,9 +23373,30 @@ components:
           type: array
           items: {$ref: "#/components/schemas/UserSession"}
         next: {type: string, description: Pass as `from` for the next page; absent when the page is empty.}
-    UserRefreshToken:
+    RefreshTokenDevice:
       type: object
-      required: [id, user_id, created_at, idle_expires_at, expires_at, client_id, session_id, rotating, resource_servers, last_exchanged_at]
+      description: Device details recorded when the refresh token was issued and last exchanged.
+      properties:
+        initial_ip: {type: string}
+        initial_asn: {type: string, description: Empty because ASN lookup is unavailable.}
+        initial_user_agent: {type: string}
+        last_ip: {type: string}
+        last_asn: {type: string, description: Empty because ASN lookup is unavailable.}
+        last_user_agent: {type: string}
+    RefreshTokenMetadata:
+      type: [object, "null"]
+      maxProperties: 25
+      propertyNames: {type: string, maxLength: 255}
+      additionalProperties: {type: string, maxLength: 255}
+    RefreshTokenMetadataUpdate:
+      type: object
+      additionalProperties: false
+      required: [refresh_token_metadata]
+      properties:
+        refresh_token_metadata: {$ref: "#/components/schemas/RefreshTokenMetadata"}
+    RefreshToken:
+      type: object
+      additionalProperties: false
       properties:
         id: {type: string}
         user_id: {type: string}
@@ -23255,8 +23415,25 @@ components:
             properties:
               audience: {type: string}
               scopes: {type: string}
-        device: {$ref: "#/components/schemas/SessionDevice"}
-        last_exchanged_at: {type: [string, "null"], format: date-time}
+        device: {$ref: "#/components/schemas/RefreshTokenDevice"}
+        refresh_token_metadata: {$ref: "#/components/schemas/RefreshTokenMetadata"}
+        last_exchanged_at:
+          type: [string, "null"]
+          format: date-time
+          description: The last successful exchange, or null before the first exchange.
+    UserRefreshToken:
+      allOf:
+        - $ref: "#/components/schemas/RefreshToken"
+        - type: object
+          required: [id, user_id, created_at, idle_expires_at, expires_at, client_id, session_id, rotating, resource_servers, last_exchanged_at]
+    RefreshTokenPage:
+      type: object
+      required: [refresh_tokens]
+      properties:
+        refresh_tokens:
+          type: array
+          items: {$ref: "#/components/schemas/RefreshToken"}
+        next: {type: string, description: Cursor to pass as `from` on the next request.}
     UserRefreshTokenPage:
       type: object
       required: [tokens]
@@ -23265,6 +23442,27 @@ components:
           type: array
           items: {$ref: "#/components/schemas/UserRefreshToken"}
         next: {type: string, description: Pass as `from` for the next page; absent when the page is empty.}
+    RefreshTokenRevocation:
+      type: object
+      additionalProperties: false
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: {type: string, minLength: 1}
+        user_id: {type: string, minLength: 1}
+        client_id: {type: string, minLength: 1}
+        audience: {type: string, minLength: 1, maxLength: 600}
+      oneOf:
+        - required: [ids]
+          maxProperties: 1
+        - required: [user_id]
+          maxProperties: 1
+        - required: [user_id, client_id]
+          maxProperties: 2
+        - required: [user_id, client_id, audience]
+          maxProperties: 3
     UserGrant:
       type: object
       required: [id, clientID, user_id, audience, scope]
@@ -23934,6 +24132,11 @@ components:
           schema: {$ref: "#/components/schemas/ManagementError"}
     NotImplemented:
       description: The storage plugin lacks the `client_credentials.v1` capability, or the operation is not built yet.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    RefreshTokensUnavailable:
+      description: The refresh-token or session operation is unavailable.
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}

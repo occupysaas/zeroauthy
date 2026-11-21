@@ -47,15 +47,16 @@ func (h *Handlers) GetGrants(w http.ResponseWriter, r *http.Request) {
 
 // DeleteGrant deletes one grant, also when there is none.
 func (h *Handlers) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
-	err := store.ErrNotFound // no grant has an unstorable ID
-	if storableText(id) {
-		err = h.Store.UserGrants().Delete(r.Context(), resolved(r).ID, id)
+	var n int
+	var err error
+	if id != "" && storableText(id) {
+		n, err = h.deleteGrants(r, id, "")
 	}
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
+	if err != nil {
 		Fail(w, internalError(h, r, "delete grant", err))
 		return
 	}
-	if err == nil {
+	if n != 0 {
 		logDetails(r, "delete grant", "grant_id", id)
 	}
 	w.Header().Set("Cache-Control", "no-store")
@@ -74,7 +75,7 @@ func (h *Handlers) DeleteGrantsByUser(w http.ResponseWriter, r *http.Request) {
 		Fail(w, errUnstorableQuery)
 		return
 	}
-	n, err := h.Store.UserGrants().DeleteByUser(r.Context(), resolved(r).ID, userID)
+	n, err := h.deleteGrants(r, "", userID)
 	if err != nil {
 		Fail(w, internalError(h, r, "delete grants", err))
 		return
@@ -82,4 +83,80 @@ func (h *Handlers) DeleteGrantsByUser(w http.ResponseWriter, r *http.Request) {
 	logDetails(r, "delete user grants", "user_id", userID, "grants", n)
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// deleteGrants deletes either the named grant or the user's grants. An initially
+// legacy plugin retains its existing deletion semantics (LR48-12).
+func (h *Handlers) deleteGrants(r *http.Request, id, userID string) (int, error) {
+	ctx, tid := r.Context(), resolved(r).ID
+	if err := store.CheckRefreshTokensIISupport(ctx, h.Store); err != nil {
+		if !errors.Is(err, store.ErrRefreshTokensIIUnavailable) || errors.Is(err, store.ErrRefreshTokensIISupportLost) {
+			return 0, err
+		}
+		if id == "" {
+			return h.Store.UserGrants().DeleteByUser(ctx, tid, userID)
+		}
+		if err := h.Store.UserGrants().Delete(ctx, tid, id); errors.Is(err, store.ErrNotFound) {
+			return 0, nil
+		} else if err != nil {
+			return 0, err
+		}
+		return 1, nil
+	}
+
+	// Locate the owner before the transaction so its first lock is the same
+	// one used by token minting. Re-read the grant after acquiring that lock.
+	if id != "" {
+		g, err := h.Store.UserGrants().Get(ctx, tid, id)
+		if errors.Is(err, store.ErrNotFound) {
+			return 0, nil
+		}
+		if err != nil {
+			return 0, err
+		}
+		userID = g.UserID
+	}
+	n := 0
+	err := h.Store.WithTx(ctx, func(tx store.Store) error {
+		_, err := tx.Users().GetForUpdate(ctx, tid, userID)
+		hasUser := err == nil
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		var grants []*store.UserGrant
+		if id == "" {
+			grants, err = tx.UserGrants().ListByUser(ctx, tid, userID)
+			if err != nil {
+				return err
+			}
+		} else {
+			g, err := tx.UserGrants().Get(ctx, tid, id)
+			if errors.Is(err, store.ErrNotFound) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			if g.UserID != userID {
+				return store.ErrConflict
+			}
+			grants = []*store.UserGrant{g}
+		}
+		at := h.now()
+		for _, g := range grants {
+			if err := tx.UserGrants().Delete(ctx, tid, g.ID); err != nil {
+				return err
+			}
+			if _, err := tx.RefreshTokens().RevokeByUserClient(ctx, tid, userID, g.ClientID, g.Audience, at); err != nil {
+				return err
+			}
+			n++
+		}
+		if n > 0 && hasUser {
+			_, err = tx.Users().BumpVersion(ctx, tid, userID)
+			return err
+		}
+		return nil
+	})
+	return n, err
 }

@@ -30,8 +30,9 @@ var (
 // Server.mu, never the other way round.
 type Server struct {
 	storev1.UnimplementedStoreServiceServer
-	st   store.Store
-	idle time.Duration
+	boundTxID string // pre-resolved view held under the transaction tree lock during a versioned call
+	st        store.Store
+	idle      time.Duration
 
 	mu     sync.Mutex
 	txs    map[string]*heldTx // open transactions
@@ -309,7 +310,7 @@ func (s *Server) Close() {
 // accepts calls (errOpenChild otherwise). Calls in one tree are serialized,
 // and each restarts the tree's idle timer.
 func (s *Server) with(txID string, f func(store.Store) error) error {
-	if txID == "" {
+	if txID == s.boundTxID {
 		return f(s.st)
 	}
 	s.mu.Lock()

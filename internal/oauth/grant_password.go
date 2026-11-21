@@ -327,7 +327,8 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 		if absolute > 0 {
 			expiresAt = now.Add(absolute)
 		}
-		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{
+
 			organizationID: orgID, organizationConnectionID: flow.ConnectionID,
 			origin:   res.Origin(),
 			familyID: "rtf_" + secrets.RandomString(32), userID: user.UserID,
@@ -346,6 +347,6 @@ func (h *Handlers) preparePasswordTokens(ctx context.Context, res tenant.Resolve
 		if rt == nil {
 			return nil
 		}
-		return tx.RefreshTokens().Create(ctx, rt)
+		return createInitialRefresh(ctx, tx, rt)
 	}, nil
 }

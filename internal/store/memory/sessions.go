@@ -3,6 +3,7 @@ package memory
 import (
 	"cmp"
 	"context"
+	"maps"
 	"slices"
 	"time"
 
@@ -43,6 +44,11 @@ func (r sessions) Get(_ context.Context, tenantID, id string) (*store.LoginSessi
 		return nil, store.ErrNotFound
 	}
 	return cloneSession(s), nil
+}
+
+// WithTx holds the memory store's write lock for its entire callback.
+func (r sessions) GetForUpdate(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
+	return r.Get(ctx, tenantID, id)
 }
 
 func (r sessions) ListByUser(_ context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
@@ -153,4 +159,15 @@ func (r sessions) AddMethod(_ context.Context, tid, id string, method store.Auth
 	}
 	s.AuthMethods = append(s.AuthMethods, method)
 	return nil
+}
+
+func (r sessions) UpdateMetadata(_ context.Context, tid, id string, md map[string]string) (*store.LoginSession, error) {
+	r.s.lock()
+	defer r.s.unlock()
+	s := r.s.sessions[key{tid, id}]
+	if s == nil {
+		return nil, store.ErrNotFound
+	}
+	s.Metadata = maps.Clone(md)
+	return cloneSession(s), nil
 }

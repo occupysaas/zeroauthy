@@ -26,6 +26,7 @@ func (s *Store) SetOrgLimits(l store.OrgLimits) {
 
 func cloneOrg(o *store.Organization) *store.Organization {
 	out := *o
+	out.TokenQuota = cloneValue(o.TokenQuota)
 	if o.Branding != nil {
 		b := *o.Branding
 		if o.Branding.LogoURL != nil {

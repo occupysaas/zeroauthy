@@ -639,3 +639,58 @@ func TestClientOrganizationFields(t *testing.T) {
 		t.Fatalf("deny on an old plugin: %d %s", rec.Code, rec.Body)
 	}
 }
+
+func TestMRRTClientPolicies(t *testing.T) {
+	e := newClientsEnv(t)
+	caller := m2mCaller(allClientScopes...)
+	post := func(aud string) (int, map[string]any) {
+		rec, b := e.create(t, caller, map[string]any{"name": "policy test", "refresh_token": map[string]any{"policies": []map[string]any{{"audience": aud, "scope": []string{"unknown"}}}}})
+		return rec.Code, b
+	}
+	if status, _ := post(tenant.ManagementAPIIdentifier(e.tn, e.h.BaseDomain)); status != 400 {
+		t.Fatalf("Management audience status=%d", status)
+	}
+	policy := map[string]any{"audience": "urn:unknown", "scope": []string{"read"}}
+	eleven := make([]any, 11)
+	for i := range eleven {
+		eleven[i] = map[string]any{"audience": fmt.Sprintf("urn:unknown:%d", i), "scope": []string{}}
+	}
+	for _, tc := range []struct {
+		name     string
+		policies any
+		third    bool
+	}{
+		{"duplicate", []any{policy, policy}, false}, {"third party", []any{policy}, true},
+		{"empty", []any{}, false}, {"missing scope", []any{map[string]any{"audience": "urn:unknown"}}, false},
+		{"operator API", []any{map[string]any{"audience": tenant.OperatorAudience, "scope": []string{}}}, false},
+		{"eleven", eleven, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec, _ := e.create(t, caller, map[string]any{"name": "policy test", "is_first_party": !tc.third, "refresh_token": map[string]any{"policies": tc.policies}})
+			if rec.Code != 400 {
+				t.Fatalf("status=%d", rec.Code)
+			}
+		})
+	}
+	status, b := post("urn:unknown")
+	if status != 201 {
+		t.Fatalf("unknown audience status=%d", status)
+	}
+	id := b["client_id"].(string)
+	rec, b := e.patch(t, caller, id, map[string]any{"refresh_token": map[string]any{"leeway": 4}})
+	if rec.Code != 200 {
+		t.Fatal(rec.Code)
+	}
+	p := b["refresh_token"].(map[string]any)["policies"].([]any)[0].(map[string]any)
+	if p["audience"] != "urn:unknown" || p["scope"].([]any)[0] != "unknown" {
+		t.Fatal("PATCH lost policies")
+	}
+	rec, b = e.patch(t, caller, id, map[string]any{"refresh_token": map[string]any{"policies": nil}})
+	if rec.Code != 200 || b["refresh_token"].(map[string]any)["policies"] != nil {
+		t.Fatal("null did not clear policies")
+	}
+	e.h.Store = grantCascadeStore{Store: e.st, probe: store.ErrRefreshTokensIIUnavailable}
+	if status, _ := post("urn:other"); status != 400 && status != 501 {
+		t.Fatalf("legacy write status=%d", status)
+	}
+}

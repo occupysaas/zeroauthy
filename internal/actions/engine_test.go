@@ -359,7 +359,7 @@ func TestEngineFailClosed(t *testing.T) {
 		"multifactor":      `api.multifactor.enable("unknown");`,
 		"prompt.render":    `try { api.prompt.render("p"); } catch (e) {}`,
 		"samlResponse":     `api.samlResponse.setAttribute("a", "b");`,
-		"refreshToken":     `try { api.refreshToken.revoke("r"); } catch (e) {}`,
+		"refreshToken":     `try { api.refreshToken.setExpiresAt(123); } catch (e) {}`,
 		"bad scope":        `api.accessToken.addScope(42);`,
 		"bad metadata":     `api.transaction.setMetadata("k", { nested: true });`,
 		"bad claim name":   `api.accessToken.setCustomClaim("", 1);`,

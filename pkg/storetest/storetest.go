@@ -53,6 +53,9 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"AuthCodes":                   testAuthCodes,
 	"PushedAuthRequests":          testPushedAuthRequests,
 	"RefreshTokens":               testRefreshTokens,
+	"RefreshTokensII":             testRefreshTokensII,
+	"DPoP":                        testDPoP,
+	"TokenQuotas":                 testTokenQuotas,
 	"PasswordResetTickets":        testPasswordResetTickets,
 	"EmailVerificationTickets":    testEmailVerificationTickets,
 	"Tx":                          testTx,
@@ -76,7 +79,7 @@ var suiteOrder = []string{
 	"Events", "Logs", "RBAC", "Organizations", "OrganizationsII", "Protection", "Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
 	"Connections", "PasswordHistories", "Users", "UserDelete", "UserList", "UserQueryMetadataTypes", "Sessions", "AuthTransactions", "AuthCodes",
 	"PushedAuthRequests",
-	"RefreshTokens", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
+	"RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
 	"DeviceCodes", "Operators", "Jobs", "TenantsDelete", "EmptyLists",
 	"Email", "HostedLogin", "HostedTransition", "Federation", "ClientCredentials", "Actions", "ActionsII",
 }

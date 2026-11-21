@@ -27,7 +27,8 @@ type MFAEffects struct {
 // Effects are a flow's validated, accumulated results. Claims are filtered
 // during minting. Metadata patches commit only when the flow completes.
 type Effects struct {
-	MFA *MFAEffects
+	MFA                *MFAEffects
+	RefreshTokenRevoke bool
 	// RBAC is fixed before the first Action. Management API assignments made
 	// by an Action affect the next issuance, including across redirects/code exchange.
 	RBAC                      *RBACSnapshot

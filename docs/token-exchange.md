@@ -10,6 +10,8 @@ the rulings are recorded in
 For client keys and signed requests, see
 [Client authentication](client-authentication.md).
 
+For one refresh token accessing several APIs, see [multi-resource refresh tokens](refresh-tokens.md#multiple-apis).
+
 ## Setting it up
 
 1. **Write and deploy an Action** with the `custom-token-exchange` trigger

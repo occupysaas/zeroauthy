@@ -27,7 +27,7 @@ Auth0 or Okta.
 | Protocol | Back-channel and front-channel logout, CIBA, Dynamic Client Registration, the `claims` parameter | Plan 41 |
 | Protocol | Implicit and hybrid flows (`response_type=token`, `id_token`) | Plan 41, only where Auth0's behaviour passes the OIDF profiles |
 | Universal Login | Advanced Customizations (ACUL) and the Classic and WebAuthn-first modes; arbitrary page JavaScript | Plan 44 |
-| Actions | Newer triggers (password-hash migration, credential validation), `/userinfo` custom claims, `event.refresh_token`; `event.authentication.methods` lists only the MFA step | Plan 40 |
+| Actions | Newer triggers (password-hash migration, credential validation), `/userinfo` custom claims, `event.authentication.methods` lists only the MFA step | Plan 40 |
 | Other APIs | My Account API, My Organization API | Plan 42 |
 | Other APIs | Token Vault and connected accounts | Plan 43 |
 | Other APIs | Forms and Flows, network ACLs, user groups and group roles | Plan 38 |
@@ -46,6 +46,7 @@ have no effect yet; the feature guides label them "stored only".
 | Area | What works | Guide |
 |---|---|---|
 | OpenID Connect | Discovery, JWKS, authorization code with PKCE, `form_post` and `web_message`, refresh token rotation, `/userinfo`, RP-initiated logout. OpenID Certified (Basic, Config and Form Post OP, 2026-10-30) | [conformance](conformance.md) |
+| Refresh tokens and sender constraints | Rotation conversion, strict overlap, MRRT, session-bound online tokens, metadata, grant/session revocation, client-credentials quotas and downstream DPoP | [refresh tokens](refresh-tokens.md), [DPoP](dpop.md) |
 | OAuth grants | Client credentials, password and password-realm, device authorization, pushed authorization requests (PAR), MFA grants, passwordless OTP grant, custom token exchange, revocation | [device flow](device-flow.md), [PAR](par.md), [token exchange](token-exchange.md) |
 | Client authentication | Client secrets, `private_key_jwt` (RS256, RS384, PS256 keys, two per application), JWT-secured authorization requests (JAR), `HS256` and `PS256` API access tokens | [client authentication](client-authentication.md) |
 | Hosted login | Login, signup, password reset, consent, identifier-first, organization prompts, MFA prompts, passwordless codes, languages, branding and page templates | [branding](branding.md), [consent](consent.md) |

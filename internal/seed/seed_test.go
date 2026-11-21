@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -393,7 +394,7 @@ tenants:
 		if err != nil {
 			t.Fatal(err)
 		}
-		if c.RefreshToken != w {
+		if !reflect.DeepEqual(c.RefreshToken, w) {
 			t.Errorf("%s refresh_token = %+v, want %+v", id, c.RefreshToken, w)
 		}
 	}
@@ -1428,5 +1429,29 @@ func TestApplyClearsImportedHash(t *testing.T) {
 	u, _ = st.Users().Get(ctx, tn.ID, u.UserID)
 	if id := u.Identities[0]; id.ImportedHash != "" || id.PasswordHash == "" {
 		t.Fatalf("identity = %+v", id)
+	}
+}
+
+func TestMRRTSeedPolicies(t *testing.T) {
+	src := "tenants: [{name: acme, clients: [{client_id: app, app_type: spa, refresh_token: {policies: [{audience: AUD, scope: [unknown]}]}}]}]"
+	f, err := Parse([]byte(strings.Replace(src, "AUD", "urn:unknown", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := memory.New()
+	if err := Apply(t.Context(), st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(t.Context(), "acme")
+	c, _ := st.Clients().Get(t.Context(), tn.ID, "app")
+	if !reflect.DeepEqual(c.RefreshToken.Policies, []store.MRRTPolicy{{Audience: "urn:unknown", Scope: []string{"unknown"}}}) {
+		t.Fatal("seed did not store policy")
+	}
+	f, err = Parse([]byte(strings.Replace(src, "AUD", "https://acme.test/api/v2/", 1)))
+	if err == nil {
+		err = f.CheckManagementAPI("test")
+	}
+	if err == nil {
+		t.Fatal("seed accepts own Management API policy")
 	}
 }

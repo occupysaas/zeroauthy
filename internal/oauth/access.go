@@ -12,9 +12,13 @@ import (
 // decide runs the access decision for a token-endpoint flow. rs is nil when
 // there is no audience.
 func (h *Handlers) decide(ctx context.Context, tenantID string, flow access.Flow, c *store.Client, rs *store.ResourceServer, scopes []string) (access.Decision, *Error) {
+	return h.decideWithStore(ctx, h.Store, tenantID, flow, c, rs, scopes)
+}
+
+func (h *Handlers) decideWithStore(ctx context.Context, st store.Store, tenantID string, flow access.Flow, c *store.Client, rs *store.ResourceServer, scopes []string) (access.Decision, *Error) {
 	in := access.Input{Flow: flow, Client: c, API: rs, Scopes: scopes}
 	if rs != nil {
-		g, err := h.Store.ClientGrants().Find(ctx, tenantID, c.ClientID, rs.Identifier, access.SubjectType(flow))
+		g, err := st.ClientGrants().Find(ctx, tenantID, c.ClientID, rs.Identifier, access.SubjectType(flow))
 		switch {
 		case err == nil:
 			in.ClientGrant = g

@@ -2289,6 +2289,42 @@ func (e CustomDomainVerifiedType) Valid() bool {
 	}
 }
 
+// Defines values for DPoPPolicyMechanism.
+const (
+	DPoPPolicyMechanismDpop DPoPPolicyMechanism = "dpop"
+	DPoPPolicyMechanismNone DPoPPolicyMechanism = "none"
+)
+
+// Valid indicates whether the value is a known member of the DPoPPolicyMechanism enum.
+func (e DPoPPolicyMechanism) Valid() bool {
+	switch e {
+	case DPoPPolicyMechanismDpop:
+		return true
+	case DPoPPolicyMechanismNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DPoPPolicyRequiredFor.
+const (
+	AllClients    DPoPPolicyRequiredFor = "all_clients"
+	PublicClients DPoPPolicyRequiredFor = "public_clients"
+)
+
+// Valid indicates whether the value is a known member of the DPoPPolicyRequiredFor enum.
+func (e DPoPPolicyRequiredFor) Valid() bool {
+	switch e {
+	case AllClients:
+		return true
+	case PublicClients:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EmailTemplateSyntax.
 const (
 	EmailTemplateSyntaxLiquid EmailTemplateSyntax = "liquid"
@@ -8105,6 +8141,7 @@ type Client struct {
 
 	// RefreshToken The refresh tokens the application receives.
 	RefreshToken                       RefreshTokenSettings `json:"refresh_token"`
+	RequireProofOfPossession           *bool                `json:"require_proof_of_possession,omitempty"`
 	RequirePushedAuthorizationRequests bool                 `json:"require_pushed_authorization_requests"`
 
 	// SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
@@ -8120,7 +8157,10 @@ type Client struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
-	WebOrigins    []string             `json:"web_origins"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
+	WebOrigins []string      `json:"web_origins"`
 }
 
 // ClientCallbackUrlTemplate defines model for Client.CallbackUrlTemplate.
@@ -8269,7 +8309,8 @@ type ClientCreate struct {
 	RedirectionPolicy *ClientCreateRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -8296,6 +8337,9 @@ type ClientCreate struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -8641,7 +8685,8 @@ type ClientSettings struct {
 	RedirectionPolicy *ClientSettingsRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -8665,6 +8710,9 @@ type ClientSettings struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -8804,7 +8852,8 @@ type ClientUpdate struct {
 	RedirectionPolicy *ClientUpdateRedirectionPolicy `json:"redirection_policy,omitempty"`
 
 	// RefreshToken The refresh tokens the application receives.
-	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RefreshToken             *RefreshTokenSettings `json:"refresh_token,omitempty"`
+	RequireProofOfPossession *bool                 `json:"require_proof_of_possession,omitempty"`
 
 	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
 	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
@@ -8829,6 +8878,9 @@ type ClientUpdate struct {
 
 	// TokenExchange Only first-party, OIDC-conformant applications may set it (LR35-6, C5).
 	TokenExchange *ClientTokenExchange `json:"token_exchange,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 
 	// WebOrigins Origins allowed for web message and silent authentication.
 	WebOrigins *[]string `json:"web_origins,omitempty"`
@@ -9521,6 +9573,31 @@ type CustomDomainVerifiedType string
 // CustomSigningJWKS defines model for CustomSigningJWKS.
 type CustomSigningJWKS struct {
 	Keys []map[string]interface{} `json:"keys"`
+}
+
+// DPoPPolicy defines model for DPoPPolicy.
+type DPoPPolicy struct {
+	Mechanism   DPoPPolicyMechanism    `json:"mechanism"`
+	Required    bool                   `json:"required"`
+	RequiredFor *DPoPPolicyRequiredFor `json:"required_for,omitempty"`
+}
+
+// DPoPPolicyMechanism defines model for DPoPPolicy.Mechanism.
+type DPoPPolicyMechanism string
+
+// DPoPPolicyRequiredFor defines model for DPoPPolicy.RequiredFor.
+type DPoPPolicyRequiredFor string
+
+// DefaultTokenQuota Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+type DefaultTokenQuota struct {
+	Clients       *DefaultTokenQuotaSubject `json:"clients,omitempty"`
+	Organizations *DefaultTokenQuotaSubject `json:"organizations,omitempty"`
+}
+
+// DefaultTokenQuotaSubject defines model for DefaultTokenQuotaSubject.
+type DefaultTokenQuotaSubject struct {
+	ClientCredentials    IITokenQuotaClientCredentials `json:"client_credentials"`
+	AdditionalProperties map[string]interface{}        `json:"-"`
 }
 
 // EmailPreview defines model for EmailPreview.
@@ -10227,8 +10304,10 @@ type IIOrganization struct {
 	Metadata               *IIOrganizationMetadata                   `json:"metadata,omitempty"`
 	Name                   *string                                   `json:"name,omitempty"`
 	ThirdPartyClientAccess *IIOrganizationThirdPartyClientAccessEnum `json:"third_party_client_access,omitempty"`
-	TokenQuota             *IITokenQuota                             `json:"token_quota,omitempty"`
-	AdditionalProperties   map[string]interface{}                    `json:"-"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota           *IITokenQuota          `json:"token_quota,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // IIOrganizationAccessLevelEnum defines model for IIOrganizationAccessLevelEnum.
@@ -10336,8 +10415,10 @@ type IISearchOrganization struct {
 	IsAppEntitlementActive *bool                                     `json:"is_app_entitlement_active,omitempty"`
 	Name                   *string                                   `json:"name,omitempty"`
 	ThirdPartyClientAccess *IIOrganizationThirdPartyClientAccessEnum `json:"third_party_client_access,omitempty"`
-	TokenQuota             *IITokenQuota                             `json:"token_quota,omitempty"`
-	AdditionalProperties   map[string]interface{}                    `json:"-"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota           *IITokenQuota          `json:"token_quota,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // IISearchOrganizationsPaginatedResponseContent defines model for IISearchOrganizationsPaginatedResponseContent.
@@ -10349,7 +10430,7 @@ type IISearchOrganizationsPaginatedResponseContent struct {
 // IISearchParserEnum defines model for IISearchParserEnum.
 type IISearchParserEnum string
 
-// IITokenQuota defines model for IITokenQuota.
+// IITokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
 type IITokenQuota struct {
 	ClientCredentials IITokenQuotaClientCredentials `json:"client_credentials"`
 }
@@ -12105,6 +12186,9 @@ type Organization struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess string `json:"third_party_client_access"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationBranding defines model for OrganizationBranding.
@@ -12198,6 +12282,9 @@ type OrganizationCreate struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationCreated The create response, which alone echoes the enabled connections.
@@ -12216,6 +12303,9 @@ type OrganizationCreated struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess string `json:"third_party_client_access"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationDiscoveryDomain defines model for OrganizationDiscoveryDomain.
@@ -12388,6 +12478,9 @@ type OrganizationUpdate struct {
 
 	// ThirdPartyClientAccess `block` (default) or `allow`.
 	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+
+	// TokenQuota Application or organization quota for the client-credentials grant. Null removes the override.
+	TokenQuota *IITokenQuota `json:"token_quota,omitempty"`
 }
 
 // OrganizationsCheckpoint A checkpoint page; `next` is present while more remain.
@@ -12643,6 +12736,86 @@ type RBACPermissionSource struct {
 // RBACPermissionSourceSourceType defines model for RBACPermissionSource.SourceType.
 type RBACPermissionSourceSourceType string
 
+// RefreshToken defines model for RefreshToken.
+type RefreshToken struct {
+	ClientId  *string    `json:"client_id,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Device Device details recorded when the refresh token was issued and last exchanged.
+	Device        *RefreshTokenDevice `json:"device,omitempty"`
+	ExpiresAt     *time.Time          `json:"expires_at,omitempty"`
+	Id            *string             `json:"id,omitempty"`
+	IdleExpiresAt *time.Time          `json:"idle_expires_at,omitempty"`
+
+	// LastExchangedAt The last successful exchange, or null before the first exchange.
+	LastExchangedAt      *time.Time            `json:"last_exchanged_at,omitempty"`
+	RefreshTokenMetadata *RefreshTokenMetadata `json:"refresh_token_metadata,omitempty"`
+
+	// ResourceServers The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API.
+	ResourceServers *[]struct {
+		Audience string `json:"audience"`
+		Scopes   string `json:"scopes"`
+	} `json:"resource_servers,omitempty"`
+	Rotating  *bool   `json:"rotating,omitempty"`
+	SessionId *string `json:"session_id,omitempty"`
+	UserId    *string `json:"user_id,omitempty"`
+}
+
+// RefreshTokenDevice Device details recorded when the refresh token was issued and last exchanged.
+type RefreshTokenDevice struct {
+	// InitialAsn Empty because ASN lookup is unavailable.
+	InitialAsn       *string `json:"initial_asn,omitempty"`
+	InitialIp        *string `json:"initial_ip,omitempty"`
+	InitialUserAgent *string `json:"initial_user_agent,omitempty"`
+
+	// LastAsn Empty because ASN lookup is unavailable.
+	LastAsn       *string `json:"last_asn,omitempty"`
+	LastIp        *string `json:"last_ip,omitempty"`
+	LastUserAgent *string `json:"last_user_agent,omitempty"`
+}
+
+// RefreshTokenMetadata defines model for RefreshTokenMetadata.
+type RefreshTokenMetadata map[string]string
+
+// RefreshTokenMetadataUpdate defines model for RefreshTokenMetadataUpdate.
+type RefreshTokenMetadataUpdate struct {
+	RefreshTokenMetadata *RefreshTokenMetadata `json:"refresh_token_metadata"`
+}
+
+// RefreshTokenPage defines model for RefreshTokenPage.
+type RefreshTokenPage struct {
+	// Next Cursor to pass as `from` on the next request.
+	Next          *string        `json:"next,omitempty"`
+	RefreshTokens []RefreshToken `json:"refresh_tokens"`
+}
+
+// RefreshTokenPolicy defines model for RefreshTokenPolicy.
+type RefreshTokenPolicy struct {
+	Audience string   `json:"audience"`
+	Scope    []string `json:"scope"`
+}
+
+// RefreshTokenRevocation defines model for RefreshTokenRevocation.
+type RefreshTokenRevocation struct {
+	Audience *string   `json:"audience,omitempty"`
+	ClientId *string   `json:"client_id,omitempty"`
+	Ids      *[]string `json:"ids,omitempty"`
+	UserId   *string   `json:"user_id,omitempty"`
+	union    json.RawMessage
+}
+
+// RefreshTokenRevocation0 defines model for RefreshTokenRevocation.0.
+type RefreshTokenRevocation0 = interface{}
+
+// RefreshTokenRevocation1 defines model for RefreshTokenRevocation.1.
+type RefreshTokenRevocation1 = interface{}
+
+// RefreshTokenRevocation2 defines model for RefreshTokenRevocation.2.
+type RefreshTokenRevocation2 = interface{}
+
+// RefreshTokenRevocation3 defines model for RefreshTokenRevocation.3.
+type RefreshTokenRevocation3 = interface{}
+
 // RefreshTokenSettings The refresh tokens the application receives.
 type RefreshTokenSettings struct {
 	ExpirationType *RefreshTokenSettingsExpirationType `json:"expiration_type,omitempty"`
@@ -12656,8 +12829,13 @@ type RefreshTokenSettings struct {
 	// InfiniteTokenLifetime True for non-expiring tokens; derived from `expiration_type`.
 	InfiniteTokenLifetime *bool `json:"infinite_token_lifetime,omitempty"`
 
-	// Leeway Seconds a rotated token may still be used.
-	Leeway       *int                              `json:"leeway,omitempty"`
+	// Leeway Seconds during which only the immediately previous rotating token may be exchanged again.
+	Leeway *int `json:"leeway,omitempty"`
+
+	// Policies API audiences and scopes available to this first-party application
+	// during refresh token exchange. Audience identifiers must be unique.
+	// The Management API is excluded. Null clears the policies.
+	Policies     *[]RefreshTokenPolicy             `json:"policies,omitempty"`
 	RotationType *RefreshTokenSettingsRotationType `json:"rotation_type,omitempty"`
 
 	// TokenLifetime Absolute lifetime in seconds.
@@ -12672,8 +12850,10 @@ type RefreshTokenSettingsRotationType string
 
 // ResourceServer An API.
 type ResourceServer struct {
-	AllowOfflineAccess bool `json:"allow_offline_access"`
-	EnforcePolicies    bool `json:"enforce_policies"`
+	AllowOfflineAccess                     bool  `json:"allow_offline_access"`
+	AllowOnlineAccess                      *bool `json:"allow_online_access,omitempty"`
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
+	EnforcePolicies                        bool  `json:"enforce_policies"`
 
 	// Id The API's ID: 24 hexadecimal characters for APIs created through the API.
 	Id         string `json:"id"`
@@ -12683,7 +12863,8 @@ type ResourceServer struct {
 	IsSystem *bool `json:"is_system,omitempty"`
 
 	// Name Absent when the API has no name.
-	Name *string `json:"name,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes Absent when the API defines none.
 	Scopes     *[]ResourceServerScope   `json:"scopes,omitempty"`
@@ -12729,6 +12910,12 @@ type ResourceServerCreate struct {
 	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
 	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
 
+	// AllowOnlineAccess Allow clients to obtain session-bound refresh tokens for this API.
+	AllowOnlineAccess *bool `json:"allow_online_access,omitempty"`
+
+	// AllowOnlineAccessWithEphemeralSessions Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
+
 	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
 	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`
 
@@ -12742,10 +12929,8 @@ type ResourceServerCreate struct {
 	Identifier string `json:"identifier"`
 
 	// Name The API's name. Optional; absent when not given.
-	Name *string `json:"name,omitempty"`
-
-	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
-	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
@@ -12817,6 +13002,12 @@ type ResourceServerSettings struct {
 	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
 	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
 
+	// AllowOnlineAccess Allow clients to obtain session-bound refresh tokens for this API.
+	AllowOnlineAccess *bool `json:"allow_online_access,omitempty"`
+
+	// AllowOnlineAccessWithEphemeralSessions Allow online refresh token issuance for ephemeral sessions when online access is enabled.
+	AllowOnlineAccessWithEphemeralSessions *bool `json:"allow_online_access_with_ephemeral_sessions,omitempty"`
+
 	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
 	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`
 
@@ -12827,10 +13018,8 @@ type ResourceServerSettings struct {
 	EnforcePolicies *bool `json:"enforce_policies,omitempty"`
 
 	// Name The API's name. Optional; absent when not given.
-	Name *string `json:"name,omitempty"`
-
-	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
-	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	ProofOfPossession *DPoPPolicy `json:"proof_of_possession,omitempty"`
 
 	// Scopes The API's permissions. Values are unique.
 	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
@@ -12980,6 +13169,14 @@ type SessionDevice struct {
 	InitialUserAgent *string `json:"initial_user_agent,omitempty"`
 	LastIp           *string `json:"last_ip,omitempty"`
 	LastUserAgent    *string `json:"last_user_agent,omitempty"`
+}
+
+// SessionMetadata defines model for SessionMetadata.
+type SessionMetadata map[string]string
+
+// SessionMetadataUpdate defines model for SessionMetadataUpdate.
+type SessionMetadataUpdate struct {
+	SessionMetadata *SessionMetadata `json:"session_metadata"`
 }
 
 // SignedRequestObject JAR settings. Prefer a different key from `private_key_jwt` (advice, not enforced).
@@ -13170,11 +13367,8 @@ type TenantSettings struct {
 	// DefaultRedirectionUri Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
 	DefaultRedirectionUri *string `json:"default_redirection_uri,omitempty"`
 
-	// DefaultTokenQuota Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-	DefaultTokenQuota *struct {
-		Clients       *TenantSettings_DefaultTokenQuota_Clients       `json:"clients,omitempty"`
-		Organizations *TenantSettings_DefaultTokenQuota_Organizations `json:"organizations,omitempty"`
-	} `json:"default_token_quota,omitempty"`
+	// DefaultTokenQuota Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+	DefaultTokenQuota *DefaultTokenQuota `json:"default_token_quota,omitempty"`
 
 	// DeviceFlow Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code.
 	DeviceFlow *struct {
@@ -13182,7 +13376,7 @@ type TenantSettings struct {
 		Mask    *string                          `json:"mask,omitempty"`
 	} `json:"device_flow,omitempty"`
 
-	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
 	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13232,8 +13426,10 @@ type TenantSettings struct {
 		MfaShowFactorListOnEnrollment                  *bool `json:"mfa_show_factor_list_on_enrollment,omitempty"`
 		NoDiscloseEnterpriseConnections                *bool `json:"no_disclose_enterprise_connections,omitempty"`
 		RemoveAlgFromJwks                              *bool `json:"remove_alg_from_jwks,omitempty"`
-		RevokeRefreshTokenGrant                        *bool `json:"revoke_refresh_token_grant,omitempty"`
-		TrustAzureAdfsEmailVerifiedConnectionProperty  *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
+
+		// RevokeRefreshTokenGrant Whether OAuth refresh token revocation also deletes the associated user grant.
+		RevokeRefreshTokenGrant                       *bool `json:"revoke_refresh_token_grant,omitempty"`
+		TrustAzureAdfsEmailVerifiedConnectionProperty *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
 	} `json:"flags,omitempty"`
 	FriendlyName *string `json:"friendly_name,omitempty"`
 
@@ -13332,26 +13528,6 @@ type TenantSettings struct {
 // TenantSettingsCountryCodesMode defines model for TenantSettings.CountryCodes.Mode.
 type TenantSettingsCountryCodesMode string
 
-// TenantSettings_DefaultTokenQuota_Clients defines model for TenantSettings.DefaultTokenQuota.Clients.
-type TenantSettings_DefaultTokenQuota_Clients struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
-
-// TenantSettings_DefaultTokenQuota_Organizations defines model for TenantSettings.DefaultTokenQuota.Organizations.
-type TenantSettings_DefaultTokenQuota_Organizations struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
-
 // TenantSettingsDeviceFlowCharset defines model for TenantSettings.DeviceFlow.Charset.
 type TenantSettingsDeviceFlowCharset string
 
@@ -13424,11 +13600,8 @@ type TenantSettingsPatch struct {
 	// DefaultRedirectionUri Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
 	DefaultRedirectionUri *string `json:"default_redirection_uri,omitempty"`
 
-	// DefaultTokenQuota Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
-	DefaultTokenQuota *struct {
-		Clients       *TenantSettingsPatch_DefaultTokenQuota_Clients       `json:"clients,omitempty"`
-		Organizations *TenantSettingsPatch_DefaultTokenQuota_Organizations `json:"organizations,omitempty"`
-	} `json:"default_token_quota,omitempty"`
+	// DefaultTokenQuota Fallback quotas for clients and organizations that have no override. Null removes the defaults.
+	DefaultTokenQuota *DefaultTokenQuota `json:"default_token_quota,omitempty"`
 
 	// DeviceFlow Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code.
 	DeviceFlow *struct {
@@ -13436,7 +13609,7 @@ type TenantSettingsPatch struct {
 		Mask    *string                               `json:"mask,omitempty"`
 	} `json:"device_flow,omitempty"`
 
-	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// DpopStrictRefreshTokenBinding Bind refresh tokens to any supplied DPoP proof independently of API access-token settings. New tenants default to true; explicit false retains legacy per-API binding.
 	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
 
 	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13489,8 +13662,10 @@ type TenantSettingsPatch struct {
 		MfaShowFactorListOnEnrollment                  *bool `json:"mfa_show_factor_list_on_enrollment,omitempty"`
 		NoDiscloseEnterpriseConnections                *bool `json:"no_disclose_enterprise_connections,omitempty"`
 		RemoveAlgFromJwks                              *bool `json:"remove_alg_from_jwks,omitempty"`
-		RevokeRefreshTokenGrant                        *bool `json:"revoke_refresh_token_grant,omitempty"`
-		TrustAzureAdfsEmailVerifiedConnectionProperty  *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
+
+		// RevokeRefreshTokenGrant Whether OAuth refresh token revocation also deletes the associated user grant.
+		RevokeRefreshTokenGrant                       *bool `json:"revoke_refresh_token_grant,omitempty"`
+		TrustAzureAdfsEmailVerifiedConnectionProperty *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
 	} `json:"flags,omitempty"`
 	FriendlyName *string `json:"friendly_name,omitempty"`
 
@@ -13594,26 +13769,6 @@ type TenantSettingsPatch struct {
 
 // TenantSettingsPatchCountryCodesMode defines model for TenantSettingsPatch.CountryCodes.Mode.
 type TenantSettingsPatchCountryCodesMode string
-
-// TenantSettingsPatch_DefaultTokenQuota_Clients defines model for TenantSettingsPatch.DefaultTokenQuota.Clients.
-type TenantSettingsPatch_DefaultTokenQuota_Clients struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
-
-// TenantSettingsPatch_DefaultTokenQuota_Organizations defines model for TenantSettingsPatch.DefaultTokenQuota.Organizations.
-type TenantSettingsPatch_DefaultTokenQuota_Organizations struct {
-	ClientCredentials struct {
-		Enforce *bool `json:"enforce,omitempty"`
-		PerDay  *int  `json:"per_day,omitempty"`
-		PerHour *int  `json:"per_hour,omitempty"`
-	} `json:"client_credentials"`
-	AdditionalProperties map[string]interface{} `json:"-"`
-}
 
 // TenantSettingsPatchDeviceFlowCharset defines model for TenantSettingsPatch.DeviceFlow.Charset.
 type TenantSettingsPatchDeviceFlowCharset string
@@ -13880,12 +14035,15 @@ type UserRefreshToken struct {
 	ClientId  string    `json:"client_id"`
 	CreatedAt time.Time `json:"created_at"`
 
-	// Device The IP addresses and user agents of the session; there are no ASN keys.
-	Device          *SessionDevice `json:"device,omitempty"`
-	ExpiresAt       *time.Time     `json:"expires_at"`
-	Id              string         `json:"id"`
-	IdleExpiresAt   *time.Time     `json:"idle_expires_at"`
-	LastExchangedAt *time.Time     `json:"last_exchanged_at"`
+	// Device Device details recorded when the refresh token was issued and last exchanged.
+	Device        *RefreshTokenDevice `json:"device,omitempty"`
+	ExpiresAt     *time.Time          `json:"expires_at"`
+	Id            string              `json:"id"`
+	IdleExpiresAt *time.Time          `json:"idle_expires_at"`
+
+	// LastExchangedAt The last successful exchange, or null before the first exchange.
+	LastExchangedAt      *time.Time            `json:"last_exchanged_at"`
+	RefreshTokenMetadata *RefreshTokenMetadata `json:"refresh_token_metadata,omitempty"`
 
 	// ResourceServers The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API.
 	ResourceServers []struct {
@@ -13931,13 +14089,14 @@ type UserSession struct {
 	CreatedAt time.Time `json:"created_at"`
 
 	// Device The IP addresses and user agents of the session; there are no ASN keys.
-	Device           SessionDevice `json:"device"`
-	ExpiresAt        time.Time     `json:"expires_at"`
-	Id               string        `json:"id"`
-	IdleExpiresAt    time.Time     `json:"idle_expires_at"`
-	LastInteractedAt time.Time     `json:"last_interacted_at"`
-	UpdatedAt        time.Time     `json:"updated_at"`
-	UserId           string        `json:"user_id"`
+	Device           SessionDevice    `json:"device"`
+	ExpiresAt        time.Time        `json:"expires_at"`
+	Id               string           `json:"id"`
+	IdleExpiresAt    time.Time        `json:"idle_expires_at"`
+	LastInteractedAt time.Time        `json:"last_interacted_at"`
+	SessionMetadata  *SessionMetadata `json:"session_metadata,omitempty"`
+	UpdatedAt        time.Time        `json:"updated_at"`
+	UserId           string           `json:"user_id"`
 }
 
 // UserSessionCookieMode defines model for UserSession.Cookie.Mode.
@@ -14078,6 +14237,9 @@ type OrganizationsUnavailable = ManagementError
 
 // PayloadTooLarge Auth0's Management API error shape.
 type PayloadTooLarge = ManagementError
+
+// RefreshTokensUnavailable Auth0's Management API error shape.
+type RefreshTokensUnavailable = ManagementError
 
 // ScriptRuntimeUnavailable Auth0's Management API error shape.
 type ScriptRuntimeUnavailable = ManagementError
@@ -14749,6 +14911,27 @@ type PutPromptCustomTextJSONBody map[string]interface{}
 // PutPromptPartialsJSONBody defines parameters for PutPromptPartials.
 type PutPromptPartialsJSONBody map[string]interface{}
 
+// GetRefreshTokensParams defines parameters for GetRefreshTokens.
+type GetRefreshTokensParams struct {
+	// UserId The user whose refresh tokens to list.
+	UserId string `form:"user_id" json:"user_id"`
+
+	// ClientId Only return refresh tokens issued to this application.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// From The `next` cursor from the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Page size.
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// Fields Comma-separated fields to include or exclude from each refresh token.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
 // GetResourceServersParams defines parameters for GetResourceServers.
 type GetResourceServersParams struct {
 	// Page Page index of the results, from 0.
@@ -15388,6 +15571,12 @@ type PutPromptCustomTextJSONRequestBody PutPromptCustomTextJSONBody
 // PutPromptPartialsJSONRequestBody defines body for PutPromptPartials for application/json ContentType.
 type PutPromptPartialsJSONRequestBody PutPromptPartialsJSONBody
 
+// RevokeRefreshTokensJSONRequestBody defines body for RevokeRefreshTokens for application/json ContentType.
+type RevokeRefreshTokensJSONRequestBody = RefreshTokenRevocation
+
+// UpdateRefreshTokenJSONRequestBody defines body for UpdateRefreshToken for application/json ContentType.
+type UpdateRefreshTokenJSONRequestBody = RefreshTokenMetadataUpdate
+
 // CreateResourceServerJSONRequestBody defines body for CreateResourceServer for application/json ContentType.
 type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
@@ -15408,6 +15597,9 @@ type PostRolePermissionsJSONRequestBody = RBACPermissionBatch
 
 // PostRoleUsersJSONRequestBody defines body for PostRoleUsers for application/json ContentType.
 type PostRoleUsersJSONRequestBody = RoleUserBatch
+
+// UpdateSessionJSONRequestBody defines body for UpdateSession for application/json ContentType.
+type UpdateSessionJSONRequestBody = SessionMetadataUpdate
 
 // UpdateTenantSettingsJSONRequestBody defines body for UpdateTenantSettings for application/json ContentType.
 type UpdateTenantSettingsJSONRequestBody = TenantSettingsPatch
@@ -16926,6 +17118,72 @@ func (a ConnectionOptionsSMS_GatewayAuthentication) MarshalJSON() ([]byte, error
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'subject': %w", err)
 		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for DefaultTokenQuotaSubject. Returns the specified
+// element and whether it was found
+func (a DefaultTokenQuotaSubject) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for DefaultTokenQuotaSubject
+func (a *DefaultTokenQuotaSubject) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for DefaultTokenQuotaSubject to handle AdditionalProperties
+func (a *DefaultTokenQuotaSubject) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_credentials"]; found {
+		err = json.Unmarshal(raw, &a.ClientCredentials)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_credentials': %w", err)
+		}
+		delete(object, "client_credentials")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for DefaultTokenQuotaSubject to handle AdditionalProperties
+func (a DefaultTokenQuotaSubject) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -18613,270 +18871,6 @@ func (a MFASetAuthenticationMethodsResponse_AuthenticationMethods_Item) MarshalJ
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'type': %w", err)
 		}
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettings_DefaultTokenQuota_Clients. Returns the specified
-// element and whether it was found
-func (a TenantSettings_DefaultTokenQuota_Clients) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettings_DefaultTokenQuota_Clients
-func (a *TenantSettings_DefaultTokenQuota_Clients) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a *TenantSettings_DefaultTokenQuota_Clients) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a TenantSettings_DefaultTokenQuota_Clients) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettings_DefaultTokenQuota_Organizations. Returns the specified
-// element and whether it was found
-func (a TenantSettings_DefaultTokenQuota_Organizations) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettings_DefaultTokenQuota_Organizations
-func (a *TenantSettings_DefaultTokenQuota_Organizations) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a *TenantSettings_DefaultTokenQuota_Organizations) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettings_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a TenantSettings_DefaultTokenQuota_Organizations) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Clients. Returns the specified
-// element and whether it was found
-func (a TenantSettingsPatch_DefaultTokenQuota_Clients) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Clients
-func (a *TenantSettingsPatch_DefaultTokenQuota_Clients) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a *TenantSettingsPatch_DefaultTokenQuota_Clients) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Clients to handle AdditionalProperties
-func (a TenantSettingsPatch_DefaultTokenQuota_Clients) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Organizations. Returns the specified
-// element and whether it was found
-func (a TenantSettingsPatch_DefaultTokenQuota_Organizations) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Organizations
-func (a *TenantSettingsPatch_DefaultTokenQuota_Organizations) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a *TenantSettingsPatch_DefaultTokenQuota_Organizations) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["client_credentials"]; found {
-		err = json.Unmarshal(raw, &a.ClientCredentials)
-		if err != nil {
-			return fmt.Errorf("error reading 'client_credentials': %w", err)
-		}
-		delete(object, "client_credentials")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Organizations to handle AdditionalProperties
-func (a TenantSettingsPatch_DefaultTokenQuota_Organizations) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -20827,6 +20821,196 @@ func (t MFAGetAuthenticationMethodsResponse) MarshalJSON() ([]byte, error) {
 
 func (t *MFAGetAuthenticationMethodsResponse) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRefreshTokenRevocation0 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation0
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation0() (RefreshTokenRevocation0, error) {
+	var body RefreshTokenRevocation0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation0 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation0
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation0(v RefreshTokenRevocation0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation0 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation0
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation0(v RefreshTokenRevocation0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRefreshTokenRevocation1 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation1
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation1() (RefreshTokenRevocation1, error) {
+	var body RefreshTokenRevocation1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation1 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation1
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation1(v RefreshTokenRevocation1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation1 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation1
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation1(v RefreshTokenRevocation1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRefreshTokenRevocation2 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation2
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation2() (RefreshTokenRevocation2, error) {
+	var body RefreshTokenRevocation2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation2 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation2
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation2(v RefreshTokenRevocation2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation2 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation2
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation2(v RefreshTokenRevocation2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRefreshTokenRevocation3 returns the union data inside the RefreshTokenRevocation as a RefreshTokenRevocation3
+func (t RefreshTokenRevocation) AsRefreshTokenRevocation3() (RefreshTokenRevocation3, error) {
+	var body RefreshTokenRevocation3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRefreshTokenRevocation3 overwrites any union data inside the RefreshTokenRevocation as the provided RefreshTokenRevocation3
+func (t *RefreshTokenRevocation) FromRefreshTokenRevocation3(v RefreshTokenRevocation3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRefreshTokenRevocation3 performs a merge with any union data inside the RefreshTokenRevocation, using the provided RefreshTokenRevocation3
+func (t *RefreshTokenRevocation) MergeRefreshTokenRevocation3(v RefreshTokenRevocation3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RefreshTokenRevocation) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.Audience != nil {
+		object["audience"], err = json.Marshal(t.Audience)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'audience': %w", err)
+		}
+	}
+
+	if t.ClientId != nil {
+		object["client_id"], err = json.Marshal(t.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if t.Ids != nil {
+		object["ids"], err = json.Marshal(t.Ids)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'ids': %w", err)
+		}
+	}
+
+	if t.UserId != nil {
+		object["user_id"], err = json.Marshal(t.UserId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'user_id': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *RefreshTokenRevocation) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["audience"]; found {
+		err = json.Unmarshal(raw, &t.Audience)
+		if err != nil {
+			return fmt.Errorf("error reading 'audience': %w", err)
+		}
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &t.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+	}
+
+	if raw, found := object["ids"]; found {
+		err = json.Unmarshal(raw, &t.Ids)
+		if err != nil {
+			return fmt.Errorf("error reading 'ids': %w", err)
+		}
+	}
+
+	if raw, found := object["user_id"]; found {
+		err = json.Unmarshal(raw, &t.UserId)
+		if err != nil {
+			return fmt.Errorf("error reading 'user_id': %w", err)
+		}
+	}
+
 	return err
 }
 
@@ -23025,12 +23209,21 @@ type ServerInterface interface {
 	// PutPromptPartials PutPromptPartials addressed to the current tenant
 	// (PUT /api/v2/prompts/{prompt}/partials)
 	PutPromptPartials(w http.ResponseWriter, r *http.Request, prompt string)
+	// GetRefreshTokens List refresh tokens by user
+	// (GET /api/v2/refresh-tokens)
+	GetRefreshTokens(w http.ResponseWriter, r *http.Request, params GetRefreshTokensParams)
+	// RevokeRefreshTokens Revoke refresh tokens in bulk
+	// (POST /api/v2/refresh-tokens/revoke)
+	RevokeRefreshTokens(w http.ResponseWriter, r *http.Request)
 	// DeleteRefreshToken Delete a refresh token
 	// (DELETE /api/v2/refresh-tokens/{id})
 	DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string)
 	// GetRefreshToken Get a refresh token
 	// (GET /api/v2/refresh-tokens/{id})
 	GetRefreshToken(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateRefreshToken Update refresh token metadata
+	// (PATCH /api/v2/refresh-tokens/{id})
+	UpdateRefreshToken(w http.ResponseWriter, r *http.Request, id string)
 	// GetResourceServers List APIs
 	// (GET /api/v2/resource-servers)
 	GetResourceServers(w http.ResponseWriter, r *http.Request, params GetResourceServersParams)
@@ -23088,6 +23281,12 @@ type ServerInterface interface {
 	// GetSession Get a session
 	// (GET /api/v2/sessions/{id})
 	GetSession(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateSession Update session metadata
+	// (PATCH /api/v2/sessions/{id})
+	UpdateSession(w http.ResponseWriter, r *http.Request, id string)
+	// RevokeSession Revoke a session and its refresh tokens
+	// (POST /api/v2/sessions/{id}/revoke)
+	RevokeSession(w http.ResponseWriter, r *http.Request, id string)
 	// GetActiveUsers Count users active within thirty days
 	// (GET /api/v2/stats/active-users)
 	GetActiveUsers(w http.ResponseWriter, r *http.Request)
@@ -24777,6 +24976,18 @@ func (_ Unimplemented) PutPromptPartials(w http.ResponseWriter, r *http.Request,
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetRefreshTokens List refresh tokens by user
+// (GET /api/v2/refresh-tokens)
+func (_ Unimplemented) GetRefreshTokens(w http.ResponseWriter, r *http.Request, params GetRefreshTokensParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeRefreshTokens Revoke refresh tokens in bulk
+// (POST /api/v2/refresh-tokens/revoke)
+func (_ Unimplemented) RevokeRefreshTokens(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteRefreshToken Delete a refresh token
 // (DELETE /api/v2/refresh-tokens/{id})
 func (_ Unimplemented) DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
@@ -24786,6 +24997,12 @@ func (_ Unimplemented) DeleteRefreshToken(w http.ResponseWriter, r *http.Request
 // GetRefreshToken Get a refresh token
 // (GET /api/v2/refresh-tokens/{id})
 func (_ Unimplemented) GetRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateRefreshToken Update refresh token metadata
+// (PATCH /api/v2/refresh-tokens/{id})
+func (_ Unimplemented) UpdateRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -24900,6 +25117,18 @@ func (_ Unimplemented) DeleteSession(w http.ResponseWriter, r *http.Request, id 
 // GetSession Get a session
 // (GET /api/v2/sessions/{id})
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateSession Update session metadata
+// (PATCH /api/v2/sessions/{id})
+func (_ Unimplemented) UpdateSession(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeSession Revoke a session and its refresh tokens
+// (POST /api/v2/sessions/{id}/revoke)
+func (_ Unimplemented) RevokeSession(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -33261,6 +33490,118 @@ func (siw *ServerInterfaceWrapper) PutPromptPartials(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// GetRefreshTokens operation middleware
+func (siw *ServerInterfaceWrapper) GetRefreshTokens(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRefreshTokensParams
+
+	// ------------- Required query parameter "user_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "user_id", r.URL.Query(), &params.UserId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRefreshTokens(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeRefreshTokens operation middleware
+func (siw *ServerInterfaceWrapper) RevokeRefreshTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeRefreshTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteRefreshToken operation middleware
 func (siw *ServerInterfaceWrapper) DeleteRefreshToken(w http.ResponseWriter, r *http.Request) {
 
@@ -33304,6 +33645,32 @@ func (siw *ServerInterfaceWrapper) GetRefreshToken(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRefreshToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRefreshToken operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRefreshToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRefreshToken(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -34104,6 +34471,58 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSession(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSession operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSession(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeSession operation middleware
+func (siw *ServerInterfaceWrapper) RevokeSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeSession(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -36419,10 +36838,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/sessions/{id}", wrapper.GetSession)
 	})
 	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/sessions/{id}", wrapper.UpdateSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/sessions/{id}/revoke", wrapper.RevokeSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/refresh-tokens", wrapper.GetRefreshTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/refresh-tokens/revoke", wrapper.RevokeRefreshTokens)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.DeleteRefreshToken)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.GetRefreshToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.UpdateRefreshToken)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/grants", wrapper.DeleteGrantsByUser)

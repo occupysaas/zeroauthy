@@ -89,6 +89,22 @@ fields. Identity lookup remains connection plus upstream subject, never email.
 Userinfo subject must match the signed ID token. Sensitive provider values are
 registered with request log scrubbing even when mapped into a profile field.
 
+## DPoP boundary
+
+Downstream DPoP validates bounded ES256/RS256 proofs against embedded public
+keys without outbound key fetches. Proofs bind the resolved public origin,
+method and endpoint; UserInfo also verifies the access-token hash and signed
+`cnf.jkt`. Replay claims use tenant/origin/key isolation in the shared store.
+Authorization-server and UserInfo nonces use distinct authenticated purposes.
+Key mismatch and nonce challenges occur before code or refresh mutation.
+Storage support loss and transport failures refuse protected processing.
+
+API sender constraints are opt-in; external APIs must validate the proof and
+`cnf.jkt` themselves. Management and operator APIs remain Bearer-only and
+refuse bound tokens. A compromised application that can use its private key
+can still send proofs; DPoP does not isolate malicious application code.
+See [DPoP](docs/dpop.md) for settings and validation responsibilities.
+
 ## Other documented gaps
 
 - No `Strict-Transport-Security` header; add it at the proxy

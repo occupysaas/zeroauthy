@@ -300,3 +300,7 @@ func (o *opened) ClientCredentialsSupported() bool {
 func (o *opened) WebAuthnSupported() bool {
 	return o.Store.(store.WebAuthnSupporter).WebAuthnSupported()
 }
+
+func (s *opened) CheckRefreshTokensIISupport(ctx context.Context) error {
+	return s.Store.(store.RefreshTokensIISupporter).CheckRefreshTokensIISupport(ctx)
+}

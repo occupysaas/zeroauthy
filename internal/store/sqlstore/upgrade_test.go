@@ -134,7 +134,7 @@ func TestUpgradeFromOldestSchema(t *testing.T) {
 				c.Secrets[0].CreatedAt.UnixMicro() != created || c.Secrets[0].ExpiresAt != nil || c.TokenEndpointAuthMethod != "client_secret_post" ||
 				!reflect.DeepEqual(c.GrantTypes, []string{"authorization_code", "refresh_token"}) ||
 				!reflect.DeepEqual(c.Callbacks, []string{"https://acme.test/callback"}) || c.IDTokenLifetime != 3600 ||
-				c.RefreshToken != (store.RefreshTokenPolicy{Rotating: true, Leeway: 30, Expiring: true, TokenLifetime: 2592000, IdleTokenLifetime: 1296000}) ||
+				!reflect.DeepEqual(c.RefreshToken, store.RefreshTokenPolicy{Rotating: true, Leeway: 30, Expiring: true, TokenLifetime: 2592000, IdleTokenLifetime: 1296000}) ||
 				!c.IsFirstParty {
 				t.Fatalf("client: %+v", c)
 			}
@@ -186,7 +186,7 @@ func TestUpgradeFromOldestSchema(t *testing.T) {
 				t.Fatalf("session: %+v %v", ses, err)
 			}
 			rt, err := s.RefreshTokens().GetByTokenHash(ctx, tenantID, "refresh-hash")
-			if err != nil || rt.ID != "rt_1" || rt.FamilyID != "fam_1" || rt.ClientID != "web" || rt.UserID != "auth0|jane" || rt.SessionID != "ses_1" ||
+			if err != nil || rt.Access != "offline" || rt.ParentID != "" || rt.DPoPJKT != "" || rt.Metadata != nil || rt.Device != nil || rt.LastExchangedAt != nil || rt.ID != "rt_1" || rt.FamilyID != "fam_1" || rt.ClientID != "web" || rt.UserID != "auth0|jane" || rt.SessionID != "ses_1" ||
 				!reflect.DeepEqual(rt.Scopes, []string{"openid", "offline_access", "read:items"}) || rt.Audience != "https://api.acme.test" ||
 				!rt.Rotating || rt.ExpiresAt.UnixMicro() != far || rt.IdleExpiresAt.UnixMicro() != far-2 ||
 				rt.RotatedAt == nil || rt.RotatedAt.UnixMicro() != later || rt.RevokedAt != nil || rt.Origin != "" || rt.OrganizationID != "" {

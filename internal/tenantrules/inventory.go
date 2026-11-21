@@ -92,6 +92,7 @@ const inventory = `{
       }
     },
     "default_token_quota": {
+      "description": "Fallback client-credentials quotas enforced by Plan 48 when a client or organization has no override.",
       "type": [
         "object",
         "null"
@@ -221,7 +222,9 @@ const inventory = `{
           "type": "boolean"
         },
         "revoke_refresh_token_grant": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, OAuth refresh token revocation also deletes the associated user grant."
         },
         "dashboard_log_streams_next": {
           "type": "boolean"
@@ -721,7 +724,7 @@ const inventory = `{
         "boolean",
         "null"
       ],
-      "default": false
+      "default": true
     },
     "skip_non_verifiable_callback_uri_confirmation_prompt": {
       "type": [

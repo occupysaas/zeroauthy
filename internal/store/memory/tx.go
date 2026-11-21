@@ -136,6 +136,11 @@ func (s *Store) snapshot() *state {
 		authCodes:              cloneMap(s.authCodes, cloneAuthCode),
 		pushedAuthRequests:     cloneMap(s.pushedAuthRequests, clonePushedAuthRequest),
 		deviceCodes:            cloneMap(s.deviceCodes, cloneDeviceCode),
+		refreshOrder:           maps.Clone(s.refreshOrder),
+		refreshFamilyAliases:   maps.Clone(s.refreshFamilyAliases),
+		refreshSequence:        s.refreshSequence,
+		dpopProofs:             s.dpopProofs.clone(),
+		quotaCounters:          maps.Clone(s.quotaCounters),
 		refreshTokens:          cloneMap(s.refreshTokens, cloneRefreshToken),
 		resetTickets:           cloneMap(s.resetTickets, cloneResetTicket),
 		verifyTickets:          cloneMap(s.verifyTickets, cloneVerifyTicket),
@@ -183,6 +188,9 @@ func (s *Store) restore(snap *state) {
 	s.userGrants = snap.userGrants
 	s.users, s.sessions, s.transactions = snap.users, snap.sessions, snap.transactions
 	s.authCodes, s.refreshTokens, s.resetTickets = snap.authCodes, snap.refreshTokens, snap.resetTickets
+	s.refreshOrder, s.refreshSequence = snap.refreshOrder, snap.refreshSequence
+	s.refreshFamilyAliases = snap.refreshFamilyAliases
+	s.dpopProofs, s.quotaCounters = snap.dpopProofs, snap.quotaCounters
 	s.pushedAuthRequests, s.deviceCodes = snap.pushedAuthRequests, snap.deviceCodes
 	s.verifyTickets = snap.verifyTickets
 	s.operators, s.passwordHistories = snap.operators, snap.passwordHistories

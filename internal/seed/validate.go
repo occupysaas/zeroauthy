@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/rbacrules"
 	"github.com/zeroauthy/zeroauthy/internal/rpid"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -65,6 +66,13 @@ func (f *File) validate() error {
 		if !tenant.ValidName(t.Name) {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: name must be a valid DNS label (lowercase a-z, 0-9, '-', at most 63 characters)", t.Name))
 		}
+		for _, org := range t.Organizations {
+			if org.TokenQuota != nil {
+				if _, err := quotarules.ParseTokenQuota(org.TokenQuota, "token_quota"); err != nil {
+					errs = append(errs, fmt.Errorf("seed: organization %q: %w", org.Name, err))
+				}
+			}
+		}
 		errs = append(errs, t.validate()...)
 		for host, rp := range t.DomainRPIDs {
 			if err := (rpid.Policy{}).Validate(context.Background(), "", host, rp); err != nil {
@@ -106,6 +114,11 @@ func (f *File) CheckManagementAPI(baseDomain string) error {
 		for _, rs := range t.ResourceServers {
 			if err := apirules.Reserved(rs.Identifier, id); err != nil {
 				errs = append(errs, fmt.Errorf("seed: tenant %q: resource server: %w", t.Name, err))
+			}
+		}
+		for _, c := range t.Clients {
+			if err := clientrules.CheckMRRTManagementAudience(c.RefreshToken.Policies, id); err != nil {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: client %q: %w", t.Name, c.ClientID, err))
 			}
 		}
 		for _, aud := range t.mgmtAudiences {
@@ -274,6 +287,13 @@ func (t *Tenant) validate() []error {
 		}
 		for _, err := range c.validateCredentials() {
 			fail("%v", err)
+		}
+		if c.TokenQuota != nil {
+			q, err := quotarules.ParseTokenQuota(c.TokenQuota, "token_quota")
+			if err != nil {
+				fail("client %q: %v", c.ClientID, err)
+			}
+			c.tokenQuota = q
 		}
 		spec := c.spec()
 		for _, err := range clientrules.Normalize(&spec, t.PushedAuthorizationRequestsSupported) {

@@ -139,6 +139,7 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		if err := orglogin.CheckMachineGrant(ctx, tx, tenantID, currentGrant, orgID); err != nil {
 			return err
 		}
+		c, rs = currentClient, currentAPI
 		// Winning scope/API revocations also cap the already executed Action.
 		currentAllowed := currentGrant.EffectiveScopes(currentAPI.Scopes)
 		scopes = slices.DeleteFunc(scopes, func(scope string) bool { return !slices.Contains(currentAllowed, scope) })
@@ -161,8 +162,12 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	jkt, proofErr := accessProof(ctx, c, rs)
+	if proofErr != nil {
+		return nil, proofErr
+	}
 	token, err := h.Minter.AccessToken(ctx, AccessTokenParams{
-		SigningAlg:    signingAlg,
+		SigningAlg: signingAlg, DPoPJKT: jkt,
 		SigningSecret: signingSecret,
 		TenantID:      tenantID,
 		Issuer:        res.Issuer(),
@@ -179,10 +184,16 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	if failure := h.finishClientCredentials(ctx, res, c, rs, grant.ID, orgID, scopes, jkt, lifetime); failure != nil {
+		return nil, failure
+	}
 	resp := &authapi.TokenResponse{
 		AccessToken: token,
 		TokenType:   "Bearer",
 		ExpiresIn:   int(lifetime / time.Second),
+	}
+	if jkt != "" {
+		resp.TokenType = "DPoP"
 	}
 	if len(scopes) > 0 {
 		s := strings.Join(scopes, " ")

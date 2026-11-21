@@ -3058,6 +3058,24 @@
       "origin": "public-catalog",
       "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
       "triggers": []
+    },
+    {
+      "type": "token_quota_consumption_warning",
+      "description": "A client-credentials quota reached a consumption warning threshold.",
+      "category": "system.notification",
+      "emitted": true,
+      "plan": 48,
+      "stats_kind": "",
+      "source": "https://auth0.com/docs/fine-grained-m2m-token-quotas",
+      "origin": "public-catalog",
+      "note": "Emitted once per subject, bucket, UTC window and threshold after successful quota commit.",
+      "triggers": [
+        {
+          "file": "internal/oauth/quota.go",
+          "function": "finishClientCredentials",
+          "when": "An accepted token crosses 60, 80 or 100 percent of a configured bucket."
+        }
+      ]
     }
   ],
   "fields": [

@@ -47,6 +47,7 @@ type pendingMFARequestKey struct{}
 type pendingMFARequest struct {
 	token   *store.MFAToken
 	request *mfaRequest
+	failure *Error
 }
 
 type mfaEnvelope struct {
@@ -247,6 +248,9 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 		}
 		pending = &pendingMFARequest{token: t, request: p}
 	}
+	if pending.failure != nil {
+		return nil, pending.failure
+	}
 	t, p := pending.token, pending.request
 	uid = t.UserID
 	if factor == "email" {
@@ -304,10 +308,16 @@ func (h *Handlers) mfaGrant(ctx context.Context, res tenant.Resolved, c *store.C
 		if current.Blocked || current.Version != p.UserVersion {
 			return errUserChanged
 		}
-		if _, err = tx.MFA().ConsumeMFAToken(ctx, t.TenantID, t.Hash, c.ClientID, h.now()); err != nil {
+		if err := checkProofMint(ctx, tx, t.TenantID); err != nil {
 			return err
 		}
-		return write(tx)
+		// Resolve the initial refresh binding before consuming the continuation.
+		// The factor, token, and credential writes share this transaction.
+		if err := write(tx); err != nil {
+			return err
+		}
+		_, err = tx.MFA().ConsumeMFAToken(ctx, t.TenantID, t.Hash, c.ClientID, h.now())
+		return err
 	})
 	var next string
 	switch factor {

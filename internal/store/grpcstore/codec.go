@@ -125,6 +125,10 @@ func errToPB(err error) *storev1.Error {
 		return nil
 	case errors.Is(err, store.ErrPhoneUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_PHONE_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrRefreshTokensIISupportLost):
+		return &storev1.Error{Kind: storev1.Error_KIND_REFRESH_TOKENS_II_SUPPORT_LOST}
+	case errors.Is(err, store.ErrRefreshTokensIIUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_REFRESH_TOKENS_II_UNAVAILABLE}
 	case errors.Is(err, store.ErrConnectionKeysUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_CONNECTION_KEYS_UNAVAILABLE}
 	case errors.Is(err, store.ErrClientCredentialsUnavailable):
@@ -177,6 +181,10 @@ func errFromPB(e *storev1.Error) error {
 	switch e.Kind {
 	case storev1.Error_KIND_PHONE_UNAVAILABLE:
 		return store.ErrPhoneUnavailable
+	case storev1.Error_KIND_REFRESH_TOKENS_II_SUPPORT_LOST:
+		return store.ErrRefreshTokensIISupportLost
+	case storev1.Error_KIND_REFRESH_TOKENS_II_UNAVAILABLE:
+		return store.ErrRefreshTokensIIUnavailable
 	case storev1.Error_KIND_CONNECTION_KEYS_UNAVAILABLE:
 		return store.ErrConnectionKeysUnavailable
 	case storev1.Error_KIND_CLIENT_CREDENTIALS_UNAVAILABLE:
@@ -227,8 +235,9 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		return nil, nil
 	}
 	pb := &storev1.Tenant{
-		CanonicalHost: t.CanonicalHost,
-		Id:            t.ID, Name: t.Name, FriendlyName: t.FriendlyName,
+		DefaultTokenQuota: defaultQuotaToPB(t.DefaultTokenQuota),
+		CanonicalHost:     t.CanonicalHost,
+		Id:                t.ID, Name: t.Name, FriendlyName: t.FriendlyName,
 		SupportEmail: t.SupportEmail, SupportUrl: t.SupportURL, PictureUrl: t.PictureURL,
 		ProtectionSettingsInitialized: t.ProtectionSettingsInitialized,
 		EphemeralSessionLifetime:      int64(t.EphemeralSessionLifetime), IdleEphemeralSessionLifetime: int64(t.IdleEphemeralSessionLifetime), SessionCookieMode: t.SessionCookieMode,
@@ -285,8 +294,9 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		return nil, err
 	}
 	t := &store.Tenant{
-		CanonicalHost: pb.CanonicalHost,
-		ID:            pb.Id, Name: pb.Name, FriendlyName: pb.FriendlyName,
+		DefaultTokenQuota: defaultQuotaFromPB(pb.DefaultTokenQuota),
+		CanonicalHost:     pb.CanonicalHost,
+		ID:                pb.Id, Name: pb.Name, FriendlyName: pb.FriendlyName,
 		SupportEmail: pb.SupportEmail, SupportURL: pb.SupportUrl, PictureURL: pb.PictureUrl,
 		ProtectionSettingsInitialized: pb.ProtectionSettingsInitialized,
 		EphemeralSessionLifetime:      int(pb.EphemeralSessionLifetime), IdleEphemeralSessionLifetime: int(pb.IdleEphemeralSessionLifetime), SessionCookieMode: pb.SessionCookieMode,
@@ -345,6 +355,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		return nil, nil
 	}
 	pb := &storev1.Client{
+		TokenQuota: quotaToPB(c.TokenQuota), RequireProofOfPossession: c.RequireProofOfPossession,
 		TenantId: c.TenantID, ClientId: c.ClientID, Name: c.Name, AppType: string(c.AppType),
 		TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
 		GrantTypes:              stringsToPB(c.GrantTypes), Callbacks: stringsToPB(c.Callbacks),
@@ -352,6 +363,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		AllowedOrigins:  stringsToPB(c.AllowedOrigins),
 		IdTokenLifetime: int64(c.IDTokenLifetime),
 		RefreshToken: &storev1.RefreshTokenPolicy{
+			Policies: policiesToPB(c.RefreshToken.Policies),
 			Rotating: c.RefreshToken.Rotating, Leeway: int64(c.RefreshToken.Leeway),
 			Expiring: c.RefreshToken.Expiring, TokenLifetime: int64(c.RefreshToken.TokenLifetime),
 			IdleTokenLifetime: int64(c.RefreshToken.IdleTokenLifetime),
@@ -396,6 +408,7 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 	}
 	rt := pb.GetRefreshToken()
 	c := &store.Client{
+		TokenQuota: quotaFromPB(pb.TokenQuota), RequireProofOfPossession: pb.RequireProofOfPossession,
 		TenantID: pb.TenantId, ClientID: pb.ClientId, Name: pb.Name, AppType: store.AppType(pb.AppType),
 		TokenEndpointAuthMethod: pb.TokenEndpointAuthMethod,
 		GrantTypes:              stringsFromPB(pb.GrantTypes), Callbacks: stringsFromPB(pb.Callbacks),
@@ -403,6 +416,7 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		AllowedOrigins:  stringsFromPB(pb.AllowedOrigins),
 		IDTokenLifetime: int(pb.IdTokenLifetime),
 		RefreshToken: store.RefreshTokenPolicy{
+			Policies: policiesFromPB(rt.GetPolicies()),
 			Rotating: rt.GetRotating(), Leeway: int(rt.GetLeeway()), Expiring: rt.GetExpiring(),
 			TokenLifetime: int(rt.GetTokenLifetime()), IdleTokenLifetime: int(rt.GetIdleTokenLifetime()),
 		},
@@ -452,6 +466,7 @@ func resourceServerToPB(r *store.ResourceServer) (*storev1.ResourceServer, error
 		return nil, nil
 	}
 	pb := &storev1.ResourceServer{
+		ProofOfPossession: popToPB(r.ProofOfPossession), AllowOnlineAccess: r.AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions: r.AllowOnlineAccessWithEphemeralSessions,
 		TenantId: r.TenantID, Id: r.ID, Identifier: r.Identifier, Name: r.Name, EnforcePolicies: r.EnforcePolicies, TokenDialect: r.TokenDialect,
 		SigningAlg: r.SigningAlg, TokenLifetime: int64(r.TokenLifetime),
 		AllowOfflineAccess: r.AllowOfflineAccess, CreatedAt: tsToPB(r.CreatedAt),
@@ -477,6 +492,7 @@ func resourceServerFromPB(pb *storev1.ResourceServer) (*store.ResourceServer, er
 		return nil, err
 	}
 	r := &store.ResourceServer{
+		ProofOfPossession: popFromPB(pb.ProofOfPossession), AllowOnlineAccess: pb.AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions: pb.AllowOnlineAccessWithEphemeralSessions,
 		TenantID: pb.TenantId, ID: pb.Id, Identifier: pb.Identifier, Name: pb.Name, EnforcePolicies: pb.EnforcePolicies, TokenDialect: pb.TokenDialect,
 		SigningAlg: pb.SigningAlg, TokenLifetime: int(pb.TokenLifetime),
 		AllowOfflineAccess: pb.AllowOfflineAccess, CreatedAt: tsFromPB(pb.CreatedAt),
@@ -915,6 +931,7 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 		return nil, err
 	}
 	return &storev1.LoginSession{
+		Metadata:    stringMapToPB(s.Metadata),
 		AuthMethods: methods,
 		MfaAt:       tsToPB(s.MFAAt),
 		Origin:      s.Origin,
@@ -940,6 +957,7 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 		return nil, err
 	}
 	return &store.LoginSession{
+		Metadata:    stringMapFromPB(pb.Metadata),
 		AuthMethods: methods,
 		MFAAt:       tsFromPB(pb.MfaAt),
 		Origin:      pb.Origin,
@@ -964,6 +982,7 @@ func authTransactionToPB(a *store.AuthTransaction) (*storev1.AuthTransaction, er
 		return nil, err
 	}
 	return &storev1.AuthTransaction{
+		DpopJkt:  a.DPoPJKT,
 		Origin:   a.Origin,
 		TenantId: a.TenantID, Id: a.ID, CookieHash: a.CookieHash, CsrfToken: a.CSRFToken,
 		ClientId: a.ClientID, Params: stringMapToPB(a.Params),
@@ -979,6 +998,7 @@ func authTransactionFromPB(pb *storev1.AuthTransaction) (*store.AuthTransaction,
 		return nil, err
 	}
 	a := &store.AuthTransaction{
+		DPoPJKT:  pb.DpopJkt,
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, CookieHash: pb.CookieHash, CSRFToken: pb.CsrfToken,
 		ClientID: pb.ClientId, Params: stringMapFromPB(pb.Params),
@@ -999,6 +1019,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		return nil, nil
 	}
 	return &storev1.AuthCode{
+		DpopJkt:  c.DPoPJKT,
 		Origin:   c.Origin,
 		TenantId: c.TenantID, CodeHash: c.CodeHash, ClientId: c.ClientID, RedirectUri: c.RedirectURI,
 		UserId: c.UserID, SessionId: c.SessionID, Scopes: stringsToPB(c.Scopes), Audience: c.Audience,
@@ -1017,6 +1038,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		return nil, err
 	}
 	return &store.AuthCode{
+		DPoPJKT:  pb.DpopJkt,
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, CodeHash: pb.CodeHash, ClientID: pb.ClientId, RedirectURI: pb.RedirectUri,
 		UserID: pb.UserId, SessionID: pb.SessionId, Scopes: stringsFromPB(pb.Scopes), Audience: pb.Audience,
@@ -1114,6 +1136,7 @@ func refreshTokenToPB(r *store.RefreshToken) (*storev1.RefreshToken, error) {
 		return nil, nil
 	}
 	return &storev1.RefreshToken{
+		DpopJkt: r.DPoPJKT, ParentId: r.ParentID, Access: r.Access, Device: deviceToPB(r.Device), Metadata: stringMapToPB(r.Metadata), LastExchangedAt: optTSToPB(r.LastExchangedAt),
 		Origin:   r.Origin,
 		TenantId: r.TenantID, Id: r.ID, TokenHash: r.TokenHash, FamilyId: r.FamilyID,
 		ClientId: r.ClientID, UserId: r.UserID, SessionId: r.SessionID, Scopes: stringsToPB(r.Scopes),
@@ -1128,10 +1151,11 @@ func refreshTokenFromPB(pb *storev1.RefreshToken) (*store.RefreshToken, error) {
 	if pb == nil {
 		return nil, nil
 	}
-	if err := checkTS(pb.AuthTime, pb.ExpiresAt, pb.IdleExpiresAt, pb.RotatedAt, pb.RevokedAt, pb.CreatedAt); err != nil {
+	if err := checkTS(pb.AuthTime, pb.ExpiresAt, pb.IdleExpiresAt, pb.RotatedAt, pb.RevokedAt, pb.CreatedAt, pb.LastExchangedAt); err != nil {
 		return nil, err
 	}
 	return &store.RefreshToken{
+		DPoPJKT: pb.DpopJkt, ParentID: pb.ParentId, Access: pb.Access, Device: deviceFromPB(pb.Device), Metadata: stringMapFromPB(pb.Metadata), LastExchangedAt: optTSFromPB(pb.LastExchangedAt),
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, FamilyID: pb.FamilyId,
 		ClientID: pb.ClientId, UserID: pb.UserId, SessionID: pb.SessionId, Scopes: stringsFromPB(pb.Scopes),

@@ -41,6 +41,7 @@ func cors(st store.Store) func(http.Handler) http.Handler {
 				return
 			}
 			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Expose-Headers", "DPoP-Nonce")
 			if r.Method == http.MethodOptions {
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 				if h := r.Header.Get("Access-Control-Request-Headers"); h != "" {

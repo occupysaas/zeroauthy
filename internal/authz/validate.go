@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/url"
 	"regexp"
@@ -134,6 +135,18 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		}
 	}
 
+	if slices.Contains(strings.Fields(req.Scope), "online_access") && slices.Contains(strings.Fields(req.Scope), "offline_access") {
+		return client, errInvalidRequest("online_access and offline_access cannot be combined"), true
+	}
+	if req.DPoPJKT != "" {
+		b, e := base64.RawURLEncoding.DecodeString(req.DPoPJKT)
+		if e != nil || len(b) != 32 || len(req.DPoPJKT) != 43 {
+			return client, errInvalidRequest("dpop_jkt is malformed"), true
+		}
+		if e := store.CheckRefreshTokensIISupport(ctx, st); e != nil {
+			return client, errServer(), true
+		}
+	}
 	if req.MaxAge != "" {
 		if n, err := strconv.Atoi(req.MaxAge); err != nil || n < 0 {
 			return client, errInvalidRequest("max_age must be a non-negative integer"), true

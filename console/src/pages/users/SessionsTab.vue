@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { SystemTenant, User, UserRefreshToken, UserSession } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import ConfirmDialog from '../../ui/ConfirmDialog.vue'
+import MetadataEditor from '../token-settings/MetadataEditor.vue'
 import { formatTime } from './policy'
 
 const { t, locale } = useI18n()
@@ -14,6 +15,8 @@ const { api } = useServices()
 
 const TAKE = 50
 const uid = () => props.user.user_id ?? ''
+let epoch = 0
+onBeforeUnmount(() => ++epoch)
 
 // One list with its own checkpoint cursor, loading and error.
 function pager<T>(fetch: (from?: string) => Promise<{ items: T[]; next?: string }>) {
@@ -22,22 +25,26 @@ function pager<T>(fetch: (from?: string) => Promise<{ items: T[]; next?: string 
   const error = ref('')
   const next = ref<string | undefined>()
   async function load(more = false) {
+    const mine = epoch
     loading.value = true
     error.value = ''
     try {
       const r = await fetch(more ? next.value : undefined)
+      if (mine !== epoch) return
       items.value = more ? [...items.value, ...r.items] : r.items
       // A short page is the last; next is present on every non-empty page.
       next.value = r.items.length >= TAKE ? r.next : undefined
     } catch (e) {
-      error.value = errorMessage(e)
+      if (mine === epoch) error.value = errorMessage(e)
     } finally {
-      loading.value = false
+      if (mine === epoch) loading.value = false
     }
   }
   return { items, loading, error, next, load }
 }
 
+const all = ref<'sessions' | 'tokens' | null>(null), open = ref(false), busy = ref(false), allError = ref(''), actionError = ref('')
+const selectedSession = ref<UserSession | null>(null), sessionOpen = ref(false), sessionBusy = ref(false), sessionError = ref('')
 const sessions = pager<UserSession>(async (from) => {
   const r = await api.listUserSessions(props.tenant, uid(), { take: TAKE, from })
   return { items: r.sessions, next: r.next }
@@ -46,58 +53,82 @@ const tokens = pager<UserRefreshToken>(async (from) => {
   const r = await api.listUserRefreshTokens(props.tenant, uid(), { take: TAKE, from })
   return { items: r.tokens, next: r.next }
 })
-onMounted(() => {
-  void sessions.load()
-  void tokens.load()
-})
+watch(() => [props.tenant.host, uid()], () => { ++epoch; selectedSession.value = null; sessionOpen.value = false; sessionBusy.value = false; sessionError.value = ''; actionError.value = ''; all.value = null; open.value = false; busy.value = false; allError.value = ''; sessions.next.value = undefined; tokens.next.value = undefined; sessions.items.value = []; tokens.items.value = []; void sessions.load(); void tokens.load() }, { immediate: true, flush: 'sync' })
 
-const actionError = ref('')
+async function saveSessionMetadata(s: UserSession, value: Record<string, string>) {
+  const mine = epoch, tenant = props.tenant
+  const result = await api.updateSessionMetadata(tenant, s.id, value)
+  if (mine === epoch) sessions.items.value = sessions.items.value.map(x => x.id === s.id ? result : x)
+}
+async function saveTokenMetadata(k: UserRefreshToken, value: Record<string, string>) {
+  const mine = epoch, tenant = props.tenant
+  const result = await api.updateRefreshTokenMetadata(tenant, k.id, value)
+  if (mine === epoch) tokens.items.value = tokens.items.value.map(x => x.id === k.id ? result : x)
+}
+function askSession(s: UserSession) { selectedSession.value = s; sessionError.value = ''; sessionOpen.value = true }
+async function revokeSessionAndTokens() {
+  if (!selectedSession.value || sessionBusy.value) return
+  const mine = epoch, tenant = props.tenant, id = selectedSession.value.id
+  sessionBusy.value = true; sessionError.value = ''
+  try {
+    await api.revokeSession(tenant, id)
+    if (mine !== epoch) return
+    sessions.items.value = sessions.items.value.filter(x => x.id !== id)
+    tokens.items.value = tokens.items.value.filter(x => x.session_id !== id)
+    sessionOpen.value = false
+  } catch (e) { if (mine === epoch) sessionError.value = errorMessage(e) }
+  finally { if (mine === epoch) sessionBusy.value = false }
+}
 async function revokeSession(s: UserSession) {
+  const mine = epoch, tenant = props.tenant
   actionError.value = ''
   try {
-    await api.deleteSession(props.tenant, s.id)
+    await api.deleteSession(tenant, s.id)
+    if (mine !== epoch) return
     sessions.items.value = sessions.items.value.filter((x) => x.id !== s.id)
   } catch (e) {
-    actionError.value = errorMessage(e)
+    if (mine === epoch) actionError.value = errorMessage(e)
   }
 }
 async function revokeToken(k: UserRefreshToken) {
+  const mine = epoch, tenant = props.tenant
   actionError.value = ''
   try {
-    await api.deleteRefreshToken(props.tenant, k.id)
+    await api.deleteRefreshToken(tenant, k.id)
+    if (mine !== epoch) return
     tokens.items.value = tokens.items.value.filter((x) => x.id !== k.id)
   } catch (e) {
-    actionError.value = errorMessage(e)
+    if (mine === epoch) actionError.value = errorMessage(e)
   }
 }
 
-const all = ref<'sessions' | 'tokens' | null>(null)
-const open = ref(false)
-const busy = ref(false)
-const allError = ref('')
 function askAll(w: 'sessions' | 'tokens') {
   all.value = w
   allError.value = ''
   open.value = true
 }
 async function revokeAll() {
+  if (busy.value) return
+  const mine = epoch, tenant = props.tenant, id = uid(), kind = all.value
   busy.value = true
   allError.value = ''
   try {
-    if (all.value === 'sessions') {
-      await api.deleteUserSessions(props.tenant, uid())
+    if (kind === 'sessions') {
+      await api.deleteUserSessions(tenant, id)
+      if (mine !== epoch) return
       sessions.items.value = []
       sessions.next.value = undefined
     } else {
-      await api.deleteUserRefreshTokens(props.tenant, uid())
+      await api.deleteUserRefreshTokens(tenant, id)
+      if (mine !== epoch) return
       tokens.items.value = []
       tokens.next.value = undefined
     }
     open.value = false
   } catch (e) {
-    allError.value = errorMessage(e)
+    if (mine === epoch) allError.value = errorMessage(e)
   } finally {
-    busy.value = false
+    if (mine === epoch) busy.value = false
   }
 }
 
@@ -136,7 +167,10 @@ const when = (iso: string | null) => (iso ? formatTime(iso, locale.value) : t('u
             <td>{{ s.device.last_ip || s.device.initial_ip }}</td>
             <td>{{ s.clients.map((c) => c.client_id).join(', ') }}</td>
             <td>{{ when(s.last_interacted_at) }}</td>
-            <td><Button variant="danger" :aria-label="t('userd.revokeSession', { id: s.id })" @click="revokeSession(s)">{{ t('userd.revoke') }}</Button></td>
+            <td class="stack"><MetadataEditor :id="s.id" :metadata="s.session_metadata" :save="value => saveSessionMetadata(s, value)" />
+              <Button variant="danger" :data-testid="'revoke-session-' + s.id" @click="askSession(s)">{{ t('rt48.sessionRevoke') }}</Button>
+              <Button :aria-label="t('userd.revokeSession', { id: s.id })" @click="revokeSession(s)">{{ t('rt48.sessionDelete') }}</Button><p class="muted m-0">{{ t('rt48.sessionDeleteHint') }}</p>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -172,7 +206,13 @@ const when = (iso: string | null) => (iso ? formatTime(iso, locale.value) : t('u
             <td><code>{{ k.client_id }}</code></td>
             <td>{{ k.resource_servers.map((r) => r.audience).join(', ') }}</td>
             <td>{{ when(k.created_at) }}</td>
-            <td>{{ when(k.last_exchanged_at) }}</td>
+            <td>{{ when(k.last_exchanged_at) }}
+              <details><summary>{{ t('rt48.tokenDevices') }}</summary><dl>
+                <dt>{{ t('rt48.initialIP') }}</dt><dd>{{ k.device?.initial_ip || '—' }}</dd><dt>{{ t('rt48.lastIP') }}</dt><dd>{{ k.device?.last_ip || '—' }}</dd>
+                <dt>{{ t('rt48.initialAgent') }}</dt><dd>{{ k.device?.initial_user_agent || '—' }}</dd><dt>{{ t('rt48.lastAgent') }}</dt><dd>{{ k.device?.last_user_agent || '—' }}</dd>
+              </dl></details>
+              <MetadataEditor :id="k.id" :metadata="k.refresh_token_metadata" :save="value => saveTokenMetadata(k, value)" />
+            </td>
             <td><Button variant="danger" :aria-label="t('userd.revokeToken', { id: k.id })" @click="revokeToken(k)">{{ t('userd.revoke') }}</Button></td>
           </tr>
         </tbody>
@@ -182,6 +222,7 @@ const when = (iso: string | null) => (iso ? formatTime(iso, locale.value) : t('u
       </div>
     </section>
 
+    <ConfirmDialog v-model:open="sessionOpen" :title="t('rt48.sessionRevoke')" :description="t('rt48.sessionRevokeBody')" :confirm-label="t('rt48.sessionRevoke')" :busy="sessionBusy" :error="sessionError" @confirm="revokeSessionAndTokens" />
     <ConfirmDialog
       v-model:open="open"
       :title="all === 'sessions' ? t('userd.revokeAllSessions') : t('userd.revokeAllTokens')"

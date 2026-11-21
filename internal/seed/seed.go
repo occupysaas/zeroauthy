@@ -139,18 +139,21 @@ type RolePermission struct {
 }
 
 type ResourceServer struct {
-	EnforcePolicies bool    `yaml:"enforce_policies"`
-	TokenDialect    string  `yaml:"token_dialect"`
-	Identifier      string  `yaml:"identifier"`
-	Name            string  `yaml:"name"`
-	Scopes          []Scope `yaml:"scopes"`
+	ProofOfPossession *store.ProofOfPossession `yaml:"proof_of_possession"`
+	EnforcePolicies   bool                     `yaml:"enforce_policies"`
+	TokenDialect      string                   `yaml:"token_dialect"`
+	Identifier        string                   `yaml:"identifier"`
+	Name              string                   `yaml:"name"`
+	Scopes            []Scope                  `yaml:"scopes"`
 	// SigningAlg is RS256 (the default), HS256 or PS256. HS256 signs with
 	// SigningSecret, plaintext in the seed and sealed when applied; an HS256
 	// API without one keeps its stored secret, or gets a generated one.
-	SigningAlg         string `yaml:"signing_alg"`
-	SigningSecret      string `yaml:"signing_secret"`
-	TokenLifetime      int    `yaml:"token_lifetime"`
-	AllowOfflineAccess bool   `yaml:"allow_offline_access"`
+	SigningAlg                             string `yaml:"signing_alg"`
+	SigningSecret                          string `yaml:"signing_secret"`
+	TokenLifetime                          int    `yaml:"token_lifetime"`
+	AllowOfflineAccess                     bool   `yaml:"allow_offline_access"`
+	AllowOnlineAccess                      bool   `yaml:"allow_online_access"`
+	AllowOnlineAccessWithEphemeralSessions bool   `yaml:"allow_online_access_with_ephemeral_sessions"`
 
 	SkipConsentForVerifiableFirstPartyClients *bool                    `yaml:"skip_consent_for_verifiable_first_party_clients"`
 	SubjectTypeAuthorization                  SubjectTypeAuthorization `yaml:"subject_type_authorization"`
@@ -166,8 +169,9 @@ func (rs *ResourceServer) spec() apirules.Spec {
 		scopes[i] = store.Scope{Value: s.Value, Description: s.Description}
 	}
 	return apirules.Spec{
-		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes, SigningAlg: rs.SigningAlg,
+		ProofOfPossession: rs.ProofOfPossession, Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes, SigningAlg: rs.SigningAlg,
 		TokenLifetime: rs.TokenLifetime, AllowOfflineAccess: rs.AllowOfflineAccess,
+		AllowOnlineAccess: rs.AllowOnlineAccess, AllowOnlineAccessWithEphemeralSessions: rs.AllowOnlineAccessWithEphemeralSessions,
 		EnforcePolicies: rs.EnforcePolicies, TokenDialect: rs.TokenDialect,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
 		SubjectTypeAuthorization: store.SubjectTypeAuthorization{
@@ -192,9 +196,11 @@ type Scope struct {
 }
 
 type Client struct {
-	ClientID string `yaml:"client_id"`
-	Name     string `yaml:"name"`
-	AppType  string `yaml:"app_type"`
+	TokenQuota               map[string]any `yaml:"token_quota"`
+	RequireProofOfPossession bool           `yaml:"require_proof_of_possession"`
+	ClientID                 string         `yaml:"client_id"`
+	Name                     string         `yaml:"name"`
+	AppType                  string         `yaml:"app_type"`
 	// ClientSecret is plaintext in the seed file and sealed under the master
 	// key when applied (D-0038). Protect seed files like any other credential
 	// store. A confidential client may omit it once it exists: its stored
@@ -242,6 +248,7 @@ type Client struct {
 	parsedCredentials           []parsedCredential
 
 	// normalized is the client after clientrules.Normalize, set by validate.
+	tokenQuota *store.TokenQuota
 	normalized *clientrules.Spec
 }
 
@@ -253,11 +260,13 @@ func (c *Client) spec() clientrules.Spec {
 		method = store.AuthMethodClientSecretPost
 	}
 	return clientrules.Spec{
-		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
+		TokenQuota: c.tokenQuota,
+		Name:       c.Name, AppType: c.AppType, TokenEndpointAuthMethod: method,
 		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
 		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,
 		RefreshToken: clientrules.RefreshToken{
+			Policies:     c.RefreshToken.Policies,
 			RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType,
 			Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime,
 			IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime,
@@ -265,20 +274,21 @@ func (c *Client) spec() clientrules.Spec {
 		IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
 		RedirectionPolicy: c.RedirectionPolicy,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipNonVerifiableCallbackURIConfirmationPrompt,
-		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
-		Mobile:                                         c.mobile.Clone(),
-		NativeSocialLogin:                              maps.Clone(c.nativeSocialLogin),
+		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests, RequireProofOfPossession: c.RequireProofOfPossession,
+		Mobile:            c.mobile.Clone(),
+		NativeSocialLogin: maps.Clone(c.nativeSocialLogin),
 	}
 }
 
 // RefreshToken is a client's refresh-token policy. Values follow Auth0's
 // public application settings; empty types take defaults in validate.
 type RefreshToken struct {
-	RotationType      string `yaml:"rotation_type"`   // rotating | non-rotating
-	ExpirationType    string `yaml:"expiration_type"` // expiring | non-expiring
-	Leeway            int    `yaml:"leeway"`
-	TokenLifetime     int    `yaml:"token_lifetime"`
-	IdleTokenLifetime int    `yaml:"idle_token_lifetime"`
+	Policies          []store.MRRTPolicy `yaml:"policies"`
+	RotationType      string             `yaml:"rotation_type"`   // rotating | non-rotating
+	ExpirationType    string             `yaml:"expiration_type"` // expiring | non-expiring
+	Leeway            int                `yaml:"leeway"`
+	TokenLifetime     int                `yaml:"token_lifetime"`
+	IdleTokenLifetime int                `yaml:"idle_token_lifetime"`
 }
 
 type ClientGrant struct {

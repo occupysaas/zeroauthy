@@ -506,6 +506,10 @@ The maintainer's hosting offer: tenant sign-up, subdomain and droplet provisioni
 
 ### Plan 48 — Refresh tokens II
 
+Implementation, local checks and whole-branch review are complete on
+`plan-48-refresh-tokens-ii`, including the authorized DPoP extension.
+Full plan-branch CI remains pending. [Verification record](../2026-11-16-plan-48-implementation-record.md).
+
 Proposed by the pre-1.0 review. Turning on rotation converts existing non-rotating tokens on their next exchange and deletes the client's other non-rotating tokens (Auth0's documented behaviour); the rotation `leeway` accepts only the immediately previous token; deleting a user grant revokes the refresh tokens issued under it; the refresh grant re-checks the API's `allow_offline_access`; multi-resource and session-bound refresh tokens. **Short.**
 
 **Designed 2026-11-16 (paths item P2):** [spec](2026-11-16-zeroauthy-refresh-tokens-ii-design.md), [plan](../plans/2026-11-16-zeroauthy-plan-48-refresh-tokens-ii.md) (12 tasks, D-0070, one migration numbered at merge, store capability `refresh_tokens_ii.v1`). "Session-bound" is Auth0's Online Refresh Tokens (`allow_online_access`, `online_access`). Also carries `token_quota` (from Plan 35), the `/refresh-tokens` list/bulk-revoke/metadata routes, session metadata and `POST /sessions/{id}/revoke` (moved from Plan 38's OAS gap list); `/users/{id}/revoke-access` and `/device-credentials` stay with Plan 38d (M1).

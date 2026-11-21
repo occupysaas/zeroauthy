@@ -20,6 +20,7 @@ import (
 // Request holds the /authorize parameters zeroauthy uses. Unknown
 // parameters (such as SDK telemetry) are ignored.
 type Request struct {
+	DPoPJKT             string
 	ClientID            string
 	RedirectURI         string
 	ResponseType        string
@@ -72,7 +73,7 @@ var strictUnsupported = []string{"claims", "id_token_hint", "login_ticket", "req
 // parsing and the transaction round trip.
 var paramNames = []string{
 	"client_id", "redirect_uri", "response_type", "response_mode", "scope", "state", "nonce",
-	"audience", "prompt", "max_age", "code_challenge", "code_challenge_method",
+	"dpop_jkt", "audience", "prompt", "max_age", "code_challenge", "code_challenge_method",
 	"connection", "login_hint", "screen_hint", "organization", "invitation", "ui_locales",
 }
 
@@ -90,6 +91,8 @@ func (r *Request) field(name string) *string {
 		return &r.Scope
 	case "state":
 		return &r.State
+	case "dpop_jkt":
+		return &r.DPoPJKT
 	case "nonce":
 		return &r.Nonce
 	case "audience":

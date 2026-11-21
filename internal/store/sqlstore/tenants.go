@@ -20,7 +20,7 @@ func (s *Store) Tenants() store.Tenants { return tenants{s} }
 const tenantCols = `id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text,
  session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at,
  skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent, pushed_authorization_requests_supported,
- device_flow_charset, device_flow_mask, reserved, seeded, origin, support_email, support_url, picture_url, ephemeral_session_lifetime, idle_ephemeral_session_lifetime, session_cookie_mode, protection_initialized, settings_extra, settings_presence, protection_settings, canonical_host, domain_rp_ids`
+ device_flow_charset, device_flow_mask, reserved, seeded, origin, support_email, support_url, picture_url, ephemeral_session_lifetime, idle_ephemeral_session_lifetime, session_cookie_mode, protection_initialized, settings_extra, settings_presence, protection_settings, canonical_host, domain_rp_ids, default_token_quota`
 
 // tenantReadCols adds the columns Tenants never writes: identity_epoch is
 // maintained only through Federation.
@@ -44,7 +44,7 @@ func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		next, err := (tenants{tx}).reconcileHosts(ctx, t, nil)
@@ -151,7 +151,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
  enabled_locales=?, custom_text=?, session_lifetime=?, idle_session_lifetime=?, logo_url=?, primary_color=?,
  default_directory=?, created_at=?, skip_non_verifiable_callback_uri_confirmation_prompt=?,
  use_scope_descriptions_for_consent=?, pushed_authorization_requests_supported=?,
- device_flow_charset=?, device_flow_mask=?, reserved=?, seeded=?, origin=?, support_email=?, support_url=?, picture_url=?, ephemeral_session_lifetime=?, idle_ephemeral_session_lifetime=?, session_cookie_mode=?, protection_initialized=?, settings_extra=?, settings_presence=?, protection_settings=?, canonical_host=?, domain_rp_ids=? WHERE id=?`, append(args[1:], t.ID)...)
+ device_flow_charset=?, device_flow_mask=?, reserved=?, seeded=?, origin=?, support_email=?, support_url=?, picture_url=?, ephemeral_session_lifetime=?, idle_ephemeral_session_lifetime=?, session_cookie_mode=?, protection_initialized=?, settings_extra=?, settings_presence=?, protection_settings=?, canonical_host=?, domain_rp_ids=?, default_token_quota=? WHERE id=?`, append(args[1:], t.ID)...)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -164,7 +164,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 
 // tenantTables are the tables whose rows belong to one tenant, by
 // tenant_id. Delete empties them before it deletes the tenant row.
-var tenantTables = []string{"client_assertion_jtis", "client_credentials", "token_exchange_profiles", "webauthn_snoozes", "mfa_guardian", "mfa_authenticators", "mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers", "passwordless_codes", "phone_templates", "phone_providers", "event_cursor_watermarks", "event_deliveries", "event_streams", "tenant_events", "tenant_logs", "log_streams", "log_stats_daily", "organization_member_roles", "organization_members", "organization_connections", "organizations", "action_jobs", "action_module_versions", "action_modules", "action_continues", "action_executions", "action_bindings", "action_versions", "action_artifacts", "action_builds", "actions", "rbac_user_roles", "rbac_user_permissions", "rbac_role_permissions", "rbac_roles",
+var tenantTables = []string{"refresh_family_aliases", "refresh_token_sequences", "dpop_proofs", "token_quota_counters", "client_assertion_jtis", "client_credentials", "token_exchange_profiles", "webauthn_snoozes", "mfa_guardian", "mfa_authenticators", "mfa_tokens", "mfa_challenges", "mfa_tickets", "mfa_browsers", "passwordless_codes", "phone_templates", "phone_providers", "event_cursor_watermarks", "event_deliveries", "event_streams", "tenant_events", "tenant_logs", "log_streams", "log_stats_daily", "organization_member_roles", "organization_members", "organization_connections", "organizations", "action_jobs", "action_module_versions", "action_modules", "action_continues", "action_executions", "action_bindings", "action_versions", "action_artifacts", "action_builds", "actions", "rbac_user_roles", "rbac_user_permissions", "rbac_role_permissions", "rbac_roles",
 	"federation_attempts", "federated_tokens", "federated_identities",
 	"protection_reservations", "protection_receipts", "protection_buckets", "protection_risk_events", "job_files", "job_errors", "jobs", "operators", "email_notifications", "email_templates", "email_providers", "email_provider_revisions", "password_reset_tickets", "email_verification_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
 	"auth_codes", "auth_transactions", "sessions", "user_grants", "user_logins", "password_history", "users",
@@ -292,7 +292,7 @@ func scanTenant(row scanner) (*store.Tenant, error) {
 		&t.SessionLifetime, &t.IdleSessionLifetime, &t.Branding.LogoURL, &t.Branding.PrimaryColor,
 		&t.DefaultDirectory, &created, &t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		&t.UseScopeDescriptionsForConsent, &t.PushedAuthorizationRequestsSupported,
-		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin, &t.SupportEmail, &t.SupportURL, &t.PictureURL, &t.EphemeralSessionLifetime, &t.IdleEphemeralSessionLifetime, &t.SessionCookieMode, &t.ProtectionSettingsInitialized, &extra, &presence, &policy, &t.CanonicalHost, &rpIDs, &t.IdentityEpoch); err != nil {
+		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin, &t.SupportEmail, &t.SupportURL, &t.PictureURL, &t.EphemeralSessionLifetime, &t.IdleEphemeralSessionLifetime, &t.SessionCookieMode, &t.ProtectionSettingsInitialized, &extra, &presence, &policy, &t.CanonicalHost, &rpIDs, jsonColumn{&t.DefaultTokenQuota}, &t.IdentityEpoch); err != nil {
 		return nil, err
 	}
 	for _, j := range []struct {
@@ -355,5 +355,5 @@ func tenantArgs(t *store.Tenant) ([]any, error) {
 		t.SessionLifetime, t.IdleSessionLifetime, t.Branding.LogoURL, t.Branding.PrimaryColor,
 		t.DefaultDirectory, micros(t.CreatedAt), t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		t.UseScopeDescriptionsForConsent, t.PushedAuthorizationRequestsSupported,
-		t.DeviceFlowCharset, t.DeviceFlowMask, t.Reserved, t.Seeded, t.Origin, t.SupportEmail, t.SupportURL, t.PictureURL, t.EphemeralSessionLifetime, t.IdleEphemeralSessionLifetime, t.SessionCookieMode, t.ProtectionSettingsInitialized, extra, presence, policy, t.CanonicalHost, rpIDs}, nil
+		t.DeviceFlowCharset, t.DeviceFlowMask, t.Reserved, t.Seeded, t.Origin, t.SupportEmail, t.SupportURL, t.PictureURL, t.EphemeralSessionLifetime, t.IdleEphemeralSessionLifetime, t.SessionCookieMode, t.ProtectionSettingsInitialized, extra, presence, policy, t.CanonicalHost, rpIDs, jsonColumn{&t.DefaultTokenQuota}}, nil
 }

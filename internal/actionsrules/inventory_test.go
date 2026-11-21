@@ -146,6 +146,7 @@ func TestActionsInventory(t *testing.T) {
 		"custom-token-exchange":         {"onExecuteCustomTokenExchange", "", true},
 	}
 	events := map[string][]string{
+		"post-login":                    {"refresh_token.access", "refresh_token.metadata", "session.metadata", "client.refresh_token.policies"},
 		"event-stream":                  {"message", "secrets"},
 		"pre-user-registration":         {"user", "connection", "client", "request", "request.body", "tenant", "transaction", "secrets", "custom_domain.domain"},
 		"post-user-registration":        {"user", "user.user_id", "user.created_at", "connection", "request", "tenant", "transaction", "secrets"},
@@ -281,7 +282,7 @@ func wantSupport(trigger, name string) string {
 		return "supported"
 	}
 	switch name {
-	case "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny", "multifactor.enable":
+	case "refreshToken.revoke", "authentication.challengeWith", "authentication.challengeWithAny", "authentication.enrollWith", "authentication.enrollWithAny", "multifactor.enable":
 		return "supported"
 	}
 	switch name {

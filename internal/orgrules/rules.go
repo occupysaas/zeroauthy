@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
+	"github.com/zeroauthy/zeroauthy/internal/quotarules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -96,7 +97,14 @@ func ValidID(id string) bool {
 // applied: an empty DisplayName becomes Name and an empty
 // ThirdPartyClientAccess becomes "block". The copy shares nothing with in.
 func NormalizeOrganization(in store.Organization) (store.Organization, error) {
+	if err := quotarules.ValidateTokenQuota(in.TokenQuota); err != nil {
+		return store.Organization{}, err
+	}
 	out := in
+	if in.TokenQuota != nil {
+		quota := *in.TokenQuota
+		out.TokenQuota = &quota
+	}
 	out.ClientAssociation = nil
 	out.ClientAssociationLoaded = false
 	if out.DisplayName == "" {

@@ -520,6 +520,7 @@
       "event": [
         "authorization.roles",
         "client",
+        "client.refresh_token.policies",
         "connection",
         "request",
         "resource_server",
@@ -529,7 +530,10 @@
         "transaction",
         "user",
         "session",
+        "session.metadata",
         "refresh_token",
+        "refresh_token.access",
+        "refresh_token.metadata",
         "user.enrolledFactors",
         "authentication.methods"
       ],
@@ -712,9 +716,9 @@
         },
         {
           "name": "refreshToken.revoke",
-          "support": "unsupported",
-          "evidence": "local",
-          "note": "throws not supported by zeroauthy; fails closed"
+          "support": "supported",
+          "evidence": "documented",
+          "note": "On refresh exchanges, revokes the token family and refuses the exchange. For online refresh tokens, ends the whole login session. Outside refresh exchanges it has no token to revoke."
         },
         {
           "name": "refreshToken.setExpiresAt",

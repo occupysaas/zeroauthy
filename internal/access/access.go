@@ -167,6 +167,10 @@ func issuedScopes(in Input) []string {
 				continue
 			}
 		case s == "offline_access":
+		case s == "online_access":
+			if in.API == nil || !in.API.AllowOnlineAccess {
+				continue
+			}
 		default:
 			if in.API == nil || !slices.ContainsFunc(in.API.Scopes, func(d store.Scope) bool { return d.Value == s }) {
 				continue

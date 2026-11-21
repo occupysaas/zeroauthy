@@ -8,6 +8,12 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- Refresh Tokens II: strict rotation overlap and conversion, multi-resource
+  and session-bound online tokens, downstream DPoP, grant/session revocation,
+  token/session metadata and device history, and client-credentials quotas.
+  Console, seed and Deploy CLI support accompany the new Management routes.
+  See [refresh tokens](docs/refresh-tokens.md) and [upgrade notes](docs/upgrading.md).
+
 - Enterprise OIDC and Okta login: front-channel form post, explicit endpoints,
   PKCE modes, claim mapping and userinfo, signed client assertions, encrypted
   ID tokens, upstream PAR, public connection keys and home realm discovery.

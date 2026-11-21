@@ -616,7 +616,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	for _, c := range resp.Commands {
 		// Scrub display-only messages before validation truncates them. Do not
 		// mutate business commands (claims, metadata, cache or redirect URLs).
-		if c.Op == "access.deny" || c.Op == "validation.error" || strings.HasPrefix(c.Op, "notification.") {
+		if c.Op == "access.deny" || c.Op == "validation.error" || c.Op == "refreshToken.revoke" || strings.HasPrefix(c.Op, "notification.") {
 			start := 0
 			// A deny code reaches the OAuth error and the logs unmasked, so a
 			// code holding a secret value is refused, never rewritten.

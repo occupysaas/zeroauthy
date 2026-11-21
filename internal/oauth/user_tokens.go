@@ -25,7 +25,7 @@ var oidcScopes = []string{"openid", "profile", "email"}
 func userScopes(requested []string, rs *store.ResourceServer, offline bool) []string {
 	var out []string
 	for _, s := range requested {
-		ok := slices.Contains(oidcScopes, s) || (offline && s == "offline_access")
+		ok := slices.Contains(oidcScopes, s) || (offline && s == "offline_access") || (s == "online_access" && rs != nil && rs.AllowOnlineAccess)
 		if !ok && rs != nil {
 			ok = slices.ContainsFunc(rs.Scopes, func(d store.Scope) bool { return d.Value == s })
 		}
@@ -89,6 +89,9 @@ func (h *Handlers) mintCheckedTx(ctx context.Context, tenantID, userID string, v
 				return err
 			}
 		}
+		if e := checkProofMint(ctx, tx, tenantID); e != nil {
+			return e
+		}
 		u, err := tx.Users().GetForUpdate(ctx, tenantID, userID)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserChanged
@@ -135,6 +138,9 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
+	online bool
+	// mrrt records the policy and scopes used to sign a multi-resource exchange.
+	mrrt              *mrrtExchange
 	organization      *store.Organization
 	user              *store.User
 	rs                *store.ResourceServer // nil: the token is for /userinfo only
@@ -176,7 +182,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	if ut.organization != nil {
 		orgID = ut.organization.ID
 	}
-	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, orgID, ut.rs, ut.scopes, frozen)
+	auth, authErr := h.authorizeUserToken(ctx, tenantID, orgID, ut, frozen)
 	if authErr != nil {
 		return nil, false, authErr
 	}
@@ -212,6 +218,16 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, false, oerr
 	}
 	final := ut.effects.ApplyScopes(nil, ut.scopes)
+	if !ut.online {
+		final = slices.DeleteFunc(final, func(s string) bool { return s == "online_access" })
+	}
+	if ut.mrrt != nil {
+		final = actions.CeilingOf(final, ut.scopes)
+		ut.mrrt.signedAPI, ut.mrrt.issued, ut.mrrt.frozenRBAC = ut.rs, final, frozen != nil
+		if auth.IncludePermissions {
+			ut.mrrt.permissions = auth.Permissions
+		}
+	}
 	var accessClaims, idClaims map[string]any
 	if ut.effects != nil {
 		// Non-namespaced claims never reach the Management API.
@@ -238,13 +254,21 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			idClaims[k] = v
 		}
 	}
+	jkt, proofErr := accessProof(ctx, c, ut.rs)
+	if proofErr != nil {
+		return nil, false, proofErr
+	}
+	if len(operator) > 0 && jkt != "" {
+		return nil, false, invalidRequest("sender constraints are unavailable for operator tokens")
+	}
+	recordProofMint(ctx, c, ut.rs, jkt)
 	signingAlg, signingSecret, err := h.apiSigning(ut.rs)
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, false, serverError()
 	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
-		SigningAlg: signingAlg, SigningSecret: signingSecret,
+		SigningAlg: signingAlg, SigningSecret: signingSecret, DPoPJKT: jkt,
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
 		ClientID: c.ClientID, Scopes: final, Lifetime: ut.lifetime, GrantType: ut.grantType,
 		Operator: operator, TokenDialect: dialect, Permissions: auth.Permissions, IncludePermissions: auth.IncludePermissions,
@@ -255,12 +279,25 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, false, serverError()
 	}
 	resp = &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(ut.lifetime / time.Second)}
-	if len(final) > 0 || requestedScopes {
+	if jkt != "" {
+		resp.TokenType = "DPoP"
+	}
+	if len(final) > 0 || requestedScopes || ut.mrrt != nil {
 		s := strings.Join(final, " ")
 		resp.Scope = &s
 	}
 	offline = slices.Contains(ut.scopes, "offline_access") && slices.Contains(final, "offline_access")
-	if openid {
+	idScopes := ut.scopes
+	issueID := openid
+	if ut.mrrt != nil {
+		issueID = slices.Contains(ut.mrrt.family.Scopes, "openid")
+		if ut.mrrt.audience != ut.mrrt.family.Audience {
+			// The second API's permission names do not describe the user's
+			// original identity grant.
+			idScopes = ut.mrrt.family.Scopes
+		}
+	}
+	if issueID {
 		atHashSource := accessToken
 		if ut.omitAtHash {
 			atHashSource = ""
@@ -276,7 +313,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			}
 		}
 		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
-			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: ut.scopes,
+			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: idScopes,
 			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, MFAAt: mfaAt, AccessToken: atHashSource,
 			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second, CustomClaims: idClaims,
 		})

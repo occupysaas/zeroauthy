@@ -2,12 +2,16 @@ package oauth
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/testutil/contract"
 )
@@ -46,12 +50,26 @@ func TestRevokeRevokesFamily(t *testing.T) {
 
 func TestRevokeVariants(t *testing.T) {
 	f := newFixture(t)
-	raw, _ := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, "")
+	raw, rt := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, "")
+	f.revokeGrantFlag(t, rt.TenantID, true)
+	sibling, _ := f.issueRefresh(t, rt.ClientID, rt.Scopes, rt.Audience)
+	grantAudience := "https://acme.example.test/userinfo"
+	_, err := f.st.UserGrants().Upsert(t.Context(), &store.UserGrant{TenantID: rt.TenantID, ID: "g", ClientID: rt.ClientID, UserID: rt.UserID, Audience: grantAudience})
+	if err != nil {
+		t.Fatal(err)
+	}
+	aliasRaw := secrets.RandomString(48)
+	alias := *rt
+	alias.ID, alias.FamilyID, alias.TokenHash, alias.Origin = "other-origin", "other-family", secrets.HashToken(aliasRaw), "https://alias.example.test"
+	if err := f.st.RefreshTokens().Create(t.Context(), &alias); err != nil {
+		t.Fatal(err)
+	}
 	cases := map[string]struct {
 		form   url.Values
 		status int
 		code   string
 	}{
+		"other origin":      {url.Values{"client_id": {"rt-spa"}, "token": {aliasRaw}}, 200, ""},
 		"unknown token":     {url.Values{"client_id": {"rt-spa"}, "token": {"no-such-token"}}, 200, ""},
 		"another client":    {url.Values{"client_id": {"rt-web"}, "client_secret": {"rt-web-secret"}, "token": {raw}}, 400, "invalid_grant"},
 		"missing token":     {url.Values{"client_id": {"rt-spa"}}, 400, "invalid_request"},
@@ -65,8 +83,13 @@ func TestRevokeVariants(t *testing.T) {
 			}
 		})
 	}
-	if got := f.storedRT(t, raw); got.RevokedAt != nil {
-		t.Fatalf("a failed revocation changed the token: %+v", got)
+	for _, token := range []string{raw, sibling, aliasRaw} {
+		if f.storedRT(t, token).RevokedAt != nil {
+			t.Fatal("invalid presentation revoked a token")
+		}
+	}
+	if _, err := f.st.UserGrants().Find(t.Context(), rt.TenantID, rt.ClientID, rt.UserID, grantAudience); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -120,5 +143,332 @@ func TestRevokeUnknownTokenHasEmptyBody(t *testing.T) {
 	rec := f.revokeRaw(t, "application/x-www-form-urlencoded", url.Values{"client_id": {"rt-spa"}, "token": {"no-such-token"}}.Encode())
 	if rec.Code != 200 || rec.Body.Len() != 0 {
 		t.Fatalf("unknown token = %d %q", rec.Code, rec.Body)
+	}
+}
+
+func TestRevocationUsesCommittedTenantSetting(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		enabled bool
+	}{{"enabled", true}, {"disabled", false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			ctx := t.Context()
+			raw, first := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, acmeAPI)
+			second, _ := f.issueRefresh(t, first.ClientID, first.Scopes, acmeAPI)
+			f.revokeGrantFlag(t, first.TenantID, !tc.enabled)
+			prior, err := f.st.Tenants().Get(ctx, first.TenantID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = f.st.UserGrants().Upsert(ctx, &store.UserGrant{TenantID: first.TenantID, ID: "consent", ClientID: first.ClientID, UserID: first.UserID, Audience: acmeAPI})
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.revokeGrantFlag(t, first.TenantID, tc.enabled)
+			form := url.Values{"client_id": {first.ClientID}, "token": {raw}}
+			req := httptest.NewRequest(http.MethodPost, "https://acme.example.test/oauth/revoke", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", formType)
+			if failure := f.h.revoke(httptest.NewRecorder(), req, tenant.Resolved{Tenant: prior, Host: acmeHost}); failure != nil {
+				t.Fatal(failure.Code)
+			}
+			if f.storedRT(t, raw).RevokedAt == nil || (f.storedRT(t, second).RevokedAt != nil) != tc.enabled {
+				t.Fatal("family revocation scope did not follow the committed setting")
+			}
+			_, err = f.st.UserGrants().Find(ctx, first.TenantID, first.ClientID, first.UserID, acmeAPI)
+			if tc.enabled && !errors.Is(err, store.ErrNotFound) || !tc.enabled && err != nil {
+				t.Fatal("consent did not follow the committed setting")
+			}
+		})
+	}
+}
+
+func TestRevokeDeletesGrantFlag(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		enabled bool
+		aud     string
+	}{
+		{"disabled", false, acmeAPI}, {"enabled", true, acmeAPI}, {"userinfo", true, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			ctx := t.Context()
+			raw, rt := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, tc.aud)
+			sibling, _ := f.issueRefresh(t, "rt-spa", rt.Scopes, tc.aud)
+			otherAudience := acmeAPI
+			if tc.aud == acmeAPI {
+				otherAudience = ""
+			}
+			other, _ := f.issueRefresh(t, "rt-spa", rt.Scopes, otherAudience)
+			f.revokeGrantFlag(t, rt.TenantID, tc.enabled)
+			aud := tc.aud
+			if aud == "" {
+				aud = "https://acme.example.test/userinfo"
+			}
+			_, err := f.st.UserGrants().Upsert(ctx, &store.UserGrant{ID: "g", TenantID: rt.TenantID, ClientID: rt.ClientID, UserID: rt.UserID, Audience: aud})
+			if err != nil {
+				t.Fatal(err)
+			}
+			u, err := f.st.Users().Get(ctx, rt.TenantID, rt.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			code, body := f.revoke(t, url.Values{"client_id": {rt.ClientID}, "token": {raw}})
+			if code != 200 || body != nil {
+				t.Fatalf("revoke = %d %v", code, body)
+			}
+			if rt := f.storedRT(t, raw); rt.RevokedAt == nil {
+				t.Error("presented token remains live")
+			}
+			if rt := f.storedRT(t, sibling); (rt.RevokedAt != nil) != tc.enabled {
+				t.Errorf("sibling revoked = %t", rt.RevokedAt != nil)
+			}
+			if rt := f.storedRT(t, other); rt.RevokedAt != nil {
+				t.Error("other audience revoked")
+			}
+			_, err = f.st.UserGrants().Find(ctx, rt.TenantID, rt.ClientID, rt.UserID, aud)
+			if tc.enabled && !errors.Is(err, store.ErrNotFound) || !tc.enabled && err != nil {
+				t.Errorf("grant lookup = %v", err)
+			}
+			after, err := f.st.Users().Get(ctx, rt.TenantID, rt.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := u.Version
+			if tc.enabled {
+				want++
+			}
+			if after.Version != want {
+				t.Errorf("user version = %d, want %d", after.Version, want)
+			}
+			code, body = f.refresh(t, refreshForm(rt.ClientID, sibling))
+			if tc.enabled && (code != 400 || body["error"] != "invalid_grant") || !tc.enabled && code != 200 {
+				t.Errorf("sibling exchange = %d %v", code, body["error"])
+			}
+			if code, body := f.refresh(t, refreshForm(rt.ClientID, other)); code != 200 {
+				t.Errorf("other audience exchange = %d %v", code, body["error"])
+			}
+		})
+	}
+}
+
+func (f *fixture) revokeGrantFlag(t *testing.T, tid string, enabled bool) {
+	t.Helper()
+	tn, err := f.st.Tenants().Get(t.Context(), tid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tn.SettingsExtra == nil {
+		tn.SettingsExtra = map[string]any{}
+	}
+	tn.SettingsExtra["flags"] = map[string]any{"revoke_refresh_token_grant": enabled}
+	if err := f.st.Tenants().Update(t.Context(), tn); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRevokeGrantRotationOverlap(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		twice bool
+	}{{"live parent", false}, {"spent ancestor", true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			f.rotationPolicy(t, true, 30)
+			raw, rt := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, acmeAPI)
+			next := f.exchangeSuccessor(t, raw)
+			if tc.twice {
+				next = f.exchangeSuccessor(t, next)
+			}
+			f.revokeGrantFlag(t, rt.TenantID, true)
+			sibling, _ := f.issueRefresh(t, "rt-spa", rt.Scopes, acmeAPI)
+			_, err := f.st.UserGrants().Upsert(t.Context(), &store.UserGrant{ID: "g", TenantID: rt.TenantID, ClientID: rt.ClientID, UserID: rt.UserID, Audience: acmeAPI})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if code, body := f.revoke(t, url.Values{"client_id": {rt.ClientID}, "token": {raw}}); code != 200 {
+				t.Fatalf("revoke = %d %v", code, body)
+			}
+			if f.storedRT(t, next).RevokedAt == nil {
+				t.Error("own family remains live")
+			}
+			if revoked := f.storedRT(t, sibling).RevokedAt != nil; revoked == tc.twice {
+				t.Errorf("sibling revoked = %t", revoked)
+			}
+			_, err = f.st.UserGrants().Find(t.Context(), rt.TenantID, rt.ClientID, rt.UserID, acmeAPI)
+			if tc.twice && err != nil || !tc.twice && !errors.Is(err, store.ErrNotFound) {
+				t.Errorf("grant lookup = %v", err)
+			}
+		})
+	}
+}
+
+func TestRevokeGrantCapability(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		probe  error
+		status int
+	}{
+		{"legacy", store.ErrRefreshTokensIIUnavailable, 200}, {"lost", store.ErrRefreshTokensIISupportLost, 500}, {"transport", errors.New("temporary store failure"), 500},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			raw, rt := f.issueRefresh(t, "rt-spa", []string{"offline_access"}, acmeAPI)
+			sibling, _ := f.issueRefresh(t, rt.ClientID, rt.Scopes, rt.Audience)
+			f.revokeGrantFlag(t, rt.TenantID, true)
+			f.h.Store = refreshProbeStore{f.st, tc.probe}
+			code, _ := f.revoke(t, url.Values{"client_id": {rt.ClientID}, "token": {raw}})
+			if code != tc.status || (f.storedRT(t, raw).RevokedAt != nil) != (tc.status == 200) || f.storedRT(t, sibling).RevokedAt != nil {
+				t.Fatalf("revoke = %d, want %d with family-only success for legacy", code, tc.status)
+			}
+		})
+	}
+}
+
+func TestRevokeGrantRechecksPresentedToken(t *testing.T) {
+	f := newFixture(t)
+	raw, rt := f.issueRefresh(t, "rt-spa", []string{"offline_access"}, acmeAPI)
+	sibling, _ := f.issueRefresh(t, rt.ClientID, rt.Scopes, rt.Audience)
+	f.revokeGrantFlag(t, rt.TenantID, true)
+	_, err := f.st.UserGrants().Upsert(t.Context(), &store.UserGrant{ID: "g", TenantID: rt.TenantID, ClientID: rt.ClientID, UserID: rt.UserID, Audience: rt.Audience})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.h.Store = nativeBeforeTxStore{f.st, func() {
+		if err := f.st.RefreshTokens().Revoke(t.Context(), rt.TenantID, rt.ID, fixedNow()); err != nil {
+			t.Fatal(err)
+		}
+	}}
+	code, _ := f.revoke(t, url.Values{"client_id": {rt.ClientID}, "token": {raw}})
+	if code != 200 || f.storedRT(t, sibling).RevokedAt != nil {
+		t.Fatalf("stale revocation = %d, another family revoked = %t", code, f.storedRT(t, sibling).RevokedAt != nil)
+	}
+	if _, err := f.st.UserGrants().Find(t.Context(), rt.TenantID, rt.ClientID, rt.UserID, rt.Audience); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRevokeGrantParentExpiresBeforeLock(t *testing.T) {
+	f := newFixture(t)
+	ctx := t.Context()
+	f.rotationPolicy(t, true, 30)
+	raw, parent := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, acmeAPI)
+	deadline := fixedNow().Add(2 * time.Second)
+	if err := f.st.RefreshTokens().Touch(ctx, parent.TenantID, parent.ID, deadline); err != nil {
+		t.Fatal(err)
+	}
+	successor := f.exchangeSuccessor(t, raw)
+	if refreshExpired(f.storedRT(t, successor), deadline) {
+		t.Fatal("successor must still be live at the parent's idle deadline")
+	}
+	sibling, _ := f.issueRefresh(t, parent.ClientID, parent.Scopes, parent.Audience)
+	f.revokeGrantFlag(t, parent.TenantID, true)
+	g, err := f.st.UserGrants().Upsert(ctx, &store.UserGrant{ID: "g", TenantID: parent.TenantID, ClientID: parent.ClientID, UserID: parent.UserID, Audience: parent.Audience})
+	if err != nil {
+		t.Fatal(err)
+	}
+	user, err := f.st.Users().Get(ctx, parent.TenantID, parent.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := deadline.Add(-time.Second)
+	f.h.Now = func() time.Time { return now }
+	f.h.Store = nativeBeforeTxStore{f.st, func() { now = deadline }}
+	if code, body := f.revoke(t, url.Values{"client_id": {parent.ClientID}, "token": {raw}}); code != 200 || body != nil {
+		t.Fatalf("revoke = %d %v", code, body)
+	}
+	for name, token := range map[string]string{"parent": raw, "successor": successor} {
+		if rt := f.storedRT(t, token); rt.RevokedAt == nil || !rt.RevokedAt.Equal(deadline) {
+			t.Errorf("%s family member revoked at %v, want %v", name, rt.RevokedAt, deadline)
+		}
+	}
+	if f.storedRT(t, sibling).RevokedAt != nil {
+		t.Error("expired parent revoked an independent family")
+	}
+	if got, err := f.st.UserGrants().Find(ctx, g.TenantID, g.ClientID, g.UserID, g.Audience); err != nil || got.ID != g.ID {
+		t.Errorf("consent after revoke = %v, %v", got, err)
+	}
+	after, err := f.st.Users().Get(ctx, parent.TenantID, parent.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Version != user.Version {
+		t.Errorf("user version = %d, want %d", after.Version, user.Version)
+	}
+}
+
+func TestRevokeMissingVerifiedSource(t *testing.T) {
+	for _, tc := range []struct {
+		name                 string
+		convert, deleteGrant bool
+	}{
+		{"conversion/family", true, false}, {"conversion/grant", true, true},
+		{"cleanup/family", false, false}, {"cleanup/grant", false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			ctx := t.Context()
+			now := fixedNow()
+			deadline := now.Add(2 * time.Second)
+			f.h.Now = func() time.Time { return now }
+			f.rotationPolicy(t, !tc.convert, 30)
+			raw, source := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, acmeAPI)
+			f.rotationPolicy(t, true, 30)
+			sibling, _ := f.issueRefresh(t, source.ClientID, source.Scopes, source.Audience)
+			f.revokeGrantFlag(t, source.TenantID, tc.deleteGrant)
+			g, err := f.st.UserGrants().Upsert(ctx, &store.UserGrant{ID: "consent", TenantID: source.TenantID, ClientID: source.ClientID, UserID: source.UserID, Audience: source.Audience})
+			if err != nil {
+				t.Fatal(err)
+			}
+			user, err := f.st.Users().Get(ctx, source.TenantID, source.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var successor string
+			if !tc.convert {
+				if err := f.st.RefreshTokens().Touch(ctx, source.TenantID, source.ID, deadline); err != nil {
+					t.Fatal(err)
+				}
+				successor = f.exchangeSuccessor(t, raw)
+			}
+			f.h.Store = nativeBeforeTxStore{f.st, func() {
+				now = deadline
+				if tc.convert {
+					c, err := f.st.Clients().Get(ctx, source.TenantID, source.ClientID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					successor, err = finishRefresh(ctx, f.st.RefreshTokens(), source, c, source.Origin, now, true, true)
+					if err != nil {
+						t.Fatal(err)
+					}
+				} else if _, err := f.st.RefreshTokens().DeleteExpired(ctx, now); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := f.st.RefreshTokens().GetByTokenHash(ctx, source.TenantID, source.TokenHash); !errors.Is(err, store.ErrNotFound) {
+					t.Fatal("source must be gone before the revocation transaction")
+				}
+				next := f.storedRT(t, successor)
+				if next.RevokedAt != nil || refreshExpired(next, now) || (next.FamilyID != source.FamilyID) != tc.convert {
+					t.Fatal("expected a live successor in the appropriate family")
+				}
+			}}
+			if code, body := f.revoke(t, url.Values{"client_id": {source.ClientID}, "token": {raw}}); code != 200 || body != nil {
+				t.Fatalf("revoke status %d with empty response %t", code, body == nil)
+			}
+			if next := f.storedRT(t, successor); next.RevokedAt == nil || !next.RevokedAt.Equal(deadline) {
+				t.Error("verified family successor was not revoked at the transaction time")
+			}
+			if f.storedRT(t, sibling).RevokedAt != nil {
+				t.Error("independent issuance was revoked")
+			}
+			if current, err := f.st.UserGrants().Find(ctx, g.TenantID, g.ClientID, g.UserID, g.Audience); err != nil || current.ID != g.ID {
+				t.Error("original consent was removed")
+			}
+			if after, err := f.st.Users().Get(ctx, source.TenantID, source.UserID); err != nil || after.Version != user.Version {
+				t.Error("user version changed")
+			}
+		})
 	}
 }
