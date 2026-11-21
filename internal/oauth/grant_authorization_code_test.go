@@ -2,6 +2,13 @@ package oauth
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
+	"github.com/zeroauthy/zeroauthy/internal/oidc"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"slices"
 	"strings"
@@ -19,7 +26,7 @@ const (
 )
 
 // issueCode stores a code for alice as /authorize would, and returns it.
-func (f *fixture) issueCode(t *testing.T, clientID, redirectURI, audience string, scopes []string, challenge string) string {
+func (f *fixture) issueCode(t *testing.T, clientID, redirectURI, audience string, scopes []string, challenge string, requestedUserInfo ...string) string {
 	t.Helper()
 	ctx := context.Background()
 	tenantID := f.tenantID(t, "acme")
@@ -29,7 +36,7 @@ func (f *fixture) issueCode(t *testing.T, clientID, redirectURI, audience string
 	}
 	code := secrets.RandomString(43)
 	ac := &store.AuthCode{
-		TenantID: tenantID, CodeHash: secrets.HashToken(code), ClientID: clientID, RedirectURI: redirectURI,
+		UserInfoClaims: strings.Join(requestedUserInfo, " "), TenantID: tenantID, CodeHash: secrets.HashToken(code), ClientID: clientID, RedirectURI: redirectURI,
 		UserID: u.UserID, SessionID: "sid-1", Scopes: scopes, Audience: audience, Nonce: "n-1",
 		AuthTime: fixedNow().Add(-time.Minute), ExpiresAt: fixedNow().Add(time.Minute), CreatedAt: fixedNow(),
 	}
@@ -400,5 +407,56 @@ func TestCodeOIDCSupportAtExchange(t *testing.T) {
 	rec, out := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, "code-spa", "https://app.acme.test/cb", pkceVerifier)})
 	if rec.Code != 200 || out["id_token"] != nil || slices.Contains(strings.Fields(out["scope"].(string)), "openid") {
 		t.Fatalf("disabled OIDC: status=%d has_id_token=%v scope=%v", rec.Code, out["id_token"] != nil, out["scope"])
+	}
+}
+
+func TestRequestedUserInfoClaimsSurviveExchangeAndRefresh(t *testing.T) {
+	for _, requested := range []bool{false, true} {
+		t.Run(fmt.Sprint(requested), func(t *testing.T) {
+			f := newFixture(t)
+			names := []string{}
+			if requested {
+				names = []string{"auth_time"}
+			}
+			code := f.issueCode(t, "rt-spa", "https://rt.acme.test/cb", acmeAPI, []string{"openid", "offline_access", "read:things"}, pkceChallenge, names...)
+			rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, "rt-spa", "https://rt.acme.test/cb", pkceVerifier)})
+			if rec.Code != 200 {
+				t.Fatalf("exchange: %d", rec.Code)
+			}
+			ui := &oidc.Handlers{Keys: f.keys, Store: f.st, Now: fixedNow}
+			handler := tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(ui.Userinfo))
+			env := actionstest.New(t, f.st, f.wrapper)
+			f.h.Actions = env.Engine
+			env.PostLogin(t, f.tenantID(t, "acme"), "userinfo-evidence", `exports.onExecutePostLogin=async(event,api)=>{api.accessToken.setCustomClaim("https://zeroauthy.dev/userinfo",{auth_time:1,acr:"http://schemas.openid.net/pape/policies/2007/06/multi-factor"});};`)
+			for i := range 3 {
+				req := httptest.NewRequest("GET", "https://acme.example.test/userinfo", nil)
+				req.Header.Set("Authorization", "Bearer "+body["access_token"].(string))
+				out := httptest.NewRecorder()
+				handler.ServeHTTP(out, req)
+				var info map[string]any
+				if err := json.Unmarshal(out.Body.Bytes(), &info); err != nil || out.Code != 200 {
+					t.Fatalf("userinfo pass=%d status=%d json=%v", i, out.Code, err)
+				}
+				if requested {
+					if info["auth_time"] != float64(fixedNow().Add(-time.Minute).Unix()) {
+						t.Fatal("requested auth_time lost")
+					}
+				} else if info["auth_time"] != nil {
+					t.Fatal("unrequested auth_time disclosed")
+				}
+				if i < 2 {
+					raw := body["refresh_token"].(string)
+					if f.storedRT(t, raw).UserInfoClaims != strings.Join(names, " ") {
+						t.Fatal("refresh family lost claim selection")
+					}
+
+					status, next := f.refresh(t, refreshForm("rt-spa", raw))
+					if status != 200 {
+						t.Fatalf("refresh: %d", status)
+					}
+					body = next
+				}
+			}
+		})
 	}
 }

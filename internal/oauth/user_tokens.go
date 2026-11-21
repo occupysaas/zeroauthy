@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"slices"
 	"strings"
 	"time"
@@ -139,8 +140,9 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
-	acr    string
-	online bool
+	userInfoClaims string
+	acr            string
+	online         bool
 	// mrrt records the policy and scopes used to sign a multi-resource exchange.
 	mrrt              *mrrtExchange
 	organization      *store.Organization
@@ -269,6 +271,27 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, false, serverError()
 	}
+	mfaAt := ut.mfaAt
+	if ut.refreshSessionMFA && ut.sessionID != "" {
+		sess, err := h.Store.Sessions().Get(ctx, tenantID, ut.sessionID)
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return nil, false, serverError()
+		}
+		if err == nil && sess.UserID == ut.user.UserID && (sess.ExpiresAt.IsZero() || h.now().Before(sess.ExpiresAt)) && (sess.IdleExpiresAt.IsZero() || h.now().Before(sess.IdleExpiresAt)) {
+			mfaAt = sess.MFAAt
+		}
+	}
+
+	if accessClaims == nil {
+		accessClaims = map[string]any{}
+	}
+	// Actions may not supply this reserved session-evidence envelope.
+	delete(accessClaims, claims.UserInfoSessionKey)
+	if slices.Contains(final, "openid") && slices.Contains(audiences, res.Issuer()+"userinfo") {
+		if values := claims.UserInfoSessionClaims(ut.userInfoClaims, ut.authTime, mfaAt); len(values) > 0 {
+			accessClaims[claims.UserInfoSessionKey] = values
+		}
+	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
 		SigningAlg: signingAlg, SigningSecret: signingSecret, DPoPJKT: jkt,
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
@@ -303,16 +326,6 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		atHashSource := accessToken
 		if ut.omitAtHash {
 			atHashSource = ""
-		}
-		mfaAt := ut.mfaAt
-		if ut.refreshSessionMFA && ut.sessionID != "" {
-			sess, err := h.Store.Sessions().Get(ctx, tenantID, ut.sessionID)
-			if err != nil && !errors.Is(err, store.ErrNotFound) {
-				return nil, false, serverError()
-			}
-			if err == nil && sess.UserID == ut.user.UserID && (sess.ExpiresAt.IsZero() || h.now().Before(sess.ExpiresAt)) && (sess.IdleExpiresAt.IsZero() || h.now().Before(sess.IdleExpiresAt)) {
-				mfaAt = sess.MFAAt
-			}
 		}
 		var signingSecret []byte
 		if c.IDTokenAlg == "HS256" {

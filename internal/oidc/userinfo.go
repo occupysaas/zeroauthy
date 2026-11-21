@@ -69,6 +69,10 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		Confirmation *struct {
 			JKT string `json:"jkt"`
 		} `json:"cnf"`
+		SessionClaims struct {
+			AuthTime int64  `json:"auth_time"`
+			ACR      string `json:"acr"`
+		} `json:"https://zeroauthy.dev/userinfo"`
 		Scope           string `json:"scope"`
 		OrgID           string `json:"org_id"`
 		OrgName         string `json:"org_name"`
@@ -148,6 +152,12 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	body := claims.ForUser(user, scopes)
+	if extra.SessionClaims.AuthTime > 0 {
+		body["auth_time"] = extra.SessionClaims.AuthTime
+	}
+	if extra.SessionClaims.ACR == claims.ACRMultiFactor {
+		body["acr"] = extra.SessionClaims.ACR
+	}
 	if extra.OrgID != "" {
 		body["org_id"] = extra.OrgID
 	}

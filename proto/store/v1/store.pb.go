@@ -6364,6 +6364,7 @@ type AuthCode struct {
 	OrganizationConnectionId string                 `protobuf:"bytes,20,opt,name=organization_connection_id,json=organizationConnectionId,proto3" json:"organization_connection_id,omitempty"` // Original authenticated connection
 	MfaAt                    *timestamppb.Timestamp `protobuf:"bytes,21,opt,name=mfa_at,json=mfaAt,proto3" json:"mfa_at,omitempty"`                                                            // MFA at authorization; absent on legacy codes
 	DpopJkt                  string                 `protobuf:"bytes,22,opt,name=dpop_jkt,json=dpopJkt,proto3" json:"dpop_jkt,omitempty"`
+	UserInfoClaims           string                 `protobuf:"bytes,24,opt,name=user_info_claims,json=userInfoClaims,proto3" json:"user_info_claims,omitempty"`
 	Acr                      string                 `protobuf:"bytes,23,opt,name=acr,proto3" json:"acr,omitempty"` // Requested and satisfied authentication context.
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
@@ -6549,6 +6550,13 @@ func (x *AuthCode) GetMfaAt() *timestamppb.Timestamp {
 func (x *AuthCode) GetDpopJkt() string {
 	if x != nil {
 		return x.DpopJkt
+	}
+	return ""
+}
+
+func (x *AuthCode) GetUserInfoClaims() string {
+	if x != nil {
+		return x.UserInfoClaims
 	}
 	return ""
 }
@@ -6851,6 +6859,7 @@ type RefreshToken struct {
 	Metadata                 *StringMap             `protobuf:"bytes,23,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	Device                   *RefreshDeviceMsg      `protobuf:"bytes,24,opt,name=device,proto3" json:"device,omitempty"`
 	LastExchangedAt          *timestamppb.Timestamp `protobuf:"bytes,25,opt,name=last_exchanged_at,json=lastExchangedAt,proto3" json:"last_exchanged_at,omitempty"`
+	UserInfoClaims           string                 `protobuf:"bytes,27,opt,name=user_info_claims,json=userInfoClaims,proto3" json:"user_info_claims,omitempty"`
 	Acr                      string                 `protobuf:"bytes,26,opt,name=acr,proto3" json:"acr,omitempty"` // Requested authentication context of the family.
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
@@ -7059,6 +7068,13 @@ func (x *RefreshToken) GetLastExchangedAt() *timestamppb.Timestamp {
 		return x.LastExchangedAt
 	}
 	return nil
+}
+
+func (x *RefreshToken) GetUserInfoClaims() string {
+	if x != nil {
+		return x.UserInfoClaims
+	}
+	return ""
 }
 
 func (x *RefreshToken) GetAcr() string {
@@ -31046,7 +31062,7 @@ const file_store_proto_rawDesc = "" +
 	"\x11hosted_state_json\x18\t \x01(\tR\x0fhostedStateJson\x12\x16\n" +
 	"\x06origin\x18\n" +
 	" \x01(\tR\x06origin\x12\x19\n" +
-	"\bdpop_jkt\x18\v \x01(\tR\adpopJkt\"\xa8\a\n" +
+	"\bdpop_jkt\x18\v \x01(\tR\adpopJkt\"\xd2\a\n" +
 	"\bAuthCode\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tcode_hash\x18\x02 \x01(\tR\bcodeHash\x12\x1b\n" +
@@ -31074,7 +31090,8 @@ const file_store_proto_rawDesc = "" +
 	"\x0forganization_id\x18\x13 \x01(\tR\x0eorganizationId\x12<\n" +
 	"\x1aorganization_connection_id\x18\x14 \x01(\tR\x18organizationConnectionId\x121\n" +
 	"\x06mfa_at\x18\x15 \x01(\v2\x1a.google.protobuf.TimestampR\x05mfaAt\x12\x19\n" +
-	"\bdpop_jkt\x18\x16 \x01(\tR\adpopJkt\x12\x10\n" +
+	"\bdpop_jkt\x18\x16 \x01(\tR\adpopJkt\x12(\n" +
+	"\x10user_info_claims\x18\x18 \x01(\tR\x0euserInfoClaims\x12\x10\n" +
 	"\x03acr\x18\x17 \x01(\tR\x03acr\"\xf8\x02\n" +
 	"\x11PushedAuthRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
@@ -31109,7 +31126,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06origin\x18\x0e \x01(\tR\x06origin\x12%\n" +
 	"\x0eaction_effects\x18\x0f \x01(\fR\ractionEffectsB\x11\n" +
 	"\x0f_last_polled_atB\x16\n" +
-	"\x14_expired_reported_at\"\xc7\b\n" +
+	"\x14_expired_reported_at\"\xf1\b\n" +
 	"\fRefreshToken\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +
@@ -31142,7 +31159,8 @@ const file_store_proto_rawDesc = "" +
 	"\x06access\x18\x16 \x01(\tR\x06access\x129\n" +
 	"\bmetadata\x18\x17 \x01(\v2\x1d.zeroauthy.store.v1.StringMapR\bmetadata\x12<\n" +
 	"\x06device\x18\x18 \x01(\v2$.zeroauthy.store.v1.RefreshDeviceMsgR\x06device\x12F\n" +
-	"\x11last_exchanged_at\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampR\x0flastExchangedAt\x12\x10\n" +
+	"\x11last_exchanged_at\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampR\x0flastExchangedAt\x12(\n" +
+	"\x10user_info_claims\x18\x1b \x01(\tR\x0euserInfoClaims\x12\x10\n" +
 	"\x03acr\x18\x1a \x01(\tR\x03acr\"\xbf\x05\n" +
 	"\x13PasswordResetTicket\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +

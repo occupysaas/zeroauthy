@@ -4,6 +4,7 @@ package authz
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"log/slog"
 	"mime"
 	"net/http"
@@ -454,6 +455,7 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 		connectionID = conn.ID
 	}
 	ac := &store.AuthCode{
+		UserInfoClaims: claims.RequestedUserInfoSessionClaims(req.Claims),
 		DPoPJKT:        req.DPoPJKT,
 		OrganizationID: req.OrgID, OrganizationConnectionID: connectionID,
 		ActionEffects:       sealed,

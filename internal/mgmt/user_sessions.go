@@ -240,6 +240,11 @@ func (h *Handlers) DeleteUserSessions(w http.ResponseWriter, r *http.Request, id
 	// user runs wholly before or after this (its check sees the bump).
 	var n int
 	err := h.Store.WithTx(ctx, func(tx store.Store) error {
+		if h.Logout != nil {
+			if _, err := tx.Tenants().Get(ctx, tn.ID); err != nil {
+				return err
+			}
+		}
 		if _, err := tx.Users().BumpVersion(ctx, tn.ID, id); err != nil && !errors.Is(err, store.ErrNotFound) {
 			return err
 		}
@@ -351,7 +356,10 @@ func (h *Handlers) DeleteSession(w http.ResponseWriter, r *http.Request, id stri
 	}
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		tid := resolved(r).ID
-		ended, err := tx.Sessions().Get(r.Context(), tid, id)
+		if _, err := tx.Tenants().Get(r.Context(), tid); err != nil {
+			return err
+		}
+		ended, err := tx.Sessions().GetForUpdate(r.Context(), tid, id)
 		if err != nil {
 			return err
 		}

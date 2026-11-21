@@ -6,3 +6,5 @@ ALTER TABLE refresh_tokens ADD COLUMN acr VARCHAR(255) NOT NULL DEFAULT '';
 ALTER TABLE sessions ADD COLUMN client_organizations LONGTEXT NULL;
 CREATE TABLE global_revocation_jtis (tenant_id VARCHAR(255) NOT NULL, connection_id VARCHAR(255) NOT NULL, jti_hash VARCHAR(64) NOT NULL, expires_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,connection_id,jti_hash)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE INDEX global_revocation_jtis_expires ON global_revocation_jtis (expires_at);
+ALTER TABLE auth_codes ADD COLUMN user_info_claims VARCHAR(32) NOT NULL DEFAULT '';
+ALTER TABLE refresh_tokens ADD COLUMN user_info_claims VARCHAR(32) NOT NULL DEFAULT '';

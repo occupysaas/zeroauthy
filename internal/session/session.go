@@ -85,6 +85,10 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 	}
 	now := m.now()
 	if !now.Before(s.ExpiresAt) || !now.Before(s.IdleExpiresAt) {
+		// The expiry sweeper owns the transactional notification snapshot.
+		if m.OnEnd != nil {
+			return nil, nil
+		}
 		if err := m.Store.Sessions().Delete(ctx, t.ID, s.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
 			return nil, err
 		}
@@ -256,6 +260,11 @@ func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	ended := false
 	err = m.Store.WithTx(ctx, func(tx store.Store) error {
+		if m.OnEnd != nil {
+			if _, err := tx.Tenants().Get(ctx, t.ID); err != nil {
+				return err
+			}
+		}
 		current, err := tx.Sessions().GetForUpdate(ctx, t.ID, s.ID)
 		if errors.Is(err, store.ErrNotFound) {
 			return nil

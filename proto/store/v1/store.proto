@@ -986,6 +986,7 @@ message AuthCode {
   string organization_connection_id = 20; // Original authenticated connection
   google.protobuf.Timestamp mfa_at = 21; // MFA at authorization; absent on legacy codes
   string dpop_jkt = 22;
+ string user_info_claims = 24;
  string acr = 23; // Requested and satisfied authentication context.
 }
 message PushedAuthRequest {
@@ -1020,6 +1021,7 @@ message RefreshToken {
   string organization_connection_id = 19; // Bound for the entire refresh family
   string dpop_jkt = 20; string parent_id = 21; string access = 22; StringMap metadata = 23;
   RefreshDeviceMsg device = 24; google.protobuf.Timestamp last_exchanged_at = 25;
+ string user_info_claims = 27;
  string acr = 26; // Requested authentication context of the family.
 }
 

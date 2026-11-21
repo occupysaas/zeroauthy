@@ -15,7 +15,7 @@ type refreshTokens struct{ s *Store }
 func (s *Store) RefreshTokens() store.RefreshTokens { return refreshTokens{s} }
 
 const refreshCols = `tenant_id, id, token_hash, family_id, client_id, user_id, session_id, scopes, audience,
- auth_time, rotating, expires_at, idle_expires_at, rotated_at, revoked_at, created_at, origin, organization_id, organization_connection_id, dpop_jkt, parent_id, access, metadata, device, last_exchanged_at, acr`
+ auth_time, rotating, expires_at, idle_expires_at, rotated_at, revoked_at, created_at, origin, organization_id, organization_connection_id, dpop_jkt, parent_id, access, metadata, device, last_exchanged_at, acr, user_info_claims`
 
 // Create retries on deadlock: on MySQL an INSERT can be the victim of a cycle
 // with the sweepers' range DELETEs (gap locks).
@@ -68,10 +68,10 @@ func (r refreshTokens) insert(ctx context.Context, t *store.RefreshToken, parent
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO refresh_tokens (`+refreshCols+`, insertion_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,(SELECT last_order FROM refresh_token_sequences WHERE tenant_id=?))`,
+	_, err = r.s.exec(ctx, `INSERT INTO refresh_tokens (`+refreshCols+`, insertion_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,(SELECT last_order FROM refresh_token_sequences WHERE tenant_id=?))`,
 		t.TenantID, t.ID, t.TokenHash, t.FamilyID, t.ClientID, t.UserID, t.SessionID, scopes, t.Audience,
 		micros(t.AuthTime), t.Rotating, micros(t.ExpiresAt), micros(t.IdleExpiresAt),
-		nullMicros(t.RotatedAt), nullMicros(t.RevokedAt), micros(t.CreatedAt), t.Origin, t.OrganizationID, t.OrganizationConnectionID, t.DPoPJKT, parent, access, jsonColumn{&t.Metadata}, jsonColumn{&t.Device}, nullMicros(t.LastExchangedAt), t.ACR, t.TenantID)
+		nullMicros(t.RotatedAt), nullMicros(t.RevokedAt), micros(t.CreatedAt), t.Origin, t.OrganizationID, t.OrganizationConnectionID, t.DPoPJKT, parent, access, jsonColumn{&t.Metadata}, jsonColumn{&t.Device}, nullMicros(t.LastExchangedAt), t.ACR, t.UserInfoClaims, t.TenantID)
 	return r.s.conflict(err)
 }
 
@@ -363,7 +363,7 @@ func scanRefreshToken(row scanner) (*store.RefreshToken, error) {
 	var authAt, exp, idle, created int64
 	var rotated, revoked, exchanged sql.NullInt64
 	if err := row.Scan(&t.TenantID, &t.ID, &t.TokenHash, &t.FamilyID, &t.ClientID, &t.UserID, &t.SessionID, &scopes,
-		&t.Audience, &authAt, &t.Rotating, &exp, &idle, &rotated, &revoked, &created, &t.Origin, &t.OrganizationID, &t.OrganizationConnectionID, &t.DPoPJKT, &t.ParentID, &t.Access, jsonColumn{&t.Metadata}, jsonColumn{&t.Device}, &exchanged, &t.ACR); err != nil {
+		&t.Audience, &authAt, &t.Rotating, &exp, &idle, &rotated, &revoked, &created, &t.Origin, &t.OrganizationID, &t.OrganizationConnectionID, &t.DPoPJKT, &t.ParentID, &t.Access, jsonColumn{&t.Metadata}, jsonColumn{&t.Device}, &exchanged, &t.ACR, &t.UserInfoClaims); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scopes, &t.Scopes); err != nil {

@@ -115,3 +115,11 @@ Keep these switches off for conformance runs. See
 [D-0080](compat/decisions.md) for the compatibility decisions and
 [the implementation record](superpowers/2026-11-16-plan-41a-implementation-record.md)
 for actual verification status; implementation is not a certification claim.
+
+Expiry retains the notification snapshot when a browser returns with an expired
+cookie; the sweeper drains successive bounded batches with cancellation between
+batches. Retired or reassigned session issuer domains suppress only those
+notifications, so local account/session changes still commit. Online refresh-token
+revocation (including an Action) and operator removal use `session-revoked`.
+Replacing the browser's session cookie during a new login is session rotation;
+it does not emit logout notifications for the previous authorization session.

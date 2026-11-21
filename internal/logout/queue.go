@@ -81,14 +81,16 @@ func (s *Service) SessionsEnded(ctx context.Context, tid string, sessions []*sto
 		}
 		parsed, err := url.Parse(issuer)
 		if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil || parsed.Path != "/" || parsed.RawQuery != "" || parsed.Fragment != "" {
-			return store.ErrInvalid
+			// Invalid historical issuer affects this notification only.
+			continue
 		}
 		owner, err := s.Store.Tenants().GetByDomain(ctx, parsed.Host)
-		if err != nil || owner.ID != tid {
+		if err != nil || owner == nil || owner.ID != tid {
 			if err != nil && !errors.Is(err, store.ErrNotFound) {
 				return err
 			}
-			return store.ErrInvalid
+			// A retired or reassigned domain must not prevent local revocation.
+			continue
 		}
 		for _, id := range session.ClientIDs {
 			unique := session.ID + "\x00" + id
@@ -162,6 +164,9 @@ func (s *Service) open(job *store.ActionJob) (*payload, error) {
 // EndUserSessions is called inside the transaction changing credentials or
 // account state. The snapshot is retained before deleting the local sessions.
 func (s *Service) EndUserSessions(ctx context.Context, tid, uid string, why Initiator) error {
+	if _, err := s.Store.Tenants().Get(ctx, tid); err != nil {
+		return err
+	}
 	ended, err := s.Store.Sessions().ListByUser(ctx, tid, uid)
 	if err != nil {
 		return err

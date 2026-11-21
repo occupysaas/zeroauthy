@@ -1035,7 +1035,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		return nil, nil
 	}
 	return &storev1.AuthCode{
-		Acr:      c.ACR,
+		Acr: c.ACR, UserInfoClaims: c.UserInfoClaims,
 		DpopJkt:  c.DPoPJKT,
 		Origin:   c.Origin,
 		TenantId: c.TenantID, CodeHash: c.CodeHash, ClientId: c.ClientID, RedirectUri: c.RedirectURI,
@@ -1055,7 +1055,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		return nil, err
 	}
 	return &store.AuthCode{
-		ACR:      pb.Acr,
+		ACR: pb.Acr, UserInfoClaims: pb.UserInfoClaims,
 		DPoPJKT:  pb.DpopJkt,
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, CodeHash: pb.CodeHash, ClientID: pb.ClientId, RedirectURI: pb.RedirectUri,
@@ -1154,7 +1154,7 @@ func refreshTokenToPB(r *store.RefreshToken) (*storev1.RefreshToken, error) {
 		return nil, nil
 	}
 	return &storev1.RefreshToken{
-		Acr:     r.ACR,
+		Acr: r.ACR, UserInfoClaims: r.UserInfoClaims,
 		DpopJkt: r.DPoPJKT, ParentId: r.ParentID, Access: r.Access, Device: deviceToPB(r.Device), Metadata: stringMapToPB(r.Metadata), LastExchangedAt: optTSToPB(r.LastExchangedAt),
 		Origin:   r.Origin,
 		TenantId: r.TenantID, Id: r.ID, TokenHash: r.TokenHash, FamilyId: r.FamilyID,
@@ -1174,7 +1174,7 @@ func refreshTokenFromPB(pb *storev1.RefreshToken) (*store.RefreshToken, error) {
 		return nil, err
 	}
 	return &store.RefreshToken{
-		ACR:     pb.Acr,
+		ACR: pb.Acr, UserInfoClaims: pb.UserInfoClaims,
 		DPoPJKT: pb.DpopJkt, ParentID: pb.ParentId, Access: pb.Access, Device: deviceFromPB(pb.Device), Metadata: stringMapFromPB(pb.Metadata), LastExchangedAt: optTSFromPB(pb.LastExchangedAt),
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, FamilyID: pb.FamilyId,

@@ -115,11 +115,28 @@ func sweep(ctx context.Context, st store.Store, now time.Time, notifications ...
 	expireSessions := st.Sessions().DeleteExpired
 	if len(notifications) > 0 && notifications[0] != nil {
 		expireSessions = func(ctx context.Context, before time.Time) (int, error) {
-			n, err := notifications[0].WithStore(st).SweepExpired(ctx, before, 100)
-			if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
-				return st.Sessions().DeleteExpired(ctx, before)
+			total := 0
+			for {
+				if err := ctx.Err(); err != nil {
+					return total, err
+				}
+				n, err := notifications[0].WithStore(st).SweepExpired(ctx, before, 100)
+				if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+					return st.Sessions().DeleteExpired(ctx, before)
+				}
+				total += n
+				if err != nil || n < 100 {
+					return total, err
+				}
+				// Yield between transactions without delaying a large backlog by ten minutes.
+				timer := time.NewTimer(time.Millisecond)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					return total, ctx.Err()
+				case <-timer.C:
+				}
 			}
-			return n, err
 		}
 	}
 	jobs := []struct {

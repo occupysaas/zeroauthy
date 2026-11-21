@@ -77,3 +77,18 @@ func TestOIDCCapabilityTransientRetry(t *testing.T) {
 		t.Fatalf("retry: %v", err)
 	}
 }
+
+// Embedding the old Store surface deliberately hides the optional v1 repositories.
+type oldOIDCBacking struct{ store.Store }
+
+func (s oldOIDCBacking) Sessions() store.Sessions { return oldOIDCSessions{s.Store.Sessions()} }
+
+type oldOIDCSessions struct{ store.Sessions }
+
+func TestOIDCCapabilityRequiresBackingRepositories(t *testing.T) {
+	c := serveEventsFaults(t, oldOIDCBacking{memory.New()}, &eventsFaults{})
+	defer c.Close()
+	if err := c.CheckOIDCLogoutSupport(t.Context()); !errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+		t.Fatalf("old backing advertised v1: %v", err)
+	}
+}

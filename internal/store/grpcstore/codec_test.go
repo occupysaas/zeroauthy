@@ -380,7 +380,7 @@ func TestAuthTransactionRoundTrip(t *testing.T) {
 
 func TestAuthCodeRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthCode{
-		ACR:      "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		DPoPJKT:  "key",
 		Origin:   "https://login.example",
 		TenantID: "ten", CodeHash: "ch", ClientID: "cid", RedirectURI: "https://cb", UserID: "auth0|u1",
@@ -396,7 +396,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 
 func TestRefreshTokenRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.RefreshToken{
-		ACR:     "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		DPoPJKT: "key", ParentID: "previous", Access: "offline", Metadata: map[string]string{"role": "app"}, LastExchangedAt: ptr(nanoTime),
 		Device:   &store.RefreshTokenDevice{InitialIP: "192.0.2.1", LastIP: "192.0.2.2", InitialASN: "AS64496", LastASN: "AS64497", InitialUserAgent: "one", LastUserAgent: "two"},
 		Origin:   "https://login.example",

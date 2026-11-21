@@ -34,3 +34,21 @@ func TestDeliveryOutcomeLog(t *testing.T) {
 		t.Fatal("receiver hostname absent")
 	}
 }
+
+func TestUnresolvedReceiverTerminalLog(t *testing.T) {
+	s := queuedService(t)
+	capture := &recorder{}
+	s.Recorder = capture
+	job := deliveryJob(t, s, "https://{organization_name}.rp.example/logout")
+	next := s.Deliver(t.Context(), job)
+	if next == nil || next.Status != "failed" {
+		t.Fatal("unresolved receiver must fail closed")
+	}
+	s.Finished(t.Context(), next)
+	if len(capture.events) != 1 || capture.events[0].ClientID != "rp" || capture.events[0].Details["initiator"] != "rp-logout" {
+		t.Fatal("terminal outcome missing")
+	}
+	if _, ok := capture.events[0].Details["receiver_host"]; ok {
+		t.Fatal("unresolved hostname logged")
+	}
+}

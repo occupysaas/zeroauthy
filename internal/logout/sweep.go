@@ -22,6 +22,9 @@ func (s *Service) SweepExpired(ctx context.Context, before time.Time, limit int)
 	for _, snapshot := range snapshots {
 		ended := false
 		err := s.Store.WithTx(ctx, func(tx store.Store) error {
+			if _, err := tx.Tenants().Get(ctx, snapshot.TenantID); err != nil {
+				return err
+			}
 			session, err := tx.Sessions().GetForUpdate(ctx, snapshot.TenantID, snapshot.ID)
 			if errors.Is(err, store.ErrNotFound) {
 				return nil

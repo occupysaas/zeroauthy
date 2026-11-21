@@ -305,6 +305,7 @@ func TestACRRefreshToken(t *testing.T) {
 	_, template := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access", "read:things"}, acmeAPI)
 	raw := secrets.RandomString(48)
 	token := *template
+	token.UserInfoClaims = "auth_time acr"
 	token.ID += "_acr"
 	token.FamilyID += "_acr"
 	token.TokenHash = secrets.HashToken(raw)
@@ -325,6 +326,13 @@ func TestACRRefreshToken(t *testing.T) {
 		t.Fatal("live MFA session's acr missing")
 	}
 	raw = out["refresh_token"].(string)
+	if f.storedRT(t, raw).UserInfoClaims != token.UserInfoClaims {
+		t.Fatal("rotation lost UserInfo selection")
+	}
+	accessEvidence, _ := verifyToken(t, f.keys, token.TenantID, out["access_token"].(string))
+	if evidence, ok := accessEvidence["https://zeroauthy.dev/userinfo"].(map[string]any); !ok || evidence["acr"] != token.ACR {
+		t.Fatal("live MFA UserInfo context missing")
+	}
 	if f.storedRT(t, raw).ACR != token.ACR {
 		t.Fatal("rotation lost authentication context")
 	}
@@ -336,6 +344,10 @@ func TestACRRefreshToken(t *testing.T) {
 		t.Fatalf("offline exchange status=%d", status)
 	}
 	got, _ = verifyToken(t, f.keys, token.TenantID, out["id_token"].(string))
+	accessEvidence, _ = verifyToken(t, f.keys, token.TenantID, out["access_token"].(string))
+	if evidence, ok := accessEvidence["https://zeroauthy.dev/userinfo"].(map[string]any); ok && evidence["acr"] != nil {
+		t.Fatal("removed session proves UserInfo MFA")
+	}
 	if got["acr"] != nil {
 		t.Fatal("removed session still proves MFA")
 	}

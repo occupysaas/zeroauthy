@@ -901,8 +901,9 @@ type AuthTransaction struct {
 
 // AuthCode is an issued authorization code.
 type AuthCode struct {
-	ACR     string
-	DPoPJKT string
+	UserInfoClaims string // Authorized session-derived UserInfo claim names.
+	ACR            string
+	DPoPJKT        string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin              string
 	TenantID            string
@@ -1023,6 +1024,7 @@ type DevicePoll struct {
 // by rotating it form a family that shares FamilyID; reuse of a rotated
 // token revokes the whole family.
 type RefreshToken struct {
+	UserInfoClaims    string // Preserved target-specific session claims.
 	ACR               string
 	DPoPJKT, ParentID string
 	Access            string // "offline" (including legacy empty values) or "online"

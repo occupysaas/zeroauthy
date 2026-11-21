@@ -168,3 +168,10 @@ func TestACRStepUpForcesMFA(t *testing.T) {
 		t.Fatalf("Action skipped step-up: %+v %v", got, err)
 	}
 }
+
+func TestExplicitStepUpOverridesConfidenceEnrollmentExemption(t *testing.T) {
+	got, err := Decide(DecideInput{StepUp: true, Settings: &store.GuardianSettings{Policies: []string{"confidence-score"}, Factors: map[string]bool{"otp": true}}})
+	if err != nil || !got.Required || !got.Enroll {
+		t.Fatalf("explicit adaptive step-up: %+v %v", got, err)
+	}
+}

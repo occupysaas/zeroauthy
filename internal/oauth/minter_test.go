@@ -261,3 +261,19 @@ func TestIDTokenScopeClaims(t *testing.T) {
 		t.Fatal("standard ID token claims missing or metadata exposed")
 	}
 }
+
+func TestAccessTokenCustomClaimsKeepNumericDates(t *testing.T) {
+	km := newTestKeys(t, "t")
+	m := &Minter{Keys: km, Now: fixedNow}
+	raw, err := m.AccessToken(t.Context(), AccessTokenParams{TenantID: "t", Issuer: "https://tenant.example/", Subject: "test-user", ClientID: "test-client", Audience: []string{"https://tenant.example/userinfo"}, Scopes: []string{"openid"}, CustomClaims: map[string]any{"https://zeroauthy.dev/userinfo": map[string]any{"auth_time": fixedNow().Unix()}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var standard jwt.Claims
+	if err := km.Verify(t.Context(), "t", raw, &standard); err != nil {
+		t.Fatalf("registered numeric claims invalid: %v", err)
+	}
+	if standard.IssuedAt == nil || standard.IssuedAt.Time().Unix() != fixedNow().Unix() || standard.Expiry == nil {
+		t.Fatal("registered dates changed")
+	}
+}

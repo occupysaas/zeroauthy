@@ -732,3 +732,30 @@ func TestACRUnknownValue(t *testing.T) {
 		t.Fatal("unknown context became an acr assertion")
 	}
 }
+
+func TestUserInfoSessionClaimSelectionBoundToCode(t *testing.T) {
+	for _, target := range []string{"userinfo", "id_token"} {
+		t.Run(target, func(t *testing.T) {
+			e := newEnv(t)
+			ck := e.login(t, fixedNow().Add(-time.Minute))
+			query := goodQuery()
+			query.Set("claims", `{"`+target+`":{"auth_time":null,"acr":null}}`)
+			loc := location(t, e.get(t, query, ck))
+			raw := loc.Query().Get("code")
+			if raw == "" {
+				t.Fatal("authorization did not issue code")
+			}
+			ac, err := e.st.AuthCodes().Get(t.Context(), e.tenant.ID, secrets.HashToken(raw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := ""
+			if target == "userinfo" {
+				want = "auth_time acr"
+			}
+			if ac.UserInfoClaims != want {
+				t.Fatalf("target selection=%q want=%q", ac.UserInfoClaims, want)
+			}
+		})
+	}
+}

@@ -1,6 +1,7 @@
 package logout
 
 import (
+	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -173,5 +174,53 @@ func TestLogoutUnblocked(t *testing.T) {
 	}
 	if calls.Load() != 0 {
 		t.Fatal("logout performed network delivery synchronously")
+	}
+}
+
+func TestRetiredIssuerDoesNotBlockLocalRevocation(t *testing.T) {
+	for _, subscribe := range []bool{false, true} {
+		t.Run(fmt.Sprint(subscribe), func(t *testing.T) {
+			s := queuedService(t)
+			if subscribe {
+				if err := s.Store.Clients().Create(t.Context(), &store.Client{TenantID: "t", ClientID: "rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, id := range []string{"retired", "active"} {
+				origin := "https://tenant.example"
+				if id == "retired" {
+					origin = "https://retired.example"
+				}
+				if err := s.Store.Sessions().Create(t.Context(), &store.LoginSession{TenantID: "t", ID: id, TokenHash: id, UserID: "u", Origin: origin, ClientIDs: []string{"rp"}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := s.Store.WithTx(t.Context(), func(tx store.Store) error {
+				return s.WithStore(tx).EndUserSessions(t.Context(), "t", "u", SessionRevoked)
+			}); err != nil {
+				t.Fatalf("retired issuer blocked local revocation: %v", err)
+			}
+			live, err := s.Store.Sessions().ListByUser(t.Context(), "t", "u")
+			if err != nil || len(live) != 0 {
+				t.Fatal("local sessions survived")
+			}
+			jobs, err := s.Store.Actions().ClaimJobs(t.Context(), s.now(), time.Minute, 10)
+			want := 0
+			if subscribe {
+				want = 1
+			}
+			if err != nil || len(jobs) != want {
+				t.Fatalf("jobs=%d want=%d err=%v", len(jobs), want, err)
+			}
+		})
+	}
+}
+func TestReceiverRefusesPortQualifiedTenant(t *testing.T) {
+	s := queuedService(t)
+	if err := s.Store.Tenants().Create(t.Context(), &store.Tenant{ID: "other", Name: "other", CanonicalHost: "other.example:8443", Domains: []string{"other.example:8443"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.receiverAllowed(t.Context(), "https://other.example:8443/logout"); err == nil {
+		t.Fatal("tenant receiver accepted")
 	}
 }

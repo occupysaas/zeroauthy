@@ -77,10 +77,10 @@ not enable them.
 | `ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI` | Use the sole registered non-wildcard callback when redirect_uri is omitted | D-0080, LR41a-10 |
 | `ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT` | Use JWT instead of logout+jwt for the logout-token typ header | D-0080, §7.3 |
 
-Plan 41a introduces the configuration and warnings first; the corresponding
-protocol consumers are connected by its later tasks. See the
+All three switches are connected to their protocol consumers and emit startup
+warnings when enabled. See the
 [implementation record](superpowers/2026-11-16-plan-41a-implementation-record.md)
-for their implementation state.
+for verification results.
 
 The older `ZEROAUTHY_COMPATIBILITY__AUTH0_REFRESH_ERROR_STATUS` setting also
 defaults off. It restores HTTP 403 for invalid refresh grants instead of the

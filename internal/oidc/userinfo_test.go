@@ -260,3 +260,25 @@ func TestUserinfoOIDCSupport(t *testing.T) {
 		t.Fatalf("scope restrictions: %d %v", rec.Code, body)
 	}
 }
+
+func TestUserinfoRequestedSessionClaims(t *testing.T) {
+	e := newUserinfoEnv(t)
+	for _, requested := range []bool{false, true} {
+		extra := map[string]any{}
+		if requested {
+			extra["https://zeroauthy.dev/userinfo"] = map[string]any{"auth_time": uiNow.Add(-time.Minute).Unix(), "acr": "http://schemas.openid.net/pape/policies/2007/06/multi-factor"}
+		}
+		rec := e.call("GET", "Bearer "+e.token(t, "ten_a", extra))
+		var body map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil || rec.Code != 200 {
+			t.Fatalf("userinfo: %d %v", rec.Code, err)
+		}
+		if requested {
+			if body["auth_time"] != float64(uiNow.Add(-time.Minute).Unix()) || body["acr"] != "http://schemas.openid.net/pape/policies/2007/06/multi-factor" {
+				t.Fatal("requested session claims missing")
+			}
+		} else if body["auth_time"] != nil || body["acr"] != nil {
+			t.Fatal("unrequested session claims leaked")
+		}
+	}
+}

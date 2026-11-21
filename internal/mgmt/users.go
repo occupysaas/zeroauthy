@@ -910,6 +910,11 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		if err := lockSystemOperators(ctx, tx, resolved(r)); err != nil {
 			return err
 		}
+		if h.Logout != nil {
+			if _, err := tx.Tenants().Get(ctx, u.TenantID); err != nil {
+				return err
+			}
+		}
 		cur, err := tx.Users().GetForUpdate(ctx, u.TenantID, id)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserNotFound
@@ -1157,6 +1162,11 @@ func (h *Handlers) deleteUser(r *http.Request, id string) error {
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
 		if err := lockSystemOperators(ctx, tx, tn); err != nil {
 			return err
+		}
+		if h.Logout != nil {
+			if _, err := tx.Tenants().Get(ctx, tn.ID); err != nil {
+				return err
+			}
 		}
 		cur, err := tx.Users().GetForUpdate(ctx, tn.ID, id)
 		if err != nil {

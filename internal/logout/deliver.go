@@ -57,12 +57,21 @@ func (s *Service) receiverAllowed(ctx context.Context, raw string) error {
 	if host == "auth0.com" || strings.HasSuffix(host, ".auth0.com") {
 		return httpx.ErrBlockedAddress
 	}
-	owner, err := s.Store.Tenants().GetByDomain(ctx, tenant.NormalizeHost(host))
+	owner, err := s.Store.Tenants().GetByDomain(ctx, tenant.NormalizeHost(parsed.Host))
 	if err == nil && owner != nil {
 		return httpx.ErrBlockedAddress
 	}
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return err
+	}
+	if parsed.Port() != "" {
+		owner, err := s.Store.Tenants().GetByDomain(ctx, tenant.NormalizeHost(host))
+		if err == nil && owner != nil {
+			return httpx.ErrBlockedAddress
+		}
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
 	}
 	if ip, err := netip.ParseAddr(host); err == nil && !s.AllowPrivateNetworks && !rules.PublicAddr(ip) {
 		return httpx.ErrBlockedAddress
@@ -155,8 +164,10 @@ func (s *Service) Finished(ctx context.Context, job *store.ActionJob) {
 	event := logs.Event{TenantID: job.TenantID, Type: kind, Date: s.now()}
 	if content, err := s.open(job); err == nil {
 		event.ClientID = content.ClientID
-		parsed, _ := url.Parse(content.URL)
-		event.Details = map[string]any{"initiator": string(content.Initiator), "receiver_host": parsed.Hostname()}
+		event.Details = map[string]any{"initiator": string(content.Initiator)}
+		if parsed, err := url.Parse(content.URL); err == nil && parsed.Hostname() != "" {
+			event.Details["receiver_host"] = parsed.Hostname()
+		}
 	}
 	logs.RecordEvent(ctx, s.Recorder, event)
 }

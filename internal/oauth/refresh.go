@@ -54,7 +54,8 @@ func refreshExpired(rt *store.RefreshToken, now time.Time) bool {
 
 // refreshGrant is what a refresh token carries forward through rotation.
 type refreshGrant struct {
-	acr string
+	userInfoClaims string
+	acr            string
 	// origin is the public origin the token is bound to (tenant.Resolved.Origin).
 	origin                                   string
 	organizationID, organizationConnectionID string
@@ -80,7 +81,7 @@ func newRefreshTokenAt(c *store.Client, tenantID string, g refreshGrant, now tim
 	_, idle := refreshLifetimes(c.RefreshToken)
 	raw := secrets.RandomString(48)
 	rt := &store.RefreshToken{
-		ACR:            g.acr,
+		UserInfoClaims: g.userInfoClaims, ACR: g.acr,
 		OrganizationID: g.organizationID, OrganizationConnectionID: g.organizationConnectionID,
 		Origin:    g.origin,
 		TenantID:  tenantID,

@@ -811,6 +811,11 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	// rolls this step back. Local MFA consumption rolls back with it; ordinary
 	// and legacy links were already spent (legacy password may have changed).
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if h.Logout != nil {
+			if _, err := tx.Tenants().Get(ctx, res.Tenant.ID); err != nil {
+				return err
+			}
+		}
 		if mfaPass {
 			locked, e := tx.Users().GetForUpdate(ctx, res.Tenant.ID, tk.UserID)
 			if e != nil {

@@ -15,7 +15,7 @@ checks and branch review are complete.
 5. Task 12: seed and bootstrap committed; real Deploy CLI four-cell round trips passed.
 6. Task 13: all five conformance plans finished, exit 0; hosted kit render/prepare passed.
 7. Task 14: full E2E lane passed (three browser journeys, SDK CRUD, secret scan
-   and four-cell Deploy CLI); final aggregate Go run is pending. Final review and plan-branch
+   and four-cell Deploy CLI); final aggregate Go run passed. Final review and plan-branch
    CI remain pending. No push or PR has been made.
 
 ## Verification
@@ -50,8 +50,9 @@ trailing JSON and invalid UTF-8, and enforces a 4096-byte bound before
 parsing. Errors contain no claim values. `go test ./internal/claims` passed
 (exit 0). The parser is now connected to authorization, PAR and signed request objects; shared selection governs ID tokens and userinfo without widening consent.
 
-Full Go, E2E, full conformance, vulnerability and workflow checks have not run.
-There is no CI run yet; partial plan work must not be pushed.
+Final local verification passed: full Go, logout E2E, five conformance plans,
+vulnerability, workflow and source checks. There is no CI run yet; final review
+remains the gate before pushing.
 
 ## Rulings
 
@@ -291,3 +292,73 @@ Provenance source checks passed. No dependency was added or lockfile changed;
 npm installation of the existing console lockfile reported 13 moderate
 findings, with no automated audit fixes applied. The final fresh-context
 review, its fixes and CI remain outstanding. Nothing has been pushed.
+
+## Complete execution rulings
+
+The following preserves every execution ruling in chronological order. Final
+review rulings, if any, will be appended after review.
+
+- Ruling: use main's next free migration number rather than the plan's provisional 0039 — existing migrations must not be overwritten — renumber again before merge if main advances.
+
+- Task 1: Ruling: preserve repository go.mod minimum Go 1.26.11 rather than the older plan's 1.26.10 — do not downgrade the patched toolchain — verification uses installed Go 1.27.4 and records that difference.
+
+- Task 1: Ruling: current public catalog names supersede the older spec's sslo/fslo shorthand — use oidc_backchannel_logout_succeeded/failed and universal_logout_succeeded/failed — consumers expecting short aliases must update. Evidence URLs and L14 recorded in D-0080.
+
+- Task 1: Ruling: activate existing tenant inventory descriptions and log emitted flags only alongside the real runtime consumers/emitters — current schemas already accept the settings and log inventory requires actual trigger functions — contract-stage inventories retain accurate stored/deferred status.
+
+- Task 1: Ruling: omit optional Implicit/Hybrid profiles after real inventory failures — base accepts only response_type=code, contrary to the design's assumption; building implicit/hybrid grants is outside this plan — these profiles remain uncertified.
+
+- Task 2: Ruling: FromEnv keeps the proposed error-free interface; ValidateEnv supplies startup validation and config.Load uses the supplied environment snapshot, never ambient os.Getenv — supports reproducible config callers — both paths must remain in startup wiring.
+
+- Task 2: Ruling: accept canonical false/0 as explicit disabled values along with empty, true/1 as enabled; reject other spellings without echoing raw values — allows operators to disable switches explicitly without startup failures — narrower than Go's broad boolean parser.
+
+- Task 3: Ruling: bring Task 7's client storage fields/capability forward as a prerequisite to Task 3's oidc_support — API/runtime must not accept settings that SQL/plugins silently drop — Task 7 still owns logout validation/discovery and is not complete from storage alone.
+
+- Task 3: Ruling: existing User has no root container for address or the extra standard claims and generic OIDC normalizes them away. Retain a whitelist of standard claims in primary identity ProviderData, bounded by the existing 64 KiB profile limit; root fields remain authoritative and linked identity data is excluded — avoids a second user-storage migration — extra claims are exposed under identity provider data rather than invented writable root fields.
+
+- Task 4: Ruling: bind StepUp in the sealed MFAPending requirement JSON and derive it from validated transaction parameters, rather than duplicate an independent mutable hosted-state flag — preserves binding across every MFA page without extra AuthTransaction schema changes — future consumers must use the sealed requirement or validated params.
+
+- Task 4: Ruling: tenant acr_values_supported is intersected with the single implemented context; absent/null defaults to MFA, explicit [] disables advertised/requested contexts, unknown configured values are stored but never advertised — does not falsely claim support — existing arbitrary stored lists no longer advertise unsupported values.
+
+- Task 4: Ruling: ACR must persist in authorization codes and refresh families (an interface missing from the plan). Add scalar fields to the same unpushed Plan 41a migration 0043 and protobuf, preserving empty defaults for legacy records — otherwise exchange and refresh lose the requested assertion — old plugins cannot be used for step-up without oidc_logout.v1.
+
+- Task 5: Ruling: apply the maintainer's 78bb70cf documentation patch from the original checkout — it was absent from main, but its rulings were already binding and recorded in D-0080 — avoids dropping the 32-character requirement and discovery/JWKS decisions. No code from another plan is started.
+
+- Task 6: Ruling: normalize valid resource aliases before audience/consent checks and persist canonical audience in PAR; ignore resources under the default profile, including repeats — preserves the spec's compatibility-profile boundary — downstream consumers should use canonical audience.
+
+- Task 6: Ruling: exclude placeholder callbacks as well as wildcards from optional fallback — fallback must name one resolved registered callback — a configured organization template needs an explicit redirect_uri.
+
+- Task 8: Ruling: reuse Plan 28 ActionJob sealed queue and its existing claim/finish fence rather than the Management Jobs pool — Plan 28's durable queue is ActionJob in this base, despite the old plan naming internal/jobs — requires worker dispatch for the new job kind and no Actions execution for logout jobs.
+
+- Task 8: Ruling: add per-client validated organization IDs to LoginSession, with atomic participant recording, SQL and gRPC codecs — placeholders must use the latest successful authorization's organization, never mutable session metadata or inferred membership. Missing/deleted organization leaves the URL unresolved and the worker fails closed, without blocking local logout. Explicit non-org authorization clears that participant's previous organization. Old plugins may use legacy participation only when logout is not configured.
+
+- Task 9: Ruling: metadata accessor/token shape brought forward with Task 8's token construction, because queue snapshots need to seal inclusion and data together; no remaining Plan 48 dependency (already on base). Dedicated true/false/empty metadata tests are retained.
+
+- Task 10: Ruling: current Auth0-linked Okta profile and draft-06 bind aud to the exact connection-specific endpoint, rather than the design's tenant issuer URL — correct the stale L13 assumption and require that endpoint, preserving query/fragment exclusion and explicit type — callers using the former tenant-issuer audience must update. Sources and rationale recorded under D-0080 and design corrected. Require JWT sub to equal the configured integration client ID to prevent another integration under the same upstream issuer from authenticating here.
+
+- Task 10: Ruling: use a separate global_revocation_jtis table keyed by tenant/connection/hashed jti, with consumption in the revocation transaction and bounded sweeper purge — prevents collisions with client assertion keys and supports unknown-subject replay protection. Email candidates come only from the selected connection's federated identity index and match that identity's email; ambiguous matches are treated as unknown rather than selecting one account. No lookup by root email across unrelated identities.
+
+- Task 13: Ruling: release-v5.3.3's actual OIDCCBasicTestPlan fixes client_secret_basic for its normal modules and includes a dedicated client_secret_post module; Form Post derives from it. There are no separate full client_secret_post certification plans or selectable authentication variants. Do not invent duplicate basic-post/formpost-post profiles or claim all modules ran with post authentication; retain and verify each official profile's real post module using za-conformance-post / za-cert-post. The pinned primary Java plan sources were read and retained in the workspace. This replaces the plan's assumed standalone post profiles; full-post variant coverage is unavailable in this pin.
+
+- Task 13: Ruling: retain the existing claims-essential warning under D-0080 with corrected rationale — the real module asks for name with only openid, while LR41a-4 prohibits widening granted profile consent. Core 5.5 permits declining it. This is an existing expectation retained after triage, not a new warning acceptance; remove only claims-parameter unsupported rationale, keep actual no-consent-widening behavior. Changing it would expose profile data without its granted scope. Other removed profile/acr/scope warnings must still clear on actual rerun.
+
+## Whole-branch review and fix verification
+
+The one fresh-context review covered 18d01994..7a3e8629. Its correctness fixes
+are being verified together: adaptive-policy mandatory enrollment, retained
+expiry snapshots and draining, transactional lock ordering and participant
+snapshots, retired issuer handling, receiver authority validation, safe outcome
+logging, actual plugin backing capability checks, online/operator session-end
+notifications, and target-specific UserInfo session evidence through code and
+refresh exchange. No second reviewer was dispatched.
+
+Only the canonical requested UserInfo session claim names (`auth_time`, `acr`)
+are stored on authorization codes and refresh families. They do not enlarge
+profile consent. The server carries available values in a reserved signed
+access-token claim, filters Action collisions, and omits MFA evidence when the
+refresh session is absent or expired. The signer-compatible JSON number type
+preserves registered numeric dates when custom claims are merged. SQL, gRPC,
+actual authorization, exchange/refresh and UserInfo regressions cover the path.
+
+Local verification after these fixes remains pending. Earlier passing runs at
+7a3e8629 do not certify the changed snapshot.

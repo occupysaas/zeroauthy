@@ -3,6 +3,8 @@ package claims
 import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"slices"
+	"strings"
+	"time"
 )
 
 var identityProfileStrings = []string{"middle_name", "preferred_username", "profile", "website", "gender", "birthdate", "zoneinfo", "locale"}
@@ -48,7 +50,7 @@ func PrimaryProfile(u *store.User) map[string]any {
 // Select emits standard claims covered by granted scopes. Both targets retain
 // Auth0's scope claims; optional claim requests cannot expand that authorization.
 // Requested values may be declined (Core section 5.5), and essential requests
-// do not fail issuance. Session-derived auth_time/acr are added by the minter.
+// do not fail issuance. Session-derived auth_time/acr are carried by the grant pipeline.
 func Select(u *store.User, identityProfile map[string]any, scopes []string, _ *Request, _ string) map[string]any {
 	out := map[string]any{}
 	if u == nil {
@@ -82,6 +84,39 @@ func Select(u *store.User, identityProfile map[string]any, scopes []string, _ *R
 	if slices.Contains(scopes, "address") {
 		if address, ok := profile["address"]; ok {
 			out["address"] = address
+		}
+	}
+	return out
+}
+
+// UserInfoSessionKey is reserved for server-authenticated, requested claims.
+const UserInfoSessionKey = "https://zeroauthy.dev/userinfo"
+
+func RequestedUserInfoSessionClaims(raw string) string {
+	req, err := ParseRequest(raw)
+	if err != nil || req == nil {
+		return ""
+	}
+	var names []string
+	for _, name := range []string{"auth_time", "acr"} {
+		if _, ok := req.UserInfo[name]; ok {
+			names = append(names, name)
+		}
+	}
+	return strings.Join(names, " ")
+}
+func UserInfoSessionClaims(requested string, authTime, mfaAt time.Time) map[string]any {
+	out := map[string]any{}
+	for _, name := range strings.Fields(requested) {
+		switch name {
+		case "auth_time":
+			if !authTime.IsZero() {
+				out[name] = authTime.Unix()
+			}
+		case "acr":
+			if !mfaAt.IsZero() {
+				out[name] = ACRMultiFactor
+			}
 		}
 	}
 	return out

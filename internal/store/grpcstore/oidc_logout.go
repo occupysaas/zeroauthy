@@ -38,6 +38,14 @@ func (c *Client) CheckOIDCLogoutSupport(ctx context.Context) error {
 }
 
 func (s *Server) OIDCLogoutCapabilities(ctx context.Context, _ *storev1.PingRequest) (*storev1.EventsCapabilitiesResult, error) {
+	if _, explicit := s.st.(store.OIDCLogoutSupporter); !explicit {
+		_, global := s.st.(store.GlobalRevocationStore)
+		_, expiry := s.st.Sessions().(store.SessionExpiryLister)
+		_, organizations := s.st.Sessions().(store.SessionOrganizationRecorder)
+		if !global || !expiry || !organizations {
+			return &storev1.EventsCapabilitiesResult{}, nil
+		}
+	}
 	if err := store.CheckOIDCLogoutSupport(ctx, s.st); err != nil {
 		if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
 			return &storev1.EventsCapabilitiesResult{}, nil

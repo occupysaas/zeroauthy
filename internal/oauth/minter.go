@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
+	josejson "github.com/go-jose/go-jose/v4/json"
 	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -290,8 +291,8 @@ func withCustomClaims(c accessTokenClaims, custom map[string]any) (map[string]an
 		return nil, err
 	}
 	out := map[string]any{}
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.UseNumber() // iat and exp stay integers
+	dec := josejson.NewDecoder(bytes.NewReader(b))
+	dec.SetNumberType(josejson.UnmarshalJSONNumber) // Preserve integers using the signer's JSON number type.
 	if err := dec.Decode(&out); err != nil {
 		return nil, err
 	}

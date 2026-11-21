@@ -166,7 +166,7 @@ func Decide(in DecideInput) (Requirement, error) {
 		}
 	}
 	// Confidence only challenges an already enrolled user; it never enrolls.
-	if r.Reason == "confidence" && !primary {
+	if r.Reason == "confidence" && !primary && !in.StepUp {
 		return Requirement{}, nil
 	}
 	var usable, enroll []string
