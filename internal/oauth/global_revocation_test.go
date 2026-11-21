@@ -250,8 +250,12 @@ func TestGlobalRevocationForgedTokens(t *testing.T) {
 		"jti absent":            f.sign(t, f.key, jose.RS256, typ, drop("jti")),
 		"exp absent":            f.sign(t, f.key, jose.RS256, typ, drop("exp")),
 		"iat absent":            f.sign(t, f.key, jose.RS256, typ, drop("iat")),
-		"iat in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["iat"] = f.now.Add(federation.GlobalRevocationClockSkew + time.Second).Unix() }),
-		"nbf in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["nbf"] = f.now.Add(federation.GlobalRevocationClockSkew + time.Second).Unix() }),
+		"iat in future": f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) {
+			c["iat"] = f.now.Add(federation.GlobalRevocationClockSkew + time.Second).Unix()
+		}),
+		"nbf in future": f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) {
+			c["nbf"] = f.now.Add(federation.GlobalRevocationClockSkew + time.Second).Unix()
+		}),
 		"aud of other connection": f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) {
 			c["aud"] = "https://tenant.example/oauth/global-token-revocation/connection/Other"
 		}),
