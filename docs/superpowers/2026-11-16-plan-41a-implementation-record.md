@@ -421,3 +421,14 @@ and subsequent verified back-channel invalidation. All three browser journeys,
 SDK CRUD and privacy scan passed (`/dev/shm/za41a/tmp.tFiEShyXnr`). An initial
 fixture revision used a nonexistent SDK setting and failed before authentication;
 that failed result is retained. No new dependency or scanner suppression was added.
+
+The follow-up CodeQL check still classified the public session-status operation
+as authorization. The fixture now installs `express-rate-limit` 8.7.5 globally
+before SDK middleware, with 100 requests per minute per address. This is a new
+E2E-only dependency, verified against the package registry and upstream repository;
+its lockfile is committed and installation scripts remain off. Existing dependencies
+were unchanged. A real HTTP regression failed without the limiter (request 101
+returned 200), then passed with it (429); all three existing browser journeys,
+SDK/privacy checks and all four logout Deploy CLI cells also passed. Protected
+artifacts: `/dev/shm/za41a/tmp.3IyVlnaQbl` and `/dev/shm/za41a/tmp.cKu8UvkLuR`.
+No production dependency, authorization bypass or scanner suppression was added.

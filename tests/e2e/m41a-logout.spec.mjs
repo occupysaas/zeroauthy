@@ -5,6 +5,7 @@ import {appendFile,readFile} from 'node:fs/promises';
 import https from 'node:https';
 import express from 'express';
 import sdk from 'express-openid-connect';
+import {rateLimit} from 'express-rate-limit';
 import {work,origin,rp,credentials,remember,tokens,management,decode} from './m41a-node-auth0.mjs';
 test.skip(!work,'Run make e2e-logout');
 test.use({trace:'off'});
@@ -12,7 +13,7 @@ const ACR='http://schemas.openid.net/pape/policies/2007/06/multi-factor';
 let server,received;
 test.beforeEach(async({page})=>{
  received=[];const rows=new Map();const store={get:(id,cb)=>cb(null,rows.get(id)),set:(id,value,cb)=>{rows.set(id,value);cb(null)},destroy:(id,cb)=>{rows.delete(id);cb(null)}};
- const app=express();app.use((req,res,next)=>{if(req.path==='/backchannel-logout')res.on('finish',()=>received.push(res.statusCode));next()});
+ const app=express();app.use(rateLimit({windowMs:60_000,limit:100,standardHeaders:true,legacyHeaders:false}));app.use((req,res,next)=>{if(req.path==='/backchannel-logout')res.on('finish',()=>received.push(res.statusCode));next()});
  app.use(sdk.auth({issuerBaseURL:origin,baseURL:rp,clientID:'m41a-web',clientSecret:credentials.web,secret:randomBytes(32).toString('hex'),authRequired:false,authorizationParams:{response_type:'code',scope:'openid profile email'},backchannelLogout:{store},routes:{backchannelLogout:'/backchannel-logout'}}));
  app.get(['/','/status'],(req,res)=>res.json({authenticated:req.oidc.isAuthenticated()}));app.get('/raw',(_req,res)=>res.send('<!doctype html><title>Plan41a callback</title>'));
  server=https.createServer({key:await readFile(`${work}/key.pem`),cert:await readFile(`${work}/cert.pem`)},app).listen(9643,'127.0.0.1');await once(server,'listening');
@@ -50,3 +51,8 @@ test('pinned upstream global revocation ends linked-user SSO, refresh tokens and
  await assertSessionGone(sid);await checkLoggedOut(page);
 });
 async function assertSessionGone(sid){const m=await management();let gone=false;try{await m.sessions.get(sid)}catch(e){gone=e.statusCode===404||e.status===404}expect(gone).toBe(true)}
+
+test('Express fixture bounds repeated session-status requests',async({page})=>{
+ for(let i=0;i<100;i++){const response=await page.request.get(`${rp}/status`);expect(response.status()).toBe(200)}
+ const limited=await page.request.get(`${rp}/status`);expect(limited.status()).toBe(429);
+});
