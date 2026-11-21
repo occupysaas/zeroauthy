@@ -30,6 +30,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
@@ -46,6 +47,7 @@ import (
 )
 
 type Deps struct {
+	Logout *logout.Service
 	Compat compat.Switches
 	MFA    *mfa.Service
 	// Passkeys is shared by hosted and native ceremony consumers.
@@ -230,6 +232,19 @@ func New(d Deps) http.Handler {
 	if d.LegacySecretSlots == nil {
 		d.LegacySecretSlots = ratelimit.NewSecretVerifications(0)
 	}
+	if d.Logout != nil && d.Sessions != nil {
+		sessions := *d.Sessions
+		previous := sessions.OnEnd
+		sessions.OnEnd = func(ctx context.Context, tx store.Store, ended *store.LoginSession) error {
+			if previous != nil {
+				if err := previous(ctx, tx, ended); err != nil {
+					return err
+				}
+			}
+			return d.Logout.WithStore(tx).SessionsEnded(ctx, ended.TenantID, []*store.LoginSession{ended}, logout.RPLogout)
+		}
+		d.Sessions = &sessions
+	}
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 
@@ -277,6 +292,7 @@ func New(d Deps) http.Handler {
 		Verification: verification,
 	}
 	lg := &login.Handlers{
+		Logout:   d.Logout,
 		MFA:      d.MFA,
 		Passkeys: d.Passkeys,
 		Recorder: d.Recorder,
@@ -414,6 +430,7 @@ func New(d Deps) http.Handler {
 	}
 	mr := chi.NewRouter()
 	mh := &mgmt.Handlers{
+		Logout:         d.Logout,
 		LogsConfig:     d.LogsConfig,
 		EventsConfig:   d.EventsConfig,
 		EventDeliverer: d.EventDeliverer,

@@ -25,6 +25,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
@@ -51,6 +52,7 @@ const (
 
 // Handlers serves the Management API and the system API.
 type Handlers struct {
+	Logout *logout.Service
 	// LogsConfig carries deployment-wide stream transport policy.
 	LogsConfig     logs.Config
 	EventsConfig   events.Config

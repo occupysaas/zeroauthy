@@ -481,7 +481,7 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 	if err := h.Store.AuthCodes().Create(ctx, ac); err != nil {
 		return "", err
 	}
-	if err := h.Sessions.AddClient(ctx, sess, client.ClientID); err != nil {
+	if err := h.Sessions.AddClientOrganization(ctx, sess, client, req.OrgID); err != nil {
 		return "", err
 	}
 	return code, nil

@@ -23,6 +23,8 @@ const (
 )
 
 type Manager struct {
+	// OnEnd enqueues notifications inside the same transaction as local deletion.
+	OnEnd func(context.Context, store.Store, *store.LoginSession) error
 	Store store.Store
 	Now   func() time.Time
 	// TrustProxyHeaders reads the client address from X-Forwarded-For, as
@@ -252,8 +254,34 @@ func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return nil, err
 	}
-	if err := m.Store.Sessions().Delete(ctx, t.ID, s.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+	ended := false
+	err = m.Store.WithTx(ctx, func(tx store.Store) error {
+		current, err := tx.Sessions().Get(ctx, t.ID, s.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := tx.Sessions().Delete(ctx, t.ID, s.ID); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return nil
+			}
+			return err
+		}
+		if m.OnEnd != nil {
+			if err := m.OnEnd(ctx, tx, current); err != nil {
+				return err
+			}
+		}
+		ended = true
+		return nil
+	})
+	if err != nil {
 		return nil, err
+	}
+	if !ended {
+		return nil, nil
 	}
 	return s, nil
 }
@@ -320,5 +348,32 @@ func (m *Manager) AddMethod(ctx context.Context, s *store.LoginSession, method s
 		return err
 	}
 	s.AuthMethods = append(s.AuthMethods, method)
+	return nil
+}
+
+// AddClientOrganization binds the latest validated authorization context. Old
+// plugins may retain legacy participation only when no logout template needs it.
+func (m *Manager) AddClientOrganization(ctx context.Context, s *store.LoginSession, client *store.Client, orgID string) error {
+	repo, ok := m.Store.Sessions().(store.SessionOrganizationRecorder)
+	if !ok {
+		if client.OIDCLogout != nil {
+			return store.ErrOIDCLogoutUnavailable
+		}
+		return m.AddClient(ctx, s, client.ClientID)
+	}
+	err := repo.RecordClientOrganization(ctx, s.TenantID, s.ID, client.ClientID, orgID)
+	if errors.Is(err, store.ErrOIDCLogoutUnavailable) && client.OIDCLogout == nil {
+		return m.AddClient(ctx, s, client.ClientID)
+	}
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(s.ClientIDs, client.ClientID) {
+		s.ClientIDs = append(s.ClientIDs, client.ClientID)
+	}
+	if s.ClientOrganizations == nil {
+		s.ClientOrganizations = map[string]string{}
+	}
+	s.ClientOrganizations[client.ClientID] = orgID
 	return nil
 }

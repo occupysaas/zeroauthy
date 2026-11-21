@@ -24,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identifiercode"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/phone"
@@ -987,6 +988,15 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 				return err
 			}
 		}
+		if h.Logout != nil && (changedEmail || in.Password != nil) {
+			why := logout.EmailIdentifierChanged
+			if in.Password != nil {
+				why = logout.PasswordChanged
+			}
+			if err := h.Logout.WithStore(tx).EndUserSessions(ctx, u.TenantID, id, why); err != nil {
+				return err
+			}
+		}
 		// Hold the lock through the external change so the checked phone
 		// and email remain current. A failed script rolls back local writes.
 		if legacy {
@@ -1160,7 +1170,20 @@ func (h *Handlers) deleteUser(r *http.Request, id string) error {
 		} else if last {
 			return errLastOperatorRemove
 		}
-		return tx.Users().Delete(ctx, tn.ID, id)
+		var ended []*store.LoginSession
+		if h.Logout != nil {
+			ended, err = tx.Sessions().ListByUser(ctx, tn.ID, id)
+			if err != nil {
+				return err
+			}
+		}
+		if err := tx.Users().Delete(ctx, tn.ID, id); err != nil {
+			return err
+		}
+		if h.Logout != nil {
+			return h.Logout.WithStore(tx).SessionsEnded(ctx, tn.ID, ended, logout.AccountDeleted)
+		}
+		return nil
 	})
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return err

@@ -838,8 +838,11 @@ type User struct {
 
 // LoginSession is a browser's authenticated session with a tenant.
 type LoginSession struct {
-	Metadata map[string]string
-	MFAAt    time.Time
+	// ClientOrganizations binds each participant to its latest validated organization.
+	// An empty value denotes a non-organization authorization.
+	ClientOrganizations map[string]string
+	Metadata            map[string]string
+	MFAAt               time.Time
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin string
 	// CookieMode is persisted at creation; later tenant edits do not change it.

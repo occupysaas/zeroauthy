@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -663,4 +664,108 @@ func (r grantCascadeTokens) RevokeBySession(ctx context.Context, tid, sid string
 		return n, err
 	}
 	return n, r.err
+}
+
+func TestSessionRevocationBackchannel(t *testing.T) {
+	e := newUsersEnv(t)
+	service := &logout.Service{Store: e.st, Wrapper: e.w, Now: func() time.Time { return now }}
+	e.h.Logout = service
+	if e.tn.CanonicalHost == "" {
+		e.tn.CanonicalHost = e.tn.Domains[0]
+		if err := e.st.Tenants().Update(t.Context(), e.tn); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := e.st.Clients().Create(t.Context(), &store.Client{TenantID: e.tn.ID, ClientID: "spa", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil && !errors.Is(err, store.ErrConflict) {
+		t.Fatal(err)
+	}
+	c, err := e.st.Clients().Get(t.Context(), e.tn.ID, "spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.OIDCLogout = &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}
+	if err := e.st.Clients().Update(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	user := e.mustCreate(t, map[string]any{"email": "logout@example.test"})["user_id"].(string)
+	e.addSession(t, "single", user, now)
+	e.addSession(t, "bulk", user, now)
+	status, _ := e.call2(t, "delete:sessions", "DELETE", "/api/v2/sessions/single", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteSession(w, r, "single") })
+	if status != 202 {
+		t.Fatalf("single revoke status=%d", status)
+	}
+	status, _ = e.call2(t, "delete:users", "DELETE", "/api/v2/users/"+user+"/sessions", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteUserSessions(w, r, user) })
+	if status != 202 {
+		t.Fatalf("bulk revoke status=%d", status)
+	}
+	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
+	if err != nil || len(jobs) != 2 {
+		t.Fatalf("revocation jobs=%d err=%v", len(jobs), err)
+	}
+}
+
+func TestRevokeSessionBackchannel(t *testing.T) {
+	e := newUsersEnv(t)
+	e.h.Logout = &logout.Service{Store: e.st, Wrapper: e.w, Now: func() time.Time { return now }}
+	c := &store.Client{TenantID: e.tn.ID, ClientID: "logout-rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}
+	if err := e.st.Clients().Create(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	user := e.mustCreate(t, map[string]any{"email": "revoke@example.test"})["user_id"].(string)
+	e.addSession(t, "revoke", user, now, func(s *store.LoginSession) { s.ClientIDs = []string{c.ClientID} })
+	status, _ := e.call2(t, "delete:sessions delete:refresh_tokens", "POST", "/api/v2/sessions/revoke/revoke", func(w http.ResponseWriter, r *http.Request) { e.h.RevokeSession(w, r, "revoke") })
+	if status != 202 {
+		t.Fatalf("revoke status=%d", status)
+	}
+	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
+	if err != nil || len(jobs) != 1 {
+		t.Fatalf("revoke jobs=%d err=%v", len(jobs), err)
+	}
+}
+
+func TestAccountDeletionBackchannel(t *testing.T) {
+	e := newUsersEnv(t)
+	e.h.Logout = &logout.Service{Store: e.st, Wrapper: e.w, Now: func() time.Time { return now }}
+	if err := e.st.Clients().Create(t.Context(), &store.Client{TenantID: e.tn.ID, ClientID: "logout-rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil {
+		t.Fatal(err)
+	}
+	user := e.mustCreate(t, map[string]any{"email": "deleted@example.test"})["user_id"].(string)
+	e.addSession(t, "delete-user", user, now, func(s *store.LoginSession) { s.ClientIDs = []string{"logout-rp"} })
+	status, _ := e.call2(t, "delete:users", "DELETE", "/api/v2/users/"+user, func(w http.ResponseWriter, r *http.Request) { e.h.DeleteUser(w, r, user) })
+	if status != 204 {
+		t.Fatalf("delete user status=%d", status)
+	}
+	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
+	if err != nil || len(jobs) != 1 {
+		t.Fatalf("delete-user jobs=%d err=%v", len(jobs), err)
+	}
+}
+
+func TestUserProfileChangeBackchannel(t *testing.T) {
+	for _, field := range []string{"email", "password"} {
+		t.Run(field, func(t *testing.T) {
+			e := newUsersEnv(t)
+			e.h.Logout = &logout.Service{Store: e.st, Wrapper: e.w, Now: func() time.Time { return now }}
+			if err := e.st.Clients().Create(t.Context(), &store.Client{TenantID: e.tn.ID, ClientID: "logout-rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil {
+				t.Fatal(err)
+			}
+			user := e.mustCreate(t, map[string]any{"email": "change@example.test", "password": "A-original-password-9"})["user_id"].(string)
+			e.addSession(t, "changed", user, now, func(s *store.LoginSession) { s.ClientIDs = []string{"logout-rp"} })
+			value := "changed@example.test"
+			if field == "password" {
+				value = "A-replacement-password-9"
+			}
+			rec, _ := e.patch(t, user, map[string]any{field: value}, "update:users")
+			if rec.Code != 200 {
+				t.Fatalf("%s update status=%d", field, rec.Code)
+			}
+			jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
+			if err != nil || len(jobs) != 1 {
+				t.Fatalf("%s notifications=%d err=%v", field, len(jobs), err)
+			}
+			if _, err := e.st.Sessions().Get(t.Context(), e.tn.ID, "changed"); !errors.Is(err, store.ErrNotFound) {
+				t.Fatal("changed credential session remained active")
+			}
+		})
+	}
 }

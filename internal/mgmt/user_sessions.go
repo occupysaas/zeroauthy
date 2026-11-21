@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/resourceview"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -242,8 +243,19 @@ func (h *Handlers) DeleteUserSessions(w http.ResponseWriter, r *http.Request, id
 		if _, err := tx.Users().BumpVersion(ctx, tn.ID, id); err != nil && !errors.Is(err, store.ErrNotFound) {
 			return err
 		}
+		var ended []*store.LoginSession
+		if h.Logout != nil {
+			var err error
+			ended, err = tx.Sessions().ListByUser(ctx, tn.ID, id)
+			if err != nil {
+				return err
+			}
+		}
 		var err error
 		n, err = tx.Sessions().DeleteByUser(ctx, tn.ID, id)
+		if err == nil && h.Logout != nil {
+			return h.Logout.WithStore(tx).SessionsEnded(ctx, tn.ID, ended, logout.SessionRevoked)
+		}
 		return err
 	})
 	if err != nil {
@@ -337,7 +349,20 @@ func (h *Handlers) DeleteSession(w http.ResponseWriter, r *http.Request, id stri
 		writeJSON(w, http.StatusAccepted, map[string]any{})
 		return
 	}
-	err := h.Store.Sessions().Delete(r.Context(), resolved(r).ID, id)
+	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		tid := resolved(r).ID
+		ended, err := tx.Sessions().Get(r.Context(), tid, id)
+		if err != nil {
+			return err
+		}
+		if err := tx.Sessions().Delete(r.Context(), tid, id); err != nil {
+			return err
+		}
+		if h.Logout != nil {
+			return h.Logout.WithStore(tx).SessionsEnded(r.Context(), tid, []*store.LoginSession{ended}, logout.SessionRevoked)
+		}
+		return nil
+	})
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		Fail(w, internalError(h, r, "delete session", err))
 		return

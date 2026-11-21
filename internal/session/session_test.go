@@ -432,3 +432,37 @@ func TestTenantSessionLegacyCookieMode(t *testing.T) {
 		t.Fatalf("legacy session changed mode: %+v %v", got, err)
 	}
 }
+
+func TestEndNotificationTransaction(t *testing.T) {
+	m, clock, tn := setup()
+	rec := httptest.NewRecorder()
+	sess, err := m.Start(t.Context(), rec, requestWith(nil), tn, "u", "DB", clock.t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := requestWith(rec.Result().Cookies())
+	calls := 0
+	m.OnEnd = func(ctx context.Context, tx store.Store, ended *store.LoginSession) error {
+		calls++
+		if ended.ID != sess.ID {
+			t.Fatal("wrong ended session")
+		}
+		if _, err := tx.Sessions().Get(ctx, tn.ID, sess.ID); !errors.Is(err, store.ErrNotFound) {
+			t.Fatal("notification precedes local end")
+		}
+		return store.ErrPrecondition
+	}
+	if _, err := m.End(t.Context(), httptest.NewRecorder(), req, tn); !errors.Is(err, store.ErrPrecondition) {
+		t.Fatalf("enqueue error=%v", err)
+	}
+	if _, err := m.Store.Sessions().Get(t.Context(), tn.ID, sess.ID); err != nil {
+		t.Fatal("failed enqueue committed session end")
+	}
+	m.OnEnd = func(context.Context, store.Store, *store.LoginSession) error { calls++; return nil }
+	if _, err := m.End(t.Context(), httptest.NewRecorder(), req, tn); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Fatalf("notifications=%d want 2 attempts", calls)
+	}
+}

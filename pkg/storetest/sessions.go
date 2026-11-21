@@ -26,6 +26,31 @@ func newSession(tenantID, id, tokenHash string) *store.LoginSession {
 func testSessions(t *testing.T, newStore Factory) {
 	ctx := context.Background()
 
+	t.Run("ClientOrganization", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newSession("ten_a", "org-session", "org-hash")
+		want.ClientOrganizations = map[string]string{"spa": "org_first"}
+		mustNoErr(t, s.Sessions().Create(ctx, want))
+		want.ClientOrganizations["spa"] = "mutated"
+		got, err := s.Sessions().Get(ctx, "ten_a", want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got.ClientOrganizations, map[string]string{"spa": "org_first"})
+		repo, ok := s.Sessions().(store.SessionOrganizationRecorder)
+		if !ok {
+			t.Fatal("missing recorder")
+		}
+		mustErrIs(t, repo.RecordClientOrganization(ctx, "ten_b", want.ID, "web", "org_other"), store.ErrNotFound)
+		mustNoErr(t, repo.RecordClientOrganization(ctx, "ten_a", want.ID, "web", "org_second"))
+		mustNoErr(t, repo.RecordClientOrganization(ctx, "ten_a", want.ID, "spa", ""))
+		got, err = s.Sessions().Get(ctx, "ten_a", want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got.ClientOrganizations, map[string]string{"spa": "", "web": "org_second"})
+		mustEqual(t, got.ClientIDs, []string{"spa", "web"})
+		got.ClientOrganizations["web"] = "mutated"
+		got, err = s.Sessions().Get(ctx, "ten_a", want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got.ClientOrganizations["web"], "org_second")
+	})
 	t.Run("GetForUpdate", func(t *testing.T) {
 		s := open(t, newStore)
 		want := newSession("ten_a", "locked", "locked-hash")
@@ -294,4 +319,38 @@ func testSessions(t *testing.T, newStore Factory) {
 		mustEqual(t, a.TenantID, "ten_a")
 		mustEqual(t, b.TenantID, "ten_b")
 	})
+}
+
+func testSessionExpirySnapshots(t *testing.T, newStore Factory) {
+	s := open(t, newStore)
+	lister, ok := s.Sessions().(store.SessionExpiryLister)
+	if !ok {
+		t.Fatal("expiry snapshots unavailable")
+	}
+	for _, id := range []string{"a", "b", "live"} {
+		session := newSession("ten_a", id, "token-"+id)
+		session.ExpiresAt = ts(time.Hour)
+		session.IdleExpiresAt = ts(time.Hour)
+		if id != "live" {
+			session.ExpiresAt = ts(0)
+		}
+		mustNoErr(t, s.Sessions().Create(t.Context(), session))
+	}
+	expired, err := lister.ListExpired(t.Context(), ts(0), 1)
+	mustNoErr(t, err)
+	if len(expired) != 1 || expired[0].ID != "a" {
+		t.Fatal("expiry snapshot order or bound wrong")
+	}
+	expired[0].ClientIDs = append(expired[0].ClientIDs, "mutation")
+	stored, err := s.Sessions().Get(t.Context(), "ten_a", "a")
+	mustNoErr(t, err)
+	if slices.Contains(stored.ClientIDs, "mutation") {
+		t.Fatal("expiry snapshot aliases storage")
+	}
+	mustErrIs(t, func() error { _, err := lister.ListExpired(t.Context(), ts(0), 1001); return err }(), store.ErrInvalid)
+	expired, err = lister.ListExpired(t.Context(), ts(0), 10)
+	mustNoErr(t, err)
+	if len(expired) != 2 {
+		t.Fatal("expiry omitted due rows or included live row")
+	}
 }

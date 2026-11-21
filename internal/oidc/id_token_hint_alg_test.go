@@ -37,3 +37,18 @@ func TestHS256IDTokenHint(t *testing.T) {
 		t.Fatal("HMAC hint accepted for asymmetric client")
 	}
 }
+
+func TestLogoutTokenNotIDTokenHint(t *testing.T) {
+	e := newUserinfoEnv(t)
+	h := &Handlers{Store: e.st, Keys: e.km}
+	res := tenant.Resolved{Tenant: &store.Tenant{ID: "ten_a"}, Host: "acme.example.test"}
+	for _, typ := range []string{"logout+jwt", "JWT"} {
+		raw, err := e.km.SignWithType(t.Context(), "ten_a", map[string]any{"iss": res.Issuer(), "aud": "rp", "sub": "u", "sid": "session", "events": map[string]any{"http://schemas.openid.net/event/backchannel-logout": map[string]any{}}}, typ)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, ok, _ := h.idTokenHint(t.Context(), res, raw); ok {
+			t.Fatalf("%s logout token treated as an ID-token hint", typ)
+		}
+	}
+}

@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
@@ -848,7 +849,11 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		if err := recordPasswordReset(ctx, tx, res.Tenant.ID, tk.UserID, now); err != nil {
 			return err
 		}
-		if _, err := tx.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
+		if h.Logout != nil {
+			if err := h.Logout.WithStore(tx).EndUserSessions(ctx, res.Tenant.ID, tk.UserID, logout.PasswordChanged); err != nil {
+				return err
+			}
+		} else if _, err := tx.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
 			return err
 		}
 		if _, err := tx.RefreshTokens().RevokeByUser(ctx, res.Tenant.ID, tk.UserID, now); err != nil {

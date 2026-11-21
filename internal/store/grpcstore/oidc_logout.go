@@ -7,6 +7,7 @@ import (
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 )
 
 func (c *Client) CheckOIDCLogoutSupport(ctx context.Context) error {
@@ -44,4 +45,42 @@ func (s *Server) OIDCLogoutCapabilities(ctx context.Context, _ *storev1.PingRequ
 		return nil, status.Error(codes.Unavailable, "oidc_logout.v1 backing store probe failed")
 	}
 	return &storev1.EventsCapabilitiesResult{Version: 1}, nil
+}
+
+func (a clientSessions) ListExpired(ctx context.Context, before time.Time, limit int) ([]*store.LoginSession, error) {
+	if err := a.c.CheckOIDCLogoutSupport(ctx); err != nil {
+		return nil, err
+	}
+	result, err := a.c.rpc.OIDCLogoutSessionsListExpired(ctx, &storev1.RefreshIIPurgeRequest{Before: tsToPB(before), Limit: int64(limit), TxId: a.c.txID})
+	return decList("OIDCLogoutSessionsListExpired", err, result.GetError(), result.GetValues(), sessionFromPB)
+}
+func (s *Server) OIDCLogoutSessionsListExpired(ctx context.Context, q *storev1.RefreshIIPurgeRequest) (*storev1.SessionList, error) {
+	values, e, err := many(s, q.TxId, func(st store.Store) ([]*store.LoginSession, error) {
+		repo, ok := st.Sessions().(store.SessionExpiryLister)
+		if !ok {
+			return nil, store.ErrOIDCLogoutUnavailable
+		}
+		return repo.ListExpired(ctx, tsFromPB(q.Before), int(q.Limit))
+	}, sessionToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.SessionList{Error: e, Values: values}, nil
+}
+
+func (a clientSessions) RecordClientOrganization(ctx context.Context, tid, id, clientID, orgID string) error {
+	if err := a.c.CheckOIDCLogoutSupport(ctx); err != nil {
+		return err
+	}
+	result, err := a.c.rpc.OIDCLogoutSessionOrganization(ctx, &storev1.SessionsAddClientRequest{TxId: a.c.txID, TenantId: tid, Id: id, ClientId: clientID, OrganizationId: orgID})
+	return do("OIDCLogoutSessionOrganization", result, err)
+}
+func (s *Server) OIDCLogoutSessionOrganization(ctx context.Context, q *storev1.SessionsAddClientRequest) (*storev1.Result, error) {
+	return exec(s, q.TxId, func(st store.Store) error {
+		repo, ok := st.Sessions().(store.SessionOrganizationRecorder)
+		if !ok {
+			return store.ErrOIDCLogoutUnavailable
+		}
+		return repo.RecordClientOrganization(ctx, q.TenantId, q.Id, q.ClientId, q.OrganizationId)
+	}), nil
 }

@@ -59,3 +59,9 @@ func CheckOIDCLogoutSupport(ctx context.Context, s Store) error {
 func ClientNeedsOIDCLogout(c *Client) bool {
 	return c != nil && (c.OIDCSupport != nil || c.OIDCLogout != nil || c.IDTokenAlg != "" && c.IDTokenAlg != "RS256")
 }
+
+// SessionOrganizationRecorder atomically records a participant and its latest
+// validated organization. This state is separate from user-editable metadata.
+type SessionOrganizationRecorder interface {
+	RecordClientOrganization(ctx context.Context, tenantID, id, clientID, orgID string) error
+}

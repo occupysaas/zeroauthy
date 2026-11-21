@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
@@ -147,10 +148,14 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) idTokenHint(ctx context.Context, res tenant.Resolved, raw string) (aud, sid string, ok bool, err error) {
 	var std jwt.Claims
 	var extra struct {
-		SID string `json:"sid"`
+		SID    string          `json:"sid"`
+		Events json.RawMessage `json:"events"`
 	}
 	parsed, parseErr := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256, jose.PS256, jose.HS256})
 	if parseErr != nil || len(parsed.Headers) != 1 {
+		return "", "", false, nil
+	}
+	if typ := parsed.Headers[0].ExtraHeaders[jose.HeaderType]; typ != nil && typ != "JWT" {
 		return "", "", false, nil
 	}
 	if parsed.Headers[0].Algorithm == string(jose.HS256) {
@@ -188,6 +193,9 @@ func (h *Handlers) idTokenHint(ctx context.Context, res tenant.Resolved, raw str
 		return "", "", false, err
 	}
 
+	if len(extra.Events) > 0 {
+		return "", "", false, nil
+	}
 	if std.Issuer != res.Issuer() || len(std.Audience) != 1 {
 		return "", "", false, nil
 	}

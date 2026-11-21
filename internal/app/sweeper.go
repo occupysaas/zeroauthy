@@ -7,6 +7,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -110,13 +111,23 @@ func purgeRefreshII(purge func(context.Context, time.Time, int) (int, error)) fu
 
 // sweep deletes expired records and returns how many it removed. A failure
 // in one kind of record does not stop the others.
-func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
+func sweep(ctx context.Context, st store.Store, now time.Time, notifications ...*logout.Service) (int, error) {
+	expireSessions := st.Sessions().DeleteExpired
+	if len(notifications) > 0 && notifications[0] != nil {
+		expireSessions = func(ctx context.Context, before time.Time) (int, error) {
+			n, err := notifications[0].WithStore(st).SweepExpired(ctx, before, 100)
+			if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+				return st.Sessions().DeleteExpired(ctx, before)
+			}
+			return n, err
+		}
+	}
 	jobs := []struct {
 		del    func(context.Context, time.Time) (int, error)
 		before time.Time
 	}{
 		{st.AuthTransactions().DeleteExpired, now},
-		{st.Sessions().DeleteExpired, now},
+		{expireSessions, now},
 		{st.AuthCodes().DeleteExpired, now.Add(-codeRetention)},
 		{st.PushedAuthRequests().DeleteExpired, now},
 		{st.DeviceCodes().DeleteExpired, now.Add(-deviceCodeRetention)},
@@ -168,7 +179,7 @@ func (a *App) sweepLoop(ctx context.Context, every time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			n, err := sweep(logs.WithRecorder(ctx, a.logs), a.store, time.Now().UTC())
+			n, err := sweep(logs.WithRecorder(ctx, a.logs), a.store, time.Now().UTC(), a.logout)
 			if err != nil {
 				a.log.Error("purge expired records", "err", err)
 			}

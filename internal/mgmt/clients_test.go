@@ -217,21 +217,21 @@ func TestCreateClientRefusals(t *testing.T) {
 		status int
 		code   string
 	}{
-		"client_id":           {map[string]any{"name": "x", "client_id": "mine"}, 403, "operation_not_supported"},
-		"unknown property":    {map[string]any{"name": "x", "colour": "blue"}, 400, "invalid_body"},
-		"no name":             {map[string]any{"app_type": "spa"}, 400, "invalid_body"},
-		"empty name":          {map[string]any{"name": ""}, 400, "invalid_body"},
-		"bad app_type":        {map[string]any{"name": "x", "app_type": "robot"}, 400, "invalid_body"},
-		"bad callback":        {map[string]any{"name": "x", "callbacks": []string{"not a url"}}, 400, "invalid_body"},
-		"bad origin":          {map[string]any{"name": "x", "web_origins": []string{"https://a.test/path"}}, 400, "invalid_body"},
-		"not OIDC-conformant": {map[string]any{"name": "x", "oidc_conformant": false}, 400, "invalid_body"},
-		"unknown grant":       {map[string]any{"name": "x", "grant_types": []string{"telepathy"}}, 400, "invalid_body"},
-		"HS256":               {map[string]any{"name": "x", "jwt_configuration": map[string]any{"alg": "HS256"}}, 400, "invalid_body"},
-		"wrong type":          {map[string]any{"name": 5}, 400, "invalid_body"},
-		"not an object":       {"[1,2]", 400, "invalid_body"},
-		"not JSON":            {"{", 400, "invalid_body"},
-		"refresh unknown":     {map[string]any{"name": "x", "refresh_token": map[string]any{"forever": true}}, 400, "invalid_body"},
-		"SPA non-expiring":    {map[string]any{"name": "x", "app_type": "spa", "refresh_token": map[string]any{"rotation_type": "non-rotating", "expiration_type": "non-expiring"}}, 400, "invalid_body"},
+		"client_id":             {map[string]any{"name": "x", "client_id": "mine"}, 403, "operation_not_supported"},
+		"unknown property":      {map[string]any{"name": "x", "colour": "blue"}, 400, "invalid_body"},
+		"no name":               {map[string]any{"app_type": "spa"}, 400, "invalid_body"},
+		"empty name":            {map[string]any{"name": ""}, 400, "invalid_body"},
+		"bad app_type":          {map[string]any{"name": "x", "app_type": "robot"}, 400, "invalid_body"},
+		"bad callback":          {map[string]any{"name": "x", "callbacks": []string{"not a url"}}, 400, "invalid_body"},
+		"bad origin":            {map[string]any{"name": "x", "web_origins": []string{"https://a.test/path"}}, 400, "invalid_body"},
+		"not OIDC-conformant":   {map[string]any{"name": "x", "oidc_conformant": false}, 400, "invalid_body"},
+		"unknown grant":         {map[string]any{"name": "x", "grant_types": []string{"telepathy"}}, 400, "invalid_body"},
+		"unsupported algorithm": {map[string]any{"name": "x", "jwt_configuration": map[string]any{"alg": "ES256"}}, 400, "invalid_body"},
+		"wrong type":            {map[string]any{"name": 5}, 400, "invalid_body"},
+		"not an object":         {"[1,2]", 400, "invalid_body"},
+		"not JSON":              {"{", 400, "invalid_body"},
+		"refresh unknown":       {map[string]any{"name": "x", "refresh_token": map[string]any{"forever": true}}, 400, "invalid_body"},
+		"SPA non-expiring":      {map[string]any{"name": "x", "app_type": "spa", "refresh_token": map[string]any{"rotation_type": "non-rotating", "expiration_type": "non-expiring"}}, 400, "invalid_body"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			rec, _ := e.create(t, all, tc.body)

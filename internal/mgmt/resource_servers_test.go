@@ -848,8 +848,8 @@ func TestResourceServerHS256Secret(t *testing.T) {
 	if out["signing_secret"] != supplied {
 		t.Fatalf("supplied = %v", out)
 	}
-	_, got := e.patch(t, out["id"].(string), map[string]any{"signing_secret": strings.Repeat("n", 20)})
-	if got["signing_secret"] != strings.Repeat("n", 20) {
+	_, got := e.patch(t, out["id"].(string), map[string]any{"signing_secret": strings.Repeat("n", 32)})
+	if got["signing_secret"] != strings.Repeat("n", 32) {
 		t.Errorf("rotated = %v", got)
 	}
 	// Short and misplaced secrets are refused.
@@ -904,7 +904,7 @@ func TestResourceServerSigningAlgPatch(t *testing.T) {
 		t.Errorf("regenerated = %v", got)
 	}
 	// A secret and the algorithm that takes it, together.
-	supplied := strings.Repeat("p", 24)
+	supplied := strings.Repeat("p", 32)
 	_, got = e.patch(t, id, map[string]any{"signing_alg": "RS256"})
 	_, got = e.patch(t, id, map[string]any{"signing_alg": "HS256", "signing_secret": supplied})
 	if got["signing_secret"] != supplied {

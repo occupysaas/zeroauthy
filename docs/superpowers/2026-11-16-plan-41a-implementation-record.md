@@ -159,3 +159,36 @@ because callback query strings can carry credentials.
 The sender, durable jobs and all session-ending trigger wiring remain
 unimplemented. This partial branch must not be pushed or advertised as
 complete back-channel logout support.
+
+
+## Task 8 delivery checkpoint
+
+The sender now runs through the durable ActionJob queue (the actual Plan 28
+queue in this base). Each session/client pair receives a sealed immutable
+job, created in the transaction ending its local session. The worker claims
+and fences completion, mints fresh RS256 tokens per attempt, applies guarded
+HTTPS delivery with a five-second timeout and no redirects, and retries
+network/5xx failures for at most ten minutes. Terminal outcome logs contain
+only the client, initiator and receiver host. Logout tokens cannot be used
+as ID token hints, including under the JWT type compatibility switch.
+
+RP logout, session revoke/delete, account deletion, email/password updates,
+password reset and expiry sweep now enqueue notifications. Global revocation
+and its idp-logout trigger remain Task 10. Optional session metadata is sealed
+at enqueue and included only when configured; empty metadata becomes {}.
+Organization templates use each client's latest validated authorization
+organization, persisted separately from mutable metadata in memory, SQL and
+gRPC. A missing/deleted organization fails delivery closed.
+
+Focused core and actual trigger checks passed (logout-core.log,
+logout-integration.log, task8-final.log). The SQLite restart test closes the
+store and reopens it with a new service/key manager before delivering a
+reclaimed job. Actual ClientOrganization subtests pass in memory, SQLite and
+gRPC. The earlier snapshot 3104068c run finished with exit 1 on three stale
+Management test expectations; those expectations were corrected and passed
+focused checks. The other sixteen selected packages passed. This supersedes
+the earlier in-progress verification and unimplemented-sender statements.
+
+Still pending: global revocation, console, seed/Deploy CLI, new conformance
+profiles, E2E lane, final documentation, full local checks and review. Nothing
+has been pushed.

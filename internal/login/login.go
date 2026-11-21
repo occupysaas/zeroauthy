@@ -22,6 +22,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
@@ -43,6 +44,7 @@ var errTxn = errors.New("login: invalid or expired transaction")
 var errOrganizationConnection = errors.New("login: connection is not enabled for the organization")
 
 type Handlers struct {
+	Logout *logout.Service
 	// Passkeys owns hosted ceremony verification; nil hides the option.
 	Passkeys   *passkey.Service
 	MFA        *mfa.Service
