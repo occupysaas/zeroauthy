@@ -56,3 +56,11 @@ func TestPrimaryIdentityProfile(t *testing.T) {
 		t.Fatal("linked identity leaked")
 	}
 }
+
+func TestDatabasePrimaryStandardProfile(t *testing.T) {
+	u := &store.User{UserID: "auth0|primary", Identities: []store.Identity{{Provider: "auth0", UserID: "primary", ProviderData: map[string]any{"locale": "en", "address": map[string]any{"country": "US"}, "private": "secret"}}, {Provider: "oidc", UserID: "secondary", ProfileData: map[string]any{"email": "linked@example.test"}, ProviderData: map[string]any{"locale": "linked"}}}}
+	got := ForUser(u, []string{"openid", "profile", "address"})
+	if got["locale"] != "en" || got["address"] == nil || got["private"] != nil {
+		t.Fatal("primary standard profile was not selected safely", got)
+	}
+}

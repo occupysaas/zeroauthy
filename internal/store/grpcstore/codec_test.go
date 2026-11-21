@@ -352,8 +352,9 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
-		Metadata: map[string]string{"purpose": "roundtrip"},
-		MFAAt:    nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
+		ClientOrganizations: map[string]string{"c1": "org_0123456789abcdef"},
+		Metadata:            map[string]string{"purpose": "roundtrip"},
+		MFAAt:               nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,

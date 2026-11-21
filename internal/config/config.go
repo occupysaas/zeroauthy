@@ -96,8 +96,8 @@ type LogStreams struct {
 	// AllowInsecureHTTP permits plain-HTTP log stream targets; for tests and
 	// development only.
 	AllowInsecureHTTP bool `koanf:"allow_insecure_http"`
-	// AllowPrivateNetworks permits log stream targets on private, loopback
-	// and link-local addresses, which are refused by default.
+	// AllowPrivateNetworks permits log stream and back-channel logout targets
+	// on private, loopback and link-local addresses, refused by default.
 	AllowPrivateNetworks bool `koanf:"allow_private_networks"`
 }
 

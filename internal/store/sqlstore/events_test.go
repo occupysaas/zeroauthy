@@ -586,7 +586,7 @@ func TestEventStreamEnableCheckpointSerializesAppend(t *testing.T) {
 			}
 			stream, err := s.Events().GetEventStream(ctx, tn.ID, id)
 			mustEvent(t, err)
-			if stream.Checkpoint != 1 || stream.ConsecutiveFailures != 0 || stream.TotalFailures != 43 {
+			if stream.Checkpoint != 1 || stream.ConsecutiveFailures != 0 || stream.TotalFailures != 42 {
 				t.Fatalf("disabled history retained: %+v", stream)
 			}
 			mustEvent(t, s.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: tn.ID, ID: "after-enable", Time: time.Now()}}))

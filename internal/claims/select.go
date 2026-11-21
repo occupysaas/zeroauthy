@@ -38,7 +38,7 @@ func PrimaryProfile(u *store.User) map[string]any {
 		return nil
 	}
 	for _, id := range u.Identities {
-		if !id.Linked() && store.IsFederatedProvider(id.Provider) && u.UserID == id.Provider+"|"+id.UserID {
+		if !id.Linked() && u.UserID == id.Provider+"|"+id.UserID {
 			return id.ProviderData
 		}
 	}

@@ -18,7 +18,7 @@ import (
 )
 
 // oidcScopes are the user-flow scopes zeroauthy grants without an API.
-var oidcScopes = []string{"openid", "profile", "email"}
+var oidcScopes = []string{"openid", "profile", "email", "address", "phone"}
 
 // userScopes keeps requested OIDC scopes, offline_access when refresh
 // tokens may be issued, and, when an API is the audience, requested scopes
