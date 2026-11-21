@@ -456,3 +456,18 @@ permissions are retained. Focused race tests covering SQL authorization-code
 round trips, Guardian setup, old-plugin queue-cap and capability refusal passed
 (SQL 5.049s, gRPC 69.156s); zizmor passed with existing suppressions. Full CI on
 the workflow change remains the required final gate.
+
+The tmpfs full run 44890538046 passed grpcstore race tests (3141.723s), the SQL
+matrix (51m7s), every E2E lane and every other check, but sqlstore race tests
+still reached the 60-minute package limit while setting up an older
+Organizations-II cascade case. No unchanged rerun was requested.
+
+The SQLite conformance factory now prepares one fully migrated empty image per
+parent suite, closes/checkpoints it, and copies its bytes into an independent
+file per case. Every copy still uses normal Open/Migrate and checksum checks.
+Dedicated upgrade tests continue using fresh unmigrated databases, and the
+PostgreSQL/MySQL factories are unchanged. An isolation/integrity regression
+passed under race instrumentation: mutations and close operations do not cross
+copies, integrity_check returns ok and Migrate succeeds. Focused race checks
+passed in 12.221s; the full non-race Go suite passed. This is test setup only;
+production logic, assertions, migrations and timeout limits are unchanged.
