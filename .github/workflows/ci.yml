@@ -47,6 +47,7 @@ jobs:
       - id: list
         run: echo "jobs=$(./scripts/test-group.sh --json)" >> "$GITHUB_OUTPUT"
   go-test:
+    name: go-test (${{ matrix.group }})
     # go test -race by area (scripts/test-group.sh --list). One job per group
     # so a slow area can't push the others past the timeout, and a failure
     # names the area.
@@ -158,8 +159,12 @@ jobs:
           E2E_SUITE: ${{ matrix.suite }}
           ZA_REQUIRE_NODE: "1"
   sql:
-    # One job per server dialect; SQLite also runs in each (about a minute
-    # without -race) and under the race detector in go-test.
+    # The SQL store on the server dialects, without -race (go-test already
+    # runs it under the race detector on SQLite), as the four store shards of
+    # scripts/test-group.sh: MySQL alone took 56 minutes in one job, because
+    # it creates a database per test. SQLite also runs in each job; it takes
+    # about a minute without -race.
+    name: sql (${{ matrix.dialect }} ${{ matrix.group }})
     runs-on: ubuntu-latest
     timeout-minutes: 75
     permissions:
@@ -167,13 +172,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - dialect: postgres
-            postgres_dsn: postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable
-            mysql_dsn: ""
-          - dialect: mysql
-            postgres_dsn: ""
-            mysql_dsn: mysql://root:zeroauthy@127.0.0.1:53306/
+        dialect: [postgres, mysql]
+        group: ["store-sqlite:1", "store-sqlite:2", "store-sqlite:3", "store-sqlite:other"]
     services:
       postgres:
         image: postgres:17
@@ -204,10 +204,8 @@ jobs:
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
-      # Without -race: go-test already runs this package under the race
-      # detector on SQLite; with it, the server dialects take far longer on
-      # hosted runners.
-      - run: go test -count=1 -timeout=70m ./internal/store/sqlstore/...
+      - run: ./scripts/test-group.sh "$GROUP" -count=1 -timeout=70m
         env:
-          ZA_TEST_POSTGRES_DSN: ${{ matrix.postgres_dsn }}
-          ZA_TEST_MYSQL_DSN: ${{ matrix.mysql_dsn }}
+          GROUP: ${{ matrix.group }}
+          ZA_TEST_POSTGRES_DSN: ${{ matrix.dialect == 'postgres' && 'postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable' || '' }}
+          ZA_TEST_MYSQL_DSN: ${{ matrix.dialect == 'mysql' && 'mysql://root:zeroauthy@127.0.0.1:53306/' || '' }}
