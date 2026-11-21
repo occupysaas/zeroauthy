@@ -256,7 +256,7 @@ func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	ended := false
 	err = m.Store.WithTx(ctx, func(tx store.Store) error {
-		current, err := tx.Sessions().Get(ctx, t.ID, s.ID)
+		current, err := tx.Sessions().GetForUpdate(ctx, t.ID, s.ID)
 		if errors.Is(err, store.ErrNotFound) {
 			return nil
 		}
