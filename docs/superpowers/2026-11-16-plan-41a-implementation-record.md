@@ -396,3 +396,28 @@ or formal certification is authorized by these local results.
 - Final: Ruling: reviewer-declined formal certification remains maintainer-owned after merge; full SQL/race/all-E2E verification remains in plan-branch CI — repository mandates that verification split — if wrong, a CI-only issue may still require another branch fix before approval.
 
 Deferred minor: the older compatibility table at docs/compatibility.md:27 still lists claims parameter/back-channel logout as unimplemented. The later summary and operator docs describe the implemented behavior.
+
+## First CI failure triage
+
+[Plan-branch run 44870736008](https://github.com/occupysaas/zeroauthy/actions/runs/44870736008)
+on `cc4d9019` passed conformance, logout E2E, console and vulnerability checks.
+The existing `e2e-deploy` and `e2e-refresh-tokens` lanes failed: offline export
+loading classified `resource_parameter_profile` as a file because its key
+contains “file”. Both actual lanes reproduced locally. A failing regression
+for both enum values preceded the fix; YAML/directory and explicit traversal
+checks pass. The exact scalar key is excluded from the implicit file heuristic;
+explicit `file://` references still use all path and symlink protections.
+
+After fixing, the full `make e2e-deploy` matrix exited 0 (protected artifacts
+`/dev/shm/za41a/tmp.GdD808k6nW`) and all four actual pinned refresh-token Deploy
+CLI cells exited 0 (`/dev/shm/za41a/tmp.afQQIVEQDQ`). These preserve the matrix's
+existing tool-unavailable fields and lack of upstream observer credentials;
+no upstream coverage is claimed. The full Go aggregate also exited 0.
+
+The Express test fixture now initiates authentication through the SDK's `/login`
+route and returns to its public session-status endpoint. The unused `/me` route
+was removed; browser assertions still require a real authenticated SDK session
+and subsequent verified back-channel invalidation. All three browser journeys,
+SDK CRUD and privacy scan passed (`/dev/shm/za41a/tmp.tFiEShyXnr`). An initial
+fixture revision used a nonexistent SDK setting and failed before authentication;
+that failed result is retained. No new dependency or scanner suppression was added.

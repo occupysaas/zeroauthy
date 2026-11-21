@@ -14,14 +14,13 @@ test.beforeEach(async({page})=>{
  received=[];const rows=new Map();const store={get:(id,cb)=>cb(null,rows.get(id)),set:(id,value,cb)=>{rows.set(id,value);cb(null)},destroy:(id,cb)=>{rows.delete(id);cb(null)}};
  const app=express();app.use((req,res,next)=>{if(req.path==='/backchannel-logout')res.on('finish',()=>received.push(res.statusCode));next()});
  app.use(sdk.auth({issuerBaseURL:origin,baseURL:rp,clientID:'m41a-web',clientSecret:credentials.web,secret:randomBytes(32).toString('hex'),authRequired:false,authorizationParams:{response_type:'code',scope:'openid profile email'},backchannelLogout:{store},routes:{backchannelLogout:'/backchannel-logout'}}));
- app.get('/me',sdk.requiresAuth(),(req,res)=>res.json({authenticated:true,sid:req.oidc.idTokenClaims.sid}));
- app.get('/status',(req,res)=>res.json({authenticated:req.oidc.isAuthenticated()}));app.get('/raw',(_req,res)=>res.send('<!doctype html><title>Plan41a callback</title>'));
+ app.get(['/','/status'],(req,res)=>res.json({authenticated:req.oidc.isAuthenticated()}));app.get('/raw',(_req,res)=>res.send('<!doctype html><title>Plan41a callback</title>'));
  server=https.createServer({key:await readFile(`${work}/key.pem`),cert:await readFile(`${work}/cert.pem`)},app).listen(9643,'127.0.0.1');await once(server,'listening');
  page.on('console',msg=>{void appendFile(`${work}/browser-console.log`,msg.text()+'\n',{mode:0o600})});
 });
 test.afterEach(async()=>{if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve))}});
 async function login(page){await page.waitForURL(/\/u\/login/);await page.fill('#username','alice@example.test');await page.fill('#password',credentials.password);await page.click('button[type=submit]'); if(page.url().includes('/u/consent'))await page.click('button[value=accept]')}
-async function webLogin(page){await page.goto(`${rp}/me`);await login(page);await page.waitForURL(`${rp}/me`);expect(JSON.parse(await page.locator('body').innerText()).authenticated).toBe(true)}
+async function webLogin(page){await page.goto(`${rp}/login`);await login(page);await page.waitForURL(`${rp}/`);expect(JSON.parse(await page.locator('body').innerText()).authenticated).toBe(true)}
 async function authorization(page,extra={}){
  const verifier=randomBytes(32).toString('base64url'),state=randomBytes(16).toString('hex'),nonce=randomBytes(16).toString('hex');
  const query=new URLSearchParams({client_id:'m41a-spa',redirect_uri:`${rp}/raw`,response_type:'code',scope:'openid profile email offline_access',state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',...extra});
