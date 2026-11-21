@@ -61,13 +61,30 @@ The current entries are accepted warnings and skips, recorded in D-0036 (with D-
 
 ## Non-compliant switches
 
-Spec-compliant behaviour is the default. Where the maintainer rules that Auth0's behaviour must stay available, it goes behind a server-wide environment variable `ZEROAUTHY_COMPAT__NONCOMPLIANT_<BEHAVIOUR>` (default off; a startup warning naming each switch that is on is planned, since no switches exist yet; the conformance run uses the defaults). Each case is decided by the maintainer.
+Spec-compliant behaviour is the default. The following server-wide
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_*` environment switches default off. Each
+enabled switch produces one startup warning naming it. Set `1` or `true`
+to enable, and `0`, `false` or an empty value to disable. Other spellings
+(including uppercase booleans or surrounding whitespace) cause a startup
+configuration error. Values are never included in errors or warnings.
+These switches are environment-only; the local conformance containers do
+not enable them.
 
-| Switch | Auth0 behaviour it restores | Decision |
+| Switch | Compatibility behavior | Decision |
 |---|---|---|
-| (none) | | |
+| `ZEROAUTHY_COMPAT__NONCOMPLIANT_IGNORE_CLAIMS_PARAMETER` | Ignore the claims request and omit claims_parameter_supported from discovery | D-0080, LR41a-5 |
+| `ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI` | Use the sole registered non-wildcard callback when redirect_uri is omitted | D-0080, LR41a-10 |
+| `ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT` | Use JWT instead of logout+jwt for the logout-token typ header | D-0080, §7.3 |
 
-No such switch exists today.
+Plan 41a introduces the configuration and warnings first; the corresponding
+protocol consumers are connected by its later tasks. See the
+[implementation record](superpowers/2026-11-16-plan-41a-implementation-record.md)
+for their implementation state.
+
+The older `ZEROAUTHY_COMPATIBILITY__AUTH0_REFRESH_ERROR_STATUS` setting also
+defaults off. It restores HTTP 403 for invalid refresh grants instead of the
+specification's HTTP 400; this pre-existing setting is separate from the
+three Plan 41a switches.
 
 ## Certification
 

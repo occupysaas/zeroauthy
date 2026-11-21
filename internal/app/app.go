@@ -172,6 +172,7 @@ func MasterKey(cfg *config.Config, log *slog.Logger) ([]byte, error) {
 }
 
 func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store, masterKey []byte, opts ...Option) (*App, error) {
+	cfg.Compat.Warn(log)
 	var o options
 	for _, opt := range opts {
 		opt(&o)

@@ -9,7 +9,7 @@ checks and branch review are complete.
 ## Progress
 
 1. Contracts, D-0080 and conformance inventory: in progress.
-2. Compatibility switches: pending.
+2. Compatibility switches: implemented; focused verification passed. Later protocol tasks still need to consume them.
 3. Claims and client OIDC restrictions: pending.
 4. MFA step-up and acr: pending.
 5. Client ID-token signing algorithms: pending.
@@ -39,7 +39,14 @@ minimum; no dependency or toolchain downgrade was made.
 - [Implicit/Hybrid inventory](2026-11-16-plan-41a-conformance-check.md):
   Implicit exit 1; separate Hybrid run exit 1. Both abort on unsupported response types. No certification claim.
 
-Full Go, E2E, conformance, vulnerability and workflow checks have not run.
+Task 2 added strict environment parsing and per-switch startup warnings.
+`go test ./internal/compat ./internal/config` passed (exit 0). The real
+application startup test failed before Warn was connected and passed
+with all three enabled switches producing one warning each. Empty/0/false
+are disabled; 1/true are enabled. Other values fail configuration without
+echoing their contents. Unknown switch names still fail strict decoding.
+
+Full Go, E2E, full conformance, vulnerability and workflow checks have not run.
 There is no CI run yet; partial plan work must not be pushed.
 
 ## Rulings
@@ -53,3 +60,9 @@ The ledger and D-0080 record these choices:
   and active-setting descriptions alongside their runtime consumers.
 - Use main's next available migration number and recheck before merge.
 - Preserve go.mod's patched Go minimum; record the installed local compiler.
+- Exclude optional Implicit/Hybrid profiles based on their actual failed
+  inventory runs; implementing those grants remains outside this plan.
+- Keep FromEnv's proposed signature and validate invalid values separately
+  in config.Load; both paths use the caller-supplied environment snapshot.
+- Accept canonical 0/false as explicit disabled values; other nonempty
+  spellings beyond 1/true fail startup.

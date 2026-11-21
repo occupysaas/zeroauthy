@@ -25,22 +25,25 @@ import (
 	"github.com/knadh/koanf/v2"
 
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
+	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 const envPrefix = "ZEROAUTHY_"
 
 type Config struct {
-	Server   Server   `koanf:"server"`
-	Storage  Storage  `koanf:"storage"`
-	Security Security `koanf:"security"`
-	Log      Log      `koanf:"log"`
-	Email    Email    `koanf:"email"`
-	CustomDB CustomDB `koanf:"custom_db"`
-	Actions  Actions  `koanf:"actions"`
-	Jobs     Jobs     `koanf:"jobs"`
-	Logs     Logs     `koanf:"logs"`
-	Events   Events   `koanf:"events"`
+	// Compat is read only from the three explicit NONCOMPLIANT environment switches.
+	Compat   compat.Switches `koanf:"-"`
+	Server   Server          `koanf:"server"`
+	Storage  Storage         `koanf:"storage"`
+	Security Security        `koanf:"security"`
+	Log      Log             `koanf:"log"`
+	Email    Email           `koanf:"email"`
+	CustomDB CustomDB        `koanf:"custom_db"`
+	Actions  Actions         `koanf:"actions"`
+	Jobs     Jobs            `koanf:"jobs"`
+	Logs     Logs            `koanf:"logs"`
+	Events   Events          `koanf:"events"`
 	// Bootstrap creates the first console operator on an empty install.
 	Bootstrap Bootstrap `koanf:"bootstrap"`
 	// Compatibility holds opt-in switches for Auth0 behaviour that differs
@@ -490,6 +493,16 @@ func defaultRateLimit() RateLimit {
 // Load reads the YAML file at path (skipped when path is ""), applies
 // ZEROAUTHY_* variables from environ, and validates the result.
 func Load(path string, environ []string) (*Config, error) {
+	values := make(map[string]string, len(environ))
+	for _, entry := range environ {
+		if key, value, ok := strings.Cut(entry, "="); ok {
+			values[key] = value
+		}
+	}
+	getenv := func(name string) string { return values[name] }
+	if err := compat.ValidateEnv(getenv); err != nil {
+		return nil, err
+	}
 	k := koanf.New(".")
 	if path != "" {
 		if err := k.Load(file.Provider(path), yaml.Parser()); err != nil {
@@ -503,7 +516,7 @@ func Load(path string, environ []string) (*Config, error) {
 			// ZEROAUTHY_CONFIG names the config file (see cmd/zeroauthy); it is
 			// not a setting. An empty key makes koanf drop the entry, so it does
 			// not reach strict decoding as an unknown key "config".
-			if key == envPrefix+"CONFIG" {
+			if key == envPrefix+"CONFIG" || key == compat.IgnoreClaimsParameterEnv || key == compat.OptionalRedirectURIEnv || key == compat.LogoutTokenTypJWTEnv {
 				return "", nil
 			}
 			key = strings.ToLower(strings.TrimPrefix(key, envPrefix))
@@ -514,6 +527,7 @@ func Load(path string, environ []string) (*Config, error) {
 		return nil, fmt.Errorf("config: environment: %w", err)
 	}
 	cfg := defaults()
+	cfg.Compat = compat.FromEnv(getenv)
 	// ErrorUnused makes misspelled keys (file or environment) fail loudly
 	// instead of silently leaving a setting at its default.
 	err = k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{
