@@ -682,6 +682,7 @@ const inventory = `{
       "default": false
     },
     "acr_values_supported": {
+ "description": "D-0080: active; intersected with supported authentication contexts for discovery and step-up.",
       "type": [
         "array",
         "null"
@@ -733,6 +734,7 @@ const inventory = `{
       ]
     },
     "resource_parameter_profile": {
+ "description": "D-0080: active resource/audience normalization at authorize, PAR and token endpoints.",
       "type": "string",
       "default": "audience",
       "enum": [

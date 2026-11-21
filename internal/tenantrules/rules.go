@@ -185,6 +185,8 @@ func Public(t *store.Tenant) map[string]any {
 			delete(out, key)
 		}
 	}
+	out["acr_values_supported"] = ACRValuesSupported(t)
+	out["resource_parameter_profile"] = ResourceParameterProfile(t)
 	v := reflect.ValueOf(t).Elem()
 	for key, field := range stringFields {
 		out[key] = v.FieldByName(field).String()
