@@ -395,7 +395,7 @@ or formal certification is authorized by these local results.
 
 - Final: Ruling: reviewer-declined formal certification remains maintainer-owned after merge; full SQL/race/all-E2E verification remains in plan-branch CI — repository mandates that verification split — if wrong, a CI-only issue may still require another branch fix before approval.
 
-Deferred minor: the older compatibility table at docs/compatibility.md:27 still lists claims parameter/back-channel logout as unimplemented. The later summary and operator docs describe the implemented behavior.
+Resolved documentation follow-up: the compatibility table now lists scope-bound claims requests and back-channel logout as supported; only the remaining protocol gaps stay in the unsupported row.
 
 ## First CI failure triage
 
