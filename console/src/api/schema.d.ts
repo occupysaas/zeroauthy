@@ -7887,7 +7887,7 @@ export interface components {
                     activate_cookie?: boolean;
                 } | null;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080). */
             oidc_logout?: {
                 /** @default true */
                 rp_logout_end_session_endpoint_discovery?: boolean;
@@ -7902,7 +7902,7 @@ export interface components {
              * @default false
              */
             allow_organization_name_in_authentication_api?: boolean | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080). */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
@@ -7923,7 +7923,7 @@ export interface components {
             dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
              * @default audience
              * @enum {string}
              */
@@ -8171,7 +8171,7 @@ export interface components {
                     activate_cookie?: boolean;
                 } | null;
             } | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080). */
             oidc_logout?: {
                 /** @default true */
                 rp_logout_end_session_endpoint_discovery?: boolean;
@@ -8186,7 +8186,7 @@ export interface components {
              * @default false
              */
             allow_organization_name_in_authentication_api?: boolean | null;
-            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            /** @description Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080). */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
@@ -8207,7 +8207,7 @@ export interface components {
             dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
             /**
-             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @description Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
              * @default audience
              * @enum {string}
              */
@@ -8254,16 +8254,40 @@ export interface components {
          * @enum {string}
          */
         TokenEndpointAuthMethod: "none" | "client_secret_post" | "client_secret_basic";
+        /** @description OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080). */
+        ClientOIDCSupport: {
+            is_allowed: boolean;
+            allow_all_scopes?: boolean;
+            allowed_scopes?: ("profile" | "email" | "address" | "phone")[];
+        } | null;
+        ClientOIDCLogout: {
+            /** @description Public HTTPS receiver. Organization ID and name placeholders are supported (D-0080). */
+            backchannel_logout_urls?: string[];
+            /** @description Custom mode requires selected_initiators including rp-logout and idp-logout. Absent defaults to those two initiators. */
+            backchannel_logout_initiators?: {
+                /**
+                 * @default custom
+                 * @enum {string}
+                 */
+                mode: "custom" | "all";
+                selected_initiators?: ("rp-logout" | "idp-logout" | "password-changed" | "session-expired" | "session-revoked" | "account-deleted" | "email-identifier-changed" | "mfa-phone-unenrolled" | "account-deactivated" | "profile-changed")[];
+            };
+            backchannel_logout_session_metadata?: {
+                /** @default false */
+                include?: boolean;
+            };
+        } | null;
         /** @description ID token settings. */
         JwtConfiguration: {
             /**
-             * @description The signing algorithm; zeroauthy signs with RS256 only.
+             * @description ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
+             * @default RS256
              * @enum {string}
              */
-            alg?: "RS256";
+            alg?: "HS256" | "RS256" | "PS256";
             /** @description ID token lifetime; 36000 by default. */
             lifetime_in_seconds?: number;
-            /** @description Accepted and ignored (HS256 is not offered). */
+            /** @description Legacy setting, accepted and ignored. HS256 uses the client secret UTF-8 bytes (D-0080). */
             secret_encoded?: boolean;
         };
         DPoPPolicy: {
@@ -8395,6 +8419,8 @@ export interface components {
             web_origins?: string[];
             /** @description Origins allowed for cross-origin requests. */
             allowed_origins?: string[];
+            oidc_logout?: components["schemas"]["ClientOIDCLogout"];
+            oidc_support?: components["schemas"]["ClientOIDCSupport"];
             jwt_configuration?: components["schemas"]["JwtConfiguration"];
             refresh_token?: components["schemas"]["RefreshTokenSettings"];
             token_quota?: components["schemas"]["IITokenQuota"];
@@ -8530,6 +8556,8 @@ export interface components {
             client_authentication_methods?: components["schemas"]["ClientAuthenticationMethods"];
             signed_request_object?: components["schemas"]["SignedRequestObject"];
             token_exchange?: components["schemas"]["ClientTokenExchange"];
+            oidc_logout?: components["schemas"]["ClientOIDCLogout"];
+            oidc_support?: components["schemas"]["ClientOIDCSupport"];
             jwt_configuration: components["schemas"]["JwtConfiguration"];
             refresh_token: components["schemas"]["RefreshTokenSettings"];
             token_quota?: components["schemas"]["IITokenQuota"];
@@ -8716,7 +8744,7 @@ export interface components {
              */
             signing_alg?: "RS256" | "HS256" | "PS256";
             /**
-             * @description HS256 only: at least 16 characters (C15). Generated (32 random
+             * @description HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
              *     bytes, base64url) when an HS256 API is created without one; sent
              *     with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
              */

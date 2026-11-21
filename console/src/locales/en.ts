@@ -2,6 +2,12 @@ import logInventory from '../../../internal/logrules/inventory.json'
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+ oidc41: {
+  tab: 'OIDC and logout', logout: 'Back-channel logout', receiver: 'Logout receiver URL', receiverHint: 'One HTTPS URL, up to 2,048 bytes. Organization name and ID placeholders are supported. Clear to remove.', invalidURL: 'Enter one HTTPS URL without credentials, spaces or a fragment.',
+  initiators: 'Send logout notifications when', custom: 'Selected events', all: 'All supported events', metadata: 'Include session metadata in logout tokens', tokens: 'OpenID Connect', algorithm: 'ID token signing algorithm', hsHint: 'HS256 requires a confidential application using a retrievable client secret of at least 32 characters. Rotate an unavailable secret in Settings.',
+  configure: 'Configure OIDC restrictions', allowed: 'Allow OpenID Connect', allScopes: 'Allow all OIDC scopes', scopes: 'Allowed OIDC scopes', scopeHint: 'Separate profile, email, address and phone with spaces. Restricting scopes does not grant consent.', invalidScopes: 'Allowed OIDC scopes are profile, email, address and phone.', discovery: 'Advertise the RP logout endpoint', resource: 'Resource parameter profile',
+  initiator: { 'rp-logout': 'Application logout (required)', 'idp-logout': 'Identity provider logout (required)', 'password-changed': 'Password changed', 'session-expired': 'Session expired', 'session-revoked': 'Session revoked', 'account-deleted': 'Account deleted', 'email-identifier-changed': 'Email identifier changed' },
+ },
   passkeys: {
     passwordEnabled: 'Enable password login', yes: 'Yes', no: 'No', title: 'Passkeys', enabled: 'Enable passkey login', challengeUI: 'Passkey authentication UI', both: 'Autofill and button', autofill: 'Autofill', button: 'Button',
     progressive: 'Offer enrollment after login', local: 'Offer a passkey on this device after cross-device login', prerequisites: 'Prerequisites', unchecked: 'Not checked', met: 'Ready', unmet: 'Needs attention',

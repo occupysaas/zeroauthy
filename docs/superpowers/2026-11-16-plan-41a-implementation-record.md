@@ -218,3 +218,22 @@ actual GlobalRevocationState memory/SQLite/gRPC subtests passed. Retained
 failures include malformed log inventory trigger shape and an unquoted YAML
 brace description; both were corrected and subsequent checks passed.
 No full local suite or final review has been claimed and nothing is pushed.
+
+
+## Task 11 console
+
+The application detail page has OIDC and logout controls for one receiver,
+required RP/IdP initiators, supported optional initiators, metadata, signing
+algorithm and OIDC restrictions. HS256 is unavailable without a retrievable
+32-character confidential-client secret. Scope editing obeys the API's
+mutually exclusive all-scopes/explicit-list forms. Tenant Advanced settings
+expose RP logout discovery and the resource profile. Log labels and failure
+classification use the shared catalog's actual logout codes.
+
+Generated TypeScript schema and embedded console assets were rebuilt.
+Focused UI checks passed (68 tests); full console test run passed 90 files,
+734 tests (15.13 seconds). Lint and typecheck passed. Vite build passed with
+the existing large-chunk warning. Dependency installation used the unchanged
+lockfile with scripts disabled; npm reported 13 moderate dependency findings.
+No dependency update or audit fix was applied as part of this feature.
+Browser E2E and final full-plan verification remain pending.
