@@ -82,6 +82,9 @@ const (
 	StoreService_CreateConnectionKeys_FullMethodName                          = "/zeroauthy.store.v1.StoreService/CreateConnectionKeys"
 	StoreService_RotateConnectionKeys_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RotateConnectionKeys"
 	StoreService_OIDCLogoutCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OIDCLogoutCapabilities"
+	StoreService_OIDCLogoutUseGlobalJTI_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OIDCLogoutUseGlobalJTI"
+	StoreService_OIDCLogoutPurgeGlobalJTIs_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OIDCLogoutPurgeGlobalJTIs"
+	StoreService_OIDCLogoutFindByEmail_FullMethodName                         = "/zeroauthy.store.v1.StoreService/OIDCLogoutFindByEmail"
 	StoreService_OIDCLogoutSessionOrganization_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OIDCLogoutSessionOrganization"
 	StoreService_OIDCLogoutSessionsListExpired_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OIDCLogoutSessionsListExpired"
 	StoreService_ClientCredentialsCapabilities_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsCapabilities"
@@ -606,6 +609,9 @@ type StoreServiceClient interface {
 	RotateConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*ConnectionKeysResult, error)
 	// oidc_logout.v1 gates the new client fields; absent support refuses writes.
 	OIDCLogoutCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
+	OIDCLogoutUseGlobalJTI(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error)
+	OIDCLogoutPurgeGlobalJTIs(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error)
+	OIDCLogoutFindByEmail(ctx context.Context, in *UsersFindByIdentityRequest, opts ...grpc.CallOption) (*UserResult, error)
 	OIDCLogoutSessionOrganization(ctx context.Context, in *SessionsAddClientRequest, opts ...grpc.CallOption) (*Result, error)
 	OIDCLogoutSessionsListExpired(ctx context.Context, in *RefreshIIPurgeRequest, opts ...grpc.CallOption) (*SessionList, error)
 	ClientCredentialsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
@@ -1670,6 +1676,36 @@ func (c *storeServiceClient) OIDCLogoutCapabilities(ctx context.Context, in *Pin
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EventsCapabilitiesResult)
 	err := c.cc.Invoke(ctx, StoreService_OIDCLogoutCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OIDCLogoutUseGlobalJTI(ctx context.Context, in *GlobalRevocationJTIRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_OIDCLogoutUseGlobalJTI_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OIDCLogoutPurgeGlobalJTIs(ctx context.Context, in *ClientCredentialsPurgeRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_OIDCLogoutPurgeGlobalJTIs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OIDCLogoutFindByEmail(ctx context.Context, in *UsersFindByIdentityRequest, opts ...grpc.CallOption) (*UserResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserResult)
+	err := c.cc.Invoke(ctx, StoreService_OIDCLogoutFindByEmail_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5774,6 +5810,9 @@ type StoreServiceServer interface {
 	RotateConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error)
 	// oidc_logout.v1 gates the new client fields; absent support refuses writes.
 	OIDCLogoutCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
+	OIDCLogoutUseGlobalJTI(context.Context, *GlobalRevocationJTIRequest) (*Result, error)
+	OIDCLogoutPurgeGlobalJTIs(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error)
+	OIDCLogoutFindByEmail(context.Context, *UsersFindByIdentityRequest) (*UserResult, error)
 	OIDCLogoutSessionOrganization(context.Context, *SessionsAddClientRequest) (*Result, error)
 	OIDCLogoutSessionsListExpired(context.Context, *RefreshIIPurgeRequest) (*SessionList, error)
 	ClientCredentialsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
@@ -6402,6 +6441,15 @@ func (UnimplementedStoreServiceServer) RotateConnectionKeys(context.Context, *Co
 }
 func (UnimplementedStoreServiceServer) OIDCLogoutCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method OIDCLogoutCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) OIDCLogoutUseGlobalJTI(context.Context, *GlobalRevocationJTIRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method OIDCLogoutUseGlobalJTI not implemented")
+}
+func (UnimplementedStoreServiceServer) OIDCLogoutPurgeGlobalJTIs(context.Context, *ClientCredentialsPurgeRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method OIDCLogoutPurgeGlobalJTIs not implemented")
+}
+func (UnimplementedStoreServiceServer) OIDCLogoutFindByEmail(context.Context, *UsersFindByIdentityRequest) (*UserResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method OIDCLogoutFindByEmail not implemented")
 }
 func (UnimplementedStoreServiceServer) OIDCLogoutSessionOrganization(context.Context, *SessionsAddClientRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method OIDCLogoutSessionOrganization not implemented")
@@ -8739,6 +8787,60 @@ func _StoreService_OIDCLogoutCapabilities_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).OIDCLogoutCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OIDCLogoutUseGlobalJTI_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GlobalRevocationJTIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OIDCLogoutUseGlobalJTI(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OIDCLogoutUseGlobalJTI_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OIDCLogoutUseGlobalJTI(ctx, req.(*GlobalRevocationJTIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OIDCLogoutPurgeGlobalJTIs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientCredentialsPurgeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OIDCLogoutPurgeGlobalJTIs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OIDCLogoutPurgeGlobalJTIs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OIDCLogoutPurgeGlobalJTIs(ctx, req.(*ClientCredentialsPurgeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OIDCLogoutFindByEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UsersFindByIdentityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OIDCLogoutFindByEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OIDCLogoutFindByEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OIDCLogoutFindByEmail(ctx, req.(*UsersFindByIdentityRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -16086,6 +16188,18 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OIDCLogoutCapabilities",
 			Handler:    _StoreService_OIDCLogoutCapabilities_Handler,
+		},
+		{
+			MethodName: "OIDCLogoutUseGlobalJTI",
+			Handler:    _StoreService_OIDCLogoutUseGlobalJTI_Handler,
+		},
+		{
+			MethodName: "OIDCLogoutPurgeGlobalJTIs",
+			Handler:    _StoreService_OIDCLogoutPurgeGlobalJTIs_Handler,
+		},
+		{
+			MethodName: "OIDCLogoutFindByEmail",
+			Handler:    _StoreService_OIDCLogoutFindByEmail_Handler,
 		},
 		{
 			MethodName: "OIDCLogoutSessionOrganization",

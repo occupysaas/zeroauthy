@@ -177,10 +177,8 @@ func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request, _ authapi.Oa
 	a.oauth.OauthToken(w, r)
 }
 
-// GlobalTokenRevocation reserves the contract until the verified upstream
-// revocation handler is installed in Plan 41a Task 10. It never mutates state.
-func (a authAPI) GlobalTokenRevocation(w http.ResponseWriter, r *http.Request, _ string) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+func (a authAPI) GlobalTokenRevocation(w http.ResponseWriter, r *http.Request, name string) {
+	a.oauth.GlobalTokenRevocation(w, r, name)
 }
 
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.OauthRevoke(w, r) }
@@ -333,7 +331,7 @@ func New(d Deps) http.Handler {
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
 			oidc: &oidc.Handlers{Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{Compat: d.Compat,
+			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,

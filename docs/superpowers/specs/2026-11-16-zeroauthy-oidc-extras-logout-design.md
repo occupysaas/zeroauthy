@@ -312,7 +312,8 @@ true`; `frontchannel_*` absent.
 - Authentication: `Authorization: Bearer <JWT>` with
   `typ: global-token-revocation+jwt` (L13), signed by a key from the
   connection's pinned upstream JWKS, `iss` = the connection's pinned issuer,
-  `aud` = the tenant issuer URL (L13), `exp` required and ≤ 5 min ahead,
+  `aud` = the exact connection-specific revocation endpoint URL (L13,
+  rechecked against the current Auth0-linked Okta profile at implementation), `exp` required and ≤ 5 min ahead,
   `jti` single-use (Plan 35's replay table pattern, keyed by connection).
 - Body `{"sub_id": {"format": "iss_sub", "iss": ..., "sub": ...}}` (or the
   `email` format) per the draft; the subject resolves to the user through

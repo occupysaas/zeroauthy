@@ -125,7 +125,10 @@ service StoreService {
   rpc RotateConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
   // oidc_logout.v1 gates the new client fields; absent support refuses writes.
   rpc OIDCLogoutCapabilities(PingRequest) returns (EventsCapabilitiesResult);
-  rpc OIDCLogoutSessionOrganization(SessionsAddClientRequest) returns (Result);
+  rpc OIDCLogoutUseGlobalJTI(GlobalRevocationJTIRequest) returns (Result);
+ rpc OIDCLogoutPurgeGlobalJTIs(ClientCredentialsPurgeRequest) returns (CountResult);
+ rpc OIDCLogoutFindByEmail(UsersFindByIdentityRequest) returns (UserResult);
+ rpc OIDCLogoutSessionOrganization(SessionsAddClientRequest) returns (Result);
   rpc OIDCLogoutSessionsListExpired(RefreshIIPurgeRequest) returns (SessionList);
   rpc ClientCredentialsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc ClientCredentialsCreate(ClientCredentialsCreateRequest) returns (Result);
@@ -1884,3 +1887,5 @@ message CodeBindingRequest {
 }
 
 message SessionTokenOwnersResult { Error error = 1; repeated string user_ids = 2; }
+
+message GlobalRevocationJTIRequest {string tx_id=1;string tenant_id=2;string connection_id=3;string jti=4;google.protobuf.Timestamp expires_at=5;google.protobuf.Timestamp now=6;}

@@ -37,6 +37,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"TLSLeaseFence":               testTLSLeaseFence,
 	"Protection":                  testProtection,
 	"OIDCClientSettings":          testOIDCClientSettings,
+	"GlobalRevocationState":       testGlobalRevocationState,
 	"Clients":                     testClients,
 	"ResourceServers":             testResourceServers,
 	"ClientGrants":                testClientGrants,
@@ -78,7 +79,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 var suiteOrder = []string{
 	"MFA", "Phone", "WebAuthn",
 	"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCap", "CustomDomainCAS", "CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",
-	"Events", "Logs", "RBAC", "Organizations", "OrganizationsII", "Protection", "Tenants", "Clients", "OIDCClientSettings", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
+	"Events", "Logs", "RBAC", "Organizations", "OrganizationsII", "Protection", "Tenants", "Clients", "GlobalRevocationState", "OIDCClientSettings", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
 	"Connections", "PasswordHistories", "Users", "UserDelete", "UserList", "UserQueryMetadataTypes", "Sessions", "SessionExpirySnapshots", "AuthTransactions", "AuthCodes",
 	"PushedAuthRequests",
 	"RefreshTokens", "RefreshTokensII", "DPoP", "TokenQuotas", "PasswordResetTickets", "EmailVerificationTickets", "Tx",

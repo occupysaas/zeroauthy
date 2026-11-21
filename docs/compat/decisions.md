@@ -3683,3 +3683,16 @@ L1–L14 are tracked in [the follow-ups](../superpowers/plan-1-followups.md).
 The [conformance inventory](../superpowers/2026-11-16-plan-41a-conformance-check.md)
 records the actual Implicit/Hybrid check. No new warning or skip is approved
 by this contract.
+
+
+Plan 41a implementation evidence for D-0080 / L13 (2026-11-20):
+[Auth0 Universal Logout](https://auth0.com/docs/authenticate/login/logout/universal-logout)
+links the [Okta endpoint authentication profile](https://developer.okta.com/docs/guides/oin-universal-logout-overview/).
+That profile and [draft revision 06 §3.5](https://www.ietf.org/archive/id/draft-parecki-oauth-global-token-revocation-06.html#section-3.5)
+require the exact revocation endpoint URL as the JWT audience, without query
+or fragment. This corrects the design's tenant-issuer audience assumption.
+The implementation accepts the connection endpoint only, checks the caller
+subject against the configured upstream client ID, and keeps the specified
+explicit token type and five-minute bound. It does not accept ordinary ID
+tokens. The draft remains work in progress. Tenant-issuer audiences are
+rejected; callers following the earlier design must update.

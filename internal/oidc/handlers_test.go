@@ -363,3 +363,19 @@ func TestDiscoveryBackchannel(t *testing.T) {
 		t.Fatal("unimplemented front-channel logout advertised")
 	}
 }
+
+func TestGlobalRevocationDiscovery(t *testing.T) {
+	h, _ := setup(t)
+	rec := get(h, "https://acme.example.test/.well-known/openid-configuration")
+	var doc map[string]any
+	if json.Unmarshal(rec.Body.Bytes(), &doc) != nil {
+		t.Fatal("invalid discovery")
+	}
+	if doc["global_token_revocation_endpoint"] != "https://acme.example.test/oauth/global-token-revocation/connection/{connectionName}" {
+		t.Fatal("missing connection-specific revocation endpoint")
+	}
+	methods, _ := doc["global_token_revocation_endpoint_auth_methods_supported"].([]any)
+	if len(methods) != 1 || methods[0] != "private_key_jwt" {
+		t.Fatal("missing revocation authentication method")
+	}
+}

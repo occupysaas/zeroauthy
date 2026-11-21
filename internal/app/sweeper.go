@@ -151,6 +151,9 @@ func sweep(ctx context.Context, st store.Store, now time.Time, notifications ...
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeWebAuthn(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeJTIs(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
+			return purgeGlobalRevocationJTIs(ctx, st, before)
+		}, now},
+		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {
 				return 0, nil // an old storage plugin: no attempts exist
@@ -188,4 +191,23 @@ func (a *App) sweepLoop(ctx context.Context, every time.Duration) {
 			}
 		}
 	}
+}
+
+func purgeGlobalRevocationJTIs(ctx context.Context, st store.Store, before time.Time) (int, error) {
+	repo, ok := st.(store.GlobalRevocationStore)
+	if !ok {
+		return 0, nil
+	}
+	total := 0
+	for range mfaPurgeBatches {
+		n, err := repo.PurgeGlobalRevocationJTIs(ctx, before, mfaPurgeBatch)
+		if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+			return total, nil
+		}
+		total += n
+		if err != nil || n < mfaPurgeBatch {
+			return total, err
+		}
+	}
+	return total, nil
 }

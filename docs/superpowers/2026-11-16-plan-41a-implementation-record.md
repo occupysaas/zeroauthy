@@ -192,3 +192,29 @@ the earlier in-progress verification and unimplemented-sender statements.
 Still pending: global revocation, console, seed/Deploy CLI, new conformance
 profiles, E2E lane, final documentation, full local checks and review. Nothing
 has been pushed.
+
+
+## Tasks 9–10 checkpoint
+
+Optional session metadata tests pass for true/false and empty data. Global
+revocation now verifies explicit-type asymmetric JWTs with the selected
+enterprise OIDC/Okta connection's pinned issuer and JWKS, configured client
+subject, exact endpoint audience, five-minute validity and single-use jti.
+The audience corrects the earlier design assumption based on current
+Auth0-linked Okta documentation; D-0080 records the sources and migration
+impact. Unknown subjects return 204 and still consume the jti. Email lookup
+is restricted to owners in that connection's federated identity index and
+uses the selected identity's email; ambiguous matches select nobody.
+
+A transaction consumes the hashed connection-scoped jti, bumps the user's
+version, revokes all refresh tokens and ends sessions with idp-logout jobs.
+The sweeper purges expired replay entries. SQL, memory and gRPC carry the
+new replay state and lookup. Discovery exposes the connection endpoint
+template and private_key_jwt authentication. Real universal_logout outcome
+logs are enabled and contain no JWT, email or upstream user subject.
+
+Focused seven-package verification passed in task10-focused-fixed.log;
+actual GlobalRevocationState memory/SQLite/gRPC subtests passed. Retained
+failures include malformed log inventory trigger shape and an unquoted YAML
+brace description; both were corrected and subsequent checks passed.
+No full local suite or final review has been claimed and nothing is pushed.

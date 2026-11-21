@@ -2034,7 +2034,11 @@
       "origin": "public-catalog",
       "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a emits this after a durable delivery completes. No sslo/fslo aliases.",
       "triggers": [
-        {"file": "internal/logout/deliver.go", "function": "Finished", "when": "After the durable logout job's fenced terminal outcome is committed."}
+        {
+          "file": "internal/logout/deliver.go",
+          "function": "Finished",
+          "when": "After the durable logout job's fenced terminal outcome is committed."
+        }
       ]
     },
     {
@@ -2048,7 +2052,11 @@
       "origin": "public-catalog",
       "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a emits this after a durable delivery completes. No sslo/fslo aliases.",
       "triggers": [
-        {"file": "internal/logout/deliver.go", "function": "Finished", "when": "After the durable logout job's fenced terminal outcome is committed."}
+        {
+          "file": "internal/logout/deliver.go",
+          "function": "Finished",
+          "when": "After the durable logout job's fenced terminal outcome is committed."
+        }
       ]
     },
     {
@@ -3007,25 +3015,37 @@
       "type": "universal_logout_failed",
       "description": "A universal sign-out operation could not complete.",
       "category": "auth.logout.fail",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/universal-logout-failed",
       "origin": "public-catalog",
       "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
-      "triggers": []
+      "triggers": [
+        {
+          "file": "internal/oauth/global_revocation.go",
+          "function": "GlobalTokenRevocation",
+          "when": "After an authenticated revocation commits, or revocation authentication or commit fails."
+        }
+      ]
     },
     {
       "type": "universal_logout_succeeded",
       "description": "A universal sign-out operation completed.",
       "category": "auth.logout.success",
-      "emitted": false,
+      "emitted": true,
       "plan": 41,
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/universal-logout-succeeded",
       "origin": "public-catalog",
       "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
-      "triggers": []
+      "triggers": [
+        {
+          "file": "internal/oauth/global_revocation.go",
+          "function": "GlobalTokenRevocation",
+          "when": "After an authenticated revocation commits, or revocation authentication or commit fails."
+        }
+      ]
     },
     {
       "type": "w",

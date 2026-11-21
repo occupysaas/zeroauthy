@@ -352,3 +352,18 @@ func TestSweepSessionLogout(t *testing.T) {
 		t.Fatal("general sweeper omitted logout notification")
 	}
 }
+
+func TestSweepGlobalRevocationReplayState(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	now := time.Now().UTC()
+	if err := st.UseGlobalRevocationJTI(t.Context(), "t", "conn", "one", now.Add(time.Minute), now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sweep(t.Context(), st, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UseGlobalRevocationJTI(t.Context(), "t", "conn", "one", now.Add(time.Minute), now); err != nil {
+		t.Fatal("expired replay state was not purged", err)
+	}
+}
