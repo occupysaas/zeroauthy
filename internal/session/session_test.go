@@ -435,6 +435,9 @@ func TestTenantSessionLegacyCookieMode(t *testing.T) {
 
 func TestEndNotificationTransaction(t *testing.T) {
 	m, clock, tn := setup()
+	if err := m.Store.Tenants().Create(t.Context(), tn); err != nil {
+		t.Fatal(err)
+	}
 	rec := httptest.NewRecorder()
 	sess, err := m.Start(t.Context(), rec, requestWith(nil), tn, "u", "DB", clock.t)
 	if err != nil {
