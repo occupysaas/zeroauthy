@@ -131,6 +131,9 @@ paths:
         - {name: scope, in: query, schema: {type: string}, description: "Space-separated scopes, e.g. `openid profile email`."}
         - {name: state, in: query, schema: {type: string}, description: Opaque value returned unchanged.}
         - {name: nonce, in: query, schema: {type: string}, description: Value copied into the ID token.}
+        - {name: claims, in: query, schema: {type: string, maxLength: 4096, x-max-bytes: 4096}, description: 'JSON OIDC claims request; never widens scope consent (D-0080).'}
+        - {name: acr_values, in: query, schema: {type: string}, description: Space-separated authentication context values. The multi-factor policy value requests MFA step-up.}
+        - {name: resource, in: query, schema: {type: array, items: {type: string}}, description: 'Audience alias under the tenant compatibility resource profile; multiple values fail with invalid_target (D-0080).'}
         - {name: audience, in: query, schema: {type: string}, description: Identifier of the API to issue an access token for.}
         - {name: prompt, in: query, schema: {type: string}, description: "`none` (fail instead of showing login) or `login` (force login)."}
         - {name: max_age, in: query, schema: {type: string}, description: Maximum authentication age in seconds.}
@@ -224,6 +227,46 @@ paths:
                 $ref: "#/components/schemas/OAuthError"
         default:
           $ref: "#/components/responses/ServerError"
+  /oauth/global-token-revocation/connection/{connectionName}:
+    post:
+      operationId: globalTokenRevocation
+      tags: [Tokens]
+      summary: End a federated user's sessions and revoke refresh tokens
+      description: Authenticates a short-lived, single-use upstream issuer JWT. Subject resolution is restricted to the named enterprise OIDC connection. Unknown subjects succeed without revealing their existence (D-0080).
+      x-source:
+        - https://auth0.com/docs/authenticate/login/logout/universal-logout
+        - https://datatracker.ietf.org/doc/html/draft-parecki-oauth-global-token-revocation
+      security: [{globalRevocationJWT: []}]
+      parameters:
+        - name: connectionName
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [sub_id]
+              properties:
+                sub_id:
+                  type: object
+                  additionalProperties: false
+                  required: [format]
+                  description: iss_sub requires iss and sub; email requires email. Only identities belonging to this connection are considered.
+                  properties:
+                    format: {type: string, enum: [iss_sub, email]}
+                    iss: {type: string}
+                    sub: {type: string}
+                    email: {type: string}
+      responses:
+        "204": {description: Revoked or unknown subject.}
+        "400": {description: Malformed request.}
+        "401": {description: Invalid or replayed upstream revocation JWT.}
+        "404": {description: Unknown or unsupported connection.}
+        "500": {description: Revocation could not commit; no partial revocation was applied.}
   /oauth/token:
     post:
       x-mfa-grants:
@@ -1364,6 +1407,11 @@ components:
         in the same format as the client quota header.
       schema: {type: string}
   securitySchemes:
+    globalRevocationJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: global-token-revocation+jwt
+      description: Signed by the connection issuer with pinned JWKS; tenant issuer audience; exp required and at most five minutes ahead; single-use jti.
     clientSecretBasic:
       type: http
       scheme: basic
@@ -1581,6 +1629,9 @@ components:
         scope: {type: string}
         state: {type: string}
         nonce: {type: string}
+        claims: {type: string, maxLength: 4096, x-max-bytes: 4096, description: JSON OIDC claims request (Core section 5.5).}
+        acr_values: {type: string}
+        resource: {type: string}
         audience: {type: string}
         prompt: {type: string}
         max_age: {type: string}
@@ -1795,6 +1846,9 @@ components:
         redirect_uri: {type: string}
         scope: {type: string}
         state: {type: string}
+        claims: {type: string, maxLength: 4096, x-max-bytes: 4096, description: JSON OIDC claims request (Core section 5.5).}
+        acr_values: {type: string}
+        resource: {type: string}
         audience: {type: string}
       additionalProperties: {type: string}
     DeviceCodeRequest:
@@ -1909,6 +1963,11 @@ components:
         requested_token_type:
           type: string
           description: Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
+        resource:
+          oneOf:
+            - {type: string}
+            - {type: array, items: {type: string}}
+          description: Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
         audience:
           type: string
           description: |
@@ -2003,7 +2062,11 @@ components:
         request_object_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for request objects; present when the store supports client credentials.}
         token_endpoint_auth_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for client assertions; present when the store supports client credentials.}
         jwks_uri: {type: string, format: uri}
-        end_session_endpoint: {type: string, format: uri}
+        global_token_revocation_endpoint: {type: string, description: "Connection-specific endpoint template with literal {connectionName}."}
+        global_token_revocation_endpoint_auth_methods_supported: {type: array, items: {type: string, enum: [global-token-revocation+jwt]}}
+        backchannel_logout_supported: {type: boolean, description: Advertised when oidc_logout.v1 client settings are available.}
+        backchannel_logout_session_supported: {type: boolean}
+        end_session_endpoint: {type: string, format: uri, description: Omitted when the tenant disables RP logout discovery; the endpoint remains available.}
         response_types_supported: {type: array, items: {type: string}}
         subject_types_supported: {type: array, items: {type: string}}
         id_token_signing_alg_values_supported: {type: array, items: {type: string}}
@@ -2013,6 +2076,8 @@ components:
         response_modes_supported: {type: array, items: {type: string}}
         code_challenge_methods_supported: {type: array, items: {type: string}}
         scopes_supported: {type: array, items: {type: string}}
+        acr_values_supported: {type: array, items: {type: string}, description: Effective supported authentication contexts; defaults to the multi-factor PAPE policy value.}
+        claims_parameter_supported: {type: boolean, description: Present and true unless the claims-parameter compatibility switch is enabled (D-0080).}
         claims_supported: {type: array, items: {type: string}}
     JWKS:
       type: object

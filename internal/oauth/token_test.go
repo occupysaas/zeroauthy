@@ -195,3 +195,39 @@ func TestClientCredentialsStoredAllowAllNeedsGrant(t *testing.T) {
 		t.Fatalf("got %d %v", rec.Code, body)
 	}
 }
+
+func TestTokenResourceProfile(t *testing.T) {
+	f := newFixture(t)
+	tid := f.tenantID(t, "acme")
+	tn, err := f.st.Tenants().Get(t.Context(), tid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tn.DefaultAudience = ""
+	tn.SettingsExtra = map[string]any{"resource_parameter_profile": "compatibility"}
+	if err := f.st.Tenants().Update(t.Context(), tn); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		resources []string
+		aud, code string
+	}{
+		{[]string{"https://api.acme.test"}, "", ""},
+		{[]string{"https://api.acme.test"}, "https://api.acme.test", ""},
+		{[]string{"https://api.acme.test"}, "different", "invalid_request"},
+		{[]string{"https://api.acme.test", "https://api.acme.test"}, "", "invalid_target"},
+	} {
+		form := url.Values{"grant_type": {"client_credentials"}, "client_id": {"m2m"}, "client_secret": {"m2m-secret"}, "resource": tc.resources}
+		if tc.aud != "" {
+			form.Set("audience", tc.aud)
+		}
+		rec, out := f.call(t, false, tokenCall{host: "acme.example.test", form: form})
+		if tc.code != "" {
+			if rec.Code != 400 || out["error"] != tc.code {
+				t.Fatalf("resource refusal: status=%d code=%v want=%s", rec.Code, out["error"], tc.code)
+			}
+		} else if rec.Code != 200 {
+			t.Fatalf("resource alias status=%d code=%v", rec.Code, out["error"])
+		}
+	}
+}

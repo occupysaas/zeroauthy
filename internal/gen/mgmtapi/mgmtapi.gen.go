@@ -1239,6 +1239,90 @@ func (e ClientGrantSettingsOrganizationUsage) Valid() bool {
 	}
 }
 
+// Defines values for ClientOIDCLogoutBackchannelLogoutInitiatorsMode.
+const (
+	ClientOIDCLogoutBackchannelLogoutInitiatorsModeAll    ClientOIDCLogoutBackchannelLogoutInitiatorsMode = "all"
+	ClientOIDCLogoutBackchannelLogoutInitiatorsModeCustom ClientOIDCLogoutBackchannelLogoutInitiatorsMode = "custom"
+)
+
+// Valid indicates whether the value is a known member of the ClientOIDCLogoutBackchannelLogoutInitiatorsMode enum.
+func (e ClientOIDCLogoutBackchannelLogoutInitiatorsMode) Valid() bool {
+	switch e {
+	case ClientOIDCLogoutBackchannelLogoutInitiatorsModeAll:
+		return true
+	case ClientOIDCLogoutBackchannelLogoutInitiatorsModeCustom:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators.
+const (
+	AccountDeactivated     ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "account-deactivated"
+	AccountDeleted         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "account-deleted"
+	EmailIdentifierChanged ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "email-identifier-changed"
+	IdpLogout              ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "idp-logout"
+	MfaPhoneUnenrolled     ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "mfa-phone-unenrolled"
+	PasswordChanged        ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "password-changed"
+	ProfileChanged         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "profile-changed"
+	RpLogout               ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "rp-logout"
+	SessionExpired         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "session-expired"
+	SessionRevoked         ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators = "session-revoked"
+)
+
+// Valid indicates whether the value is a known member of the ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators enum.
+func (e ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators) Valid() bool {
+	switch e {
+	case AccountDeactivated:
+		return true
+	case AccountDeleted:
+		return true
+	case EmailIdentifierChanged:
+		return true
+	case IdpLogout:
+		return true
+	case MfaPhoneUnenrolled:
+		return true
+	case PasswordChanged:
+		return true
+	case ProfileChanged:
+		return true
+	case RpLogout:
+		return true
+	case SessionExpired:
+		return true
+	case SessionRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientOIDCSupportAllowedScopes.
+const (
+	ClientOIDCSupportAllowedScopesAddress ClientOIDCSupportAllowedScopes = "address"
+	ClientOIDCSupportAllowedScopesEmail   ClientOIDCSupportAllowedScopes = "email"
+	ClientOIDCSupportAllowedScopesPhone   ClientOIDCSupportAllowedScopes = "phone"
+	ClientOIDCSupportAllowedScopesProfile ClientOIDCSupportAllowedScopes = "profile"
+)
+
+// Valid indicates whether the value is a known member of the ClientOIDCSupportAllowedScopes enum.
+func (e ClientOIDCSupportAllowedScopes) Valid() bool {
+	switch e {
+	case ClientOIDCSupportAllowedScopesAddress:
+		return true
+	case ClientOIDCSupportAllowedScopesEmail:
+		return true
+	case ClientOIDCSupportAllowedScopesPhone:
+		return true
+	case ClientOIDCSupportAllowedScopesProfile:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientSettingsOrganizationDiscoveryMethods.
 const (
 	ClientSettingsOrganizationDiscoveryMethodsEmail            ClientSettingsOrganizationDiscoveryMethods = "email"
@@ -3332,12 +3416,18 @@ func (e JobType) Valid() bool {
 
 // Defines values for JwtConfigurationAlg.
 const (
+	JwtConfigurationAlgHS256 JwtConfigurationAlg = "HS256"
+	JwtConfigurationAlgPS256 JwtConfigurationAlg = "PS256"
 	JwtConfigurationAlgRS256 JwtConfigurationAlg = "RS256"
 )
 
 // Valid indicates whether the value is a known member of the JwtConfigurationAlg enum.
 func (e JwtConfigurationAlg) Valid() bool {
 	switch e {
+	case JwtConfigurationAlgHS256:
+		return true
+	case JwtConfigurationAlgPS256:
+		return true
 	case JwtConfigurationAlgRS256:
 		return true
 	default:
@@ -8128,6 +8218,10 @@ type Client struct {
 	// Facebook and Google enforcement belongs to Plan 39b.
 	NativeSocialLogin *NativeSocialLogin   `json:"native_social_login,omitempty"`
 	OidcConformant    ClientOidcConformant `json:"oidc_conformant"`
+	OidcLogout        *ClientOIDCLogout    `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods Left out when unset.
 	OrganizationDiscoveryMethods *[]ClientOrganizationDiscoveryMethods `json:"organization_discovery_methods,omitempty"`
@@ -8286,7 +8380,11 @@ type ClientCreate struct {
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
-	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+	OidcConformant *bool             `json:"oidc_conformant,omitempty"`
+	OidcLogout     *ClientOIDCLogout `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods How the organization prompt finds the organization (Early Access
 	// upstream). Only with `organization_require_behavior`
@@ -8568,6 +8666,37 @@ type ClientMobileIOS struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
+// ClientOIDCLogout defines model for ClientOIDCLogout.
+type ClientOIDCLogout struct {
+	// BackchannelLogoutInitiators Custom mode requires selected_initiators including rp-logout and idp-logout. Absent defaults to those two initiators.
+	BackchannelLogoutInitiators *struct {
+		Mode               ClientOIDCLogoutBackchannelLogoutInitiatorsMode                  `json:"mode"`
+		SelectedInitiators *[]ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators `json:"selected_initiators,omitempty"`
+	} `json:"backchannel_logout_initiators,omitempty"`
+	BackchannelLogoutSessionMetadata *struct {
+		Include *bool `json:"include,omitempty"`
+	} `json:"backchannel_logout_session_metadata,omitempty"`
+
+	// BackchannelLogoutUrls Public HTTPS receiver. Organization ID and name placeholders are supported (D-0080).
+	BackchannelLogoutUrls *[]string `json:"backchannel_logout_urls,omitempty"`
+}
+
+// ClientOIDCLogoutBackchannelLogoutInitiatorsMode defines model for ClientOIDCLogout.BackchannelLogoutInitiators.Mode.
+type ClientOIDCLogoutBackchannelLogoutInitiatorsMode string
+
+// ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators defines model for ClientOIDCLogout.BackchannelLogoutInitiators.SelectedInitiators.
+type ClientOIDCLogoutBackchannelLogoutInitiatorsSelectedInitiators string
+
+// ClientOIDCSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+type ClientOIDCSupport struct {
+	AllowAllScopes *bool                             `json:"allow_all_scopes,omitempty"`
+	AllowedScopes  *[]ClientOIDCSupportAllowedScopes `json:"allowed_scopes,omitempty"`
+	IsAllowed      bool                              `json:"is_allowed"`
+}
+
+// ClientOIDCSupportAllowedScopes defines model for ClientOIDCSupport.AllowedScopes.
+type ClientOIDCSupportAllowedScopes string
+
 // ClientPage A page of applications with `include_totals=true`.
 type ClientPage struct {
 	Clients []Client `json:"clients"`
@@ -8662,7 +8791,11 @@ type ClientSettings struct {
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
-	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+	OidcConformant *bool             `json:"oidc_conformant,omitempty"`
+	OidcLogout     *ClientOIDCLogout `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods How the organization prompt finds the organization (Early Access
 	// upstream). Only with `organization_require_behavior`
@@ -8829,7 +8962,11 @@ type ClientUpdate struct {
 	NativeSocialLogin *NativeSocialLogin `json:"native_social_login,omitempty"`
 
 	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
-	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+	OidcConformant *bool             `json:"oidc_conformant,omitempty"`
+	OidcLogout     *ClientOIDCLogout `json:"oidc_logout,omitempty"`
+
+	// OidcSupport OIDC and scope restrictions. Null restores OIDC with all scopes. allow_all_scopes and allowed_scopes cannot both be supplied (D-0080).
+	OidcSupport *ClientOIDCSupport `json:"oidc_support,omitempty"`
 
 	// OrganizationDiscoveryMethods How the organization prompt finds the organization (Early Access
 	// upstream). Only with `organization_require_behavior`
@@ -10568,17 +10705,17 @@ type JobPage struct {
 
 // JwtConfiguration ID token settings.
 type JwtConfiguration struct {
-	// Alg The signing algorithm; zeroauthy signs with RS256 only.
+	// Alg ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
 	Alg *JwtConfigurationAlg `json:"alg,omitempty"`
 
 	// LifetimeInSeconds ID token lifetime; 36000 by default.
 	LifetimeInSeconds *int `json:"lifetime_in_seconds,omitempty"`
 
-	// SecretEncoded Accepted and ignored (HS256 is not offered).
+	// SecretEncoded Legacy setting, accepted and ignored. HS256 uses the client secret UTF-8 bytes (D-0080).
 	SecretEncoded *bool `json:"secret_encoded,omitempty"`
 }
 
-// JwtConfigurationAlg The signing algorithm; zeroauthy signs with RS256 only.
+// JwtConfigurationAlg ID token algorithm. HS256 requires a confidential client with a usable client secret (D-0080).
 type JwtConfigurationAlg string
 
 // ListTotals The paging members of a list returned with `include_totals=true`; the
@@ -12941,7 +13078,7 @@ type ResourceServerCreate struct {
 	// (D-0063).
 	SigningAlg *ResourceServerCreateSigningAlg `json:"signing_alg,omitempty"`
 
-	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// SigningSecret HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
 	// bytes, base64url) when an HS256 API is created without one; sent
 	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
 	SigningSecret                             *string `json:"signing_secret,omitempty"`
@@ -13030,7 +13167,7 @@ type ResourceServerSettings struct {
 	// (D-0063).
 	SigningAlg *ResourceServerSettingsSigningAlg `json:"signing_alg,omitempty"`
 
-	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// SigningSecret HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
 	// bytes, base64url) when an HS256 API is created without one; sent
 	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
 	SigningSecret                             *string `json:"signing_secret,omitempty"`
@@ -13331,7 +13468,7 @@ type TenantSettings struct {
 		} `json:"claims_mapping,omitempty"`
 	} `json:"access_token,omitempty"`
 
-	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// AcrValuesSupported Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
 	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
 
 	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13456,7 +13593,7 @@ type TenantSettings struct {
 		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
 	} `json:"mtls,omitempty"`
 
-	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// OidcLogout Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
 	OidcLogout *struct {
 		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
 	} `json:"oidc_logout,omitempty"`
@@ -13466,7 +13603,7 @@ type TenantSettings struct {
 	PictureUrl                           *string `json:"picture_url,omitempty"`
 	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
 
-	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 	ResourceParameterProfile *TenantSettingsResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
 
 	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13537,7 +13674,7 @@ type TenantSettingsDynamicClientRegistrationSecurityMode string
 // TenantSettingsEnabledLocales defines model for TenantSettings.EnabledLocales.
 type TenantSettingsEnabledLocales string
 
-// TenantSettingsResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 type TenantSettingsResourceParameterProfile string
 
 // TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettings.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.
@@ -13564,7 +13701,7 @@ type TenantSettingsPatch struct {
 		} `json:"claims_mapping,omitempty"`
 	} `json:"access_token,omitempty"`
 
-	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// AcrValuesSupported Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
 	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
 
 	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13698,7 +13835,7 @@ type TenantSettingsPatch struct {
 		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
 	} `json:"mtls,omitempty"`
 
-	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// OidcLogout Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
 	OidcLogout *struct {
 		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
 	} `json:"oidc_logout,omitempty"`
@@ -13708,7 +13845,7 @@ type TenantSettingsPatch struct {
 	PictureUrl                           *string `json:"picture_url,omitempty"`
 	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
 
-	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 	ResourceParameterProfile *TenantSettingsPatchResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
 
 	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13779,7 +13916,7 @@ type TenantSettingsPatchDynamicClientRegistrationSecurityMode string
 // TenantSettingsPatchEnabledLocales defines model for TenantSettingsPatch.EnabledLocales.
 type TenantSettingsPatchEnabledLocales string
 
-// TenantSettingsPatchResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsPatchResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 type TenantSettingsPatchResourceParameterProfile string
 
 // TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettingsPatch.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.

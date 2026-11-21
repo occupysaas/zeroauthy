@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"slices"
 	"time"
 
@@ -105,6 +106,11 @@ func proofJKT(ctx context.Context) string {
 // remain independent. The user lock serializes this with token issuance.
 func (h *Handlers) endOnlineSession(ctx context.Context, res tenant.Resolved, rt *store.RefreshToken) error {
 	return h.Store.WithTx(ctx, func(tx store.Store) error {
+		if h.Logout != nil {
+			if _, err := tx.Tenants().Get(ctx, rt.TenantID); err != nil {
+				return err
+			}
+		}
 		if _, e := tx.Users().GetForUpdate(ctx, rt.TenantID, rt.UserID); e != nil {
 			if errors.Is(e, store.ErrNotFound) {
 				return nil
@@ -121,7 +127,7 @@ func (h *Handlers) endOnlineSession(ctx context.Context, res tenant.Resolved, rt
 		if current.RevokedAt != nil || !h.now().UTC().Before(current.ExpiresAt) || current.ID != rt.ID || current.ClientID != rt.ClientID || current.UserID != rt.UserID || current.Access != "online" || res.CheckOrigin(current.Origin) != nil {
 			return nil
 		}
-		s, e := tx.Sessions().Get(ctx, rt.TenantID, current.SessionID)
+		s, e := tx.Sessions().GetForUpdate(ctx, rt.TenantID, current.SessionID)
 		if errors.Is(e, store.ErrNotFound) {
 			return nil
 		}
@@ -133,6 +139,11 @@ func (h *Handlers) endOnlineSession(ctx context.Context, res tenant.Resolved, rt
 		}
 		if e := tx.Sessions().Delete(ctx, rt.TenantID, s.ID); e != nil && !errors.Is(e, store.ErrNotFound) {
 			return e
+		}
+		if h.Logout != nil {
+			if err := h.Logout.WithStore(tx).SessionsEnded(ctx, rt.TenantID, []*store.LoginSession{s}, logout.SessionRevoked); err != nil {
+				return err
+			}
 		}
 		return tx.RefreshTokens().RevokeFamily(ctx, rt.TenantID, current.FamilyID, h.now().UTC())
 	})

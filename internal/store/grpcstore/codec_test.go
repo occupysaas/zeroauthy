@@ -163,6 +163,7 @@ func TestTenantRoundTrip(t *testing.T) {
 
 func TestClientRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Client{
+		IDTokenAlg: "PS256", OIDCSupport: &store.OIDCSupport{IsAllowed: true, AllowAllScopes: ptr(true), AllowedScopes: []string{"email"}}, OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "custom", Initiators: []string{"rp-logout", "idp-logout"}, IncludeSessionMetadata: ptr(true)},
 		RequireProofOfPossession: true, TokenQuota: &store.TokenQuota{Enforce: true, PerHour: 6, PerDay: 15},
 		TenantID: "ten", ClientID: "cid", Name: "App", AppType: store.AppTypeRegularWeb, InitiateLoginURI: "https://app.example/login?keep=yes",
 		PrivateKeyJWTCredentials: []string{"cred_1"}, SignedRequestObject: &store.SignedRequestObject{Required: true, Credentials: []string{"cred_1"}}, TokenExchangeTypes: []string{"urn:example:t"},
@@ -351,8 +352,9 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
-		Metadata: map[string]string{"purpose": "roundtrip"},
-		MFAAt:    nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
+		ClientOrganizations: map[string]string{"c1": "org_0123456789abcdef"},
+		Metadata:            map[string]string{"purpose": "roundtrip"},
+		MFAAt:               nanoTime, Origin: "https://login.example", AuthMethods: []store.AuthMethod{{Name: "mfa", Type: "otp", At: nanoTime.UTC().Truncate(time.Microsecond)}},
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
@@ -378,6 +380,7 @@ func TestAuthTransactionRoundTrip(t *testing.T) {
 
 func TestAuthCodeRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthCode{
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		DPoPJKT:  "key",
 		Origin:   "https://login.example",
 		TenantID: "ten", CodeHash: "ch", ClientID: "cid", RedirectURI: "https://cb", UserID: "auth0|u1",
@@ -393,6 +396,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 
 func TestRefreshTokenRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.RefreshToken{
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		DPoPJKT: "key", ParentID: "previous", Access: "offline", Metadata: map[string]string{"role": "app"}, LastExchangedAt: ptr(nanoTime),
 		Device:   &store.RefreshTokenDevice{InitialIP: "192.0.2.1", LastIP: "192.0.2.2", InitialASN: "AS64496", LastASN: "AS64497", InitialUserAgent: "one", LastUserAgent: "two"},
 		Origin:   "https://login.example",

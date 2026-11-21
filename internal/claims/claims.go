@@ -2,7 +2,6 @@
 package claims
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -11,26 +10,7 @@ import (
 // ForUser returns the claims a user's ID token and /userinfo response
 // carry for the granted scopes (OpenID Connect Core §5.4).
 func ForUser(u *store.User, scopes []string) map[string]any {
-	out := map[string]any{"sub": u.UserID}
-	if slices.Contains(scopes, "profile") {
-		out["name"] = Name(u)
-		out["nickname"] = Nickname(u)
-		out["updated_at"] = u.UpdatedAt.Unix()
-		if u.Picture != "" {
-			out["picture"] = u.Picture
-		}
-		if u.GivenName != "" {
-			out["given_name"] = u.GivenName
-		}
-		if u.FamilyName != "" {
-			out["family_name"] = u.FamilyName
-		}
-	}
-	if slices.Contains(scopes, "email") {
-		out["email"] = u.Email
-		out["email_verified"] = u.EmailVerified
-	}
-	return out
+	return Select(u, PrimaryProfile(u), scopes, nil, "userinfo")
 }
 
 // Name is the display name, falling back to the email or username.

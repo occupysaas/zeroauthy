@@ -28,10 +28,17 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 26
+      # Each SQL conformance case migrates a fresh database. Keep those files
+      # on tmpfs to avoid disk fsync dominating race-instrumented SQLite.
+      # Compiler scratch stays on disk so builds cannot exhaust /dev/shm.
+      - name: temporary storage for tests
+        run: install -d -m 700 /dev/shm/za-test /tmp/za-build
       # grpcstore and sqlstore run longer than go test's 10-minute default
       # under -race on hosted runners.
       - run: go test -race -timeout=60m ./...
         env:
+          TMPDIR: /dev/shm/za-test
+          GOTMPDIR: /tmp/za-build
           ZA_REQUIRE_NODE: "1"
       - run: CGO_ENABLED=0 go build ./cmd/zeroauthy
       - name: generated code is up to date
@@ -82,7 +89,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [e2e, e2e-domains, e2e-deploy, e2e-signing, e2e-branding, e2e-email, e2e-social, e2e-enterprise-oidc, e2e-apple, e2e-github, e2e-email-accounts, e2e-rbac, e2e-actions, e2e-actions-ii, e2e-organizations, e2e-organizations-ii, e2e-logs, e2e-events, e2e-mfa, e2e-passkeys, e2e-passwordless, e2e-client-auth, e2e-refresh-tokens]
+        suite: [e2e, e2e-domains, e2e-deploy, e2e-signing, e2e-branding, e2e-email, e2e-social, e2e-enterprise-oidc, e2e-apple, e2e-github, e2e-email-accounts, e2e-rbac, e2e-actions, e2e-actions-ii, e2e-organizations, e2e-organizations-ii, e2e-logs, e2e-events, e2e-mfa, e2e-passkeys, e2e-passwordless, e2e-client-auth, e2e-refresh-tokens, e2e-logout]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:

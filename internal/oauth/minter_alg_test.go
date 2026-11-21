@@ -113,7 +113,7 @@ func TestMinterEmptyAlgIsRS256(t *testing.T) {
 
 func TestMinterHS256ShortSecret(t *testing.T) {
 	m := &Minter{Keys: newTestKeys(t, "ten_a"), Now: fixedNow}
-	secret := []byte("0123456789abcdef") // the 16-character minimum (C15)
+	secret := []byte("0123456789abcdef") // legacy stored secret shorter than the new 32-character write minimum
 	raw, err := m.AccessToken(context.Background(), algParams("HS256", secret))
 	if err != nil {
 		t.Fatal(err)

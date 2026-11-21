@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	oidcclaims "github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 )
 
@@ -345,7 +346,15 @@ func profileFromClaims(sub string, claims map[string]any) (Profile, error) {
 	if err != nil {
 		return Profile{}, err
 	}
-	return NormalizeProfile(raw)
+	p, err := NormalizeProfile(raw)
+	if err != nil {
+		return Profile{}, err
+	}
+	extra := oidcclaims.IdentityClaims(claims)
+	if encoded, err := json.Marshal(extra); err == nil && len(encoded) <= maxProfileBytes && len(extra) > 0 {
+		p.ProviderData = extra
+	}
+	return p, nil
 }
 
 // oauth2Provider is the generic OAuth 2 code flow: S256 PKCE, one

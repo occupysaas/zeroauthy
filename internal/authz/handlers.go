@@ -4,6 +4,7 @@ package authz
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"log/slog"
 	"mime"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -40,6 +42,7 @@ const (
 )
 
 type Handlers struct {
+	Compat compat.Switches
 	// Passkeys decides post-MFA enrollment prompts.
 	Passkeys *passkey.Service
 	MFA      *mfa.Service
@@ -143,6 +146,8 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		ctx = logscrub.WithCredentials(ctx, req.Invitation)
 		*r = *r.WithContext(ctx)
 	}
+	req.IgnoreClaimsParameter = h.Compat.IgnoreClaimsParameter
+	req.OptionalRedirectURI = h.Compat.OptionalRedirectURI
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
@@ -450,6 +455,7 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 		connectionID = conn.ID
 	}
 	ac := &store.AuthCode{
+		UserInfoClaims: claims.RequestedUserInfoSessionClaims(req.Claims),
 		DPoPJKT:        req.DPoPJKT,
 		OrganizationID: req.OrgID, OrganizationConnectionID: connectionID,
 		ActionEffects:       sealed,
@@ -470,10 +476,14 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 		ExpiresAt:           now.Add(CodeLifetime),
 		CreatedAt:           now,
 	}
+	if !sess.MFAAt.IsZero() {
+		ac.ACR = requestedACR(req, res.Tenant)
+	}
+
 	if err := h.Store.AuthCodes().Create(ctx, ac); err != nil {
 		return "", err
 	}
-	if err := h.Sessions.AddClient(ctx, sess, client.ClientID); err != nil {
+	if err := h.Sessions.AddClientOrganization(ctx, sess, client, req.OrgID); err != nil {
 		return "", err
 	}
 	return code, nil

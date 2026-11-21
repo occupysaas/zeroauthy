@@ -14,6 +14,8 @@ func cloneTenant(t *store.Tenant) *store.Tenant { return t.Clone() }
 
 func cloneClient(c *store.Client) *store.Client {
 	out := *c
+	out.OIDCSupport = c.OIDCSupport.Clone()
+	out.OIDCLogout = c.OIDCLogout.Clone()
 	out.TokenQuota = cloneValue(c.TokenQuota)
 	out.RefreshToken.Policies = store.CloneMRRTPolicies(c.RefreshToken.Policies)
 	out.Secrets = make([]store.ClientSecret, len(c.Secrets))
@@ -130,6 +132,7 @@ func cloneUser(u *store.User) *store.User {
 
 func cloneSession(s *store.LoginSession) *store.LoginSession {
 	out := *s
+	out.ClientOrganizations = maps.Clone(s.ClientOrganizations)
 	out.Metadata = maps.Clone(s.Metadata)
 	out.ClientIDs = slices.Clone(s.ClientIDs)
 	out.AuthMethods = slices.Clone(s.AuthMethods)

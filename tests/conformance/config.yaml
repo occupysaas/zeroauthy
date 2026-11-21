@@ -12,9 +12,16 @@ storage:
   dsn: sqlite:///run/zeroauthy/data/conformance.db
   auto_migrate: true
 seed: /repo/tests/conformance/seed.yaml
+seed_mode: create_only
 log:
   level: info
   format: text
 email:
   driver: dir
   dir: /run/zeroauthy/data/mail
+
+# The suite receiver is on this isolated container network. Production keeps
+# the default guarded public-address policy. Trust is the per-run CA only.
+logs:
+  streams:
+    allow_private_networks: true

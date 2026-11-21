@@ -306,3 +306,32 @@ func TestBootstrapRefreshTokensII(t *testing.T) {
 		t.Fatal("bootstrap did not persist protected settings")
 	}
 }
+
+func TestBootstrapOIDCSettings(t *testing.T) {
+	f, err := seed.Parse([]byte(`tenants: [{name: destination, domains: [dest.example.test]}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := Export{Resources: map[string]json.RawMessage{"clients": json.RawMessage(`[{"client_id":"oidc-client","name":"OIDC","app_type":"spa","token_endpoint_auth_method":"none","jwt_configuration":{"alg":"PS256"},"oidc_support":{"is_allowed":true,"allowed_scopes":["email"]},"oidc_logout":{"backchannel_logout_urls":["https://rp.example/logout"],"backchannel_logout_initiators":{"mode":"all"}}}]`)}}
+	prepared, err := PrepareBootstrap(source, f, nil, BootstrapOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := memory.New()
+	defer st.Close()
+	w, _ := keys.NewLocalWrapper([]byte(strings.Repeat("t", 32)))
+	result, err := ApplyBootstrap(t.Context(), st, prepared, w, time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := st.Clients().Get(t.Context(), result.TenantID, "oidc-client")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.IDTokenAlg != "PS256" || c.OIDCLogout == nil || c.OIDCLogout.InitiatorsMode != "all" || c.OIDCSupport == nil || len(c.OIDCSupport.AllowedScopes) != 1 {
+		t.Fatal("OIDC bootstrap fields dropped")
+	}
+	if _, err := CheckBootstrap(t.Context(), st, prepared, w); err != nil {
+		t.Fatal("OIDC bootstrap rerun", err)
+	}
+}

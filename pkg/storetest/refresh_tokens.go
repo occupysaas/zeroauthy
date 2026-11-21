@@ -13,6 +13,7 @@ import (
 
 func newRefreshToken(tenantID, id, hash, family string) *store.RefreshToken {
 	return &store.RefreshToken{
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		TenantID: tenantID, ID: id, TokenHash: hash, FamilyID: family,
 		ClientID: "spa", UserID: "auth0|u1", SessionID: "s1",
 		Scopes: []string{"openid", "offline_access"}, Audience: "https://api.test",

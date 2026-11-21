@@ -7,6 +7,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -110,13 +111,40 @@ func purgeRefreshII(purge func(context.Context, time.Time, int) (int, error)) fu
 
 // sweep deletes expired records and returns how many it removed. A failure
 // in one kind of record does not stop the others.
-func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
+func sweep(ctx context.Context, st store.Store, now time.Time, notifications ...*logout.Service) (int, error) {
+	expireSessions := st.Sessions().DeleteExpired
+	if len(notifications) > 0 && notifications[0] != nil {
+		expireSessions = func(ctx context.Context, before time.Time) (int, error) {
+			total := 0
+			for {
+				if err := ctx.Err(); err != nil {
+					return total, err
+				}
+				n, err := notifications[0].WithStore(st).SweepExpired(ctx, before, 100)
+				if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+					return st.Sessions().DeleteExpired(ctx, before)
+				}
+				total += n
+				if err != nil || n < 100 {
+					return total, err
+				}
+				// Yield between transactions without delaying a large backlog by ten minutes.
+				timer := time.NewTimer(time.Millisecond)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					return total, ctx.Err()
+				case <-timer.C:
+				}
+			}
+		}
+	}
 	jobs := []struct {
 		del    func(context.Context, time.Time) (int, error)
 		before time.Time
 	}{
 		{st.AuthTransactions().DeleteExpired, now},
-		{st.Sessions().DeleteExpired, now},
+		{expireSessions, now},
 		{st.AuthCodes().DeleteExpired, now.Add(-codeRetention)},
 		{st.PushedAuthRequests().DeleteExpired, now},
 		{st.DeviceCodes().DeleteExpired, now.Add(-deviceCodeRetention)},
@@ -139,6 +167,9 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{func(ctx context.Context, before time.Time) (int, error) { return purgePhone(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeWebAuthn(ctx, st, before) }, now},
 		{func(ctx context.Context, before time.Time) (int, error) { return purgeJTIs(ctx, st, before) }, now},
+		{func(ctx context.Context, before time.Time) (int, error) {
+			return purgeGlobalRevocationJTIs(ctx, st, before)
+		}, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {
@@ -168,7 +199,7 @@ func (a *App) sweepLoop(ctx context.Context, every time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			n, err := sweep(logs.WithRecorder(ctx, a.logs), a.store, time.Now().UTC())
+			n, err := sweep(logs.WithRecorder(ctx, a.logs), a.store, time.Now().UTC(), a.logout)
 			if err != nil {
 				a.log.Error("purge expired records", "err", err)
 			}
@@ -177,4 +208,23 @@ func (a *App) sweepLoop(ctx context.Context, every time.Duration) {
 			}
 		}
 	}
+}
+
+func purgeGlobalRevocationJTIs(ctx context.Context, st store.Store, before time.Time) (int, error) {
+	repo, ok := st.(store.GlobalRevocationStore)
+	if !ok {
+		return 0, nil
+	}
+	total := 0
+	for range mfaPurgeBatches {
+		n, err := repo.PurgeGlobalRevocationJTIs(ctx, before, mfaPurgeBatch)
+		if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+			return total, nil
+		}
+		total += n
+		if err != nil || n < mfaPurgeBatch {
+			return total, err
+		}
+	}
+	return total, nil
 }

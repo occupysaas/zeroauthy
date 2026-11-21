@@ -1,45 +1,9 @@
 [
     {
-        "test-name": "oidcc-scope-address",
-        "variant": "*",
-        "configuration-filename": "*/configs/basic.json",
-        "comment": "D-0036: address scope and claims; follow-up"
-    },
-    {
-        "test-name": "oidcc-scope-phone",
-        "variant": "*",
-        "configuration-filename": "*/configs/basic.json",
-        "comment": "D-0036: phone scope and claims; follow-up"
-    },
-    {
-        "test-name": "oidcc-scope-all",
-        "variant": "*",
-        "configuration-filename": "*/configs/basic.json",
-        "comment": "D-0036: address and phone scopes; follow-up"
-    },
-    {
         "test-name": "oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported",
         "variant": "*",
         "configuration-filename": "*/configs/basic.json",
         "comment": "D-0036 / D-0035 / LR35-4: unsigned request objects stay refused with request_not_supported, which is permitted"
-    },
-    {
-        "test-name": "oidcc-scope-address",
-        "variant": "*",
-        "configuration-filename": "*/configs/formpost.json",
-        "comment": "D-0036: address scope and claims; follow-up"
-    },
-    {
-        "test-name": "oidcc-scope-phone",
-        "variant": "*",
-        "configuration-filename": "*/configs/formpost.json",
-        "comment": "D-0036: phone scope and claims; follow-up"
-    },
-    {
-        "test-name": "oidcc-scope-all",
-        "variant": "*",
-        "configuration-filename": "*/configs/formpost.json",
-        "comment": "D-0036: address and phone scopes; follow-up"
     },
     {
         "test-name": "oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -165,6 +166,35 @@ func TestAllowedURL(t *testing.T) {
 	} {
 		if got := AllowedURL(reg, uri); got != want {
 			t.Errorf("AllowedURL(%q) = %v, want %v", uri, got, want)
+		}
+	}
+}
+
+func TestClaimsAuthorizationValidation(t *testing.T) {
+	f := newFixture(t)
+	for _, tc := range []struct {
+		raw           string
+		ignore, valid bool
+	}{
+		{`{"id_token":{"email":{"essential":true}}}`, false, true},
+		{`{"userinfo":{"email":null}}`, false, true},
+		{`[]`, false, false}, {strings.Repeat("x", 4097), false, false},
+		{`[]`, true, true},
+	} {
+		req := ParseRequest(with(goodQuery(), "claims", tc.raw))
+		req.IgnoreClaimsParameter = tc.ignore
+		_, err, redirectable := ValidateRequest(t.Context(), f.st, f.tenant, &req)
+		if (err == nil) != tc.valid {
+			t.Fatalf("ignore=%v valid=%v err=%v", tc.ignore, tc.valid, err)
+		}
+		if err != nil && (err.Code != "invalid_request" || !redirectable) {
+			t.Fatalf("unsafe error delivery: %v %v", err, redirectable)
+		}
+		if err == nil && !tc.ignore && req.Params()["claims"] != tc.raw {
+			t.Fatal("claims lost from stored transaction")
+		}
+		if tc.ignore && req.Params()["claims"] != "" {
+			t.Fatal("ignored claims retained")
 		}
 	}
 }

@@ -68,6 +68,10 @@ func (e *ErrFlow) Unwrap() error { return e.Cause }
 
 // Engine runs Action flows.
 type Engine struct {
+	BackchannelLogout interface {
+		Deliver(context.Context, *store.ActionJob) *store.ActionJob
+		Finished(context.Context, *store.ActionJob)
+	}
 	Recorder        logs.Recorder
 	InvitationEmail InvitationEmailDispatcher
 	Store           store.Store

@@ -101,6 +101,8 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	if len(req.Ext) > authz.MaxExtParams {
 		return nil, invalidRequest(fmt.Sprintf("at most %d ext- parameters are allowed", authz.MaxExtParams)) // P2c
 	}
+	req.IgnoreClaimsParameter = h.Compat.IgnoreClaimsParameter
+	req.OptionalRedirectURI = h.Compat.OptionalRedirectURI
 	if _, verr, _ := authz.ValidateRequest(ctx, h.Store, t, &req); verr != nil {
 		return nil, parError(verr) // P2
 	}
@@ -157,7 +159,7 @@ func parsePARRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error
 		return nil, invalidRequest("malformed form body")
 	}
 	for k, vs := range r.PostForm {
-		if len(vs) > 1 {
+		if len(vs) > 1 && k != "resource" {
 			return nil, invalidRequest(fmt.Sprintf("parameter %q is repeated", k))
 		}
 	}

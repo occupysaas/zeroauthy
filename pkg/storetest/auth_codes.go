@@ -12,6 +12,7 @@ import (
 
 func newAuthCode(tenantID, hash string) *store.AuthCode {
 	return &store.AuthCode{
+		UserInfoClaims: "auth_time acr", ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
 		TenantID: tenantID, CodeHash: hash, ClientID: "spa", RedirectURI: "https://app.test/cb",
 		UserID: "auth0|u1", SessionID: "s1", Scopes: []string{"openid", "email"},
 		Audience: "https://api.test", Nonce: "n", CodeChallenge: "ch", CodeChallengeMethod: "S256",

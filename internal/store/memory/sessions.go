@@ -171,3 +171,50 @@ func (r sessions) UpdateMetadata(_ context.Context, tid, id string, md map[strin
 	s.Metadata = maps.Clone(md)
 	return cloneSession(s), nil
 }
+
+func (r sessions) ListExpired(_ context.Context, before time.Time, limit int) ([]*store.LoginSession, error) {
+	if limit < 1 || limit > 1000 {
+		return nil, store.ErrInvalid
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	out := []*store.LoginSession{}
+	for _, s := range r.s.sessions {
+		if !s.ExpiresAt.After(before) || !s.IdleExpiresAt.After(before) {
+			out = append(out, cloneSession(s))
+		}
+	}
+	slices.SortFunc(out, func(a, b *store.LoginSession) int {
+		if a.TenantID < b.TenantID {
+			return -1
+		}
+		if a.TenantID > b.TenantID {
+			return 1
+		}
+		if a.ID < b.ID {
+			return -1
+		}
+		if a.ID > b.ID {
+			return 1
+		}
+		return 0
+	})
+	return out[:min(len(out), limit)], nil
+}
+
+func (r sessions) RecordClientOrganization(_ context.Context, tenantID, id, clientID, orgID string) error {
+	r.s.lock()
+	defer r.s.unlock()
+	s, ok := r.s.sessions[key{tenantID, id}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	if !slices.Contains(s.ClientIDs, clientID) {
+		s.ClientIDs = append(slices.Clone(s.ClientIDs), clientID)
+	}
+	if s.ClientOrganizations == nil {
+		s.ClientOrganizations = map[string]string{}
+	}
+	s.ClientOrganizations[clientID] = orgID
+	return nil
+}

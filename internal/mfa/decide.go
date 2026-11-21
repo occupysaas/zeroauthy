@@ -10,6 +10,7 @@ import (
 )
 
 type Requirement struct {
+	StepUp                                        bool
 	Required, Enroll, AlwaysPrompt, AllowRemember bool
 	Factors                                       []string
 	Reason                                        string
@@ -20,6 +21,7 @@ type Requirement struct {
 	PlatformAfterProof bool
 }
 type DecideInput struct {
+	StepUp                     bool
 	Settings                   *store.GuardianSettings
 	Effects                    *actionresult.MFAEffects
 	Authenticators             []store.Authenticator
@@ -39,7 +41,7 @@ type DecideInput struct {
 // Decide is shared by hosted authorization and password grants. Only OTP and
 // email are enforced in Plan 33; recovery is a fallback for an enrolled user.
 func Decide(in DecideInput) (Requirement, error) {
-	r := Requirement{AllowRemember: true}
+	r := Requirement{AllowRemember: true, StepUp: in.StepUp}
 	if in.Effects != nil {
 		r.PhonePreferredMethod = in.Effects.PhonePreferredMethod
 	}
@@ -52,7 +54,7 @@ func Decide(in DecideInput) (Requirement, error) {
 	// whenever the user has a usable primary factor, regardless of policy or
 	// an Action skip. Unenrolled users may still obtain an enrollment token.
 	apiMFA := in.MFAAPI && hasPrimary(in.User, in.Authenticators, enabled)
-	if e != nil && e.Provider == "none" && !apiMFA {
+	if e != nil && e.Provider == "none" && !apiMFA && !in.StepUp {
 		return Requirement{}, nil
 	}
 	requested := []string{"otp", "email", "phone", "webauthn-roaming", "webauthn-platform", "recovery-code"}
@@ -104,6 +106,13 @@ func Decide(in DecideInput) (Requirement, error) {
 		}
 		// A remembered browser does not satisfy factor management.
 		r.AllowRemember = false
+	}
+	if in.StepUp {
+		r.Required = true
+		r.AllowRemember = false
+		if r.Reason == "" {
+			r.Reason = "step-up"
+		}
 	}
 	if !r.Required {
 		return r, nil
@@ -157,7 +166,7 @@ func Decide(in DecideInput) (Requirement, error) {
 		}
 	}
 	// Confidence only challenges an already enrolled user; it never enrolls.
-	if r.Reason == "confidence" && !primary {
+	if r.Reason == "confidence" && !primary && !in.StepUp {
 		return Requirement{}, nil
 	}
 	var usable, enroll []string

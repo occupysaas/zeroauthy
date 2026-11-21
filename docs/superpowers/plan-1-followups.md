@@ -574,11 +574,17 @@ unlinking effects on passkeys; W12 hosted challenge lifetime.
 
 1. Tenant MFA policy on custom token exchange: keep it not applied (current,
    documented), or fail closed.
-2. JWKS without `alg`: keep, or publish `alg` again with a second PS256 entry
-   for the same key.
-3. Discovery `id_token_signing_alg_values_supported`: whether to list PS256
-   and HS256 (it lists only RS256 today).
-4. HS256 minimum secret length: 16 characters (current) or 32.
+2. JWKS without `alg`: **ruled 2026-11-19: keep it without `alg`.** `alg` is
+   optional (RFC 7517 §4.4), and RS256 and PS256 share the tenant key, so a
+   second PS256 entry for the same key would confuse key selection.
+3. Discovery `id_token_signing_alg_values_supported`: **ruled 2026-11-19:
+   list `["HS256","RS256","PS256"]`** once ID tokens can use them per client;
+   built by Plan 41a Task 5 (spec §5).
+4. HS256 minimum secret length: **ruled 2026-11-19: 32 characters** for a
+   supplied API `signing_secret` (RFC 7518 §3.2 requires at least 256 bits;
+   standing spec-compliant-by-default rule). Applies on write (Management API
+   and seed); stored shorter secrets keep signing. Built by Plan 41a Task 5.
+   Client secrets already need 48 characters, so HS256 ID tokens are covered.
 5. Seed apply deleting API-added keys on seed-owned clients.
 
 **Deferred review findings** (minor; none blocks the release):
@@ -776,3 +782,28 @@ records the local policies and the state of each observation.
 - **R7** Organization quota error description. Locally it is
   `Organization quota exceeded`.
 - **R8** Quota warning log description. Locally it uses local wording.
+
+
+## Plan 41a observation points
+
+[D-0080](../compat/decisions.md#d-0080-oidc-extras-back-channel-logout-and-global-revocation-plan-41a)
+records the local contracts. These gaps are not live-tenant observations.
+
+- **L1** Whether extra standard profile claims can be set on database users.
+- **L2** The upstream source for structured address claims.
+- **L3** Upstream response when oidc_support disallows openid; locally drop it.
+- **L4** Whether acr appears without an acr_values request; locally omit it.
+- **L5** Logout token signing algorithm; locally always RS256.
+- **L6** Conflicting audience/resource and repeated resource behavior.
+- **L7** Callback selection when redirect_uri is omitted; local opt-in fallback requires exactly one non-wildcard callback.
+- **L8** Supported organization placeholders in back-channel receiver URLs.
+- **L9** Session metadata claim shape; Plan 48 metadata is available locally.
+- **L10** When account-deactivated, mfa-phone-unenrolled and profile-changed are emitted; configuration accepted, no local emission.
+- **L11** Logout token typ; locally logout+jwt, explicit compatibility switch for JWT.
+- **L12** Upstream retry timing; locally ten-minute window with fresh tokens.
+- **L13** Global revocation JWT typ, audience and supported subject formats.
+- **L14** Public catalog rechecked 2026-11-20: Universal Logout uses universal_logout_succeeded/universal_logout_failed; back-channel logout uses oidc_backchannel_logout_succeeded/oidc_backchannel_logout_failed. No sslo/fslo aliases are invented.
+
+**New roadmap follow-up (LR41a-2):** Session Transfer Tokens (Native to Web
+SSO, client session_transfer) need their own scope, spec and plan. They are
+outside Plan 41a.

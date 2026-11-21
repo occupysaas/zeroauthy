@@ -327,3 +327,32 @@ func clientIDs(cs []*store.Client) []string {
 	}
 	return ids
 }
+
+func testOIDCClientSettings(t *testing.T, newStore Factory) {
+	ctx := t.Context()
+	s := open(t, newStore)
+	yes, no := true, false
+	want := newClient("ten_a", "oidc-controls")
+	want.OIDCSupport = &store.OIDCSupport{IsAllowed: true, AllowAllScopes: &no, AllowedScopes: []string{"email", "phone"}}
+	want.OIDCLogout = &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example.test/logout"}, InitiatorsMode: "custom", Initiators: []string{"rp-logout", "idp-logout"}, IncludeSessionMetadata: &yes}
+	want.IDTokenAlg = "PS256"
+	mustNoErr(t, s.Clients().Create(ctx, want))
+	got, err := s.Clients().Get(ctx, "ten_a", want.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, got, want)
+	got.OIDCSupport.AllowedScopes[0] = "profile"
+	*got.OIDCSupport.AllowAllScopes = true
+	got.OIDCLogout.BackchannelURLs[0] = "https://mutated.example.test/logout"
+	*got.OIDCLogout.IncludeSessionMetadata = false
+	again, err := s.Clients().Get(ctx, "ten_a", want.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, again, want)
+	want.IDTokenAlg = "HS256"
+	want.OIDCSupport = &store.OIDCSupport{IsAllowed: false}
+	want.OIDCLogout = nil
+	mustNoErr(t, s.Clients().Update(ctx, want))
+	got, err = s.Clients().Get(ctx, "ten_a", want.ClientID)
+	mustNoErr(t, err)
+	mustEqual(t, got, want)
+	mustErrIs(t, func() error { _, err := s.Clients().Get(ctx, "ten_b", want.ClientID); return err }(), store.ErrNotFound)
+}

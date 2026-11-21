@@ -227,6 +227,11 @@ func (a clientTenants) Delete(ctx context.Context, id string) error {
 type clientClients struct{ c *Client }
 
 func (a clientClients) Create(ctx context.Context, v *store.Client) error {
+	if store.ClientNeedsOIDCLogout(v) {
+		if err := a.c.CheckOIDCLogoutSupport(ctx); err != nil {
+			return err
+		}
+	}
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsCreate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		if pb != nil && (pb.RequireProofOfPossession || pb.TokenQuota != nil || pb.GetRefreshToken().GetPolicies() != nil) {
@@ -243,6 +248,11 @@ func (a clientClients) Get(ctx context.Context, tenantID, clientID string) (*sto
 }
 
 func (a clientClients) Update(ctx context.Context, v *store.Client) error {
+	if store.ClientNeedsOIDCLogout(v) {
+		if err := a.c.CheckOIDCLogoutSupport(ctx); err != nil {
+			return err
+		}
+	}
 	v = a.c.clientCredentialsClient(a.c.webauthnClient(v))
 	return put("ClientsUpdate", v, clientToPB, func(pb *storev1.Client) (result, error) {
 		versioned, err := a.c.useRefreshIIUpdate(ctx, pb.GetRequireProofOfPossession() || pb.GetTokenQuota() != nil || pb.GetRefreshToken().GetPolicies() != nil)

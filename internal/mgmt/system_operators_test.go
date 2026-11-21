@@ -11,7 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -25,10 +28,17 @@ func operatorRequest(e *env, method, path, raw string, body any) *httptest.Respo
 	return rec
 }
 
-func operatorEnv(t *testing.T) (*env, string) {
+func operatorEnv(t *testing.T, withLogout ...bool) (*env, string) {
 	t.Helper()
 	e := newEnv(t)
 	h := &mgmt.Handlers{Store: e.st, BaseDomain: base, SystemHost: systemHost, Now: func() time.Time { return now }}
+	if len(withLogout) > 0 && withLogout[0] {
+		wrapper, err := keys.NewLocalWrapper([]byte(secrets.RandomString(32)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		h.Logout = &logout.Service{Store: e.st, Wrapper: wrapper, Now: func() time.Time { return now }}
+	}
 	routes := http.NewServeMux()
 	routes.HandleFunc("PATCH /api/system/operators/{id}", func(w http.ResponseWriter, r *http.Request) {
 		h.UpdateOperator(w, r, r.PathValue("id"))
@@ -225,5 +235,30 @@ func TestOperatorTenantsDiscovery(t *testing.T) {
 	_ = json.Unmarshal(rec.Body.Bytes(), &out)
 	if rec.Code != 200 || len(out) != 0 {
 		t.Fatalf("shrunk discovery = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestOperatorRemovalEnqueuesSessionFanout(t *testing.T) {
+	e, raw := operatorEnv(t, true)
+	tid := e.ids["system"]
+	if err := e.st.Users().Create(t.Context(), &store.User{TenantID: tid, UserID: "auth0|backup"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.Operators().Upsert(t.Context(), &store.Operator{TenantID: tid, UserID: "auth0|backup", Tenants: []string{"*"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.Clients().Create(t.Context(), &store.Client{TenantID: tid, ClientID: "logout-rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.Sessions().Create(t.Context(), &store.LoginSession{TenantID: tid, ID: "operator-session", TokenHash: "operator-session", UserID: "auth0|backup", ClientIDs: []string{"logout-rp"}}); err != nil {
+		t.Fatal(err)
+	}
+	rec := operatorRequest(e, "DELETE", "/api/system/operators/auth0%7Cbackup", raw, nil)
+	if rec.Code != 204 {
+		t.Fatalf("remove operator: %d", rec.Code)
+	}
+	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
+	if err != nil || len(jobs) != 1 {
+		t.Fatalf("operator fanout absent: jobs=%d err=%v", len(jobs), err)
 	}
 }

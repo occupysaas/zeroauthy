@@ -284,15 +284,15 @@ func TestSeedAPISigning(t *testing.T) {
 		t.Fatal("a re-apply rotated or lost the HS256 secret")
 	}
 	// A supplied secret replaces it, and an unchanged one is not resealed.
-	if err := applySeed(t, st, api(", signing_alg: HS256, signing_secret: sixteen-chars-ok"), ModeApply); err != nil {
+	if err := applySeed(t, st, api(", signing_alg: HS256, signing_secret: thirty-two-characters-or-more-for-signing"), ModeApply); err != nil {
 		t.Fatal(err)
 	}
 	rs = get()
 	sealed := rs.SigningSecretSealed
-	if secret(rs) != "sixteen-chars-ok" {
+	if secret(rs) != "thirty-two-characters-or-more-for-signing" {
 		t.Fatal("the supplied secret was not applied")
 	}
-	if err := applySeed(t, st, api(", signing_alg: HS256, signing_secret: sixteen-chars-ok"), ModeApply); err != nil {
+	if err := applySeed(t, st, api(", signing_alg: HS256, signing_secret: thirty-two-characters-or-more-for-signing"), ModeApply); err != nil {
 		t.Fatal(err)
 	}
 	if string(get().SigningSecretSealed) != string(sealed) {
@@ -314,9 +314,9 @@ func TestSeedAPISigning(t *testing.T) {
 
 	for name, tc := range map[string]struct{ extra, want string }{
 		"unknown alg":       {", signing_alg: ES256", "signing_alg"},
-		"short secret":      {", signing_alg: HS256, signing_secret: short", "16"},
-		"secret without":    {", signing_secret: sixteen-chars-ok", "HS256"},
-		"secret with PS256": {", signing_alg: PS256, signing_secret: sixteen-chars-ok", "HS256"},
+		"short secret":      {", signing_alg: HS256, signing_secret: short", "32"},
+		"secret without":    {", signing_secret: thirty-two-characters-or-more-for-signing", "HS256"},
+		"secret with PS256": {", signing_alg: PS256, signing_secret: thirty-two-characters-or-more-for-signing", "HS256"},
 	} {
 		if _, err := Parse([]byte(api(tc.extra))); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: err = %v, want mention of %q", name, err, tc.want)
@@ -442,5 +442,15 @@ func TestSeedTokenExchangeProfilesRefuse(t *testing.T) {
 	}
 	if err := ApplyWithActions(ctx, st, missing, fixedNow, w, ae.Engine); err == nil || !strings.Contains(err.Error(), "ghost") {
 		t.Fatalf("missing Action: %v", err)
+	}
+}
+
+func TestSeedAPISigningSecretMinLength(t *testing.T) {
+	for _, size := range []int{31, 32} {
+		source := "tenants:\n  - name: tenant\n    domains: [tenant.example.test]\n    resource_servers:\n      - identifier: https://api.example.test\n        signing_alg: HS256\n        signing_secret: " + strings.Repeat("s", size) + "\n"
+		_, err := Parse([]byte(source))
+		if (err == nil) != (size == 32) {
+			t.Fatalf("secret length %d accepted=%v", size, err == nil)
+		}
 	}
 }

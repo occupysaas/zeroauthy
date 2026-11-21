@@ -257,7 +257,8 @@ func checkExportReferences(value any, root string, files map[string][]byte) erro
 			if key == "code" && (strings.HasPrefix(x, "./") || strings.HasSuffix(x, ".js")) {
 				isRef = true
 			}
-			if !isRef && (strings.Contains(strings.ToLower(key), "file") || strings.EqualFold(key, "path")) {
+			// resource_parameter_profile is a protocol enum, not a materialized file.
+			if !isRef && key != "resource_parameter_profile" && (strings.Contains(strings.ToLower(key), "file") || strings.EqualFold(key, "path")) {
 				isRef = true
 			}
 			if !isRef {
