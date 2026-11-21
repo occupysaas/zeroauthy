@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/logout/logouttest"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"testing"
 	"time"
@@ -348,9 +349,10 @@ func TestSweepSessionLogout(t *testing.T) {
 		t.Fatalf("expiry sweep count=%d err=%v", n, err)
 	}
 	jobs, err := st.Actions().ClaimJobs(ctx, at, time.Minute, 10)
-	if err != nil || len(jobs) != 1 || jobs[0].Trigger != logout.JobKind {
-		t.Fatal("general sweeper omitted logout notification")
+	if err != nil {
+		t.Fatal(err)
 	}
+	logouttest.RequireInitiator(t, wrapper, jobs, 1, logout.SessionExpired)
 }
 
 func TestSweepGlobalRevocationReplayState(t *testing.T) {

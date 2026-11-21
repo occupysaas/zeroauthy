@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
 	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/logout/logouttest"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -692,9 +693,10 @@ func TestOnlineRevocationEnqueuesSessionFanout(t *testing.T) {
 				}
 			}
 			jobs, err := f.st.Actions().ClaimJobs(t.Context(), fixedNow(), time.Minute, 10)
-			if err != nil || len(jobs) != 1 || jobs[0].Trigger != logout.JobKind {
-				t.Fatalf("fanout absent: jobs=%d err=%v", len(jobs), err)
+			if err != nil {
+				t.Fatal(err)
 			}
+			logouttest.RequireInitiator(t, f.wrapper, jobs, 1, logout.SessionRevoked)
 		})
 	}
 }

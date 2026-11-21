@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/logout/logouttest"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"net/http"
 	"net/url"
@@ -66,7 +67,10 @@ func TestRPLogoutEnqueuesBackchannel(t *testing.T) {
 		t.Fatalf("logout status=%d", resp.StatusCode)
 	}
 	jobs, err := e.st.Actions().ClaimJobs(t.Context(), time.Now().UTC(), time.Minute, 10)
-	if err != nil || len(jobs) != 1 || jobs[0].Trigger != logout.JobKind {
-		t.Fatalf("logout notifications=%d err=%v", len(jobs), err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := logouttest.RequireInitiator(t, service.Wrapper, jobs, 1, logout.RPLogout); got[0].ClientID != "spa" {
+		t.Fatalf("notification for %q, want spa", got[0].ClientID)
 	}
 }

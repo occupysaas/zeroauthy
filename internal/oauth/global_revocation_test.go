@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
@@ -186,6 +187,135 @@ func TestGlobalRevocationRefusals(t *testing.T) {
 	if _, err := f.st.Sessions().Get(context.Background(), "t", "sid"); err != nil {
 		t.Fatal("invalid request changed state")
 	}
+}
+
+// sign builds a revocation JWT with full control of key, algorithm and type.
+func (f *globalFixture) sign(t *testing.T, key any, alg jose.SignatureAlgorithm, typ string, change func(map[string]any)) string {
+	t.Helper()
+	c := map[string]any{"iss": f.issuer, "sub": "integration", "aud": "https://tenant.example/oauth/global-token-revocation/connection/Enterprise", "iat": f.now.Unix(), "exp": f.now.Add(5 * time.Minute).Unix(), "jti": secrets.RandomString(24)}
+	if change != nil {
+		change(c)
+	}
+	opts := (&jose.SignerOptions{}).WithHeader("kid", "upstream")
+	if typ != "" {
+		opts = opts.WithType(jose.ContentType(typ))
+	}
+	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: alg, Key: key}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, _ := json.Marshal(c)
+	obj, err := signer.Sign(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := obj.CompactSerialize()
+	return raw
+}
+
+// requireUntouched asserts a refused request revoked and enqueued nothing.
+func (f *globalFixture) requireUntouched(t *testing.T) {
+	t.Helper()
+	if _, err := f.st.Sessions().Get(t.Context(), "t", "sid"); err != nil {
+		t.Fatal("refused request ended the session")
+	}
+	rt, err := f.st.RefreshTokens().GetByTokenHash(t.Context(), "t", "refresh-hash")
+	if err != nil || rt.RevokedAt != nil {
+		t.Fatal("refused request revoked the refresh token")
+	}
+	jobs, err := f.st.Actions().ClaimJobs(t.Context(), f.now, time.Minute, 10)
+	if err != nil || len(jobs) != 0 {
+		t.Fatalf("refused request enqueued %d logout jobs (err %v)", len(jobs), err)
+	}
+}
+
+// TestGlobalRevocationForgedTokens covers Review Focus 5: anything not signed
+// by the pinned upstream key for this exact integration is 401 and changes
+// nothing.
+func TestGlobalRevocationForgedTokens(t *testing.T) {
+	f := newGlobalFixture(t)
+	foreign, _ := rsa.GenerateKey(rand.Reader, 2048)
+	der, err := x509.MarshalPKIXPublicKey(&f.key.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pemKey := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})
+	const typ = "global-token-revocation+jwt"
+	drop := func(name string) func(map[string]any) { return func(c map[string]any) { delete(c, name) } }
+	cases := map[string]string{
+		"foreign key same kid":  f.sign(t, foreign, jose.RS256, typ, nil),
+		"typ JWT":               f.sign(t, f.key, jose.RS256, "JWT", nil),
+		"typ absent":            f.sign(t, f.key, jose.RS256, "", nil),
+		"other integration sub": f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["sub"] = "other-integration" }),
+		"jti absent":            f.sign(t, f.key, jose.RS256, typ, drop("jti")),
+		"exp absent":            f.sign(t, f.key, jose.RS256, typ, drop("exp")),
+		"iat absent":            f.sign(t, f.key, jose.RS256, typ, drop("iat")),
+		"iat in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["iat"] = f.now.Add(time.Minute).Unix() }),
+		"nbf in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["nbf"] = f.now.Add(time.Minute).Unix() }),
+		"aud of other connection": f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) {
+			c["aud"] = "https://tenant.example/oauth/global-token-revocation/connection/Other"
+		}),
+		"aud of other tenant": f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) {
+			c["aud"] = "https://evil.example/oauth/global-token-revocation/connection/Enterprise"
+		}),
+		"HS256 with public key DER": f.sign(t, der, jose.HS256, typ, nil),
+		"HS256 with public key PEM": f.sign(t, pemKey, jose.HS256, typ, nil),
+		"unsigned with typ":         "eyJhbGciOiJub25lIiwidHlwIjoiZ2xvYmFsLXRva2VuLXJldm9jYXRpb24rand0In0.e30.",
+		"garbage":                   "not-a-jwt",
+	}
+	for name, token := range cases {
+		t.Run(name, func(t *testing.T) {
+			if got := f.call(t, "Enterprise", token, f.body()); got != 401 {
+				t.Fatalf("status %d, want 401", got)
+			}
+			f.requireUntouched(t)
+		})
+	}
+	// Control: the same fixture accepts a correctly signed token.
+	if got := f.call(t, "Enterprise", f.sign(t, f.key, jose.RS256, typ, nil), f.body()); got != 204 {
+		t.Fatalf("control token: %d", got)
+	}
+}
+
+// TestGlobalRevocationAuthorizationHeader refuses anything but exactly one
+// Bearer credential.
+func TestGlobalRevocationAuthorizationHeader(t *testing.T) {
+	f := newGlobalFixture(t)
+	good := f.jwt(t, nil)
+	for name, set := range map[string]func(http.Header){
+		"absent":  func(h http.Header) { h.Del("Authorization") },
+		"basic":   func(h http.Header) { h.Set("Authorization", "Basic "+good) },
+		"no type": func(h http.Header) { h.Set("Authorization", good) },
+		"two":     func(h http.Header) { h.Set("Authorization", "Bearer "+good); h.Add("Authorization", "Bearer "+good) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "https://tenant.example/oauth/global-token-revocation/connection/Enterprise", strings.NewReader(f.body()))
+			r.Header.Set("Content-Type", "application/json")
+			set(r.Header)
+			r = r.WithContext(tenant.WithResolved(r.Context(), tenant.Resolved{Tenant: f.tn, Host: "tenant.example"}))
+			w := httptest.NewRecorder()
+			f.h.GlobalTokenRevocation(w, r, "Enterprise")
+			if w.Code != 401 || w.Header().Get("WWW-Authenticate") == "" {
+				t.Fatalf("status %d, WWW-Authenticate %q", w.Code, w.Header().Get("WWW-Authenticate"))
+			}
+			f.requireUntouched(t)
+		})
+	}
+	// The refusals above must not have consumed the good token's jti.
+	if got := f.call(t, "Enterprise", good, f.body()); got != 204 {
+		t.Fatalf("valid token after refusals: %d", got)
+	}
+}
+
+// TestGlobalRevocationForeignSubjectIssuer: a valid token naming a subject at
+// another issuer answers 204 (no oracle) and revokes nothing.
+func TestGlobalRevocationForeignSubjectIssuer(t *testing.T) {
+	f := newGlobalFixture(t)
+	body := strings.ReplaceAll(f.body(), f.issuer, "https://other-idp.example")
+	if got := f.call(t, "Enterprise", f.jwt(t, nil), body); got != 204 {
+		t.Fatalf("status %d", got)
+	}
+	f.requireUntouched(t)
 }
 
 type globalResolver struct{}
