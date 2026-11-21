@@ -499,6 +499,24 @@ func (e PasskeyAndroidAssociation200JSONResponseBodyTargetNamespace) Valid() boo
 	}
 }
 
+// Defines values for GlobalTokenRevocationJSONBodySubIdFormat.
+const (
+	GlobalTokenRevocationJSONBodySubIdFormatEmail  GlobalTokenRevocationJSONBodySubIdFormat = "email"
+	GlobalTokenRevocationJSONBodySubIdFormatIssSub GlobalTokenRevocationJSONBodySubIdFormat = "iss_sub"
+)
+
+// Valid indicates whether the value is a known member of the GlobalTokenRevocationJSONBodySubIdFormat enum.
+func (e GlobalTokenRevocationJSONBodySubIdFormat) Valid() bool {
+	switch e {
+	case GlobalTokenRevocationJSONBodySubIdFormatEmail:
+		return true
+	case GlobalTokenRevocationJSONBodySubIdFormatIssSub:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PasswordlessVerifyRedirectParamsConnection.
 const (
 	PasswordlessVerifyRedirectParamsConnectionEmail PasswordlessVerifyRedirectParamsConnection = "email"
@@ -519,7 +537,11 @@ func (e PasswordlessVerifyRedirectParamsConnection) Valid() bool {
 
 // AuthorizeRequest The parameters of `GET /authorize`, form-encoded.
 type AuthorizeRequest struct {
-	Audience            *string `json:"audience,omitempty"`
+	AcrValues *string `json:"acr_values,omitempty"`
+	Audience  *string `json:"audience,omitempty"`
+
+	// Claims JSON OIDC claims request (Core section 5.5).
+	Claims              *string `json:"claims,omitempty"`
 	ClientId            *string `json:"client_id,omitempty"`
 	CodeChallenge       *string `json:"code_challenge,omitempty"`
 	CodeChallengeMethod *string `json:"code_challenge_method,omitempty"`
@@ -534,6 +556,7 @@ type AuthorizeRequest struct {
 	RedirectUri         *string `json:"redirect_uri,omitempty"`
 	Request             *string `json:"request,omitempty"`
 	RequestUri          *string `json:"request_uri,omitempty"`
+	Resource            *string `json:"resource,omitempty"`
 	ResponseMode        *string `json:"response_mode,omitempty"`
 	ResponseType        *string `json:"response_type,omitempty"`
 	Scope               *string `json:"scope,omitempty"`
@@ -892,7 +915,11 @@ type PasswordlessStartResponse struct {
 
 // PushedAuthorizationRequest The `/authorize` parameters (including dpop_jkt), plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
 type PushedAuthorizationRequest struct {
-	Audience *string `json:"audience,omitempty"`
+	AcrValues *string `json:"acr_values,omitempty"`
+	Audience  *string `json:"audience,omitempty"`
+
+	// Claims JSON OIDC claims request (Core section 5.5).
+	Claims *string `json:"claims,omitempty"`
 
 	// ClientAssertion A signed client assertion JWT (`private_key_jwt`).
 	ClientAssertion     *string                                        `json:"client_assertion,omitempty"`
@@ -903,6 +930,7 @@ type PushedAuthorizationRequest struct {
 
 	// Request A signed request object (JAR).
 	Request              *string           `json:"request,omitempty"`
+	Resource             *string           `json:"resource,omitempty"`
 	ResponseType         *string           `json:"response_type,omitempty"`
 	Scope                *string           `json:"scope,omitempty"`
 	State                *string           `json:"state,omitempty"`
@@ -1051,6 +1079,9 @@ type TokenFormRequest struct {
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
+	// Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
+	Resource *string `json:"resource,omitempty"`
+
 	// Scope Space-separated scopes to request. On the refresh grant the
 	// original scopes and any applicable refresh token policy determine
 	// the scopes that can be issued. On the client-credentials grant the
@@ -1138,6 +1169,9 @@ type TokenRequest struct {
 
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
+	// Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
+	Resource *string `json:"resource,omitempty"`
 
 	// Scope Space-separated scopes to request. On the refresh grant the
 	// original scopes and any applicable refresh token policy determine
@@ -1229,6 +1263,9 @@ type TokenRequestFields struct {
 
 	// RequestedTokenType Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
+
+	// Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
+	Resource *string `json:"resource,omitempty"`
 
 	// Scope Space-separated scopes to request. On the refresh grant the
 	// original scopes and any applicable refresh token policy determine
@@ -1331,6 +1368,15 @@ type AuthorizeParams struct {
 	// Nonce Value copied into the ID token.
 	Nonce *string `form:"nonce,omitempty" json:"nonce,omitempty"`
 
+	// Claims JSON OIDC claims request; never widens scope consent (D-0080).
+	Claims *string `form:"claims,omitempty" json:"claims,omitempty"`
+
+	// AcrValues Space-separated authentication context values. The multi-factor policy value requests MFA step-up.
+	AcrValues *string `form:"acr_values,omitempty" json:"acr_values,omitempty"`
+
+	// Resource Audience alias under the tenant compatibility resource profile; multiple values fail with invalid_target (D-0080).
+	Resource *string `form:"resource,omitempty" json:"resource,omitempty"`
+
 	// Audience Identifier of the API to issue an access token for.
 	Audience *string `form:"audience,omitempty" json:"audience,omitempty"`
 
@@ -1378,6 +1424,20 @@ type AuthorizeParams struct {
 type DbconnectionsSignup400JSONResponseBody struct {
 	union json.RawMessage
 }
+
+// GlobalTokenRevocationJSONBody defines parameters for GlobalTokenRevocation.
+type GlobalTokenRevocationJSONBody struct {
+	// SubId iss_sub requires iss and sub; email requires email. Only identities belonging to this connection are considered.
+	SubId struct {
+		Email  *string                                  `json:"email,omitempty"`
+		Format GlobalTokenRevocationJSONBodySubIdFormat `json:"format"`
+		Iss    *string                                  `json:"iss,omitempty"`
+		Sub    *string                                  `json:"sub,omitempty"`
+	} `json:"sub_id"`
+}
+
+// GlobalTokenRevocationJSONBodySubIdFormat defines parameters for GlobalTokenRevocation.
+type GlobalTokenRevocationJSONBodySubIdFormat string
 
 // OauthParParams defines parameters for OauthPar.
 type OauthParParams struct {
@@ -1495,6 +1555,9 @@ type OauthDeviceCodeJSONRequestBody = DeviceCodeRequest
 
 // OauthDeviceCodeFormdataRequestBody defines body for OauthDeviceCode for application/x-www-form-urlencoded ContentType.
 type OauthDeviceCodeFormdataRequestBody = DeviceCodeRequest
+
+// GlobalTokenRevocationJSONRequestBody defines body for GlobalTokenRevocation for application/json ContentType.
+type GlobalTokenRevocationJSONRequestBody GlobalTokenRevocationJSONBody
 
 // OauthParFormdataRequestBody defines body for OauthPar for application/x-www-form-urlencoded ContentType.
 type OauthParFormdataRequestBody = PushedAuthorizationRequest
@@ -1656,12 +1719,28 @@ func (a *PushedAuthorizationRequest) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	if raw, found := object["acr_values"]; found {
+		err = json.Unmarshal(raw, &a.AcrValues)
+		if err != nil {
+			return fmt.Errorf("error reading 'acr_values': %w", err)
+		}
+		delete(object, "acr_values")
+	}
+
 	if raw, found := object["audience"]; found {
 		err = json.Unmarshal(raw, &a.Audience)
 		if err != nil {
 			return fmt.Errorf("error reading 'audience': %w", err)
 		}
 		delete(object, "audience")
+	}
+
+	if raw, found := object["claims"]; found {
+		err = json.Unmarshal(raw, &a.Claims)
+		if err != nil {
+			return fmt.Errorf("error reading 'claims': %w", err)
+		}
+		delete(object, "claims")
 	}
 
 	if raw, found := object["client_assertion"]; found {
@@ -1712,6 +1791,14 @@ func (a *PushedAuthorizationRequest) UnmarshalJSON(b []byte) error {
 		delete(object, "request")
 	}
 
+	if raw, found := object["resource"]; found {
+		err = json.Unmarshal(raw, &a.Resource)
+		if err != nil {
+			return fmt.Errorf("error reading 'resource': %w", err)
+		}
+		delete(object, "resource")
+	}
+
 	if raw, found := object["response_type"]; found {
 		err = json.Unmarshal(raw, &a.ResponseType)
 		if err != nil {
@@ -1755,10 +1842,24 @@ func (a PushedAuthorizationRequest) MarshalJSON() ([]byte, error) {
 	var err error
 	object := make(map[string]json.RawMessage)
 
+	if a.AcrValues != nil {
+		object["acr_values"], err = json.Marshal(a.AcrValues)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'acr_values': %w", err)
+		}
+	}
+
 	if a.Audience != nil {
 		object["audience"], err = json.Marshal(a.Audience)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'audience': %w", err)
+		}
+	}
+
+	if a.Claims != nil {
+		object["claims"], err = json.Marshal(a.Claims)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'claims': %w", err)
 		}
 	}
 
@@ -1801,6 +1902,13 @@ func (a PushedAuthorizationRequest) MarshalJSON() ([]byte, error) {
 		object["request"], err = json.Marshal(a.Request)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'request': %w", err)
+		}
+	}
+
+	if a.Resource != nil {
+		object["resource"], err = json.Marshal(a.Resource)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'resource': %w", err)
 		}
 	}
 
@@ -2371,6 +2479,9 @@ type ServerInterface interface {
 	// OauthDeviceCode Start a device authorization
 	// (POST /oauth/device/code)
 	OauthDeviceCode(w http.ResponseWriter, r *http.Request)
+	// GlobalTokenRevocation End a federated user's sessions and revoke refresh tokens
+	// (POST /oauth/global-token-revocation/connection/{connectionName})
+	GlobalTokenRevocation(w http.ResponseWriter, r *http.Request, connectionName string)
 	// OauthPar Push an authorization request
 	// (POST /oauth/par)
 	OauthPar(w http.ResponseWriter, r *http.Request, params OauthParParams)
@@ -2491,6 +2602,12 @@ func (_ Unimplemented) MFAChallenge(w http.ResponseWriter, r *http.Request) {
 // OauthDeviceCode Start a device authorization
 // (POST /oauth/device/code)
 func (_ Unimplemented) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GlobalTokenRevocation End a federated user's sessions and revoke refresh tokens
+// (POST /oauth/global-token-revocation/connection/{connectionName})
+func (_ Unimplemented) GlobalTokenRevocation(w http.ResponseWriter, r *http.Request, connectionName string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2733,6 +2850,45 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "nonce"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "claims" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "claims", r.URL.Query(), &params.Claims, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "claims"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "claims", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "acr_values" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "acr_values", r.URL.Query(), &params.AcrValues, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "acr_values"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "acr_values", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "resource" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "resource", r.URL.Query(), &params.Resource, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "resource"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resource", Err: err})
 		}
 		return
 	}
@@ -3045,6 +3201,32 @@ func (siw *ServerInterfaceWrapper) OauthDeviceCode(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.OauthDeviceCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GlobalTokenRevocation operation middleware
+func (siw *ServerInterfaceWrapper) GlobalTokenRevocation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "connectionName" -------------
+	var connectionName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connectionName", chi.URLParam(r, "connectionName"), &connectionName, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connectionName", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GlobalTokenRevocation(w, r, connectionName)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3790,6 +3972,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/authorize", wrapper.AuthorizePost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/oauth/global-token-revocation/connection/{connectionName}", wrapper.GlobalTokenRevocation)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/token", wrapper.OauthToken)

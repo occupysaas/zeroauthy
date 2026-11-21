@@ -585,6 +585,8 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Expected-skip entries cannot pin a reason: the suite's skip format has no condition field, so an entry matches the module whatever caused the skip.
 - **Rationale:** each item is either Auth0 parity (rows 3, 4), a choice following D-0013 (row 9), or a feature that does not block certification, so it becomes a follow-up rather than a compatibility switch.
 
+- **Plan 41a contract amendment (D-0080):** claims, MFA step-up, phone/address and present profile attributes are implementation targets. Expected-warning/skip entries remain in place until Task 13 demonstrates the changed module results. Profile attributes absent on a database user remain omitted. Implicit/Hybrid eligibility is checked separately; no profile is claimed from source inspection alone.
+
 ## D-0037: Additive spec behaviours: POST /authorize and form-encoded access token at /userinfo
 
 - **Context:** The spec allows two request shapes that zeroauthy did not accept. The maintainer's rule: support both where Auth0 clients are unaffected.
@@ -3610,3 +3612,74 @@ The frozen contract is in `internal/federation/inventory.json`
 (`strategies.github`, `provider_protocol.github`, `github_profile`): the
 flag-to-scope table, the pinned `X-GitHub-Api-Version` (`2026-03-10`), the
 rate-limit signals and the extra profile fields.
+
+## D-0080: OIDC extras, back-channel logout and global revocation (Plan 41a)
+
+**Contract frozen 2026-11-20; implementation in progress.** This entry records
+intended behavior, not a passing certification or completed runtime. The
+[spec](../superpowers/specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md)
+and [plan](../superpowers/plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md)
+reserve D-0080–0089. No live Auth0 tenant was observed by the implementer.
+
+Sources rechecked: [OIDC Core](https://openid.net/specs/openid-connect-core-1_0.html),
+[back-channel logout](https://auth0.com/docs/authenticate/login/logout/back-channel-logout),
+[Universal Logout](https://auth0.com/docs/authenticate/login/logout/universal-logout),
+[Management OpenAPI](https://auth0.com/docs/oas/management/v2/management-api-oas.json),
+[back-channel success schema](https://auth0.com/docs/tenant-logs/auth-logout-success/oidc-backchannel-logout-succeeded),
+[Universal Logout success schema](https://auth0.com/docs/tenant-logs/auth-logout-success/universal-logout-succeeded).
+The remaining protocol sources and observation gaps are enumerated in the spec.
+
+| Local ruling | Contract |
+|---|---|
+| LR41a-1 | Front-channel logout is outside scope; confirmed by the maintainer. |
+| LR41a-2 | Track Session Transfer Tokens separately; do not implement them here. |
+| LR41a-3 | Emit profile claims only when the user or federated identity has the attribute. |
+| LR41a-4 | Bound claims request JSON to 4096 UTF-8 bytes before decoding. |
+| LR41a-5 | Process claims by default without widening consent. An explicit compatibility switch ignores it. |
+| LR41a-6 | Support the multi-factor PAPE policy value; requesting it forces MFA, including inside SSO. |
+| LR41a-7 | HS256 uses the client secret's UTF-8 bytes; secret_encoded remains ignored. Public and private-key-only clients cannot select it. |
+| LR41a-8 | Compatibility resource profile aliases audience; conflicting values fail invalid_request, multiple resources fail invalid_target. |
+| LR41a-9 | Guard logout delivery with the public HTTPS outbound policy, reject tenant hosts, never follow redirects. |
+| LR41a-10 | Require redirect_uri by default. Opt-in fallback requires exactly one registered non-wildcard callback. |
+| LR41a-11 | Accept undocumented initiators in configuration without emitting them. |
+| LR41a-12 | Logout tokens carry sub and sid, with RS256 and logout+jwt by default. |
+| LR41a-13 | Retry transient delivery failures for at most ten minutes, minting a fresh 120-second token for each attempt; no retries for 4xx or redirects. |
+| LR41a-14 | Global revocation returns 204 for unknown subjects; resolve through the named connection identity index only. |
+| LR41a-15 | Gate new client fields and non-RS256 ID token settings on oidc_logout.v1 for plugins. |
+| LR41a-16 | Use the already pinned express-openid-connect test client; add no dependency. |
+
+The three new server-wide switches default off and warn individually when on:
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_IGNORE_CLAIMS_PARAMETER`,
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI`, and
+`ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT`.
+Invalid nonempty boolean values cause a startup configuration error.
+
+**D-0063 amendment (maintainer ruling, 2026-11-19):** ID-token discovery will
+list HS256, RS256 and PS256. Tenant JWKS still omit alg, so RS256 and PS256
+use the same key. Supplied API signing secrets need at least 32 characters
+on Management API and seed writes; existing shorter secrets keep signing.
+These checks belong to Task 5; this contract does not claim they already run.
+
+**Builder rulings:**
+
+- The installed base has merged Plan 48, so logout metadata uses the actual
+  session metadata rather than the spec's temporary empty-object fallback.
+- The public log catalog uses `oidc_backchannel_logout_succeeded` and
+  `oidc_backchannel_logout_failed`, plus `universal_logout_succeeded` and
+  `universal_logout_failed`. Use those catalog names rather than inventing
+  `sslo`/`fslo` aliases from the older plan. This preserves public Auth0
+  schema parity; consumers expecting the plan's short names must use the
+  catalog names. Enable their inventory entries when real emitters exist.
+- Existing tenant setting schemas already accept oidc_logout,
+  acr_values_supported and resource_parameter_profile. Keep stored-only
+  descriptions until their runtime tasks land, then update them alongside
+  the implementation. Marking them active at contract freeze would claim
+  behavior before it exists.
+- Preserve the repository's Go 1.26.11 minimum rather than downgrading to
+  the plan's historical 1.26.10. Local verification toolchain is recorded
+  in the implementation record.
+
+L1–L14 are tracked in [the follow-ups](../superpowers/plan-1-followups.md).
+The [conformance inventory](../superpowers/2026-11-16-plan-41a-conformance-check.md)
+records the actual Implicit/Hybrid check. No new warning or skip is approved
+by this contract.

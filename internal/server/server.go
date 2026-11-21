@@ -172,6 +172,13 @@ func (a authAPI) PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Reques
 func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request, _ authapi.OauthTokenParams) {
 	a.oauth.OauthToken(w, r)
 }
+
+// GlobalTokenRevocation reserves the contract until the verified upstream
+// revocation handler is installed in Plan 41a Task 10. It never mutates state.
+func (a authAPI) GlobalTokenRevocation(w http.ResponseWriter, r *http.Request, _ string) {
+	http.Error(w, "not implemented", http.StatusNotImplemented)
+}
+
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.OauthRevoke(w, r) }
 func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.OauthParParams) {
 	a.oauth.OauthPar(w, r)

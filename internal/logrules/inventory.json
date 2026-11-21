@@ -2032,7 +2032,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/oidc-backchannel-logout-failed",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
       "triggers": []
     },
     {
@@ -2044,7 +2044,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/oidc-backchannel-logout-succeeded",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
       "triggers": []
     },
     {
@@ -3008,7 +3008,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-fail/universal-logout-failed",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
       "triggers": []
     },
     {
@@ -3020,7 +3020,7 @@
       "stats_kind": "",
       "source": "https://auth0.com/docs/tenant-logs/auth-logout-success/universal-logout-succeeded",
       "origin": "public-catalog",
-      "note": "No corresponding runtime subsystem; deferred owner must recheck public semantics before enabling.",
+      "note": "D-0080: public schema rechecked 2026-11-20; Plan 41a delivery/revocation tasks enable this code with its real trigger. No sslo/fslo aliases.",
       "triggers": []
     },
     {

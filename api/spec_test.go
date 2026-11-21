@@ -706,3 +706,85 @@ func TestOrganizationTokenQuotaContracts(t *testing.T) {
 		})
 	}
 }
+
+// Plan 41a contracts keep the client controls shared by create, patch and read.
+func TestOIDCExtrasContracts(t *testing.T) {
+	m, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"ClientSettings", "Client"} {
+		ref := m.Components.Schemas[name]
+		if ref == nil {
+			t.Fatalf("missing schema %s", name)
+		}
+		for _, field := range []string{"oidc_logout", "oidc_support"} {
+			if ref.Value.Properties[field] == nil {
+				t.Errorf("%s missing %s", name, field)
+			}
+		}
+	}
+	alg := m.Components.Schemas["JwtConfiguration"].Value.Properties["alg"].Value.Enum
+	if len(alg) != 3 {
+		t.Errorf("ID token algorithms = %v, want HS256, RS256, PS256", alg)
+	}
+	a, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"AuthorizeRequest", "PushedAuthorizationRequest"} {
+		for _, field := range []string{"claims", "acr_values", "resource"} {
+			if a.Components.Schemas[name].Value.Properties[field] == nil {
+				t.Errorf("%s missing %s", name, field)
+			}
+		}
+	}
+	if a.Components.Schemas["TokenRequestFields"].Value.Properties["resource"] == nil {
+		t.Error("token request missing resource")
+	}
+	path := a.Paths.Value("/oauth/global-token-revocation/connection/{connectionName}")
+	if path == nil || path.Post == nil {
+		t.Fatal("global token revocation route missing")
+	}
+	for _, code := range []string{"204", "400", "401", "404"} {
+		if path.Post.Responses.Value(code) == nil {
+			t.Errorf("global revocation missing response %s", code)
+		}
+	}
+}
+
+// These fail if the API contract permits ambiguous OIDC scope restrictions or
+// receivers beyond the single registered URL supported by Auth0.
+func TestOIDCExtrasSchemaValidation(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, schema, body string
+		valid              bool
+	}{
+		{"restricted scopes", "ClientOIDCSupport", `{"is_allowed":true,"allowed_scopes":["email"]}`, true},
+		{"reset support", "ClientOIDCSupport", `null`, true},
+		{"missing is allowed", "ClientOIDCSupport", `{"allowed_scopes":["email"]}`, false},
+		{"conflicting scope controls", "ClientOIDCSupport", `{"is_allowed":true,"allow_all_scopes":false,"allowed_scopes":["email"]}`, false},
+		{"unknown scope", "ClientOIDCSupport", `{"is_allowed":true,"allowed_scopes":["offline_access"]}`, false},
+		{"one receiver", "ClientOIDCLogout", `{"backchannel_logout_urls":["https://rp.example.test/logout"]}`, true},
+		{"two receivers", "ClientOIDCLogout", `{"backchannel_logout_urls":["https://rp.example.test/logout","https://rp2.example.test/logout"]}`, false},
+		{"unknown initiator", "ClientOIDCLogout", `{"backchannel_logout_initiators":{"mode":"custom","selected_initiators":["made-up"]}}`, false},
+		{"HS256", "JwtConfiguration", `{"alg":"HS256"}`, true},
+		{"PS256", "JwtConfiguration", `{"alg":"PS256"}`, true},
+		{"unsigned", "JwtConfiguration", `{"alg":"none"}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var body any
+			if err := json.Unmarshal([]byte(tc.body), &body); err != nil {
+				t.Fatal(err)
+			}
+			err := doc.Components.Schemas[tc.schema].Value.VisitJSON(body)
+			if (err == nil) != tc.valid {
+				t.Fatalf("valid = %v, want %v: %v", err == nil, tc.valid, err)
+			}
+		})
+	}
+}
