@@ -10,7 +10,7 @@ checks and branch review are complete.
 
 1. Contracts, D-0080 and conformance inventory: in progress.
 2. Compatibility switches: implemented; focused verification passed. Later protocol tasks still need to consume them.
-3. Claims and client OIDC restrictions: pending.
+3. Claims and client OIDC restrictions: in progress. The bounded claims request parser is tested; scope selection and protocol integration remain pending.
 4. MFA step-up and acr: pending.
 5. Client ID-token signing algorithms: pending.
 6. Resource profile and redirect fallback: pending.
@@ -45,6 +45,12 @@ application startup test failed before Warn was connected and passed
 with all three enabled switches producing one warning each. Empty/0/false
 are disabled; 1/true are enabled. Other values fail configuration without
 echoing their contents. Unknown switch names still fail strict decoding.
+
+Task 3's claims parser accepts Core claim requests and ignores unknown
+members, validates target/claim object shapes and value controls, rejects
+trailing JSON and invalid UTF-8, and enforces a 4096-byte bound before
+parsing. Errors contain no claim values. `go test ./internal/claims` passed
+(exit 0). The parser is not yet connected to authorization or token issuance.
 
 Full Go, E2E, full conformance, vulnerability and workflow checks have not run.
 There is no CI run yet; partial plan work must not be pushed.
