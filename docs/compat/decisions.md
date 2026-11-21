@@ -3696,3 +3696,12 @@ subject against the configured upstream client ID, and keeps the specified
 explicit token type and five-minute bound. It does not accept ordinary ID
 tokens. The draft remains work in progress. Tenant-issuer audiences are
 rejected; callers following the earlier design must update.
+
+Review follow-up (2026-11-21, maintainer): an upstream clock up to 60 seconds
+ahead is tolerated for `iat`, `nbf` and the lifetime ceiling, so a fresh token
+is not refused for minor skew; `exp` stays strict because the replay table
+keeps each `jti` only until `exp`. `aud` may also be a one-element array
+(RFC 7519 §4.1.3 allows arrays); arrays naming any other audience are refused
+because such a token is also valid at another recipient. The Management API
+refuses changing email and password in one update (as Auth0 does), so each
+credential change notifies with exactly one initiator.

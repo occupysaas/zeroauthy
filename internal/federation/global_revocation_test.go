@@ -29,7 +29,7 @@ func TestGlobalRevocationJWT(t *testing.T) {
 		{name: "wrong audience", typ: "global-token-revocation+jwt", mutate: func(c map[string]any) { c["aud"] = "https://other.example/" }},
 		{name: "expired", typ: "global-token-revocation+jwt", mutate: func(c map[string]any) { c["exp"] = fixedTime.Add(-time.Second).Unix() }},
 		{name: "long expiration", typ: "global-token-revocation+jwt", mutate: func(c map[string]any) { c["exp"] = fixedTime.Add(301 * time.Second).Unix() }},
-		{name: "future issued", typ: "global-token-revocation+jwt", mutate: func(c map[string]any) { c["iat"] = fixedTime.Add(time.Minute).Unix() }},
+		{name: "future issued", typ: "global-token-revocation+jwt", mutate: func(c map[string]any) { c["iat"] = fixedTime.Add(GlobalRevocationClockSkew + time.Second).Unix() }},
 		{name: "missing jti", typ: "global-token-revocation+jwt", mutate: func(c map[string]any) { delete(c, "jti") }},
 		{name: "wrong key", typ: "global-token-revocation+jwt", wrong: true},
 		{name: "wrong type", typ: "JWT"},

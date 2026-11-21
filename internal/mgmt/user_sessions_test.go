@@ -774,3 +774,27 @@ func TestUserProfileChangeBackchannel(t *testing.T) {
 		})
 	}
 }
+
+// TestEmailAndPasswordChangeRefused: as in Auth0, one PATCH cannot change
+// both email and password, so a single back-channel reason always applies.
+// The refused update ends no session and queues no notice.
+func TestEmailAndPasswordChangeRefused(t *testing.T) {
+	e := newUsersEnv(t)
+	e.h.Logout = &logout.Service{Store: e.st, Wrapper: e.w, Now: func() time.Time { return now }}
+	if err := e.st.Clients().Create(t.Context(), &store.Client{TenantID: e.tn.ID, ClientID: "logout-rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil {
+		t.Fatal(err)
+	}
+	user := e.mustCreate(t, map[string]any{"email": "both@example.test", "password": "A-original-password-9"})["user_id"].(string)
+	e.addSession(t, "changed-both", user, now, func(s *store.LoginSession) { s.ClientIDs = []string{"logout-rp"} })
+	rec, _ := e.patch(t, user, map[string]any{"email": "both-changed@example.test", "password": "A-replacement-password-9"}, "update:users")
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "operation_not_supported") {
+		t.Fatalf("update status=%d body=%s", rec.Code, rec.Body)
+	}
+	if _, err := e.st.Sessions().Get(t.Context(), e.tn.ID, "changed-both"); err != nil {
+		t.Fatal("refused update ended the session")
+	}
+	jobs, err := e.st.Actions().ClaimJobs(t.Context(), now, time.Minute, 10)
+	if err != nil || len(jobs) != 0 {
+		t.Fatalf("refused update queued %d notices (err %v)", len(jobs), err)
+	}
+}

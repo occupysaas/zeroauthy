@@ -79,8 +79,11 @@ with a Bearer JWT signed using the selected connection's pinned upstream
 JWKS. The JWT type must be `global-token-revocation+jwt`, `iss` must match the
 pinned issuer, `sub` must equal its configured integration client ID, and
 `aud` must be the exact connection-specific revocation endpoint URL without
-query or fragment. Include `iat`, an unexpired `exp` no more than five
-minutes ahead, and a unique `jti`. Ordinary ID tokens are refused. This
+query or fragment, either as a string or as an array holding only that URL
+(an array naming any other audience is refused). Include `iat`, an unexpired
+`exp` at most five minutes after `iat`, and a unique `jti`. The upstream
+clock may run up to 60 seconds ahead of zeroauthy's (`iat`, `nbf`); expiry
+has no leeway. Ordinary ID tokens are refused. This
 follows the [Auth0-linked Okta profile](https://auth0.com/docs/authenticate/login/logout/universal-logout)
 and the [work-in-progress draft](https://www.ietf.org/archive/id/draft-parecki-oauth-global-token-revocation-06.html).
 

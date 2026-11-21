@@ -250,8 +250,8 @@ func TestGlobalRevocationForgedTokens(t *testing.T) {
 		"jti absent":            f.sign(t, f.key, jose.RS256, typ, drop("jti")),
 		"exp absent":            f.sign(t, f.key, jose.RS256, typ, drop("exp")),
 		"iat absent":            f.sign(t, f.key, jose.RS256, typ, drop("iat")),
-		"iat in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["iat"] = f.now.Add(time.Minute).Unix() }),
-		"nbf in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["nbf"] = f.now.Add(time.Minute).Unix() }),
+		"iat in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["iat"] = f.now.Add(federation.GlobalRevocationClockSkew + time.Second).Unix() }),
+		"nbf in future":         f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["nbf"] = f.now.Add(federation.GlobalRevocationClockSkew + time.Second).Unix() }),
 		"aud of other connection": f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) {
 			c["aud"] = "https://tenant.example/oauth/global-token-revocation/connection/Other"
 		}),
@@ -340,5 +340,59 @@ func TestGlobalRevocationOutcomeLogs(t *testing.T) {
 		if strings.Contains(string(encoded), private) {
 			t.Fatal("outcome log contains private data")
 		}
+	}
+}
+
+// TestGlobalRevocationClockSkew: an upstream clock up to 60 s ahead is
+// tolerated; further ahead is refused. Expiry itself has no leeway.
+func TestGlobalRevocationClockSkew(t *testing.T) {
+	const typ = "global-token-revocation+jwt"
+	ahead := func(d time.Duration) func(map[string]any) {
+		return func(c map[string]any) {
+			c["iat"] = c["iat"].(int64) + int64(d/time.Second)
+			c["nbf"] = c["iat"]
+			c["exp"] = c["iat"].(int64) + 300
+		}
+	}
+	for name, tc := range map[string]struct {
+		change func(map[string]any)
+		want   int
+	}{
+		"ahead 60s":    {ahead(60 * time.Second), 204},
+		"ahead 61s":    {ahead(61 * time.Second), 401},
+		"just expired": {func(c map[string]any) { c["iat"] = c["iat"].(int64) - 300; c["exp"] = c["iat"].(int64) + 300 }, 401},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newGlobalFixture(t)
+			if got := f.call(t, "Enterprise", f.sign(t, f.key, jose.RS256, typ, tc.change), f.body()); got != tc.want {
+				t.Fatalf("status %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestGlobalRevocationAudienceForms: aud may be the endpoint string or an
+// array holding only the endpoint. An array with any other audience is
+// refused, since that token is also valid elsewhere.
+func TestGlobalRevocationAudienceForms(t *testing.T) {
+	const typ = "global-token-revocation+jwt"
+	const endpoint = "https://tenant.example/oauth/global-token-revocation/connection/Enterprise"
+	for name, tc := range map[string]struct {
+		aud  any
+		want int
+	}{
+		"string":           {endpoint, 204},
+		"single array":     {[]string{endpoint}, 204},
+		"array with other": {[]string{endpoint, "https://other.example/"}, 401},
+		"empty array":      {[]string{}, 401},
+		"other only":       {[]string{"https://other.example/"}, 401},
+		"number":           {42, 401},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newGlobalFixture(t)
+			if got := f.call(t, "Enterprise", f.sign(t, f.key, jose.RS256, typ, func(c map[string]any) { c["aud"] = tc.aud }), f.body()); got != tc.want {
+				t.Fatalf("status %d, want %d", got, tc.want)
+			}
+		})
 	}
 }

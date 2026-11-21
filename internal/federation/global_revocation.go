@@ -43,18 +43,41 @@ func (ps *Providers) VerifyGlobalRevocation(ctx context.Context, cache CacheKey,
 	}
 	iss, _ := c["iss"].(string)
 	sub, _ := c["sub"].(string)
-	aud, _ := c["aud"].(string)
+	aud, okAud := singleAudience(c["aud"])
 	jti, _ := c["jti"].(string)
 	exp, okExp := numericDate(c["exp"])
 	iat, okIat := numericDate(c["iat"])
-	if iss != cfg.Issuer || sub != cfg.ClientID || aud != audience || jti == "" || len(jti) > 256 || !okExp || !okIat || !exp.After(now) || exp.After(now.Add(5*time.Minute)) || iat.After(now) || !exp.After(iat) || exp.Sub(iat) > 5*time.Minute {
+	// Expiry is strict (the replay table keeps each jti until exp); only
+	// the upstream clock running ahead is tolerated.
+	if iss != cfg.Issuer || sub != cfg.ClientID || !okAud || aud != audience || jti == "" || len(jti) > 256 || !okExp || !okIat || !exp.After(now) || exp.After(now.Add(5*time.Minute+GlobalRevocationClockSkew)) || iat.After(now.Add(GlobalRevocationClockSkew)) || !exp.After(iat) || exp.Sub(iat) > 5*time.Minute {
 		return bad, ErrGlobalRevocationToken
 	}
 	if value, exists := c["nbf"]; exists {
 		nbf, ok := numericDate(value)
-		if !ok || nbf.After(now) {
+		if !ok || nbf.After(now.Add(GlobalRevocationClockSkew)) {
 			return bad, ErrGlobalRevocationToken
 		}
 	}
 	return GlobalRevocationAuthentication{JTI: jti, ExpiresAt: exp}, nil
+}
+
+// GlobalRevocationClockSkew is how far ahead of this server an upstream
+// issuer's clock may run (iat, nbf and the lifetime ceiling).
+const GlobalRevocationClockSkew = 60 * time.Second
+
+// singleAudience accepts aud as a string or as an array holding exactly one
+// string (RFC 7519 §4.1.3 allows both). An array naming more audiences is
+// refused: such a token would also be accepted by another recipient.
+func singleAudience(v any) (string, bool) {
+	switch aud := v.(type) {
+	case string:
+		return aud, aud != ""
+	case []any:
+		if len(aud) != 1 {
+			return "", false
+		}
+		s, ok := aud[0].(string)
+		return s, ok && s != ""
+	}
+	return "", false
 }
