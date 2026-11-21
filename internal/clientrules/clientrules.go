@@ -71,6 +71,7 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // Spec is a client's settings. Empty strings and nil pointers mean "the
 // default", which Normalize fills in.
 type Spec struct {
+	OIDCLogout               *store.OIDCLogout
 	IDTokenAlg               string
 	OIDCSupport              *store.OIDCSupport
 	TokenQuota               *store.TokenQuota
@@ -170,6 +171,9 @@ func checkOrigin(raw string) error {
 // clients (connections, grants) are the caller's.
 func Normalize(s *Spec, parSupported bool) []error {
 	var errs []error
+	if err := NormalizeOIDCLogout(s.OIDCLogout); err != nil {
+		errs = append(errs, err)
+	}
 	if err := ValidateOIDCSupport(s.OIDCSupport); err != nil {
 		errs = append(errs, err)
 	}
@@ -404,6 +408,7 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 // Apply copies a normalized s into c. It leaves the identity (tenant,
 // client ID, creation time, origin) and the secrets alone.
 func Apply(c *store.Client, s *Spec) {
+	c.OIDCLogout = s.OIDCLogout.Clone()
 	c.IDTokenAlg = s.IDTokenAlg
 	c.OIDCSupport = s.OIDCSupport.Clone()
 	c.TokenQuota = nil
@@ -446,7 +451,7 @@ func Apply(c *store.Client, s *Spec) {
 func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
-		IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
+		OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
 		Mobile:            c.Mobile.Clone(),
 		TokenQuota:        cloneTokenQuota(c.TokenQuota),
 		NativeSocialLogin: maps.Clone(c.NativeSocialLogin),

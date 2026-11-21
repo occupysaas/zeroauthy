@@ -30,3 +30,13 @@ func ACRValuesSupported(t *store.Tenant) []string {
 	}
 	return []string{}
 }
+
+// RPLogoutDiscovery controls only metadata; the endpoint remains registered.
+func RPLogoutDiscovery(t *store.Tenant) bool {
+	if t == nil {
+		return true
+	}
+	settings, _ := t.SettingsExtra["oidc_logout"].(map[string]any)
+	value, present := settings["rp_logout_end_session_endpoint_discovery"].(bool)
+	return !present || value
+}

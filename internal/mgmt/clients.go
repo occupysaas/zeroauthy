@@ -293,7 +293,7 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
-		if _, present := body["oidc_support"]; present || c.IDTokenAlg != "" && c.IDTokenAlg != "RS256" {
+		if body["oidc_support"] != nil || body["oidc_logout"] != nil || store.ClientNeedsOIDCLogout(c) {
 			if err := checkOIDCSupportWrite(r.Context(), tx); err != nil {
 				return err
 			}
@@ -376,7 +376,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 				return err
 			}
 		}
-		if _, present := body["oidc_support"]; present || spec.IDTokenAlg != "" && spec.IDTokenAlg != "RS256" {
+		if body["oidc_support"] != nil || body["oidc_logout"] != nil || spec.OIDCSupport != nil || spec.OIDCLogout != nil || spec.IDTokenAlg != "" && spec.IDTokenAlg != "RS256" {
 			if err := checkOIDCSupportWrite(r.Context(), tx); err != nil {
 				return err
 			}
@@ -599,6 +599,12 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		},
 		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: &c.RequireProofOfPossession,
 		CreatedAt: &created,
+	}
+	if c.OIDCLogout != nil {
+		raw, _ := json.Marshal(clientrules.PublicOIDCLogout(c.OIDCLogout))
+		var logout mgmtapi.ClientOIDCLogout
+		_ = json.Unmarshal(raw, &logout)
+		v.OidcLogout = &logout
 	}
 	if c.OIDCSupport != nil {
 		raw, _ := json.Marshal(c.OIDCSupport)
@@ -851,6 +857,8 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 				s.OrganizationDiscoveryMethods = []string{}
 				err = decodeStrict(raw, &s.OrganizationDiscoveryMethods)
 			}
+		case "oidc_logout":
+			s.OIDCLogout, err = clientrules.ParseOIDCLogout(raw)
 		case "oidc_support":
 			s.OIDCSupport, err = clientrules.ParseOIDCSupport(raw)
 		case "jwt_configuration":

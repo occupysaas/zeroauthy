@@ -13593,7 +13593,7 @@ type TenantSettings struct {
 		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
 	} `json:"mtls,omitempty"`
 
-	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// OidcLogout Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
 	OidcLogout *struct {
 		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
 	} `json:"oidc_logout,omitempty"`
@@ -13835,7 +13835,7 @@ type TenantSettingsPatch struct {
 		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
 	} `json:"mtls,omitempty"`
 
-	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// OidcLogout Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
 	OidcLogout *struct {
 		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
 	} `json:"oidc_logout,omitempty"`

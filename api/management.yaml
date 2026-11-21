@@ -21656,8 +21656,7 @@ components:
             rp_logout_end_session_endpoint_discovery:
               type: boolean
               default: true
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
         customize_mfa_in_postlogin_action:
           type: boolean
           default: false
@@ -22240,8 +22239,7 @@ components:
             rp_logout_end_session_endpoint_discovery:
               type: boolean
               default: true
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Controls RP-initiated logout endpoint discovery. False hides its metadata entry without disabling the endpoint (D-0080).
         customize_mfa_in_postlogin_action:
           type: boolean
           default: false

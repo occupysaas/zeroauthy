@@ -2062,7 +2062,9 @@ components:
         request_object_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for request objects; present when the store supports client credentials.}
         token_endpoint_auth_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for client assertions; present when the store supports client credentials.}
         jwks_uri: {type: string, format: uri}
-        end_session_endpoint: {type: string, format: uri}
+        backchannel_logout_supported: {type: boolean, description: Advertised when oidc_logout.v1 client settings are available.}
+        backchannel_logout_session_supported: {type: boolean}
+        end_session_endpoint: {type: string, format: uri, description: Omitted when the tenant disables RP logout discovery; the endpoint remains available.}
         response_types_supported: {type: array, items: {type: string}}
         subject_types_supported: {type: array, items: {type: string}}
         id_token_signing_alg_values_supported: {type: array, items: {type: string}}

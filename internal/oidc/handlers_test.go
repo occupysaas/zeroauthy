@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -323,5 +324,42 @@ func TestDiscoveryClaims(t *testing.T) {
 				t.Errorf("missing claim %s", claim)
 			}
 		}
+	}
+}
+
+func TestRPLogoutDiscoveryFlag(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	tn := &store.Tenant{ID: "t", Name: "t", Domains: []string{"tenant.example.test"}, SettingsExtra: map[string]any{"oidc_logout": map[string]any{"rp_logout_end_session_endpoint_discovery": false}}}
+	if err := st.Tenants().Create(t.Context(), tn); err != nil {
+		t.Fatal(err)
+	}
+	h := &Handlers{Store: st, Sessions: &session.Manager{Store: st}}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /.well-known/openid-configuration", h.Discovery)
+	mux.HandleFunc("GET /oidc/logout", h.OidcLogout)
+	handler := tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)
+	rec := get(handler, "https://tenant.example.test/.well-known/openid-configuration")
+	var body map[string]any
+	if json.Unmarshal(rec.Body.Bytes(), &body) != nil {
+		t.Fatal("invalid discovery response")
+	}
+	if _, ok := body["end_session_endpoint"]; ok {
+		t.Fatal("disabled endpoint still advertised")
+	}
+	if rec := get(handler, "https://tenant.example.test/oidc/logout"); rec.Code != 200 {
+		t.Fatalf("hidden endpoint status=%d", rec.Code)
+	}
+}
+func TestDiscoveryBackchannel(t *testing.T) {
+	handler, _ := setup(t)
+	rec := get(handler, "https://acme.example.test/.well-known/openid-configuration")
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if body["backchannel_logout_supported"] != true || body["backchannel_logout_session_supported"] != true {
+		t.Fatal("back-channel logout discovery flags absent")
+	}
+	if _, ok := body["frontchannel_logout_supported"]; ok {
+		t.Fatal("unimplemented front-channel logout advertised")
 	}
 }

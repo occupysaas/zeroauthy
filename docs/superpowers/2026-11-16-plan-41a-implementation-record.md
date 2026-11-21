@@ -14,7 +14,7 @@ checks and branch review are complete.
 4. MFA step-up and acr: implemented; package and focused checks passed.
 5. Client ID-token signing algorithms: implemented; focused checks passed, broader verification pending.
 6. Resource profile and redirect fallback: implemented; focused checks passed, broader verification pending.
-7. Logout settings and storage: storage prerequisites implemented in migration 0043 (memory/SQLite/gRPC round trips passed). Logout API validation and discovery remain pending.
+7. Logout settings and storage: implemented; focused validation, CRUD/capability, discovery and scrubbing tests passed. Actual sending remains Task 8.
 8. Durable back-channel delivery and session-ending triggers: pending.
 9. Logout session metadata: pending (Plan 48 fields already available).
 10. Global revocation: pending; reserved route returns 501 without mutation.
@@ -132,3 +132,30 @@ No full-plan completion, E2E coverage, final review, full verification or CI
 is claimed. No dependency was added. Security-sensitive changes include
 keys, OAuth, authorization, Management, hosted login, federation, server
 wiring and storage. Nothing has been pushed.
+
+
+## Checkpoint verification and Task 7
+
+The initial checkpoint ee3b79e0 omitted tenant-rule helper files from staging.
+Its isolated 17-package run exited 1 with undefined tenant-rule helpers in
+authorization and cascading OAuth/OIDC/Management/login/server build failures.
+The omission was fixed in signed commit 3104068c. That corrected source built
+successfully; a separate run of the same 17-package command is in progress
+against exactly 3104068c in the verification worktree. Both command results
+and logs are retained in the ignored plan workspace. The failed snapshot is
+not counted as a pass, and the corrected run is not yet reported as passing.
+
+Task 7 adds validated nested client oidc_logout settings and effective tenant
+logout discovery settings. Receivers are limited to one HTTPS URL of at most
+2048 bytes, with known organization placeholders, no embedded credentials
+or fragment. Custom initiators require rp-logout/idp-logout; the three
+OpenAPI-only initiators are accepted without implementing their triggers.
+Reads supply initiator and metadata defaults. A plugin without oidc_logout.v1
+cannot write or clear these settings. The RP logout discovery flag hides
+metadata while the endpoint keeps working. Back-channel flags are present
+when its storage capability is available. Receiver URL fields are scrubbed
+because callback query strings can carry credentials.
+
+The sender, durable jobs and all session-ending trigger wiring remain
+unimplemented. This partial branch must not be pushed or advertised as
+complete back-channel logout support.

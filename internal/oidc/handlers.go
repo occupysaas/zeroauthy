@@ -42,6 +42,8 @@ func (h *Handlers) now() time.Time {
 // Configuration is OpenID Provider metadata (OpenID Connect Discovery 1.0
 // §3). It lists only what this server implements.
 type Configuration struct {
+	BackchannelLogoutSupported         bool     `json:"backchannel_logout_supported,omitempty"`
+	BackchannelLogoutSessionSupported  bool     `json:"backchannel_logout_session_supported,omitempty"`
 	ACRValuesSupported                 []string `json:"acr_values_supported"`
 	ClaimsParameterSupported           *bool    `json:"claims_parameter_supported,omitempty"`
 	DPoPSigningAlgValuesSupported      []string `json:"dpop_signing_alg_values_supported,omitempty"`
@@ -62,7 +64,7 @@ type Configuration struct {
 	RequestObjectSigningAlgValuesSupported []string `json:"request_object_signing_alg_values_supported,omitempty"`
 	UserinfoEndpoint                       string   `json:"userinfo_endpoint"`
 	JWKSURI                                string   `json:"jwks_uri"`
-	EndSessionEndpoint                     string   `json:"end_session_endpoint"`
+	EndSessionEndpoint                     string   `json:"end_session_endpoint,omitempty"`
 	ResponseTypesSupported                 []string `json:"response_types_supported"`
 	ResponseModesSupported                 []string `json:"response_modes_supported"`
 	SubjectTypesSupported                  []string `json:"subject_types_supported"`
@@ -106,6 +108,13 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		ScopesSupported:                   []string{"openid", "profile", "email", "address", "phone", "offline_access"},
 		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "acr", "amr", "nonce", "sid", "at_hash",
 			"name", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "profile", "picture", "website", "gender", "birthdate", "zoneinfo", "locale", "updated_at", "email", "email_verified", "phone_number", "phone_number_verified", "address"},
+	}
+	if !tenantrules.RPLogoutDiscovery(res.Tenant) {
+		cfg.EndSessionEndpoint = ""
+	}
+	if h.Store != nil && store.CheckOIDCLogoutSupport(r.Context(), h.Store) == nil {
+		cfg.BackchannelLogoutSupported = true
+		cfg.BackchannelLogoutSessionSupported = true
 	}
 	if !h.Compat.IgnoreClaimsParameter {
 		yes := true

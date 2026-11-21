@@ -773,3 +773,34 @@ func TestJWTAlgRules(t *testing.T) {
 	}
 
 }
+
+func TestClientOIDCLogout(t *testing.T) {
+	e := newClientsEnv(t)
+	rec, created := e.create(t, m2mCaller(allClientScopes...), map[string]any{"name": "logout", "oidc_logout": map[string]any{"backchannel_logout_urls": []string{"https://rp.example.test/logout"}}})
+	if rec.Code != 201 {
+		t.Fatalf("logout create status=%d", rec.Code)
+	}
+	logout, ok := created["oidc_logout"].(map[string]any)
+	if !ok {
+		t.Fatal("logout settings not returned")
+	}
+	initiators := logout["backchannel_logout_initiators"].(map[string]any)
+	if initiators["mode"] != "custom" || len(initiators["selected_initiators"].([]any)) != 2 {
+		t.Fatal("default initiators absent from response")
+	}
+	id := created["client_id"].(string)
+	rec, _ = e.patch(t, m2mCaller(allClientScopes...), id, map[string]any{"oidc_logout": map[string]any{"backchannel_logout_urls": []string{"http://rp.example.test/logout"}}})
+	if rec.Code != 400 {
+		t.Fatalf("insecure receiver status=%d", rec.Code)
+	}
+	e.h.Store = noOIDCLogoutStore{e.st}
+	rec, _ = e.patch(t, m2mCaller(allClientScopes...), id, map[string]any{"oidc_logout": nil})
+	if rec.Code != 400 {
+		t.Fatalf("unsupported clear status=%d", rec.Code)
+	}
+	e.h.Store = e.st
+	rec, created = e.patch(t, m2mCaller(allClientScopes...), id, map[string]any{"oidc_logout": nil})
+	if rec.Code != 200 || created["oidc_logout"] != nil {
+		t.Fatalf("logout clear status=%d", rec.Code)
+	}
+}

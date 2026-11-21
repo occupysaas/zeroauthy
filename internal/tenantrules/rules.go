@@ -187,6 +187,7 @@ func Public(t *store.Tenant) map[string]any {
 	}
 	out["acr_values_supported"] = ACRValuesSupported(t)
 	out["resource_parameter_profile"] = ResourceParameterProfile(t)
+	out["oidc_logout"] = map[string]any{"rp_logout_end_session_endpoint_discovery": RPLogoutDiscovery(t)}
 	v := reflect.ValueOf(t).Elem()
 	for key, field := range stringFields {
 		out[key] = v.FieldByName(field).String()

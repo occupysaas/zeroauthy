@@ -658,6 +658,7 @@ const inventory = `{
       }
     },
     "oidc_logout": {
+ "description": "D-0080: active RP-initiated logout endpoint discovery control.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

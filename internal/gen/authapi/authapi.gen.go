@@ -770,20 +770,26 @@ type OidcLogoutRequest struct {
 // OpenIDConfiguration defines model for OpenIDConfiguration.
 type OpenIDConfiguration struct {
 	// AcrValuesSupported Effective supported authentication contexts; defaults to the multi-factor PAPE policy value.
-	AcrValuesSupported    *[]string `json:"acr_values_supported,omitempty"`
-	AuthorizationEndpoint string    `json:"authorization_endpoint"`
+	AcrValuesSupported                *[]string `json:"acr_values_supported,omitempty"`
+	AuthorizationEndpoint             string    `json:"authorization_endpoint"`
+	BackchannelLogoutSessionSupported *bool     `json:"backchannel_logout_session_supported,omitempty"`
+
+	// BackchannelLogoutSupported Advertised when oidc_logout.v1 client settings are available.
+	BackchannelLogoutSupported *bool `json:"backchannel_logout_supported,omitempty"`
 
 	// ClaimsParameterSupported Present and true unless the claims-parameter compatibility switch is enabled (D-0080).
-	ClaimsParameterSupported         *bool                                               `json:"claims_parameter_supported,omitempty"`
-	ClaimsSupported                  *[]string                                           `json:"claims_supported,omitempty"`
-	CodeChallengeMethodsSupported    *[]string                                           `json:"code_challenge_methods_supported,omitempty"`
-	DeviceAuthorizationEndpoint      *string                                             `json:"device_authorization_endpoint,omitempty"`
-	DpopSigningAlgValuesSupported    *[]OpenIDConfigurationDpopSigningAlgValuesSupported `json:"dpop_signing_alg_values_supported,omitempty"`
-	EndSessionEndpoint               *string                                             `json:"end_session_endpoint,omitempty"`
-	GrantTypesSupported              *[]string                                           `json:"grant_types_supported,omitempty"`
-	IdTokenSigningAlgValuesSupported []string                                            `json:"id_token_signing_alg_values_supported"`
-	Issuer                           string                                              `json:"issuer"`
-	JwksUri                          string                                              `json:"jwks_uri"`
+	ClaimsParameterSupported      *bool                                               `json:"claims_parameter_supported,omitempty"`
+	ClaimsSupported               *[]string                                           `json:"claims_supported,omitempty"`
+	CodeChallengeMethodsSupported *[]string                                           `json:"code_challenge_methods_supported,omitempty"`
+	DeviceAuthorizationEndpoint   *string                                             `json:"device_authorization_endpoint,omitempty"`
+	DpopSigningAlgValuesSupported *[]OpenIDConfigurationDpopSigningAlgValuesSupported `json:"dpop_signing_alg_values_supported,omitempty"`
+
+	// EndSessionEndpoint Omitted when the tenant disables RP logout discovery; the endpoint remains available.
+	EndSessionEndpoint               *string   `json:"end_session_endpoint,omitempty"`
+	GrantTypesSupported              *[]string `json:"grant_types_supported,omitempty"`
+	IdTokenSigningAlgValuesSupported []string  `json:"id_token_signing_alg_values_supported"`
+	Issuer                           string    `json:"issuer"`
+	JwksUri                          string    `json:"jwks_uri"`
 
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`

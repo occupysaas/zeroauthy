@@ -24,6 +24,9 @@ var keyNormalizer = strings.NewReplacer("_", "", "-", "", ".", "")
 // allowing a secret through because its name has a prefix or different casing.
 func SensitiveKey(name string) bool {
 	name = keyNormalizer.Replace(strings.ToLower(name))
+	if strings.Contains(name, "backchannellogouturl") {
+		return true
+	}
 	if name == "code" || name == "ticket" || name == "cookie" || name == "bindingcode" || name == "sessionmetadata" || name == "claims" {
 		return true
 	}
