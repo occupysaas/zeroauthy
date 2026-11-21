@@ -249,3 +249,18 @@ CLI four-cell round trips. Plan-wide checks and CI are tracked separately in
 [the implementation record](../superpowers/2026-11-16-plan-48-implementation-record.md);
 this entry is not an OpenID certification claim. Upstream enterprise DPoP
 and mTLS remain unsupported.
+
+## Plan 41a OIDC and logout
+
+| Surface | Behavior |
+| --- | --- |
+| Standard claims | Available profile/phone/address values from the own identity/root attributes; granted scopes remain the boundary. |
+| `claims` | Bounded Core request syntax across authorize/PAR/JAR; essential unsupported or unconsented claims may be declined. |
+| MFA ACR | Requested multi-factor context requires proof; existing MFA SSO satisfies it. |
+| ID tokens | Per-client RS256/PS256/HS256; symmetric signing requires a usable confidential-client secret. |
+| Back-channel logout | Durable per-session/client jobs, implemented initiators and optional metadata; verified guarded HTTPS delivery. |
+| Global revocation | OIDC/Okta connection-pinned JWTs, atomic replay/session/refresh revocation, unknown subjects return 204. |
+| Resource indicator | Default ignores it; compatibility mode aliases one target to audience. |
+
+See [logout](../logout.md) and the [implementation record](../superpowers/2026-11-16-plan-41a-implementation-record.md)
+for limitations and verification. No new certification is claimed here.

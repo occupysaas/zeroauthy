@@ -10,6 +10,12 @@ import (
 )
 
 type (
+	OIDCLogout                     = store.OIDCLogout
+	OIDCSupport                    = store.OIDCSupport
+	OIDCLogoutSupporter            = store.OIDCLogoutSupporter
+	GlobalRevocationStore          = store.GlobalRevocationStore
+	SessionOrganizationRecorder    = store.SessionOrganizationRecorder
+	SessionExpiryLister            = store.SessionExpiryLister
 	ConnectionKey                  = store.ConnectionKey
 	ConnectionKeys                 = store.ConnectionKeys
 	ConnectionKeysSupporter        = store.ConnectionKeysSupporter
@@ -430,3 +436,5 @@ type (
 var ErrRefreshTokensIISupportLost = store.ErrRefreshTokensIISupportLost
 
 var ErrRefreshTokensIIUnavailable = store.ErrRefreshTokensIIUnavailable
+
+var ErrOIDCLogoutUnavailable = store.ErrOIDCLogoutUnavailable

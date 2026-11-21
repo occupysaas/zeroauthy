@@ -142,6 +142,12 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	if j == nil || ctx.Err() != nil {
 		return nil
 	}
+	if j.Trigger == "backchannel-logout" {
+		if e.BackchannelLogout == nil {
+			return nil
+		}
+		return e.BackchannelLogout.Deliver(ctx, j)
+	}
 	next := *j
 	next.ExecutionIDs = append([]string{}, j.ExecutionIDs...)
 	if j.Status != "pending" {
@@ -364,6 +370,10 @@ func (w *Worker) Run(ctx context.Context) {
 					}
 					if err := w.Store.Actions().FinishJob(ctx, next, job.LeaseUntil); err != nil {
 						w.Engine.log().Warn("actions: finishing job", "tenant", job.TenantID, "job_id", job.ID, "error", err)
+					} else if next.Trigger == "backchannel-logout" {
+						if w.Engine.BackchannelLogout != nil {
+							w.Engine.BackchannelLogout.Finished(ctx, next)
+						}
 					} else if next.Status == "failed" {
 						logs.RecordEvent(ctx, w.Engine.Recorder, logs.Event{TenantID: next.TenantID, Type: "actions_execution_failed", Date: w.Engine.now(), ExecutionIDs: next.ExecutionIDs, Details: map[string]any{"job_id": next.ID, "trigger": next.Trigger}})
 					}

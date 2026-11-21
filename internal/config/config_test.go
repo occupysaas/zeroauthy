@@ -645,3 +645,41 @@ func TestSelfSignedTLSConfig(t *testing.T) {
 		}
 	}
 }
+
+func TestNoncompliantCompatEnvironment(t *testing.T) {
+	for _, name := range []string{
+		"ZEROAUTHY_COMPAT__NONCOMPLIANT_IGNORE_CLAIMS_PARAMETER",
+		"ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI",
+		"ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT",
+	} {
+		t.Run(name, func(t *testing.T) {
+			for _, raw := range []string{"", "0", "false", "1", "true"} {
+				cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, name + "=" + raw})
+				if err != nil {
+					t.Fatalf("%s=%q: %v", name, raw, err)
+				}
+				on := raw == "1" || raw == "true"
+				var enabled bool
+				switch name {
+				case "ZEROAUTHY_COMPAT__NONCOMPLIANT_IGNORE_CLAIMS_PARAMETER":
+					enabled = cfg.Compat.IgnoreClaimsParameter
+				case "ZEROAUTHY_COMPAT__NONCOMPLIANT_OPTIONAL_REDIRECT_URI":
+					enabled = cfg.Compat.OptionalRedirectURI
+				case "ZEROAUTHY_COMPAT__NONCOMPLIANT_LOGOUT_TOKEN_TYP_JWT":
+					enabled = cfg.Compat.LogoutTokenTypJWT
+				}
+				if enabled != on {
+					t.Fatalf("%s=%q: enabled=%v", name, raw, enabled)
+				}
+			}
+			_, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, name + "=private-value"})
+			if err == nil || !strings.Contains(err.Error(), name) || strings.Contains(err.Error(), "private-value") {
+				t.Fatalf("unsafe/missing error: %v", err)
+			}
+		})
+	}
+	_, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_COMPAT__NONCOMPLIANT_IGNORE_CLAIM_PARAMETER=1"})
+	if err == nil {
+		t.Fatal("misspelled switch silently accepted")
+	}
+}

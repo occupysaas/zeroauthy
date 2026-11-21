@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/console"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
@@ -29,6 +30,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
@@ -45,7 +47,9 @@ import (
 )
 
 type Deps struct {
-	MFA *mfa.Service
+	Logout *logout.Service
+	Compat compat.Switches
+	MFA    *mfa.Service
 	// Passkeys is shared by hosted and native ceremony consumers.
 	Passkeys *passkey.Service
 	// LogsConfig carries the secure stream defaults and deployment opt-ins.
@@ -172,6 +176,11 @@ func (a authAPI) PasskeyAndroidAssociation(w http.ResponseWriter, r *http.Reques
 func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request, _ authapi.OauthTokenParams) {
 	a.oauth.OauthToken(w, r)
 }
+
+func (a authAPI) GlobalTokenRevocation(w http.ResponseWriter, r *http.Request, name string) {
+	a.oauth.GlobalTokenRevocation(w, r, name)
+}
+
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request) { a.oauth.OauthRevoke(w, r) }
 func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request, _ authapi.OauthParParams) {
 	a.oauth.OauthPar(w, r)
@@ -221,6 +230,19 @@ func New(d Deps) http.Handler {
 	if d.LegacySecretSlots == nil {
 		d.LegacySecretSlots = ratelimit.NewSecretVerifications(0)
 	}
+	if d.Logout != nil && d.Sessions != nil {
+		sessions := *d.Sessions
+		previous := sessions.OnEnd
+		sessions.OnEnd = func(ctx context.Context, tx store.Store, ended *store.LoginSession) error {
+			if previous != nil {
+				if err := previous(ctx, tx, ended); err != nil {
+					return err
+				}
+			}
+			return d.Logout.WithStore(tx).SessionsEnded(ctx, ended.TenantID, []*store.LoginSession{ended}, logout.RPLogout)
+		}
+		d.Sessions = &sessions
+	}
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 
@@ -243,7 +265,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
@@ -268,6 +290,7 @@ func New(d Deps) http.Handler {
 		Verification: verification,
 	}
 	lg := &login.Handlers{
+		Logout:   d.Logout,
 		MFA:      d.MFA,
 		Passkeys: d.Passkeys,
 		Recorder: d.Recorder,
@@ -307,8 +330,8 @@ func New(d Deps) http.Handler {
 		})
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
-			oidc: &oidc.Handlers{DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{
+			oidc: &oidc.Handlers{Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
+			oauth: &oauth.Handlers{Compat: d.Compat, Logout: d.Logout,
 				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,
@@ -405,6 +428,7 @@ func New(d Deps) http.Handler {
 	}
 	mr := chi.NewRouter()
 	mh := &mgmt.Handlers{
+		Logout:         d.Logout,
 		LogsConfig:     d.LogsConfig,
 		EventsConfig:   d.EventsConfig,
 		EventDeliverer: d.EventDeliverer,

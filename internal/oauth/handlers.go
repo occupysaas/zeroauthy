@@ -5,6 +5,7 @@
 package oauth
 
 import (
+	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"log/slog"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/passkey"
@@ -23,6 +25,8 @@ import (
 )
 
 type Handlers struct {
+	Logout     *logout.Service
+	Compat     compat.Switches
 	DPoP       *dpop.Service
 	Federation *federation.FlowService
 	// Passkeys supplies hosted and native first-factor ceremonies.

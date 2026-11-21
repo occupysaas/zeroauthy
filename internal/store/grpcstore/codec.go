@@ -355,6 +355,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		return nil, nil
 	}
 	pb := &storev1.Client{
+		IdTokenAlg: c.IDTokenAlg,
 		TokenQuota: quotaToPB(c.TokenQuota), RequireProofOfPossession: c.RequireProofOfPossession,
 		TenantId: c.TenantID, ClientId: c.ClientID, Name: c.Name, AppType: string(c.AppType),
 		TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
@@ -387,6 +388,12 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		}
 	}
 	var err error
+	if pb.OidcSupport, err = optJSON(c.OIDCSupport, c.OIDCSupport == nil); err != nil {
+		return nil, err
+	}
+	if pb.OidcLogout, err = optJSON(c.OIDCLogout, c.OIDCLogout == nil); err != nil {
+		return nil, err
+	}
 	if pb.NativeSocialLogin, err = optJSON(c.NativeSocialLogin, c.NativeSocialLogin == nil); err != nil {
 		return nil, err
 	}
@@ -408,6 +415,7 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 	}
 	rt := pb.GetRefreshToken()
 	c := &store.Client{
+		IDTokenAlg: pb.IdTokenAlg,
 		TokenQuota: quotaFromPB(pb.TokenQuota), RequireProofOfPossession: pb.RequireProofOfPossession,
 		TenantID: pb.TenantId, ClientID: pb.ClientId, Name: pb.Name, AppType: store.AppType(pb.AppType),
 		TokenEndpointAuthMethod: pb.TokenEndpointAuthMethod,
@@ -430,6 +438,12 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		OrganizationUsage:                              pb.OrganizationUsage,
 		OrganizationRequireBehavior:                    pb.OrganizationRequireBehavior,
 		OrganizationDiscoveryMethods:                   stringsFromPB(pb.OrganizationDiscoveryMethods),
+	}
+	if err := fromOptJSON(pb.OidcSupport, &c.OIDCSupport); err != nil {
+		return nil, err
+	}
+	if err := fromOptJSON(pb.OidcLogout, &c.OIDCLogout); err != nil {
+		return nil, err
 	}
 	if pb.Secrets != nil {
 		c.Secrets = make([]store.ClientSecret, 0, len(pb.Secrets.Values))
@@ -931,12 +945,13 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 		return nil, err
 	}
 	return &storev1.LoginSession{
-		Metadata:    stringMapToPB(s.Metadata),
-		AuthMethods: methods,
-		MfaAt:       tsToPB(s.MFAAt),
-		Origin:      s.Origin,
-		CookieMode:  s.CookieMode,
-		TenantId:    s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
+		ClientOrganizations: stringMapToPB(s.ClientOrganizations),
+		Metadata:            stringMapToPB(s.Metadata),
+		AuthMethods:         methods,
+		MfaAt:               tsToPB(s.MFAAt),
+		Origin:              s.Origin,
+		CookieMode:          s.CookieMode,
+		TenantId:            s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
 		Connection: s.Connection, AuthenticatedAt: tsToPB(s.AuthenticatedAt),
 		ClientIds: stringsToPB(s.ClientIDs), ExpiresAt: tsToPB(s.ExpiresAt),
 		IdleExpiresAt: tsToPB(s.IdleExpiresAt), CreatedAt: tsToPB(s.CreatedAt),
@@ -957,12 +972,13 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 		return nil, err
 	}
 	return &store.LoginSession{
-		Metadata:    stringMapFromPB(pb.Metadata),
-		AuthMethods: methods,
-		MFAAt:       tsFromPB(pb.MfaAt),
-		Origin:      pb.Origin,
-		CookieMode:  pb.CookieMode,
-		TenantID:    pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
+		ClientOrganizations: stringMapFromPB(pb.ClientOrganizations),
+		Metadata:            stringMapFromPB(pb.Metadata),
+		AuthMethods:         methods,
+		MFAAt:               tsFromPB(pb.MfaAt),
+		Origin:              pb.Origin,
+		CookieMode:          pb.CookieMode,
+		TenantID:            pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, AuthenticatedAt: tsFromPB(pb.AuthenticatedAt),
 		ClientIDs: stringsFromPB(pb.ClientIds), ExpiresAt: tsFromPB(pb.ExpiresAt),
 		IdleExpiresAt: tsFromPB(pb.IdleExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
@@ -1019,6 +1035,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		return nil, nil
 	}
 	return &storev1.AuthCode{
+		Acr: c.ACR, UserInfoClaims: c.UserInfoClaims,
 		DpopJkt:  c.DPoPJKT,
 		Origin:   c.Origin,
 		TenantId: c.TenantID, CodeHash: c.CodeHash, ClientId: c.ClientID, RedirectUri: c.RedirectURI,
@@ -1038,6 +1055,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		return nil, err
 	}
 	return &store.AuthCode{
+		ACR: pb.Acr, UserInfoClaims: pb.UserInfoClaims,
 		DPoPJKT:  pb.DpopJkt,
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, CodeHash: pb.CodeHash, ClientID: pb.ClientId, RedirectURI: pb.RedirectUri,
@@ -1136,6 +1154,7 @@ func refreshTokenToPB(r *store.RefreshToken) (*storev1.RefreshToken, error) {
 		return nil, nil
 	}
 	return &storev1.RefreshToken{
+		Acr: r.ACR, UserInfoClaims: r.UserInfoClaims,
 		DpopJkt: r.DPoPJKT, ParentId: r.ParentID, Access: r.Access, Device: deviceToPB(r.Device), Metadata: stringMapToPB(r.Metadata), LastExchangedAt: optTSToPB(r.LastExchangedAt),
 		Origin:   r.Origin,
 		TenantId: r.TenantID, Id: r.ID, TokenHash: r.TokenHash, FamilyId: r.FamilyID,
@@ -1155,6 +1174,7 @@ func refreshTokenFromPB(pb *storev1.RefreshToken) (*store.RefreshToken, error) {
 		return nil, err
 	}
 	return &store.RefreshToken{
+		ACR: pb.Acr, UserInfoClaims: pb.UserInfoClaims,
 		DPoPJKT: pb.DpopJkt, ParentID: pb.ParentId, Access: pb.Access, Device: deviceFromPB(pb.Device), Metadata: stringMapFromPB(pb.Metadata), LastExchangedAt: optTSFromPB(pb.LastExchangedAt),
 		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, FamilyID: pb.FamilyId,

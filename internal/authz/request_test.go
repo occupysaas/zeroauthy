@@ -408,3 +408,20 @@ func TestJARValueRegisteredForScrub(t *testing.T) {
 		t.Fatalf("= %d; log text %q", rec.Code, seen)
 	}
 }
+
+func TestJARClaimsParameter(t *testing.T) {
+	e := newJAREnv(t, false)
+	object := map[string]any{"userinfo": map[string]any{"email": nil}}
+	raw := signJAR(t, jarKey(t, "rsa2048.priv.pem"), jarClaims("claims", object, "scope", "openid email"))
+	params := e.txnParams(t, location(t, e.get(t, jarQuery(raw, "claims", `{"id_token":{"nickname":null}}`))))
+	var got map[string]any
+	if json.Unmarshal([]byte(params["claims"]), &got) != nil || got["userinfo"] == nil || got["id_token"] != nil {
+		t.Fatalf("structured JAR claims not preserved: %v", params["claims"])
+	}
+	raw = signJAR(t, jarKey(t, "rsa2048.priv.pem"), jarClaims("claims", []any{}))
+	rec := e.get(t, jarQuery(raw))
+	loc := location(t, rec)
+	if loc.Query().Get("error") != "invalid_request" {
+		t.Fatalf("malformed JAR claims accepted: %s", loc.String())
+	}
+}

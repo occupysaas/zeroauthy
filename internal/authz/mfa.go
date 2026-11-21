@@ -54,6 +54,7 @@ type mfaCompletedKey struct{}
 type mfaEnrollmentCompletedKey struct{}
 
 func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq, sess *store.LoginSession, eff *actions.Effects) (mfa.Requirement, error) {
+	stepUp := requestedACR(fr.Request, res.Tenant) != ""
 	var effects *actions.MFAEffects
 	if eff != nil {
 		effects = eff.MFA
@@ -62,7 +63,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 	if errors.Is(err, store.ErrMFAUnavailable) {
 		// Older plugins have no policy. An explicit Action request still cannot
 		// be fulfilled, except for its explicit skip instruction.
-		if effects != nil && (effects.Mode != "" || effects.Provider != "" && effects.Provider != "none") {
+		if stepUp || effects != nil && (effects.Mode != "" || effects.Provider != "" && effects.Provider != "none") {
 			return mfa.Requirement{}, mfa.ErrNoFactor
 		}
 		return mfa.Requirement{}, nil
@@ -90,7 +91,7 @@ func (h *Handlers) mfaDecision(r *http.Request, res tenant.Resolved, fr flowReq,
 		return mfa.Requirement{}, err
 	}
 	customize, _ := res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	in := mfa.DecideInput{Settings: g, Effects: effects, User: u, Authenticators: aa, SessionMFAAt: sess.MFAAt, RememberValid: remember, KnownDevice: known, CustomizeInActions: customize}
+	in := mfa.DecideInput{StepUp: stepUp, Settings: g, Effects: effects, User: u, Authenticators: aa, SessionMFAAt: sess.MFAAt, RememberValid: remember, KnownDevice: known, CustomizeInActions: customize}
 	if h.MFA != nil {
 		methods, e := h.MFA.WithStore(h.Store).PhoneMethods(r.Context(), res.Tenant.ID)
 		if e != nil {

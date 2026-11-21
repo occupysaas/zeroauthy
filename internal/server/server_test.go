@@ -175,3 +175,14 @@ func TestContractDocumentsUILocales(t *testing.T) {
 type discardMailer struct{}
 
 func (discardMailer) Send(context.Context, email.Message) error { return nil }
+
+func TestGlobalRevocationUnknownConnectionRoute(t *testing.T) {
+	h := newTestServer(t)
+	r := httptest.NewRequest(http.MethodPost, "https://acme.example.test/oauth/global-token-revocation/connection/example", strings.NewReader(`{"sub_id":{"format":"iss_sub","iss":"https://issuer.example.test/","sub":"example"}}`))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", w.Code)
+	}
+}

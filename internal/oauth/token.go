@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 type grantHandler func(h *Handlers, ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error)
@@ -78,6 +79,13 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	client, oerr := h.authenticateClient(r.Context(), r, form, res.Tenant.ID)
 	if oerr != nil {
 		return nil, oerr
+	}
+	audience, resourceError := tenantrules.ResourceAudience(res.Tenant, form.Get("audience"), form["resource"])
+	if resourceError != "" {
+		return nil, &Error{Status: 400, Code: resourceError, Description: "invalid resource parameters"}
+	}
+	if audience != "" {
+		form.Set("audience", audience)
 	}
 	// Exchange is allowed by the client's token_exchange or native_social_login
 	// setting, which the selected path checks, rather than grant_types.

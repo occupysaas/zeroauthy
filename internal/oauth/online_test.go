@@ -3,7 +3,9 @@ package oauth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -651,6 +653,47 @@ func TestORTSessionDeletedWhileLocking(t *testing.T) {
 			got, err := f.st.Sessions().Get(t.Context(), s.TenantID, s.ID)
 			if err != nil || !got.LastInteractedAt.Equal(s.LastInteractedAt) || !got.IdleExpiresAt.Equal(s.IdleExpiresAt) {
 				t.Fatalf("rejected exchange changed the session: %v", err)
+			}
+		})
+	}
+}
+
+func TestOnlineRevocationEnqueuesSessionFanout(t *testing.T) {
+	for _, action := range []bool{false, true} {
+		t.Run(fmt.Sprint(action), func(t *testing.T) {
+			f, s := onlineFixture(t, true, "persistent", false)
+			f.h.Logout = &logout.Service{Store: f.st, Wrapper: f.wrapper, Now: fixedNow}
+			client, err := f.st.Clients().Get(t.Context(), s.TenantID, "rt-web")
+			if err != nil {
+				t.Fatal(err)
+			}
+			client.OIDCLogout = &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}
+			if err := f.st.Clients().Update(t.Context(), client); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.st.Sessions().AddClient(t.Context(), s.TenantID, s.ID, "rt-web"); err != nil {
+				t.Fatal(err)
+			}
+			_, body := issueOnline(t, f)
+			raw, _ := body["refresh_token"].(string)
+			if raw == "" {
+				t.Fatal("online token missing")
+			}
+			if action {
+				env := actionstest.New(t, f.st, f.wrapper)
+				f.h.Actions = env.Engine
+				env.PostLogin(t, s.TenantID, "revoke-online", `exports.onExecutePostLogin=async(event,api)=>{api.refreshToken.revoke('ended');};`)
+				if status, _ := refreshOnline(t, f, raw); status != 400 {
+					t.Fatal("Action did not revoke")
+				}
+			} else {
+				if status, _ := f.revoke(t, url.Values{"client_id": {"rt-web"}, "client_secret": {"rt-web-secret"}, "token": {raw}}); status != 200 {
+					t.Fatal("revoke failed")
+				}
+			}
+			jobs, err := f.st.Actions().ClaimJobs(t.Context(), fixedNow(), time.Minute, 10)
+			if err != nil || len(jobs) != 1 || jobs[0].Trigger != logout.JobKind {
+				t.Fatalf("fanout absent: jobs=%d err=%v", len(jobs), err)
 			}
 		})
 	}

@@ -200,7 +200,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	scopes = d.Scopes
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		online: !offlineGrant, mrrt: mrrt, organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
-		sessionID: rt.SessionID, authTime: rt.AuthTime, refreshSessionMFA: true, effects: eff,
+		userInfoClaims: rt.UserInfoClaims, acr: rt.ACR, sessionID: rt.SessionID, authTime: rt.AuthTime, refreshSessionMFA: true, effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr

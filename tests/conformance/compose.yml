@@ -34,6 +34,9 @@ services:
       - mongodb
 
   nginx:
+    volumes:
+      - ${CONFORMANCE_WORK:?}/tls/cert.pem:/etc/ssl/certs/nginx-selfsigned.crt:ro
+      - ${CONFORMANCE_WORK:?}/tls/key.pem:/etc/ssl/private/nginx-selfsigned.key:ro
     image: registry.gitlab.com/openid/conformance-suite/nginx:${CONFORMANCE_IMAGE_TAG:?}
     ports:
       # run-test-plan.py on the host reaches the suite here;
@@ -55,6 +58,7 @@ services:
     command: ["/run/zeroauthy/zeroauthy", "serve", "--config", "/repo/tests/conformance/config.yaml"]
     environment:
       ZEROAUTHY_SECURITY__MASTER_KEY: ${ZEROAUTHY_MASTER_KEY:?}
+      SSL_CERT_FILE: /run/zeroauthy/tls/ca.pem
     volumes:
       - ${CONFORMANCE_WORK:?}:/run/zeroauthy
       - ${CONFORMANCE_REPO:?}:/repo:ro

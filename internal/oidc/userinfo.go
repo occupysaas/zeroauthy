@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -68,10 +69,15 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		Confirmation *struct {
 			JKT string `json:"jkt"`
 		} `json:"cnf"`
-		Scope    string `json:"scope"`
-		OrgID    string `json:"org_id"`
-		OrgName  string `json:"org_name"`
-		ClientID string `json:"client_id"`
+		SessionClaims struct {
+			AuthTime int64  `json:"auth_time"`
+			ACR      string `json:"acr"`
+		} `json:"https://zeroauthy.dev/userinfo"`
+		Scope           string `json:"scope"`
+		OrgID           string `json:"org_id"`
+		OrgName         string `json:"org_name"`
+		ClientID        string `json:"client_id"`
+		AuthorizedParty string `json:"azp"`
 	}
 	if err := h.Keys.Verify(ctx, res.Tenant.ID, raw, &std, &extra); err != nil {
 		if errors.Is(err, keys.ErrInvalidToken) {
@@ -127,7 +133,31 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		h.internalError(w, r, res.Tenant.ID, "load user", err)
 		return
 	}
-	body := claims.ForUser(user, strings.Fields(extra.Scope))
+	scopes := strings.Fields(extra.Scope)
+	if extra.ClientID == "" {
+		extra.ClientID = extra.AuthorizedParty
+	}
+	if extra.ClientID != "" {
+		client, err := h.Store.Clients().Get(ctx, res.Tenant.ID, extra.ClientID)
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			h.internalError(w, r, res.Tenant.ID, "load client", err)
+			return
+		}
+		if client != nil {
+			if !access.OIDCScopeAllowed(client, "openid") {
+				invalidToken(w)
+				return
+			}
+			scopes = slices.DeleteFunc(scopes, func(scope string) bool { return !access.OIDCScopeAllowed(client, scope) })
+		}
+	}
+	body := claims.ForUser(user, scopes)
+	if extra.SessionClaims.AuthTime > 0 {
+		body["auth_time"] = extra.SessionClaims.AuthTime
+	}
+	if extra.SessionClaims.ACR == claims.ACRMultiFactor {
+		body["acr"] = extra.SessionClaims.ACR
+	}
 	if extra.OrgID != "" {
 		body["org_id"] = extra.OrgID
 	}

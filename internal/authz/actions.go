@@ -102,7 +102,7 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 			UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")),
 			Query: query, Body: map[string]any{},
 		},
-		Transaction:     actions.TransactionInfo{RedirectURI: fr.RedirectURI, State: fr.State, Locale: locale},
+		Transaction:     actions.TransactionInfo{ACRValues: fr.Request.ACRValues, RedirectURI: fr.RedirectURI, State: fr.State, Locale: locale},
 		Protocol:        protocol,
 		RequestedScopes: fr.Scopes(),
 		TargetScopes:    fr.Scopes(),

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 )
 
@@ -158,6 +159,9 @@ func NormalizeProfile(raw json.RawMessage) (Profile, error) {
 			return p, fmt.Errorf("%w: user_metadata is invalid", ErrProfile)
 		}
 		p.UserMetadata = clean
+	}
+	if extra := claims.IdentityClaims(m); len(extra) > 0 {
+		p.ProviderData = extra
 	}
 	return p, nil
 }

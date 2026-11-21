@@ -257,3 +257,32 @@ func TestIssuedScopesAllowAllScopes(t *testing.T) {
 		t.Errorf("issuedScopes without allow_all_scopes = %v", got)
 	}
 }
+
+func TestAddressPhoneScopeConsent(t *testing.T) {
+	c := &store.Client{IsFirstParty: true}
+	got := Decide(Input{Client: c, Flow: Interactive, Scopes: []string{"openid", "address", "phone", "phone"}, RedirectURI: "https://app.example.test/cb"})
+	if !slices.Equal(got.Scopes, []string{"openid", "address", "phone"}) {
+		t.Fatalf("scopes=%v", got.Scopes)
+	}
+}
+
+func TestOIDCSupportScopeRestrictions(t *testing.T) {
+	yes, no := true, false
+	for _, tc := range []struct {
+		support *store.OIDCSupport
+		want    []string
+	}{
+		{nil, []string{"openid", "profile", "email", "address", "phone"}},
+		{&store.OIDCSupport{IsAllowed: false}, []string{"profile", "email", "address", "phone"}},
+		{&store.OIDCSupport{IsAllowed: true, AllowedScopes: []string{"email"}}, []string{"openid", "email"}},
+		{&store.OIDCSupport{IsAllowed: true, AllowedScopes: []string{}}, []string{"openid"}},
+		{&store.OIDCSupport{IsAllowed: true, AllowAllScopes: &no}, []string{"openid"}},
+		{&store.OIDCSupport{IsAllowed: true, AllowAllScopes: &yes}, []string{"openid", "profile", "email", "address", "phone"}},
+	} {
+		c := &store.Client{IsFirstParty: true, OIDCSupport: tc.support}
+		d := Decide(Input{Client: c, Flow: Interactive, Scopes: []string{"openid", "profile", "email", "address", "phone"}, RedirectURI: "https://rp.example/cb"})
+		if !slices.Equal(d.Scopes, tc.want) {
+			t.Fatalf("support=%+v got=%v want=%v", tc.support, d.Scopes, tc.want)
+		}
+	}
+}

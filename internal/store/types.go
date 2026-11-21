@@ -139,6 +139,9 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	OIDCSupport              *OIDCSupport
+	OIDCLogout               *OIDCLogout
+	IDTokenAlg               string // Empty means RS256.
 	RequireProofOfPossession bool
 	TokenQuota               *TokenQuota
 	// NativeSocialLogin stores provider-specific native exchange switches.
@@ -835,8 +838,11 @@ type User struct {
 
 // LoginSession is a browser's authenticated session with a tenant.
 type LoginSession struct {
-	Metadata map[string]string
-	MFAAt    time.Time
+	// ClientOrganizations binds each participant to its latest validated organization.
+	// An empty value denotes a non-organization authorization.
+	ClientOrganizations map[string]string
+	Metadata            map[string]string
+	MFAAt               time.Time
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin string
 	// CookieMode is persisted at creation; later tenant edits do not change it.
@@ -895,7 +901,9 @@ type AuthTransaction struct {
 
 // AuthCode is an issued authorization code.
 type AuthCode struct {
-	DPoPJKT string
+	UserInfoClaims string // Authorized session-derived UserInfo claim names.
+	ACR            string
+	DPoPJKT        string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin              string
 	TenantID            string
@@ -1016,6 +1024,8 @@ type DevicePoll struct {
 // by rotating it form a family that shares FamilyID; reuse of a rotated
 // token revokes the whole family.
 type RefreshToken struct {
+	UserInfoClaims    string // Preserved target-specific session claims.
+	ACR               string
 	DPoPJKT, ParentID string
 	Access            string // "offline" (including legacy empty values) or "online"
 	Metadata          map[string]string

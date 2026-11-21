@@ -218,3 +218,62 @@ func TestAMRAtCodeIssue(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestACRClaim(t *testing.T) {
+	km := newTestKeys(t, "ten_a")
+	m := &Minter{Keys: km, Now: fixedNow}
+	for _, tc := range []struct {
+		acr  string
+		at   time.Time
+		want bool
+	}{
+		{"http://schemas.openid.net/pape/policies/2007/06/multi-factor", fixedNow(), true},
+		{"", fixedNow(), false}, {"unknown", fixedNow(), false}, {"http://schemas.openid.net/pape/policies/2007/06/multi-factor", time.Time{}, false},
+	} {
+		raw, err := m.IDToken(t.Context(), IDTokenParams{TenantID: "ten_a", Issuer: "https://a.example.test/", ClientID: "spa", User: &store.User{UserID: "u"}, Scopes: []string{"openid"}, ACR: tc.acr, MFAAt: tc.at})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, _ := verifyToken(t, km, "ten_a", raw)
+		if tc.want {
+			if got["acr"] != tc.acr {
+				t.Fatal("satisfied requested acr missing")
+			}
+			if methods, ok := got["amr"].([]any); !ok || len(methods) != 1 || methods[0] != "mfa" {
+				t.Fatal("MFA method missing")
+			}
+		} else if got["acr"] != nil {
+			t.Fatal("unsatisfied or unrequested acr emitted")
+		}
+	}
+}
+
+func TestIDTokenScopeClaims(t *testing.T) {
+	km := newTestKeys(t, "ten_a")
+	m := &Minter{Keys: km, Now: fixedNow}
+	u := &store.User{UserID: "oidc|upstream", PhoneNumber: "+15555550100", PhoneVerified: false, Identities: []store.Identity{{Provider: "oidc", UserID: "upstream", ProviderData: map[string]any{"locale": "en", "address": map[string]any{"country": "GB"}, "app_metadata": "private"}}}}
+	raw, err := m.IDToken(t.Context(), IDTokenParams{TenantID: "ten_a", Issuer: "https://a.example.test/", ClientID: "spa", User: u, Scopes: []string{"openid", "profile", "phone", "address"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := verifyToken(t, km, "ten_a", raw)
+	if got["locale"] != "en" || got["phone_number"] != "+15555550100" || got["phone_number_verified"] != false || got["address"].(map[string]any)["country"] != "GB" || got["app_metadata"] != nil {
+		t.Fatal("standard ID token claims missing or metadata exposed")
+	}
+}
+
+func TestAccessTokenCustomClaimsKeepNumericDates(t *testing.T) {
+	km := newTestKeys(t, "t")
+	m := &Minter{Keys: km, Now: fixedNow}
+	raw, err := m.AccessToken(t.Context(), AccessTokenParams{TenantID: "t", Issuer: "https://tenant.example/", Subject: "test-user", ClientID: "test-client", Audience: []string{"https://tenant.example/userinfo"}, Scopes: []string{"openid"}, CustomClaims: map[string]any{"https://zeroauthy.dev/userinfo": map[string]any{"auth_time": fixedNow().Unix()}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var standard jwt.Claims
+	if err := km.Verify(t.Context(), "t", raw, &standard); err != nil {
+		t.Fatalf("registered numeric claims invalid: %v", err)
+	}
+	if standard.IssuedAt == nil || standard.IssuedAt.Time().Unix() != fixedNow().Unix() || standard.Expiry == nil {
+		t.Fatal("registered dates changed")
+	}
+}

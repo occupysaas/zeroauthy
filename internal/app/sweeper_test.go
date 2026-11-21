@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"testing"
 	"time"
 
@@ -322,5 +325,68 @@ func TestSweepRefreshII(t *testing.T) {
 	n, err := sweep(ctx, st, now.Add(2*time.Hour))
 	if n != 2 || err != nil {
 		t.Fatalf("removed %d, error %v", n, err)
+	}
+}
+
+func TestSweepSessionLogout(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	ctx := t.Context()
+	at := time.Now().UTC()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "expiry", Name: "expiry", CanonicalHost: "tenant.example", Domains: []string{"tenant.example"}}); err != nil {
+		t.Fatal(err)
+	}
+	wrapper, _ := keys.NewLocalWrapper([]byte(secrets.RandomString(32)))
+	service := &logout.Service{Store: st, Wrapper: wrapper, Now: func() time.Time { return at }}
+	if err := st.Clients().Create(ctx, &store.Client{TenantID: "expiry", ClientID: "rp", OIDCLogout: &store.OIDCLogout{BackchannelURLs: []string{"https://rp.example/logout"}, InitiatorsMode: "all"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Sessions().Create(ctx, &store.LoginSession{TenantID: "expiry", ID: "expired", TokenHash: "expired", UserID: "u", ClientIDs: []string{"rp"}, ExpiresAt: at, IdleExpiresAt: at}); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := sweep(ctx, st, at, service); err != nil || n != 1 {
+		t.Fatalf("expiry sweep count=%d err=%v", n, err)
+	}
+	jobs, err := st.Actions().ClaimJobs(ctx, at, time.Minute, 10)
+	if err != nil || len(jobs) != 1 || jobs[0].Trigger != logout.JobKind {
+		t.Fatal("general sweeper omitted logout notification")
+	}
+}
+
+func TestSweepGlobalRevocationReplayState(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	now := time.Now().UTC()
+	if err := st.UseGlobalRevocationJTI(t.Context(), "t", "conn", "one", now.Add(time.Minute), now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sweep(t.Context(), st, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UseGlobalRevocationJTI(t.Context(), "t", "conn", "one", now.Add(time.Minute), now); err != nil {
+		t.Fatal("expired replay state was not purged", err)
+	}
+}
+
+func TestSessionExpiryDrainsMultipleBatches(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	now := time.Now().UTC()
+	if err := st.Tenants().Create(t.Context(), &store.Tenant{ID: "t", Name: "t", CanonicalHost: "tenant.example", Domains: []string{"tenant.example"}}); err != nil {
+		t.Fatal(err)
+	}
+	wrapper, err := keys.NewLocalWrapper([]byte(secrets.RandomString(32)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 205 {
+		id := fmt.Sprint(i)
+		if err := st.Sessions().Create(t.Context(), &store.LoginSession{TenantID: "t", ID: id, UserID: "u", TokenHash: id, ExpiresAt: now, IdleExpiresAt: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	svc := &logout.Service{Store: st, Wrapper: wrapper, Now: func() time.Time { return now }}
+	if n, err := sweep(t.Context(), st, now, svc); err != nil || n != 205 {
+		t.Fatalf("expiry backlog not drained: n=%d err=%v", n, err)
 	}
 }

@@ -55,7 +55,7 @@ track order in the [parallel paths design](specs/2026-11-13-zeroauthy-parallel-p
 | S2 | 39b Remaining social providers | [spec](specs/2026-11-16-zeroauthy-social-providers-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-39b-social-providers.md) |
 | S2 | 39c GitHub social connection (split out of 39b; implemented on `plan-39-github-social`) | [spec](specs/2026-11-16-zeroauthy-github-connection-design.md) | [plan](plans/2026-11-18-zeroauthy-plan-39c-github.md) |
 | A1 | 40 Actions III | [spec](specs/2026-11-16-zeroauthy-actions-iii-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-40-actions-iii.md) |
-| P3 | 41a OIDC extras and logout | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
+| P3 | 41a OIDC extras and logout ([implementation and local verification complete](2026-11-16-plan-41a-implementation-record.md)) | [spec](specs/2026-11-16-zeroauthy-oidc-extras-logout-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41a-oidc-extras-logout.md) |
 | P4 | 41b Dynamic Client Registration, CIMD | [spec](specs/2026-11-16-zeroauthy-dynamic-client-registration-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41b-dynamic-client-registration.md) |
 | P5 | 41c CIBA | [spec](specs/2026-11-16-zeroauthy-ciba-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-41c-ciba.md) |
 | U1 | 42a My Account API | [spec](specs/2026-11-16-zeroauthy-my-account-api-design.md) | [plan](plans/2026-11-16-zeroauthy-plan-42a-my-account-api.md) |

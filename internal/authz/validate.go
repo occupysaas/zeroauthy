@@ -11,8 +11,10 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/mfa"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 var (
@@ -44,6 +46,9 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 			return req.objectErr
 		}
 		return e
+	}
+	if req.RedirectURI == "" && req.OptionalRedirectURI && len(client.Callbacks) == 1 && !strings.ContainsAny(client.Callbacks[0], "*{}") {
+		req.RedirectURI = client.Callbacks[0]
 	}
 	if req.RedirectURI == "" {
 		return client, pageErr(errInvalidRequest("redirect_uri is required")), false
@@ -144,6 +149,24 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 			return client, errInvalidRequest("dpop_jkt is malformed"), true
 		}
 		if e := store.CheckRefreshTokensIISupport(ctx, st); e != nil {
+			return client, errServer(), true
+		}
+	}
+	audience, resourceError := tenantrules.ResourceAudience(t, req.Audience, req.Resources)
+	if resourceError != "" {
+		return client, &Error{Code: resourceError, Description: "invalid resource parameters"}, true
+	}
+	req.Audience = audience
+	if tenantrules.ResourceParameterProfile(t) == "audience" {
+		req.Resources = nil
+	}
+	if req.IgnoreClaimsParameter {
+		req.Claims = ""
+	} else if _, err := claims.ParseRequest(req.Claims); err != nil {
+		return client, errInvalidRequest("malformed claims parameter"), true
+	}
+	if requestedACR(*req, t) != "" {
+		if err := store.CheckOIDCLogoutSupport(ctx, st); err != nil {
 			return client, errServer(), true
 		}
 	}

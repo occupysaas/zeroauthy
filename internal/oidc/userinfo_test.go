@@ -238,3 +238,47 @@ func TestUserinfoAcceptsPS256(t *testing.T) {
 		t.Fatalf("tampered PS256 = %d", rec.Code)
 	}
 }
+
+func TestUserinfoOIDCSupport(t *testing.T) {
+	e := newUserinfoEnv(t)
+	c := &store.Client{TenantID: "ten_a", ClientID: "restricted", Name: "restricted", IsFirstParty: true, OIDCSupport: &store.OIDCSupport{IsAllowed: false}}
+	if err := e.st.Clients().Create(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	token := e.token(t, "ten_a", map[string]any{"azp": "restricted"})
+	if rec := e.call("GET", "Bearer "+token); rec.Code != 401 {
+		t.Fatalf("disabled OIDC userinfo=%d", rec.Code)
+	}
+	c.OIDCSupport = &store.OIDCSupport{IsAllowed: true, AllowedScopes: []string{}}
+	if err := e.st.Clients().Update(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	rec := e.call("GET", "Bearer "+token)
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if rec.Code != 200 || body["email"] != nil || body["sub"] != "auth0|1" {
+		t.Fatalf("scope restrictions: %d %v", rec.Code, body)
+	}
+}
+
+func TestUserinfoRequestedSessionClaims(t *testing.T) {
+	e := newUserinfoEnv(t)
+	for _, requested := range []bool{false, true} {
+		extra := map[string]any{}
+		if requested {
+			extra["https://zeroauthy.dev/userinfo"] = map[string]any{"auth_time": uiNow.Add(-time.Minute).Unix(), "acr": "http://schemas.openid.net/pape/policies/2007/06/multi-factor"}
+		}
+		rec := e.call("GET", "Bearer "+e.token(t, "ten_a", extra))
+		var body map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil || rec.Code != 200 {
+			t.Fatalf("userinfo: %d %v", rec.Code, err)
+		}
+		if requested {
+			if body["auth_time"] != float64(uiNow.Add(-time.Minute).Unix()) || body["acr"] != "http://schemas.openid.net/pape/policies/2007/06/multi-factor" {
+				t.Fatal("requested session claims missing")
+			}
+		} else if body["auth_time"] != nil || body["acr"] != nil {
+			t.Fatal("unrequested session claims leaked")
+		}
+	}
+}

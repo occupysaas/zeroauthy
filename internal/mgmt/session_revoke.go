@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -53,7 +54,13 @@ func (h *Handlers) RevokeSession(w http.ResponseWriter, r *http.Request, id stri
 			}
 		}
 		if session != nil {
-			return tx.Sessions().Delete(ctx, tn.ID, id)
+			if err := tx.Sessions().Delete(ctx, tn.ID, id); err != nil {
+				return err
+			}
+			if h.Logout != nil {
+				return h.Logout.WithStore(tx).SessionsEnded(ctx, tn.ID, []*store.LoginSession{session}, logout.SessionRevoked)
+			}
+			return nil
 		}
 		return nil
 	})

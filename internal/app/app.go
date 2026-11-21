@@ -33,6 +33,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/logout"
 	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/logstream"
@@ -57,6 +58,7 @@ import (
 )
 
 type App struct {
+	logout       *logout.Service
 	cfg          *config.Config
 	log          *slog.Logger
 	store        store.Store
@@ -172,6 +174,7 @@ func MasterKey(cfg *config.Config, log *slog.Logger) ([]byte, error) {
 }
 
 func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store, masterKey []byte, opts ...Option) (*App, error) {
+	cfg.Compat.Warn(log)
 	var o options
 	for _, opt := range opts {
 		opt(&o)
@@ -398,7 +401,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		}
 		return nil, err
 	}
-	engine := &actions.Engine{Recorder: recorder, Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
+	logoutService := &logout.Service{Store: st, Wrapper: wrapper, Keys: km, Compat: cfg.Compat, Recorder: recorder, AllowPrivateNetworks: cfg.Logs.Streams.AllowPrivateNetworks}
+	engine := &actions.Engine{BackchannelLogout: logoutService, Recorder: recorder, Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
 	phoneDispatcher := &phone.Dispatcher{Store: st, Wrapper: wrapper, Actions: engine}
 	mfaService.Phone = phoneDispatcher
 	tenantEmail.Actions = engine
@@ -408,6 +412,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	buildsOwned = true
 	eventDeliveryWorker := eventstream.NewWorker(st, wrapper, events.Config{AllowPrivateNetworks: cfg.Events.AllowPrivateNetworks, AllowInsecureHTTP: cfg.Events.AllowInsecureHTTP}, nil, eventstream.NewActionRunner(engine), log)
 	return &App{
+		logout:       logoutService,
 		profiles:     profiles,
 		tls:          tlsManager,
 		selfSigned:   selfSigned,
@@ -430,6 +435,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		eventStreams: eventDeliveryWorker,
 		breachFile:   breachFile,
 		handler: server.New(server.Deps{
+			Logout:         logoutService,
+			Compat:         cfg.Compat,
 			MFA:            mfaService,
 			Passkeys:       passkeyService,
 			LogsConfig:     logsConfig,

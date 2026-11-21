@@ -130,7 +130,7 @@ func (m *Manager) Sign(ctx context.Context, tenantID string, claims any) (string
 	return m.SignWithType(ctx, tenantID, claims, "JWT")
 }
 
-// SignWithType signs a JWT or RFC 9068 access token with the tenant's current
+// SignWithType signs an ID, access or logout token with the tenant's current
 // managed key. The allowlist prevents callers choosing unrelated token formats.
 func (m *Manager) SignWithType(ctx context.Context, tenantID string, claims any, tokenType string) (string, error) {
 	return m.SignWithAlg(ctx, tenantID, claims, tokenType, jose.RS256)
@@ -143,8 +143,11 @@ func (m *Manager) SignWithAlg(ctx context.Context, tenantID string, claims any, 
 	if alg != jose.RS256 && alg != jose.PS256 {
 		return "", errors.New("keys: unsupported signing algorithm")
 	}
-	if tokenType != "JWT" && tokenType != "at+jwt" {
+	if tokenType != "JWT" && tokenType != "at+jwt" && tokenType != "logout+jwt" {
 		return "", errors.New("keys: unsupported token type")
+	}
+	if tokenType == "logout+jwt" && alg != jose.RS256 {
+		return "", errors.New("keys: logout tokens require RS256")
 	}
 	ks, err := m.store.List(ctx, tenantID)
 	if err != nil {

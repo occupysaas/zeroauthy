@@ -123,6 +123,13 @@ service StoreService {
   rpc ListConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
   rpc CreateConnectionKeys(ConnectionKeysRequest) returns (Result);
   rpc RotateConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
+  // oidc_logout.v1 gates the new client fields; absent support refuses writes.
+  rpc OIDCLogoutCapabilities(PingRequest) returns (EventsCapabilitiesResult);
+  rpc OIDCLogoutUseGlobalJTI(GlobalRevocationJTIRequest) returns (Result);
+ rpc OIDCLogoutPurgeGlobalJTIs(ClientCredentialsPurgeRequest) returns (CountResult);
+ rpc OIDCLogoutFindByEmail(UsersFindByIdentityRequest) returns (UserResult);
+ rpc OIDCLogoutSessionOrganization(SessionsAddClientRequest) returns (Result);
+  rpc OIDCLogoutSessionsListExpired(RefreshIIPurgeRequest) returns (SessionList);
   rpc ClientCredentialsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc ClientCredentialsCreate(ClientCredentialsCreateRequest) returns (Result);
   rpc ClientCredentialsGet(ClientCredentialKeyRequest) returns (ClientCredentialResult);
@@ -762,6 +769,9 @@ message Client {
   bytes native_social_login = 29; // Plan 39a; map<string,bool> JSON, absent = unset
   bytes token_exchange = 28;                // {"allow_any_profile_of_type":[types]}
   TokenQuotaMsg token_quota = 30; bool require_proof_of_possession = 31;
+  bytes oidc_support = 32; // store.OIDCSupport JSON, oidc_logout.v1
+  bytes oidc_logout = 33; // store.OIDCLogout JSON, oidc_logout.v1
+  string id_token_alg = 34; // empty = RS256; non-RS256 requires oidc_logout.v1
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -950,6 +960,7 @@ message LoginSession {
   google.protobuf.Timestamp mfa_at = 19;
   bytes auth_methods = 20; // Plan 33b (webauthn.v1); JSON [{name,type,at}], absent = unset
   StringMap metadata = 21;
+  StringMap client_organizations = 22;
 }
 
 message AuthTransaction {
@@ -975,6 +986,8 @@ message AuthCode {
   string organization_connection_id = 20; // Original authenticated connection
   google.protobuf.Timestamp mfa_at = 21; // MFA at authorization; absent on legacy codes
   string dpop_jkt = 22;
+ string user_info_claims = 24;
+ string acr = 23; // Requested and satisfied authentication context.
 }
 message PushedAuthRequest {
   string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
@@ -1008,6 +1021,8 @@ message RefreshToken {
   string organization_connection_id = 19; // Bound for the entire refresh family
   string dpop_jkt = 20; string parent_id = 21; string access = 22; StringMap metadata = 23;
   RefreshDeviceMsg device = 24; google.protobuf.Timestamp last_exchanged_at = 25;
+ string user_info_claims = 27;
+ string acr = 26; // Requested authentication context of the family.
 }
 
 message PasswordResetTicket {
@@ -1181,7 +1196,7 @@ message UsersSetPasswordHashRequest {
 message SessionWrite { string tx_id = 1; LoginSession value = 2; }
 message SessionResult { Error error = 1; LoginSession value = 2; }
 message SessionList { Error error = 1; repeated LoginSession values = 2; } // newest first
-message SessionsAddClientRequest { string tx_id = 1; string tenant_id = 2; string id = 3; string client_id = 4; }
+message SessionsAddClientRequest { string tx_id = 1; string tenant_id = 2; string id = 3; string client_id = 4; string organization_id = 5; }
 
 message AuthTransactionWrite { string tx_id = 1; AuthTransaction value = 2; }
 message AuthTransactionResult { Error error = 1; AuthTransaction value = 2; }
@@ -1874,3 +1889,5 @@ message CodeBindingRequest {
 }
 
 message SessionTokenOwnersResult { Error error = 1; repeated string user_ids = 2; }
+
+message GlobalRevocationJTIRequest {string tx_id=1;string tenant_id=2;string connection_id=3;string jti=4;google.protobuf.Timestamp expires_at=5;google.protobuf.Timestamp now=6;}

@@ -99,7 +99,7 @@ func (plan refreshPlan) exchange(ctx context.Context, repo store.RefreshTokens, 
 	next, raw := newRefreshTokenAt(c, old.TenantID, refreshGrant{
 		origin: origin, familyID: family, userID: old.UserID, sessionID: old.SessionID,
 		organizationID: old.OrganizationID, organizationConnectionID: old.OrganizationConnectionID,
-		scopes: old.Scopes, audience: old.Audience, authTime: old.AuthTime, expiresAt: expires,
+		userInfoClaims: old.UserInfoClaims, acr: old.ACR, scopes: old.Scopes, audience: old.Audience, authTime: old.AuthTime, expiresAt: expires,
 	}, now)
 	next.Rotating = plan != convertToNonRotating
 	next.Access, next.DPoPJKT = old.Access, old.DPoPJKT

@@ -71,6 +71,9 @@ var strictGrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken, Grant
 // Spec is a client's settings. Empty strings and nil pointers mean "the
 // default", which Normalize fills in.
 type Spec struct {
+	OIDCLogout               *store.OIDCLogout
+	IDTokenAlg               string
+	OIDCSupport              *store.OIDCSupport
 	TokenQuota               *store.TokenQuota
 	RequireProofOfPossession bool
 	NativeSocialLogin        map[string]bool
@@ -168,6 +171,12 @@ func checkOrigin(raw string) error {
 // clients (connections, grants) are the caller's.
 func Normalize(s *Spec, parSupported bool) []error {
 	var errs []error
+	if err := NormalizeOIDCLogout(s.OIDCLogout); err != nil {
+		errs = append(errs, err)
+	}
+	if err := ValidateOIDCSupport(s.OIDCSupport); err != nil {
+		errs = append(errs, err)
+	}
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 
 	if !slices.Contains(AppTypes, s.AppType) {
@@ -175,6 +184,15 @@ func Normalize(s *Spec, parSupported bool) []error {
 	}
 	if s.TokenEndpointAuthMethod == "" {
 		s.TokenEndpointAuthMethod = DefaultAuthMethod(s.AppType)
+	}
+	if s.IDTokenAlg == "" {
+		s.IDTokenAlg = "RS256"
+	}
+	if !slices.Contains([]string{"RS256", "HS256", "PS256"}, s.IDTokenAlg) {
+		fail("unsupported ID token signing algorithm")
+	}
+	if s.IDTokenAlg == "HS256" && (s.TokenEndpointAuthMethod == store.AuthMethodNone || s.AppType == string(store.AppTypeSPA) || s.AppType == string(store.AppTypeNative)) {
+		fail("HS256 requires a confidential application with a client secret")
 	}
 	if !slices.Contains(AuthMethods, s.TokenEndpointAuthMethod) {
 		fail("token_endpoint_auth_method %q must be one of %v", s.TokenEndpointAuthMethod, AuthMethods)
@@ -390,6 +408,9 @@ func CheckImmutable(c *store.Client, s *Spec) error {
 // Apply copies a normalized s into c. It leaves the identity (tenant,
 // client ID, creation time, origin) and the secrets alone.
 func Apply(c *store.Client, s *Spec) {
+	c.OIDCLogout = s.OIDCLogout.Clone()
+	c.IDTokenAlg = s.IDTokenAlg
+	c.OIDCSupport = s.OIDCSupport.Clone()
 	c.TokenQuota = nil
 	if s.TokenQuota != nil {
 		q := *s.TokenQuota
@@ -430,6 +451,7 @@ func Apply(c *store.Client, s *Spec) {
 func FromClient(c *store.Client) Spec {
 	firstParty := c.IsFirstParty
 	s := Spec{
+		OIDCLogout: c.OIDCLogout.Clone(), IDTokenAlg: c.IDTokenAlg, OIDCSupport: c.OIDCSupport.Clone(),
 		Mobile:            c.Mobile.Clone(),
 		TokenQuota:        cloneTokenQuota(c.TokenQuota),
 		NativeSocialLogin: maps.Clone(c.NativeSocialLogin),
