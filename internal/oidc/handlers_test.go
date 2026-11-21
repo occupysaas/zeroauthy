@@ -70,11 +70,12 @@ func TestDiscovery(t *testing.T) {
 		}
 	}
 	wantLists := map[string][]string{
-		"grant_types_supported":            {"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
-		"response_types_supported":         {"code"},
-		"response_modes_supported":         {"query", "fragment", "form_post", "web_message"},
-		"code_challenge_methods_supported": {"S256"},
-		"scopes_supported":                 {"openid", "profile", "email", "offline_access"},
+		"id_token_signing_alg_values_supported": {"HS256", "RS256", "PS256"},
+		"grant_types_supported":                 {"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
+		"response_types_supported":              {"code"},
+		"response_modes_supported":              {"query", "fragment", "form_post", "web_message"},
+		"code_challenge_methods_supported":      {"S256"},
+		"scopes_supported":                      {"openid", "profile", "email", "address", "phone", "offline_access"},
 	}
 	for k, want := range wantLists {
 		var got []string
@@ -275,5 +276,52 @@ func TestDiscoveryRequestObject(t *testing.T) {
 				t.Errorf("request_object_signing_alg_values_supported = %v, want %v", algs, tc.algs)
 			}
 		})
+	}
+}
+
+func TestDiscoveryClaims(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	if err := st.Tenants().Create(t.Context(), &store.Tenant{ID: "t", Name: "t", Domains: []string{"tenant.example.test"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, ignore := range []bool{false, true} {
+		h := &Handlers{Store: st}
+		h.Compat.IgnoreClaimsParameter = ignore
+		handler := tenant.NewResolver(st.Tenants(), "", false).Middleware(http.HandlerFunc(h.Discovery))
+		rec := get(handler, "https://tenant.example.test/.well-known/openid-configuration")
+		var out map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+			t.Fatal(err)
+		}
+		values, ok := out["acr_values_supported"].([]any)
+		if !ok || len(values) != 1 || values[0] != "http://schemas.openid.net/pape/policies/2007/06/multi-factor" {
+			t.Fatal("supported ACR missing")
+		}
+		if ignore {
+			if _, ok := out["claims_parameter_supported"]; ok {
+				t.Fatal("ignored claims advertised")
+			}
+		} else if out["claims_parameter_supported"] != true {
+			t.Fatal("claims support absent")
+		}
+		for _, scope := range []string{"address", "phone"} {
+			found := false
+			for _, v := range out["scopes_supported"].([]any) {
+				found = found || v == scope
+			}
+			if !found {
+				t.Errorf("missing scope %s", scope)
+			}
+		}
+		for _, claim := range []string{"acr", "amr", "middle_name", "preferred_username", "website", "gender", "birthdate", "zoneinfo", "locale", "phone_number", "phone_number_verified", "address"} {
+			found := false
+			for _, v := range out["claims_supported"].([]any) {
+				found = found || v == claim
+			}
+			if !found {
+				t.Errorf("missing claim %s", claim)
+			}
+		}
 	}
 }

@@ -38,7 +38,7 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request, objectFields ...s
 			return nil, invalidRequest("malformed or oversized form body")
 		}
 		for k, vs := range r.PostForm {
-			if len(vs) > 1 {
+			if len(vs) > 1 && k != "resource" {
 				return nil, repeatedParam(k)
 			}
 		}
@@ -95,6 +95,21 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request, objectFields ...s
 				form.Set(key, string(encoded))
 				registerOAuthForm(r, url.Values{key: form[key]})
 				continue
+			}
+			if key == "resource" {
+				if array, ok := v.([]any); ok {
+					if len(array) == 0 {
+						form.Set(key, "")
+					}
+					for _, item := range array {
+						value, ok := item.(string)
+						if !ok {
+							return nil, invalidRequest("resource must contain strings")
+						}
+						form.Add(key, value)
+					}
+					continue
+				}
 			}
 			switch x := v.(type) {
 			case string:

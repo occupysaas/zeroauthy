@@ -274,3 +274,73 @@ func TestPARRequestObjectRegisteredForScrub(t *testing.T) {
 		t.Fatalf("= %d; log text %q", rec.Code, seen)
 	}
 }
+
+func TestPARClaimsParameter(t *testing.T) {
+	f := newFixture(t)
+	for _, tc := range []struct {
+		raw    string
+		ignore bool
+		status int
+	}{
+		{`{"userinfo":{"email":null}}`, false, 201}, {`[]`, false, 400}, {strings.Repeat("x", 4097), false, 400}, {`[]`, true, 201},
+	} {
+		f.h.Compat.IgnoreClaimsParameter = tc.ignore
+		form := parForm("claims", tc.raw)
+		rec, out := f.par(t, "acme.example.test", formType, form.Encode())
+		if rec.Code != tc.status {
+			t.Fatalf("claims ignore=%v: %d %v", tc.ignore, rec.Code, out)
+		}
+		if rec.Code == 201 {
+			id := strings.TrimPrefix(out["request_uri"].(string), authz.RequestURIPrefix)
+			stored, err := f.st.PushedAuthRequests().Get(t.Context(), f.tenantID(t, "acme"), secrets.HashToken(id))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.ignore {
+				if stored.Params["claims"] != "" {
+					t.Fatal("ignored claims stored")
+				}
+			} else if stored.Params["claims"] != tc.raw {
+				t.Fatal("claims not preserved")
+			}
+		}
+	}
+}
+
+func TestPARResourceProfile(t *testing.T) {
+	f := newFixture(t)
+	tid := f.tenantID(t, "acme")
+	tn, err := f.st.Tenants().Get(t.Context(), tid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tn.DefaultAudience = ""
+	tn.SettingsExtra = map[string]any{"resource_parameter_profile": "compatibility"}
+	if err := f.st.Tenants().Update(t.Context(), tn); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		multiple bool
+		code     string
+	}{{false, ""}, {true, "invalid_target"}} {
+		form := parForm("resource", "https://api.acme.test")
+		if tc.multiple {
+			form.Add("resource", "https://api.acme.test")
+		}
+		rec, out := f.par(t, "acme.example.test", formType, form.Encode())
+		if tc.code != "" {
+			if rec.Code != 400 || out["error"] != tc.code {
+				t.Fatalf("PAR resource refusal: %d %v", rec.Code, out["error"])
+			}
+		} else {
+			if rec.Code != 201 {
+				t.Fatalf("PAR resource alias: %d", rec.Code)
+			}
+			id := strings.TrimPrefix(out["request_uri"].(string), authz.RequestURIPrefix)
+			saved, err := f.st.PushedAuthRequests().Get(t.Context(), tid, secrets.HashToken(id))
+			if err != nil || saved.Params["audience"] != "https://api.acme.test" {
+				t.Fatal("PAR audience not canonicalized")
+			}
+		}
+	}
+}

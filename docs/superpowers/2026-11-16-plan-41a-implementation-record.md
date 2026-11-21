@@ -10,11 +10,11 @@ checks and branch review are complete.
 
 1. Contracts, D-0080 and conformance inventory: complete (`dd5f5114`).
 2. Compatibility switches: complete (`145311d1`); focused verification passed. Later protocol tasks still need to consume them.
-3. Claims and client OIDC restrictions: in progress. The bounded claims request parser is tested; scope selection and protocol integration remain pending.
-4. MFA step-up and acr: pending.
-5. Client ID-token signing algorithms: pending.
-6. Resource profile and redirect fallback: pending.
-7. Logout settings and storage: pending.
+3. Claims and client OIDC restrictions: implemented; package and focused checks passed.
+4. MFA step-up and acr: implemented; package and focused checks passed.
+5. Client ID-token signing algorithms: implemented; focused checks passed, broader verification pending.
+6. Resource profile and redirect fallback: implemented; focused checks passed, broader verification pending.
+7. Logout settings and storage: storage prerequisites implemented in migration 0043 (memory/SQLite/gRPC round trips passed). Logout API validation and discovery remain pending.
 8. Durable back-channel delivery and session-ending triggers: pending.
 9. Logout session metadata: pending (Plan 48 fields already available).
 10. Global revocation: pending; reserved route returns 501 without mutation.
@@ -53,7 +53,7 @@ Task 3's claims parser (`f0d2fa60`) accepts Core claim requests and ignores unkn
 members, validates target/claim object shapes and value controls, rejects
 trailing JSON and invalid UTF-8, and enforces a 4096-byte bound before
 parsing. Errors contain no claim values. `go test ./internal/claims` passed
-(exit 0). The parser is not yet connected to authorization or token issuance.
+(exit 0). The parser is now connected to authorization, PAR and signed request objects; shared selection governs ID tokens and userinfo without widening consent.
 
 Full Go, E2E, full conformance, vulnerability and workflow checks have not run.
 There is no CI run yet; partial plan work must not be pushed.
@@ -75,3 +75,60 @@ The ledger and D-0080 record these choices:
   in config.Load; both paths use the caller-supplied environment snapshot.
 - Accept canonical 0/false as explicit disabled values; other nonempty
   spellings beyond 1/true fail startup.
+
+
+## Tasks 3–6 checkpoint
+
+Claims now include available phone/address/profile attributes. Federated
+standard attributes are bounded and whitelisted in the primary identity's
+provider data; root values win, linked identities and metadata cannot leak
+through scope claims. OIDC support restrictions are stored, validated and
+applied before consent, at exchange, and at userinfo. Client writes fail
+closed when a plugin lacks oidc_logout.v1; transient capability-probe
+errors remain retryable. Claims-request values are scrubbed from logs.
+
+MFA step-up works with acr_values and essential acr requests. Tenant policy
+never, remembered browsers and an Action skip cannot bypass it. Existing
+MFA SSO sessions avoid another prompt. Requested ACR survives code exchange
+and refresh rotation, and new refresh ID tokens omit it if the MFA session
+is gone. The tenant's advertised ACR choices are intersected with implemented
+contexts. Explicit [] disables them; absent/null defaults to the MFA value.
+
+ID tokens support RS256, PS256 and HS256 per client. HS256 uses the newest
+active sealed client secret, with no kid, and rejects public, hash-only or
+private_key_jwt-only clients. Rotation changes subsequent signatures.
+RP-initiated logout verifies symmetric hints only with the matching client's
+explicit HS256 setting. New API signing-secret writes require 32 characters;
+legacy stored shorter secrets retain their signing behavior. The maintainer
+rulings from 78bb70cf were carried into this branch's plan/spec/follow-ups.
+
+The compatibility resource profile canonicalizes one resource to audience
+at authorize, PAR and token endpoints; conflicts return invalid_request,
+repeated values invalid_target. The default profile ignores resource.
+Optional redirect fallback is opt-in and requires one callback with no
+wildcard or placeholder. Repeated GET resources are represented as an array
+in OpenAPI so the generated router reaches the protocol validation.
+
+Verification evidence:
+
+- Initial Tasks 3 package run: exit 1 solely on TestDiscovery and
+  TestDiscoveryDeviceEndpoint expecting the old scope list; corrected.
+- Subsequent Tasks 3–4 command (13 packages including OAuth, Management,
+  federation, hosted login, MFA, schemas and scrubber): exit 0. OAuth
+  339.850 s, Management 181.182 s, hosted login 92.656 s. Log retained as
+  tasks3-4-packages.log in the ignored plan workspace.
+- Focused Tasks 3–6 command (ten packages, including the actual generated
+  server router, signing algorithms, rotation, discovery and boundary
+  checks): exit 0; log tasks3-6-focused.log.
+- Actual verbose OIDCClientSettings subtests pass in memory, SQLite and
+  gRPC. Earlier parent-only invocations selected no round-trip subtest;
+  those are not counted as round-trip evidence. Suite ordering was fixed.
+- AuthCodes/RefreshTokens conformance suites with ACR pass in memory,
+  SQLite and gRPC; SQLite took 6.890 s. Protobuf codec tests pass.
+- The new script-profile normalization test passed after first failing
+  because extended standard attributes were discarded.
+
+No full-plan completion, E2E coverage, final review, full verification or CI
+is claimed. No dependency was added. Security-sensitive changes include
+keys, OAuth, authorization, Management, hosted login, federation, server
+wiring and storage. Nothing has been pushed.

@@ -51,7 +51,7 @@ type Decision struct {
 
 type Error struct{ Code, Description string }
 
-var oidcScopes = []string{"openid", "profile", "email"}
+var oidcScopes = []string{"openid", "profile", "email", "address", "phone"}
 
 // SubjectType is the client grant subject type a flow needs.
 func SubjectType(f Flow) string {
@@ -163,7 +163,7 @@ func issuedScopes(in Input) []string {
 		}
 		switch {
 		case slices.Contains(oidcScopes, s):
-			if strict {
+			if strict || !OIDCScopeAllowed(in.Client, s) {
 				continue
 			}
 		case s == "offline_access":
@@ -273,4 +273,25 @@ func GrantScopes(existing, accepted []string) []string {
 		}
 	}
 	return out
+}
+
+// OIDCScopeAllowed applies client restrictions before consent and issuance.
+func OIDCScopeAllowed(c *store.Client, scope string) bool {
+	if c == nil {
+		return false
+	}
+	support := c.OIDCSupport
+	if support == nil {
+		return true
+	}
+	if scope == "openid" {
+		return support.IsAllowed
+	}
+	if !slices.Contains(oidcScopes, scope) {
+		return true
+	}
+	if support.AllowedScopes != nil {
+		return slices.Contains(support.AllowedScopes, scope)
+	}
+	return support.AllowAllScopes == nil || *support.AllowAllScopes
 }

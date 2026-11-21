@@ -20,26 +20,31 @@ import (
 // Request holds the /authorize parameters zeroauthy uses. Unknown
 // parameters (such as SDK telemetry) are ignored.
 type Request struct {
-	DPoPJKT             string
-	ClientID            string
-	RedirectURI         string
-	ResponseType        string
-	ResponseMode        string
-	Scope               string
-	State               string
-	Nonce               string
-	Audience            string
-	Prompt              string
-	MaxAge              string
-	CodeChallenge       string
-	CodeChallengeMethod string
-	Connection          string
-	LoginHint           string
-	ScreenHint          string
-	Organization        string
-	Invitation          string
-	invitationBinding   map[string]string
-	UILocales           string
+	Resources             []string
+	OptionalRedirectURI   bool // Server-only compatibility switch.
+	ACRValues             string
+	Claims                string
+	IgnoreClaimsParameter bool // Server-only; never read from request parameters.
+	DPoPJKT               string
+	ClientID              string
+	RedirectURI           string
+	ResponseType          string
+	ResponseMode          string
+	Scope                 string
+	State                 string
+	Nonce                 string
+	Audience              string
+	Prompt                string
+	MaxAge                string
+	CodeChallenge         string
+	CodeChallengeMethod   string
+	Connection            string
+	LoginHint             string
+	ScreenHint            string
+	Organization          string
+	Invitation            string
+	invitationBinding     map[string]string
+	UILocales             string
 	// OrgID and OrgMode bind the resolved organization (spec §5.1). They
 	// are stored under store.TxnParamOrgID and store.TxnParamOrgMode;
 	// ParseRequest never reads them, so a client cannot set them.
@@ -73,12 +78,16 @@ var strictUnsupported = []string{"claims", "id_token_hint", "login_ticket", "req
 // parsing and the transaction round trip.
 var paramNames = []string{
 	"client_id", "redirect_uri", "response_type", "response_mode", "scope", "state", "nonce",
-	"dpop_jkt", "audience", "prompt", "max_age", "code_challenge", "code_challenge_method",
+	"acr_values", "claims", "dpop_jkt", "audience", "prompt", "max_age", "code_challenge", "code_challenge_method",
 	"connection", "login_hint", "screen_hint", "organization", "invitation", "ui_locales",
 }
 
 func (r *Request) field(name string) *string {
 	switch name {
+	case "acr_values":
+		return &r.ACRValues
+	case "claims":
+		return &r.Claims
 	case "client_id":
 		return &r.ClientID
 	case "redirect_uri":
@@ -124,6 +133,7 @@ func (r *Request) field(name string) *string {
 // ParseRequest reads /authorize query parameters.
 func ParseRequest(q url.Values) Request {
 	var r Request
+	r.Resources = slices.Clone(q["resource"])
 	for _, name := range paramNames {
 		*r.field(name) = q.Get(name)
 	}
@@ -215,6 +225,9 @@ func ApplyRequestObject(ctx context.Context, st store.Store, t *store.Tenant, is
 		return fail(errInvalidRequestObject())
 	}
 	// Parameters inside the object take precedence over the query.
+	if inner.Has("resource") {
+		req.Resources = slices.Clone(inner["resource"])
+	}
 	for _, name := range paramNames {
 		if name != "client_id" && inner.Has(name) {
 			*req.field(name) = inner.Get(name)
@@ -263,6 +276,32 @@ func verifyRequestObject(raw string, c *store.Client, creds []*store.ClientCrede
 	for k, v := range claims {
 		if slices.Contains(requestObjectClaims, k) {
 			continue
+		}
+		if k == "resource" {
+			if array, ok := v.([]any); ok {
+				if len(array) == 0 {
+					out.Set(k, "")
+					continue
+				}
+				for _, item := range array {
+					value, ok := item.(string)
+					if !ok {
+						return nil, errors.New("invalid resource array")
+					}
+					out.Add(k, value)
+				}
+				continue
+			}
+		}
+		if k == "claims" {
+			if _, isString := v.(string); !isString {
+				data, err := json.Marshal(v)
+				if err != nil {
+					return nil, errors.New("invalid claims object")
+				}
+				out.Set(k, string(data))
+				continue
+			}
 		}
 		switch v := v.(type) {
 		case string:
@@ -319,6 +358,9 @@ func unsignedObjectDelivery(raw string) (state, responseMode string) {
 // Params flattens r for storage in a login transaction.
 func (r Request) Params() map[string]string {
 	out := map[string]string{}
+	if len(r.Resources) == 1 {
+		out["resource"] = r.Resources[0]
+	}
 	for _, name := range paramNames {
 		if v := *r.field(name); v != "" {
 			out[name] = v

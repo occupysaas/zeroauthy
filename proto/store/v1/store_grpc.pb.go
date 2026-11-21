@@ -81,6 +81,7 @@ const (
 	StoreService_ListConnectionKeys_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ListConnectionKeys"
 	StoreService_CreateConnectionKeys_FullMethodName                          = "/zeroauthy.store.v1.StoreService/CreateConnectionKeys"
 	StoreService_RotateConnectionKeys_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RotateConnectionKeys"
+	StoreService_OIDCLogoutCapabilities_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OIDCLogoutCapabilities"
 	StoreService_ClientCredentialsCapabilities_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientCredentialsCapabilities"
 	StoreService_ClientCredentialsCreate_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ClientCredentialsCreate"
 	StoreService_ClientCredentialsGet_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ClientCredentialsGet"
@@ -601,6 +602,8 @@ type StoreServiceClient interface {
 	ListConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*ConnectionKeysResult, error)
 	CreateConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*Result, error)
 	RotateConnectionKeys(ctx context.Context, in *ConnectionKeysRequest, opts ...grpc.CallOption) (*ConnectionKeysResult, error)
+	// oidc_logout.v1 gates the new client fields; absent support refuses writes.
+	OIDCLogoutCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	ClientCredentialsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error)
 	ClientCredentialsCreate(ctx context.Context, in *ClientCredentialsCreateRequest, opts ...grpc.CallOption) (*Result, error)
 	ClientCredentialsGet(ctx context.Context, in *ClientCredentialKeyRequest, opts ...grpc.CallOption) (*ClientCredentialResult, error)
@@ -1653,6 +1656,16 @@ func (c *storeServiceClient) RotateConnectionKeys(ctx context.Context, in *Conne
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ConnectionKeysResult)
 	err := c.cc.Invoke(ctx, StoreService_RotateConnectionKeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OIDCLogoutCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*EventsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_OIDCLogoutCapabilities_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -5735,6 +5748,8 @@ type StoreServiceServer interface {
 	ListConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error)
 	CreateConnectionKeys(context.Context, *ConnectionKeysRequest) (*Result, error)
 	RotateConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error)
+	// oidc_logout.v1 gates the new client fields; absent support refuses writes.
+	OIDCLogoutCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	ClientCredentialsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error)
 	ClientCredentialsCreate(context.Context, *ClientCredentialsCreateRequest) (*Result, error)
 	ClientCredentialsGet(context.Context, *ClientCredentialKeyRequest) (*ClientCredentialResult, error)
@@ -6358,6 +6373,9 @@ func (UnimplementedStoreServiceServer) CreateConnectionKeys(context.Context, *Co
 }
 func (UnimplementedStoreServiceServer) RotateConnectionKeys(context.Context, *ConnectionKeysRequest) (*ConnectionKeysResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RotateConnectionKeys not implemented")
+}
+func (UnimplementedStoreServiceServer) OIDCLogoutCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method OIDCLogoutCapabilities not implemented")
 }
 func (UnimplementedStoreServiceServer) ClientCredentialsCapabilities(context.Context, *PingRequest) (*EventsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClientCredentialsCapabilities not implemented")
@@ -8671,6 +8689,24 @@ func _StoreService_RotateConnectionKeys_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).RotateConnectionKeys(ctx, req.(*ConnectionKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OIDCLogoutCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OIDCLogoutCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OIDCLogoutCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OIDCLogoutCapabilities(ctx, req.(*PingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -15978,6 +16014,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RotateConnectionKeys",
 			Handler:    _StoreService_RotateConnectionKeys_Handler,
+		},
+		{
+			MethodName: "OIDCLogoutCapabilities",
+			Handler:    _StoreService_OIDCLogoutCapabilities_Handler,
 		},
 		{
 			MethodName: "ClientCredentialsCapabilities",

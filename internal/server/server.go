@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/console"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
@@ -45,7 +46,8 @@ import (
 )
 
 type Deps struct {
-	MFA *mfa.Service
+	Compat compat.Switches
+	MFA    *mfa.Service
 	// Passkeys is shared by hosted and native ceremony consumers.
 	Passkeys *passkey.Service
 	// LogsConfig carries the secure stream defaults and deployment opt-ins.
@@ -250,7 +252,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+	az := &authz.Handlers{Compat: d.Compat, Passkeys: d.Passkeys, MFA: d.MFA, Store: d.Store, Sessions: d.Sessions, Log: d.Log,
 		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
@@ -314,8 +316,8 @@ func New(d Deps) http.Handler {
 		})
 		proofService := &dpop.Service{Store: d.Store, Wrapper: d.Wrapper}
 		authapi.HandlerWithOptions(authAPI{
-			oidc: &oidc.Handlers{DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{
+			oidc: &oidc.Handlers{Wrapper: d.Wrapper, Compat: d.Compat, DPoP: proofService, Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
+			oauth: &oauth.Handlers{Compat: d.Compat,
 				DPoP:       proofService,
 				Federation: d.Federation,
 				MFA:        d.MFA,

@@ -133,7 +133,7 @@ paths:
         - {name: nonce, in: query, schema: {type: string}, description: Value copied into the ID token.}
         - {name: claims, in: query, schema: {type: string, maxLength: 4096, x-max-bytes: 4096}, description: 'JSON OIDC claims request; never widens scope consent (D-0080).'}
         - {name: acr_values, in: query, schema: {type: string}, description: Space-separated authentication context values. The multi-factor policy value requests MFA step-up.}
-        - {name: resource, in: query, schema: {type: string}, description: 'Audience alias under the tenant compatibility resource profile; multiple values fail with invalid_target (D-0080).'}
+        - {name: resource, in: query, schema: {type: array, items: {type: string}}, description: 'Audience alias under the tenant compatibility resource profile; multiple values fail with invalid_target (D-0080).'}
         - {name: audience, in: query, schema: {type: string}, description: Identifier of the API to issue an access token for.}
         - {name: prompt, in: query, schema: {type: string}, description: "`none` (fail instead of showing login) or `login` (force login)."}
         - {name: max_age, in: query, schema: {type: string}, description: Maximum authentication age in seconds.}
@@ -1964,7 +1964,9 @@ components:
           type: string
           description: Optional RFC 8693 token type to issue (token-exchange grant). The Action sees it as `event.transaction.requested_token_type`.
         resource:
-          type: string
+          oneOf:
+            - {type: string}
+            - {type: array, items: {type: string}}
           description: Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
         audience:
           type: string
@@ -2070,6 +2072,8 @@ components:
         response_modes_supported: {type: array, items: {type: string}}
         code_challenge_methods_supported: {type: array, items: {type: string}}
         scopes_supported: {type: array, items: {type: string}}
+        acr_values_supported: {type: array, items: {type: string}, description: Effective supported authentication contexts; defaults to the multi-factor PAPE policy value.}
+        claims_parameter_supported: {type: boolean, description: Present and true unless the claims-parameter compatibility switch is enabled (D-0080).}
         claims_supported: {type: array, items: {type: string}}
     JWKS:
       type: object

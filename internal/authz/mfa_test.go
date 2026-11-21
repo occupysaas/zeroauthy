@@ -674,3 +674,61 @@ func TestGateCompletedEnrollmentSurvivesConsent(t *testing.T) {
 		t.Fatalf("completed enrollment lost through consent: %s", loc)
 	}
 }
+
+func TestStepUpInSSO(t *testing.T) {
+	for _, viaClaims := range []bool{false, true} {
+		e := newEnv(t)
+		ck := e.login(t, fixedNow().Add(-time.Minute))
+		gatePolicy(t, e, map[string]bool{"otp": true})
+		g, err := e.st.MFA().GetGuardian(t.Context(), e.tenant.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		g.Policies = []string{}
+		if err := e.st.MFA().PutGuardian(t.Context(), g, g.Version); err != nil {
+			t.Fatal(err)
+		}
+		query := goodQuery()
+		if viaClaims {
+			query.Set("claims", `{"id_token":{"acr":{"essential":true,"values":["http://schemas.openid.net/pape/policies/2007/06/multi-factor"]}}}`)
+		} else {
+			query.Set("acr_values", "http://schemas.openid.net/pape/policies/2007/06/multi-factor")
+		}
+		txn := e.txnAt(t, e.get(t, query, ck), "/u/mfa")
+		if txn.Params["acr_values"] == "" && txn.Params["claims"] == "" {
+			t.Fatal("step-up request lost")
+		}
+		sess := gateSession(t, e, ck)
+		if err := e.st.Sessions().MarkMFA(t.Context(), e.tenant.ID, sess.ID, fixedNow()); err != nil {
+			t.Fatal(err)
+		}
+		loc := location(t, e.get(t, query, ck))
+		if loc.Query().Get("code") == "" {
+			t.Fatalf("MFA-authenticated session prompted again: %s", loc)
+		}
+		code, err := e.st.AuthCodes().Get(t.Context(), e.tenant.ID, secrets.HashToken(loc.Query().Get("code")))
+		if err != nil || code.ACR != "http://schemas.openid.net/pape/policies/2007/06/multi-factor" {
+			t.Fatal("satisfied requested context not bound to code")
+		}
+
+	}
+}
+
+func TestACRUnknownValue(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	query := goodQuery()
+	query.Set("acr_values", "unknown-context")
+	loc := location(t, e.get(t, query, ck))
+	raw := loc.Query().Get("code")
+	if raw == "" {
+		t.Fatal("unknown voluntary acr prevented login")
+	}
+	code, err := e.st.AuthCodes().Get(t.Context(), e.tenant.ID, secrets.HashToken(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code.ACR != "" {
+		t.Fatal("unknown context became an acr assertion")
+	}
+}

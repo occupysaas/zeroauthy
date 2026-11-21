@@ -157,3 +157,14 @@ func TestDecideStaleEmailMethodIsNotPrimary(t *testing.T) {
 		t.Fatal("UsableMethod predicate")
 	}
 }
+
+func TestACRStepUpForcesMFA(t *testing.T) {
+	got, err := Decide(DecideInput{StepUp: true, Settings: &store.GuardianSettings{Factors: map[string]bool{"otp": true}}, RememberValid: true})
+	if err != nil || !got.Required || !got.Enroll || got.AllowRemember {
+		t.Fatalf("unenrolled step-up: %+v %v", got, err)
+	}
+	got, err = Decide(DecideInput{StepUp: true, Settings: &store.GuardianSettings{Factors: map[string]bool{"otp": true}}, Effects: &actionresult.MFAEffects{Provider: "none"}})
+	if err != nil || !got.Required {
+		t.Fatalf("Action skipped step-up: %+v %v", got, err)
+	}
+}

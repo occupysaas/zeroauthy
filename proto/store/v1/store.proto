@@ -123,6 +123,8 @@ service StoreService {
   rpc ListConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
   rpc CreateConnectionKeys(ConnectionKeysRequest) returns (Result);
   rpc RotateConnectionKeys(ConnectionKeysRequest) returns (ConnectionKeysResult);
+  // oidc_logout.v1 gates the new client fields; absent support refuses writes.
+  rpc OIDCLogoutCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc ClientCredentialsCapabilities(PingRequest) returns (EventsCapabilitiesResult);
   rpc ClientCredentialsCreate(ClientCredentialsCreateRequest) returns (Result);
   rpc ClientCredentialsGet(ClientCredentialKeyRequest) returns (ClientCredentialResult);
@@ -762,6 +764,9 @@ message Client {
   bytes native_social_login = 29; // Plan 39a; map<string,bool> JSON, absent = unset
   bytes token_exchange = 28;                // {"allow_any_profile_of_type":[types]}
   TokenQuotaMsg token_quota = 30; bool require_proof_of_possession = 31;
+  bytes oidc_support = 32; // store.OIDCSupport JSON, oidc_logout.v1
+  bytes oidc_logout = 33; // store.OIDCLogout JSON, oidc_logout.v1
+  string id_token_alg = 34; // empty = RS256; non-RS256 requires oidc_logout.v1
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -975,6 +980,7 @@ message AuthCode {
   string organization_connection_id = 20; // Original authenticated connection
   google.protobuf.Timestamp mfa_at = 21; // MFA at authorization; absent on legacy codes
   string dpop_jkt = 22;
+ string acr = 23; // Requested and satisfied authentication context.
 }
 message PushedAuthRequest {
   string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
@@ -1008,6 +1014,7 @@ message RefreshToken {
   string organization_connection_id = 19; // Bound for the entire refresh family
   string dpop_jkt = 20; string parent_id = 21; string access = 22; StringMap metadata = 23;
   RefreshDeviceMsg device = 24; google.protobuf.Timestamp last_exchanged_at = 25;
+ string acr = 26; // Requested authentication context of the family.
 }
 
 message PasswordResetTicket {

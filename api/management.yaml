@@ -21676,8 +21676,7 @@ components:
           items:
             type: string
             format: acr
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
           nullable: true
         mtls:
           type: object
@@ -21711,8 +21710,7 @@ components:
           enum:
           - audience
           - compatibility
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
         client_id_metadata_document_supported:
           type: boolean
           default: false
@@ -22262,8 +22260,7 @@ components:
           items:
             type: string
             format: acr
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
           nullable: true
         mtls:
           type: object
@@ -22299,8 +22296,7 @@ components:
           enum:
           - audience
           - compatibility
-          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
-            inventory for the follow-up owner.
+          description: Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
         client_id_metadata_document_supported:
           type: boolean
           default: false
@@ -22901,9 +22897,9 @@ components:
             (D-0063).
         signing_secret:
           type: string
-          minLength: 16
+          minLength: 32
           description: |
-            HS256 only: at least 16 characters (C15). Generated (32 random
+            HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
             bytes, base64url) when an HS256 API is created without one; sent
             with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
         token_lifetime: {type: integer, minimum: 1, maximum: 2592000, description: "Access token lifetime in seconds; 86400 by default."}

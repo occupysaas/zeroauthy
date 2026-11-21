@@ -769,7 +769,12 @@ type OidcLogoutRequest struct {
 
 // OpenIDConfiguration defines model for OpenIDConfiguration.
 type OpenIDConfiguration struct {
-	AuthorizationEndpoint            string                                              `json:"authorization_endpoint"`
+	// AcrValuesSupported Effective supported authentication contexts; defaults to the multi-factor PAPE policy value.
+	AcrValuesSupported    *[]string `json:"acr_values_supported,omitempty"`
+	AuthorizationEndpoint string    `json:"authorization_endpoint"`
+
+	// ClaimsParameterSupported Present and true unless the claims-parameter compatibility switch is enabled (D-0080).
+	ClaimsParameterSupported         *bool                                               `json:"claims_parameter_supported,omitempty"`
 	ClaimsSupported                  *[]string                                           `json:"claims_supported,omitempty"`
 	CodeChallengeMethodsSupported    *[]string                                           `json:"code_challenge_methods_supported,omitempty"`
 	DeviceAuthorizationEndpoint      *string                                             `json:"device_authorization_endpoint,omitempty"`
@@ -1080,7 +1085,7 @@ type TokenFormRequest struct {
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
 	// Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
-	Resource *string `json:"resource,omitempty"`
+	Resource *TokenFormRequest_Resource `json:"resource,omitempty"`
 
 	// Scope Space-separated scopes to request. On the refresh grant the
 	// original scopes and any applicable refresh token policy determine
@@ -1114,6 +1119,17 @@ type TokenFormRequest_AuthnResponse struct {
 
 // TokenFormRequestClientAssertionType defines model for TokenFormRequest.ClientAssertionType.
 type TokenFormRequestClientAssertionType string
+
+// TokenFormRequestResource0 defines model for TokenFormRequest.Resource.0.
+type TokenFormRequestResource0 = string
+
+// TokenFormRequestResource1 defines model for TokenFormRequest.Resource.1.
+type TokenFormRequestResource1 = []string
+
+// TokenFormRequest_Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
+type TokenFormRequest_Resource struct {
+	union json.RawMessage
+}
 
 // TokenRequest defines model for TokenRequest.
 type TokenRequest struct {
@@ -1171,7 +1187,7 @@ type TokenRequest struct {
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
 	// Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
-	Resource *string `json:"resource,omitempty"`
+	Resource *TokenRequest_Resource `json:"resource,omitempty"`
 
 	// Scope Space-separated scopes to request. On the refresh grant the
 	// original scopes and any applicable refresh token policy determine
@@ -1208,6 +1224,17 @@ type TokenRequest_AuthnResponse struct {
 
 // TokenRequestClientAssertionType defines model for TokenRequest.ClientAssertionType.
 type TokenRequestClientAssertionType string
+
+// TokenRequestResource0 defines model for TokenRequest.Resource.0.
+type TokenRequestResource0 = string
+
+// TokenRequestResource1 defines model for TokenRequest.Resource.1.
+type TokenRequestResource1 = []string
+
+// TokenRequest_Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
+type TokenRequest_Resource struct {
+	union json.RawMessage
+}
 
 // TokenRequestFields defines model for TokenRequestFields.
 type TokenRequestFields struct {
@@ -1265,7 +1292,7 @@ type TokenRequestFields struct {
 	RequestedTokenType *string `json:"requested_token_type,omitempty"`
 
 	// Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
-	Resource *string `json:"resource,omitempty"`
+	Resource *TokenRequestFields_Resource `json:"resource,omitempty"`
 
 	// Scope Space-separated scopes to request. On the refresh grant the
 	// original scopes and any applicable refresh token policy determine
@@ -1296,6 +1323,17 @@ type TokenRequestFields_AuthnResponse struct {
 
 // TokenRequestFieldsClientAssertionType defines model for TokenRequestFields.ClientAssertionType.
 type TokenRequestFieldsClientAssertionType string
+
+// TokenRequestFieldsResource0 defines model for TokenRequestFields.Resource.0.
+type TokenRequestFieldsResource0 = string
+
+// TokenRequestFieldsResource1 defines model for TokenRequestFields.Resource.1.
+type TokenRequestFieldsResource1 = []string
+
+// TokenRequestFields_Resource Under resource_parameter_profile compatibility, aliases audience when absent; conflicting audience is invalid_request and multiple resources are invalid_target (D-0080).
+type TokenRequestFields_Resource struct {
+	union json.RawMessage
+}
 
 // TokenResponse defines model for TokenResponse.
 type TokenResponse struct {
@@ -1375,7 +1413,7 @@ type AuthorizeParams struct {
 	AcrValues *string `form:"acr_values,omitempty" json:"acr_values,omitempty"`
 
 	// Resource Audience alias under the tenant compatibility resource profile; multiple values fail with invalid_target (D-0080).
-	Resource *string `form:"resource,omitempty" json:"resource,omitempty"`
+	Resource *[]string `form:"resource,omitempty" json:"resource,omitempty"`
 
 	// Audience Identifier of the API to issue an access token for.
 	Audience *string `form:"audience,omitempty" json:"audience,omitempty"`
@@ -2190,6 +2228,68 @@ func (t *TokenFormRequest_AuthnResponse) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsTokenFormRequestResource0 returns the union data inside the TokenFormRequest_Resource as a TokenFormRequestResource0
+func (t TokenFormRequest_Resource) AsTokenFormRequestResource0() (TokenFormRequestResource0, error) {
+	var body TokenFormRequestResource0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenFormRequestResource0 overwrites any union data inside the TokenFormRequest_Resource as the provided TokenFormRequestResource0
+func (t *TokenFormRequest_Resource) FromTokenFormRequestResource0(v TokenFormRequestResource0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenFormRequestResource0 performs a merge with any union data inside the TokenFormRequest_Resource, using the provided TokenFormRequestResource0
+func (t *TokenFormRequest_Resource) MergeTokenFormRequestResource0(v TokenFormRequestResource0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenFormRequestResource1 returns the union data inside the TokenFormRequest_Resource as a TokenFormRequestResource1
+func (t TokenFormRequest_Resource) AsTokenFormRequestResource1() (TokenFormRequestResource1, error) {
+	var body TokenFormRequestResource1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenFormRequestResource1 overwrites any union data inside the TokenFormRequest_Resource as the provided TokenFormRequestResource1
+func (t *TokenFormRequest_Resource) FromTokenFormRequestResource1(v TokenFormRequestResource1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenFormRequestResource1 performs a merge with any union data inside the TokenFormRequest_Resource, using the provided TokenFormRequestResource1
+func (t *TokenFormRequest_Resource) MergeTokenFormRequestResource1(v TokenFormRequestResource1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenFormRequest_Resource) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenFormRequest_Resource) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsTokenRequestAuthnResponse0 returns the union data inside the TokenRequest_AuthnResponse as a TokenRequestAuthnResponse0
 func (t TokenRequest_AuthnResponse) AsTokenRequestAuthnResponse0() (TokenRequestAuthnResponse0, error) {
 	var body TokenRequestAuthnResponse0
@@ -2252,6 +2352,68 @@ func (t *TokenRequest_AuthnResponse) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsTokenRequestResource0 returns the union data inside the TokenRequest_Resource as a TokenRequestResource0
+func (t TokenRequest_Resource) AsTokenRequestResource0() (TokenRequestResource0, error) {
+	var body TokenRequestResource0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestResource0 overwrites any union data inside the TokenRequest_Resource as the provided TokenRequestResource0
+func (t *TokenRequest_Resource) FromTokenRequestResource0(v TokenRequestResource0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestResource0 performs a merge with any union data inside the TokenRequest_Resource, using the provided TokenRequestResource0
+func (t *TokenRequest_Resource) MergeTokenRequestResource0(v TokenRequestResource0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenRequestResource1 returns the union data inside the TokenRequest_Resource as a TokenRequestResource1
+func (t TokenRequest_Resource) AsTokenRequestResource1() (TokenRequestResource1, error) {
+	var body TokenRequestResource1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestResource1 overwrites any union data inside the TokenRequest_Resource as the provided TokenRequestResource1
+func (t *TokenRequest_Resource) FromTokenRequestResource1(v TokenRequestResource1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestResource1 performs a merge with any union data inside the TokenRequest_Resource, using the provided TokenRequestResource1
+func (t *TokenRequest_Resource) MergeTokenRequestResource1(v TokenRequestResource1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenRequest_Resource) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenRequest_Resource) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsTokenRequestFieldsAuthnResponse0 returns the union data inside the TokenRequestFields_AuthnResponse as a TokenRequestFieldsAuthnResponse0
 func (t TokenRequestFields_AuthnResponse) AsTokenRequestFieldsAuthnResponse0() (TokenRequestFieldsAuthnResponse0, error) {
 	var body TokenRequestFieldsAuthnResponse0
@@ -2310,6 +2472,68 @@ func (t TokenRequestFields_AuthnResponse) MarshalJSON() ([]byte, error) {
 }
 
 func (t *TokenRequestFields_AuthnResponse) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsTokenRequestFieldsResource0 returns the union data inside the TokenRequestFields_Resource as a TokenRequestFieldsResource0
+func (t TokenRequestFields_Resource) AsTokenRequestFieldsResource0() (TokenRequestFieldsResource0, error) {
+	var body TokenRequestFieldsResource0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestFieldsResource0 overwrites any union data inside the TokenRequestFields_Resource as the provided TokenRequestFieldsResource0
+func (t *TokenRequestFields_Resource) FromTokenRequestFieldsResource0(v TokenRequestFieldsResource0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestFieldsResource0 performs a merge with any union data inside the TokenRequestFields_Resource, using the provided TokenRequestFieldsResource0
+func (t *TokenRequestFields_Resource) MergeTokenRequestFieldsResource0(v TokenRequestFieldsResource0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTokenRequestFieldsResource1 returns the union data inside the TokenRequestFields_Resource as a TokenRequestFieldsResource1
+func (t TokenRequestFields_Resource) AsTokenRequestFieldsResource1() (TokenRequestFieldsResource1, error) {
+	var body TokenRequestFieldsResource1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTokenRequestFieldsResource1 overwrites any union data inside the TokenRequestFields_Resource as the provided TokenRequestFieldsResource1
+func (t *TokenRequestFields_Resource) FromTokenRequestFieldsResource1(v TokenRequestFieldsResource1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTokenRequestFieldsResource1 performs a merge with any union data inside the TokenRequestFields_Resource, using the provided TokenRequestFieldsResource1
+func (t *TokenRequestFields_Resource) MergeTokenRequestFieldsResource1(v TokenRequestFieldsResource1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TokenRequestFields_Resource) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TokenRequestFields_Resource) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -2882,7 +3106,7 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 
 	// ------------- Optional query parameter "resource" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "resource", r.URL.Query(), &params.Resource, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "resource", r.URL.Query(), &params.Resource, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
 	if err != nil {
 		var requiredError *runtime.RequiredParameterError
 		if errors.As(err, &requiredError) {

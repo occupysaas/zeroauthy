@@ -3,6 +3,7 @@ package mgmt_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -842,7 +843,7 @@ func TestResourceServerHS256Secret(t *testing.T) {
 		t.Errorf("unrelated patch = %v", got)
 	}
 	// A supplied secret is kept, and a patch replaces it.
-	supplied := strings.Repeat("k", 16)
+	supplied := strings.Repeat("k", 32)
 	out = e.mustCreate(t, map[string]any{"identifier": "https://hs2.test", "signing_alg": "HS256", "signing_secret": supplied})
 	if out["signing_secret"] != supplied {
 		t.Fatalf("supplied = %v", out)
@@ -974,5 +975,26 @@ func TestSigningSecretNeverLogged(t *testing.T) {
 	}
 	if !logscrub.SensitiveKey("signing_secret") {
 		t.Error("signing_secret is not a scrubbed key name")
+	}
+}
+
+func TestAPISigningSecretMinLength(t *testing.T) {
+	e := newRSEnv(t)
+	for _, size := range []int{31, 32} {
+		rec, out := e.create(t, map[string]any{"identifier": fmt.Sprintf("https://secret-%d.example.test", size), "signing_alg": "HS256", "signing_secret": strings.Repeat("k", size)})
+		want := 400
+		if size == 32 {
+			want = 201
+		}
+		if rec.Code != want {
+			t.Fatalf("secret length %d: status=%d want=%d", size, rec.Code, want)
+		}
+		if size == 32 {
+			rec, _ = e.patch(t, out["id"].(string), map[string]any{"signing_secret": strings.Repeat("k", 31)})
+			if rec.Code != 400 {
+				t.Fatalf("31-character patch status=%d", rec.Code)
+			}
+		}
+
 	}
 }

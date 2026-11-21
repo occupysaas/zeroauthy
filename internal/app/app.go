@@ -431,6 +431,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		eventStreams: eventDeliveryWorker,
 		breachFile:   breachFile,
 		handler: server.New(server.Deps{
+			Compat:         cfg.Compat,
 			MFA:            mfaService,
 			Passkeys:       passkeyService,
 			LogsConfig:     logsConfig,

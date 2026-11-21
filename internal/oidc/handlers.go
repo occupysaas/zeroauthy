@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/compat"
 	"github.com/zeroauthy/zeroauthy/internal/dpop"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 // Metadata is cacheable briefly: keys are pre-published as "next" before
@@ -20,6 +22,8 @@ import (
 const metadataCacheControl = "public, max-age=300"
 
 type Handlers struct {
+	Wrapper  keys.Wrapper
+	Compat   compat.Switches
 	DPoP     *dpop.Service
 	Keys     *keys.Manager
 	Store    store.Store
@@ -38,6 +42,8 @@ func (h *Handlers) now() time.Time {
 // Configuration is OpenID Provider metadata (OpenID Connect Discovery 1.0
 // §3). It lists only what this server implements.
 type Configuration struct {
+	ACRValuesSupported                 []string `json:"acr_values_supported"`
+	ClaimsParameterSupported           *bool    `json:"claims_parameter_supported,omitempty"`
 	DPoPSigningAlgValuesSupported      []string `json:"dpop_signing_alg_values_supported,omitempty"`
 	Issuer                             string   `json:"issuer"`
 	AuthorizationEndpoint              string   `json:"authorization_endpoint"`
@@ -81,6 +87,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	base := strings.TrimSuffix(res.Issuer(), "/")
 	w.Header().Set("Cache-Control", metadataCacheControl)
 	cfg := Configuration{
+		ACRValuesSupported:                tenantrules.ACRValuesSupported(res.Tenant),
 		Issuer:                            res.Issuer(),
 		AuthorizationEndpoint:             base + "/authorize",
 		TokenEndpoint:                     base + "/oauth/token",
@@ -92,13 +99,17 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		ResponseTypesSupported:            []string{"code"},
 		ResponseModesSupported:            []string{"query", "fragment", "form_post", "web_message"},
 		SubjectTypesSupported:             []string{"public"},
-		IDTokenSigningAlgValuesSupported:  []string{"RS256"},
+		IDTokenSigningAlgValuesSupported:  []string{"HS256", "RS256", "PS256"},
 		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic", "client_secret_post", "none"},
 		GrantTypesSupported:               []string{"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
 		CodeChallengeMethodsSupported:     []string{"S256"},
-		ScopesSupported:                   []string{"openid", "profile", "email", "offline_access"},
-		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",
-			"name", "given_name", "family_name", "nickname", "picture", "updated_at", "email", "email_verified"},
+		ScopesSupported:                   []string{"openid", "profile", "email", "address", "phone", "offline_access"},
+		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "acr", "amr", "nonce", "sid", "at_hash",
+			"name", "given_name", "family_name", "middle_name", "nickname", "preferred_username", "profile", "picture", "website", "gender", "birthdate", "zoneinfo", "locale", "updated_at", "email", "email_verified", "phone_number", "phone_number_verified", "address"},
+	}
+	if !h.Compat.IgnoreClaimsParameter {
+		yes := true
+		cfg.ClaimsParameterSupported = &yes
 	}
 	// Without client_credentials.v1 private_key_jwt and JAR are unavailable
 	// (spec §7).

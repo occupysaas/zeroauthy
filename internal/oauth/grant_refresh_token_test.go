@@ -299,3 +299,44 @@ func TestRefreshReuseNotMaskedByOtherChecks(t *testing.T) {
 		})
 	}
 }
+
+func TestACRRefreshToken(t *testing.T) {
+	f := newFixture(t)
+	_, template := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access", "read:things"}, acmeAPI)
+	raw := secrets.RandomString(48)
+	token := *template
+	token.ID += "_acr"
+	token.FamilyID += "_acr"
+	token.TokenHash = secrets.HashToken(raw)
+	token.ACR = "http://schemas.openid.net/pape/policies/2007/06/multi-factor"
+	if err := f.st.RefreshTokens().Create(t.Context(), &token); err != nil {
+		t.Fatal(err)
+	}
+	sess := &store.LoginSession{TenantID: token.TenantID, ID: token.SessionID, TokenHash: secrets.HashToken(secrets.RandomString(32)), UserID: token.UserID, AuthenticatedAt: fixedNow().Add(-time.Hour), MFAAt: fixedNow().Add(-time.Minute), ExpiresAt: fixedNow().Add(time.Hour), IdleExpiresAt: fixedNow().Add(time.Hour), CreatedAt: fixedNow()}
+	if err := f.st.Sessions().Create(t.Context(), sess); err != nil {
+		t.Fatal(err)
+	}
+	status, out := f.refresh(t, refreshForm("rt-spa", raw))
+	if status != 200 {
+		t.Fatalf("exchange status=%d", status)
+	}
+	got, _ := verifyToken(t, f.keys, token.TenantID, out["id_token"].(string))
+	if got["acr"] != token.ACR {
+		t.Fatal("live MFA session's acr missing")
+	}
+	raw = out["refresh_token"].(string)
+	if f.storedRT(t, raw).ACR != token.ACR {
+		t.Fatal("rotation lost authentication context")
+	}
+	if err := f.st.Sessions().Delete(t.Context(), token.TenantID, sess.ID); err != nil {
+		t.Fatal(err)
+	}
+	status, out = f.refresh(t, refreshForm("rt-spa", raw))
+	if status != 200 {
+		t.Fatalf("offline exchange status=%d", status)
+	}
+	got, _ = verifyToken(t, f.keys, token.TenantID, out["id_token"].(string))
+	if got["acr"] != nil {
+		t.Fatal("removed session still proves MFA")
+	}
+}

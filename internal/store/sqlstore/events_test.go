@@ -35,7 +35,7 @@ func TestEventsMigrationFrom30(t *testing.T) {
 			ctx := context.Background()
 			seedLegacyTenant(t, s, "legacy")
 			mustEvent(t, s.Migrate(ctx))
-			if s.LatestVersion() != 42 {
+			if s.LatestVersion() != 43 {
 				t.Fatalf("latest version=%d", s.LatestVersion())
 			}
 			_, err := s.Tenants().Get(ctx, "legacy")
@@ -586,7 +586,7 @@ func TestEventStreamEnableCheckpointSerializesAppend(t *testing.T) {
 			}
 			stream, err := s.Events().GetEventStream(ctx, tn.ID, id)
 			mustEvent(t, err)
-			if stream.Checkpoint != 1 || stream.ConsecutiveFailures != 0 || stream.TotalFailures != 42 {
+			if stream.Checkpoint != 1 || stream.ConsecutiveFailures != 0 || stream.TotalFailures != 43 {
 				t.Fatalf("disabled history retained: %+v", stream)
 			}
 			mustEvent(t, s.Events().AppendEvents(ctx, []store.TenantEvent{{TenantID: tn.ID, ID: "after-enable", Time: time.Now()}}))

@@ -126,7 +126,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	}
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		online: online, organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
-		nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, mfaAt: ac.MFAAt, effects: eff,
+		acr: ac.ACR, nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, mfaAt: ac.MFAAt, effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr
@@ -145,11 +145,11 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID,
 			origin:   res.Origin(),
 			familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID,
-			audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime, expiresAt: expiresAt,
+			audience: ac.Audience, scopes: ceiling, acr: ac.ACR, authTime: ac.AuthTime, expiresAt: expiresAt,
 		})
 	}
 	if online && resp.Scope != nil && slices.Contains(strings.Fields(*resp.Scope), "online_access") && slices.Contains(ceiling, "online_access") {
-		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{origin: res.Origin(), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime})
+		rt, raw = h.newRefreshToken(ctx, c, tenantID, refreshGrant{origin: res.Origin(), organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID, familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID, audience: ac.Audience, scopes: ceiling, acr: ac.ACR, authTime: ac.AuthTime})
 		rt.Access = "online"
 		rt.Rotating = false
 		rt.ExpiresAt = onlineSess.ExpiresAt

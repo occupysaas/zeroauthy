@@ -11,6 +11,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -138,6 +139,7 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
+	acr    string
 	online bool
 	// mrrt records the policy and scopes used to sign a multi-resource exchange.
 	mrrt              *mrrtExchange
@@ -186,7 +188,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	if authErr != nil {
 		return nil, false, authErr
 	}
-	ut.rs, ut.scopes = auth.API, auth.Scopes
+	ut.rs, ut.scopes = auth.API, slices.DeleteFunc(slices.Clone(auth.Scopes), func(scope string) bool { return !access.OIDCScopeAllowed(c, scope) })
 	if ut.rs != nil && !ut.rs.IsSystem {
 		decision, e := h.decide(ctx, tenantID, access.Refresh, c, ut.rs, ut.scopes)
 		if e != nil {
@@ -294,10 +296,10 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		if ut.mrrt.audience != ut.mrrt.family.Audience {
 			// The second API's permission names do not describe the user's
 			// original identity grant.
-			idScopes = ut.mrrt.family.Scopes
+			idScopes = slices.DeleteFunc(slices.Clone(ut.mrrt.family.Scopes), func(scope string) bool { return !access.OIDCScopeAllowed(c, scope) })
 		}
 	}
-	if issueID {
+	if issueID && access.OIDCScopeAllowed(c, "openid") {
 		atHashSource := accessToken
 		if ut.omitAtHash {
 			atHashSource = ""
@@ -308,12 +310,22 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 			if err != nil && !errors.Is(err, store.ErrNotFound) {
 				return nil, false, serverError()
 			}
-			if err == nil && sess.UserID == ut.user.UserID {
+			if err == nil && sess.UserID == ut.user.UserID && (sess.ExpiresAt.IsZero() || h.now().Before(sess.ExpiresAt)) && (sess.IdleExpiresAt.IsZero() || h.now().Before(sess.IdleExpiresAt)) {
 				mfaAt = sess.MFAAt
 			}
 		}
+		var signingSecret []byte
+		if c.IDTokenAlg == "HS256" {
+			var err error
+			signingSecret, err = keys.ClientSigningSecret(h.Wrapper, c, h.now())
+			if err != nil {
+				return nil, false, serverError()
+			}
+			defer clear(signingSecret)
+		}
 		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
-			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: idScopes,
+			SigningAlg: c.IDTokenAlg, SigningSecret: signingSecret,
+			ACR: ut.acr, TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: idScopes,
 			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, MFAAt: mfaAt, AccessToken: atHashSource,
 			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second, CustomClaims: idClaims,
 		})

@@ -13078,7 +13078,7 @@ type ResourceServerCreate struct {
 	// (D-0063).
 	SigningAlg *ResourceServerCreateSigningAlg `json:"signing_alg,omitempty"`
 
-	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// SigningSecret HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
 	// bytes, base64url) when an HS256 API is created without one; sent
 	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
 	SigningSecret                             *string `json:"signing_secret,omitempty"`
@@ -13167,7 +13167,7 @@ type ResourceServerSettings struct {
 	// (D-0063).
 	SigningAlg *ResourceServerSettingsSigningAlg `json:"signing_alg,omitempty"`
 
-	// SigningSecret HS256 only: at least 16 characters (C15). Generated (32 random
+	// SigningSecret HS256 only: at least 32 characters on new writes (D-0080). Generated (32 random
 	// bytes, base64url) when an HS256 API is created without one; sent
 	// with `signing_alg` RS256 or PS256 it is refused (`invalid_body`).
 	SigningSecret                             *string `json:"signing_secret,omitempty"`
@@ -13468,7 +13468,7 @@ type TenantSettings struct {
 		} `json:"claims_mapping,omitempty"`
 	} `json:"access_token,omitempty"`
 
-	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// AcrValuesSupported Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
 	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
 
 	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13603,7 +13603,7 @@ type TenantSettings struct {
 	PictureUrl                           *string `json:"picture_url,omitempty"`
 	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
 
-	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 	ResourceParameterProfile *TenantSettingsResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
 
 	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13674,7 +13674,7 @@ type TenantSettingsDynamicClientRegistrationSecurityMode string
 // TenantSettingsEnabledLocales defines model for TenantSettings.EnabledLocales.
 type TenantSettingsEnabledLocales string
 
-// TenantSettingsResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 type TenantSettingsResourceParameterProfile string
 
 // TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettings.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.
@@ -13701,7 +13701,7 @@ type TenantSettingsPatch struct {
 		} `json:"claims_mapping,omitempty"`
 	} `json:"access_token,omitempty"`
 
-	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// AcrValuesSupported Effective discovery values are intersected with the supported multi-factor context. Absent or null uses the supported default; an empty list disables it (D-0080).
 	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
 
 	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13845,7 +13845,7 @@ type TenantSettingsPatch struct {
 	PictureUrl                           *string `json:"picture_url,omitempty"`
 	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
 
-	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	// ResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 	ResourceParameterProfile *TenantSettingsPatchResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
 
 	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
@@ -13916,7 +13916,7 @@ type TenantSettingsPatchDynamicClientRegistrationSecurityMode string
 // TenantSettingsPatchEnabledLocales defines model for TenantSettingsPatch.EnabledLocales.
 type TenantSettingsPatchEnabledLocales string
 
-// TenantSettingsPatchResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+// TenantSettingsPatchResourceParameterProfile Audience profile ignores resource; compatibility uses one resource as an audience alias and rejects conflicting or multiple values (D-0080).
 type TenantSettingsPatchResourceParameterProfile string
 
 // TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettingsPatch.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.

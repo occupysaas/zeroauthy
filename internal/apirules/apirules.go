@@ -37,8 +37,8 @@ const (
 	SigningAlgPS256 = "PS256"
 
 	// MinSigningSecretLength is the shortest HS256 secret a caller may supply
-	// (C15), in characters.
-	MinSigningSecretLength = 16
+	// in characters (D-0080, RFC 7518 section 3.2).
+	MinSigningSecretLength = 32
 )
 
 // Spec is an API's settings. Empty strings, zeros and nil pointers mean

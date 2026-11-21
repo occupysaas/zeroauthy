@@ -179,7 +179,7 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 
 // signHS256 signs claims with the API's secret. The header carries no kid:
 // the secret is not a published key. go-jose refuses secrets under 32 bytes
-// (RFC 7518 3.2), but the API accepts 16 characters and up (C15), so the
+// (RFC 7518 3.2). Legacy stored API secrets may be shorter than 32 bytes, so the
 // compact JWS is built here.
 func signHS256(claims any, secret []byte, tokenType string) (string, error) {
 	payload, err := json.Marshal(claims)
@@ -211,15 +211,18 @@ func (m *Minter) now() time.Time {
 }
 
 type IDTokenParams struct {
-	TenantID  string
-	Issuer    string
-	ClientID  string
-	User      *store.User
-	Scopes    []string
-	Nonce     string
-	SessionID string
-	AuthTime  time.Time
-	MFAAt     time.Time
+	SigningAlg    string
+	SigningSecret []byte
+	ACR           string
+	TenantID      string
+	Issuer        string
+	ClientID      string
+	User          *store.User
+	Scopes        []string
+	Nonce         string
+	SessionID     string
+	AuthTime      time.Time
+	MFAAt         time.Time
 	// AccessToken, when set, adds at_hash (OpenID Connect Core §3.1.3.6).
 	AccessToken string
 	// Lifetime defaults to DefaultIDTokenLifetime when zero.
@@ -246,6 +249,9 @@ func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
 	}
 	if !p.MFAAt.IsZero() {
 		c["amr"] = []string{"mfa"}
+		if p.ACR == claims.ACRMultiFactor {
+			c["acr"] = p.ACR
+		}
 	}
 	if p.Nonce != "" {
 		c["nonce"] = p.Nonce
@@ -262,7 +268,19 @@ func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
 			c[k] = v
 		}
 	}
-	return m.Keys.Sign(ctx, p.TenantID, c)
+	switch p.SigningAlg {
+	case "", "RS256":
+		return m.Keys.Sign(ctx, p.TenantID, c)
+	case "PS256":
+		return m.Keys.SignWithAlg(ctx, p.TenantID, c, "JWT", jose.PS256)
+	case "HS256":
+		if len(p.SigningSecret) < 32 {
+			return "", errors.New("ID token signing secret is unavailable")
+		}
+		return signHS256(c, p.SigningSecret, "JWT")
+	default:
+		return "", errors.New("unsupported ID token signing algorithm")
+	}
 }
 
 // withCustomClaims returns c's claims plus custom claims c does not carry.

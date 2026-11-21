@@ -340,3 +340,13 @@ func TestSessionMetadataRedacted(t *testing.T) {
 		t.Fatal("metadata escaped scrubbing")
 	}
 }
+
+func TestClaimsRequestRedacted(t *testing.T) {
+	out, err := logscrub.Scrub([]byte(`{"claims":"{\"extension\":{\"contact\":\"private@example.test\"}}","scope":"openid"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "private@example.test") || !strings.Contains(string(out), `"claims":"[REDACTED]"`) {
+		t.Fatalf("claim request leaked: %s", out)
+	}
+}

@@ -288,7 +288,16 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 	if pkj {
 		c.TokenEndpointAuthMethod = ""
 	}
+	if err := h.checkIDTokenSigning(c); err != nil {
+		Fail(w, err)
+		return
+	}
 	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		if _, present := body["oidc_support"]; present || c.IDTokenAlg != "" && c.IDTokenAlg != "RS256" {
+			if err := checkOIDCSupportWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		if in.policiesSet || c.RequireProofOfPossession || c.TokenQuota != nil {
 			if err := checkMRRTSupport(r.Context(), tx); err != nil {
 				return err
@@ -367,6 +376,11 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 				return err
 			}
 		}
+		if _, present := body["oidc_support"]; present || spec.IDTokenAlg != "" && spec.IDTokenAlg != "RS256" {
+			if err := checkOIDCSupportWrite(r.Context(), tx); err != nil {
+				return err
+			}
+		}
 		pkj, err := in.cred.authenticationState(&spec, c.PrivateKeyJWTCredentials != nil)
 		if err != nil {
 			return err
@@ -398,6 +412,9 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 			return err
 		}
 		if err := h.setSecret(c, in.secret, in.secretSet, h.now()); err != nil {
+			return err
+		}
+		if err := h.checkIDTokenSigning(c); err != nil {
 			return err
 		}
 		out = c
@@ -555,7 +572,7 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 	if idTTL == 0 {
 		idTTL = clientrules.DefaultIDTTL
 	}
-	alg := mgmtapi.JwtConfigurationAlgRS256
+	alg := mgmtapi.JwtConfigurationAlg(cmp.Or(c.IDTokenAlg, "RS256"))
 	secretEncoded := false
 	spec := clientrules.FromClient(c)
 	rotation := mgmtapi.RefreshTokenSettingsRotationType(spec.RefreshToken.RotationType)
@@ -582,6 +599,12 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		},
 		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests, RequireProofOfPossession: &c.RequireProofOfPossession,
 		CreatedAt: &created,
+	}
+	if c.OIDCSupport != nil {
+		raw, _ := json.Marshal(c.OIDCSupport)
+		var support mgmtapi.ClientOIDCSupport
+		_ = json.Unmarshal(raw, &support)
+		v.OidcSupport = &support
 	}
 	if c.TokenQuota != nil {
 		raw, _ := json.Marshal(quotarules.PublicTokenQuota(c.TokenQuota))
@@ -828,6 +851,8 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 				s.OrganizationDiscoveryMethods = []string{}
 				err = decodeStrict(raw, &s.OrganizationDiscoveryMethods)
 			}
+		case "oidc_support":
+			s.OIDCSupport, err = clientrules.ParseOIDCSupport(raw)
 		case "jwt_configuration":
 			err = readJWTConfiguration(raw, s)
 		case "token_quota":
@@ -859,8 +884,11 @@ func readJWTConfiguration(raw json.RawMessage, s *clientrules.Spec) error {
 	if err := decodeStrict(raw, &v); err != nil {
 		return err
 	}
-	if v.Alg != nil && *v.Alg != "RS256" {
-		return fmt.Errorf("alg %q is not supported (RS256 only)", *v.Alg)
+	if v.Alg != nil {
+		if !slices.Contains([]string{"RS256", "HS256", "PS256"}, *v.Alg) {
+			return fmt.Errorf("unsupported ID token algorithm %q", *v.Alg)
+		}
+		s.IDTokenAlg = *v.Alg
 	}
 	if v.LifetimeInSeconds != nil {
 		s.IDTokenLifetime = *v.LifetimeInSeconds
@@ -979,4 +1007,24 @@ func checkMRRTSupport(ctx context.Context, st store.Store) error {
 		return badBody("refresh token policies require storage support")
 	}
 	return err
+}
+
+func checkOIDCSupportWrite(ctx context.Context, st store.Store) error {
+	err := store.CheckOIDCLogoutSupport(ctx, st)
+	if errors.Is(err, store.ErrOIDCLogoutUnavailable) {
+		return badBody("storage plugin lacks oidc_logout.v1")
+	}
+	return err
+}
+
+func (h *Handlers) checkIDTokenSigning(c *store.Client) error {
+	if c.IDTokenAlg != "HS256" {
+		return nil
+	}
+	secret, err := keys.ClientSigningSecret(h.Wrapper, c, h.now())
+	clear(secret)
+	if err != nil {
+		return badBody("HS256 requires a confidential client with a usable client secret")
+	}
+	return nil
 }

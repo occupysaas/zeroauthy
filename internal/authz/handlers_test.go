@@ -784,3 +784,39 @@ func TestAuthorizePostOversizedBodyIs413(t *testing.T) {
 		t.Fatalf("oversized = %d %s", rec.Code, rec.Body)
 	}
 }
+
+func TestClaimsIgnoredBySwitch(t *testing.T) {
+	e := newEnv(t)
+	e.h.Compat.IgnoreClaimsParameter = true
+	loc := location(t, e.get(t, with(goodQuery(), "claims", "[]")))
+	params := e.txnParams(t, loc)
+	if params["claims"] != "" {
+		t.Fatal("ignored claims reached login state")
+	}
+	e.h.Compat.IgnoreClaimsParameter = false
+	loc = location(t, e.get(t, with(goodQuery(), "claims", "[]")))
+	if loc.Query().Get("error") != "invalid_request" {
+		t.Fatalf("invalid claims accepted: %s", loc)
+	}
+}
+
+func TestOptionalRedirectHandlerSwitch(t *testing.T) {
+	e := newEnv(t)
+	c, err := e.st.Clients().Get(t.Context(), e.tenant.ID, "spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Callbacks = []string{"https://app.acme.test/callback"}
+	if err := e.st.Clients().Update(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	e.h.Compat.OptionalRedirectURI = true
+	params := e.txnParams(t, location(t, e.get(t, with(goodQuery(), "redirect_uri", ""))))
+	if params["redirect_uri"] != c.Callbacks[0] {
+		t.Fatal("handler did not apply optional redirect switch")
+	}
+	e.h.Compat.OptionalRedirectURI = false
+	if rec := e.get(t, with(goodQuery(), "redirect_uri", "")); rec.Code != 400 {
+		t.Fatalf("default missing URI status=%d", rec.Code)
+	}
+}

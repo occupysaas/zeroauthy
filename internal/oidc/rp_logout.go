@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -148,12 +149,45 @@ func (h *Handlers) idTokenHint(ctx context.Context, res tenant.Resolved, raw str
 	var extra struct {
 		SID string `json:"sid"`
 	}
-	if err := h.Keys.Verify(ctx, res.Tenant.ID, raw, &std, &extra); err != nil {
+	parsed, parseErr := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256, jose.PS256, jose.HS256})
+	if parseErr != nil || len(parsed.Headers) != 1 {
+		return "", "", false, nil
+	}
+	if parsed.Headers[0].Algorithm == string(jose.HS256) {
+		// The unverified audience selects a tenant-scoped client only. No claims
+		// are trusted until its explicitly selected symmetric algorithm verifies.
+		var candidate jwt.Claims
+		if parsed.UnsafeClaimsWithoutVerification(&candidate) != nil || candidate.Issuer != res.Issuer() || len(candidate.Audience) != 1 {
+			return "", "", false, nil
+		}
+		if h.Store == nil {
+			return "", "", false, nil
+		}
+		client, loadErr := h.Store.Clients().Get(ctx, res.Tenant.ID, candidate.Audience[0])
+		if errors.Is(loadErr, store.ErrNotFound) {
+			return "", "", false, nil
+		}
+		if loadErr != nil {
+			return "", "", false, loadErr
+		}
+		if client.IDTokenAlg != "HS256" || parsed.Headers[0].ExtraHeaders[jose.HeaderType] != "JWT" {
+			return "", "", false, nil
+		}
+		secret, openErr := keys.ClientSigningSecret(h.Wrapper, client, h.now())
+		if openErr != nil {
+			return "", "", false, nil
+		}
+		defer clear(secret)
+		if parsed.Claims(secret, &std, &extra) != nil {
+			return "", "", false, nil
+		}
+	} else if err := h.Keys.Verify(ctx, res.Tenant.ID, raw, &std, &extra); err != nil {
 		if errors.Is(err, keys.ErrInvalidToken) {
 			return "", "", false, nil
 		}
 		return "", "", false, err
 	}
+
 	if std.Issuer != res.Issuer() || len(std.Audience) != 1 {
 		return "", "", false, nil
 	}

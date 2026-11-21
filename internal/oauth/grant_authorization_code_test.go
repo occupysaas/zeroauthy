@@ -384,3 +384,21 @@ func TestCodeReplayDuringFirstExchange(t *testing.T) {
 		t.Fatalf("refresh token of the replayed code = %+v, %v; want revoked", rt, err)
 	}
 }
+
+func TestCodeOIDCSupportAtExchange(t *testing.T) {
+	f := newFixture(t)
+	tid := f.tenantID(t, "acme")
+	c, err := f.st.Clients().Get(t.Context(), tid, "code-spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code := f.issueCode(t, "code-spa", "https://app.acme.test/cb", "", []string{"openid", "profile", "email"}, pkceChallenge)
+	c.OIDCSupport = &store.OIDCSupport{IsAllowed: false}
+	if err := f.st.Clients().Update(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	rec, out := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, "code-spa", "https://app.acme.test/cb", pkceVerifier)})
+	if rec.Code != 200 || out["id_token"] != nil || slices.Contains(strings.Fields(out["scope"].(string)), "openid") {
+		t.Fatalf("disabled OIDC: status=%d has_id_token=%v scope=%v", rec.Code, out["id_token"] != nil, out["scope"])
+	}
+}

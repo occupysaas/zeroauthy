@@ -139,6 +139,9 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	OIDCSupport              *OIDCSupport
+	OIDCLogout               *OIDCLogout
+	IDTokenAlg               string // Empty means RS256.
 	RequireProofOfPossession bool
 	TokenQuota               *TokenQuota
 	// NativeSocialLogin stores provider-specific native exchange switches.
@@ -895,6 +898,7 @@ type AuthTransaction struct {
 
 // AuthCode is an issued authorization code.
 type AuthCode struct {
+	ACR     string
 	DPoPJKT string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin              string
@@ -1016,6 +1020,7 @@ type DevicePoll struct {
 // by rotating it form a family that shares FamilyID; reuse of a rotated
 // token revokes the whole family.
 type RefreshToken struct {
+	ACR               string
 	DPoPJKT, ParentID string
 	Access            string // "offline" (including legacy empty values) or "online"
 	Metadata          map[string]string

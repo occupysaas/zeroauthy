@@ -694,3 +694,82 @@ func TestMRRTClientPolicies(t *testing.T) {
 		t.Fatalf("legacy write status=%d", status)
 	}
 }
+
+func TestClientOIDCSupport(t *testing.T) {
+	e := newClientsEnv(t)
+	for _, raw := range []string{`{}`, `{"is_allowed":true,"allow_all_scopes":false,"allowed_scopes":[]}`} {
+		rec, _ := e.create(t, m2mCaller(allClientScopes...), map[string]any{"name": "bad", "oidc_support": json.RawMessage(raw)})
+		if rec.Code != 400 {
+			t.Fatalf("invalid support status=%d", rec.Code)
+		}
+	}
+	rec, created := e.create(t, m2mCaller(allClientScopes...), map[string]any{"name": "restricted", "oidc_support": map[string]any{"is_allowed": true, "allowed_scopes": []string{"email"}}})
+	if rec.Code != 201 {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	id := created["client_id"].(string)
+	support, ok := created["oidc_support"].(map[string]any)
+	if !ok || support["is_allowed"] != true || len(support["allowed_scopes"].([]any)) != 1 {
+		t.Fatalf("support=%v", created["oidc_support"])
+	}
+	rec, out := e.patch(t, m2mCaller(allClientScopes...), id, map[string]any{"oidc_support": nil})
+	if rec.Code != 200 || out["oidc_support"] != nil {
+		t.Fatalf("clear: %d %v", rec.Code, out)
+	}
+}
+
+type noOIDCLogoutStore struct{ store.Store }
+
+func (noOIDCLogoutStore) CheckOIDCLogoutSupport(context.Context) error {
+	return store.ErrOIDCLogoutUnavailable
+}
+func (s noOIDCLogoutStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(noOIDCLogoutStore{tx}) })
+}
+func TestClientOIDCSupportCapability(t *testing.T) {
+	e := newClientsEnv(t)
+	e.h.Store = noOIDCLogoutStore{e.st}
+	rec, _ := e.create(t, m2mCaller(allClientScopes...), map[string]any{"name": "restricted", "oidc_support": map[string]any{"is_allowed": false}})
+	if rec.Code != 400 {
+		t.Fatalf("unsupported setting create status=%d", rec.Code)
+	}
+	rec, created := e.create(t, m2mCaller(allClientScopes...), map[string]any{"name": "plain"})
+	if rec.Code != 201 {
+		t.Fatalf("plain create status=%d", rec.Code)
+	}
+	rec, _ = e.patch(t, m2mCaller(allClientScopes...), created["client_id"].(string), map[string]any{"oidc_support": nil})
+	if rec.Code != 400 {
+		t.Fatalf("unsupported clear status=%d", rec.Code)
+	}
+}
+
+func TestJWTAlgRules(t *testing.T) {
+	e := newClientsEnv(t)
+	for _, body := range []map[string]any{
+		{"name": "public", "app_type": "spa", "jwt_configuration": map[string]any{"alg": "HS256"}},
+		{"name": "none", "token_endpoint_auth_method": "none", "jwt_configuration": map[string]any{"alg": "HS256"}},
+	} {
+		rec, _ := e.create(t, m2mCaller(allClientScopes...), body)
+		if rec.Code != 400 {
+			t.Fatalf("public HS256 status=%d", rec.Code)
+		}
+	}
+	for _, alg := range []string{"HS256", "PS256"} {
+		rec, out := e.create(t, m2mCaller(allClientScopes...), map[string]any{"name": "confidential", "jwt_configuration": map[string]any{"alg": alg}})
+		if rec.Code != 201 {
+			t.Fatalf("%s create status=%d", alg, rec.Code)
+		}
+		if out["jwt_configuration"].(map[string]any)["alg"] != alg {
+			t.Fatalf("%s not returned", alg)
+		}
+	}
+	privateOnly := &store.Client{TenantID: e.tn.ID, ClientID: "private-only", Name: "private-only", AppType: store.AppTypeRegularWeb, IsFirstParty: true, PrivateKeyJWTCredentials: []string{"credential"}}
+	if err := e.st.Clients().Create(t.Context(), privateOnly); err != nil {
+		t.Fatal(err)
+	}
+	rec, _ := e.patch(t, m2mCaller(allClientScopes...), privateOnly.ClientID, map[string]any{"jwt_configuration": map[string]any{"alg": "HS256"}})
+	if rec.Code != 400 {
+		t.Fatalf("private_key_jwt-only HS256 status=%d", rec.Code)
+	}
+
+}

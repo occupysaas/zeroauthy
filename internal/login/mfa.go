@@ -114,7 +114,7 @@ func (h *Handlers) existingFactorChallenge(r *http.Request, f *flow, p *authz.MF
 		return req, true, err
 	}
 	customize, _ := f.res.Tenant.SettingsExtra["customize_mfa_in_postlogin_action"].(bool)
-	req, err = mfa.Decide(mfa.DecideInput{Settings: g, Effects: p.Effects.MFA, User: u, Authenticators: aa, CustomizeInActions: customize, MFAAPI: p.Requirement.Reason == "mfa-api", PhoneEnroll: len(methods) > 0, WebAuthn: caps})
+	req, err = mfa.Decide(mfa.DecideInput{StepUp: p.Requirement.StepUp, Settings: g, Effects: p.Effects.MFA, User: u, Authenticators: aa, CustomizeInActions: customize, MFAAPI: p.Requirement.Reason == "mfa-api", PhoneEnroll: len(methods) > 0, WebAuthn: caps})
 	if err != nil || !req.Required || req.Enroll || len(req.Factors) == 0 {
 		// Fail closed: the transaction can neither enroll nor challenge.
 		return req, true, errTxn

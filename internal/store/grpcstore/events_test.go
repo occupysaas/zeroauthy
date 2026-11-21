@@ -32,6 +32,7 @@ import (
 // Exercise a real server and transport, selectively making Events methods look
 // like an older or restarting plugin without replacing any earlier feature.
 type eventsFaults struct {
+	oidcMissing        bool
 	mfaBatch           atomic.Int32
 	mfaBatchCalls      atomic.Int32
 	mfaListCalls       atomic.Int32
@@ -64,6 +65,9 @@ func serveEventsFaults(t *testing.T, backing store.Store, faults *eventsFaults) 
 	lis := bufconn.Listen(1 << 20)
 	gs := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		name := strings.TrimPrefix(info.FullMethod, "/zeroauthy.store.v1.StoreService/")
+		if name == "OIDCLogoutCapabilities" && faults.oidcMissing {
+			return nil, status.Error(codes.Unimplemented, "pre-oidc_logout.v1 plugin")
+		}
 		if name == "MFACapabilities" {
 			if faults.mfaBlock.Swap(false) {
 				faults.mfaProbeEntered <- struct{}{}
