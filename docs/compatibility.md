@@ -66,3 +66,13 @@ tool itself ([MFA guide](mfa.md#deploy-cli-and-troubleshooting)).
 
 Found something that behaves differently from Auth0's documentation? Please
 open an issue with the Auth0 documentation link.
+
+Plan 41a adds standard phone/address/profile claims, bounded claims requests,
+requested MFA ACR, client OIDC restrictions, ID token algorithm selection,
+back-channel logout and connection-scoped global revocation. The default
+resource profile continues to use `audience`; the tenant compatibility profile
+maps one `resource` to audience and rejects conflicts or multiple targets.
+Claims requests cannot widen granted scopes or expose user/app metadata.
+The environment-only exceptions, receiver requirements and actual implemented
+initiators are documented in [logout](logout.md). Certification and full-plan
+verification are recorded separately from feature availability.

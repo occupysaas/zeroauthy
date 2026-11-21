@@ -375,7 +375,7 @@ func TestGlobalRevocationDiscovery(t *testing.T) {
 		t.Fatal("missing connection-specific revocation endpoint")
 	}
 	methods, _ := doc["global_token_revocation_endpoint_auth_methods_supported"].([]any)
-	if len(methods) != 1 || methods[0] != "private_key_jwt" {
+	if len(methods) != 1 || methods[0] != "global-token-revocation+jwt" {
 		t.Fatal("missing revocation authentication method")
 	}
 }

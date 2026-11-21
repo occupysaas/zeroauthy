@@ -8,20 +8,15 @@ checks and branch review are complete.
 
 ## Progress
 
-1. Contracts, D-0080 and conformance inventory: complete (`dd5f5114`).
-2. Compatibility switches: complete (`145311d1`); focused verification passed. Later protocol tasks still need to consume them.
-3. Claims and client OIDC restrictions: implemented; package and focused checks passed.
-4. MFA step-up and acr: implemented; package and focused checks passed.
-5. Client ID-token signing algorithms: implemented; focused checks passed, broader verification pending.
-6. Resource profile and redirect fallback: implemented; focused checks passed, broader verification pending.
-7. Logout settings and storage: implemented; focused validation, CRUD/capability, discovery and scrubbing tests passed. Actual sending remains Task 8.
-8. Durable back-channel delivery and session-ending triggers: pending.
-9. Logout session metadata: pending (Plan 48 fields already available).
-10. Global revocation: pending; reserved route returns 501 without mutation.
-11. Console: pending.
-12. Seed and Deploy CLI: pending.
-13. Conformance and certification kit: pending.
-14. E2E, documentation, fast local tier, review and CI: pending.
+1. Tasks 1–7: implemented and committed; focused checks and storage round trips passed.
+2. Tasks 8–9: durable back-channel delivery, termination triggers and metadata committed.
+3. Task 10: pinned upstream global revocation committed; focused JWT/state/handler tests passed.
+4. Task 11: console committed; 734 tests, lint, typecheck and build passed.
+5. Task 12: seed and bootstrap committed; real Deploy CLI four-cell round trips passed.
+6. Task 13: all five conformance plans finished, exit 0; hosted kit render/prepare passed.
+7. Task 14: full E2E lane passed (three browser journeys, SDK CRUD, secret scan
+   and four-cell Deploy CLI); final aggregate Go run is pending. Final review and plan-branch
+   CI remain pending. No push or PR has been made.
 
 ## Verification
 
@@ -210,7 +205,7 @@ A transaction consumes the hashed connection-scoped jti, bumps the user's
 version, revokes all refresh tokens and ends sessions with idp-logout jobs.
 The sweeper purges expired replay entries. SQL, memory and gRPC carry the
 new replay state and lookup. Discovery exposes the connection endpoint
-template and private_key_jwt authentication. Real universal_logout outcome
+template and the global-token-revocation+jwt authentication profile. Real universal_logout outcome
 logs are enabled and contain no JWT, email or upstream user subject.
 
 Focused seven-package verification passed in task10-focused-fixed.log;
@@ -257,3 +252,42 @@ package was added. The backend snapshot suite's two OIDC failure-fixture
 regressions were fixed by preserving injected errors in transaction views;
 full OIDC/session package rerun passed (13.317 s / 0.012 s). Its original
 snapshot run remains recorded as exit 1, with all other 17 packages passing.
+
+
+## Final local verification checkpoint
+
+`make conformance` exited 0, results `20261121T042726Z`: Basic/Form Post
+35 modules each, 26 passed/4 documented warnings/3 review/2 documented skips;
+Config 1 passed; RP logout 3 passed/8 review; Backchannel 2 passed. Every
+module finished. Phone/address/profile and genuine ACR proof now pass.
+Retained essential-name warnings reflect granted-scope consent, not missing
+claims parsing. Both official client_secret_post modules ran within the
+pinned plans. No separate full-post variant or implicit/hybrid certification
+is claimed. Public kit rendering and SQLite preparation passed at protected
+`/dev/shm/za41a/certkit.3tQj83`.
+
+`make e2e-logout` exited 0. Pinned node-auth0 settings CRUD and privacy scan
+passed; all three Playwright journeys passed (4.0 seconds): another client's
+RP logout invalidates the real Express SDK session; real TOTP enrollment
+satisfies ACR and silent MFA SSO; pinned upstream global JWT revokes linked
+user sessions/refresh tokens and reaches Express. All four actual Deploy
+CLI 9.1.0 cells passed. Protected artifacts: `/dev/shm/za41a/tmp.bhQlSqV9JM`.
+
+Two aggregate Go runs reported failures, preserved in full-go.log/.exit and
+full-go-fixed.log/.exit. The first exposed a missing process-wrapper optional
+interface, a full codec fixture missing its new field, and an accidentally
+renumbered unrelated constant in an existing event test. Fixed the wrapper
+and public aliases, populated the full fixture and restored the exact base
+assertion (42, not 43). Focused real plugin/codec/SQL checks passed. The second
+reported only stale generated configuration documentation following a comment
+update; `make generate` regenerated it. The latest aggregate run remains the
+completion gate, rather than treating either failed run as passing.
+
+The 60-second usersearch fuzz run passed (295,996 executions). govulncheck
+found no reachable/imported-package vulnerabilities; one required-module
+finding is unreachable. Zizmor passed offline with no findings after the CI
+matrix and conformance defaults changed (existing suppressions retained).
+Provenance source checks passed. No dependency was added or lockfile changed;
+npm installation of the existing console lockfile reported 13 moderate
+findings, with no automated audit fixes applied. The final fresh-context
+review, its fixes and CI remain outstanding. Nothing has been pushed.

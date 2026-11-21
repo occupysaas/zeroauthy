@@ -260,3 +260,17 @@ replaces that signing key for subsequent issuance. RP-initiated logout can
 validate an HS256 ID-token hint against that client's selected algorithm
 and current secret, including an expired hint as the logout specification
 allows. A hint cannot select HMAC for an asymmetric client.
+
+## ID token signing algorithms
+
+Application `jwt_configuration.alg` selects RS256 (default), PS256 or HS256
+for ID tokens. RS256 and PS256 use the tenant's managed signing key and JWKS.
+HS256 uses the application's newest active retrievable sealed client secret,
+with no `kid`; it requires confidential client-secret authentication and a
+secret of at least 32 characters. Public/native/SPA, hash-only and
+private-key-only applications cannot select it. Rotating the secret changes
+subsequent ID token signatures; verifiers must use the matching client
+secret. Logout notifications always use tenant RS256. The application
+console, seed and Deploy CLI preserve the choice. New API HS256 signing
+secret writes also require at least 32 characters; existing stored values
+retain their previous behavior. See [logout](logout.md).

@@ -119,7 +119,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		cfg.BackchannelLogoutSessionSupported = true
 		if _, ok := h.Store.(store.GlobalRevocationStore); ok {
 			cfg.GlobalTokenRevocationEndpoint = base + "/oauth/global-token-revocation/connection/{connectionName}"
-			cfg.GlobalTokenRevocationAuthMethods = []string{"private_key_jwt"}
+			cfg.GlobalTokenRevocationAuthMethods = []string{"global-token-revocation+jwt"}
 		}
 	}
 	if !h.Compat.IgnoreClaimsParameter {

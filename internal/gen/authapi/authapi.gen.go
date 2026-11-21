@@ -288,13 +288,13 @@ func (e OpenIDConfigurationDpopSigningAlgValuesSupported) Valid() bool {
 
 // Defines values for OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported.
 const (
-	PrivateKeyJwt OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported = "private_key_jwt"
+	GlobalTokenRevocationJwt OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported = "global-token-revocation+jwt"
 )
 
 // Valid indicates whether the value is a known member of the OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported enum.
 func (e OpenIDConfigurationGlobalTokenRevocationEndpointAuthMethodsSupported) Valid() bool {
 	switch e {
-	case PrivateKeyJwt:
+	case GlobalTokenRevocationJwt:
 		return true
 	default:
 		return false

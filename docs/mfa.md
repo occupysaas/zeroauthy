@@ -345,3 +345,21 @@ atomic. Recovery codes and remembered sessions follow the existing MFA rules.
 Guardian Twilio/phone-message-hook selection and tested custom Action
 examples. Management enrollment reads follow the tenant's obfuscation flag;
 logs always mask phone numbers.
+
+## Requested OIDC step-up
+
+An authorization request can require a multi-factor session with
+`acr_values=http://schemas.openid.net/pape/policies/2007/06/multi-factor`.
+An essential `id_token.acr` claim request with that value has the same effect.
+This requirement survives hosted continuations and cannot be bypassed by
+policy `never`, a remembered browser or an Action that skips MFA. An existing
+SSO session that already performed MFA satisfies it; another prompt is not
+required. A client request still cannot enable a factor the tenant cannot
+use. Unknown contexts remain voluntary and produce no invented assertion.
+
+After proof, the ID token contains the requested `acr` and `amr` includes
+`mfa`. Authorization codes and refresh families retain the requested context;
+a refreshed ID token omits it if the original MFA session is gone. The
+`acr_values_supported` tenant setting is intersected with the implemented
+context. Absent/null uses the default multi-factor context; `[]` disables
+it. Unsupported configured strings are not advertised.

@@ -2063,7 +2063,7 @@ components:
         token_endpoint_auth_signing_alg_values_supported: {type: array, items: {type: string, enum: [RS256, RS384, PS256]}, description: Algorithms accepted for client assertions; present when the store supports client credentials.}
         jwks_uri: {type: string, format: uri}
         global_token_revocation_endpoint: {type: string, description: "Connection-specific endpoint template with literal {connectionName}."}
-        global_token_revocation_endpoint_auth_methods_supported: {type: array, items: {type: string, enum: [private_key_jwt]}}
+        global_token_revocation_endpoint_auth_methods_supported: {type: array, items: {type: string, enum: [global-token-revocation+jwt]}}
         backchannel_logout_supported: {type: boolean, description: Advertised when oidc_logout.v1 client settings are available.}
         backchannel_logout_session_supported: {type: boolean}
         end_session_endpoint: {type: string, format: uri, description: Omitted when the tenant disables RP logout discovery; the endpoint remains available.}

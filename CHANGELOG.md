@@ -8,6 +8,11 @@ All notable changes to zeroauthy are recorded here. The format follows
 
 ### Added
 
+- OIDC claims requests, phone/address/profile claims, requested MFA step-up,
+  per-client ID token algorithms, back-channel logout with durable delivery,
+  and enterprise upstream global revocation. Console, seed and Deploy CLI
+  support accompany the settings. See [logout](docs/logout.md).
+
 - Refresh Tokens II: strict rotation overlap and conversion, multi-resource
   and session-bound online tokens, downstream DPoP, grant/session revocation,
   token/session metadata and device history, and client-credentials quotas.
